@@ -1,0 +1,57 @@
+etting up g++ (4:13.2.0-7ubuntu1) ...
+update-alternatives: using /usr/bin/g++ to provide /usr/bin/c++ (c++) in auto mode
+Setting up build-essential (12.10ubuntu1) ...
+Processing triggers for man-db (2.12.0-4build2) ...
+Processing triggers for libc-bin (2.39-0ubuntu8.6) ...
+Scanning processes...                                                                                   
+Scanning linux images...                                                                                
+
+Running kernel seems to be up-to-date.
+
+No services need to be restarted.
+
+No containers need to be restarted.
+
+No user sessions are running outdated binaries.
+
+No VM guests are running outdated hypervisor (qemu) binaries on this host.
+classi@srv1118737:~/projects/classiv3$ # أنت الآن في المسار الصحيح
+cd ~/projects/classiv3
+
+# 1. إعداد ملف البيئة
+cp .env.example .env
+nano .env
+
+# 2. إنشاء مجلدات nginx
+mkdir -p nginx/ssl nginx/logs
+
+# 3. شهادة SSL مؤقتة
+openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+    -keyout nginx/ssl/privkey.pem \
+    -out nginx/ssl/fullchain.pem \
+    -subj "/C=SA/ST=Riyadh/L=Riyadh/O=Classify/CN=localhost"
+
+# 4. تشغيل Docker
+docker-compose up -d --build
+
+# 5. انتظر 30 ثانية ثم شغل الجداول
+sleep 30
+docker-compose exec app npm run db:push
+
+# 6. التحقق
+docker-compose ps
+curl http://localhost:5000/api/health
+..+..+....+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*.........+.......+...+..+....+.................+...+.+...+...+..+...+...+.+...+..................+..+.+..+....+...........+....+......+...+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*....+.+..+...+...+............+..........+..................+......+...+.................+.+..+............+.+...+.....+.+...+............+...+..................+.........+........+.......+........+.+..+...+..........+......+.....+......+.........+...+.............+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+....+.........+....+...+.........+.....+..........+........+.+..+...+....+..+.........+.+......+..+..........+..+.+..+......+...............+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*.........+....+.....+.......+..+.......+..................+...........+.+...+...........+.......+..+...+...+.+......+..+......+..........+..+.............+.........+...........+.+...+......+..+.......+.....+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*.......+.+.....+....+........+...+.+...+........+...+.........+...............+.+......+...+...+..+.+..+..........+..............+...+..........+..+.............+..+....+.....+.......+.....+.......+..+...+.+.................+....+...+...+..+.+......+........+...+....+......+..+......+..........+...............+......+...+.....+.+..............+.......+...............+.....+.+.....+..................+...................+..+.+..+.+..+...............+...+.+..............+......+.+.......................+....+...+..+............+....+.........+...+..+...+.........+....+......+........+...+..................+.+.....+...+...+...+....+..+...+......+....+...+............+..+...+.+......+.....+....+....................+....+...+..+.+............+...+.....+................+...+...+...+..+.......+..+...+.......+........+......+....+...............+.....+.......+........+...+...+.+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+-----
+WARN[0000] The "RESEND_API_KEY" variable is not set. Defaulting to a blank string. 
+WARN[0000] /home/classi/projects/classiv3/docker-compose.yml: the attribute `version` is obsolete, it will be ignored, please remove it to avoid potential confusion 
+unable to get image 'postgres:15-alpine': permission denied while trying to connect to the Docker daemon socket at unix:///var/run/docker.sock: Get "http://%2Fvar%2Frun%2Fdocker.sock/v1.51/images/postgres:15-alpine/json": dial unix /var/run/docker.sock: connect: permission denied
+WARN[0000] The "RESEND_API_KEY" variable is not set. Defaulting to a blank string. 
+WARN[0000] /home/classi/projects/classiv3/docker-compose.yml: the attribute `version` is obsolete, it will be ignored, please remove it to avoid potential confusion 
+permission denied while trying to connect to the Docker daemon socket at unix:///var/run/docker.sock: Get "http://%2Fvar%2Frun%2Fdocker.sock/v1.51/containers/json?filters=%7B%22label%22%3A%7B%22com.docker.compose.config-hash%22%3Atrue%2C%22com.docker.compose.project%3Dclassiv3%22%3Atrue%2C%22com.docker.compose.service%3Dapp%22%3Atrue%7D%7D": dial unix /var/run/docker.sock: connect: permission denied
+WARN[0000] The "RESEND_API_KEY" variable is not set. Defaulting to a blank string. 
+WARN[0000] /home/classi/projects/classiv3/docker-compose.yml: the attribute `version` is obsolete, it will be ignored, please remove it to avoid potential confusion 
+permission denied while trying to connect to the Docker daemon socket at unix:///var/run/docker.sock: Get "http://%2Fvar%2Frun%2Fdocker.sock/v1.51/containers/json?filters=%7B%22label%22%3A%7B%22com.docker.compose.config-hash%22%3Atrue%2C%22com.docker.compose.oneoff%3DFalse%22%3Atrue%2C%22com.docker.compose.project%3Dclassiv3%22%3Atrue%7D%7D": dial unix /var/run/docker.sock: connect: permission denied
+curl: (7) Failed to connect to localhost port 5000 after 0 ms: Couldn't connect to server
+classi@srv1118737:~/projects/classiv3$ 

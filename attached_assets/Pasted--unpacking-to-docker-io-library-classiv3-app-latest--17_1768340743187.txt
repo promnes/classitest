@@ -1,0 +1,46 @@
+=> unpacking to docker.io/library/classiv3-app:latest                                                                        12.8s
+ => resolving provenance for metadata file                                                                                        0.0s
+[+] build 1/1
+ ✔ Image classiv3-app Built                                                                                                     280.9s 
+WARN[0000] No services to build                         
+[+] up 4/4
+ ✔ Network classiv3_classify-network Created                                                                                      0.1s 
+ ✔ Container classify-db             Healthy                                                                                      8.3s 
+ ✔ Container classify-app            Created                                                                                      0.4s 
+ ✔ Container classify-nginx          Created                                                                                      1.1s 
+NAME             IMAGE                COMMAND                  SERVICE   CREATED          STATUS                          PORTS
+classify-app     classiv3-app         "docker-entrypoint.s…"   app       48 seconds ago   Restarting (1) 12 seconds ago   
+classify-db      postgres:15-alpine   "docker-entrypoint.s…"   db        49 seconds ago   Up 46 seconds (healthy)         127.0.0.1:5433->5432/tcp
+classify-nginx   nginx:alpine         "/docker-entrypoint.…"   nginx     47 seconds ago   Up 2 seconds                    0.0.0.0:8080->80/tcp, [::]:8080->80/tcp, 0.0.0.0:8443->443/tcp, [::]:8443->443/tcp
+classify-app  | Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'vite' imported from /app/dist/index.js
+classify-app  |     at packageResolve (node:internal/modules/esm/resolve:873:9)
+classify-app  |     at moduleResolve (node:internal/modules/esm/resolve:946:18)
+classify-app  |     at defaultResolve (node:internal/modules/esm/resolve:1188:11)
+classify-app  |     at ModuleLoader.defaultResolve (node:internal/modules/esm/loader:708:12)
+classify-app  |     at #cachedDefaultResolve (node:internal/modules/esm/loader:657:25)
+classify-app  |     at ModuleLoader.resolve (node:internal/modules/esm/loader:640:38)
+classify-app  |     at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:264:38)
+classify-app  |     at ModuleJob._link (node:internal/modules/esm/module_job:168:49) {
+classify-app  |   code: 'ERR_MODULE_NOT_FOUND'
+classify-app  | }
+classify-app  | 
+classify-app  | Node.js v20.19.6
+classify-app  | node:internal/modules/esm/resolve:873
+classify-app  |   throw new ERR_MODULE_NOT_FOUND(packageName, fileURLToPath(base), null);
+classify-app  |         ^
+classify-app  | 
+classify-app  | Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'vite' imported from /app/dist/index.js
+classify-app  |     at packageResolve (node:internal/modules/esm/resolve:873:9)
+classify-app  |     at moduleResolve (node:internal/modules/esm/resolve:946:18)
+classify-app  |     at defaultResolve (node:internal/modules/esm/resolve:1188:11)
+classify-app  |     at ModuleLoader.defaultResolve (node:internal/modules/esm/loader:708:12)
+classify-app  |     at #cachedDefaultResolve (node:internal/modules/esm/loader:657:25)
+classify-app  |     at ModuleLoader.resolve (node:internal/modules/esm/loader:640:38)
+classify-app  |     at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:264:38)
+classify-app  |     at ModuleJob._link (node:internal/modules/esm/module_job:168:49) {
+classify-app  |   code: 'ERR_MODULE_NOT_FOUND'
+classify-app  | }
+classify-app  | 
+classify-app  | Node.js v20.19.6
+curl: (7) Failed to connect to localhost port 5000 after 0 ms: Couldn't connect to server
+classi@srv1118737:~/projects/classiv3$ 

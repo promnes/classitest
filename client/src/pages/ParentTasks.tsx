@@ -1,0 +1,818 @@
+import { useState, type ChangeEvent } from "react";
+import { useTranslation } from "react-i18next";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { useLocation } from "wouter";
+import { useTheme } from "@/contexts/ThemeContext";
+import { queryClient, apiRequest } from "@/lib/queryClient";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { ArrowRight, Plus, Star, Users, BookOpen, Send, Coins, Loader2, Calendar, Clock, X, Pencil } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { TaskForm, type TaskFormValue } from "@/components/forms/TaskForm";
+
+export default function ParentTasks() {
+  const { t } = useTranslation();
+  const [, navigate] = useLocation();
+  const { isDark } = useTheme();
+  const { toast } = useToast();
+
+  const [activeTab, setActiveTab] = useState("classy");
+  const [selectedSubject, setSelectedSubject] = useState<string>("");
+  const [selectedChild, setSelectedChild] = useState<string>("");
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [showSendDialog, setShowSendDialog] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<any>(null);
+  const [scheduleMode, setScheduleMode] = useState(false);
+  const [scheduleDate, setScheduleDate] = useState("");
+  const [scheduleTime, setScheduleTime] = useState("");
+  const [showScheduledTasks, setShowScheduledTasks] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [editTask, setEditTask] = useState<any>(null);
+  const [createFormKey, setCreateFormKey] = useState(0);
+  const [selectedChildForCreate, setSelectedChildForCreate] = useState<string>("");
+  const [saveAsTemplate, setSaveAsTemplate] = useState(false);
+  const NO_CHILD_VALUE = "__none__";
+
+  const { data: subjectsData } = useQuery<any>({
+    queryKey: ["/api/subjects"],
+  });
+
+  const { data: childrenData } = useQuery<any>({
+    queryKey: ["/api/parent/children"],
+  });
+
+  const { data: classyTasks, isLoading: loadingClassy } = useQuery<any>({
+    queryKey: ["/api/subjects", selectedSubject, "template-tasks"],
+    queryFn: async () => {
+      if (!selectedSubject) return [];
+      const res = await fetch(`/api/subjects/${selectedSubject}/template-tasks`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+      });
+      const data = await res.json();
+      return data.data || [];
+    },
+    enabled: activeTab === "classy" && !!selectedSubject,
+  });
+
+  const { data: myTasks, isLoading: loadingMy } = useQuery<any>({
+    queryKey: ["/api/parent/my-tasks", selectedSubject],
+    queryFn: async () => {
+      let url = "/api/parent/my-tasks";
+      if (selectedSubject) url += `?subjectId=${selectedSubject}`;
+      const res = await fetch(url, {
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+      });
+      const data = await res.json();
+      return data.data || [];
+    },
+    enabled: activeTab === "my",
+  });
+
+  const { data: publicTasks, isLoading: loadingPublic } = useQuery<any>({
+    queryKey: ["/api/parent/public-tasks", selectedSubject],
+    queryFn: async () => {
+      let url = "/api/parent/public-tasks";
+      if (selectedSubject) url += `?subjectId=${selectedSubject}`;
+      const res = await fetch(url, {
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+      });
+      const data = await res.json();
+      return data.data || [];
+    },
+    enabled: activeTab === "public",
+  });
+
+  const subjects = subjectsData?.data || subjectsData || [];
+  const children = childrenData?.data || childrenData || [];
+
+  const buildDefaultForm = (): TaskFormValue => ({
+    title: "",
+    question: "",
+    answers: [
+      { id: "1", text: "", isCorrect: true },
+      { id: "2", text: "", isCorrect: false },
+      { id: "3", text: "", isCorrect: false },
+    ],
+    pointsReward: 10,
+    difficulty: "medium",
+    subjectId: selectedSubject && selectedSubject !== "all" ? selectedSubject : "",
+    isPublic: false,
+    pointsCost: 5,
+    taskMedia: null,
+  });
+
+  const mapTaskToFormValue = (task: any): TaskFormValue => ({
+    title: task.title || "",
+    question: task.question || "",
+    answers: (task.answers || []).map((a: any, idx: number) => ({
+      id: a.id || String(idx + 1),
+      text: a.text || "",
+      isCorrect: !!a.isCorrect,
+      imageUrl: a.imageUrl,
+      media: a.media,
+    })),
+    pointsReward: task.pointsReward || 10,
+    difficulty: task.difficulty || "medium",
+    subjectId: task.subjectId || "",
+    isPublic: !!task.isPublic,
+    pointsCost: task.pointsCost ?? 5,
+    taskMedia: task.taskMedia || null,
+  });
+
+  const { data: scheduledTasks, isLoading: loadingScheduled, error: scheduledError } = useQuery<any>({
+    queryKey: ["/api/parent/scheduled-tasks"],
+    enabled: showScheduledTasks,
+  });
+
+  const createTaskMutation = useMutation({
+    mutationFn: async (data: any) => {
+      return apiRequest("POST", "/api/parent/create-custom-task", data);
+    },
+    onSuccess: () => {
+      toast({ title: t("parentTasks.taskCreated") });
+      setShowCreateDialog(false);
+      setCreateFormKey((k) => k + 1);
+      setSelectedChildForCreate("");
+      setSaveAsTemplate(false);
+      queryClient.invalidateQueries({ queryKey: ["/api/parent/my-tasks"] });
+    },
+    onError: () => {
+      toast({ title: t("parentTasks.taskCreateFailed"), variant: "destructive" });
+    },
+  });
+
+  const createAndSendTaskMutation = useMutation({
+    mutationFn: async (data: any) => {
+      return apiRequest("POST", "/api/parent/create-and-send-task", data);
+    },
+    onSuccess: (response: any) => {
+      const savedTemplate = response?.data?.templateTaskId;
+      toast({ 
+        title: savedTemplate 
+          ? t("parentTasks.taskCreatedAndSent") 
+          : t("parentTasks.taskSentSuccess"),
+        description: savedTemplate ? t("parentTasks.templateSaved") : undefined
+      });
+      setShowCreateDialog(false);
+      setCreateFormKey((k) => k + 1);
+      setSelectedChildForCreate("");
+      setSaveAsTemplate(false);
+      queryClient.invalidateQueries({ queryKey: ["/api/parent/my-tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/parent/children"] });
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: error?.message || t("parentTasks.taskCreateFailed"), 
+        variant: "destructive" 
+      });
+    },
+  });
+
+  const updateTaskMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const { id, title, question, answers, pointsReward, subjectId, isPublic, pointsCost } = data;
+      const payload = { title, question, answers, pointsReward, subjectId, isPublic, pointsCost };
+      const res = await fetch(`/api/parent/my-tasks/${id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) throw new Error("Failed to update task");
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({ title: t("parentTasks.taskUpdated") });
+      setShowEditDialog(false);
+      setEditTask(null);
+      queryClient.invalidateQueries({ queryKey: ["/api/parent/my-tasks"] });
+    },
+    onError: () => {
+      toast({ title: t("parentTasks.taskUpdateFailed"), variant: "destructive" });
+    },
+  });
+
+  const sendTaskMutation = useMutation({
+    mutationFn: async (data: { templateTaskId: string; childId: string; points?: number }) => {
+      return apiRequest("POST", "/api/parent/send-template-task", data);
+    },
+    onSuccess: () => {
+      toast({ title: t("parentTasks.taskSentSuccess") });
+      setShowSendDialog(false);
+      setSelectedTask(null);
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: error?.message || t("errors.failedToSendTask"), 
+        variant: "destructive" 
+      });
+    },
+  });
+
+  const scheduleTaskMutation = useMutation({
+    mutationFn: async (data: { templateTaskId: string; childId: string; scheduledAt: string }) => {
+      return apiRequest("POST", "/api/parent/scheduled-tasks", data);
+    },
+    onSuccess: () => {
+      toast({ title: t("taskScheduled") });
+      setShowSendDialog(false);
+      setSelectedTask(null);
+      setScheduleMode(false);
+      setScheduleDate("");
+      setScheduleTime("");
+      queryClient.invalidateQueries({ queryKey: ["/api/parent/scheduled-tasks"] });
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: error?.message || t("errors.failedToScheduleTask"), 
+        variant: "destructive" 
+      });
+    },
+  });
+
+  const cancelScheduledMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/parent/scheduled-tasks/${id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "Failed to cancel");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({ title: t("parentTasks.scheduleCancelled") });
+      queryClient.invalidateQueries({ queryKey: ["/api/parent/scheduled-tasks"] });
+    },
+    onError: (error: any) => {
+      toast({ title: error?.message || t("parentTasks.scheduleCancelFailed"), variant: "destructive" });
+    },
+  });
+
+  const handleCreateTaskSubmit = async (form: TaskFormValue) => {
+    const subjectId = form.subjectId || (selectedSubject && selectedSubject !== "all" ? selectedSubject : "");
+
+    // If sending directly to child
+    if (selectedChildForCreate) {
+      if (!form.question) {
+        toast({ title: t("parentTasks.fillRequiredFields"), variant: "destructive" });
+        return;
+      }
+      try {
+        await createAndSendTaskMutation.mutateAsync({
+          title: form.title,
+          question: form.question,
+          answers: form.answers.map((a) => ({ id: a.id, text: a.text, isCorrect: a.isCorrect, imageUrl: a.imageUrl })),
+          pointsReward: form.pointsReward,
+          subjectId: subjectId || null,
+          difficulty: form.difficulty,
+          childId: selectedChildForCreate,
+          saveAsTemplate,
+          taskMedia: form.taskMedia,
+        });
+      } catch (error) {
+        console.error("Task creation error:", error);
+        toast({ title: t("parentTasks.taskCreateFailed"), variant: "destructive" });
+      }
+      return;
+    }
+
+    // Creating template only (no child selected)
+    if (!form.title || !form.question || !subjectId) {
+      toast({ title: t("parentTasks.fillRequiredFields"), variant: "destructive" });
+      return;
+    }
+
+    try {
+      await createTaskMutation.mutateAsync({
+        title: form.title,
+        question: form.question,
+        answers: form.answers.map((a) => ({ id: a.id, text: a.text, isCorrect: a.isCorrect, imageUrl: a.imageUrl })),
+        pointsReward: form.pointsReward,
+        subjectId,
+        isPublic: form.isPublic,
+        pointsCost: form.pointsCost,
+      });
+    } catch (error) {
+      console.error("Task creation error:", error);
+      toast({ title: t("parentTasks.taskCreateFailed"), variant: "destructive" });
+    }
+  };
+
+  const handleEditTaskSubmit = async (form: TaskFormValue) => {
+    if (!editTask?.id) return;
+    if (!form.title || !form.question) {
+      toast({ title: t("parentTasks.fillRequiredFields"), variant: "destructive" });
+      return;
+    }
+
+    await updateTaskMutation.mutateAsync({
+      id: editTask.id,
+      title: form.title,
+      question: form.question,
+      answers: form.answers.map((a) => ({ id: a.id, text: a.text, isCorrect: a.isCorrect, imageUrl: a.imageUrl })),
+      pointsReward: form.pointsReward,
+      subjectId: form.subjectId,
+      isPublic: form.isPublic,
+      pointsCost: form.pointsCost,
+    });
+  };
+
+  const openEditDialog = (task: any) => {
+    setEditTask({ id: task.id, ...mapTaskToFormValue(task) });
+    setShowEditDialog(true);
+  };
+
+  const handleSendTask = () => {
+    if (!selectedTask || !selectedChild) {
+      toast({ title: t("parentTasks.selectChildRequired"), variant: "destructive" });
+      return;
+    }
+    
+    if (scheduleMode) {
+      if (!scheduleDate || !scheduleTime) {
+        toast({ title: t("parentTasks.selectDateTimeRequired"), variant: "destructive" });
+        return;
+      }
+      const scheduledAt = new Date(`${scheduleDate}T${scheduleTime}`).toISOString();
+      scheduleTaskMutation.mutate({
+        templateTaskId: selectedTask.id,
+        childId: selectedChild,
+        scheduledAt,
+      });
+    } else {
+      sendTaskMutation.mutate({
+        templateTaskId: selectedTask.id,
+        childId: selectedChild,
+      });
+    }
+  };
+
+  const openSendDialog = (task: any) => {
+    setSelectedTask(task);
+    setShowSendDialog(true);
+  };
+
+  const TaskCard = ({ task, showCost = false, showCreator = false, showEdit = false }: any) => (
+    <Card className={`${isDark ? "bg-gray-800 border-gray-700" : "bg-white"} hover:shadow-md transition-shadow`}>
+      <CardContent className="p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex-1 min-w-0">
+            <h3 className="font-bold text-sm mb-1 truncate">{task.title}</h3>
+            <p className="text-xs text-muted-foreground line-clamp-2">{task.question}</p>
+            {showCreator && task.creatorName && (
+              <p className="text-xs text-muted-foreground mt-1">
+                <Users className="h-3 w-3 inline ml-1" />
+                {task.creatorName}
+              </p>
+            )}
+          </div>
+          <div className="flex flex-col items-end gap-2">
+            <Badge variant="secondary" className="shrink-0">
+              <Star className="h-3 w-3 ml-1" />
+              {task.pointsReward} {t("parentTasks.points")}
+            </Badge>
+            {showCost && task.pointsCost > 0 && (
+              <Badge variant="outline" className="shrink-0 text-orange-600 border-orange-300">
+                <Coins className="h-3 w-3 ml-1" />
+                {task.pointsCost} {t("parentTasks.points")}
+              </Badge>
+            )}
+            <div className="flex gap-2">
+              {showEdit && (
+                <Button 
+                  size="sm" 
+                  variant="outline"
+                  onClick={() => openEditDialog(task)}
+                  data-testid={`edit-task-${task.id}`}
+                >
+                  <Pencil className="h-3 w-3 ml-1" />
+                  {t("parentTasks.edit")}
+                </Button>
+              )}
+              <Button 
+                size="sm" 
+                onClick={() => openSendDialog(task)}
+                data-testid={`send-task-${task.id}`}
+              >
+                <Send className="h-3 w-3 ml-1" />
+                {t("parentTasks.send")}
+              </Button>
+            </div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+
+  return (
+    <div className={`min-h-screen p-4 ${isDark ? "bg-gray-900 text-white" : "bg-gray-50"}`} dir="rtl">
+      <div className="max-w-4xl mx-auto space-y-6">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" onClick={() => navigate("/parent")} data-testid="back-button">
+            <ArrowRight className="h-5 w-5" />
+          </Button>
+          <h1 className="text-2xl font-bold">{t("parentTasks.tasksSection")}</h1>
+        </div>
+
+        <div className="flex gap-3 items-center flex-wrap">
+          <Select value={selectedSubject} onValueChange={setSelectedSubject}>
+            <SelectTrigger className="w-48" data-testid="select-subject">
+              <SelectValue placeholder={t("parentTasks.selectSubject")} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{t("parentTasks.allSubjects")}</SelectItem>
+              {subjects.map((s: any) => (
+                <SelectItem key={s.id} value={s.id}>
+                  {s.emoji} {s.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Button 
+            variant="outline" 
+            onClick={() => setShowScheduledTasks(true)}
+            data-testid="view-scheduled-tasks"
+          >
+            <Clock className="h-4 w-4 ml-2" />
+            {t("parentTasks.scheduledTasks")}
+          </Button>
+
+          <Dialog open={showCreateDialog} onOpenChange={(open) => {
+            setShowCreateDialog(open);
+            if (!open) {
+              setSelectedChildForCreate("");
+              setSaveAsTemplate(false);
+            }
+          }}>
+            <DialogTrigger asChild>
+              <Button data-testid="create-task-button">
+                <Plus className="h-4 w-4 ml-2" />
+                {t("parentTasks.createNewTask")}
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>{t("parentTasks.createNewTask")}</DialogTitle>
+              </DialogHeader>
+              
+              {/* Direct Assignment Section */}
+              <div className="space-y-4 mb-4 p-4 rounded-lg bg-muted/50">
+                <div>
+                  <Label className="text-sm font-medium">{t("parentTasks.sendDirectlyToChild")}</Label>
+                  <p className="text-xs text-muted-foreground mb-2">
+                    {t("parentTasks.selectChildOrLeaveEmpty")}
+                  </p>
+                  <Select
+                    value={selectedChildForCreate || NO_CHILD_VALUE}
+                    onValueChange={(value) => setSelectedChildForCreate(value === NO_CHILD_VALUE ? "" : value)}
+                  >
+                    <SelectTrigger data-testid="select-child-for-create">
+                      <SelectValue placeholder={t("parentTasks.selectChildPlaceholder")} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={NO_CHILD_VALUE}>{t("parentTasks.noChildTemplateOnly")}</SelectItem>
+                      {children.map((c: any) => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {selectedChildForCreate && (
+                  <div className="flex items-center justify-between p-3 rounded-lg bg-background">
+                    <div>
+                      <Label className="text-sm">{t("parentTasks.saveAsTemplate")}</Label>
+                      <p className="text-xs text-muted-foreground">{t("parentTasks.saveAsTemplateDesc")}</p>
+                    </div>
+                    <Switch
+                      checked={saveAsTemplate}
+                      onCheckedChange={setSaveAsTemplate}
+                      data-testid="save-as-template-switch"
+                    />
+                  </div>
+                )}
+              </div>
+
+              <TaskForm
+                key={`create-${createFormKey}`}
+                mode="parent"
+                initialValue={buildDefaultForm()}
+                subjects={subjects}
+                showSubject
+                allowPublic={!selectedChildForCreate}
+                allowDifficulty
+                onSubmit={handleCreateTaskSubmit}
+                submitting={createTaskMutation.isPending || createAndSendTaskMutation.isPending}
+                submitLabel={selectedChildForCreate ? t("parentTasks.createAndSend") : t("parentTasks.createTask")}
+              />
+            </DialogContent>
+          </Dialog>
+        </div>
+
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="classy" data-testid="tab-classy">
+              <BookOpen className="h-4 w-4 ml-2" />
+              {t("parentTasks.tabClassy")}
+            </TabsTrigger>
+            <TabsTrigger value="my" data-testid="tab-my">
+              <Star className="h-4 w-4 ml-2" />
+              {t("parentTasks.tabMy")}
+            </TabsTrigger>
+            <TabsTrigger value="public" data-testid="tab-public">
+              <Users className="h-4 w-4 ml-2" />
+              {t("parentTasks.tabPublic")}
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="classy" className="mt-4">
+            {!selectedSubject ? (
+              <Card className={isDark ? "bg-gray-800" : ""}>
+                <CardContent className="p-8 text-center">
+                  <BookOpen className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                  <p>{t("parentTasks.selectSubjectToView")}</p>
+                </CardContent>
+              </Card>
+            ) : loadingClassy ? (
+              <div className="flex justify-center p-8">
+                <Loader2 className="h-8 w-8 animate-spin" />
+              </div>
+            ) : (
+              <div className="grid gap-3">
+                {(classyTasks || []).length === 0 ? (
+                  <Card className={isDark ? "bg-gray-800" : ""}>
+                    <CardContent className="p-8 text-center">
+                      <p className="text-muted-foreground">{t("parentTasks.noTasksInSubject")}</p>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  (classyTasks || []).map((task: any) => (
+                    <TaskCard key={task.id} task={task} />
+                  ))
+                )}
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="my" className="mt-4">
+            {loadingMy ? (
+              <div className="flex justify-center p-8">
+                <Loader2 className="h-8 w-8 animate-spin" />
+              </div>
+            ) : (
+              <div className="grid gap-3">
+                {(myTasks || []).length === 0 ? (
+                  <Card className={isDark ? "bg-gray-800" : ""}>
+                    <CardContent className="p-8 text-center">
+                      <p className="text-muted-foreground">{t("parentTasks.noTasksCreated")}</p>
+                      <Button className="mt-4" onClick={() => setShowCreateDialog(true)}>
+                        <Plus className="h-4 w-4 ml-2" />
+                        {t("parentTasks.createTask")}
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  (myTasks || []).map((task: any) => (
+                    <TaskCard key={task.id} task={task} showEdit />
+                  ))
+                )}
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="public" className="mt-4">
+            <Card className={`mb-4 ${isDark ? "bg-orange-900/20 border-orange-500/30" : "bg-orange-50 border-orange-200"}`}>
+              <CardContent className="p-3 text-sm">
+                <Coins className="h-4 w-4 inline ml-2 text-orange-500" />
+                {t("parentTasks.publicTasksNote")}
+              </CardContent>
+            </Card>
+            
+            {loadingPublic ? (
+              <div className="flex justify-center p-8">
+                <Loader2 className="h-8 w-8 animate-spin" />
+              </div>
+            ) : (
+              <div className="grid gap-3">
+                {(publicTasks || []).length === 0 ? (
+                  <Card className={isDark ? "bg-gray-800" : ""}>
+                    <CardContent className="p-8 text-center">
+                      <p className="text-muted-foreground">{t("parentTasks.noPublicTasksAvailable")}</p>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  (publicTasks || []).map((task: any) => (
+                    <TaskCard key={task.id} task={task} showCost showCreator />
+                  ))
+                )}
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
+      </div>
+
+      <Dialog open={showSendDialog} onOpenChange={(open: boolean) => {
+        setShowSendDialog(open);
+        if (!open) {
+          setScheduleMode(false);
+          setScheduleDate("");
+          setScheduleTime("");
+        }
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{scheduleMode ? t("parentTasks.scheduleTask") : t("parentTasks.sendToChild")}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            {selectedTask && (
+              <Card className={isDark ? "bg-gray-800" : "bg-muted"}>
+                <CardContent className="p-3">
+                  <p className="font-bold">{selectedTask.title}</p>
+                  <p className="text-sm text-muted-foreground">{selectedTask.question}</p>
+                  {selectedTask.pointsCost > 0 && selectedTask.isPublic && (
+                    <Badge variant="outline" className="mt-2 text-orange-600">
+                      <Coins className="h-3 w-3 ml-1" />
+                      {t("parentTasks.pointsDeductWarning", { points: selectedTask.pointsCost })}
+                    </Badge>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            <div>
+              <Label>{t("parentTasks.chooseSendChild")}</Label>
+              <Select value={selectedChild} onValueChange={setSelectedChild}>
+                <SelectTrigger data-testid="select-child-send">
+                  <SelectValue placeholder={t("parentTasks.selectChild")} />
+                </SelectTrigger>
+                <SelectContent>
+                  {children.map((c: any) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.name} ({c.totalPoints} {t("parentTasks.points")})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Switch
+                checked={scheduleMode}
+                onCheckedChange={setScheduleMode}
+                data-testid="toggle-schedule-mode"
+              />
+              <Label className="flex items-center gap-2 cursor-pointer">
+                <Calendar className="h-4 w-4" />
+                {t("parentTasks.scheduleLaterLabel")}
+              </Label>
+            </div>
+
+            {scheduleMode && (
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label>{t("parentTasks.dateLabel")}</Label>
+                  <Input
+                    type="date"
+                    value={scheduleDate}
+                    onChange={(e: ChangeEvent<HTMLInputElement>) => setScheduleDate(e.target.value)}
+                    min={new Date().toISOString().split("T")[0]}
+                    data-testid="input-schedule-date"
+                  />
+                </div>
+                <div>
+                  <Label>{t("parentTasks.timeLabel")}</Label>
+                  <Input
+                    type="time"
+                    value={scheduleTime}
+                    onChange={(e: ChangeEvent<HTMLInputElement>) => setScheduleTime(e.target.value)}
+                    data-testid="input-schedule-time"
+                  />
+                </div>
+              </div>
+            )}
+
+            <Button
+              onClick={handleSendTask}
+              className="w-full"
+              disabled={(scheduleMode ? scheduleTaskMutation.isPending : sendTaskMutation.isPending) || !selectedChild}
+              data-testid="confirm-send-task"
+            >
+              {(scheduleMode ? scheduleTaskMutation.isPending : sendTaskMutation.isPending) ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : scheduleMode ? (
+                <>
+                  <Clock className="h-4 w-4 ml-2" />
+                  {t("parentTasks.scheduleTask")}
+                </>
+              ) : (
+                <>
+                  <Send className="h-4 w-4 ml-2" />
+                  {t("parentTasks.sendTask")}
+                </>
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showScheduledTasks} onOpenChange={setShowScheduledTasks}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Clock className="h-5 w-5" />
+              {t("parentTasks.scheduledTasks")}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            {loadingScheduled ? (
+              <div className="flex justify-center py-8">
+                <Loader2 className="h-8 w-8 animate-spin" />
+              </div>
+            ) : (scheduledTasks || []).length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <Calendar className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                <p>{t("parentTasks.noScheduledTasks")}</p>
+              </div>
+            ) : (
+              (scheduledTasks || []).map((st: any) => (
+                <Card key={st.id} className={isDark ? "bg-gray-800" : ""}>
+                  <CardContent className="p-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-bold text-sm">{st.templateTask?.title || t("parentTasks.task")}</p>
+                        <p className="text-xs text-muted-foreground">{t("parentTasks.forChild")}: {st.child?.name || t("parentTasks.unknownChild")}</p>
+                        <div className="flex items-center gap-2 mt-2 text-xs">
+                          <Badge variant={st.status === "pending" ? "secondary" : st.status === "sent" ? "default" : "outline"}>
+                            {st.status === "pending" ? t("parentTasks.pending") : st.status === "sent" ? t("parentTasks.sent") : t("parentTasks.cancelled")}
+                          </Badge>
+                          <span className="text-muted-foreground">
+                            <Clock className="h-3 w-3 inline ml-1" />
+                            {new Date(st.scheduledAt).toLocaleString("ar-SA")}
+                          </span>
+                        </div>
+                      </div>
+                      {st.status === "pending" && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => cancelScheduledMutation.mutate(st.id)}
+                          disabled={cancelScheduledMutation.isPending}
+                          data-testid={`cancel-scheduled-${st.id}`}
+                        >
+                          <X className="h-4 w-4 text-destructive" />
+                        </Button>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showEditDialog} onOpenChange={(open: boolean) => {
+        if (!open) {
+          setShowEditDialog(false);
+          setEditTask(null);
+        }
+      }}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{t("parentTasks.editTask")}</DialogTitle>
+          </DialogHeader>
+          {editTask && (
+            <TaskForm
+              key={`edit-${editTask.id}`}
+              mode="parent"
+              initialValue={mapTaskToFormValue(editTask)}
+              subjects={subjects}
+              showSubject
+              allowPublic
+              allowDifficulty
+              onSubmit={handleEditTaskSubmit}
+              submitting={updateTaskMutation.isPending}
+              submitLabel={t("parentTasks.saveChanges")}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}

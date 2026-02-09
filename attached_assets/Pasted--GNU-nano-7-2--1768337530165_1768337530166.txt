@@ -1,0 +1,231 @@
+  GNU nano 7.2                                                                                                                                                                                                                                 .env                                                                                                                                                                                                                                          
+# 📌 إعدادات TWILIO (استخدم هذا إذا SMS_PROVIDER=twilio)
+# ============================================================================
+# 
+# خطوات الإعداد:
+#   1. اذهب إلى https://www.twilio.com
+#   2. أنشئ حساباً واشترك في خدمة SMS
+#   3. احصل على Account SID و Auth Token
+#   4. اشترِ رقم هاتف لإرسال SMS منه
+#
+# النقاط:
+#   - تكلفة لكل SMS مرسل (عادةً $0.0075 - $0.01 لكل رسالة)
+#   - دعم عالمي فوري
+#   - موثوقية عالية جداً
+#   - واجهة API سهلة جداً
+
+TWILIO_ACCOUNT_SID=your-account-sid-here
+TWILIO_AUTH_TOKEN=your-auth-token-here
+TWILIO_FROM_NUMBER=+1234567890
+
+# ============================================================================
+# 📌 إعدادات AWS SNS (استخدم هذا إذا SMS_PROVIDER=aws)
+# ============================================================================
+#
+# خطوات الإعداد:
+#   1. اذهب إلى https://aws.amazon.com
+#   2. فعّل خدمة SNS (Simple Notification Service)
+#   3. أنشئ مستخدم IAM مع صلاحيات SNS
+#   4. احصل على Access Key ID و Secret Access Key
+#   5. اختبر الوصول من منطقتك الجغرافية
+#
+# النقاط:
+#   - تكلفة منخفضة جداً
+#   - ممتاز للأعمال الكبيرة
+#   - دعم عالمي جيد
+#   - يتطلب إعدادات تقنية أكثر
+
+AWS_ACCESS_KEY_ID=your-access-key-id
+AWS_SECRET_KEY=your-secret-access-key
+AWS_SNS_REGION=us-east-1
+
+# ============================================================================
+# 📌 إعدادات Firebase (استخدم هذا إذا SMS_PROVIDER=firebase)
+# ============================================================================ 
+#
+# خطوات الإعداد:
+#   1. اذهب إلى https://firebase.google.com
+#   2. أنشئ مشروع Firebase جديد
+#   3. فعّل Firebase Authentication
+#   4. فعّل خيار "Phone authentication"
+#   5. احصل على Firebase API Key
+#
+# النقاط:
+#   - مدمج مع Google Cloud
+#   - معايير أمان عالية جداً
+#   - سهل التكامل مع تطبيقات الجوال
+#   - تسعير مرن
+
+FIREBASE_API_KEY=your-firebase-api-key
+FIREBASE_PROJECT_ID=your-firebase-project-id
+FIREBASE_DATABASE_URL=https://your-project.firebaseio.com
+
+# ============================================================================ 
+# 📌 إعدادات Custom SMS API (استخدم هذا إذا SMS_PROVIDER=custom)
+# ============================================================================ 
+#
+# استخدم هذا إذا كان لديك مزود SMS خاص بك أو محلي
+# 
+# متطلبات API:
+#   - الطريقة: POST
+#   - Content-Type: application/json
+#   - الجسم:
+#     {
+#       "phoneNumber": "+966501234567",
+#       "message": "Your code is: 123456"
+#     }
+#   - الرد المتوقع:
+#     {
+#       "success": true,
+#       "messageId": "msg_12345"
+#     }
+
+SMS_ENDPOINT=https://your-sms-api.com/send
+SMS_API_TIMEOUT=10000
+
+# =============================================================================
+# 📁 تخزين الملفات
+# =============================================================================
+
+STORAGE_TYPE=local
+# STORAGE_TYPE=s3
+# STORAGE_TYPE=cloudinary
+
+UPLOAD_DIR=./uploads
+STATIC_DIR=./public
+MAX_FILE_SIZE=10mb
+ALLOWED_FILE_TYPES=jpg,jpeg,png,gif,pdf,doc,docx
+
+# Amazon S3 (اختياري)
+# S3_BUCKET=
+# S3_REGION=us-east-1
+# S3_ACCESS_KEY=
+# S3_SECRET_KEY=
+
+# =============================================================================
+# ⚡ التخزين المؤقت (Redis)
+# =============================================================================
+# لتحسين الأداء (اختياري)
+
+CACHE_ENABLED=false
+# CACHE_ENABLED=true
+
+# REDIS_URL=redis://localhost:6379
+# REDIS_HOST=localhost
+# REDIS_PORT=6379
+# REDIS_PASSWORD=
+CACHE_TTL=3600
+CACHE_TTL_SECONDS=3600 # canonical name expected by server config
+
+# =============================================================================
+# 📊 المراقبة والسجلات
+# =============================================================================
+
+# Sentry لتتبع الأخطاء (اختياري)
+# SENTRY_DSN=https://xxx@sentry.io/xxx
+
+LOG_FORMAT=text
+# LOG_FORMAT=json   # للإنتاج
+LOG_FILE_PATH=./logs/app.log
+AUDIT_LOG_ENABLED=true
+METRICS_ENABLED=false
+
+# =============================================================================
+# 📱 إعدادات تطبيق الجوال
+# =============================================================================
+
+# MOBILE_API_KEY=
+PUSH_NOTIFICATIONS_ENABLED=false
+
+# Firebase Cloud Messaging (Android)
+# FCM_SERVER_KEY=
+
+# Apple Push Notification Service (iOS)
+# APNS_KEY_ID=
+# APNS_TEAM_ID=
+
+# =============================================================================
+# 💳 إعدادات الدفع
+# =============================================================================
+
+PAYMENT_ENABLED=false
+PAYMENT_GATEWAY=
+# PAYMENT_GATEWAY=stripe
+# PAYMENT_GATEWAY=paypal
+# PAYMENT_GATEWAY=fawry
+# PAYMENT_GATEWAY=paymob
+
+# PAYMENT_API_KEY=
+# PAYMENT_SECRET=
+# PAYMENT_WEBHOOK_SECRET=
+
+# خدمات الدفع المصرية
+# VODAFONE_CASH_MERCHANT_ID=
+# VODAFONE_CASH_API_KEY=
+# FAWRY_MERCHANT_CODE=
+# FAWRY_SECURITY_KEY=
+# INSTAPAY_API_KEY=
+
+# =============================================================================
+# 🚩 أعلام الميزات (Feature Flags)
+# =============================================================================
+# للتحكم في تفعيل/إيقاف الميزات
+
+FEATURE_REGISTRATION=true
+FEATURE_2FA=true
+FEATURE_FLASH_GAMES=true
+FEATURE_STORE=true
+MAINTENANCE_MODE=false
+
+# =============================================================================
+# 💾 النسخ الاحتياطي
+# =============================================================================
+
+BACKUP_ENABLED=false
+AUTO_BACKUP=false
+BACKUP_SCHEDULE=0 2 * * *
+# يعني: كل يوم الساعة 2 صباحاً
+BACKUP_RETENTION_DAYS=7
+BACKUP_PATH=./backups
+
+# =============================================================================
+# 📝 أمثلة لبيئات مختلفة
+# =============================================================================
+#
+# === التطوير المحلي ===
+# NODE_ENV=development
+# APP_URL=http://localhost:5000
+# DEV_MODE=true
+# DEBUG=true
+# DB_SSL=false
+#
+# === Docker ===
+# NODE_ENV=production
+# DOCKER_ENV=true
+# PGHOST=db  (اسم الخدمة في docker-compose)
+# APP_URL=http://localhost:5000
+#
+# === VPS/Hostinger ===
+# NODE_ENV=production
+# APP_URL=https://yourdomain.com
+# SSL_ENABLED=true
+# FORCE_HTTPS=true
+# PM2_INSTANCES=max
+# NGINX_ENABLED=true
+#
+# === Replit ===
+# NODE_ENV=production
+# PORT=5000
+# HOST=0.0.0.0
+# (DATABASE_URL يتم توفيره تلقائياً)
+#
+# =============================================================================
+# ✅ ملاحظات مهمة
+# =============================================================================
+#
+# 1. لا تشارك هذا الملف مع أحد
+# 2. لا ترفع هذا الملف على GitHub أو أي مستودع عام
+# 3. غيّر جميع كلمات المرور والمفاتيح قبل النشر للإنتاج
+# 4. احتفظ بنسخة احتياطية من هذا الملف في مكان آمن
+# 5. استخدم لوحة التحكم /admin/env/dashboard لتعديل الإعدادات
+#

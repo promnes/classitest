@@ -1,0 +1,54 @@
+classi@srv1118737:~/projects/classiv3$ nano .env
+classi@srv1118737:~/projects/classiv3$ 
+classi@srv1118737:~/projects/classiv3$ sudo docker-compose logs app --tail 50
+classify-app  |   throw new ERR_MODULE_NOT_FOUND(packageName, fileURLToPath(base), null);
+classify-app  |         ^
+classify-app  | 
+classify-app  | Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'vite' imported from /app/dist/index.js
+classify-app  |     at packageResolve (node:internal/modules/esm/resolve:873:9)
+classify-app  |     at moduleResolve (node:internal/modules/esm/resolve:946:18)
+classify-app  |     at defaultResolve (node:internal/modules/esm/resolve:1188:11)
+classify-app  |     at ModuleLoader.defaultResolve (node:internal/modules/esm/loader:708:12)
+classify-app  |     at #cachedDefaultResolve (node:internal/modules/esm/loader:657:25)
+classify-app  |     at ModuleLoader.resolve (node:internal/modules/esm/loader:640:38)
+classify-app  |     at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:264:38)
+classify-app  |     at ModuleJob._link (node:internal/modules/esm/module_job:168:49) {
+classify-app  |   code: 'ERR_MODULE_NOT_FOUND'
+classify-app  | }
+classify-app  | 
+classify-app  | Node.js v20.19.6
+classify-app  | node:internal/modules/esm/resolve:873
+classify-app  |   throw new ERR_MODULE_NOT_FOUND(packageName, fileURLToPath(base), null);
+classify-app  |         ^
+classify-app  | 
+classify-app  | Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'vite' imported from /app/dist/index.js
+classify-app  |     at packageResolve (node:internal/modules/esm/resolve:873:9)
+classify-app  |     at moduleResolve (node:internal/modules/esm/resolve:946:18)
+classify-app  |     at defaultResolve (node:internal/modules/esm/resolve:1188:11)
+classify-app  |     at ModuleLoader.defaultResolve (node:internal/modules/esm/loader:708:12)
+classify-app  |     at #cachedDefaultResolve (node:internal/modules/esm/loader:657:25)
+classify-app  |     at ModuleLoader.resolve (node:internal/modules/esm/loader:640:38)
+classify-app  |     at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:264:38)
+classify-app  |     at ModuleJob._link (node:internal/modules/esm/module_job:168:49) {
+classify-app  |   code: 'ERR_MODULE_NOT_FOUND'
+classify-app  | }
+classify-app  | 
+classify-app  | Node.js v20.19.6
+classify-app  | node:internal/modules/esm/resolve:873
+classify-app  |   throw new ERR_MODULE_NOT_FOUND(packageName, fileURLToPath(base), null);
+classify-app  |         ^
+classify-app  | 
+classify-app  | Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'vite' imported from /app/dist/index.js
+classify-app  |     at packageResolve (node:internal/modules/esm/resolve:873:9)
+classify-app  |     at moduleResolve (node:internal/modules/esm/resolve:946:18)
+classify-app  |     at defaultResolve (node:internal/modules/esm/resolve:1188:11)
+classify-app  |     at ModuleLoader.defaultResolve (node:internal/modules/esm/loader:708:12)
+classify-app  |     at #cachedDefaultResolve (node:internal/modules/esm/loader:657:25)
+classify-app  |     at ModuleLoader.resolve (node:internal/modules/esm/loader:640:38)
+classify-app  |     at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:264:38)
+classify-app  |     at ModuleJob._link (node:internal/modules/esm/module_job:168:49) {
+classify-app  |   code: 'ERR_MODULE_NOT_FOUND'
+classify-app  | }
+classify-app  | 
+classify-app  | Node.js v20.19.6
+classi@srv1118737:~/projects/classiv3$ 

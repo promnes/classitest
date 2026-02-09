@@ -1,0 +1,28 @@
+AME             IMAGE                COMMAND                  SERVICE   CREATED          STATUS                    PORTS
+classify-app     classiv3-app         "docker-entrypoint.s…"   app       51 seconds ago   Up 45 seconds (healthy)   0.0.0.0:5000->5000/tcp, [::]:5000->5000/tcp
+classify-db      postgres:15-alpine   "docker-entrypoint.s…"   db        51 seconds ago   Up 51 seconds (healthy)   127.0.0.1:5433->5432/tcp
+classify-nginx   nginx:alpine         "/docker-entrypoint.…"   nginx     51 seconds ago   Up 45 seconds             0.0.0.0:8080->80/tcp, [::]:8080->80/tcp, 0.0.0.0:8443->443/tcp, [::]:8443->443/tcp
+classify-app  | ⚠️ SMS OTP Service: No SMS provider configured
+classify-app  | 
+classify-app  | ╔════════════════════════════════════════════╗
+classify-app  | ║  🚀 Classify Server Initialization        ║
+classify-app  | ╚════════════════════════════════════════════╝
+classify-app  | 
+classify-app  | 📋 Environment Configuration:
+classify-app  |   NODE_ENV: production
+classify-app  |   PORT: 5000
+classify-app  |   DATABASE_URL: ✅ SET
+classify-app  |   JWT_SECRET: ✅ SET
+classify-app  | 
+classify-app  | Stripe webhook not configured; skipping /api/payments/stripe/webhook route
+classify-app  | [NOTIFICATION_HANDLERS] Initializing gift event listeners...
+classify-app  | [NOTIFICATION_HANDLERS] ✅ All listeners initialized
+classify-app  | Serving static assets from: /app/dist/public
+classify-app  | Files found: assets, browserconfig.xml, icons, index.html, logo.jpg, manifest.json, sw.js
+classify-app  | ✅ Static file serving configured successfully
+classify-app  | 10:37:44 PM [express] ✓ Server running on http://0.0.0.0:5000
+classify-app  | 10:37:44 PM [express] ✓ Static assets: dist/public | SPA fallback: index.html
+classify-app  | 10:37:48 PM [express] GET /api/health 200 in 6ms :: {"status":"ok"}
+classify-app  | 10:38:18 PM [express] GET /api/health 200 in 1ms :: {"status":"ok"}
+{"status":"ok"}classi@srv1118737:~/projcurl http://localhost:5000/api/health5000/api/health
+{"status":"ok"}classi@srv1118737:~/projects/classiv3$ 

@@ -1,0 +1,40 @@
+715vh3r45k0ucfvfss2n
+
+Total reclaimed space: 3.796GB
+[+] Building 1072.2s (19/20)                                                                                                           
+ => [internal] load local bake definitions                                                                                        0.0s
+ => => reading from stdin 526B                                                                                                    0.0s
+ => [internal] load build definition from Dockerfile                                                                              0.2s
+ => => transferring dockerfile: 1.52kB                                                                                            0.0s
+ => [internal] load metadata for docker.io/library/node:20-alpine                                                                 1.8s
+ => [internal] load .dockerignore                                                                                                 0.2s
+ => => transferring context: 1.18kB                                                                                               0.0s
+ => [internal] load build context                                                                                                 0.5s
+ => => transferring context: 20.69MB                                                                                              0.3s
+ => [builder 1/6] FROM docker.io/library/node:20-alpine@sha256:658d0f63e501824d6c23e06d4bb95c71e7d704537c9d9272f488ac03a370d448   3.2s
+ => => resolve docker.io/library/node:20-alpine@sha256:658d0f63e501824d6c23e06d4bb95c71e7d704537c9d9272f488ac03a370d448           0.1s
+ => => sha256:fd1849a5c548bc65ee47a64498951bda5d40e87d08efe9dca69b5c8cdedc7a52 443B / 443B                                        0.4s
+ => => sha256:cb3325e64457574e24f92246e3da3376946e473d636209e1390eac47b50b26a3 1.26MB / 1.26MB                                    0.4s
+ => => sha256:8d06ba6946d1f299d8f962e37906c77006df33d47050430a57f7893ec35af697 42.78MB / 42.78MB                                  1.3s
+ => => sha256:1074353eec0db2c1d81d5af2671e56e00cf5738486f5762609ea33d606f88612 3.86MB / 3.86MB                                    0.4s
+ => => extracting sha256:1074353eec0db2c1d81d5af2671e56e00cf5738486f5762609ea33d606f88612                                         0.3s
+ => => extracting sha256:8d06ba6946d1f299d8f962e37906c77006df33d47050430a57f7893ec35af697                                         1.2s
+ => => extracting sha256:cb3325e64457574e24f92246e3da3376946e473d636209e1390eac47b50b26a3                                         0.1s
+ => => extracting sha256:fd1849a5c548bc65ee47a64498951bda5d40e87d08efe9dca69b5c8cdedc7a52                                         0.1s
+ => [builder 2/6] WORKDIR /app                                                                                                    0.6s
+ => [runner  3/11] RUN apk add --no-cache curl wget                                                                               1.9s
+ => [builder 3/6] COPY package*.json ./                                                                                           0.5s
+ => [builder 4/6] RUN npm ci                                                                                                     54.3s
+ => [runner  4/11] RUN addgroup --system --gid 1001 nodejs &&     adduser --system --uid 1001 appuser                             0.7s 
+ => [runner  5/11] COPY package*.json ./                                                                                          0.3s 
+ => [runner  6/11] RUN npm ci --only=production && npm cache clean --force                                                       52.0s 
+ => [builder 5/6] COPY . .                                                                                                        2.5s 
+ => [builder 6/6] RUN npm run build                                                                                              18.1s 
+ => [runner  7/11] COPY --from=builder /app/dist ./dist                                                                           1.6s 
+ => [runner  8/11] COPY --from=builder /app/shared ./shared                                                                       1.4s 
+ => [runner  9/11] COPY --from=builder /app/migrations ./migrations                                                               1.3s 
+ => [runner 10/11] COPY --from=builder /app/drizzle.config.ts ./                                                                  0.6s 
+ => [runner 11/11] RUN mkdir -p /app/uploads /app/logs &&     chown -R appuser:nodejs /app                                      983.9s 
+                                                                                                                                       
+                                                                                                                                       
+                                                                                                       

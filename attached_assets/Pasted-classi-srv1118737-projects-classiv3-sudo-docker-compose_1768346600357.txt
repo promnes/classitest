@@ -1,0 +1,39 @@
+classi@srv1118737:~/projects/classiv3$ # تحقق من لوجات قاعدة البيانات
+sudo docker-compose logs db --tail 30
+
+# تحقق من المتغيرات داخل الحاوية
+sudo docker exec classify-db env | grep POSTGRES
+classify-db  | 2026-01-13 22:37:37.576 UTC [1] LOG:  database system is ready to accept connections
+classify-db  | 2026-01-13 22:42:37.659 UTC [25] LOG:  checkpoint starting: time
+classify-db  | 2026-01-13 22:42:37.666 UTC [25] LOG:  checkpoint complete: wrote 3 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.003 s, sync=0.001 s, total=0.008 s; sync files=2, longest=0.001 s, average=0.001 s; distance=0 kB, estimate=0 kB
+classify-db  | 2026-01-13 23:15:38.064 UTC [1714] ERROR:  relation "seo_settings" does not exist at character 691
+classify-db  | 2026-01-13 23:15:38.064 UTC [1714] STATEMENT:  select "id", "site_title", "site_description", "keywords", "og_title", "og_description", "og_image", "og_type", "twitter_card", "twitter_site", "twitter_creator", "robots_index", "robots_follow", "robots_noarchive", "googlebot", "bingbot", "allow_gpt_bot", "allow_claude_bot", "allow_google_ai", "sitemap_enabled", "sitemap_changefreq", "sitemap_priority", "schema_org_type", "schema_org_name", "schema_org_description", "schema_org_logo", "google_analytics_id", "google_tag_manager_id", "facebook_pixel_id", "canonical_url", "default_language", "hreflang_tags", "theme_color", "manifest_name", "manifest_short_name", "custom_head_code", "custom_body_code", "updated_at", "updated_by" from "seo_settings"
+classify-db  | 2026-01-13 23:15:42.050 UTC [1716] ERROR:  relation "social_login_providers" does not exist at character 104
+classify-db  | 2026-01-13 23:15:42.050 UTC [1716] STATEMENT:  select "id", "provider", "display_name", "display_name_ar", "icon_url", "icon_name", "sort_order" from "social_login_providers" where "social_login_providers"."is_active" = $1 order by "social_login_providers"."sort_order"
+classify-db  | 2026-01-13 23:16:24.977 UTC [1747] ERROR:  relation "seo_settings" does not exist at character 691
+classify-db  | 2026-01-13 23:16:24.977 UTC [1747] STATEMENT:  select "id", "site_title", "site_description", "keywords", "og_title", "og_description", "og_image", "og_type", "twitter_card", "twitter_site", "twitter_creator", "robots_index", "robots_follow", "robots_noarchive", "googlebot", "bingbot", "allow_gpt_bot", "allow_claude_bot", "allow_google_ai", "sitemap_enabled", "sitemap_changefreq", "sitemap_priority", "schema_org_type", "schema_org_name", "schema_org_description", "schema_org_logo", "google_analytics_id", "google_tag_manager_id", "facebook_pixel_id", "canonical_url", "default_language", "hreflang_tags", "theme_color", "manifest_name", "manifest_short_name", "custom_head_code", "custom_body_code", "updated_at", "updated_by" from "seo_settings"
+classify-db  | 2026-01-13 23:16:44.120 UTC [1763] ERROR:  relation "social_login_providers" does not exist at character 104
+classify-db  | 2026-01-13 23:16:44.120 UTC [1763] STATEMENT:  select "id", "provider", "display_name", "display_name_ar", "icon_url", "icon_name", "sort_order" from "social_login_providers" where "social_login_providers"."is_active" = $1 order by "social_login_providers"."sort_order"
+classify-db  | 2026-01-13 23:17:07.096 UTC [1786] ERROR:  relation "seo_settings" does not exist at character 691
+classify-db  | 2026-01-13 23:17:07.096 UTC [1786] STATEMENT:  select "id", "site_title", "site_description", "keywords", "og_title", "og_description", "og_image", "og_type", "twitter_card", "twitter_site", "twitter_creator", "robots_index", "robots_follow", "robots_noarchive", "googlebot", "bingbot", "allow_gpt_bot", "allow_claude_bot", "allow_google_ai", "sitemap_enabled", "sitemap_changefreq", "sitemap_priority", "schema_org_type", "schema_org_name", "schema_org_description", "schema_org_logo", "google_analytics_id", "google_tag_manager_id", "facebook_pixel_id", "canonical_url", "default_language", "hreflang_tags", "theme_color", "manifest_name", "manifest_short_name", "custom_head_code", "custom_body_code", "updated_at", "updated_by" from "seo_settings"
+classify-db  | 2026-01-13 23:17:31.562 UTC [1802] ERROR:  relation "admins" does not exist at character 61
+classify-db  | 2026-01-13 23:17:31.562 UTC [1802] STATEMENT:  select "id", "email", "password", "role", "created_at" from "admins" where "admins"."email" = $1
+classify-db  | 2026-01-13 23:17:36.069 UTC [1810] ERROR:  relation "seo_settings" does not exist at character 691
+classify-db  | 2026-01-13 23:17:36.069 UTC [1810] STATEMENT:  select "id", "site_title", "site_description", "keywords", "og_title", "og_description", "og_image", "og_type", "twitter_card", "twitter_site", "twitter_creator", "robots_index", "robots_follow", "robots_noarchive", "googlebot", "bingbot", "allow_gpt_bot", "allow_claude_bot", "allow_google_ai", "sitemap_enabled", "sitemap_changefreq", "sitemap_priority", "schema_org_type", "schema_org_name", "schema_org_description", "schema_org_logo", "google_analytics_id", "google_tag_manager_id", "facebook_pixel_id", "canonical_url", "default_language", "hreflang_tags", "theme_color", "manifest_name", "manifest_short_name", "custom_head_code", "custom_body_code", "updated_at", "updated_by" from "seo_settings"
+classify-db  | 2026-01-13 23:17:43.819 UTC [1812] ERROR:  relation "admins" does not exist at character 61
+classify-db  | 2026-01-13 23:17:43.819 UTC [1812] STATEMENT:  select "id", "email", "password", "role", "created_at" from "admins" where "admins"."email" = $1
+classify-db  | 2026-01-13 23:17:51.247 UTC [1820] ERROR:  relation "admins" does not exist at character 61
+classify-db  | 2026-01-13 23:17:51.247 UTC [1820] STATEMENT:  select "id", "email", "password", "role", "created_at" from "admins" where "admins"."email" = $1
+classify-db  | 2026-01-13 23:18:18.332 UTC [1844] ERROR:  relation "admins" does not exist at character 61
+classify-db  | 2026-01-13 23:18:18.332 UTC [1844] STATEMENT:  select "id", "email", "password", "role", "created_at" from "admins" where "admins"."email" = $1
+classify-db  | 2026-01-13 23:19:38.926 UTC [1907] ERROR:  relation "admins" does not exist at character 61
+classify-db  | 2026-01-13 23:19:38.926 UTC [1907] STATEMENT:  select "id", "email", "password", "role", "created_at" from "admins" where "admins"."email" = $1
+classify-db  | 2026-01-13 23:20:46.776 UTC [1957] FATAL:  role "postgres" does not exist
+classify-db  | 2026-01-13 23:21:10.434 UTC [1980] ERROR:  relation "admins" does not exist at character 61
+classify-db  | 2026-01-13 23:21:10.434 UTC [1980] STATEMENT:  select "id", "email", "password", "role", "created_at" from "admins" where "admins"."email" = $1
+classify-db  | 2026-01-13 23:22:11.239 UTC [2032] FATAL:  role "classify" does not exist
+classify-db  | 2026-01-13 23:22:37.045 UTC [2055] FATAL:  role "classify" does not exist
+POSTGRES_USER=classify_user
+POSTGRES_PASSWORD=M784951m!!!!
+POSTGRES_DB=classify_db
+classi@srv1118737:~/projects/classiv3$ 

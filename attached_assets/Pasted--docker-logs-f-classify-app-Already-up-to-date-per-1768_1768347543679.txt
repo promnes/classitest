@@ -1,0 +1,36 @@
+
+# مراقبة السجلات لرؤية تهيئة قاعدة البيانات
+docker logs -f classify-app
+Already up to date.
+permission denied while trying to connect to the Docker daemon socket at unix:///var/run/docker.sock: Get "http://%2Fvar%2Frun%2Fdocker.sock/v1.51/containers/json?all=1&filters=%7B%22label%22%3A%7B%22com.docker.compose.config-hash%22%3Atrue%2C%22com.docker.compose.oneoff%3DFalse%22%3Atrue%2C%22com.docker.compose.project%3Dclassiv3%22%3Atrue%7D%7D": dial unix /var/run/docker.sock: connect: permission denied
+[+] Building 0.0s (0/0)                                                                                                               
+[+] build 0/1
+ ⠋ Image classiv3-app Building                                                                                                   0.0s 
+permission denied while trying to connect to the Docker daemon socket at unix:///var/run/docker.sock: Head "http://%2Fvar%2Frun%2Fdocker.sock/_ping": dial unix /var/run/docker.sock: connect: permission denied
+
+unable to get image 'postgres:15-alpine': permission denied while trying to connect to the Docker daemon socket at unix:///var/run/docker.sock: Get "http://%2Fvar%2Frun%2Fdocker.sock/v1.51/images/postgres:15-alpine/json": dial unix /var/run/docker.sock: connect: permission denied
+permission denied while trying to connect to the docker API at unix:///var/run/docker.sock
+classi@srv1118737:~/projects/classiv3$ cd ~/projects/classiv3
+
+# سحب آخر التحديثات
+git pull
+
+# إيقاف وحذف الحاويات القديمة
+docker compose down
+
+# إعادة بناء وتشغيل (بدون cache لضمان التحديث)
+docker compose build --no-cache
+docker compose up -d
+
+# مراقبة السجلات لرؤية تهيئة قاعدة البيانات
+docker logs -f classify-app
+Already up to date.
+permission denied while trying to connect to the Docker daemon socket at unix:///var/run/docker.sock: Get "http://%2Fvar%2Frun%2Fdocker.sock/v1.51/containers/json?all=1&filters=%7B%22label%22%3A%7B%22com.docker.compose.config-hash%22%3Atrue%2C%22com.docker.compose.oneoff%3DFalse%22%3Atrue%2C%22com.docker.compose.project%3Dclassiv3%22%3Atrue%7D%7D": dial unix /var/run/docker.sock: connect: permission denied
+[+] Building 0.0s (0/0)                                                                                                               
+[+] build 0/1
+ ⠋ Image classiv3-app Building                                                                                                   0.1s 
+permission denied while trying to connect to the Docker daemon socket at unix:///var/run/docker.sock: Head "http://%2Fvar%2Frun%2Fdocker.sock/_ping": dial unix /var/run/docker.sock: connect: permission denied
+
+unable to get image 'classiv3-app': permission denied while trying to connect to the Docker daemon socket at unix:///var/run/docker.sock: Get "http://%2Fvar%2Frun%2Fdocker.sock/v1.51/images/classiv3-app/json": dial unix /var/run/docker.sock: connect: permission denied
+permission denied while trying to connect to the docker API at unix:///var/run/docker.sock
+classi@srv1118737:~/projects/classiv3$ 

@@ -1,0 +1,47 @@
+
+# شغّل من جديد
+sudo docker-compose up -d
+
+# انتظر 30 ثانية
+sleep 30
+
+# تحقق
+sudo docker-compose ps
+curl http://localhost:5000/api/health
+remote: Enumerating objects: 25, done.
+remote: Counting objects: 100% (25/25), done.
+remote: Compressing objects: 100% (5/5), done.
+remote: Total 17 (delta 8), reused 17 (delta 8), pack-reused 0 (from 0)
+Unpacking objects: 100% (17/17), 189.30 KiB | 1.06 MiB/s, done.
+From github.com:promnes/classiv3
+ * branch            main       -> FETCH_HEAD
+   67e19ea..1486de3  main       -> origin/main
+Updating 67e19ea..1486de3
+Fast-forward
+ .local/state/replit/agent/.agent_state_main.bin | Bin 120676 -> 81088 bytes
+ .local/state/replit/agent/repl_state.bin        | Bin 15667 -> 15667 bytes
+ docker-compose.yml                              |   4 ++--
+ 3 files changed, 2 insertions(+), 2 deletions(-)
+[+] down 7/7
+ ✔ Container classify-nginx          Removed                                                                     0.0s 
+ ✔ Container classify-app            Removed                                                                     0.0s 
+ ✔ Container classify-db             Removed                                                                     0.0s 
+ ✔ Volume classiv3_app_uploads       Removed                                                                     0.0s 
+ ✔ Network classiv3_classify-network Removed                                                                     0.0s 
+ ✔ Volume classiv3_app_logs          Removed                                                                     0.0s 
+ ✔ Volume classiv3_postgres_data     Removed                                                                     0.0s 
+WARN[0000] No services to build                         
+[+] up 7/7
+ ✔ Network classiv3_classify-network Created                                                                     0.0s 
+ ✔ Volume classiv3_app_logs          Created                                                                     0.0s 
+ ✔ Volume classiv3_postgres_data     Created                                                                     0.0s 
+ ✔ Volume classiv3_app_uploads       Created                                                                     0.0s 
+ ✔ Container classify-db             Healthy                                                                     5.8s 
+ ✔ Container classify-app            Created                                                                     0.0s 
+ ✔ Container classify-nginx          Created                                                                     0.0s 
+Error response from daemon: failed to set up container networking: driver failed programming external connectivity on endpoint classify-nginx (3cd72af534c12b34cb152e177d7bb6d908494cd61fed98401372bf4e7ba15401): failed to bind host port 0.0.0.0:80/tcp: address already in use
+NAME           IMAGE                COMMAND                  SERVICE   CREATED          STATUS                         PORTS
+classify-app   classiv3-app         "docker-entrypoint.s…"   app       37 seconds ago   Restarting (1) 2 seconds ago   
+classify-db    postgres:15-alpine   "docker-entrypoint.s…"   db        37 seconds ago   Up 36 seconds (healthy)        127.0.0.1:5433->5432/tcp
+curl: (7) Failed to connect to localhost port 5000 after 0 ms: Couldn't connect to server
+classi@srv1118737:~/projects/classiv3$ 

@@ -1,0 +1,217 @@
+GNU nano 7.2 .env
+APP_NAME=Classify
+APP_URL=https://classi-fy.com
+NODE_ENV=production
+PORT=5000
+HOST=0.0.0.0
+API_VERSION=v1
+RESEND_API_KEY=re_UNE5aq8z_NZdjR8cjxc2jqaS6kFuEa7zJ
+# ✅ SMTP Configuration - Updated 2025-12-08
+# تم تصحيح الإعدادات من مثال وهمي إلى إعدادات حقيقية
+SMTP_HOST=smtp.hostinger.com
+SMTP_PORT=587
+SMTP_SECURE=false # true لو تستخدم TLS/SSL على المنفذ 465
+SMTP_USER=info@classi-fy.com
+SMTP_PASSWORD=M784951m!!!!! # ✅ تم التحديث - احرص على استخدام كلمة المرور الصحيحة من Hostinger
+SMTP_FROM="Classify <info@classi-fy.com>"
+OTP_EXPIRY_MINUTES=5
+# ملاحظة: إذا لم ينجح mail.classi-fy.com، جرّب smtp.mail.hostinger.com
+# PostgreSQL Database Connection
+DATABASE_URL=postgresql://classify_user:M784951m!!!!localhost:5433/classify_db
+POSTGRES_USER=classify_user
+POSTGRES_PASSWORD=M784951m!!!!
+POSTGRES_DB=classify_db
+POSTGRES_HOST=127.0.0.1
+POSTGRES_PORT=5433
+
+# PostgreSQL Environment Variables (PG client compatibility)
+PGHOST=127.0.0.1
+PGPORT=5433
+PGUSER=classify_user
+PGPASSWORD=M784951m!!!!
+PGDATABASE=classify_db
+
+# Database Connection Pool Settings
+DB_SSL=fals
+DB_POOL_MIN=2
+DB_POOL_MAX=10
+# Twilio SMS Service Credentials
+SMS_OTP_ENABLED=false
+TWILIO_ACCOUNT_SID=AC08d3a9f0d57a3b06d310d208d76bd666
+TWILIO_AUTH_TOKEN=ef408d3330748b780e8f1e1d16e33afd
+TWILIO_FROM_NUMBER=+1234567890
+#############################################
+# Classify — Single `.env` (Comprehensive)
+# IMPORTANT: This file is a template with placeholder values.
+# Replace every `replace_*` value with real secrets before deploying.
+# Do NOT commit real secrets to version control.
+#############################################
+
+########################
+# App / General
+########################
+# NODE_ENV: development | production | test
+NODE_ENV=production
+# Application host and port
+PORT=5000
+HOST=0.0.0.0
+# Public app URL used for deep links
+APP_URL=https://classi-fy.com
+
+########################
+# Frontend / Backend URLs
+########################
+FRONTEND_URL=https://classi-fy.com
+BACKEND_URL=https://api.classi-fy.com
+
+########################
+# Database (Postgres)
+########################
+# Format: postgresql://user:password@host:port/dbname
+#DATABASE_URL=postgresql://replace_db_user:replace_db_pass@db-host.example.com:5432/class_prod
+# Optional pooling hints used by drizzles/pg pool
+DB_POOL_MIN=2
+DB_POOL_MAX=20
+
+########################
+# Authentication / JWT
+########################
+# Use a strong random string (at least 32 chars)
+JWT_SECRET=59c67c4b5ce280c9e8c4d8d57a8d2817e1a8437716770a2d550274161726a817
+JWT_EXPIRES_IN=30d
+
+########################
+# Session / Admin panel
+########################
+SESSION_SECRET=46b5fad0cbebf5f72e518ca99183ae71f85fbf23e04e37c03ce71ccc5dd15599
+ADMIN_EMAIL=info@classi-fy.com
+# Admin panel password (used by env-dashboard admin login)
+ADMIN_PANEL_PASSWORD=M784951m
+# Note: some scripts reference `ADMIN_PASSWORD` for bootstrapping — keep if used
+# ADMIN_PASSWORD=replace_with_admin_password
+
+########################
+# SMTP / Email (Nodemailer)
+########################
+# The code expects SMTP_* names (SMTP_HOST, SMTP_PORT, SMTP_SECURE, SMTP_USER, SMTP_PASSWORD, SMTP_FROM)
+#SMTP_HOST=smtp.mail.hostinger.com
+#SMTP_PORT=587
+#SMTP_SECURE=false
+#SMTP_USER=info@classi-fy.com
+#SMTP_PASSWORD=M784951m!m784951m
+#SMTP_FROM="Classify <ninfo@classi-fy.com>"
+
+########################
+# OTP / Email settings
+########################
+# OTP expiry in minutes (used by sendOtpEmail and tests)
+OTP_EXPIRY_MINUTES=10
+OTP_RATE_LIMIT_PER_HOUR=5
+# Optional test email used by local scripts
+TEST_EMAIL=test@example.com
+
+########################
+# SMS / OTP Providers
+########################
+# SMS provider selection: twilio | aws | firebase | custom
+#SMS_PROVIDER=twilio
+#SMS_API_KEY=replace_with_sms_api_key
+#SMS_API_TIMEOUT=10000
+
+# Twilio specific
+#TWILIO_ACCOUNT_SID=ACXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+#TWILIO_AUTH_TOKEN=replace_with_twilio_auth_token
+# Use either TWILIO_FROM_NUMBER or TWILIO_PHONE_NUMBER depending on code
+#WILIO_PHONE_NUMBER=+10000000000
+# Optional/custom SMS provider key used in some integration scripts
+# Some integrations expect `CUSTOM_SMS_API_KEY` (custom provider). If you use it,
+# set it to your provider API key.
+#CUSTOM_SMS_API_KEY=replace_with_custom_sms_api_key
+
+# AWS / custom SMS (optional)
+#AWS_ACCESS_KEY_ID=replace_aws_access_key_id
+#AWS_SECRET_KEY=replace_aws_secret_key
+#SMS_ENDPOINT=https://sms-provider.example.com/send
+
+########################
+# Redis (caching, sessions)
+########################
+# Either provide a full URL or host/port separately
+# Full Redis URL (preferred)
+#REDIS_URL=redis://:replace_redis_password@redis-host.example.com:6379/0
+# Also provide host/port variants because some scripts reference them separately
+#REDIS_HOST=redis-host.example.com
+#REDIS_PORT=6379
+# Optional Redis password (if needed)
+# REDIS_PASSWORD=replace_redis_password
+# Optional (alternative):
+# REDIS_HOST=redis-host.example.com
+# REDIS_PORT=6379
+# REDIS_PASSWORD=replace_redis_password
+
+########################
+# Payments
+########################
+#STRIPE_SECRET_KEY=sk_test_replace_this
+#STRIPE_PUBLISHABLE_KEY=pk_test_replace_this
+
+########################
+# Observability / Errors
+########################
+SENTRY_DSN=
+LOG_LEVEL=info
+
+########################
+# Site / SEO / Contact (optional, used by admin routes)
+########################
+CONTACT_PHONE=+00000000000
+CONTACT_EMAIL=contact@classi-fy.com
+CONTACT_ADDRESS="Company address here"
+SEO_TITLE=Classify - Parental Control & Education
+SEO_DESCRIPTION=Educational parental control platform
+SEO_KEYWORDS=parental control,education,kids
+
+########################
+# Feature flags / tuning
+########################
+FEATURE_STORE=true
+PM2_INSTANCES=auto
+MAX_FILE_UPLOAD_MB=20
+
+########################
+# Misc / Health
+########################
+HEALTHCHECK_PATH=/api/health
+
+########################
+# Legacy / Alternate names (kept commented for compatibility)
+########################
+# Some scripts use NODEMAILER_* names: keep them as aliases if you prefer
+# NODEMAILER_HOST=${SMTP_HOST}
+# NODEMAILER_PORT=${SMTP_PORT}
+# NODEMAILER_SECURE=${SMTP_SECURE}
+# NODEMAILER_USER=${SMTP_USER}
+# NODEMAILER_PASS=${SMTP_PASSWORD}
+
+# Some code references APP_URL (deep links) — keep aligned with FRONTEND_URL/APP_URL
+# APP_URL=${FRONTEND_URL}
+
+########################
+# Development helpers (comment out in production)
+########################
+# DEV_ONLY_FEATURE=true
+# DEBUG_EMAIL_DELIVERIES=true
+
+########################
+# Instructions (Arabic)
+########################
+# هذا الملف يحتوي على جميع متغيرات البيئة التي يستخدمها المشروع.
+# - استبدل جميع القيم التي تبدأ بـ `replace_` أو `ACXXXX...` أو `sk_test_` بالقيم الحقيقية.
+# - لا تقم بدفع هذه القيم إلى المستودع.
+# - على السيرفر استخدم مدير أسرار Hostinger أو Vault لو أمكن.
+# - بعد التعديل، أعد تشغيل الخدمة (مثلاً باستخدام pm2) وشغل فحص الـ smoke:
+# pm2 restart ecosystem.config.js
+# bash test-suite.sh smoke
+
+
+

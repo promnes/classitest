@@ -1,0 +1,61 @@
+Act as a senior backend engineer.
+
+I want you to build a production-ready web backend that can safely handle more than 4000 concurrent users, not just a simple demo.
+
+Requirements:
+
+1) Tech stack:
+- Node.js + Express
+- PostgreSQL as the main database
+- Use an ORM (Prisma or Sequelize)
+- Use Redis for:
+  - caching
+  - storing sessions (no in-memory sessions)
+
+2) Architecture:
+- Design the backend to be stateless so it can be scaled horizontally behind a load balancer.
+- Do NOT store user-specific state in process memory.
+- Put all configuration in environment variables.
+- Organize the project in a clean folder structure:
+  - /src/server.ts (entry point)
+  - /src/config/
+  - /src/routes/
+  - /src/controllers/
+  - /src/services/
+  - /src/models/
+  - /src/middleware/
+  - /src/utils/
+
+3) Performance & scalability:
+- All main list endpoints must use pagination (limit/offset or cursor).
+- Avoid N+1 queries and heavy joins; use proper indexes and efficient queries.
+- Use Redis caching for expensive or frequently requested data.
+- Implement HTTP keep-alive and gzip compression (via middleware).
+- Write the code so it can be deployed behind Nginx or another reverse proxy.
+
+4) Security & reliability:
+- Implement robust input validation on all endpoints (for example using Zod or Joi).
+- Sanitize inputs to avoid SQL injection and XSS.
+- Use Helmet and proper CORS configuration.
+- Implement authentication with:
+  - either JWT (access + refresh tokens) OR
+  - secure cookie-based sessions stored in Redis.
+- Add rate limiting middleware to protect login and sensitive routes.
+- Add centralized error handling middleware and never leak internal error details.
+
+5) Logging & monitoring:
+- Add structured logging (for example with pino or Winston).
+- Log all important events: logins, failed logins, critical errors.
+- Make logs easy to filter by request ID or user ID.
+
+6) Testing:
+- Add at least a few example unit tests and integration tests:
+  - one test for a normal endpoint
+  - one test for an authenticated endpoint
+  - one test for error handling
+- Use a standard test framework (Jest or similar).
+
+7) Developer experience:
+- Add an npm script for:
+  - dev mode
+  - running tests
