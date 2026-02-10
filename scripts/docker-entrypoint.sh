@@ -76,7 +76,7 @@ run_migrations() {
         
         if npx drizzle-kit push --force 2>&1; then
             echo "  ✅ Database schema synchronized successfully!"
-            echo "  All 84 tables have been created/updated"
+            echo "  All 92 tables have been created/updated"
             return 0
         fi
         
