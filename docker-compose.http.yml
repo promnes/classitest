@@ -1,10 +1,35 @@
 services:
+  traefik:
+    image: traefik:v3.3
+    command:
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entryPoints.web.address=:80"
+      - "--ping=true"
+      - "--ping.entryPoint=web"
+    ports:
+      - "80:80"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    restart: unless-stopped
+    networks:
+      - classify-network
+    healthcheck:
+      test: ["CMD", "traefik", "healthcheck", "--ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
   app:
     build:
       context: .
       dockerfile: Dockerfile
-    ports:
-      - "5000:5000"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.classify.rule=Host(`classi-fy.com`) || Host(`www.classi-fy.com`) || PathPrefix(`/`)"
+      - "traefik.http.routers.classify.entrypoints=web"
+      - "traefik.http.services.classify.loadbalancer.server.port=5000"
     environment:
       - NODE_ENV=production
       - PORT=5000
@@ -96,25 +121,6 @@ services:
           memory: 256M
         reservations:
           memory: 128M
-
-  nginx:
-    build:
-      context: ./nginx
-      dockerfile: Dockerfile
-    ports:
-      - "80:80"
-    depends_on:
-      app:
-        condition: service_healthy
-    restart: unless-stopped
-    networks:
-      - classify-network
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 10s
 
 networks:
   classify-network:
