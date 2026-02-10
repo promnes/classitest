@@ -98,12 +98,11 @@ services:
           memory: 128M
 
   nginx:
-    image: nginx:1.25-alpine
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
     ports:
       - "80:80"
-    volumes:
-      - ./nginx/nginx.http.conf:/etc/nginx/nginx.conf:ro
-      - ./nginx/logs:/var/log/nginx
     depends_on:
       app:
         condition: service_healthy
