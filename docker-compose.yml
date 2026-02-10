@@ -12,21 +12,35 @@ services:
       - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
       - "--ping=true"
       - "--ping.entryPoint=web"
+      - "--accesslog=true"
+      - "--accesslog.bufferingsize=100"
+      - "--api.dashboard=false"
     ports:
       - "80:80"
       - "443:443"
     volumes:
       - letsencrypt_data:/letsencrypt
       - /var/run/docker.sock:/var/run/docker.sock:ro
-    restart: unless-stopped
+    restart: always
     networks:
       - classify-network
     healthcheck:
       test: ["CMD", "traefik", "healthcheck", "--ping"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+      interval: 15s
+      timeout: 5s
+      retries: 5
       start_period: 10s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 64M
 
   app:
     build:
@@ -39,12 +53,20 @@ services:
       - "traefik.http.routers.classify-secure.entrypoints=websecure"
       - "traefik.http.routers.classify-secure.tls.certresolver=letsencrypt"
       - "traefik.http.services.classify.loadbalancer.server.port=5000"
+      - "traefik.http.services.classify.loadbalancer.healthcheck.path=/api/health"
+      - "traefik.http.services.classify.loadbalancer.healthcheck.interval=10s"
       # HTTP → HTTPS redirect
       - "traefik.http.routers.classify.rule=Host(`classi-fy.com`) || Host(`www.classi-fy.com`)"
       - "traefik.http.routers.classify.entrypoints=web"
       - "traefik.http.routers.classify.middlewares=https-redirect"
       - "traefik.http.middlewares.https-redirect.redirectscheme.scheme=https"
       - "traefik.http.middlewares.https-redirect.redirectscheme.permanent=true"
+      # Security headers
+      - "traefik.http.middlewares.security-headers.headers.stsSeconds=63072000"
+      - "traefik.http.middlewares.security-headers.headers.stsIncludeSubdomains=true"
+      - "traefik.http.middlewares.security-headers.headers.frameDeny=true"
+      - "traefik.http.middlewares.security-headers.headers.contentTypeNosniff=true"
+      - "traefik.http.routers.classify-secure.middlewares=security-headers"
     environment:
       - NODE_ENV=production
       - PORT=5000
@@ -72,7 +94,9 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-    restart: unless-stopped
+      traefik:
+        condition: service_healthy
+    restart: always
     volumes:
       - app_uploads:/app/uploads
       - app_logs:/app/logs
@@ -80,10 +104,15 @@ services:
       - classify-network
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5000/api/health"]
-      interval: 30s
+      interval: 15s
       timeout: 10s
-      retries: 3
+      retries: 5
       start_period: 60s
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "5"
     deploy:
       resources:
         limits:
@@ -97,11 +126,20 @@ services:
       - POSTGRES_USER=${POSTGRES_USER:?POSTGRES_USER is required}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
       - POSTGRES_DB=${POSTGRES_DB:-classify_db}
+      - POSTGRES_INITDB_ARGS=--auth-host=scram-sha-256
+    command:
+      - "postgres"
+      - "-c"
+      - "max_connections=200"
+      - "-c"
+      - "shared_buffers=128MB"
+      - "-c"
+      - "log_min_duration_statement=1000"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
       - "127.0.0.1:5433:5432"
-    restart: unless-stopped
+    restart: always
     networks:
       - classify-network
     healthcheck:
@@ -110,6 +148,11 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "5"
     deploy:
       resources:
         limits:
@@ -119,7 +162,8 @@ services:
 
   redis:
     image: redis:7.2-alpine
-    restart: unless-stopped
+    restart: always
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory", "128mb", "--maxmemory-policy", "allkeys-lru"]
     volumes:
       - redis_data:/data
     networks:
@@ -128,8 +172,13 @@ services:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 5s
-      retries: 3
+      retries: 5
       start_period: 5s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     deploy:
       resources:
         limits:
