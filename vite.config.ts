@@ -5,7 +5,7 @@ import path from "path";
 // Production-ready Vite config
 export default defineConfig({
   root: path.resolve(process.cwd(), "client"),
-  base: "./",
+  base: "/",
   plugins: [react()],
   resolve: {
     alias: {

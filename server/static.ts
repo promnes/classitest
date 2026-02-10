@@ -36,14 +36,21 @@ export function serveStatic(app: Express) {
   }
 
   app.use(express.static(distPath, {
-    maxAge: "30d",
-    etag: false,
+    etag: true,
     index: false,
     setHeaders: (res, filePath) => {
-      if (filePath.includes(`${path.sep}assets${path.sep}`)) {
-        res.setHeader("Cache-Control", "public, max-age=2592000, immutable");
+      const basename = path.basename(filePath);
+      // Never cache sw.js, manifest.json, or index.html
+      if (basename === 'sw.js' || basename === 'manifest.json' || basename === 'index.html') {
+        res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+        res.setHeader("Pragma", "no-cache");
+        res.setHeader("Expires", "0");
+      } else if (filePath.includes(`${path.sep}assets${path.sep}`)) {
+        // Hashed assets are immutable
+        res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
       } else {
-        res.setHeader("Cache-Control", "public, max-age=300");
+        // Icons and other static files: 1 day
+        res.setHeader("Cache-Control", "public, max-age=86400");
       }
     }
   }));
