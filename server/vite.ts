@@ -113,12 +113,17 @@ export function serveStatic(app: Express) {
     etag: false,
     index: false,
     setHeaders: (res, filePath) => {
+      const lowerPath = filePath.toLowerCase();
       if (filePath.includes(`${path.sep}assets${path.sep}`)) {
         // Hashed files are safe to cache immutably
         res.setHeader("Cache-Control", "public, max-age=2592000, immutable");
-      } else {
-        res.setHeader("Cache-Control", "public, max-age=300");
+        return;
       }
+      if (/\.(png|jpe?g|gif|svg|webp|avif|ico|woff2?|ttf|eot)$/.test(lowerPath)) {
+        res.setHeader("Cache-Control", "public, max-age=604800");
+        return;
+      }
+      res.setHeader("Cache-Control", "public, max-age=300");
     }
   }));
 

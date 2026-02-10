@@ -24,6 +24,10 @@ export const Home = (): JSX.Element => {
               <img 
                 src="/logo.jpg" 
                 alt="Classify" 
+                width={56}
+                height={56}
+                decoding="async"
+                loading="eager"
                 className="h-14 w-14 rounded-full shadow-lg border-4 border-yellow-400 object-cover"
               />
               <div className="absolute -bottom-1 -right-1 bg-green-500 text-white text-sm rounded-full w-6 h-6 flex items-center justify-center font-bold shadow-lg">
@@ -45,6 +49,8 @@ export const Home = (): JSX.Element => {
             />
             <button
               onClick={toggleTheme}
+              type="button"
+              aria-label={isDark ? "Switch to light theme" : "Switch to dark theme"}
               className="px-3 py-2 bg-yellow-400 hover:bg-yellow-500 text-gray-900 rounded-full font-semibold transition-all shadow-md hover:shadow-lg text-lg"
               title="Toggle theme"
             >
@@ -55,11 +61,16 @@ export const Home = (): JSX.Element => {
       </header>
 
       {/* Hero */}
-      <div className="flex-1 flex flex-col items-center justify-center px-4 py-20">
+      <main className="flex-1 flex flex-col items-center justify-center px-4 py-20">
         <div className="flex items-center gap-6 mb-4">
           <img 
             src="/logo.jpg" 
             alt="Classify Logo" 
+            width={128}
+            height={128}
+            decoding="async"
+            loading="eager"
+            fetchPriority="high"
             className="h-24 w-24 md:h-32 md:w-32 rounded-full shadow-2xl border-4 border-yellow-400 object-cover animate-bounce"
           />
           <h1 className={`text-4xl md:text-6xl font-bold text-center ${
@@ -109,7 +120,7 @@ export const Home = (): JSX.Element => {
             <p className={isDark ? "text-green-200" : "text-green-700"}>{t("gamesAndTasks")}</p>
           </button>
         </div>
-      </div>
+      </main>
 
       {/* Footer */}
       <footer className={`text-center py-6 ${isDark ? "text-gray-300" : "text-purple-100"}`}>
