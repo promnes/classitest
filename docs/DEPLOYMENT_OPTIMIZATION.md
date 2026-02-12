@@ -57,7 +57,8 @@ app:
   container_name: classify-app
   build:
     cache_from:
-      - type=registry,ref=ghcr.io/your-org/classify:cache
+      # Registry cache can be added if using a private registry:
+      # - type=registry,ref=ghcr.io/your-org/classify:cache
 ```
 
 ### 3. Fast Deployment Script

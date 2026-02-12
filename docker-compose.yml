@@ -49,9 +49,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      # Use BuildKit for faster builds with caching
-      cache_from:
-        - type=registry,ref=ghcr.io/your-org/classify:cache
     image: classify-app:latest
     container_name: classify-app
     labels:
