@@ -20,8 +20,9 @@ export function UsersTab({ token }: { token: string }) {
       const res = await fetch("/api/admin/parents", {
         headers: { Authorization: `Bearer ${token}` },
       });
+      const json = await res.json();
       if (!res.ok) return [];
-      return res.json() as Promise<ParentData[]>;
+      return (json?.data || []) as ParentData[];
     },
     enabled: !!token,
   });

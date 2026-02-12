@@ -29,8 +29,10 @@ import { SocialLoginTab } from "@/components/admin/SocialLoginTab";
 import { OTPProvidersTab } from "@/components/admin/OTPProvidersTab";
 import { SeoSettingsTab } from "@/components/admin/SeoSettingsTab";
 import { SupportSettingsTab } from "@/components/admin/SupportSettingsTab";
+import { GiftsTab } from "@/components/admin/GiftsTab";
+import { NotificationSettingsTab } from "@/components/admin/NotificationSettingsTab";
 
-type TabType = "dashboard" | "products" | "categories" | "symbols" | "users" | "settings" | "wallets" | "orders" | "deposits" | "activity" | "analytics" | "payment-methods" | "subjects" | "notifications" | "referrals" | "ads" | "parents" | "profits" | "libraries" | "social-login" | "otp-providers" | "seo" | "support";
+type TabType = "dashboard" | "products" | "categories" | "symbols" | "users" | "settings" | "wallets" | "orders" | "deposits" | "activity" | "analytics" | "payment-methods" | "subjects" | "notifications" | "notification-settings" | "gifts" | "referrals" | "ads" | "parents" | "profits" | "libraries" | "social-login" | "otp-providers" | "seo" | "support";
 
 export const AdminDashboard = (): JSX.Element => {
   const { t, i18n } = useTranslation();
@@ -69,6 +71,8 @@ export const AdminDashboard = (): JSX.Element => {
     { id: "analytics", labelKey: "admin.walletAnalytics", icon: "📈" },
     { id: "activity", labelKey: "admin.activityLog", icon: "📋" },
     { id: "notifications", labelKey: "admin.notifications", icon: "🔔" },
+    { id: "notification-settings", labelKey: "admin.notificationSettings", icon: "🧩" },
+    { id: "gifts", labelKey: "admin.gifts", icon: "🎁" },
     { id: "referrals", labelKey: "admin.referrals", icon: "🤝" },
     { id: "ads", labelKey: "admin.ads", icon: "📢" },
     { id: "libraries", labelKey: "admin.libraries", icon: "📖" },
@@ -154,6 +158,8 @@ export const AdminDashboard = (): JSX.Element => {
           {activeTab === "analytics" && <WalletAnalytics token={token} />}
           {activeTab === "activity" && <ActivityLogTab token={token} />}
           {activeTab === "notifications" && <NotificationsTab token={token} />}
+          {activeTab === "notification-settings" && <NotificationSettingsTab token={token} />}
+          {activeTab === "gifts" && <GiftsTab token={token} />}
           {activeTab === "referrals" && <ReferralsTab token={token} />}
           {activeTab === "ads" && <AdsTab token={token} />}
           {activeTab === "parents" && <ParentsTab token={token} />}

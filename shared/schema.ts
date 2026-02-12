@@ -477,7 +477,7 @@ export const parentWallet = pgTable("parent_wallet", {
 
 export const paymentMethods = pgTable("payment_methods", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  parentId: varchar("parent_id").notNull().references(() => parents.id, { onDelete: "cascade" }),
+  parentId: varchar("parent_id").references(() => parents.id, { onDelete: "cascade" }),
   type: varchar("type", { length: 30 }).notNull(),
   accountNumber: text("account_number").notNull(),
   accountName: text("account_name"),
@@ -495,6 +495,9 @@ export const deposits = pgTable("deposits", {
   amount: decimal("amount", { precision: 12, scale: 2 }).notNull(),
   status: varchar("status", { length: 20 }).default("pending").notNull(),
   transactionId: text("transaction_id"),
+  notes: text("notes"),
+  adminNotes: text("admin_notes"),
+  reviewedAt: timestamp("reviewed_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   completedAt: timestamp("completed_at"),
 });

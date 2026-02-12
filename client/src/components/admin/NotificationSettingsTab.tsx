@@ -70,9 +70,9 @@ export const NotificationSettingsTab: React.FC<{ token: string }> = ({ token }) 
     },
   });
 
-  const settings = settingsData?.data || [];
+  const settings = settingsData?.data?.items || [];
   const stats = statsData?.data || {};
-  const pagination = settingsData?.pagination || {};
+  const pagination = settingsData?.data?.pagination || {};
 
   const modeLabels: Record<string, string> = {
     popup_strict: "نافذة منبثقة صارمة",

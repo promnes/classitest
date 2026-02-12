@@ -23,8 +23,9 @@ export function OrdersTab({ token }: { token: string }) {
       const res = await fetch("/api/admin/orders", {
         headers: { Authorization: `Bearer ${token}` },
       });
+      const json = await res.json();
       if (!res.ok) return [];
-      return res.json() as Promise<OrderData[]>;
+      return (json?.data || []) as OrderData[];
     },
     enabled: !!token,
   });

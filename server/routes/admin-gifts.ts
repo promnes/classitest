@@ -49,19 +49,20 @@ export async function registerGiftManagementRoutes(app: Express) {
         })
       );
 
-      res.json({
-        success: true,
-        data: enriched,
+      res.json(successResponse({
+        items: enriched,
         pagination: {
           page: pageNum,
           limit: limitNum,
           total: countResult.length,
           totalPages: Math.ceil(countResult.length / limitNum),
         },
-      });
+      }));
     } catch (error: any) {
       console.error("Fetch gifts error:", error);
-      res.status(500).json({ message: "Failed to fetch gifts" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to fetch gifts"));
     }
   });
 
@@ -78,10 +79,12 @@ export async function registerGiftManagementRoutes(app: Express) {
         totalValue: allGifts.reduce((sum: number, g: any) => sum + (g.pointsCost || 0), 0),
       };
 
-      res.json({ success: true, data: stats });
+      res.json(successResponse(stats));
     } catch (error: any) {
       console.error("Fetch gift stats error:", error);
-      res.status(500).json({ message: "Failed to fetch stats" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to fetch stats"));
     }
   });
 
@@ -92,12 +95,16 @@ export async function registerGiftManagementRoutes(app: Express) {
       const { status } = req.body;
 
       if (!status || !["pending", "delivered", "acknowledged"].includes(status)) {
-        return res.status(400).json({ message: "Invalid status" });
+        return res
+          .status(400)
+          .json(errorResponse(ErrorCode.BAD_REQUEST, "Invalid status"));
       }
 
       const gift = await db.select().from(childGifts).where(eq(childGifts.id, giftId));
       if (!gift[0]) {
-        return res.status(404).json({ message: "Gift not found" });
+        return res
+          .status(404)
+          .json(errorResponse(ErrorCode.NOT_FOUND, "Gift not found"));
       }
 
       const updatedFields: any = { status };
@@ -114,10 +121,12 @@ export async function registerGiftManagementRoutes(app: Express) {
         .where(eq(childGifts.id, giftId))
         .returning();
 
-      res.json({ success: true, data: updated[0] });
+      res.json(successResponse(updated[0]));
     } catch (error: any) {
       console.error("Update gift error:", error);
-      res.status(500).json({ message: "Failed to update gift" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to update gift"));
     }
   });
 
@@ -128,20 +137,26 @@ export async function registerGiftManagementRoutes(app: Express) {
 
       const gift = await db.select().from(childGifts).where(eq(childGifts.id, giftId));
       if (!gift[0]) {
-        return res.status(404).json({ message: "Gift not found" });
+        return res
+          .status(404)
+          .json(errorResponse(ErrorCode.NOT_FOUND, "Gift not found"));
       }
 
       // Only allow deletion of pending gifts
       if (gift[0].status !== "pending") {
-        return res.status(400).json({ message: "Can only delete pending gifts" });
+        return res
+          .status(400)
+          .json(errorResponse(ErrorCode.BAD_REQUEST, "Can only delete pending gifts"));
       }
 
       await db.delete(childGifts).where(eq(childGifts.id, giftId));
 
-      res.json({ success: true, message: "Gift deleted" });
+      res.json(successResponse(undefined, "Gift deleted"));
     } catch (error: any) {
       console.error("Delete gift error:", error);
-      res.status(500).json({ message: "Failed to delete gift" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to delete gift"));
     }
   });
 }

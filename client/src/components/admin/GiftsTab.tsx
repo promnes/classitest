@@ -95,9 +95,9 @@ export const GiftsTab: React.FC<{ token: string }> = ({ token }) => {
     },
   });
 
-  const gifts = giftsData?.data || [];
+  const gifts = giftsData?.data?.items || [];
   const stats = statsData?.data || {};
-  const pagination = giftsData?.pagination || {};
+  const pagination = giftsData?.data?.pagination || {};
 
   return (
     <div className="space-y-6">

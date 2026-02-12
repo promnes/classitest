@@ -30,8 +30,9 @@ export function ProductsTab({ token }: { token: string }) {
       const res = await fetch("/api/admin/products", {
         headers: { Authorization: `Bearer ${token}` },
       });
+      const json = await res.json();
       if (!res.ok) return [];
-      return res.json() as Promise<Product[]>;
+      return (json?.data || []) as Product[];
     },
     enabled: !!token,
   });

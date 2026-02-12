@@ -289,10 +289,12 @@ export function registerAdminSettingsRoutes(app: Express) {
         payment: payment[0] || null,
       };
 
-      res.json(response);
+      res.json(successResponse(response));
     } catch (error: any) {
       console.error("Fetch public settings error:", error);
-      res.status(500).json({ message: "Failed to fetch settings" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to fetch settings"));
     }
   });
 
@@ -308,10 +310,12 @@ export function registerAdminSettingsRoutes(app: Express) {
       const site = await db.select().from(siteSettings);
       const theme = await db.select().from(themeSettings);
 
-      res.json({ app: appS, rewards, tasks, store, notification, payment, site, theme });
+      res.json(successResponse({ app: appS, rewards, tasks, store, notification, payment, site, theme }));
     } catch (error: any) {
       console.error("Fetch admin settings error:", error);
-      res.status(500).json({ message: "Failed to fetch admin settings" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to fetch admin settings"));
     }
   });
 
@@ -320,29 +324,39 @@ export function registerAdminSettingsRoutes(app: Express) {
     try {
       const { table } = req.params;
       const tbl = tableForName(table);
-      if (!tbl) return res.status(400).json({ message: "Unknown settings table" });
+      if (!tbl) {
+        return res
+          .status(400)
+          .json(errorResponse(ErrorCode.BAD_REQUEST, "Unknown settings table"));
+      }
 
       // special handling for key/value tables
       if (tbl === appSettings || tbl === siteSettings) {
         const { key, value } = req.body;
-        if (!key) return res.status(400).json({ message: "Key is required" });
+        if (!key) {
+          return res
+            .status(400)
+            .json(errorResponse(ErrorCode.BAD_REQUEST, "Key is required"));
+        }
 
         // try update existing
         const existing = await db.select().from(tbl).where(eq(tbl.key, key));
         if (existing[0]) {
           await db.update(tbl).set({ value }).where(eq(tbl.key, key));
-          return res.json({ success: true, message: "Updated" });
+          return res.json(successResponse(undefined, "Updated"));
         }
         await db.insert(tbl).values({ key, value });
-        return res.json({ success: true, message: "Created" });
+        return res.json(successResponse(undefined, "Created"));
       }
 
       // generic: insert a row
       const insertRes = await db.insert(tbl).values(req.body).returning();
-      res.json({ success: true, data: insertRes[0] });
+      res.json(successResponse(insertRes[0]));
     } catch (error: any) {
       console.error("Create setting error:", error);
-      res.status(500).json({ message: "Failed to create setting" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to create setting"));
     }
   });
 
@@ -351,13 +365,19 @@ export function registerAdminSettingsRoutes(app: Express) {
     try {
       const { table, id } = req.params;
       const tbl = tableForName(table);
-      if (!tbl) return res.status(400).json({ message: "Unknown settings table" });
+      if (!tbl) {
+        return res
+          .status(400)
+          .json(errorResponse(ErrorCode.BAD_REQUEST, "Unknown settings table"));
+      }
 
       await db.update(tbl).set(req.body).where(eq(tbl.id, id));
-      res.json({ success: true });
+      res.json(successResponse());
     } catch (error: any) {
       console.error("Update setting error:", error);
-      res.status(500).json({ message: "Failed to update setting" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to update setting"));
     }
   });
 
@@ -366,13 +386,19 @@ export function registerAdminSettingsRoutes(app: Express) {
     try {
       const { table, id } = req.params;
       const tbl = tableForName(table);
-      if (!tbl) return res.status(400).json({ message: "Unknown settings table" });
+      if (!tbl) {
+        return res
+          .status(400)
+          .json(errorResponse(ErrorCode.BAD_REQUEST, "Unknown settings table"));
+      }
 
       await db.delete(tbl).where(eq(tbl.id, id));
-      res.json({ success: true });
+      res.json(successResponse());
     } catch (error: any) {
       console.error("Delete setting error:", error);
-      res.status(500).json({ message: "Failed to delete setting" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to delete setting"));
     }
   });
 }

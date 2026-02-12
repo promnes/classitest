@@ -66,17 +66,23 @@ export async function registerAdminRoutes(app: Express) {
     try {
       const { email, password } = req.body;
       if (!email || !password) {
-        return res.status(400).json({ message: "Email and password are required" });
+        return res
+          .status(400)
+          .json(errorResponse(ErrorCode.BAD_REQUEST, "Email and password are required"));
       }
 
       const result = await db.select().from(admins).where(eq(admins.email, email));
       if (!result[0]) {
-        return res.status(401).json({ message: "Invalid credentials" });
+        return res
+          .status(401)
+          .json(errorResponse(ErrorCode.UNAUTHORIZED, "Invalid credentials"));
       }
 
       const passwordMatch = await bcrypt.compare(password, result[0].password);
       if (!passwordMatch) {
-        return res.status(401).json({ message: "Invalid credentials" });
+        return res
+          .status(401)
+          .json(errorResponse(ErrorCode.UNAUTHORIZED, "Invalid credentials"));
       }
 
       const token = jwt.sign(
@@ -84,10 +90,12 @@ export async function registerAdminRoutes(app: Express) {
         JWT_SECRET,
         { expiresIn: "7d" }
       );
-      res.json({ token, adminId: result[0].id, role: result[0].role });
+      res.json(successResponse({ token, adminId: result[0].id, role: result[0].role }));
     } catch (error: any) {
       console.error("Admin login error:", error);
-      res.status(500).json({ message: "Login failed" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Login failed"));
     }
   });
 
@@ -99,24 +107,28 @@ export async function registerAdminRoutes(app: Express) {
       // SEC-001 FIX: Require admin creation secret
       const ADMIN_CREATION_SECRET = process.env.ADMIN_CREATION_SECRET;
       if (!ADMIN_CREATION_SECRET || adminSecret !== ADMIN_CREATION_SECRET) {
-        return res.status(403).json({ 
-          success: false,
-          error: "FORBIDDEN",
-          message: "Admin registration not allowed" 
-        });
+        return res
+          .status(403)
+          .json(errorResponse(ErrorCode.UNAUTHORIZED, "Admin registration not allowed"));
       }
       
       if (!email || !password) {
-        return res.status(400).json({ message: "Email and password are required" });
+        return res
+          .status(400)
+          .json(errorResponse(ErrorCode.BAD_REQUEST, "Email and password are required"));
       }
 
       if (password.length < 8) {
-        return res.status(400).json({ message: "Password must be at least 8 characters" });
+        return res
+          .status(400)
+          .json(errorResponse(ErrorCode.BAD_REQUEST, "Password must be at least 8 characters"));
       }
 
       const existing = await db.select().from(admins).where(eq(admins.email, email));
       if (existing[0]) {
-        return res.status(400).json({ message: "Admin already exists" });
+        return res
+          .status(400)
+          .json(errorResponse(ErrorCode.BAD_REQUEST, "Admin already exists"));
       }
 
       const hashedPassword = await bcrypt.hash(password, 10);
@@ -127,10 +139,12 @@ export async function registerAdminRoutes(app: Express) {
         JWT_SECRET,
         { expiresIn: "7d" }
       );
-      res.json({ token, adminId: result[0].id, role: result[0].role });
+      res.json(successResponse({ token, adminId: result[0].id, role: result[0].role }));
     } catch (error: any) {
       console.error("Admin register error:", error);
-      res.status(500).json({ message: "Registration failed" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Registration failed"));
     }
   });
 
@@ -139,19 +153,25 @@ export async function registerAdminRoutes(app: Express) {
     try {
       const { email } = req.body;
       if (!email || !email.includes("@")) {
-        return res.status(400).json({ message: "Valid email is required" });
+        return res
+          .status(400)
+          .json(errorResponse(ErrorCode.BAD_REQUEST, "Valid email is required"));
       }
 
       const existing = await db.select().from(admins).where(eq(admins.email, email));
       if (existing[0] && existing[0].id !== req.admin.adminId) {
-        return res.status(400).json({ message: "Email already in use" });
+        return res
+          .status(400)
+          .json(errorResponse(ErrorCode.BAD_REQUEST, "Email already in use"));
       }
 
       await db.update(admins).set({ email }).where(eq(admins.id, req.admin.adminId));
-      res.json({ success: true, message: "Profile updated" });
+      res.json(successResponse(undefined, "Profile updated"));
     } catch (error: any) {
       console.error("Profile update error:", error);
-      res.status(500).json({ message: "Profile update failed" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Profile update failed"));
     }
   });
 
@@ -160,67 +180,73 @@ export async function registerAdminRoutes(app: Express) {
     try {
       const { currentPassword, newPassword } = req.body;
       if (!currentPassword || !newPassword) {
-        return res.status(400).json({ message: "Current and new password are required" });
+        return res
+          .status(400)
+          .json(errorResponse(ErrorCode.BAD_REQUEST, "Current and new password are required"));
       }
 
       if (newPassword.length < 8) {
-        return res.status(400).json({ message: "New password must be at least 8 characters" });
+        return res
+          .status(400)
+          .json(errorResponse(ErrorCode.BAD_REQUEST, "New password must be at least 8 characters"));
       }
 
       const admin = await db.select().from(admins).where(eq(admins.id, req.admin.adminId));
       if (!admin[0]) {
-        return res.status(404).json({ message: "Admin not found" });
+        return res
+          .status(404)
+          .json(errorResponse(ErrorCode.NOT_FOUND, "Admin not found"));
       }
 
       const passwordMatch = await bcrypt.compare(currentPassword, admin[0].password);
       if (!passwordMatch) {
-        return res.status(401).json({ message: "Current password is incorrect" });
+        return res
+          .status(401)
+          .json(errorResponse(ErrorCode.UNAUTHORIZED, "Current password is incorrect"));
       }
 
       const hashedPassword = await bcrypt.hash(newPassword, 10);
       await db.update(admins).set({ password: hashedPassword }).where(eq(admins.id, req.admin.adminId));
 
-      res.json({ success: true, message: "Password changed successfully" });
+      res.json(successResponse(undefined, "Password changed successfully"));
     } catch (error: any) {
       console.error("Password change error:", error);
-      res.status(500).json({ message: "Password change failed" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Password change failed"));
     }
   });
 
   // Get Admin Stats
   app.get("/api/admin/stats", adminMiddleware, async (req: any, res) => {
     try {
-      const parentCount = await db.select().from(parents);
-      const childCount = await db.select().from(children);
-      const productCount = await db.select().from(products);
-      const orderCount = await db.select().from(orders);
-      const depositCount = await db.select().from(deposits);
+      const [parentsCount] = await db.select({ count: sql<number>`count(*)::int` }).from(parents);
+      const [childrenCount] = await db.select({ count: sql<number>`count(*)::int` }).from(children);
+      const [productsCount] = await db.select({ count: sql<number>`count(*)::int` }).from(products);
+      const [ordersCount] = await db.select({ count: sql<number>`count(*)::int` }).from(orders);
+      const [depositsCount] = await db.select({ count: sql<number>`count(*)::int` }).from(deposits);
 
-      // Get total wallet balance
-      const walletData = await db.select().from(parentWallet);
-      const totalWalletBalance = walletData.reduce((sum: number, wallet: any) => sum + parseFloat(wallet.balance || 0), 0);
+      const [pointsSum] = await db.select({ total: sql<number>`COALESCE(sum(${children.totalPoints}), 0)::int` }).from(children);
+      const [walletSum] = await db.select({ total: sql<number>`COALESCE(sum(${parentWallet.balance}), 0)` }).from(parentWallet);
+      const [depositSum] = await db.select({ total: sql<number>`COALESCE(sum(${deposits.amount}), 0)` }).from(deposits);
+      const [ordersSum] = await db.select({ total: sql<number>`COALESCE(sum(${orders.pointsPrice}), 0)::int` }).from(orders);
 
-      // Get total deposits amount
-      const depositsData = await db.select().from(deposits);
-      const totalDepositsAmount = depositsData.reduce((sum: number, deposit: any) => sum + parseFloat(deposit.amount || 0), 0);
-
-      // Get total orders amount (sum of pointsPrice for now, or totalAmount if exists)
-      const totalOrdersAmount = orderCount.reduce((sum: number, order: any) => sum + (order.pointsPrice || 0), 0);
-
-      res.json({
-        parents: parentCount.length,
-        children: childCount.length,
-        products: productCount.length,
-        orders: orderCount.length,
-        deposits: depositCount.length,
-        totalPoints: childCount.reduce((sum: number, child: any) => sum + (child.totalPoints || 0), 0),
-        totalWalletBalance: parseFloat(totalWalletBalance.toFixed(2)),
-        totalDepositsAmount: parseFloat(totalDepositsAmount.toFixed(2)),
-        totalOrdersAmount,
-      });
+      res.json(successResponse({
+        parents: parentsCount?.count || 0,
+        children: childrenCount?.count || 0,
+        products: productsCount?.count || 0,
+        orders: ordersCount?.count || 0,
+        deposits: depositsCount?.count || 0,
+        totalPoints: pointsSum?.total || 0,
+        totalWalletBalance: Number(walletSum?.total || 0),
+        totalDepositsAmount: Number(depositSum?.total || 0),
+        totalOrdersAmount: ordersSum?.total || 0,
+      }));
     } catch (error: any) {
       console.error("Stats error:", error);
-      res.status(500).json({ message: "Failed to fetch stats" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to fetch stats"));
     }
   });
 
@@ -228,10 +254,12 @@ export async function registerAdminRoutes(app: Express) {
   app.get("/api/admin/products", adminMiddleware, async (req: any, res) => {
     try {
       const result = await db.select().from(products);
-      res.json(result);
+      res.json(successResponse(result));
     } catch (error: any) {
       console.error("Fetch products error:", error);
-      res.status(500).json({ message: "Failed to fetch products" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to fetch products"));
     }
   });
 
@@ -241,7 +269,9 @@ export async function registerAdminRoutes(app: Express) {
       const { parentId, name, description, price, pointsPrice, stock, image } = req.body;
 
       if (!name || price === undefined || pointsPrice === undefined) {
-        return res.status(400).json({ message: "name, price and pointsPrice are required" });
+        return res
+          .status(400)
+          .json(errorResponse(ErrorCode.BAD_REQUEST, "name, price and pointsPrice are required"));
       }
 
       const inserted = await db.insert(products).values({
@@ -255,11 +285,17 @@ export async function registerAdminRoutes(app: Express) {
       }).returning();
 
       const created = inserted[0];
-      if (!created) return res.status(500).json({ success: false, message: "Failed to create product" });
-      res.status(201).json({ success: true, data: created, message: "Product created" });
+      if (!created) {
+        return res
+          .status(500)
+          .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to create product"));
+      }
+      res.status(201).json(successResponse(created, "Product created"));
     } catch (error: any) {
       console.error("Create product error:", error);
-      res.status(500).json({ message: "Failed to create product" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to create product"));
     }
   });
 
@@ -273,11 +309,17 @@ export async function registerAdminRoutes(app: Express) {
         .set({ name, description, price: price?.toString(), pointsPrice: pointsPrice !== undefined ? parseInt(pointsPrice) : undefined, stock: stock !== undefined ? parseInt(stock) : undefined, image, parentId: parentId || null })
         .where(eq(products.id, id))
         .returning();
-      if (!updated || updated.length === 0) return res.status(404).json({ success: false, message: "Product not found" });
-      res.json({ success: true, data: updated[0], message: "Product updated" });
+      if (!updated || updated.length === 0) {
+        return res
+          .status(404)
+          .json(errorResponse(ErrorCode.NOT_FOUND, "Product not found"));
+      }
+      res.json(successResponse(updated[0], "Product updated"));
     } catch (error: any) {
       console.error("Update product error:", error);
-      res.status(500).json({ message: "Failed to update product" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to update product"));
     }
   });
 
@@ -286,10 +328,12 @@ export async function registerAdminRoutes(app: Express) {
     try {
       const { id } = req.params;
       await db.delete(products).where(eq(products.id, id));
-      res.json({ success: true, message: "Product deleted" });
+      res.json(successResponse(undefined, "Product deleted"));
     } catch (error: any) {
       console.error("Delete product error:", error);
-      res.status(500).json({ message: "Failed to delete product" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to delete product"));
     }
   });
 
@@ -299,10 +343,12 @@ export async function registerAdminRoutes(app: Express) {
   app.get("/api/admin/categories", adminMiddleware, async (req: any, res) => {
     try {
       const result = await db.select().from(productCategories);
-      res.json({ success: true, data: result });
+      res.json(successResponse(result));
     } catch (error: any) {
       console.error("Fetch categories error:", error);
-      res.status(500).json({ message: "Failed to fetch categories" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to fetch categories"));
     }
   });
 
@@ -311,7 +357,9 @@ export async function registerAdminRoutes(app: Express) {
     try {
       const { name, nameAr, icon, color, sortOrder } = req.body;
       if (!name || !nameAr) {
-        return res.status(400).json({ message: "name and nameAr are required" });
+        return res
+          .status(400)
+          .json(errorResponse(ErrorCode.BAD_REQUEST, "name and nameAr are required"));
       }
       const result = await db.insert(productCategories).values({
         name,
@@ -320,10 +368,12 @@ export async function registerAdminRoutes(app: Express) {
         color: color || "#667eea",
         sortOrder: sortOrder || 0,
       }).returning();
-      res.status(201).json({ success: true, data: result[0], message: "Category created" });
+      res.status(201).json(successResponse(result[0], "Category created"));
     } catch (error: any) {
       console.error("Create category error:", error);
-      res.status(500).json({ message: "Failed to create category" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to create category"));
     }
   });
 
@@ -336,11 +386,17 @@ export async function registerAdminRoutes(app: Express) {
         .set({ name, nameAr, icon, color, sortOrder, isActive })
         .where(eq(productCategories.id, id))
         .returning();
-      if (!result[0]) return res.status(404).json({ message: "Category not found" });
-      res.json({ success: true, data: result[0], message: "Category updated" });
+      if (!result[0]) {
+        return res
+          .status(404)
+          .json(errorResponse(ErrorCode.NOT_FOUND, "Category not found"));
+      }
+      res.json(successResponse(result[0], "Category updated"));
     } catch (error: any) {
       console.error("Update category error:", error);
-      res.status(500).json({ message: "Failed to update category" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to update category"));
     }
   });
 
@@ -349,10 +405,12 @@ export async function registerAdminRoutes(app: Express) {
     try {
       const { id } = req.params;
       await db.delete(productCategories).where(eq(productCategories.id, id));
-      res.json({ success: true, message: "Category deleted" });
+      res.json(successResponse(undefined, "Category deleted"));
     } catch (error: any) {
       console.error("Delete category error:", error);
-      res.status(500).json({ message: "Failed to delete category" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to delete category"));
     }
   });
 
@@ -370,10 +428,12 @@ export async function registerAdminRoutes(app: Express) {
           result[setting.key] = setting.value;
         }
       }
-      res.json({ success: true, data: result });
+      res.json(successResponse(result));
     } catch (error: any) {
       console.error("Fetch app settings error:", error);
-      res.status(500).json({ message: "Failed to fetch app settings" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to fetch app settings"));
     }
   });
 
@@ -392,10 +452,12 @@ export async function registerAdminRoutes(app: Express) {
           await db.insert(appSettings).values({ key, value: stringValue });
         }
       }
-      res.json({ success: true, message: "Settings updated" });
+      res.json(successResponse(undefined, "Settings updated"));
     } catch (error: any) {
       console.error("Update app settings error:", error);
-      res.status(500).json({ message: "Failed to update app settings" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to update app settings"));
     }
   });
 
@@ -405,10 +467,12 @@ export async function registerAdminRoutes(app: Express) {
   app.get("/api/admin/symbols", adminMiddleware, async (req: any, res) => {
     try {
       const result = await db.select().from(symbols);
-      res.json({ success: true, data: result });
+      res.json(successResponse(result));
     } catch (error: any) {
       console.error("Fetch symbols error:", error);
-      res.status(500).json({ message: "Failed to fetch symbols" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to fetch symbols"));
     }
   });
 
@@ -417,7 +481,9 @@ export async function registerAdminRoutes(app: Express) {
     try {
       const { name, nameAr, emoji, imageUrl, category, sortOrder, isActive } = req.body;
       if (!name) {
-        return res.status(400).json({ message: "name is required" });
+        return res
+          .status(400)
+          .json(errorResponse(ErrorCode.BAD_REQUEST, "name is required"));
       }
       const result = await db.insert(symbols).values({
         name,
@@ -428,10 +494,12 @@ export async function registerAdminRoutes(app: Express) {
         sortOrder: sortOrder || 0,
         isActive: isActive !== false,
       }).returning();
-      res.status(201).json({ success: true, data: result[0], message: "Symbol created" });
+      res.status(201).json(successResponse(result[0], "Symbol created"));
     } catch (error: any) {
       console.error("Create symbol error:", error);
-      res.status(500).json({ message: "Failed to create symbol" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to create symbol"));
     }
   });
 
@@ -444,11 +512,17 @@ export async function registerAdminRoutes(app: Express) {
         .set({ name, nameAr, emoji, imageUrl, category, sortOrder, isActive })
         .where(eq(symbols.id, id))
         .returning();
-      if (!result[0]) return res.status(404).json({ message: "Symbol not found" });
-      res.json({ success: true, data: result[0], message: "Symbol updated" });
+      if (!result[0]) {
+        return res
+          .status(404)
+          .json(errorResponse(ErrorCode.NOT_FOUND, "Symbol not found"));
+      }
+      res.json(successResponse(result[0], "Symbol updated"));
     } catch (error: any) {
       console.error("Update symbol error:", error);
-      res.status(500).json({ message: "Failed to update symbol" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to update symbol"));
     }
   });
 
@@ -457,10 +531,12 @@ export async function registerAdminRoutes(app: Express) {
     try {
       const { id } = req.params;
       await db.delete(symbols).where(eq(symbols.id, id));
-      res.json({ success: true, message: "Symbol deleted" });
+      res.json(successResponse(undefined, "Symbol deleted"));
     } catch (error: any) {
       console.error("Delete symbol error:", error);
-      res.status(500).json({ message: "Failed to delete symbol" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to delete symbol"));
     }
   });
 
@@ -482,10 +558,12 @@ export async function registerAdminRoutes(app: Express) {
         })
       );
 
-      res.json({ success: true, data: enriched });
+      res.json(successResponse(enriched));
     } catch (error: any) {
       console.error("Fetch purchases error:", error);
-      res.status(500).json({ message: "Failed to fetch purchases" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to fetch purchases"));
     }
   });
 
@@ -494,13 +572,19 @@ export async function registerAdminRoutes(app: Express) {
     try {
       const { id } = req.params;
       const purchase = await db.select().from(parentPurchases).where(eq(parentPurchases.id, id));
-      if (!purchase[0]) return res.status(404).json({ message: "Purchase not found" });
+      if (!purchase[0]) {
+        return res
+          .status(404)
+          .json(errorResponse(ErrorCode.NOT_FOUND, "Purchase not found"));
+      }
       const items = await db.select().from(parentPurchaseItems).where(eq(parentPurchaseItems.purchaseId, id));
       const parent = await db.select().from(parents).where(eq(parents.id, purchase[0].parentId));
-      res.json({ success: true, data: { ...purchase[0], items, parent: parent[0] || null } });
+      res.json(successResponse({ ...purchase[0], items, parent: parent[0] || null }));
     } catch (error: any) {
       console.error("Fetch purchase error:", error);
-      res.status(500).json({ message: "Failed to fetch purchase" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to fetch purchase"));
     }
   });
 
@@ -510,11 +594,17 @@ export async function registerAdminRoutes(app: Express) {
       const { id } = req.params;
       const { status, rejectionReason } = req.body;
       if (!status || !["approved", "rejected"].includes(status)) {
-        return res.status(400).json({ message: "Invalid status" });
+        return res
+          .status(400)
+          .json(errorResponse(ErrorCode.BAD_REQUEST, "Invalid status"));
       }
 
       const purchase = await db.select().from(parentPurchases).where(eq(parentPurchases.id, id));
-      if (!purchase[0]) return res.status(404).json({ message: "Purchase not found" });
+      if (!purchase[0]) {
+        return res
+          .status(404)
+          .json(errorResponse(ErrorCode.NOT_FOUND, "Purchase not found"));
+      }
 
       // If approving, create parent_owned_products entries
       if (status === "approved") {
@@ -533,18 +623,20 @@ export async function registerAdminRoutes(app: Express) {
         // Notify parent
         await createNotification({ parentId: purchase[0].parentId, type: "purchase_approved", message: `Your purchase ${id} has been approved.`, relatedId: id });
 
-        return res.json({ success: true, data: { created } });
+        return res.json(successResponse({ created }));
       }
 
       // If rejected
       if (status === "rejected") {
         await db.update(parentPurchases).set({ paymentStatus: "rejected" }).where(eq(parentPurchases.id, id));
         await createNotification({ parentId: purchase[0].parentId, type: "purchase_rejected", message: `Your purchase ${id} was rejected. Reason: ${rejectionReason || 'No reason provided'}`, relatedId: id });
-        return res.json({ success: true });
+        return res.json(successResponse());
       }
     } catch (error: any) {
       console.error("Update purchase status error:", error);
-      res.status(500).json({ message: "Failed to update purchase status" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to update purchase status"));
     }
   });
 
@@ -557,10 +649,12 @@ export async function registerAdminRoutes(app: Express) {
         const child = await db.select().from(children).where(eq(children.id, r.childId));
         return { ...r, parent: parent[0] || null, child: child[0] || null };
       }));
-      res.json({ success: true, data: enriched });
+      res.json(successResponse(enriched));
     } catch (error: any) {
       console.error("Fetch shipping requests error:", error);
-      res.status(500).json({ message: "Failed to fetch shipping requests" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to fetch shipping requests"));
     }
   });
 
@@ -568,10 +662,18 @@ export async function registerAdminRoutes(app: Express) {
     try {
       const { id } = req.params;
       const { status, adminNote } = req.body;
-      if (!status) return res.status(400).json({ message: "Status required" });
+      if (!status) {
+        return res
+          .status(400)
+          .json(errorResponse(ErrorCode.BAD_REQUEST, "Status required"));
+      }
 
       const reqRow = await db.select().from(shippingRequests).where(eq(shippingRequests.id, id));
-      if (!reqRow[0]) return res.status(404).json({ message: "Shipping request not found" });
+      if (!reqRow[0]) {
+        return res
+          .status(404)
+          .json(errorResponse(ErrorCode.NOT_FOUND, "Shipping request not found"));
+      }
 
       await db.update(shippingRequests).set({ status, adminNote, updatedAt: new Date() }).where(eq(shippingRequests.id, id));
 
@@ -586,74 +688,15 @@ export async function registerAdminRoutes(app: Express) {
       // Notify parent and child
       await createNotification({ parentId: reqRow[0].parentId, childId: reqRow[0].childId, type: "shipping_update", message: `Shipping request ${id} updated to ${status}`, relatedId: id });
 
-      res.json({ success: true });
+      res.json(successResponse());
     } catch (error: any) {
       console.error("Update shipping request status error:", error);
-      res.status(500).json({ message: "Failed to update shipping request" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to update shipping request"));
     }
   });
 
-  // Get Admin Parents (with wallet info)
-  app.get("/api/admin/parents", adminMiddleware, async (req: any, res) => {
-    try {
-      const parentList = await db.select().from(parents);
-      
-      // Get wallet info for each parent
-      const walletsData = await db.select().from(parentWallet);
-      const walletsMap = new Map(walletsData.map((w: any) => [w.parentId, w]));
-
-      // Get children count for each parent - we'll count from parent-child relationships
-      // For now, we'll count children linked to each parent from the children table
-      const parentChildren = new Map<string, number>();
-      const allChildren = await db.select().from(children);
-      
-      // Build a safe response without passwords
-      const safe = parentList.map((p: any) => {
-        const wallet: any = walletsMap.get(p.id);
-        return {
-          id: p.id,
-          email: p.email,
-          name: p.name,
-          createdAt: p.createdAt,
-          walletBalance: wallet ? parseFloat(wallet.balance) : 0,
-          totalDeposited: wallet ? parseFloat(wallet.totalDeposited) : 0,
-          totalSpent: wallet ? parseFloat(wallet.totalSpent) : 0,
-        };
-      });
-      res.json(safe);
-    } catch (error: any) {
-      console.error("Fetch parents error:", error);
-      res.status(500).json({ message: "Failed to fetch parents" });
-    }
-  });
-
-  // Get single parent details
-  app.get("/api/admin/parents/:id", adminMiddleware, async (req: any, res) => {
-    try {
-      const { id } = req.params;
-      const parent = await db.select().from(parents).where(eq(parents.id, id));
-      if (!parent[0]) {
-        return res.status(404).json({ message: "Parent not found" });
-      }
-
-      // Get linked children
-      const linkedChildren = await db.select({
-        child: children,
-      })
-        .from(parentChild)
-        .innerJoin(children, eq(parentChild.childId, children.id))
-        .where(eq(parentChild.parentId, id));
-
-      const { password, ...safeParent } = parent[0];
-      res.json({
-        ...safeParent,
-        children: linkedChildren.map((lc: any) => lc.child),
-      });
-    } catch (error: any) {
-      console.error("Fetch parent details error:", error);
-      res.status(500).json({ message: "Failed to fetch parent details" });
-    }
-  });
 
   // Update parent details (admin)
   app.patch("/api/admin/parents/:id", adminMiddleware, async (req: any, res) => {
@@ -663,7 +706,9 @@ export async function registerAdminRoutes(app: Express) {
 
       const parent = await db.select().from(parents).where(eq(parents.id, id));
       if (!parent[0]) {
-        return res.status(404).json({ message: "Parent not found" });
+        return res
+          .status(404)
+          .json(errorResponse(ErrorCode.NOT_FOUND, "Parent not found"));
       }
 
       const updateData: any = {};
@@ -672,10 +717,12 @@ export async function registerAdminRoutes(app: Express) {
       if (phoneNumber !== undefined) updateData.phoneNumber = phoneNumber;
 
       await db.update(parents).set(updateData).where(eq(parents.id, id));
-      res.json({ success: true, message: "Parent updated" });
+      res.json(successResponse(undefined, "Parent updated"));
     } catch (error: any) {
       console.error("Update parent error:", error);
-      res.status(500).json({ message: "Failed to update parent" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to update parent"));
     }
   });
 
@@ -685,7 +732,7 @@ export async function registerAdminRoutes(app: Express) {
       const { id } = req.params;
       const child = await db.select().from(children).where(eq(children.id, id));
       if (!child[0]) {
-        return res.status(404).json({ message: "Child not found" });
+        return res.status(404).json(errorResponse(ErrorCode.NOT_FOUND, "Child not found"));
       }
 
       // Get parent
@@ -696,17 +743,19 @@ export async function registerAdminRoutes(app: Express) {
         .innerJoin(parents, eq(parentChild.parentId, parents.id))
         .where(eq(parentChild.childId, id));
 
-      res.json({
+      res.json(successResponse({
         ...child[0],
         parents: parentLink.map((pl: any) => ({
           id: pl.parent.id,
           name: pl.parent.name,
           email: pl.parent.email,
         })),
-      });
+      }));
     } catch (error: any) {
       console.error("Fetch child details error:", error);
-      res.status(500).json({ message: "Failed to fetch child details" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to fetch child details"));
     }
   });
 
@@ -718,7 +767,9 @@ export async function registerAdminRoutes(app: Express) {
 
       const child = await db.select().from(children).where(eq(children.id, id));
       if (!child[0]) {
-        return res.status(404).json({ message: "Child not found" });
+        return res
+          .status(404)
+          .json(errorResponse(ErrorCode.NOT_FOUND, "Child not found"));
       }
 
       const updateData: any = {};
@@ -726,10 +777,12 @@ export async function registerAdminRoutes(app: Express) {
       if (shippingAddress !== undefined) updateData.shippingAddress = shippingAddress;
 
       await db.update(children).set(updateData).where(eq(children.id, id));
-      res.json({ success: true, message: "Child updated" });
+      res.json(successResponse(undefined, "Child updated"));
     } catch (error: any) {
       console.error("Update child error:", error);
-      res.status(500).json({ message: "Failed to update child" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to update child"));
     }
   });
 
@@ -737,25 +790,25 @@ export async function registerAdminRoutes(app: Express) {
   app.post("/api/admin/adjust-points", adminMiddleware, async (req: any, res) => {
     try {
       const { targetType, targetId, delta, reason } = req.body;
-      const adminId = req.user.adminId;
+      const adminId = req.admin.adminId;
 
       if (!targetType || !targetId || delta === undefined || !reason) {
-        return res.status(400).json({ message: "targetType, targetId, delta, and reason are required" });
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "targetType, targetId, delta, and reason are required"));
       }
 
       if (!["parent", "child"].includes(targetType)) {
-        return res.status(400).json({ message: "targetType must be 'parent' or 'child'" });
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "targetType must be 'parent' or 'child'"));
       }
 
       if (typeof delta !== "number" || delta === 0) {
-        return res.status(400).json({ message: "delta must be a non-zero number" });
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "delta must be a non-zero number"));
       }
 
       let adjustmentId: string | null = null;
       if (targetType === "child") {
         const child = await db.select().from(children).where(eq(children.id, targetId));
         if (!child[0]) {
-          return res.status(404).json({ message: "Child not found" });
+          return res.status(404).json(errorResponse(ErrorCode.NOT_FOUND, "Child not found"));
         }
 
         await db.transaction(async (tx) => {
@@ -801,7 +854,7 @@ export async function registerAdminRoutes(app: Express) {
 
         const parent = await db.select().from(parents).where(eq(parents.id, targetId));
         if (!parent[0]) {
-          return res.status(404).json({ message: "Parent not found" });
+          return res.status(404).json(errorResponse(ErrorCode.NOT_FOUND, "Parent not found"));
         }
 
         // Update parent wallet balance
@@ -827,10 +880,12 @@ export async function registerAdminRoutes(app: Express) {
         });
       }
 
-      res.json({ success: true, message: "Points adjusted successfully" });
+      res.json(successResponse(undefined, "Points adjusted successfully"));
     } catch (error: any) {
       console.error("Adjust points error:", error);
-      res.status(500).json({ message: "Failed to adjust points" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to adjust points"));
     }
   });
 
@@ -851,10 +906,12 @@ export async function registerAdminRoutes(app: Express) {
       }
 
       const adjustments = await query;
-      res.json(adjustments);
+      res.json(successResponse(adjustments));
     } catch (error: any) {
       console.error("Get point adjustments error:", error);
-      res.status(500).json({ message: "Failed to get point adjustments" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to get point adjustments"));
     }
   });
 
@@ -862,51 +919,49 @@ export async function registerAdminRoutes(app: Express) {
   app.get("/api/admin/orders", adminMiddleware, async (req: any, res) => {
     try {
       const result = await db.select().from(orders);
-      res.json(result);
+      res.json(successResponse(result));
     } catch (error: any) {
       console.error("Fetch orders error:", error);
-      res.status(500).json({ message: "Failed to fetch orders" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to fetch orders"));
     }
   });
 
-  // Get Admin Deposits
+  // Get Admin Deposits (with parent info and payment method info)
   app.get("/api/admin/deposits", adminMiddleware, async (req: any, res) => {
     try {
-      const result = await db.select().from(deposits);
-      res.json(result);
+      const result = await db
+        .select({
+          id: deposits.id,
+          parentId: deposits.parentId,
+          paymentMethodId: deposits.paymentMethodId,
+          amount: deposits.amount,
+          status: deposits.status,
+          transactionId: deposits.transactionId,
+          notes: deposits.notes,
+          adminNotes: deposits.adminNotes,
+          reviewedAt: deposits.reviewedAt,
+          createdAt: deposits.createdAt,
+          completedAt: deposits.completedAt,
+          parentName: parents.name,
+          parentEmail: parents.email,
+          methodType: paymentMethods.type,
+          methodBank: paymentMethods.bankName,
+          methodAccount: paymentMethods.accountNumber,
+        })
+        .from(deposits)
+        .leftJoin(parents, eq(deposits.parentId, parents.id))
+        .leftJoin(paymentMethods, eq(deposits.paymentMethodId, paymentMethods.id))
+        .orderBy(desc(deposits.createdAt))
+        .limit(500);
+
+      res.json(successResponse(result));
     } catch (error: any) {
       console.error("Fetch deposits error:", error);
-      res.status(500).json({ message: "Failed to fetch deposits" });
-    }
-  });
-
-  // Update Product (Admin)
-  app.put("/api/admin/products/:id", adminMiddleware, async (req: any, res) => {
-    try {
-      const { id } = req.params;
-      const { name, price, pointsPrice, stock, description } = req.body;
-
-      await db
-        .update(products)
-        .set({ name, price, pointsPrice, stock, description })
-        .where(eq(products.id, id));
-
-      res.json({ success: true, message: "Product updated" });
-    } catch (error: any) {
-      console.error("Update product error:", error);
-      res.status(500).json({ message: "Failed to update product" });
-    }
-  });
-
-  // Delete Product (Admin)
-  app.delete("/api/admin/products/:id", adminMiddleware, async (req: any, res) => {
-    try {
-      const { id } = req.params;
-      await db.delete(products).where(eq(products.id, id));
-      res.json({ success: true, message: "Product deleted" });
-    } catch (error: any) {
-      console.error("Delete product error:", error);
-      res.status(500).json({ message: "Failed to delete product" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to fetch deposits"));
     }
   });
 
@@ -917,32 +972,110 @@ export async function registerAdminRoutes(app: Express) {
       const { status } = req.body;
 
       if (!["pending", "completed", "cancelled"].includes(status)) {
-        return res.status(400).json({ message: "Invalid status" });
+        return res
+          .status(400)
+          .json(errorResponse(ErrorCode.BAD_REQUEST, "Invalid status"));
       }
 
       await db.update(orders).set({ status }).where(eq(orders.id, id));
-      res.json({ success: true, message: "Order updated" });
+      res.json(successResponse(undefined, "Order updated"));
     } catch (error: any) {
       console.error("Update order error:", error);
-      res.status(500).json({ message: "Failed to update order" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to update order"));
     }
   });
 
-  // Update Deposit Status (Admin)
+  // Update Deposit Status (Admin) — approve adds balance, reject notifies parent
   app.put("/api/admin/deposits/:id", adminMiddleware, async (req: any, res) => {
     try {
       const { id } = req.params;
-      const { status } = req.body;
+      const { status, adminNotes } = req.body;
 
       if (!["pending", "completed", "cancelled"].includes(status)) {
-        return res.status(400).json({ message: "Invalid status" });
+        return res
+          .status(400)
+          .json(errorResponse(ErrorCode.BAD_REQUEST, "Invalid status"));
       }
 
-      await db.update(deposits).set({ status }).where(eq(deposits.id, id));
-      res.json({ success: true, message: "Deposit updated" });
+      // Get the deposit first
+      const [deposit] = await db.select().from(deposits).where(eq(deposits.id, id));
+      if (!deposit) {
+        return res.status(404).json(errorResponse(ErrorCode.NOT_FOUND, "Deposit not found"));
+      }
+
+      // Don't re-process already completed deposits
+      if (deposit.status === "completed" && status === "completed") {
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Deposit already completed"));
+      }
+
+      const updateData: any = { 
+        status,
+        reviewedAt: new Date(),
+      };
+      if (adminNotes) updateData.adminNotes = adminNotes;
+      if (status === "completed") updateData.completedAt = new Date();
+
+      await db.update(deposits).set(updateData).where(eq(deposits.id, id));
+
+      // If approved → add balance to parent wallet
+      if (status === "completed" && deposit.status !== "completed") {
+        const depositAmount = parseFloat(deposit.amount as string);
+
+        // Check if wallet exists
+        const [existingWallet] = await db.select().from(parentWallet).where(eq(parentWallet.parentId, deposit.parentId));
+        
+        if (existingWallet) {
+          await db.update(parentWallet).set({
+            balance: sql`${parentWallet.balance} + ${depositAmount}`,
+            totalDeposited: sql`${parentWallet.totalDeposited} + ${depositAmount}`,
+            updatedAt: new Date(),
+          }).where(eq(parentWallet.parentId, deposit.parentId));
+        } else {
+          await db.insert(parentWallet).values({
+            parentId: deposit.parentId,
+            balance: depositAmount.toString(),
+            totalDeposited: depositAmount.toString(),
+          });
+        }
+
+        // Notify parent — deposit approved
+        await createNotification({
+          parentId: deposit.parentId,
+          type: "deposit_approved",
+          title: "✅ تم قبول الإيداع",
+          message: `تم قبول طلب الإيداع الخاص بك بمبلغ ${depositAmount.toFixed(2)} وتم إضافته لرصيدك`,
+          style: "modal",
+          priority: "normal",
+          soundAlert: true,
+          metadata: { depositId: deposit.id, amount: depositAmount },
+        });
+      }
+
+      // If rejected → notify parent
+      if (status === "cancelled" && deposit.status !== "cancelled") {
+        const depositAmount = parseFloat(deposit.amount as string);
+        await createNotification({
+          parentId: deposit.parentId,
+          type: "deposit_rejected",
+          title: "❌ تم رفض الإيداع",
+          message: adminNotes 
+            ? `تم رفض طلب الإيداع بمبلغ ${depositAmount.toFixed(2)}. السبب: ${adminNotes}`
+            : `تم رفض طلب الإيداع بمبلغ ${depositAmount.toFixed(2)}. يرجى التواصل مع الدعم`,
+          style: "modal",
+          priority: "warning",
+          soundAlert: true,
+          metadata: { depositId: deposit.id, amount: depositAmount },
+        });
+      }
+
+      res.json(successResponse(undefined, `Deposit ${status === "completed" ? "approved" : status === "cancelled" ? "rejected" : "updated"}`));
     } catch (error: any) {
       console.error("Update deposit error:", error);
-      res.status(500).json({ message: "Failed to update deposit" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to update deposit"));
     }
   });
 
@@ -969,10 +1102,12 @@ export async function registerAdminRoutes(app: Express) {
         };
       });
 
-      res.json(result);
+      res.json(successResponse(result));
     } catch (error: any) {
       console.error("Fetch wallets error:", error);
-      res.status(500).json({ message: "Failed to fetch wallets" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to fetch wallets"));
     }
   });
 
@@ -983,13 +1118,13 @@ export async function registerAdminRoutes(app: Express) {
 
       const wallet = await db.select().from(parentWallet).where(eq(parentWallet.parentId, parentId));
       if (!wallet[0]) {
-        return res.status(404).json({ message: "Wallet not found" });
+        return res.status(404).json(errorResponse(ErrorCode.NOT_FOUND, "Wallet not found"));
       }
 
       const depositsList = await db.select().from(deposits).where(eq(deposits.parentId, parentId));
       const ordersList = await db.select().from(orders).where(eq(orders.parentId, parentId));
 
-      res.json({
+      res.json(successResponse({
         wallet: {
           id: wallet[0].id,
           balance: parseFloat(wallet[0].balance),
@@ -1010,10 +1145,12 @@ export async function registerAdminRoutes(app: Express) {
           status: o.status,
           createdAt: o.createdAt,
         })),
-      });
+      }));
     } catch (error: any) {
       console.error("Fetch wallet details error:", error);
-      res.status(500).json({ message: "Failed to fetch wallet details" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to fetch wallet details"));
     }
   });
 
@@ -1024,13 +1161,17 @@ export async function registerAdminRoutes(app: Express) {
       const { amount, note } = req.body;
 
       if (!amount || amount <= 0) {
-        return res.status(400).json({ message: "Valid amount is required" });
+        return res
+          .status(400)
+          .json(errorResponse(ErrorCode.BAD_REQUEST, "Valid amount is required"));
       }
 
       // Check parent exists
       const parent = await db.select().from(parents).where(eq(parents.id, parentId));
       if (!parent[0]) {
-        return res.status(404).json({ message: "Parent not found" });
+        return res
+          .status(404)
+          .json(errorResponse(ErrorCode.NOT_FOUND, "Parent not found"));
       }
 
       // Get or create wallet
@@ -1054,10 +1195,12 @@ export async function registerAdminRoutes(app: Express) {
           .where(eq(parentWallet.parentId, parentId));
       }
 
-      res.json({ success: true, message: "Deposit added successfully" });
+      res.json(successResponse(undefined, "Deposit added successfully"));
     } catch (error: any) {
       console.error("Add deposit error:", error);
-      res.status(500).json({ message: "Failed to add deposit" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to add deposit"));
     }
   });
 
@@ -1067,26 +1210,41 @@ export async function registerAdminRoutes(app: Express) {
   app.get("/api/admin/payment-methods", adminMiddleware, async (req: any, res) => {
     try {
       const methods = await db.select().from(paymentMethods);
-      res.json(methods);
+      res.json(successResponse(methods));
     } catch (error: any) {
       console.error("Fetch payment methods error:", error);
-      res.status(500).json({ message: "Failed to fetch payment methods" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to fetch payment methods"));
     }
   });
 
-  // Add new payment method
+  // Add new payment method (admin-created, no parentId needed)
   app.post("/api/admin/payment-methods", adminMiddleware, async (req: any, res) => {
     try {
-      const { parentId, type, accountNumber, accountName, bankName, phoneNumber, isDefault, isActive } = req.body;
+      const { type, accountNumber, accountName, bankName, phoneNumber, isDefault, isActive } = req.body;
 
-      if (!parentId || !type || !accountNumber) {
-        return res.status(400).json({ message: "parentId, type, and accountNumber are required" });
+      const VALID_PAYMENT_TYPES = [
+        "bank_transfer", "vodafone_cash", "orange_money", "etisalat_cash",
+        "we_pay", "instapay", "fawry", "mobile_wallet", "credit_card", "other"
+      ];
+
+      if (!type || !accountNumber) {
+        return res
+          .status(400)
+          .json(errorResponse(ErrorCode.BAD_REQUEST, "type and accountNumber are required"));
+      }
+
+      if (!VALID_PAYMENT_TYPES.includes(type)) {
+        return res
+          .status(400)
+          .json(errorResponse(ErrorCode.BAD_REQUEST, `Invalid payment type. Allowed: ${VALID_PAYMENT_TYPES.join(", ")}`));
       }
 
       const result = await db
         .insert(paymentMethods)
         .values({
-          parentId,
+          parentId: null,
           type,
           accountNumber,
           accountName,
@@ -1097,10 +1255,12 @@ export async function registerAdminRoutes(app: Express) {
         })
         .returning();
 
-      res.json({ success: true, data: result[0], message: "Payment method added" });
+      res.json(successResponse(result[0], "Payment method added"));
     } catch (error: any) {
       console.error("Add payment method error:", error);
-      res.status(500).json({ message: "Failed to add payment method" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to add payment method"));
     }
   });
 
@@ -1110,8 +1270,21 @@ export async function registerAdminRoutes(app: Express) {
       const { id } = req.params;
       const { type, accountNumber, accountName, bankName, phoneNumber, isDefault, isActive } = req.body;
 
+      const VALID_PAYMENT_TYPES = [
+        "bank_transfer", "vodafone_cash", "orange_money", "etisalat_cash",
+        "we_pay", "instapay", "fawry", "mobile_wallet", "credit_card", "other"
+      ];
+
       if (!type || !accountNumber) {
-        return res.status(400).json({ message: "type and accountNumber are required" });
+        return res
+          .status(400)
+          .json(errorResponse(ErrorCode.BAD_REQUEST, "type and accountNumber are required"));
+      }
+
+      if (!VALID_PAYMENT_TYPES.includes(type)) {
+        return res
+          .status(400)
+          .json(errorResponse(ErrorCode.BAD_REQUEST, `Invalid payment type. Allowed: ${VALID_PAYMENT_TYPES.join(", ")}`));
       }
 
       await db
@@ -1127,22 +1300,40 @@ export async function registerAdminRoutes(app: Express) {
         })
         .where(eq(paymentMethods.id, id));
 
-      res.json({ success: true, message: "Payment method updated" });
+      res.json(successResponse(undefined, "Payment method updated"));
     } catch (error: any) {
       console.error("Update payment method error:", error);
-      res.status(500).json({ message: "Failed to update payment method" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to update payment method"));
     }
   });
 
-  // Delete payment method
+  // Delete payment method (with FK safety check)
   app.delete("/api/admin/payment-methods/:id", adminMiddleware, async (req: any, res) => {
     try {
       const { id } = req.params;
+
+      // Check if any deposits reference this payment method
+      const linkedDeposits = await db
+        .select({ id: deposits.id })
+        .from(deposits)
+        .where(eq(deposits.paymentMethodId, id))
+        .limit(1);
+
+      if (linkedDeposits.length > 0) {
+        // Soft-delete: deactivate instead of deleting
+        await db.update(paymentMethods).set({ isActive: false }).where(eq(paymentMethods.id, id));
+        return res.json(successResponse(undefined, "Payment method deactivated (has linked deposits)"));
+      }
+
       await db.delete(paymentMethods).where(eq(paymentMethods.id, id));
-      res.json({ success: true, message: "Payment method deleted" });
+      res.json(successResponse(undefined, "Payment method deleted"));
     } catch (error: any) {
       console.error("Delete payment method error:", error);
-      res.status(500).json({ message: "Failed to delete payment method" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to delete payment method"));
     }
   });
 
@@ -1163,16 +1354,18 @@ export async function registerAdminRoutes(app: Express) {
         const setting = settings.find(s => s.key === key);
         return setting?.value || process.env[envKey] || "";
       };
-      res.json({
+      res.json(successResponse({
         phone: getValue('contact_phone', 'CONTACT_PHONE'),
         email: getValue('contact_email', 'CONTACT_EMAIL'),
         address: getValue('contact_address', 'CONTACT_ADDRESS'),
         whatsapp: getValue('contact_whatsapp', 'CONTACT_WHATSAPP'),
         telegram: getValue('contact_telegram', 'CONTACT_TELEGRAM'),
-      });
+      }));
     } catch (error: any) {
       console.error("Fetch contact error:", error);
-      res.status(500).json({ message: "Failed to fetch contact info" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to fetch contact info"));
     }
   });
 
@@ -1196,10 +1389,12 @@ export async function registerAdminRoutes(app: Express) {
             set: { value: entry.value, updatedAt: new Date() }
           });
       }
-      res.json({ success: true, message: "Contact info saved" });
+      res.json(successResponse(undefined, "Contact info saved"));
     } catch (error: any) {
       console.error("Save contact error:", error);
-      res.status(500).json({ message: "Failed to save contact info" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to save contact info"));
     }
   });
 
@@ -1219,15 +1414,17 @@ export async function registerAdminRoutes(app: Express) {
         const setting = settings.find(s => s.key === key);
         return setting?.value || process.env[envKey] || "";
       };
-      res.json({
+      res.json(successResponse({
         siteTitle: getValue('seo_title', 'SEO_TITLE'),
         siteDescription: getValue('seo_description', 'SEO_DESCRIPTION'),
         keywords: getValue('seo_keywords', 'SEO_KEYWORDS'),
         ogImage: getValue('seo_og_image', 'SEO_OG_IMAGE'),
-      });
+      }));
     } catch (error: any) {
       console.error("Fetch SEO error:", error);
-      res.status(500).json({ message: "Failed to fetch SEO settings" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to fetch SEO settings"));
     }
   });
 
@@ -1250,10 +1447,12 @@ export async function registerAdminRoutes(app: Express) {
             set: { value: entry.value, updatedAt: new Date() }
           });
       }
-      res.json({ success: true, message: "SEO settings saved" });
+      res.json(successResponse(undefined, "SEO settings saved"));
     } catch (error: any) {
       console.error("Save SEO error:", error);
-      res.status(500).json({ message: "Failed to save SEO settings" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to save SEO settings"));
     }
   });
 
@@ -1269,20 +1468,21 @@ export async function registerAdminRoutes(app: Express) {
         .from(sessions)
         .where(and(eq(sessions.parentId, parentId), eq(sessions.isActive, true)));
 
-      res.json({
-        success: true,
-        data: parentSessions.map((s: typeof sessions.$inferSelect) => ({
+      res.json(successResponse(
+        parentSessions.map((s: typeof sessions.$inferSelect) => ({
           id: s.id,
           deviceId: s.deviceId,
           ipAddress: s.ipAddress,
           userAgent: s.userAgent,
           createdAt: s.createdAt,
           expiresAt: s.expiresAt,
-        })),
-      });
+        }))
+      ));
     } catch (error: any) {
       console.error("Get parent sessions error:", error);
-      res.status(500).json({ message: "Failed to fetch sessions" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to fetch sessions"));
     }
   });
 
@@ -1298,7 +1498,9 @@ export async function registerAdminRoutes(app: Express) {
         .where(eq(sessions.id, sessionId));
 
       if (!session[0]) {
-        return res.status(404).json({ message: "Session not found" });
+        return res
+          .status(404)
+          .json(errorResponse(ErrorCode.NOT_FOUND, "Session not found"));
       }
 
       // Revoke session
@@ -1316,10 +1518,12 @@ export async function registerAdminRoutes(app: Express) {
         meta: { parentId: session[0].parentId, reason: reason || "admin_action" },
       });
 
-      res.json({ success: true, message: "Session revoked" });
+      res.json(successResponse(undefined, "Session revoked"));
     } catch (error: any) {
       console.error("Revoke session error:", error);
-      res.status(500).json({ message: "Failed to revoke session" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to revoke session"));
     }
   });
 
@@ -1332,7 +1536,9 @@ export async function registerAdminRoutes(app: Express) {
       // Verify parent exists
       const parent = await db.select().from(parents).where(eq(parents.id, parentId));
       if (!parent[0]) {
-        return res.status(404).json({ message: "Parent not found" });
+        return res
+          .status(404)
+          .json(errorResponse(ErrorCode.NOT_FOUND, "Parent not found"));
       }
 
       // Revoke all active sessions
@@ -1358,10 +1564,12 @@ export async function registerAdminRoutes(app: Express) {
         relatedId: parentId,
       });
 
-      res.json({ success: true, message: "All sessions revoked. Parent will need to log in again." });
+      res.json(successResponse(undefined, "All sessions revoked. Parent will need to log in again."));
     } catch (error: any) {
       console.error("Force OTP error:", error);
-      res.status(500).json({ message: "Failed to force OTP" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to force OTP"));
     }
   });
 
@@ -1379,9 +1587,8 @@ export async function registerAdminRoutes(app: Express) {
         .limit(parseInt(limit))
         .offset(parseInt(offset));
 
-      res.json({
-        success: true,
-        data: history.map((h: typeof loginHistory.$inferSelect) => ({
+      res.json(successResponse(
+        history.map((h: typeof loginHistory.$inferSelect) => ({
           id: h.id,
           deviceId: h.deviceId,
           success: h.success,
@@ -1389,11 +1596,13 @@ export async function registerAdminRoutes(app: Express) {
           failureReason: h.failureReason,
           suspiciousActivity: h.suspiciousActivity,
           createdAt: h.createdAt,
-        })),
-      });
+        }))
+      ));
     } catch (error: any) {
       console.error("Get login history error:", error);
-      res.status(500).json({ message: "Failed to fetch login history" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to fetch login history"));
     }
   });
 
@@ -1409,7 +1618,9 @@ export async function registerAdminRoutes(app: Express) {
         .where(eq(loginHistory.id, historyId));
 
       if (!record[0]) {
-        return res.status(404).json({ message: "Login history record not found" });
+        return res
+          .status(404)
+          .json(errorResponse(ErrorCode.NOT_FOUND, "Login history record not found"));
       }
 
       // Log admin action
@@ -1421,10 +1632,12 @@ export async function registerAdminRoutes(app: Express) {
         meta: { parentId: record[0].parentId, reason },
       });
 
-      res.json({ success: true, message: "Login flagged for review" });
+      res.json(successResponse(undefined, "Login flagged for review"));
     } catch (error: any) {
       console.error("Flag suspicious login error:", error);
-      res.status(500).json({ message: "Failed to flag login" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to flag login"));
     }
   });
 
@@ -1435,10 +1648,12 @@ export async function registerAdminRoutes(app: Express) {
         .select()
         .from(webhookEvents)
         .where(or(isNull(webhookEvents.processedAt), not(isNull(webhookEvents.errorMessage))));
-      res.json({ success: true, data: failed });
+      res.json(successResponse(failed));
     } catch (error: any) {
       console.error("List failed webhooks error:", error);
-      res.status(500).json({ message: "Failed to fetch webhooks" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to fetch webhooks"));
     }
   });
 
@@ -1457,10 +1672,12 @@ export async function registerAdminRoutes(app: Express) {
           result.push(o);
         }
       }
-      res.json({ success: true, data: result });
+      res.json(successResponse(result));
     } catch (error: any) {
       console.error("List paid unfulfilled error:", error);
-      res.status(500).json({ message: "Failed to fetch paid unfulfilled" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to fetch paid unfulfilled"));
     }
   });
 
@@ -1472,10 +1689,14 @@ export async function registerAdminRoutes(app: Express) {
 
       const gift = await db.select().from(gifts).where(eq(gifts.id, id));
       if (!gift[0]) {
-        return res.status(404).json({ message: "Gift not found" });
+        return res
+          .status(404)
+          .json(errorResponse(ErrorCode.NOT_FOUND, "Gift not found"));
       }
       if (gift[0].status !== "SENT") {
-        return res.status(400).json({ message: "Gift is not in SENT status" });
+        return res
+          .status(400)
+          .json(errorResponse(ErrorCode.BAD_REQUEST, "Gift is not in SENT status"));
       }
 
       // Update to UNLOCKED
@@ -1504,10 +1725,12 @@ export async function registerAdminRoutes(app: Express) {
         metadata: { forcedByAdmin: true, reason },
       });
 
-      res.json({ success: true, message: "Gift force-unlocked" });
+      res.json(successResponse(undefined, "Gift force-unlocked"));
     } catch (error: any) {
       console.error("Force unlock gift error:", error);
-      res.status(500).json({ message: "Failed to force unlock gift" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to force unlock gift"));
     }
   });
 
@@ -1519,13 +1742,17 @@ export async function registerAdminRoutes(app: Express) {
 
       const gift = await db.select().from(gifts).where(eq(gifts.id, id));
       if (!gift[0]) {
-        return res.status(404).json({ message: "Gift not found" });
+        return res
+          .status(404)
+          .json(errorResponse(ErrorCode.NOT_FOUND, "Gift not found"));
       }
       if (gift[0].status === "ACTIVATED") {
-        return res.json({ success: true, message: "Gift already activated" });
+        return res.json(successResponse(undefined, "Gift already activated"));
       }
       if (gift[0].status === "REVOKED") {
-        return res.status(400).json({ message: "Cannot activate revoked gift" });
+        return res
+          .status(400)
+          .json(errorResponse(ErrorCode.BAD_REQUEST, "Cannot activate revoked gift"));
       }
 
       // Update entitlement to ACTIVE (childId already set from send)
@@ -1576,10 +1803,12 @@ export async function registerAdminRoutes(app: Express) {
         metadata: { forcedByAdmin: true, reason },
       });
 
-      res.json({ success: true, message: "Gift force-activated" });
+      res.json(successResponse(undefined, "Gift force-activated"));
     } catch (error: any) {
       console.error("Force activate gift error:", error);
-      res.status(500).json({ message: "Failed to force activate gift" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to force activate gift"));
     }
   });
 
@@ -1591,13 +1820,17 @@ export async function registerAdminRoutes(app: Express) {
 
       const gift = await db.select().from(gifts).where(eq(gifts.id, id));
       if (!gift[0]) {
-        return res.status(404).json({ message: "Gift not found" });
+        return res
+          .status(404)
+          .json(errorResponse(ErrorCode.NOT_FOUND, "Gift not found"));
       }
       if (gift[0].status === "ACTIVATED") {
-        return res.status(400).json({ message: "Cannot revoke activated gift" });
+        return res
+          .status(400)
+          .json(errorResponse(ErrorCode.BAD_REQUEST, "Cannot revoke activated gift"));
       }
       if (gift[0].status === "REVOKED") {
-        return res.json({ success: true, message: "Gift already revoked" });
+        return res.json(successResponse(undefined, "Gift already revoked"));
       }
 
       // Update gift to REVOKED
@@ -1644,10 +1877,12 @@ export async function registerAdminRoutes(app: Express) {
         metadata: { revokedByAdmin: true, reason },
       });
 
-      res.json({ success: true, message: "Gift revoked by admin" });
+      res.json(successResponse(undefined, "Gift revoked by admin"));
     } catch (error: any) {
       console.error("Admin revoke gift error:", error);
-      res.status(500).json({ message: "Failed to revoke gift" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to revoke gift"));
     }
   });
 
@@ -1657,10 +1892,12 @@ export async function registerAdminRoutes(app: Express) {
   app.get("/api/admin/games", adminMiddleware, async (req: any, res) => {
     try {
       const games = await db.select().from(flashGames);
-      res.json({ success: true, data: games });
+      res.json(successResponse(games));
     } catch (error: any) {
       console.error("Get admin games error:", error);
-      res.status(500).json({ message: "Failed to get games" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to get games"));
     }
   });
 
@@ -1670,7 +1907,9 @@ export async function registerAdminRoutes(app: Express) {
       const { title, description, embedUrl, thumbnailUrl, pointsPerPlay } = req.body;
       
       if (!title || !embedUrl) {
-        return res.status(400).json({ message: "Title and embed URL are required" });
+        return res
+          .status(400)
+          .json(errorResponse(ErrorCode.BAD_REQUEST, "Title and embed URL are required"));
       }
 
       const [game] = await db.insert(flashGames).values({
@@ -1690,10 +1929,12 @@ export async function registerAdminRoutes(app: Express) {
         meta: { title },
       });
 
-      res.json({ success: true, data: game, message: "Game created successfully" });
+      res.json(successResponse(game, "Game created successfully"));
     } catch (error: any) {
       console.error("Create game error:", error);
-      res.status(500).json({ message: "Failed to create game" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to create game"));
     }
   });
 
@@ -1723,10 +1964,12 @@ export async function registerAdminRoutes(app: Express) {
         meta: { title, isActive },
       });
 
-      res.json({ success: true, data: game, message: "Game updated successfully" });
+      res.json(successResponse(game, "Game updated successfully"));
     } catch (error: any) {
       console.error("Update game error:", error);
-      res.status(500).json({ message: "Failed to update game" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to update game"));
     }
   });
 
@@ -1737,7 +1980,9 @@ export async function registerAdminRoutes(app: Express) {
       
       const game = await db.select().from(flashGames).where(eq(flashGames.id, id));
       if (!game[0]) {
-        return res.status(404).json({ message: "Game not found" });
+        return res
+          .status(404)
+          .json(errorResponse(ErrorCode.NOT_FOUND, "Game not found"));
       }
 
       await db.delete(flashGames).where(eq(flashGames.id, id));
@@ -1750,10 +1995,12 @@ export async function registerAdminRoutes(app: Express) {
         meta: { title: game[0].title },
       });
 
-      res.json({ success: true, message: "Game deleted successfully" });
+      res.json(successResponse(undefined, "Game deleted successfully"));
     } catch (error: any) {
       console.error("Delete game error:", error);
-      res.status(500).json({ message: "Failed to delete game" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to delete game"));
     }
   });
 
@@ -1764,7 +2011,9 @@ export async function registerAdminRoutes(app: Express) {
       
       const game = await db.select().from(flashGames).where(eq(flashGames.id, id));
       if (!game[0]) {
-        return res.status(404).json({ message: "Game not found" });
+        return res
+          .status(404)
+          .json(errorResponse(ErrorCode.NOT_FOUND, "Game not found"));
       }
 
       const [updated] = await db.update(flashGames)
@@ -1772,10 +2021,12 @@ export async function registerAdminRoutes(app: Express) {
         .where(eq(flashGames.id, id))
         .returning();
 
-      res.json({ success: true, data: updated, message: `Game ${updated.isActive ? "activated" : "deactivated"}` });
+      res.json(successResponse(updated, `Game ${updated.isActive ? "activated" : "deactivated"}`));
     } catch (error: any) {
       console.error("Toggle game error:", error);
-      res.status(500).json({ message: "Failed to toggle game" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to toggle game"));
     }
   });
 
@@ -1785,10 +2036,12 @@ export async function registerAdminRoutes(app: Express) {
   app.get("/api/admin/subjects", adminMiddleware, async (req: any, res) => {
     try {
       const result = await db.select().from(subjects).orderBy(subjects.name);
-      res.json({ success: true, data: result });
+      res.json(successResponse(result));
     } catch (error: any) {
       console.error("Fetch subjects error:", error);
-      res.status(500).json({ message: "Failed to fetch subjects" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to fetch subjects"));
     }
   });
 
@@ -1797,7 +2050,9 @@ export async function registerAdminRoutes(app: Express) {
     try {
       const { name, emoji, description, color } = req.body;
       if (!name) {
-        return res.status(400).json({ message: "Subject name is required" });
+        return res
+          .status(400)
+          .json(errorResponse(ErrorCode.BAD_REQUEST, "Subject name is required"));
       }
 
       const [result] = await db.insert(subjects).values({
@@ -1815,10 +2070,12 @@ export async function registerAdminRoutes(app: Express) {
         meta: { name, emoji },
       });
 
-      res.json({ success: true, data: result, message: "Subject created successfully" });
+      res.json(successResponse(result, "Subject created successfully"));
     } catch (error: any) {
       console.error("Create subject error:", error);
-      res.status(500).json({ message: "Failed to create subject" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to create subject"));
     }
   });
 
@@ -1830,7 +2087,9 @@ export async function registerAdminRoutes(app: Express) {
 
       const existing = await db.select().from(subjects).where(eq(subjects.id, id));
       if (!existing[0]) {
-        return res.status(404).json({ message: "Subject not found" });
+        return res
+          .status(404)
+          .json(errorResponse(ErrorCode.NOT_FOUND, "Subject not found"));
       }
 
       const [result] = await db.update(subjects)
@@ -1852,10 +2111,12 @@ export async function registerAdminRoutes(app: Express) {
         meta: { name, emoji },
       });
 
-      res.json({ success: true, data: result, message: "Subject updated successfully" });
+      res.json(successResponse(result, "Subject updated successfully"));
     } catch (error: any) {
       console.error("Update subject error:", error);
-      res.status(500).json({ message: "Failed to update subject" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to update subject"));
     }
   });
 
@@ -1866,7 +2127,9 @@ export async function registerAdminRoutes(app: Express) {
 
       const existing = await db.select().from(subjects).where(eq(subjects.id, id));
       if (!existing[0]) {
-        return res.status(404).json({ message: "Subject not found" });
+        return res
+          .status(404)
+          .json(errorResponse(ErrorCode.NOT_FOUND, "Subject not found"));
       }
 
       await db.delete(subjects).where(eq(subjects.id, id));
@@ -1879,10 +2142,12 @@ export async function registerAdminRoutes(app: Express) {
         meta: { name: existing[0].name },
       });
 
-      res.json({ success: true, message: "Subject deleted successfully" });
+      res.json(successResponse(undefined, "Subject deleted successfully"));
     } catch (error: any) {
       console.error("Delete subject error:", error);
-      res.status(500).json({ message: "Failed to delete subject" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to delete subject"));
     }
   });
 
@@ -1899,10 +2164,12 @@ export async function registerAdminRoutes(app: Express) {
       }
 
       const result = await query;
-      res.json({ success: true, data: result });
+      res.json(successResponse(result));
     } catch (error: any) {
       console.error("Fetch template tasks error:", error);
-      res.status(500).json({ message: "Failed to fetch template tasks" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to fetch template tasks"));
     }
   });
 
@@ -1911,12 +2178,16 @@ export async function registerAdminRoutes(app: Express) {
     try {
       const { subjectId, title, question, answers, pointsReward, difficulty } = req.body;
       if (!subjectId || !title || !question || !answers) {
-        return res.status(400).json({ message: "Subject, title, question and answers are required" });
+        return res
+          .status(400)
+          .json(errorResponse(ErrorCode.BAD_REQUEST, "Subject, title, question and answers are required"));
       }
 
       const subjectExists = await db.select().from(subjects).where(eq(subjects.id, subjectId));
       if (!subjectExists[0]) {
-        return res.status(404).json({ message: "Subject not found" });
+        return res
+          .status(404)
+          .json(errorResponse(ErrorCode.NOT_FOUND, "Subject not found"));
       }
 
       const [result] = await db.insert(templateTasks).values({
@@ -1936,10 +2207,12 @@ export async function registerAdminRoutes(app: Express) {
         meta: { title, subjectId },
       });
 
-      res.json({ success: true, data: result, message: "Template task created successfully" });
+      res.json(successResponse(result, "Template task created successfully"));
     } catch (error: any) {
       console.error("Create template task error:", error);
-      res.status(500).json({ message: "Failed to create template task" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to create template task"));
     }
   });
 
@@ -1951,7 +2224,9 @@ export async function registerAdminRoutes(app: Express) {
 
       const existing = await db.select().from(templateTasks).where(eq(templateTasks.id, id));
       if (!existing[0]) {
-        return res.status(404).json({ message: "Template task not found" });
+        return res
+          .status(404)
+          .json(errorResponse(ErrorCode.NOT_FOUND, "Template task not found"));
       }
 
       const [result] = await db.update(templateTasks)
@@ -1966,10 +2241,12 @@ export async function registerAdminRoutes(app: Express) {
         .where(eq(templateTasks.id, id))
         .returning();
 
-      res.json({ success: true, data: result, message: "Template task updated successfully" });
+      res.json(successResponse(result, "Template task updated successfully"));
     } catch (error: any) {
       console.error("Update template task error:", error);
-      res.status(500).json({ message: "Failed to update template task" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to update template task"));
     }
   });
 
@@ -1980,14 +2257,18 @@ export async function registerAdminRoutes(app: Express) {
 
       const existing = await db.select().from(templateTasks).where(eq(templateTasks.id, id));
       if (!existing[0]) {
-        return res.status(404).json({ message: "Template task not found" });
+        return res
+          .status(404)
+          .json(errorResponse(ErrorCode.NOT_FOUND, "Template task not found"));
       }
 
       await db.delete(templateTasks).where(eq(templateTasks.id, id));
-      res.json({ success: true, message: "Template task deleted successfully" });
+      res.json(successResponse(undefined, "Template task deleted successfully"));
     } catch (error: any) {
       console.error("Delete template task error:", error);
-      res.status(500).json({ message: "Failed to delete template task" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to delete template task"));
     }
   });
 
@@ -2013,10 +2294,12 @@ export async function registerAdminRoutes(app: Express) {
         .orderBy(desc(tasks.createdAt))
         .limit(100);
 
-      res.json({ success: true, data: parentCreatedTasks });
+      res.json(successResponse(parentCreatedTasks));
     } catch (error: any) {
       console.error("Get parent created tasks error:", error);
-      res.status(500).json({ message: "Failed to fetch parent created tasks" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to fetch parent created tasks"));
     }
   });
 
@@ -2047,19 +2330,25 @@ export async function registerAdminRoutes(app: Express) {
       upload(req, res, (err: any) => {
         if (err) {
           console.error("Upload error:", err);
-          return res.status(400).json({ message: "Upload failed", error: err.message });
+          return res
+            .status(400)
+            .json(errorResponse(ErrorCode.BAD_REQUEST, `Upload failed: ${err.message}`));
         }
 
         if (!req.file) {
-          return res.status(400).json({ message: "No file uploaded" });
+          return res
+            .status(400)
+            .json(errorResponse(ErrorCode.BAD_REQUEST, "No file uploaded"));
         }
 
         const fileUrl = `/uploads/task-images/${req.file.filename}`;
-        res.json({ success: true, url: fileUrl });
+        res.json(successResponse({ url: fileUrl }));
       });
     } catch (error: any) {
       console.error("Upload task image error:", error);
-      res.status(500).json({ message: "Failed to upload image" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to upload image"));
     }
   });
 
@@ -2082,10 +2371,12 @@ export async function registerAdminRoutes(app: Express) {
         .orderBy(desc(notifications.createdAt))
         .limit(200);
 
-      res.json({ success: true, data: allNotifications });
+      res.json(successResponse(allNotifications));
     } catch (error: any) {
       console.error("Get admin notifications error:", error);
-      res.status(500).json({ message: "Failed to fetch notifications" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to fetch notifications"));
     }
   });
 
@@ -2094,7 +2385,9 @@ export async function registerAdminRoutes(app: Express) {
       const { type, title, message, targetType, parentId } = req.body;
 
       if (!title || !message) {
-        return res.status(400).json({ message: "Title and message are required" });
+        return res
+          .status(400)
+          .json(errorResponse(ErrorCode.BAD_REQUEST, "Title and message are required"));
       }
 
       let targetParents: { id: string }[] = [];
@@ -2104,7 +2397,9 @@ export async function registerAdminRoutes(app: Express) {
       } else if (targetType === "specific" && parentId) {
         targetParents = [{ id: parentId }];
       } else {
-        return res.status(400).json({ message: "Invalid target type" });
+        return res
+          .status(400)
+          .json(errorResponse(ErrorCode.BAD_REQUEST, "Invalid target type"));
       }
 
       const notificationResults = [];
@@ -2127,14 +2422,15 @@ export async function registerAdminRoutes(app: Express) {
         meta: { type, title, targetType, count: targetParents.length },
       });
 
-      res.json({ 
-        success: true, 
-        data: notificationResults, 
-        message: `تم إرسال الإشعار إلى ${targetParents.length} مستخدم` 
-      });
+      res.json(successResponse(
+        notificationResults,
+        `تم إرسال الإشعار إلى ${targetParents.length} مستخدم`
+      ));
     } catch (error: any) {
       console.error("Send notification error:", error);
-      res.status(500).json({ message: "Failed to send notification" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to send notification"));
     }
   });
 
@@ -2144,10 +2440,12 @@ export async function registerAdminRoutes(app: Express) {
 
       await db.delete(notifications).where(eq(notifications.id, id));
 
-      res.json({ success: true, message: "Notification deleted successfully" });
+      res.json(successResponse(undefined, "Notification deleted successfully"));
     } catch (error: any) {
       console.error("Delete notification error:", error);
-      res.status(500).json({ message: "Failed to delete notification" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to delete notification"));
     }
   });
 
@@ -2157,7 +2455,9 @@ export async function registerAdminRoutes(app: Express) {
       const { parentId, childId, subjectId, question, answers, pointsReward, imageUrl, gifUrl } = req.body;
 
       if (!parentId || !childId || !question || !answers) {
-        return res.status(400).json({ message: "Parent, child, question and answers are required" });
+        return res
+          .status(400)
+          .json(errorResponse(ErrorCode.BAD_REQUEST, "Parent, child, question and answers are required"));
       }
 
       const [result] = await db.insert(tasks).values({
@@ -2180,10 +2480,12 @@ export async function registerAdminRoutes(app: Express) {
         meta: { parentId, childId, question },
       });
 
-      res.json({ success: true, data: result, message: "Task created successfully" });
+      res.json(successResponse(result, "Task created successfully"));
     } catch (error: any) {
       console.error("Admin create task error:", error);
-      res.status(500).json({ message: "Failed to create task" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to create task"));
     }
   });
 
@@ -2211,25 +2513,24 @@ export async function registerAdminRoutes(app: Express) {
         .leftJoin(subjects, eq(tasks.subjectId, subjects.id))
         .groupBy(tasks.subjectId, subjects.name, subjects.emoji);
 
-      res.json({
-        success: true,
-        data: {
-          parents: parentsCount.count,
-          children: childrenCount.count,
-          products: productsCount.count,
-          orders: ordersCount.count,
-          tasks: {
-            total: tasksCount.count,
-            pending: pendingTasks.count,
-            completed: completedTasks.count,
-          },
-          subjects: subjectsCount.count,
-          tasksBySubject,
+      res.json(successResponse({
+        parents: parentsCount.count,
+        children: childrenCount.count,
+        products: productsCount.count,
+        orders: ordersCount.count,
+        tasks: {
+          total: tasksCount.count,
+          pending: pendingTasks.count,
+          completed: completedTasks.count,
         },
-      });
+        subjects: subjectsCount.count,
+        tasksBySubject,
+      }));
     } catch (error: any) {
       console.error("Fetch detailed statistics error:", error);
-      res.status(500).json({ message: "Failed to fetch statistics" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to fetch statistics"));
     }
   });
 
@@ -2329,12 +2630,14 @@ export async function registerAdminRoutes(app: Express) {
 
       res.json({
         success: true,
-        message: `Created ${createdSubjects.length} subjects and ${tasksCreated} template tasks`,
         data: { subjects: createdSubjects, tasksCreated },
+        message: `Created ${createdSubjects.length} subjects and ${tasksCreated} template tasks`,
       });
     } catch (error: any) {
       console.error("Seed subjects error:", error);
-      res.status(500).json({ message: "Failed to seed subjects" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to seed subjects"));
     }
   });
 
@@ -2371,10 +2674,12 @@ export async function registerAdminRoutes(app: Express) {
         };
       }));
 
-      res.json({ success: true, data: enrichedReferrals });
+      res.json(successResponse(enrichedReferrals));
     } catch (error: any) {
       console.error("Get referrals error:", error);
-      res.status(500).json({ message: "Failed to fetch referrals" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to fetch referrals"));
     }
   });
 
@@ -2403,7 +2708,9 @@ export async function registerAdminRoutes(app: Express) {
       });
     } catch (error: any) {
       console.error("Get referral stats error:", error);
-      res.status(500).json({ message: "Failed to fetch referral stats" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to fetch referral stats"));
     }
   });
 
@@ -2425,10 +2732,12 @@ export async function registerAdminRoutes(app: Express) {
       .leftJoin(parents, eq(parentReferralCodes.parentId, parents.id))
       .orderBy(desc(parentReferralCodes.totalReferrals));
 
-      res.json({ success: true, data: codes });
+      res.json(successResponse(codes));
     } catch (error: any) {
       console.error("Get referral codes error:", error);
-      res.status(500).json({ message: "Failed to fetch referral codes" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to fetch referral codes"));
     }
   });
 
@@ -2438,10 +2747,12 @@ export async function registerAdminRoutes(app: Express) {
   app.get("/api/admin/ads", adminMiddleware, async (req: any, res) => {
     try {
       const allAds = await db.select().from(ads).orderBy(desc(ads.priority), desc(ads.createdAt));
-      res.json({ success: true, data: allAds });
+      res.json(successResponse(allAds));
     } catch (error: any) {
       console.error("Get ads error:", error);
-      res.status(500).json({ message: "Failed to fetch ads" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to fetch ads"));
     }
   });
 
@@ -2451,7 +2762,9 @@ export async function registerAdminRoutes(app: Express) {
       const { title, content, imageUrl, linkUrl, targetAudience, priority, isActive, startDate, endDate } = req.body;
       
       if (!title || !content) {
-        return res.status(400).json({ message: "Title and content are required" });
+        return res
+          .status(400)
+          .json(errorResponse(ErrorCode.BAD_REQUEST, "Title and content are required"));
       }
 
       const newAd = await db.insert(ads).values({
@@ -2474,10 +2787,12 @@ export async function registerAdminRoutes(app: Express) {
         meta: { title },
       });
 
-      res.json({ success: true, data: newAd[0] });
+      res.json(successResponse(newAd[0]));
     } catch (error: any) {
       console.error("Create ad error:", error);
-      res.status(500).json({ message: "Failed to create ad" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to create ad"));
     }
   });
 
@@ -2504,13 +2819,17 @@ export async function registerAdminRoutes(app: Express) {
         .returning();
 
       if (!updated[0]) {
-        return res.status(404).json({ message: "Ad not found" });
+        return res
+          .status(404)
+          .json(errorResponse(ErrorCode.NOT_FOUND, "Ad not found"));
       }
 
-      res.json({ success: true, data: updated[0] });
+      res.json(successResponse(updated[0]));
     } catch (error: any) {
       console.error("Update ad error:", error);
-      res.status(500).json({ message: "Failed to update ad" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to update ad"));
     }
   });
 
@@ -2519,10 +2838,12 @@ export async function registerAdminRoutes(app: Express) {
     try {
       const { id } = req.params;
       await db.delete(ads).where(eq(ads.id, id));
-      res.json({ success: true, message: "Ad deleted successfully" });
+      res.json(successResponse(undefined, "Ad deleted successfully"));
     } catch (error: any) {
       console.error("Delete ad error:", error);
-      res.status(500).json({ message: "Failed to delete ad" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to delete ad"));
     }
   });
 
@@ -2532,7 +2853,9 @@ export async function registerAdminRoutes(app: Express) {
       const { id } = req.params;
       const ad = await db.select().from(ads).where(eq(ads.id, id));
       if (!ad[0]) {
-        return res.status(404).json({ message: "Ad not found" });
+        return res
+          .status(404)
+          .json(errorResponse(ErrorCode.NOT_FOUND, "Ad not found"));
       }
 
       const updated = await db.update(ads)
@@ -2540,10 +2863,12 @@ export async function registerAdminRoutes(app: Express) {
         .where(eq(ads.id, id))
         .returning();
 
-      res.json({ success: true, data: updated[0] });
+      res.json(successResponse(updated[0]));
     } catch (error: any) {
       console.error("Toggle ad error:", error);
-      res.status(500).json({ message: "Failed to toggle ad" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to toggle ad"));
     }
   });
 
@@ -2567,10 +2892,12 @@ export async function registerAdminRoutes(app: Express) {
         ad.targetAudience === "all" || ad.targetAudience === audience
       );
 
-      res.json({ success: true, data: filteredAds });
+      res.json(successResponse(filteredAds));
     } catch (error: any) {
       console.error("Get public ads error:", error);
-      res.status(500).json({ message: "Failed to fetch ads" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to fetch ads"));
     }
   });
 
@@ -2581,9 +2908,11 @@ export async function registerAdminRoutes(app: Express) {
       await db.update(ads)
         .set({ viewCount: sql`${ads.viewCount} + 1` })
         .where(eq(ads.id, id));
-      res.json({ success: true });
+      res.json(successResponse());
     } catch (error: any) {
-      res.status(500).json({ message: "Failed to track view" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to track view"));
     }
   });
 
@@ -2594,9 +2923,11 @@ export async function registerAdminRoutes(app: Express) {
       await db.update(ads)
         .set({ clickCount: sql`${ads.clickCount} + 1` })
         .where(eq(ads.id, id));
-      res.json({ success: true });
+      res.json(successResponse());
     } catch (error: any) {
-      res.status(500).json({ message: "Failed to track click" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to track click"));
     }
   });
 
@@ -2614,12 +2945,14 @@ export async function registerAdminRoutes(app: Express) {
           minActiveDays: 7,
           isActive: true,
         }).returning();
-        return res.json({ success: true, data: defaultSettings[0] });
+        return res.json(successResponse(defaultSettings[0]));
       }
-      res.json({ success: true, data: settings[0] });
+      res.json(successResponse(settings[0]));
     } catch (error: any) {
       console.error("Get referral settings error:", error);
-      res.status(500).json({ message: "Failed to fetch referral settings" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to fetch referral settings"));
     }
   });
 
@@ -2651,10 +2984,12 @@ export async function registerAdminRoutes(app: Express) {
           .returning();
       }
       
-      res.json({ success: true, data: updated[0] });
+      res.json(successResponse(updated[0]));
     } catch (error: any) {
       console.error("Update referral settings error:", error);
-      res.status(500).json({ message: "Failed to update referral settings" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to update referral settings"));
     }
   });
 
@@ -2663,14 +2998,13 @@ export async function registerAdminRoutes(app: Express) {
     try {
       const settings = await db.select().from(referralSettings).where(eq(referralSettings.isActive, true));
       if (!settings[0]) {
-        return res.json({ 
-          success: true, 
-          data: { pointsPerReferral: 100, commissionRate: "10.00", minActiveDays: 7, isActive: true } 
-        });
+        return res.json(successResponse({ pointsPerReferral: 100, commissionRate: "10.00", minActiveDays: 7, isActive: true }));
       }
-      res.json({ success: true, data: settings[0] });
+      res.json(successResponse(settings[0]));
     } catch (error: any) {
-      res.status(500).json({ message: "Failed to fetch referral settings" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to fetch referral settings"));
     }
   });
 
@@ -2709,10 +3043,12 @@ export async function registerAdminRoutes(app: Express) {
         };
       }));
       
-      res.json({ success: true, data: parentsWithDetails });
+      res.json(successResponse(parentsWithDetails));
     } catch (error: any) {
       console.error("Get parents error:", error);
-      res.status(500).json({ message: "Failed to fetch parents" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to fetch parents"));
     }
   });
 
@@ -2723,7 +3059,9 @@ export async function registerAdminRoutes(app: Express) {
       const parent = await db.select().from(parents).where(eq(parents.id, id));
       
       if (!parent[0]) {
-        return res.status(404).json({ message: "Parent not found" });
+        return res
+          .status(404)
+          .json(errorResponse(ErrorCode.NOT_FOUND, "Parent not found"));
       }
       
       // Get children
@@ -2749,25 +3087,24 @@ export async function registerAdminRoutes(app: Express) {
       // Get referral info
       const referralCode = await db.select().from(parentReferralCodes).where(eq(parentReferralCodes.parentId, id));
       
-      res.json({ 
-        success: true, 
-        data: {
-          ...parent[0],
-          password: undefined,
-          children: childrenData.filter(Boolean),
-          wallet: wallet[0] || { balance: 0 },
-          tasks: tasksList,
-          templateTasks: templateTasksList,
-          earnings: {
-            total: totalEarnings,
-            transactions: sellerProfits,
-          },
-          referral: referralCode[0] || null,
-        }
-      });
+      res.json(successResponse({
+        ...parent[0],
+        password: undefined,
+        children: childrenData.filter(Boolean),
+        wallet: wallet[0] || { balance: 0 },
+        tasks: tasksList,
+        templateTasks: templateTasksList,
+        earnings: {
+          total: totalEarnings,
+          transactions: sellerProfits,
+        },
+        referral: referralCode[0] || null,
+      }));
     } catch (error: any) {
       console.error("Get parent details error:", error);
-      res.status(500).json({ message: "Failed to fetch parent details" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to fetch parent details"));
     }
   });
 
@@ -2779,12 +3116,16 @@ export async function registerAdminRoutes(app: Express) {
       const adminId = req.admin.adminId;
       
       if (!title || !message) {
-        return res.status(400).json({ message: "Title and message are required" });
+        return res
+          .status(400)
+          .json(errorResponse(ErrorCode.BAD_REQUEST, "Title and message are required"));
       }
       
       const parent = await db.select().from(parents).where(eq(parents.id, id));
       if (!parent[0]) {
-        return res.status(404).json({ message: "Parent not found" });
+        return res
+          .status(404)
+          .json(errorResponse(ErrorCode.NOT_FOUND, "Parent not found"));
       }
       
       const notification = await db.insert(parentNotifications).values({
@@ -2795,10 +3136,12 @@ export async function registerAdminRoutes(app: Express) {
         imageUrl: imageUrl || null,
       }).returning();
       
-      res.json({ success: true, data: notification[0] });
+      res.json(successResponse(notification[0]));
     } catch (error: any) {
       console.error("Send notification error:", error);
-      res.status(500).json({ message: "Failed to send notification" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to send notification"));
     }
   });
 
@@ -2841,7 +3184,7 @@ export async function registerAdminRoutes(app: Express) {
       );
       
       res.json({ 
-        success: true, 
+        success: true,
         data: {
           totalAppCommission,
           totalSellerEarnings,
@@ -2849,11 +3192,13 @@ export async function registerAdminRoutes(app: Express) {
           transactionsCount: allTransactions.length,
           topSellers,
           recentTransactions: allTransactions.slice(0, 20),
-        }
+        },
       });
     } catch (error: any) {
       console.error("Get profit summary error:", error);
-      res.status(500).json({ message: "Failed to fetch profit summary" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to fetch profit summary"));
     }
   });
 
@@ -2875,10 +3220,12 @@ export async function registerAdminRoutes(app: Express) {
         };
       }));
       
-      res.json({ success: true, data: transactionsWithDetails });
+      res.json(successResponse(transactionsWithDetails));
     } catch (error: any) {
       console.error("Get profit transactions error:", error);
-      res.status(500).json({ message: "Failed to fetch transactions" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to fetch transactions"));
     }
   });
 
@@ -2896,10 +3243,12 @@ export async function registerAdminRoutes(app: Express) {
         };
       }));
       
-      res.json({ success: true, data: notificationsWithParent });
+      res.json(successResponse(notificationsWithParent));
     } catch (error: any) {
       console.error("Get parent notifications error:", error);
-      res.status(500).json({ message: "Failed to fetch notifications" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to fetch notifications"));
     }
   });
 
@@ -2909,10 +3258,12 @@ export async function registerAdminRoutes(app: Express) {
   app.get("/api/admin/libraries", adminMiddleware, async (req: any, res) => {
     try {
       const allLibraries = await db.select().from(libraries).orderBy(desc(libraries.activityScore));
-      res.json({ success: true, data: allLibraries });
+      res.json(successResponse(allLibraries));
     } catch (error: any) {
       console.error("Get libraries error:", error);
-      res.status(500).json({ message: "Failed to fetch libraries" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to fetch libraries"));
     }
   });
 
@@ -2922,31 +3273,32 @@ export async function registerAdminRoutes(app: Express) {
       const { id } = req.params;
       const library = await db.select().from(libraries).where(eq(libraries.id, id));
       if (!library[0]) {
-        return res.status(404).json({ message: "Library not found" });
+        return res
+          .status(404)
+          .json(errorResponse(ErrorCode.NOT_FOUND, "Library not found"));
       }
       
       const products = await db.select().from(libraryProducts).where(eq(libraryProducts.libraryId, id));
       const referrals = await db.select().from(libraryReferrals).where(eq(libraryReferrals.libraryId, id));
       const activityLogs = await db.select().from(libraryActivityLogs).where(eq(libraryActivityLogs.libraryId, id)).orderBy(desc(libraryActivityLogs.createdAt)).limit(50);
       
-      res.json({ 
-        success: true, 
-        data: {
-          ...library[0],
-          products,
-          referrals,
-          activityLogs,
-          stats: {
-            totalProducts: products.length,
-            activeProducts: products.filter((p: typeof libraryProducts.$inferSelect) => p.isActive).length,
-            totalReferrals: referrals.length,
-            convertedReferrals: referrals.filter((r: typeof libraryReferrals.$inferSelect) => r.status === "purchased").length,
-          }
-        }
-      });
+      res.json(successResponse({
+        ...library[0],
+        products,
+        referrals,
+        activityLogs,
+        stats: {
+          totalProducts: products.length,
+          activeProducts: products.filter((p: typeof libraryProducts.$inferSelect) => p.isActive).length,
+          totalReferrals: referrals.length,
+          convertedReferrals: referrals.filter((r: typeof libraryReferrals.$inferSelect) => r.status === "purchased").length,
+        },
+      }));
     } catch (error: any) {
       console.error("Get library error:", error);
-      res.status(500).json({ message: "Failed to fetch library" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to fetch library"));
     }
   });
 
@@ -2956,13 +3308,17 @@ export async function registerAdminRoutes(app: Express) {
       const { name, description, location, imageUrl, username, password } = req.body;
       
       if (!name || !username || !password) {
-        return res.status(400).json({ message: "Name, username and password are required" });
+        return res
+          .status(400)
+          .json(errorResponse(ErrorCode.BAD_REQUEST, "Name, username and password are required"));
       }
       
       // Check username unique
       const existing = await db.select().from(libraries).where(eq(libraries.username, username));
       if (existing[0]) {
-        return res.status(400).json({ message: "Username already exists" });
+        return res
+          .status(400)
+          .json(errorResponse(ErrorCode.CONFLICT, "Username already exists"));
       }
       
       const hashedPassword = await bcrypt.hash(password, 10);
@@ -2978,10 +3334,12 @@ export async function registerAdminRoutes(app: Express) {
         referralCode,
       }).returning();
       
-      res.json({ success: true, data: newLibrary[0] });
+      res.json(successResponse(newLibrary[0]));
     } catch (error: any) {
       console.error("Create library error:", error);
-      res.status(500).json({ message: "Failed to create library" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to create library"));
     }
   });
 
@@ -2993,14 +3351,18 @@ export async function registerAdminRoutes(app: Express) {
       
       const library = await db.select().from(libraries).where(eq(libraries.id, id));
       if (!library[0]) {
-        return res.status(404).json({ message: "Library not found" });
+        return res
+          .status(404)
+          .json(errorResponse(ErrorCode.NOT_FOUND, "Library not found"));
       }
       
       // Check username unique if changed
       if (username && username !== library[0].username) {
         const existing = await db.select().from(libraries).where(eq(libraries.username, username));
         if (existing[0]) {
-          return res.status(400).json({ message: "Username already exists" });
+          return res
+            .status(400)
+            .json(errorResponse(ErrorCode.CONFLICT, "Username already exists"));
         }
       }
       
@@ -3014,10 +3376,12 @@ export async function registerAdminRoutes(app: Express) {
       if (typeof isActive === "boolean") updates.isActive = isActive;
       
       const updated = await db.update(libraries).set(updates).where(eq(libraries.id, id)).returning();
-      res.json({ success: true, data: updated[0] });
+      res.json(successResponse(updated[0]));
     } catch (error: any) {
       console.error("Update library error:", error);
-      res.status(500).json({ message: "Failed to update library" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to update library"));
     }
   });
 
@@ -3026,10 +3390,12 @@ export async function registerAdminRoutes(app: Express) {
     try {
       const { id } = req.params;
       await db.delete(libraries).where(eq(libraries.id, id));
-      res.json({ success: true, message: "Library deleted" });
+      res.json(successResponse(undefined, "Library deleted"));
     } catch (error: any) {
       console.error("Delete library error:", error);
-      res.status(500).json({ message: "Failed to delete library" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to delete library"));
     }
   });
 
@@ -3041,10 +3407,12 @@ export async function registerAdminRoutes(app: Express) {
         const created = await db.insert(libraryReferralSettings).values({}).returning();
         settings = created;
       }
-      res.json({ success: true, data: settings[0] });
+      res.json(successResponse(settings[0]));
     } catch (error: any) {
       console.error("Get library referral settings error:", error);
-      res.status(500).json({ message: "Failed to fetch settings" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to fetch settings"));
     }
   });
 
@@ -3061,7 +3429,7 @@ export async function registerAdminRoutes(app: Express) {
           pointsPerProductAdd: pointsPerProductAdd || 5,
           isActive: isActive !== undefined ? isActive : true,
         }).returning();
-        return res.json({ success: true, data: created[0] });
+        return res.json(successResponse(created[0]));
       }
       
       const updated = await db.update(libraryReferralSettings).set({
@@ -3072,10 +3440,12 @@ export async function registerAdminRoutes(app: Express) {
         updatedAt: new Date(),
       }).where(eq(libraryReferralSettings.id, settings[0].id)).returning();
       
-      res.json({ success: true, data: updated[0] });
+      res.json(successResponse(updated[0]));
     } catch (error: any) {
       console.error("Update library referral settings error:", error);
-      res.status(500).json({ message: "Failed to update settings" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to update settings"));
     }
   });
 
@@ -3092,10 +3462,12 @@ export async function registerAdminRoutes(app: Express) {
         clientSecret: p.clientSecret ? "********" : null,
       }));
       
-      res.json({ success: true, data: safeProviders });
+      res.json(successResponse(safeProviders));
     } catch (error: any) {
       console.error("Get social login providers error:", error);
-      res.status(500).json({ message: "Failed to fetch providers" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to fetch providers"));
     }
   });
 
@@ -3118,13 +3490,17 @@ export async function registerAdminRoutes(app: Express) {
       } = req.body;
       
       if (!provider || !displayName) {
-        return res.status(400).json({ message: "Provider and display name are required" });
+        return res
+          .status(400)
+          .json(errorResponse(ErrorCode.BAD_REQUEST, "Provider and display name are required"));
       }
       
       // Check if provider already exists
       const existing = await db.select().from(socialLoginProviders).where(eq(socialLoginProviders.provider, provider));
       if (existing[0]) {
-        return res.status(400).json({ message: "Provider already exists" });
+        return res
+          .status(400)
+          .json(errorResponse(ErrorCode.CONFLICT, "Provider already exists"));
       }
       
       const newProvider = await db.insert(socialLoginProviders).values({
@@ -3142,13 +3518,12 @@ export async function registerAdminRoutes(app: Express) {
         settings: settings || null,
       }).returning();
       
-      res.json({ 
-        success: true, 
-        data: { ...newProvider[0], clientSecret: newProvider[0].clientSecret ? "********" : null } 
-      });
+      res.json(successResponse({ ...newProvider[0], clientSecret: newProvider[0].clientSecret ? "********" : null }));
     } catch (error: any) {
       console.error("Create social login provider error:", error);
-      res.status(500).json({ message: "Failed to create provider" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to create provider"));
     }
   });
 
@@ -3172,7 +3547,9 @@ export async function registerAdminRoutes(app: Express) {
       
       const existing = await db.select().from(socialLoginProviders).where(eq(socialLoginProviders.id, id));
       if (!existing[0]) {
-        return res.status(404).json({ message: "Provider not found" });
+        return res
+          .status(404)
+          .json(errorResponse(ErrorCode.NOT_FOUND, "Provider not found"));
       }
       
       const updates: any = { updatedAt: new Date() };
@@ -3193,13 +3570,12 @@ export async function registerAdminRoutes(app: Express) {
       
       const updated = await db.update(socialLoginProviders).set(updates).where(eq(socialLoginProviders.id, id)).returning();
       
-      res.json({ 
-        success: true, 
-        data: { ...updated[0], clientSecret: updated[0].clientSecret ? "********" : null } 
-      });
+      res.json(successResponse({ ...updated[0], clientSecret: updated[0].clientSecret ? "********" : null }));
     } catch (error: any) {
       console.error("Update social login provider error:", error);
-      res.status(500).json({ message: "Failed to update provider" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to update provider"));
     }
   });
 
@@ -3208,10 +3584,12 @@ export async function registerAdminRoutes(app: Express) {
     try {
       const { id } = req.params;
       await db.delete(socialLoginProviders).where(eq(socialLoginProviders.id, id));
-      res.json({ success: true, message: "Provider deleted" });
+      res.json(successResponse(undefined, "Provider deleted"));
     } catch (error: any) {
       console.error("Delete social login provider error:", error);
-      res.status(500).json({ message: "Failed to delete provider" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to delete provider"));
     }
   });
 
@@ -3222,7 +3600,9 @@ export async function registerAdminRoutes(app: Express) {
       
       const existing = await db.select().from(socialLoginProviders).where(eq(socialLoginProviders.id, id));
       if (!existing[0]) {
-        return res.status(404).json({ message: "Provider not found" });
+        return res
+          .status(404)
+          .json(errorResponse(ErrorCode.NOT_FOUND, "Provider not found"));
       }
       
       const updated = await db.update(socialLoginProviders).set({
@@ -3230,13 +3610,12 @@ export async function registerAdminRoutes(app: Express) {
         updatedAt: new Date(),
       }).where(eq(socialLoginProviders.id, id)).returning();
       
-      res.json({ 
-        success: true, 
-        data: { ...updated[0], clientSecret: updated[0].clientSecret ? "********" : null } 
-      });
+      res.json(successResponse({ ...updated[0], clientSecret: updated[0].clientSecret ? "********" : null }));
     } catch (error: any) {
       console.error("Toggle social login provider error:", error);
-      res.status(500).json({ message: "Failed to toggle provider" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to toggle provider"));
     }
   });
 
@@ -3266,10 +3645,12 @@ export async function registerAdminRoutes(app: Express) {
         }
       }
       
-      res.json({ success: true, created: created.length, message: `${created.length} providers initialized` });
+      res.json(successResponse({ created: created.length }, `${created.length} providers initialized`));
     } catch (error: any) {
       console.error("Initialize social login providers error:", error);
-      res.status(500).json({ message: "Failed to initialize providers" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to initialize providers"));
     }
   });
 
@@ -3286,10 +3667,12 @@ export async function registerAdminRoutes(app: Express) {
         settings: p.settings ? { ...p.settings, apiKey: p.settings.apiKey ? "********" : undefined } : null,
       }));
       
-      res.json({ success: true, data: safeProviders });
+      res.json(successResponse(safeProviders));
     } catch (error: any) {
       console.error("Get OTP providers error:", error);
-      res.status(500).json({ message: "Failed to fetch OTP providers" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to fetch OTP providers"));
     }
   });
 
@@ -3314,7 +3697,9 @@ export async function registerAdminRoutes(app: Express) {
       
       const existing = await db.select().from(otpProviders).where(eq(otpProviders.id, id));
       if (!existing[0]) {
-        return res.status(404).json({ message: "OTP Provider not found" });
+        return res
+          .status(404)
+          .json(errorResponse(ErrorCode.NOT_FOUND, "OTP Provider not found"));
       }
       
       const updates: any = { updatedAt: new Date() };
@@ -3343,10 +3728,12 @@ export async function registerAdminRoutes(app: Express) {
         settings: updated[0].settings ? { ...updated[0].settings, apiKey: updated[0].settings.apiKey ? "********" : undefined } : null,
       };
       
-      res.json({ success: true, data: safeProvider });
+      res.json(successResponse(safeProvider));
     } catch (error: any) {
       console.error("Update OTP provider error:", error);
-      res.status(500).json({ message: "Failed to update OTP provider" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to update OTP provider"));
     }
   });
 
@@ -3357,7 +3744,9 @@ export async function registerAdminRoutes(app: Express) {
       
       const existing = await db.select().from(otpProviders).where(eq(otpProviders.id, id));
       if (!existing[0]) {
-        return res.status(404).json({ message: "OTP Provider not found" });
+        return res
+          .status(404)
+          .json(errorResponse(ErrorCode.NOT_FOUND, "OTP Provider not found"));
       }
       
       const updated = await db.update(otpProviders).set({
@@ -3371,10 +3760,12 @@ export async function registerAdminRoutes(app: Express) {
         settings: updated[0].settings ? { ...updated[0].settings, apiKey: updated[0].settings.apiKey ? "********" : undefined } : null,
       };
       
-      res.json({ success: true, data: safeProvider });
+      res.json(successResponse(safeProvider));
     } catch (error: any) {
       console.error("Toggle OTP provider error:", error);
-      res.status(500).json({ message: "Failed to toggle OTP provider" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to toggle OTP provider"));
     }
   });
 
@@ -3421,10 +3812,12 @@ export async function registerAdminRoutes(app: Express) {
         }
       }
       
-      res.json({ success: true, created: created.length, message: `${created.length} OTP providers initialized` });
+      res.json(successResponse({ created: created.length }, `${created.length} OTP providers initialized`));
     } catch (error: any) {
       console.error("Initialize OTP providers error:", error);
-      res.status(500).json({ message: "Failed to initialize OTP providers" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to initialize OTP providers"));
     }
   });
 }

@@ -14,7 +14,7 @@ import {
   libraryProducts,
   libraries
 } from "../../shared/schema";
-import { eq, and, or, desc, asc, sql } from "drizzle-orm";
+import { eq, and, or, desc, asc, sql, isNull } from "drizzle-orm";
 import { authMiddleware, adminMiddleware, JWT_SECRET } from "./middleware";
 import { createNotification, notifyChildProductAssigned } from "../notifications";
 import jwt from "jsonwebtoken";
@@ -56,11 +56,13 @@ export async function registerStoreRoutes(app: Express) {
           type: paymentMethods.type,
           accountName: paymentMethods.accountName,
           bankName: paymentMethods.bankName,
+          accountNumber: paymentMethods.accountNumber,
+          phoneNumber: paymentMethods.phoneNumber,
         })
         .from(paymentMethods)
         .where(and(
-          eq(paymentMethods.isActive, true),
-          eq(paymentMethods.isDefault, true)
+          isNull(paymentMethods.parentId),
+          eq(paymentMethods.isActive, true)
         ));
       
       res.json({ success: true, data: methods });

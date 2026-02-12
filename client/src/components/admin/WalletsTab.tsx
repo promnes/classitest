@@ -47,8 +47,9 @@ export function WalletsTab({ token }: { token: string }) {
       const res = await fetch("/api/admin/wallets", {
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (!res.ok) return [];
-      return res.json() as Promise<WalletData[]>;
+        const json = await res.json();
+        if (!res.ok) return [];
+        return (json?.data || []) as WalletData[];
     },
     enabled: !!token,
   });
@@ -60,8 +61,9 @@ export function WalletsTab({ token }: { token: string }) {
       const res = await fetch(`/api/admin/wallets/${selectedParentId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (!res.ok) return null;
-      return res.json() as Promise<WalletDetails>;
+        const json = await res.json();
+        if (!res.ok) return null;
+        return (json?.data || null) as WalletDetails | null;
     },
     enabled: !!token && !!selectedParentId,
   });

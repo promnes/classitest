@@ -41,7 +41,7 @@ export function SupportSettingsTab() {
     },
   });
 
-  const settings = formData || data?.data || {};
+  const settings = formData || data || {};
 
   const handleChange = (field: string, value: any) => {
     setFormData((prev: any) => ({ ...(prev || settings), [field]: value }));

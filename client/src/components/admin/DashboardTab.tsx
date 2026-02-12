@@ -44,8 +44,9 @@ export function AdminDashboardTab({ token }: { token: string }) {
       const res = await fetch("/api/admin/stats", {
         headers: { Authorization: `Bearer ${token}` },
       });
+      const json = await res.json();
       if (!res.ok) return null;
-      return res.json() as Promise<AdminStats>;
+      return (json?.data || null) as AdminStats | null;
     },
     enabled: !!token,
   });

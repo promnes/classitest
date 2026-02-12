@@ -2,9 +2,11 @@ import express, { type Express } from "express";
 import fs from "fs";
 import path from "path";
 import { type Server } from "http";
+import { fileURLToPath } from "url";
 
-// ESM-compatible __dirname replacement
-const __dirname = path.dirname(new URL(import.meta.url).pathname);
+// ESM-compatible __dirname replacement (handles Windows paths)
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 export function log(message: string, source = "express") {
   const formattedTime = new Date().toLocaleTimeString("en-US", {

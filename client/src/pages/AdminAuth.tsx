@@ -23,7 +23,11 @@ export const AdminAuth = (): JSX.Element => {
       return res.json();
     },
     onSuccess: (data) => {
-      localStorage.setItem("adminToken", data.token);
+      const token = data?.data?.token;
+      if (!token) {
+        throw new Error("Login failed");
+      }
+      localStorage.setItem("adminToken", token);
       navigate("/admin-dashboard");
     },
     onError: () => alert(t("admin.invalidCredentials")),

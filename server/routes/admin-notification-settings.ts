@@ -27,11 +27,10 @@ export async function registerNotificationSettingsRoutes(app: Express) {
 
         const childIds = childrenList.map((r: any) => r.childId);
         if (childIds.length === 0) {
-          return res.json({
-            success: true,
-            data: [],
+          return res.json(successResponse({
+            items: [],
             pagination: { page: pageNum, limit: limitNum, total: 0, totalPages: 0 },
-          });
+          }));
         }
 
         // Would need a better implementation with IN operator
@@ -58,8 +57,10 @@ export async function registerNotificationSettingsRoutes(app: Express) {
 
         return res.json({
           success: true,
-          data: enriched,
-          pagination: { page: pageNum, limit: limitNum, total: filtered.length, totalPages: 1 },
+          data: {
+            items: enriched,
+            pagination: { page: pageNum, limit: limitNum, total: filtered.length, totalPages: 1 },
+          },
         });
       }
 
@@ -77,19 +78,20 @@ export async function registerNotificationSettingsRoutes(app: Express) {
         })
       );
 
-      res.json({
-        success: true,
-        data: enriched,
+      res.json(successResponse({
+        items: enriched,
         pagination: {
           page: pageNum,
           limit: limitNum,
           total: countResult.length,
           totalPages: Math.ceil(countResult.length / limitNum),
         },
-      });
+      }));
     } catch (error: any) {
       console.error("Fetch notification settings error:", error);
-      res.status(500).json({ message: "Failed to fetch settings" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to fetch settings"));
     }
   });
 
@@ -105,29 +107,25 @@ export async function registerNotificationSettingsRoutes(app: Express) {
 
       if (!setting[0]) {
         // Return default settings
-        return res.json({
-          success: true,
-          data: {
-            childId,
-            mode: "popup_soft",
-            repeatDelayMinutes: 5,
-            requireOverlayPermission: false,
-          },
-        });
+        return res.json(successResponse({
+          childId,
+          mode: "popup_soft",
+          repeatDelayMinutes: 5,
+          requireOverlayPermission: false,
+        }));
       }
 
       const child = await db.select().from(children).where(eq(children.id, childId));
 
-      res.json({
-        success: true,
-        data: {
-          ...setting[0],
-          childName: child[0]?.name || "Unknown",
-        },
-      });
+      res.json(successResponse({
+        ...setting[0],
+        childName: child[0]?.name || "Unknown",
+      }));
     } catch (error: any) {
       console.error("Fetch child settings error:", error);
-      res.status(500).json({ message: "Failed to fetch settings" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to fetch settings"));
     }
   });
 
@@ -138,13 +136,17 @@ export async function registerNotificationSettingsRoutes(app: Express) {
       const { mode, repeatDelayMinutes, requireOverlayPermission } = req.body;
 
       if (mode && !["popup_strict", "popup_soft", "floating_bubble"].includes(mode)) {
-        return res.status(400).json({ message: "Invalid notification mode" });
+        return res
+          .status(400)
+          .json(errorResponse(ErrorCode.BAD_REQUEST, "Invalid notification mode"));
       }
 
       // Verify child exists
       const child = await db.select().from(children).where(eq(children.id, childId));
       if (!child[0]) {
-        return res.status(404).json({ message: "Child not found" });
+        return res
+          .status(404)
+          .json(errorResponse(ErrorCode.NOT_FOUND, "Child not found"));
       }
 
       const existing = await db
@@ -177,10 +179,12 @@ export async function registerNotificationSettingsRoutes(app: Express) {
           .returning();
       }
 
-      res.json({ success: true, data: result[0] });
+      res.json(successResponse(result[0]));
     } catch (error: any) {
       console.error("Update settings error:", error);
-      res.status(500).json({ message: "Failed to update settings" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to update settings"));
     }
   });
 
@@ -205,10 +209,12 @@ export async function registerNotificationSettingsRoutes(app: Express) {
           : 0,
       };
 
-      res.json({ success: true, data: stats });
+      res.json(successResponse(stats));
     } catch (error: any) {
       console.error("Fetch stats error:", error);
-      res.status(500).json({ message: "Failed to fetch stats" });
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to fetch stats"));
     }
   });
 }

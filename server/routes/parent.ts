@@ -761,13 +761,13 @@ export async function registerParentRoutes(app: Express) {
     }
   });
 
-  // Get Payment Methods
+  // Get Payment Methods (admin-created, visible to all parents)
   app.get("/api/parent/payment-methods", authMiddleware, async (req: any, res) => {
     try {
       const result = await db
         .select()
         .from(paymentMethods)
-        .where(eq(paymentMethods.parentId, req.user.userId));
+        .where(and(isNull(paymentMethods.parentId), eq(paymentMethods.isActive, true)));
       res.json(successResponse(result, "Payment methods retrieved"));
     } catch (error: any) {
       console.error("Fetch payment methods error:", error);
@@ -775,63 +775,37 @@ export async function registerParentRoutes(app: Express) {
     }
   });
 
-  // Add Payment Method
-  app.post("/api/parent/payment-methods", authMiddleware, async (req: any, res) => {
+  // Create Deposit (parent confirms external payment)
+  app.post("/api/parent/deposit", authMiddleware, async (req: any, res) => {
     try {
-      const { type, accountNumber, accountName, bankName, phoneNumber } = req.body;
+      const { paymentMethodId, amount, notes } = req.body;
 
-      if (!type || !accountNumber) {
-        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Type and account number are required"));
+      const parsedAmount = parseFloat(amount);
+      if (!paymentMethodId || !amount || isNaN(parsedAmount) || parsedAmount <= 0) {
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Payment method and valid amount are required"));
       }
 
-      const result = await db
-        .insert(paymentMethods)
-        .values({
-          parentId: req.user.userId,
-          type,
-          accountNumber,
-          accountName,
-          bankName,
-          phoneNumber,
-        })
-        .returning();
+      if (parsedAmount > 100000) {
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Maximum deposit amount is 100,000"));
+      }
 
-      res.json(successResponse({ methodId: result[0].id }, "Payment method added"));
-    } catch (error: any) {
-      console.error("Add payment method error:", error);
-      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to add payment method"));
-    }
-  });
+      // Rate limit: max 5 pending deposits per parent
+      const pendingDeposits = await db
+        .select({ id: deposits.id })
+        .from(deposits)
+        .where(and(eq(deposits.parentId, req.user.userId), eq(deposits.status, "pending")));
+      if (pendingDeposits.length >= 5) {
+        return res.status(429).json(errorResponse("RATE_LIMITED" as any, "لديك 5 طلبات إيداع قيد المراجعة بالفعل"));
+      }
 
-  // Delete Payment Method
-  app.delete("/api/parent/payment-methods/:id", authMiddleware, async (req: any, res) => {
-    try {
-      const { id } = req.params;
-
+      // Verify the payment method exists, is admin-created (parentId null), and is active
       const method = await db
         .select()
         .from(paymentMethods)
-        .where(eq(paymentMethods.id, id));
+        .where(and(eq(paymentMethods.id, paymentMethodId), isNull(paymentMethods.parentId), eq(paymentMethods.isActive, true)));
 
-      if (!method[0] || method[0].parentId !== req.user.userId) {
-        return res.status(403).json(errorResponse(ErrorCode.UNAUTHORIZED, "Unauthorized"));
-      }
-
-      await db.delete(paymentMethods).where(eq(paymentMethods.id, id));
-      res.json(successResponse({ deleted: true }, "Payment method deleted"));
-    } catch (error: any) {
-      console.error("Delete payment method error:", error);
-      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to delete payment method"));
-    }
-  });
-
-  // Create Deposit
-  app.post("/api/parent/deposit", authMiddleware, async (req: any, res) => {
-    try {
-      const { paymentMethodId, amount } = req.body;
-
-      if (!paymentMethodId || !amount) {
-        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Payment method and amount are required"));
+      if (!method[0]) {
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Invalid or inactive payment method"));
       }
 
       const result = await db
@@ -839,22 +813,45 @@ export async function registerParentRoutes(app: Express) {
         .values({
           parentId: req.user.userId,
           paymentMethodId,
-          amount,
+          amount: parsedAmount.toString(),
           status: "pending",
+          notes: notes || null,
         })
         .returning();
 
-      res.json(successResponse({ depositId: result[0].id }, "Deposit created"));
+      // Get parent info for admin notification
+      const parent = await db.select({ name: parents.name, email: parents.email }).from(parents).where(eq(parents.id, req.user.userId));
+      const parentName = parent[0]?.name || "مستخدم";
+
+      // Notify admin (parentId: null = admin notification)
+      await createNotification({
+        parentId: null,
+        type: "deposit_request",
+        title: "طلب إيداع جديد",
+        message: `${parentName} طلب إيداع ₪${amount} عبر ${method[0].type}${notes ? ` — "${notes}"` : ""}`,
+        style: "toast",
+        priority: "urgent",
+        soundAlert: true,
+        relatedId: result[0].id,
+        metadata: { depositId: result[0].id, parentId: req.user.userId, amount },
+      });
+
+      res.json(successResponse({ depositId: result[0].id }, "Deposit request created"));
     } catch (error: any) {
       console.error("Create deposit error:", error);
       res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to create deposit"));
     }
   });
 
-  // Get Deposits
+  // Get Deposits (ordered: newest first)
   app.get("/api/parent/deposits", authMiddleware, async (req: any, res) => {
     try {
-      const result = await db.select().from(deposits).where(eq(deposits.parentId, req.user.userId));
+      const result = await db
+        .select()
+        .from(deposits)
+        .where(eq(deposits.parentId, req.user.userId))
+        .orderBy(desc(deposits.createdAt))
+        .limit(100);
       res.json(successResponse(result, "Deposits retrieved"));
     } catch (error: any) {
       console.error("Fetch deposits error:", error);
