@@ -726,6 +726,42 @@ export async function registerAdminRoutes(app: Express) {
     }
   });
 
+  // List all children (admin)
+  app.get("/api/admin/children", adminMiddleware, async (_req: any, res) => {
+    try {
+      const allChildren = await db.select().from(children).orderBy(desc(children.createdAt));
+
+      const childrenWithDetails = await Promise.all(
+        allChildren.map(async (child: typeof children.$inferSelect) => {
+          const parentLinks = await db
+            .select({
+              parentId: parentChild.parentId,
+              parentName: parents.name,
+              parentEmail: parents.email,
+            })
+            .from(parentChild)
+            .innerJoin(parents, eq(parentChild.parentId, parents.id))
+            .where(eq(parentChild.childId, child.id));
+
+          const childTasks = await db.select().from(tasks).where(eq(tasks.childId, child.id));
+
+          return {
+            ...child,
+            parents: parentLinks,
+            tasksCount: childTasks.length,
+          };
+        })
+      );
+
+      res.json(successResponse(childrenWithDetails));
+    } catch (error: any) {
+      console.error("Get children error:", error);
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to fetch children"));
+    }
+  });
+
   // Get single child details
   app.get("/api/admin/children/:id", adminMiddleware, async (req: any, res) => {
     try {

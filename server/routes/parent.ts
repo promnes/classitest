@@ -614,25 +614,45 @@ export async function registerParentRoutes(app: Express) {
         return res.status(403).json(errorResponse(ErrorCode.PARENT_CHILD_MISMATCH, "Unauthorized"));
       }
 
+      // Check parent wallet balance
+      const wallet = await db.select().from(parentWallet).where(eq(parentWallet.parentId, req.user.userId));
+      const currentBalance = Number(wallet[0]?.balance || 0);
+      if (currentBalance < pointsReward) {
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, `رصيدك غير كافي لإرسال هذه المهمة. الرصيد الحالي: ${currentBalance}, المطلوب: ${pointsReward}`));
+      }
+
       const normalizedAnswers = normalizeAnswersForStorage(answers, 0);
       const correctCount = normalizedAnswers.filter((a) => a.isCorrect).length;
       if (correctCount !== 1) {
         return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Exactly one correct answer is required"));
       }
 
-      const result = await db
-        .insert(tasks)
-        .values({
-          parentId: req.user.userId,
-          childId,
-          subjectId: subjectId || null,
-          question,
-          answers: normalizedAnswers,
-          pointsReward,
-          imageUrl,
-          gifUrl: gifUrl || null,
-        })
-        .returning();
+      // Deduct points from parent wallet and create task in a transaction
+      const result = await db.transaction(async (tx) => {
+        await tx.update(parentWallet)
+          .set({
+            balance: sql`${parentWallet.balance} - ${pointsReward}`,
+            totalSpent: sql`${parentWallet.totalSpent} + ${pointsReward}`,
+            updatedAt: new Date(),
+          })
+          .where(eq(parentWallet.parentId, req.user.userId));
+
+        const inserted = await tx
+          .insert(tasks)
+          .values({
+            parentId: req.user.userId,
+            childId,
+            subjectId: subjectId || null,
+            question,
+            answers: normalizedAnswers,
+            pointsReward,
+            imageUrl,
+            gifUrl: gifUrl || null,
+          })
+          .returning();
+
+        return inserted;
+      });
 
       await createNotification({
         childId,
@@ -1896,17 +1916,45 @@ export async function registerParentRoutes(app: Express) {
         return res.status(404).json({ message: "Template not found" });
       }
 
-      const result = await db
-        .insert(tasks)
-        .values({
-          parentId: req.user.userId,
-          childId,
-          subjectId: template[0].subjectId,
-          question: template[0].question,
-          answers: template[0].answers,
-          pointsReward: pointsReward || template[0].pointsReward,
-        })
-        .returning();
+      const finalReward = pointsReward || template[0].pointsReward;
+
+      // Check parent wallet balance
+      const wallet = await db.select().from(parentWallet).where(eq(parentWallet.parentId, req.user.userId));
+      const currentBalance = Number(wallet[0]?.balance || 0);
+      if (currentBalance < finalReward) {
+        return res.status(400).json({
+          success: false,
+          error: "INSUFFICIENT_BALANCE",
+          message: `رصيدك غير كافي لإرسال هذه المهمة. الرصيد الحالي: ${currentBalance}, المطلوب: ${finalReward}`,
+          currentBalance,
+          pointsNeeded: finalReward,
+        });
+      }
+
+      // Deduct from wallet and create task atomically
+      const result = await db.transaction(async (tx) => {
+        await tx.update(parentWallet)
+          .set({
+            balance: sql`${parentWallet.balance} - ${finalReward}`,
+            totalSpent: sql`${parentWallet.totalSpent} + ${finalReward}`,
+            updatedAt: new Date(),
+          })
+          .where(eq(parentWallet.parentId, req.user.userId));
+
+        const inserted = await tx
+          .insert(tasks)
+          .values({
+            parentId: req.user.userId,
+            childId,
+            subjectId: template[0].subjectId,
+            question: template[0].question,
+            answers: template[0].answers,
+            pointsReward: finalReward,
+          })
+          .returning();
+
+        return inserted;
+      });
 
       // Send notification to child
       await createNotification({
@@ -2308,13 +2356,28 @@ export async function registerParentRoutes(app: Express) {
         });
       }
 
+      const finalReward = pointsReward || 10;
+
+      // Check parent wallet balance
+      const wallet = await db.select().from(parentWallet).where(eq(parentWallet.parentId, parentId));
+      const currentBalance = Number(wallet[0]?.balance || 0);
+      if (currentBalance < finalReward) {
+        return res.status(400).json({
+          success: false,
+          error: "INSUFFICIENT_BALANCE",
+          message: `رصيدك غير كافي لإرسال هذه المهمة. الرصيد الحالي: ${currentBalance}, المطلوب: ${finalReward}`,
+          currentBalance,
+          pointsNeeded: finalReward,
+        });
+      }
+
       // Optionally save as template for reuse
       if (saveAsTemplate && title && subjectId) {
         const templateResult = await db.insert(templateTasks).values({
           title,
           question,
           answers: normalizedAnswers,
-          pointsReward: pointsReward || 10,
+          pointsReward: finalReward,
           subjectId,
           difficulty: difficulty || "medium",
           createdByParent: true,
@@ -2326,17 +2389,29 @@ export async function registerParentRoutes(app: Express) {
         templateTaskId = templateResult[0]?.id;
       }
 
-      // Create task directly in tasks table (assigned to child)
-      const newTask = await db.insert(tasks).values({
-        parentId,
-        childId,
-        subjectId: subjectId || null,
-        question,
-        answers: normalizedAnswers,
-        pointsReward: pointsReward || 10,
-        status: "pending",
-        imageUrl: taskMedia?.url || null,
-      }).returning();
+      // Deduct from wallet and create task atomically
+      const newTask = await db.transaction(async (tx) => {
+        await tx.update(parentWallet)
+          .set({
+            balance: sql`${parentWallet.balance} - ${finalReward}`,
+            totalSpent: sql`${parentWallet.totalSpent} + ${finalReward}`,
+            updatedAt: new Date(),
+          })
+          .where(eq(parentWallet.parentId, parentId));
+
+        const inserted = await tx.insert(tasks).values({
+          parentId,
+          childId,
+          subjectId: subjectId || null,
+          question,
+          answers: normalizedAnswers,
+          pointsReward: finalReward,
+          status: "pending",
+          imageUrl: taskMedia?.url || null,
+        }).returning();
+
+        return inserted;
+      });
 
       // Send notification to child
       await createNotification({
@@ -2469,16 +2544,43 @@ export async function registerParentRoutes(app: Express) {
         }
       }
 
-      // Create task for child
-      const newTask = await db.insert(tasks).values({
-        parentId: buyerParentId,
-        childId,
-        subjectId: template[0].subjectId,
-        question: template[0].question,
-        answers: template[0].answers,
-        pointsReward: points || template[0].pointsReward,
-        status: "pending",
-      }).returning();
+      const finalReward = points || template[0].pointsReward;
+
+      // Check parent wallet balance before creating task
+      const buyerWallet = await db.select().from(parentWallet).where(eq(parentWallet.parentId, buyerParentId));
+      const buyerBalance = Number(buyerWallet[0]?.balance || 0);
+      if (buyerBalance < finalReward) {
+        return res.status(400).json({
+          success: false,
+          error: "INSUFFICIENT_BALANCE",
+          message: `رصيدك غير كافي لإرسال هذه المهمة. الرصيد الحالي: ${buyerBalance}, المطلوب: ${finalReward}`,
+          currentBalance: buyerBalance,
+          pointsNeeded: finalReward,
+        });
+      }
+
+      // Deduct from wallet and create task atomically
+      const newTask = await db.transaction(async (tx) => {
+        await tx.update(parentWallet)
+          .set({
+            balance: sql`${parentWallet.balance} - ${finalReward}`,
+            totalSpent: sql`${parentWallet.totalSpent} + ${finalReward}`,
+            updatedAt: new Date(),
+          })
+          .where(eq(parentWallet.parentId, buyerParentId));
+
+        const inserted = await tx.insert(tasks).values({
+          parentId: buyerParentId,
+          childId,
+          subjectId: template[0].subjectId,
+          question: template[0].question,
+          answers: template[0].answers,
+          pointsReward: finalReward,
+          status: "pending",
+        }).returning();
+
+        return inserted;
+      });
 
       // Send notification to child
       await createNotification({

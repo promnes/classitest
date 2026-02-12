@@ -14,7 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { ArrowRight, Plus, Star, Users, BookOpen, Send, Coins, Loader2, Calendar, Clock, X, Pencil } from "lucide-react";
+import { ArrowRight, Plus, Star, Users, BookOpen, Send, Coins, Loader2, Calendar, Clock, X, Pencil, Wallet } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { TaskForm, type TaskFormValue } from "@/components/forms/TaskForm";
 
@@ -90,8 +90,13 @@ export default function ParentTasks() {
     enabled: activeTab === "public",
   });
 
+  const { data: walletData } = useQuery<any>({
+    queryKey: ["/api/parent/wallet"],
+  });
+
   const subjects = subjectsData?.data || subjectsData || [];
   const children = childrenData?.data || childrenData || [];
+  const walletBalance = Number(walletData?.data?.balance ?? walletData?.balance ?? 0);
 
   const buildDefaultForm = (): TaskFormValue => ({
     title: "",
@@ -167,6 +172,7 @@ export default function ParentTasks() {
       setSaveAsTemplate(false);
       queryClient.invalidateQueries({ queryKey: ["/api/parent/my-tasks"] });
       queryClient.invalidateQueries({ queryKey: ["/api/parent/children"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/parent/wallet"] });
     },
     onError: (error: any) => {
       toast({ 
@@ -210,6 +216,7 @@ export default function ParentTasks() {
       toast({ title: t("parentTasks.taskSentSuccess") });
       setShowSendDialog(false);
       setSelectedTask(null);
+      queryClient.invalidateQueries({ queryKey: ["/api/parent/wallet"] });
     },
     onError: (error: any) => {
       toast({ 
@@ -425,6 +432,10 @@ export default function ParentTasks() {
             <ArrowRight className="h-5 w-5" />
           </Button>
           <h1 className="text-2xl font-bold">{t("parentTasks.tasksSection")}</h1>
+          <Badge variant="outline" className="mr-auto text-sm px-3 py-1">
+            <Wallet className="h-4 w-4 ml-1" />
+            الرصيد: {walletBalance}
+          </Badge>
         </div>
 
         <div className="flex gap-3 items-center flex-wrap">
@@ -707,10 +718,17 @@ export default function ParentTasks() {
               </div>
             )}
 
+            {selectedTask && walletBalance < (selectedTask.pointsReward || 0) && (
+              <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/30 text-destructive text-sm text-center">
+                <Wallet className="h-4 w-4 inline ml-1" />
+                رصيدك غير كافي لإرسال هذه المهمة. الرصيد الحالي: {walletBalance}، المطلوب: {selectedTask.pointsReward}
+              </div>
+            )}
+
             <Button
               onClick={handleSendTask}
               className="w-full"
-              disabled={(scheduleMode ? scheduleTaskMutation.isPending : sendTaskMutation.isPending) || !selectedChild}
+              disabled={(scheduleMode ? scheduleTaskMutation.isPending : sendTaskMutation.isPending) || !selectedChild || (!!selectedTask && walletBalance < (selectedTask.pointsReward || 0))}
               data-testid="confirm-send-task"
             >
               {(scheduleMode ? scheduleTaskMutation.isPending : sendTaskMutation.isPending) ? (

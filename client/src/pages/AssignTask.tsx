@@ -40,9 +40,15 @@ export const AssignTask = (): JSX.Element => {
     enabled: !!selectedSubject && !!token,
   });
 
+  const { data: walletRaw } = useQuery<any>({
+    queryKey: ["/api/parent/wallet"],
+    enabled: !!token,
+  });
+
   const children = Array.isArray(childrenRaw) ? childrenRaw : [];
   const subjects = Array.isArray(subjectsRaw) ? subjectsRaw : [];
   const templates = Array.isArray(templatesRaw) ? templatesRaw : [];
+  const walletBalance = Number(walletRaw?.data?.balance ?? walletRaw?.balance ?? 0);
 
   const assignMutation = useMutation({
     mutationFn: async () => {
@@ -81,6 +87,7 @@ export const AssignTask = (): JSX.Element => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/parent/children"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/parent/wallet"] });
       navigate("/parent-dashboard");
     },
   });
@@ -113,6 +120,12 @@ export const AssignTask = (): JSX.Element => {
         </div>
 
         <div className={`${isDark ? "bg-gray-800" : "bg-white"} rounded-2xl shadow-lg p-8`}>
+          {/* Wallet Balance */}
+          <div className={`flex items-center gap-2 mb-6 p-3 rounded-xl ${isDark ? "bg-gray-700" : "bg-blue-50"}`}>
+            <span className="text-xl">💰</span>
+            <span className={`font-bold ${isDark ? "text-white" : "text-gray-800"}`}>رصيدك: {walletBalance}</span>
+          </div>
+
           <div className="space-y-6">
             <div>
               <label className={`block text-lg font-bold mb-3 ${isDark ? "text-white" : "text-gray-800"}`}>
@@ -344,19 +357,33 @@ export const AssignTask = (): JSX.Element => {
               </div>
             )}
 
-            <button
-              onClick={() => assignMutation.mutate()}
-              disabled={
-                !selectedChild ||
-                (!createCustom && !selectedTemplate) ||
-                (createCustom && (!customQuestion.trim() || customAnswers.filter(a => a.text.trim()).length < 2)) ||
-                assignMutation.isPending
-              }
-              className="w-full py-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl font-bold text-lg disabled:opacity-50 disabled:cursor-not-allowed hover:from-green-600 hover:to-emerald-700 transition-all"
-              data-testid="button-assign-task"
-            >
-              {assignMutation.isPending ? t("assignTask.sending") : `📤 ${t("assignTask.sendTask")}`}
-            </button>
+            {(() => {
+              const taskReward = createCustom ? customPoints : (selectedTemplateData?.pointsReward || 0);
+              const insufficientBalance = taskReward > 0 && walletBalance < taskReward;
+              return (
+                <>
+                  {insufficientBalance && (
+                    <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm text-center">
+                      رصيدك غير كافي لإرسال هذه المهمة. الرصيد الحالي: {walletBalance}، المطلوب: {taskReward}
+                    </div>
+                  )}
+                  <button
+                    onClick={() => assignMutation.mutate()}
+                    disabled={
+                      !selectedChild ||
+                      (!createCustom && !selectedTemplate) ||
+                      (createCustom && (!customQuestion.trim() || customAnswers.filter(a => a.text.trim()).length < 2)) ||
+                      assignMutation.isPending ||
+                      insufficientBalance
+                    }
+                    className="w-full py-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl font-bold text-lg disabled:opacity-50 disabled:cursor-not-allowed hover:from-green-600 hover:to-emerald-700 transition-all"
+                    data-testid="button-assign-task"
+                  >
+                    {assignMutation.isPending ? t("assignTask.sending") : `📤 ${t("assignTask.sendTask")}`}
+                  </button>
+                </>
+              );
+            })()}
           </div>
         </div>
       </div>

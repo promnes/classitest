@@ -8,7 +8,7 @@ import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Eye, EyeOff, Copy, Check, Link2 } from "lucide-react";
 
 export const CreateTask = (): JSX.Element => {
@@ -40,6 +40,13 @@ export const CreateTask = (): JSX.Element => {
   const children = Array.isArray(childrenRaw) ? childrenRaw : [];
   const parentData = parentInfo as any || {};
 
+  const { data: walletRaw } = useQuery<any>({
+    queryKey: ["/api/parent/wallet"],
+    enabled: !!token,
+  });
+  const walletBalance = Number(walletRaw?.data?.balance ?? walletRaw?.balance ?? 0);
+  const insufficientBalance = pointsReward > 0 && walletBalance < pointsReward;
+
   const copyCode = (code: string) => {
     navigator.clipboard.writeText(code);
     setCopied(true);
@@ -55,7 +62,10 @@ export const CreateTask = (): JSX.Element => {
         answers: answers.filter((a) => a.text.trim()),
       });
     },
-    onSuccess: () => navigate("/parent-dashboard"),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/parent/wallet"] });
+      navigate("/parent-dashboard");
+    },
   });
 
   return (
@@ -155,7 +165,7 @@ export const CreateTask = (): JSX.Element => {
             {/* Points */}
             <div>
               <label className="block text-sm font-bold text-gray-700 mb-2">
-                {t("pointsReward")}
+                {t("pointsReward")} <span className="text-xs font-normal text-gray-500">(رصيدك: {walletBalance})</span>
               </label>
               <input
                 type="number"
@@ -212,9 +222,15 @@ export const CreateTask = (): JSX.Element => {
               </div>
             </div>
 
+            {insufficientBalance && (
+              <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm text-center">
+                رصيدك غير كافي لإرسال هذه المهمة. الرصيد الحالي: {walletBalance}، المطلوب: {pointsReward}
+              </div>
+            )}
+
             <button
               type="submit"
-              disabled={createMutation.isPending || !selectedChild || !question}
+              disabled={createMutation.isPending || !selectedChild || !question || insufficientBalance}
               className="w-full px-6 py-4 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-lg disabled:opacity-50"
             >
               {createMutation.isPending ? t("creatingTask") : t("createTask")}

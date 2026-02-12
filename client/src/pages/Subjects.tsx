@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useTheme } from "@/contexts/ThemeContext";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 
 export const Subjects = (): JSX.Element => {
   const { t } = useTranslation();
@@ -33,6 +33,13 @@ export const Subjects = (): JSX.Element => {
   const templates = Array.isArray(templatesRaw) ? templatesRaw : [];
   const children = Array.isArray(childrenRaw) ? childrenRaw : [];
 
+  const { data: walletRaw } = useQuery<any>({
+    queryKey: ["/api/parent/wallet"],
+    enabled: !!token,
+  });
+
+  const walletBalance = Number(walletRaw?.data?.balance ?? walletRaw?.balance ?? 0);
+
   const sendTaskMutation = useMutation({
     mutationFn: async ({ templateId, childId }: any) => {
       return apiRequest("POST", "/api/parent/create-task-from-template", { templateId, childId });
@@ -41,6 +48,7 @@ export const Subjects = (): JSX.Element => {
       alert("✅ تم إرسال المهمة بنجاح!");
       setSelectedTemplate(null);
       setSelectedChild("");
+      queryClient.invalidateQueries({ queryKey: ["/api/parent/wallet"] });
     },
   });
 
@@ -173,7 +181,7 @@ export const Subjects = (): JSX.Element => {
             <p className="text-gray-600 mb-6">{selectedTemplate.title}</p>
 
             {/* Select Child */}
-            <div className="mb-6">
+            <div className="mb-4">
               <label className="block text-sm font-bold mb-2">اختر الطفل</label>
               <select
                 value={selectedChild}
@@ -189,10 +197,20 @@ export const Subjects = (): JSX.Element => {
               </select>
             </div>
 
+            <div className="mb-4 p-3 rounded-lg bg-blue-50 text-sm">
+              💰 رصيدك الحالي: <strong>{walletBalance}</strong>
+            </div>
+
+            {selectedTemplate.pointsReward > walletBalance && (
+              <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm text-center">
+                رصيدك غير كافي. المطلوب: {selectedTemplate.pointsReward}
+              </div>
+            )}
+
             <div className="flex gap-4">
               <button
                 onClick={() => sendTaskMutation.mutate({ templateId: selectedTemplate.id, childId: selectedChild })}
-                disabled={!selectedChild || sendTaskMutation.isPending}
+                disabled={!selectedChild || sendTaskMutation.isPending || selectedTemplate.pointsReward > walletBalance}
                 className="flex-1 px-4 py-3 bg-blue-500 hover:bg-blue-600 text-white font-bold rounded-lg disabled:opacity-50"
               >
                 {sendTaskMutation.isPending ? "جاري..." : "إرسال"}

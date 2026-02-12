@@ -98,6 +98,13 @@ export default function SubjectTasks() {
     enabled: !!token,
   });
 
+  const { data: walletRaw } = useQuery<any>({
+    queryKey: ["/api/parent/wallet"],
+    enabled: !!token,
+  });
+
+  const walletBalance = Number(walletRaw?.data?.balance ?? walletRaw?.balance ?? 0);
+
   const sendTaskMutation = useMutation({
     mutationFn: async (data: { templateTaskId: string; childId: string; points: number }) => {
       const res = await fetch("/api/parent/send-template-task", {
@@ -111,6 +118,7 @@ export default function SubjectTasks() {
       setSelectedTask(null);
       setSelectedChildId("");
       setCustomPoints(10);
+      queryClient.invalidateQueries({ queryKey: ["/api/parent/wallet"] });
       alert("تم إرسال المهمة للطفل بنجاح!");
     },
   });
@@ -369,10 +377,17 @@ export default function SubjectTasks() {
                 </div>
 
                 <div className="flex gap-2">
+                  {customPoints > walletBalance && (
+                    <div className="w-full p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm text-center mb-2">
+                      رصيدك غير كافي. الرصيد الحالي: {walletBalance}، المطلوب: {customPoints}
+                    </div>
+                  )}
+                </div>
+                <div className="flex gap-2">
                   <Button
                     onClick={handleSendTask}
                     className="flex-1 bg-green-600 hover:bg-green-700"
-                    disabled={sendTaskMutation.isPending}
+                    disabled={sendTaskMutation.isPending || customPoints > walletBalance}
                     data-testid="button-send-task"
                   >
                     {sendTaskMutation.isPending ? "جاري الإرسال..." : "إرسال المهمة"}
