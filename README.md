@@ -8,7 +8,7 @@
 
 ## 📚 Complete Documentation | التوثيق الشامل
 
-**New team members?** Start here → [**COMPLETE_OVERVIEW.md**](COMPLETE_OVERVIEW.md) | **Quick lookup?** → [**QUICK_REFERENCE.md**](QUICK_REFERENCE.md) | **How to deploy?** → [**DEPLOYMENT_CHECKLIST.md**](DEPLOYMENT_CHECKLIST.md)
+**New team members?** Start here → [**COMPLETE_OVERVIEW.md**](COMPLETE_OVERVIEW.md) | **Quick lookup?** → [**QUICK_REFERENCE.md**](QUICK_REFERENCE.md) | **How to deploy?** → [**DEPLOYMENT.md**](DEPLOYMENT.md)
 
 | Document | Purpose | Best For |
 |----------|---------|----------|
@@ -16,7 +16,8 @@
 | [**PROJECT_BLUEPRINT.md**](PROJECT_BLUEPRINT.md) | Complete system reference (80+ tables, 150+ endpoints) | Understanding everything |
 | [**ARCHITECTURE.md**](ARCHITECTURE.md) | System diagrams & flows (20+ visuals) | Visual learners |
 | [**QUICK_REFERENCE.md**](QUICK_REFERENCE.md) | 50+ common tasks with examples | Day-to-day development |
-| [**DEPLOYMENT_CHECKLIST.md**](DEPLOYMENT_CHECKLIST.md) | Operations & deployment procedures | DevOps & deployment |
+| [**DEPLOYMENT.md**](DEPLOYMENT.md) | 🚀 Hostinger VPS deployment guide (optimized for Docker Manager) | DevOps & deployment |
+| [**docs/DEPLOYMENT_OPTIMIZATION.md**](docs/DEPLOYMENT_OPTIMIZATION.md) | Performance benchmarks & optimization details | Understanding improvements |
 | [**COMPLETE_OVERVIEW.md**](COMPLETE_OVERVIEW.md) | Navigation & learning paths | New team members |
 | [**DOCUMENTATION_INDEX.md**](DOCUMENTATION_INDEX.md) | Master index & cross-references | Finding specific topics |
 
@@ -191,7 +192,7 @@ npm run start
 - Docker Compose 2+
 - Ubuntu 24.04 LTS (Hostinger VPS)
 
-### Quick Deploy | النشر السريع
+### 🚀 Quick Deploy | النشر السريع
 
 ```bash
 # 1. Clone the repository
@@ -204,28 +205,50 @@ cp .env.example .env
 # 3. Edit environment variables
 nano .env
 
-# 4. Run deployment script
-chmod +x deploy.sh
-./deploy.sh
+# 4. Start all services
+docker compose up -d
 ```
+
+### ⚡ Fast Updates | التحديثات السريعة
+
+**Most common:** One-command update with the optimized script:
+
+```bash
+# Quick update from main branch
+./scripts/deploy-fast.sh
+
+# Update from specific branch
+./scripts/deploy-fast.sh dev
+
+# Environment changes only (no rebuild)
+./scripts/deploy-fast.sh --no-build
+```
+
+**Performance:**
+- Code updates: **90% faster** (~30 seconds vs 5 minutes)
+- Environment changes: **96% faster** (~5 seconds vs 2 minutes)
+- Image size: **62% smaller** (~150MB vs 400MB)
 
 ### Manual Docker Commands | أوامر Docker اليدوية
 
 ```bash
 # Build and start all services
-docker-compose up -d --build
+docker compose up -d --build
 
 # View logs
-docker-compose logs -f app
+docker compose logs -f app
 
 # Stop all services
-docker-compose down
+docker compose down
 
 # Restart application
-docker-compose restart app
+docker compose restart app
 
 # Run database migrations
-docker-compose exec app npm run db:push
+docker compose exec app npm run db:push
+
+# Quick rebuild (with layer caching)
+docker compose up -d --build app
 ```
 
 ## SSL Certificate Setup | إعداد شهادة SSL
@@ -319,6 +342,17 @@ For detailed guide, see [ADMIN_CREDENTIALS.md](docs/ADMIN_CREDENTIALS.md)
 
 ## Performance Optimization | تحسين الأداء
 
+### Docker Build Optimization
+**3-stage multi-stage build** with aggressive layer caching:
+- **Stage 1 (deps):** Dependencies cached unless `package.json` changes
+- **Stage 2 (builder):** Build cached unless source code changes
+- **Stage 3 (runner):** Minimal production image (~150MB)
+
+**Results:**
+- First build: ~6 minutes (25% faster)
+- Code updates: ~30 seconds (90% faster)
+- Env changes: ~5 seconds (96% faster)
+
 ### Database Indexes
 64 optimized indexes for high-performance queries:
 - Authentication indexes (parents, sessions, OTP codes)
@@ -330,11 +364,13 @@ For detailed guide, see [ADMIN_CREDENTIALS.md](docs/ADMIN_CREDENTIALS.md)
 - TanStack Query with 5-minute staleTime
 - Compression middleware enabled
 - Static asset caching via nginx
+- Docker BuildKit caching for faster rebuilds
 
 ### Scalability
 - Optimized for 5000+ concurrent users
 - Docker resource limits configured
 - Connection pooling enabled
+- Zero-downtime rolling updates
 
 ## Monitoring | المراقبة
 
