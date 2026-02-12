@@ -47,13 +47,13 @@ docker compose version
 ### 2. Clone Repository
 
 ```bash
-# Create project directory
-mkdir -p /root/projects
-cd /root/projects
+# Navigate to project directory
+cd /docker/classitest
 
-# Clone repository
-git clone https://github.com/your-username/classiv3.git
-cd classiv3
+# Clone repository (or pull latest if already exists)
+git clone https://github.com/promnes/classitest.git .
+# OR if already cloned:
+git pull origin main
 ```
 
 ### 3. Configure Environment
@@ -123,7 +123,7 @@ curl http://localhost:5000/api/health
 ### Method 1: Quick Update (Recommended)
 
 ```bash
-cd /root/projects/classiv3
+cd /docker/classitest
 
 # Pull latest code and rebuild
 ./scripts/deploy-fast.sh
@@ -145,7 +145,7 @@ cd /root/projects/classiv3
 ### Method 2: Manual Update
 
 ```bash
-cd /root/projects/classiv3
+cd /docker/classitest
 
 # Pull latest code
 ```bash
@@ -193,7 +193,7 @@ cat backup_20250113_120000.sql | docker compose exec -T db psql -U classify_user
 docker compose down
 
 # Remove volumes
-docker volume rm classiv3_postgres_data
+docker volume rm classitest_postgres_data
 
 # Start fresh
 docker compose up -d
@@ -279,7 +279,7 @@ healthcheck:
 ## 🆘 Emergency Rollback
 
 ```bash
-cd /root/projects/classiv3
+cd /docker/classitest
 
 # Option 1: Rollback to previous commit
 git log --oneline -10  # Find previous commit hash
@@ -292,7 +292,7 @@ git checkout main  # or v1.0.0
 
 # Option 3: Restore from backup
 docker compose down
-docker volume rm classiv3_postgres_data
+docker volume rm classitest_postgres_data
 docker compose up -d
 # Then restore database backup
 ```

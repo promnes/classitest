@@ -114,9 +114,8 @@ app:
 # 1. SSH into VPS
 ssh root@your-vps-ip
 
-# 2. Clone repository
-git clone <repo-url> /root/projects/classiv3
-cd /root/projects/classiv3
+# 2. Navigate to project directory
+cd /docker/classitest
 
 # 3. Configure environment
 cp .env.production.example .env
@@ -131,7 +130,7 @@ docker compose up -d
 ```bash
 # SSH into VPS
 ssh root@your-vps-ip
-cd /root/projects/classiv3
+cd /docker/classitest
 
 # Quick update (most common)
 ./scripts/deploy-fast.sh
@@ -157,14 +156,14 @@ docker compose up -d --build app
 
 1. **Test on VPS:**
    ```bash
-   cd /root/projects/classiv3
+   cd /docker/classitest
    ./scripts/deploy-fast.sh
    ```
 
 2. **Verify containers:**
    ```bash
    docker compose ps
-   docker logs -f classify-app
+   docker compose logs -f app
    ```
 
 3. **Check health:**

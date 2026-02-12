@@ -23,7 +23,7 @@ NC='\033[0m'
 # Configuration
 BRANCH="${1:-main}"
 NO_BUILD=false
-PROJECT_DIR="/root/projects/classiv3"
+PROJECT_DIR="/docker/classitest"
 
 # Parse arguments
 while [[ "$#" -gt 0 ]]; do
@@ -68,13 +68,13 @@ if [ "$NO_BUILD" = true ]; then
 else
     echo -e "\n${YELLOW}[3/5] Building updated image...${NC}"
     # Use BuildKit for faster builds with layer caching
-    DOCKER_BUILDKIT=1 docker-compose build --no-cache app
+    DOCKER_BUILDKIT=1 docker compose build app
     echo -e "${GREEN}✓ Image built successfully${NC}"
 fi
 
 # Step 4: Restart containers
 echo -e "\n${YELLOW}[4/5] Restarting services...${NC}"
-docker-compose up -d --force-recreate app
+docker compose up -d --force-recreate app
 echo -e "${GREEN}✓ Services restarted${NC}"
 
 # Step 5: Wait and verify health
@@ -82,35 +82,42 @@ echo -e "\n${YELLOW}[5/5] Verifying deployment...${NC}"
 sleep 10
 
 # Check container status
-if docker ps | grep -q "classify-app"; then
-    echo -e "${GREEN}✓ Container is running${NC}"
+APP_CONTAINER=$(docker ps --filter "name=app" --format "{{.Names}}" | head -1)
+if [ -n "$APP_CONTAINER" ]; then
+    echo -e "${GREEN}✓ Container is running: $APP_CONTAINER${NC}"
 else
     echo -e "${RED}✗ Container failed to start${NC}"
     echo -e "${YELLOW}Showing logs:${NC}"
-    docker logs classify-app --tail=50
+    docker compose logs app --tail=50
     exit 1
 fi
 
-# Check health endpoint
-HEALTH_CHECK=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:5000/api/health || echo "000")
-if [ "$HEALTH_CHECK" = "200" ]; then
-    echo -e "${GREEN}✓ Health check passed (HTTP 200)${NC}"
-else
-    echo -e "${RED}✗ Health check failed (HTTP $HEALTH_CHECK)${NC}"
-    echo -e "${YELLOW}Showing recent logs:${NC}"
-    docker logs classify-app --tail=30
-    exit 1
-fi
+# Check health endpoint (retry up to 6 times = 60 seconds)
+for i in $(seq 1 6); do
+    HEALTH_CHECK=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:5000/api/health 2>/dev/null || echo "000")
+    if [ "$HEALTH_CHECK" = "200" ]; then
+        echo -e "${GREEN}✓ Health check passed (HTTP 200)${NC}"
+        break
+    fi
+    if [ "$i" -eq 6 ]; then
+        echo -e "${RED}✗ Health check failed after 60s (HTTP $HEALTH_CHECK)${NC}"
+        echo -e "${YELLOW}Showing recent logs:${NC}"
+        docker compose logs app --tail=30
+        exit 1
+    fi
+    echo -e "  Waiting for app to start... (attempt $i/6)"
+    sleep 10
+done
 
 # Show container info
 echo -e "\n${BLUE}========================================${NC}"
 echo -e "${GREEN}Deployment completed successfully!${NC}"
 echo -e "${BLUE}========================================${NC}"
-docker ps --filter "name=classify" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+docker compose ps
 
 echo -e "\n${YELLOW}Useful commands:${NC}"
-echo "  View logs:        docker logs -f classify-app"
-echo "  Check status:     docker ps"
-echo "  Restart:          docker-compose restart app"
-echo "  Full rebuild:     docker-compose up -d --build"
+echo "  View logs:        docker compose logs -f app"
+echo "  Check status:     docker compose ps"
+echo "  Restart:          docker compose restart app"
+echo "  Full rebuild:     docker compose up -d --build"
 echo ""
