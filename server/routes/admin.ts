@@ -1257,6 +1257,11 @@ export async function registerAdminRoutes(app: Express) {
           .json(errorResponse(ErrorCode.BAD_REQUEST, `Invalid payment type. Allowed: ${VALID_PAYMENT_TYPES.join(", ")}`));
       }
 
+      // If setting as default, unset all other defaults first
+      if (isDefault) {
+        await db.update(paymentMethods).set({ isDefault: false }).where(eq(paymentMethods.isDefault, true));
+      }
+
       const result = await db
         .insert(paymentMethods)
         .values({
@@ -1286,6 +1291,12 @@ export async function registerAdminRoutes(app: Express) {
       const { id } = req.params;
       const { type, accountNumber, accountName, bankName, phoneNumber, isDefault, isActive } = req.body;
 
+      // Verify record exists
+      const [existing] = await db.select({ id: paymentMethods.id }).from(paymentMethods).where(eq(paymentMethods.id, id));
+      if (!existing) {
+        return res.status(404).json(errorResponse(ErrorCode.NOT_FOUND, "Payment method not found"));
+      }
+
       const VALID_PAYMENT_TYPES = [
         "bank_transfer", "vodafone_cash", "orange_money", "etisalat_cash",
         "we_pay", "instapay", "fawry", "mobile_wallet", "credit_card", "other"
@@ -1303,7 +1314,12 @@ export async function registerAdminRoutes(app: Express) {
           .json(errorResponse(ErrorCode.BAD_REQUEST, `Invalid payment type. Allowed: ${VALID_PAYMENT_TYPES.join(", ")}`));
       }
 
-      await db
+      // If setting as default, unset all other defaults first
+      if (isDefault) {
+        await db.update(paymentMethods).set({ isDefault: false }).where(eq(paymentMethods.isDefault, true));
+      }
+
+      const result = await db
         .update(paymentMethods)
         .set({
           type,
@@ -1313,10 +1329,12 @@ export async function registerAdminRoutes(app: Express) {
           phoneNumber,
           isDefault,
           isActive,
+          updatedAt: new Date(),
         })
-        .where(eq(paymentMethods.id, id));
+        .where(eq(paymentMethods.id, id))
+        .returning();
 
-      res.json(successResponse(undefined, "Payment method updated"));
+      res.json(successResponse(result[0], "Payment method updated"));
     } catch (error: any) {
       console.error("Update payment method error:", error);
       res
@@ -1330,6 +1348,12 @@ export async function registerAdminRoutes(app: Express) {
     try {
       const { id } = req.params;
 
+      // Verify record exists
+      const [existing] = await db.select({ id: paymentMethods.id }).from(paymentMethods).where(eq(paymentMethods.id, id));
+      if (!existing) {
+        return res.status(404).json(errorResponse(ErrorCode.NOT_FOUND, "Payment method not found"));
+      }
+
       // Check if any deposits reference this payment method
       const linkedDeposits = await db
         .select({ id: deposits.id })
@@ -1339,7 +1363,7 @@ export async function registerAdminRoutes(app: Express) {
 
       if (linkedDeposits.length > 0) {
         // Soft-delete: deactivate instead of deleting
-        await db.update(paymentMethods).set({ isActive: false }).where(eq(paymentMethods.id, id));
+        await db.update(paymentMethods).set({ isActive: false, updatedAt: new Date() }).where(eq(paymentMethods.id, id));
         return res.json(successResponse(undefined, "Payment method deactivated (has linked deposits)"));
       }
 

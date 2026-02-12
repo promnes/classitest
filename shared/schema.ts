@@ -486,6 +486,7 @@ export const paymentMethods = pgTable("payment_methods", {
   isDefault: boolean("is_default").default(false).notNull(),
   isActive: boolean("is_active").default(true).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
 export const deposits = pgTable("deposits", {
