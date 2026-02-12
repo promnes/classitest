@@ -33,6 +33,8 @@ export const Wallet = (): JSX.Element => {
   const [showDeposit, setShowDeposit] = useState(false);
   const [selectedMethod, setSelectedMethod] = useState<any>(null);
   const [depositAmount, setDepositAmount] = useState("");
+  const [depositTransactionId, setDepositTransactionId] = useState("");
+  const [depositReceiptUrl, setDepositReceiptUrl] = useState("");
   const [depositNotes, setDepositNotes] = useState("");
   const [step, setStep] = useState<"select" | "confirm">("select");
 
@@ -68,6 +70,8 @@ export const Wallet = (): JSX.Element => {
       return apiRequest("POST", "/api/parent/deposit", {
         paymentMethodId: selectedMethod.id,
         amount: parseFloat(depositAmount),
+        transactionId: depositTransactionId,
+        receiptUrl: depositReceiptUrl || undefined,
         notes: depositNotes || undefined,
       });
     },
@@ -77,6 +81,8 @@ export const Wallet = (): JSX.Element => {
       setShowDeposit(false);
       setSelectedMethod(null);
       setDepositAmount("");
+      setDepositTransactionId("");
+      setDepositReceiptUrl("");
       setDepositNotes("");
       setStep("select");
       alert("✅ تم إرسال طلب الإيداع بنجاح! سيتم مراجعته من الإدارة.");
@@ -93,6 +99,8 @@ export const Wallet = (): JSX.Element => {
     setShowDeposit(false);
     setSelectedMethod(null);
     setDepositAmount("");
+    setDepositTransactionId("");
+    setDepositReceiptUrl("");
     setDepositNotes("");
     setStep("select");
   };
@@ -223,6 +231,28 @@ export const Wallet = (): JSX.Element => {
                       <p className={`text-sm ${isDark ? "text-gray-400" : "text-gray-600"}`}>
                         {new Date(deposit.createdAt).toLocaleDateString("ar-EG")} — {new Date(deposit.createdAt).toLocaleTimeString("ar-EG")}
                       </p>
+                      {(deposit.methodType || deposit.methodBank || deposit.methodAccount) && (
+                        <p className={`text-xs mt-1 ${isDark ? "text-gray-500" : "text-gray-500"}`}>
+                          💳 {getTypeInfo(deposit.methodType || "other").label}
+                          {deposit.methodBank ? ` — ${deposit.methodBank}` : ""}
+                          {deposit.methodAccount ? ` (${deposit.methodAccount})` : ""}
+                        </p>
+                      )}
+                      {deposit.transactionId && (
+                        <p className={`text-xs mt-1 ${isDark ? "text-gray-500" : "text-gray-500"}`}>
+                          🔖 رقم العملية: <span className="font-mono">{deposit.transactionId}</span>
+                        </p>
+                      )}
+                      {deposit.receiptUrl && (
+                        <a
+                          href={deposit.receiptUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className={`text-xs mt-1 inline-block underline ${isDark ? "text-blue-400" : "text-blue-600"}`}
+                        >
+                          🧾 عرض إثبات التحويل
+                        </a>
+                      )}
                       {deposit.notes && (
                         <p className={`text-xs mt-1 ${isDark ? "text-gray-500" : "text-gray-500"}`}>
                           📝 {deposit.notes}
@@ -366,6 +396,36 @@ export const Wallet = (): JSX.Element => {
 
                   <div>
                     <label className={`block font-bold mb-2 ${isDark ? "text-white" : "text-gray-800"}`}>
+                      رقم العملية / المرجع البنكي *
+                    </label>
+                    <input
+                      type="text"
+                      value={depositTransactionId}
+                      onChange={(e) => setDepositTransactionId(e.target.value)}
+                      placeholder="مثال: TRX-2026-001234"
+                      className={`w-full px-4 py-3 border-2 rounded-lg ${
+                        isDark ? "bg-gray-700 border-gray-600 text-white" : "border-gray-300"
+                      }`}
+                    />
+                  </div>
+
+                  <div>
+                    <label className={`block font-bold mb-2 ${isDark ? "text-white" : "text-gray-800"}`}>
+                      رابط إثبات التحويل (اختياري)
+                    </label>
+                    <input
+                      type="url"
+                      value={depositReceiptUrl}
+                      onChange={(e) => setDepositReceiptUrl(e.target.value)}
+                      placeholder="https://..."
+                      className={`w-full px-4 py-3 border-2 rounded-lg ${
+                        isDark ? "bg-gray-700 border-gray-600 text-white" : "border-gray-300"
+                      }`}
+                    />
+                  </div>
+
+                  <div>
+                    <label className={`block font-bold mb-2 ${isDark ? "text-white" : "text-gray-800"}`}>
                       ملاحظات (اختياري)
                     </label>
                     <textarea
@@ -383,7 +443,12 @@ export const Wallet = (): JSX.Element => {
                 <div className="flex gap-3">
                   <button
                     onClick={() => depositMutation.mutate()}
-                    disabled={depositMutation.isPending || !depositAmount || parseFloat(depositAmount) <= 0}
+                    disabled={
+                      depositMutation.isPending ||
+                      !depositAmount ||
+                      parseFloat(depositAmount) <= 0 ||
+                      !depositTransactionId.trim()
+                    }
                     className="flex-1 px-4 py-3 bg-green-500 hover:bg-green-600 text-white rounded-lg font-bold text-lg disabled:opacity-50"
                   >
                     {depositMutation.isPending ? "جاري الإرسال..." : "✅ تأكيد الإيداع"}

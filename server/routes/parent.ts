@@ -769,11 +769,33 @@ export async function registerParentRoutes(app: Express) {
   // Create Deposit (parent confirms external payment)
   app.post("/api/parent/deposit", authMiddleware, async (req: any, res) => {
     try {
-      const { paymentMethodId, amount, notes } = req.body;
+      const { paymentMethodId, amount, notes, transactionId, receiptUrl } = req.body;
 
       const parsedAmount = parseFloat(amount);
       if (!paymentMethodId || !amount || isNaN(parsedAmount) || parsedAmount <= 0) {
         return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Payment method and valid amount are required"));
+      }
+
+      const normalizedTransactionId = typeof transactionId === "string" ? transactionId.trim() : "";
+      const normalizedReceiptUrl = typeof receiptUrl === "string" ? receiptUrl.trim() : "";
+
+      if (!normalizedTransactionId) {
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Transaction ID is required"));
+      }
+
+      if (normalizedTransactionId.length < 4 || normalizedTransactionId.length > 120) {
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Transaction ID must be between 4 and 120 characters"));
+      }
+
+      if (normalizedReceiptUrl) {
+        try {
+          const parsedUrl = new URL(normalizedReceiptUrl);
+          if (!["http:", "https:"].includes(parsedUrl.protocol)) {
+            return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Receipt URL must start with http:// or https://"));
+          }
+        } catch {
+          return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Invalid receipt URL"));
+        }
       }
 
       if (parsedAmount > 100000) {
@@ -806,6 +828,8 @@ export async function registerParentRoutes(app: Express) {
           paymentMethodId,
           amount: parsedAmount.toString(),
           status: "pending",
+          transactionId: normalizedTransactionId,
+          receiptUrl: normalizedReceiptUrl || null,
           notes: notes || null,
         })
         .returning();
@@ -819,12 +843,12 @@ export async function registerParentRoutes(app: Express) {
         parentId: null,
         type: "deposit_request",
         title: "طلب إيداع جديد",
-        message: `${parentName} طلب إيداع ₪${amount} عبر ${method[0].type}${notes ? ` — "${notes}"` : ""}`,
+        message: `${parentName} طلب إيداع ₪${amount} عبر ${method[0].type} (Ref: ${normalizedTransactionId})${notes ? ` — "${notes}"` : ""}`,
         style: "toast",
         priority: "urgent",
         soundAlert: true,
         relatedId: result[0].id,
-        metadata: { depositId: result[0].id, parentId: req.user.userId, amount },
+        metadata: { depositId: result[0].id, parentId: req.user.userId, amount, transactionId: normalizedTransactionId },
       });
 
       res.json(successResponse({ depositId: result[0].id }, "Deposit request created"));
@@ -838,8 +862,25 @@ export async function registerParentRoutes(app: Express) {
   app.get("/api/parent/deposits", authMiddleware, async (req: any, res) => {
     try {
       const result = await db
-        .select()
+        .select({
+          id: deposits.id,
+          parentId: deposits.parentId,
+          paymentMethodId: deposits.paymentMethodId,
+          amount: deposits.amount,
+          status: deposits.status,
+          transactionId: deposits.transactionId,
+          receiptUrl: deposits.receiptUrl,
+          notes: deposits.notes,
+          adminNotes: deposits.adminNotes,
+          reviewedAt: deposits.reviewedAt,
+          createdAt: deposits.createdAt,
+          completedAt: deposits.completedAt,
+          methodType: paymentMethods.type,
+          methodBank: paymentMethods.bankName,
+          methodAccount: paymentMethods.accountNumber,
+        })
         .from(deposits)
+        .leftJoin(paymentMethods, eq(deposits.paymentMethodId, paymentMethods.id))
         .where(eq(deposits.parentId, req.user.userId))
         .orderBy(desc(deposits.createdAt))
         .limit(100);

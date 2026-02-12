@@ -496,6 +496,7 @@ export const deposits = pgTable("deposits", {
   amount: decimal("amount", { precision: 12, scale: 2 }).notNull(),
   status: varchar("status", { length: 20 }).default("pending").notNull(),
   transactionId: text("transaction_id"),
+  receiptUrl: text("receipt_url"),
   notes: text("notes"),
   adminNotes: text("admin_notes"),
   reviewedAt: timestamp("reviewed_at"),

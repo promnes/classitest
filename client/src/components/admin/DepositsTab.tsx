@@ -10,6 +10,7 @@ interface DepositData {
   amount: string | number;
   status: string;
   transactionId?: string;
+  receiptUrl?: string;
   notes?: string;
   adminNotes?: string;
   createdAt: string;
@@ -239,13 +240,30 @@ export function DepositsTab({ token }: { token: string }) {
                         </span>
                       </td>
                       <td className="px-4 py-3 text-sm max-w-[200px]">
-                        {deposit.notes ? (
-                          <p className="text-gray-700 dark:text-gray-300 truncate" title={deposit.notes}>
-                            {deposit.notes}
-                          </p>
-                        ) : (
-                          <span className="text-gray-400">-</span>
-                        )}
+                        <div className="space-y-1">
+                          {deposit.transactionId ? (
+                            <p className="text-xs text-gray-700 dark:text-gray-300">
+                              🔖 Ref: <span className="font-mono">{deposit.transactionId}</span>
+                            </p>
+                          ) : null}
+                          {deposit.notes ? (
+                            <p className="text-gray-700 dark:text-gray-300 truncate" title={deposit.notes}>
+                              {deposit.notes}
+                            </p>
+                          ) : (
+                            <span className="text-gray-400">-</span>
+                          )}
+                          {deposit.receiptUrl ? (
+                            <a
+                              href={deposit.receiptUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-xs text-blue-600 dark:text-blue-400 underline"
+                            >
+                              🧾 عرض الإثبات
+                            </a>
+                          ) : null}
+                        </div>
                       </td>
                       <td className="px-4 py-3">
                         <span className={`px-2 py-1 rounded text-xs font-semibold ${statusInfo.color}`}>
@@ -292,7 +310,21 @@ export function DepositsTab({ token }: { token: string }) {
                               <p><strong>الوالد:</strong> {deposit.parentName} ({deposit.parentEmail})</p>
                               <p><strong>المبلغ:</strong> ₪{parseFloat(typeof deposit.amount === "string" ? deposit.amount : deposit.amount.toString()).toFixed(2)}</p>
                               <p><strong>وسيلة الدفع:</strong> {typeInfo.emoji} {typeInfo.label} {deposit.methodBank ? `— ${deposit.methodBank}` : ""}</p>
+                              {deposit.transactionId && <p><strong>رقم العملية:</strong> <span className="font-mono">{deposit.transactionId}</span></p>}
                               {deposit.notes && <p><strong>ملاحظات المستخدم:</strong> {deposit.notes}</p>}
+                              {deposit.receiptUrl && (
+                                <p>
+                                  <strong>إثبات التحويل:</strong>{" "}
+                                  <a
+                                    href={deposit.receiptUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-blue-600 dark:text-blue-400 underline"
+                                  >
+                                    فتح الرابط
+                                  </a>
+                                </p>
+                              )}
                             </div>
 
                             <div>

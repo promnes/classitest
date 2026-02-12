@@ -951,6 +951,7 @@ export async function registerAdminRoutes(app: Express) {
           amount: deposits.amount,
           status: deposits.status,
           transactionId: deposits.transactionId,
+          receiptUrl: deposits.receiptUrl,
           notes: deposits.notes,
           adminNotes: deposits.adminNotes,
           reviewedAt: deposits.reviewedAt,
