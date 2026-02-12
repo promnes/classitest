@@ -12,6 +12,7 @@
 
 | Document | Purpose | Best For |
 |----------|---------|----------|
+| [**FULL_PROJECT_ANALYSIS.md**](FULL_PROJECT_ANALYSIS.md) | تحليل شامل من الكود مباشرة (85+ جدول, 39 صفحة) | فهم كل شيء بالتفصيل |
 | [**PROJECT_BLUEPRINT.md**](PROJECT_BLUEPRINT.md) | Complete system reference (80+ tables, 150+ endpoints) | Understanding everything |
 | [**ARCHITECTURE.md**](ARCHITECTURE.md) | System diagrams & flows (20+ visuals) | Visual learners |
 | [**QUICK_REFERENCE.md**](QUICK_REFERENCE.md) | 50+ common tasks with examples | Day-to-day development |
