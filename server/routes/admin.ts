@@ -3396,7 +3396,7 @@ export async function registerAdminRoutes(app: Express) {
   // Create library
   app.post("/api/admin/libraries", adminMiddleware, async (req: any, res) => {
     try {
-      const { name, description, location, imageUrl, username, password } = req.body;
+      const { name, description, location, imageUrl, username, password, commissionRatePct } = req.body;
       
       if (!name || !username || !password) {
         return res
@@ -3423,6 +3423,9 @@ export async function registerAdminRoutes(app: Express) {
         username,
         password: hashedPassword,
         referralCode,
+        commissionRatePct: commissionRatePct !== undefined
+          ? Number(commissionRatePct).toFixed(2)
+          : "10.00",
       }).returning();
       
       res.json(successResponse(newLibrary[0]));

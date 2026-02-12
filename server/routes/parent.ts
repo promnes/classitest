@@ -42,6 +42,11 @@ import {
   parentNotifications,
   childPurchaseRequests,
   childLoginRequests,
+  libraryProducts,
+  libraries,
+  libraryDailySales,
+  libraryActivityLogs,
+  libraryReferralSettings,
 } from "../../shared/schema";
 import jwt from "jsonwebtoken";
 import { JWT_SECRET } from "./middleware";
@@ -1108,6 +1113,7 @@ export async function registerParentRoutes(app: Express) {
           id: childPurchaseRequests.id,
           childId: childPurchaseRequests.childId,
           productId: childPurchaseRequests.productId,
+          libraryProductId: childPurchaseRequests.libraryProductId,
           quantity: childPurchaseRequests.quantity,
           pointsPrice: childPurchaseRequests.pointsPrice,
           status: childPurchaseRequests.status,
@@ -1190,6 +1196,9 @@ export async function registerParentRoutes(app: Express) {
         let orderResult: typeof orders.$inferSelect[] = [];
         try {
           orderResult = await db.transaction(async (tx) => {
+            const referralSettingsRows = await tx.select().from(libraryReferralSettings);
+            const saleActivityPoints = referralSettingsRows[0]?.pointsPerSale ?? 10;
+
             await applyPointsDelta(tx, {
               childId: request[0].childId,
               delta: -request[0].pointsPrice,
@@ -1223,11 +1232,105 @@ export async function registerParentRoutes(app: Express) {
               })
               .where(eq(childPurchaseRequests.id, id));
 
+            if (request[0].libraryProductId) {
+              const libraryItem = await tx
+                .select({
+                  id: libraryProducts.id,
+                  libraryId: libraryProducts.libraryId,
+                  stock: libraryProducts.stock,
+                  commissionRatePct: libraries.commissionRatePct,
+                })
+                .from(libraryProducts)
+                .innerJoin(libraries, eq(libraryProducts.libraryId, libraries.id))
+                .where(eq(libraryProducts.id, request[0].libraryProductId));
+
+              if (!libraryItem[0] || libraryItem[0].stock < request[0].quantity) {
+                throw new Error("LIBRARY_STOCK_UNAVAILABLE");
+              }
+
+              await tx
+                .update(libraryProducts)
+                .set({
+                  stock: sql`${libraryProducts.stock} - ${request[0].quantity}`,
+                  updatedAt: new Date(),
+                })
+                .where(eq(libraryProducts.id, request[0].libraryProductId));
+
+              await tx
+                .update(libraries)
+                .set({
+                  totalSales: sql`${libraries.totalSales} + ${request[0].quantity}`,
+                  updatedAt: new Date(),
+                })
+                .where(eq(libraries.id, libraryItem[0].libraryId));
+
+              const dayStart = new Date();
+              dayStart.setHours(0, 0, 0, 0);
+
+              const existingDaily = await tx
+                .select()
+                .from(libraryDailySales)
+                .where(
+                  and(
+                    eq(libraryDailySales.libraryId, libraryItem[0].libraryId),
+                    eq(libraryDailySales.saleDate, dayStart)
+                  )
+                );
+
+              if (existingDaily[0]) {
+                await tx
+                  .update(libraryDailySales)
+                  .set({
+                    totalPointsSales: sql`${libraryDailySales.totalPointsSales} + ${request[0].pointsPrice}`,
+                    totalOrders: sql`${libraryDailySales.totalOrders} + 1`,
+                    updatedAt: new Date(),
+                  })
+                  .where(eq(libraryDailySales.id, existingDaily[0].id));
+              } else {
+                await tx.insert(libraryDailySales).values({
+                  libraryId: libraryItem[0].libraryId,
+                  saleDate: dayStart,
+                  totalSalesAmount: "0.00",
+                  totalPointsSales: request[0].pointsPrice,
+                  totalOrders: 1,
+                  commissionRatePct: libraryItem[0].commissionRatePct || "10.00",
+                  commissionAmount: "0.00",
+                  isPaid: false,
+                });
+              }
+
+              await tx.insert(libraryActivityLogs).values({
+                libraryId: libraryItem[0].libraryId,
+                action: "sale",
+                points: saleActivityPoints,
+                metadata: {
+                  orderId: createdOrder[0].id,
+                  parentId: req.user.userId,
+                  childId: request[0].childId,
+                  requestId: id,
+                  libraryProductId: request[0].libraryProductId,
+                  quantity: request[0].quantity,
+                  pointsPrice: request[0].pointsPrice,
+                },
+              });
+
+              await tx
+                .update(libraries)
+                .set({
+                  activityScore: sql`${libraries.activityScore} + ${saleActivityPoints}`,
+                  updatedAt: new Date(),
+                })
+                .where(eq(libraries.id, libraryItem[0].libraryId));
+            }
+
             return createdOrder;
           });
         } catch (error: any) {
           if (error?.message === "INSUFFICIENT_POINTS") {
             return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Child no longer has enough points"));
+          }
+          if (error?.message === "LIBRARY_STOCK_UNAVAILABLE") {
+            return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Library product is out of stock"));
           }
           throw error;
         }

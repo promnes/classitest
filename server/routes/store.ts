@@ -12,7 +12,11 @@ import {
   parentWallet,
   paymentMethods,
   libraryProducts,
-  libraries
+  libraries,
+  libraryDailySales,
+  libraryReferrals,
+  libraryActivityLogs,
+  libraryReferralSettings,
 } from "../../shared/schema";
 import { eq, and, or, desc, asc, sql, isNull } from "drizzle-orm";
 import { authMiddleware, adminMiddleware, JWT_SECRET } from "./middleware";
@@ -264,59 +268,322 @@ export async function registerStoreRoutes(app: Express) {
 
   app.post("/api/store/checkout", authMiddleware, async (req: any, res) => {
     try {
-      const { items, paymentMethodId, shippingAddress, totalAmount } = req.body;
+      const { items, paymentMethodId, shippingAddress, referralCode } = req.body;
       const parentId = req.user?.parentId || req.user?.userId;
 
       if (!items || items.length === 0) {
         return res.status(400).json({ message: "No items in cart" });
       }
 
+      const normalizedItems = items.map((item: any) => ({
+        productId: item?.productId,
+        quantity: Math.max(1, parseInt(String(item?.quantity || 1), 10) || 1),
+      }));
+
+      type CheckoutItem =
+        | {
+            kind: "regular";
+            quantity: number;
+            unitPrice: number;
+            subtotal: number;
+            regularProduct: typeof products.$inferSelect;
+          }
+        | {
+            kind: "library";
+            quantity: number;
+            unitPrice: number;
+            subtotal: number;
+            libraryProduct: {
+              id: string;
+              libraryId: string;
+              title: string;
+              description: string | null;
+              imageUrl: string | null;
+              price: string;
+              discountPercent: number;
+              stock: number;
+              libraryName: string;
+              commissionRatePct: string;
+            };
+          };
+
+      const checkoutItems: CheckoutItem[] = [];
+
+      for (const item of normalizedItems) {
+        if (!item.productId) {
+          return res.status(400).json({ message: "Invalid product in cart" });
+        }
+
+        const regularProduct = await db.select().from(products).where(eq(products.id, item.productId));
+        if (regularProduct[0]) {
+          if (regularProduct[0].stock < item.quantity) {
+            return res.status(400).json({ message: `Insufficient stock for ${regularProduct[0].name}` });
+          }
+
+          const unitPrice = parseFloat(regularProduct[0].price);
+          checkoutItems.push({
+            kind: "regular",
+            quantity: item.quantity,
+            unitPrice,
+            subtotal: unitPrice * item.quantity,
+            regularProduct: regularProduct[0],
+          });
+          continue;
+        }
+
+        const libraryProduct = await db
+          .select({
+            id: libraryProducts.id,
+            libraryId: libraryProducts.libraryId,
+            title: libraryProducts.title,
+            description: libraryProducts.description,
+            imageUrl: libraryProducts.imageUrl,
+            price: libraryProducts.price,
+            discountPercent: libraryProducts.discountPercent,
+            stock: libraryProducts.stock,
+            libraryName: libraries.name,
+            commissionRatePct: libraries.commissionRatePct,
+          })
+          .from(libraryProducts)
+          .innerJoin(libraries, eq(libraryProducts.libraryId, libraries.id))
+          .where(
+            and(
+              eq(libraryProducts.id, item.productId),
+              eq(libraryProducts.isActive, true),
+              eq(libraries.isActive, true)
+            )
+          );
+
+        if (!libraryProduct[0]) {
+          return res.status(404).json({ message: "Product not found" });
+        }
+
+        if (libraryProduct[0].stock < item.quantity) {
+          return res.status(400).json({ message: `Insufficient stock for ${libraryProduct[0].title}` });
+        }
+
+        const rawPrice = parseFloat(libraryProduct[0].price);
+        const unitPrice = libraryProduct[0].discountPercent > 0
+          ? rawPrice * (1 - libraryProduct[0].discountPercent / 100)
+          : rawPrice;
+
+        checkoutItems.push({
+          kind: "library",
+          quantity: item.quantity,
+          unitPrice,
+          subtotal: unitPrice * item.quantity,
+          libraryProduct: {
+            ...libraryProduct[0],
+            libraryName: libraryProduct[0].libraryName || "Library",
+            commissionRatePct: libraryProduct[0].commissionRatePct || "10.00",
+          },
+        });
+      }
+
+      const computedTotal = checkoutItems.reduce((sum, item) => sum + item.subtotal, 0);
+
       if (paymentMethodId === "wallet") {
         const wallet = await db.select().from(parentWallet).where(eq(parentWallet.parentId, parentId));
-        if (!wallet[0] || parseFloat(wallet[0].balance) < totalAmount) {
+        if (!wallet[0] || parseFloat(wallet[0].balance) < computedTotal) {
           return res.status(400).json({ message: "Insufficient wallet balance" });
         }
-        
-        await db.update(parentWallet)
-          .set({ 
-            balance: sql`${parentWallet.balance} - ${totalAmount}`,
-            totalSpent: sql`${parentWallet.totalSpent} + ${totalAmount}`,
-            updatedAt: new Date()
+      }
+
+      const [purchase] = await db.transaction(async (tx) => {
+        const referralSettingsRows = await tx.select().from(libraryReferralSettings);
+        const saleActivityPoints = referralSettingsRows[0]?.pointsPerSale ?? 10;
+
+        if (paymentMethodId === "wallet") {
+          await tx
+            .update(parentWallet)
+            .set({
+              balance: sql`${parentWallet.balance} - ${computedTotal}`,
+              totalSpent: sql`${parentWallet.totalSpent} + ${computedTotal}`,
+              updatedAt: new Date(),
+            })
+            .where(eq(parentWallet.parentId, parentId));
+        }
+
+        const createdPurchase = await tx
+          .insert(parentPurchases)
+          .values({
+            parentId,
+            totalAmount: computedTotal.toFixed(2),
+            currency: "EGP",
+            paymentStatus: paymentMethodId === "wallet" ? "paid" : "pending",
+            invoiceNumber: `INV-${Date.now()}`,
           })
-          .where(eq(parentWallet.parentId, parentId));
-      }
+          .returning();
 
-      const [purchase] = await db.insert(parentPurchases).values({
-        parentId,
-        totalAmount: totalAmount.toString(),
-        currency: "EGP",
-        paymentStatus: paymentMethodId === "wallet" ? "paid" : "pending",
-        invoiceNumber: `INV-${Date.now()}`,
-      }).returning();
+        for (const item of checkoutItems) {
+          let ownedProductId = "";
 
-      for (const item of items) {
-        const product = await db.select().from(products).where(eq(products.id, item.productId));
-        if (!product[0]) continue;
+          if (item.kind === "regular") {
+            ownedProductId = item.regularProduct.id;
 
-        await db.insert(parentPurchaseItems).values({
-          purchaseId: purchase.id,
-          productId: item.productId,
-          quantity: item.quantity || 1,
-          unitPrice: product[0].price,
-          subtotal: (parseFloat(product[0].price) * (item.quantity || 1)).toString(),
-        });
+            await tx.insert(parentPurchaseItems).values({
+              purchaseId: createdPurchase[0].id,
+              productId: ownedProductId,
+              quantity: item.quantity,
+              unitPrice: item.unitPrice.toFixed(2),
+              subtotal: item.subtotal.toFixed(2),
+            });
 
-        await db.insert(parentOwnedProducts).values({
-          parentId,
-          productId: item.productId,
-          sourcePurchaseId: purchase.id,
-          status: paymentMethodId === "wallet" ? "active" : "pending_admin_approval",
-        });
+            await tx
+              .update(products)
+              .set({ stock: sql`${products.stock} - ${item.quantity}` })
+              .where(eq(products.id, item.regularProduct.id));
+          } else {
+            const pointsPrice = Math.round(item.unitPrice * 10);
+            const librarySnapshot = await tx
+              .insert(products)
+              .values({
+                parentId,
+                name: item.libraryProduct.title,
+                nameAr: item.libraryProduct.title,
+                description: item.libraryProduct.description,
+                descriptionAr: item.libraryProduct.description,
+                price: item.unitPrice.toFixed(2),
+                originalPrice:
+                  item.libraryProduct.discountPercent > 0
+                    ? item.libraryProduct.price
+                    : null,
+                pointsPrice,
+                image: item.libraryProduct.imageUrl,
+                images: item.libraryProduct.imageUrl
+                  ? [item.libraryProduct.imageUrl]
+                  : [],
+                stock: 999,
+                productType: "physical",
+                brand: item.libraryProduct.libraryName,
+                isFeatured: false,
+                isActive: true,
+              })
+              .returning();
 
-        await db.update(products)
-          .set({ stock: sql`${products.stock} - ${item.quantity || 1}` })
-          .where(eq(products.id, item.productId));
-      }
+            ownedProductId = librarySnapshot[0].id;
+
+            await tx.insert(parentPurchaseItems).values({
+              purchaseId: createdPurchase[0].id,
+              productId: ownedProductId,
+              quantity: item.quantity,
+              unitPrice: item.unitPrice.toFixed(2),
+              subtotal: item.subtotal.toFixed(2),
+            });
+
+            await tx
+              .update(libraryProducts)
+              .set({ stock: sql`${libraryProducts.stock} - ${item.quantity}`, updatedAt: new Date() })
+              .where(eq(libraryProducts.id, item.libraryProduct.id));
+
+            await tx
+              .update(libraries)
+              .set({ totalSales: sql`${libraries.totalSales} + ${item.quantity}`, updatedAt: new Date() })
+              .where(eq(libraries.id, item.libraryProduct.libraryId));
+
+            const commissionRate = parseFloat(item.libraryProduct.commissionRatePct || "10.00");
+            const commissionAmount = item.subtotal * (commissionRate / 100);
+            const dayStart = new Date();
+            dayStart.setHours(0, 0, 0, 0);
+
+            const existingDaily = await tx
+              .select()
+              .from(libraryDailySales)
+              .where(
+                and(
+                  eq(libraryDailySales.libraryId, item.libraryProduct.libraryId),
+                  eq(libraryDailySales.saleDate, dayStart)
+                )
+              );
+
+            if (existingDaily[0]) {
+              await tx
+                .update(libraryDailySales)
+                .set({
+                  totalSalesAmount: sql`${libraryDailySales.totalSalesAmount} + ${item.subtotal.toFixed(2)}`,
+                  totalPointsSales: sql`${libraryDailySales.totalPointsSales} + ${Math.round(item.subtotal * 10)}`,
+                  totalOrders: sql`${libraryDailySales.totalOrders} + 1`,
+                  commissionAmount: sql`${libraryDailySales.commissionAmount} + ${commissionAmount.toFixed(2)}`,
+                  updatedAt: new Date(),
+                })
+                .where(eq(libraryDailySales.id, existingDaily[0].id));
+            } else {
+              await tx.insert(libraryDailySales).values({
+                libraryId: item.libraryProduct.libraryId,
+                saleDate: dayStart,
+                totalSalesAmount: item.subtotal.toFixed(2),
+                totalPointsSales: Math.round(item.subtotal * 10),
+                totalOrders: 1,
+                commissionRatePct: commissionRate.toFixed(2),
+                commissionAmount: commissionAmount.toFixed(2),
+                isPaid: false,
+              });
+            }
+
+            const referralMatch = await tx
+              .select()
+              .from(libraryReferrals)
+              .where(
+                and(
+                  eq(libraryReferrals.libraryId, item.libraryProduct.libraryId),
+                  or(
+                    eq(libraryReferrals.status, "clicked"),
+                    eq(libraryReferrals.status, "registered")
+                  ),
+                  referralCode
+                    ? eq(libraryReferrals.referralCode, String(referralCode))
+                    : or(
+                        eq(libraryReferrals.referredParentId, parentId),
+                        isNull(libraryReferrals.referredParentId)
+                      )
+                )
+              )
+              .orderBy(desc(libraryReferrals.createdAt))
+              .limit(1);
+
+            if (referralMatch[0]) {
+              await tx
+                .update(libraryReferrals)
+                .set({
+                  status: "purchased",
+                  referredParentId: parentId,
+                  convertedAt: new Date(),
+                })
+                .where(eq(libraryReferrals.id, referralMatch[0].id));
+            }
+
+            await tx.insert(libraryActivityLogs).values({
+              libraryId: item.libraryProduct.libraryId,
+              action: "sale",
+              points: saleActivityPoints,
+              metadata: {
+                purchaseId: createdPurchase[0].id,
+                parentId,
+                libraryProductId: item.libraryProduct.id,
+                quantity: item.quantity,
+                amount: item.subtotal.toFixed(2),
+              },
+            });
+
+            await tx
+              .update(libraries)
+              .set({
+                activityScore: sql`${libraries.activityScore} + ${saleActivityPoints}`,
+                updatedAt: new Date(),
+              })
+              .where(eq(libraries.id, item.libraryProduct.libraryId));
+          }
+
+          await tx.insert(parentOwnedProducts).values({
+            parentId,
+            productId: ownedProductId,
+            sourcePurchaseId: createdPurchase[0].id,
+            status: paymentMethodId === "wallet" ? "active" : "pending_admin_approval",
+          });
+        }
+
+        return createdPurchase;
+      });
 
       res.json({ 
         success: true, 

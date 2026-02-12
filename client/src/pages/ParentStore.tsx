@@ -173,6 +173,7 @@ export const ParentStore = (): JSX.Element => {
   const children = childrenData || [];
   const paymentMethods = (paymentMethodsData as any)?.data || paymentMethodsData || [];
   const wallet = walletData?.data || walletData;
+  const referralCode = new URLSearchParams(window.location.search).get("ref");
 
   const featuredProducts = useMemo(() => 
     products.filter((p: Product) => p.isFeatured).slice(0, 6), [products]
@@ -216,6 +217,7 @@ export const ParentStore = (): JSX.Element => {
       paymentMethodId: selectedPaymentMethod,
       shippingAddress,
       totalAmount: cartTotal,
+      referralCode,
     });
   };
 

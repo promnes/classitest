@@ -27,6 +27,8 @@ import {
   childGrowthTrees,
   childGrowthEvents,
   childLoginRequests,
+  libraryProducts,
+  libraries,
 } from "../../shared/schema";
 import bcrypt from "bcrypt";
 import crypto from "crypto";
@@ -740,14 +742,10 @@ export async function registerChildRoutes(app: Express) {
   app.post("/api/child/store/purchase-request", authMiddleware, async (req: any, res) => {
     try {
       const { productId, quantity = 1 } = req.body;
+      const normalizedQuantity = Math.max(1, parseInt(String(quantity), 10) || 1);
 
       if (!productId) {
         return res.status(400).json({ message: "Product ID is required" });
-      }
-
-      const product = await db.select().from(products).where(eq(products.id, productId));
-      if (!product[0]) {
-        return res.status(404).json({ message: "Product not found" });
       }
 
       const child = await db.select().from(children).where(eq(children.id, req.user.childId));
@@ -761,7 +759,82 @@ export async function registerChildRoutes(app: Express) {
         return res.status(400).json({ message: "No parent linked to this child" });
       }
 
-      const totalPointsNeeded = product[0].pointsPrice * quantity;
+      let resolvedProductId = String(productId);
+      let resolvedLibraryProductId: string | null = null;
+      let effectivePointsPerUnit = 0;
+      let effectiveProductName = "";
+      let effectiveProductImage: string | null = null;
+
+      const regularProduct = await db.select().from(products).where(eq(products.id, String(productId)));
+      if (regularProduct[0]) {
+        effectivePointsPerUnit = regularProduct[0].pointsPrice;
+        effectiveProductName = regularProduct[0].nameAr || regularProduct[0].name;
+        effectiveProductImage = regularProduct[0].image;
+      } else {
+        const libraryProduct = await db
+          .select({
+            id: libraryProducts.id,
+            libraryId: libraryProducts.libraryId,
+            title: libraryProducts.title,
+            description: libraryProducts.description,
+            imageUrl: libraryProducts.imageUrl,
+            price: libraryProducts.price,
+            discountPercent: libraryProducts.discountPercent,
+            stock: libraryProducts.stock,
+            libraryName: libraries.name,
+          })
+          .from(libraryProducts)
+          .innerJoin(libraries, eq(libraryProducts.libraryId, libraries.id))
+          .where(
+            and(
+              eq(libraryProducts.id, String(productId)),
+              eq(libraryProducts.isActive, true),
+              eq(libraries.isActive, true)
+            )
+          );
+
+        if (!libraryProduct[0]) {
+          return res.status(404).json({ message: "Product not found" });
+        }
+
+        if (libraryProduct[0].stock < normalizedQuantity) {
+          return res.status(400).json({ message: "Product out of stock" });
+        }
+
+        const unitPrice = libraryProduct[0].discountPercent > 0
+          ? parseFloat(libraryProduct[0].price) * (1 - libraryProduct[0].discountPercent / 100)
+          : parseFloat(libraryProduct[0].price);
+
+        effectivePointsPerUnit = Math.round(unitPrice * 10);
+        effectiveProductName = libraryProduct[0].title;
+        effectiveProductImage = libraryProduct[0].imageUrl;
+        resolvedLibraryProductId = libraryProduct[0].id;
+
+        const snapshot = await db
+          .insert(products)
+          .values({
+            parentId: link[0].parentId,
+            name: libraryProduct[0].title,
+            nameAr: libraryProduct[0].title,
+            description: libraryProduct[0].description,
+            descriptionAr: libraryProduct[0].description,
+            price: unitPrice.toFixed(2),
+            originalPrice: libraryProduct[0].discountPercent > 0 ? libraryProduct[0].price : null,
+            pointsPrice: effectivePointsPerUnit,
+            image: libraryProduct[0].imageUrl,
+            images: libraryProduct[0].imageUrl ? [libraryProduct[0].imageUrl] : [],
+            stock: 999,
+            productType: "physical",
+            brand: libraryProduct[0].libraryName,
+            isFeatured: false,
+            isActive: true,
+          })
+          .returning();
+
+        resolvedProductId = snapshot[0].id;
+      }
+
+      const totalPointsNeeded = effectivePointsPerUnit * normalizedQuantity;
       if (child[0].totalPoints < totalPointsNeeded) {
         return res.status(400).json({ message: "Not enough points" });
       }
@@ -770,11 +843,15 @@ export async function registerChildRoutes(app: Express) {
       const existingRequest = await db
         .select()
         .from(childPurchaseRequests)
-        .where(and(
-          eq(childPurchaseRequests.childId, req.user.childId),
-          eq(childPurchaseRequests.productId, productId),
-          eq(childPurchaseRequests.status, "pending")
-        ));
+        .where(
+          and(
+            eq(childPurchaseRequests.childId, req.user.childId),
+            eq(childPurchaseRequests.status, "pending"),
+            resolvedLibraryProductId
+              ? eq(childPurchaseRequests.libraryProductId, resolvedLibraryProductId)
+              : eq(childPurchaseRequests.productId, resolvedProductId)
+          )
+        );
 
       if (existingRequest[0]) {
         return res.status(400).json({ message: "You already have a pending request for this product" });
@@ -786,8 +863,9 @@ export async function registerChildRoutes(app: Express) {
         .values({
           childId: req.user.childId,
           parentId: link[0].parentId,
-          productId,
-          quantity,
+          productId: resolvedProductId,
+          libraryProductId: resolvedLibraryProductId,
+          quantity: normalizedQuantity,
           pointsPrice: totalPointsNeeded,
           status: "pending",
         })
@@ -798,16 +876,17 @@ export async function registerChildRoutes(app: Express) {
         parentId: link[0].parentId,
         type: "purchase_request",
         title: "طلب شراء جديد!",
-        message: `${child[0].name} يريد شراء ${product[0].nameAr || product[0].name} بـ ${totalPointsNeeded} نقطة`,
+        message: `${child[0].name} يريد شراء ${effectiveProductName} بـ ${totalPointsNeeded} نقطة`,
         metadata: { 
           requestId: requestResult[0].id, 
           childId: req.user.childId,
           childName: child[0].name,
-          productId,
-          productName: product[0].nameAr || product[0].name,
-          productImage: product[0].image,
+          productId: resolvedProductId,
+          libraryProductId: resolvedLibraryProductId,
+          productName: effectiveProductName,
+          productImage: effectiveProductImage,
           pointsPrice: totalPointsNeeded,
-          quantity
+          quantity: normalizedQuantity
         }
       });
 
