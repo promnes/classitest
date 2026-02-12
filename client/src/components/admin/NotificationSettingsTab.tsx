@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 
@@ -11,6 +11,7 @@ interface NotificationSetting {
   requireOverlayPermission: boolean;
   createdAt: string;
   updatedAt: string;
+  hasCustomSettings?: boolean;
 }
 
 export const NotificationSettingsTab: React.FC<{ token: string }> = ({ token }) => {
@@ -18,12 +19,31 @@ export const NotificationSettingsTab: React.FC<{ token: string }> = ({ token }) 
   const [selectedChildId, setSelectedChildId] = useState<string | null>(null);
   const [editingSettings, setEditingSettings] = useState<Partial<NotificationSetting> | null>(null);
   const [page, setPage] = useState(1);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [modeFilter, setModeFilter] = useState<"all" | "popup_strict" | "popup_soft" | "floating_bubble">("all");
+
+  useEffect(() => {
+    setPage(1);
+  }, [searchTerm, modeFilter]);
 
   // Fetch all settings
   const { data: settingsData, isLoading } = useQuery({
-    queryKey: ["notificationSettings", page],
+    queryKey: ["notificationSettings", page, searchTerm, modeFilter],
     queryFn: async () => {
-      const res = await fetch(`/api/admin/notification-settings?page=${page}&limit=20`, {
+      const params = new URLSearchParams({
+        page: String(page),
+        limit: "20",
+      });
+
+      if (searchTerm.trim()) {
+        params.set("search", searchTerm.trim());
+      }
+
+      if (modeFilter !== "all") {
+        params.set("mode", modeFilter);
+      }
+
+      const res = await fetch(`/api/admin/notification-settings?${params.toString()}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) throw new Error("Failed to fetch settings");
@@ -117,6 +137,43 @@ export const NotificationSettingsTab: React.FC<{ token: string }> = ({ token }) 
         </div>
       </div>
 
+      <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              البحث باسم الطفل
+            </label>
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="اكتب اسم الطفل..."
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              فلتر الوضع
+            </label>
+            <select
+              value={modeFilter}
+              onChange={(e) =>
+                setModeFilter(
+                  e.target.value as "all" | "popup_strict" | "popup_soft" | "floating_bubble"
+                )
+              }
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
+            >
+              <option value="all">كل الأوضاع</option>
+              <option value="popup_strict">نافذة منبثقة صارمة</option>
+              <option value="popup_soft">إعلان ناعم</option>
+              <option value="floating_bubble">دائرة عائمة</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
       {/* Settings List */}
       {isLoading ? (
         <div className="text-center py-8">جاري التحميل...</div>
@@ -135,6 +192,9 @@ export const NotificationSettingsTab: React.FC<{ token: string }> = ({ token }) 
                 <div className="flex-1">
                   <p className="font-semibold text-gray-900 dark:text-white mb-1">
                     {setting.childName}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                    {setting.hasCustomSettings ? "إعدادات مخصصة" : "إعدادات افتراضية"}
                   </p>
 
                   <div className="space-y-2 mb-3">

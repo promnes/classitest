@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { storage } from "../storage";
 import { successResponse, errorResponse, ErrorCode } from "../utils/apiResponse";
 import { childNotificationSettings, children, parentChild, parents } from "../../shared/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { adminMiddleware } from "./middleware";
 
 const db = storage.db;
@@ -11,80 +11,127 @@ export async function registerNotificationSettingsRoutes(app: Express) {
   // Get All Child Notification Settings
   app.get("/api/admin/notification-settings", adminMiddleware, async (req: any, res) => {
     try {
-      const { parentId, page = "1", limit = "20" } = req.query;
-      const pageNum = parseInt(page);
-      const limitNum = parseInt(limit);
+      const { parentId, page = "1", limit = "20", search = "", mode = "all" } = req.query;
+      const pageNum = Math.max(1, parseInt(String(page), 10) || 1);
+      const limitNum = Math.min(100, Math.max(1, parseInt(String(limit), 10) || 20));
       const offset = (pageNum - 1) * limitNum;
 
-      let query = db.select().from(childNotificationSettings);
-
-      // If filtering by parent, get their children first
+      let scopedChildIds: string[] | undefined;
       if (parentId) {
         const childrenList = await db
           .select({ childId: parentChild.childId })
           .from(parentChild)
-          .where(eq(parentChild.parentId, parentId));
+          .where(eq(parentChild.parentId, String(parentId)));
 
-        const childIds = childrenList.map((r: any) => r.childId);
-        if (childIds.length === 0) {
-          return res.json(successResponse({
-            items: [],
-            pagination: { page: pageNum, limit: limitNum, total: 0, totalPages: 0 },
-          }));
+        const uniqueIds = Array.from(new Set(childrenList.map((row: any) => row.childId)));
+        if (uniqueIds.length === 0) {
+          return res.json(
+            successResponse({
+              items: [],
+              pagination: { page: pageNum, limit: limitNum, total: 0, totalPages: 0 },
+            })
+          );
         }
 
-        // Would need a better implementation with IN operator
-        const settings = await db.select().from(childNotificationSettings);
-        const filtered = settings
-          .filter((s: any) => childIds.includes(s.childId))
-          .slice(offset, offset + limitNum);
-
-        const enriched = await Promise.all(
-          filtered.map(async (setting: any) => {
-            const child = await db.select().from(children).where(eq(children.id, setting.childId));
-            const parentList = await db
-              .select()
-              .from(parentChild)
-              .where(eq(parentChild.childId, setting.childId));
-
-            return {
-              ...setting,
-              childName: child[0]?.name || "Unknown",
-              parentId: parentList[0]?.parentId,
-            };
-          })
-        );
-
-        return res.json({
-          success: true,
-          data: {
-            items: enriched,
-            pagination: { page: pageNum, limit: limitNum, total: filtered.length, totalPages: 1 },
-          },
-        });
+        scopedChildIds = uniqueIds;
       }
 
-      const result = await query.limit(limitNum).offset(offset);
-      const countResult = await db.select().from(childNotificationSettings);
+      const allChildren = scopedChildIds
+        ? await db
+            .select({ id: children.id, name: children.name, createdAt: children.createdAt })
+            .from(children)
+            .where(inArray(children.id, scopedChildIds))
+        : await db
+            .select({ id: children.id, name: children.name, createdAt: children.createdAt })
+            .from(children);
 
-      // Enrich with child names
-      const enriched = await Promise.all(
-        result.map(async (setting: any) => {
-          const child = await db.select().from(children).where(eq(children.id, setting.childId));
+      const normalizedSearch = String(search).trim().toLowerCase();
+      const searchedChildren = normalizedSearch
+        ? allChildren.filter((child: any) => (child.name || "").toLowerCase().includes(normalizedSearch))
+        : allChildren;
+
+      if (searchedChildren.length === 0) {
+        return res.json(
+          successResponse({
+            items: [],
+            pagination: { page: pageNum, limit: limitNum, total: 0, totalPages: 0 },
+          })
+        );
+      }
+
+      const searchedChildIds = searchedChildren.map((child: any) => child.id);
+      const settingsRows = await db
+        .select()
+        .from(childNotificationSettings)
+        .where(inArray(childNotificationSettings.childId, searchedChildIds));
+
+      const settingsByChildId = new Map(settingsRows.map((row: any) => [row.childId, row]));
+
+      const parentLinks = await db
+        .select({
+          childId: parentChild.childId,
+          parentId: parentChild.parentId,
+          parentName: parents.name,
+        })
+        .from(parentChild)
+        .innerJoin(parents, eq(parentChild.parentId, parents.id))
+        .where(inArray(parentChild.childId, searchedChildIds));
+
+      const parentsByChild = new Map<string, Array<{ id: string; name: string | null }>>();
+      for (const row of parentLinks) {
+        const existing = parentsByChild.get(row.childId) || [];
+        existing.push({ id: row.parentId, name: row.parentName || null });
+        parentsByChild.set(row.childId, existing);
+      }
+
+      const modeFilter = String(mode);
+      const merged = searchedChildren
+        .map((child: any) => {
+          const setting = settingsByChildId.get(child.id);
+          const childParents = parentsByChild.get(child.id) || [];
+
           return {
-            ...setting,
-            childName: child[0]?.name || "Unknown",
+            id: setting?.id || `default-${child.id}`,
+            childId: child.id,
+            childName: child.name || "Unknown",
+            mode: setting?.mode || "popup_soft",
+            repeatDelayMinutes: setting?.repeatDelayMinutes ?? 5,
+            requireOverlayPermission: setting?.requireOverlayPermission ?? false,
+            createdAt: setting?.createdAt || child.createdAt,
+            updatedAt: setting?.updatedAt || child.createdAt,
+            parentId: childParents[0]?.id || null,
+            parents: childParents,
+            hasCustomSettings: Boolean(setting),
           };
         })
-      );
+        .sort(
+          (a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
+
+      const filteredByMode =
+        modeFilter !== "all"
+          ? merged.filter((item: any) => item.mode === modeFilter)
+          : merged;
+
+      const total = filteredByMode.length;
+      const pagedItems = filteredByMode.slice(offset, offset + limitNum);
+
+      if (total === 0) {
+        return res.json(
+          successResponse({
+            items: [],
+            pagination: { page: pageNum, limit: limitNum, total: 0, totalPages: 0 },
+          })
+        );
+      }
 
       res.json(successResponse({
-        items: enriched,
+        items: pagedItems,
         pagination: {
           page: pageNum,
           limit: limitNum,
-          total: countResult.length,
-          totalPages: Math.ceil(countResult.length / limitNum),
+          total,
+          totalPages: Math.ceil(total / limitNum),
         },
       }));
     } catch (error: any) {
@@ -191,21 +238,51 @@ export async function registerNotificationSettingsRoutes(app: Express) {
   // Get Notification Settings Statistics
   app.get("/api/admin/notification-settings-stats", adminMiddleware, async (req: any, res) => {
     try {
-      const allSettings = await db.select().from(childNotificationSettings);
+      const allChildren = await db
+        .select({ id: children.id })
+        .from(children);
+      const allSettings = await db
+        .select({
+          childId: childNotificationSettings.childId,
+          mode: childNotificationSettings.mode,
+          repeatDelayMinutes: childNotificationSettings.repeatDelayMinutes,
+          requireOverlayPermission: childNotificationSettings.requireOverlayPermission,
+        })
+        .from(childNotificationSettings);
+
+      const settingsByChildId = new Map(allSettings.map((row: any) => [row.childId, row]));
+      const totalChildren = allChildren.length;
+
+      let strictCount = 0;
+      let softCount = 0;
+      let bubbleCount = 0;
+      let withOverlayCount = 0;
+      let repeatDelaySum = 0;
+
+      for (const child of allChildren) {
+        const setting = settingsByChildId.get(child.id);
+        const effectiveMode = setting?.mode || "popup_soft";
+        const effectiveRepeatDelay = setting?.repeatDelayMinutes ?? 5;
+        const effectiveOverlay = setting?.requireOverlayPermission ?? false;
+
+        if (effectiveMode === "popup_strict") strictCount += 1;
+        if (effectiveMode === "popup_soft") softCount += 1;
+        if (effectiveMode === "floating_bubble") bubbleCount += 1;
+        if (effectiveOverlay) withOverlayCount += 1;
+
+        repeatDelaySum += effectiveRepeatDelay;
+      }
 
       const stats = {
-        total: allSettings.length,
+        total: totalChildren,
         byMode: {
-          popup_strict: allSettings.filter((s: any) => s.mode === "popup_strict").length,
-          popup_soft: allSettings.filter((s: any) => s.mode === "popup_soft").length,
-          floating_bubble: allSettings.filter((s: any) => s.mode === "floating_bubble").length,
+          popup_strict: strictCount,
+          popup_soft: softCount,
+          floating_bubble: bubbleCount,
         },
-        withOverlayPermission: allSettings.filter((s: any) => s.requireOverlayPermission === true).length,
-        averageRepeatDelay: allSettings.length
-          ? Math.round(
-              allSettings.reduce((sum: number, s: any) => sum + (s.repeatDelayMinutes || 0), 0) /
-                allSettings.length
-            )
+        withOverlayPermission: withOverlayCount,
+        averageRepeatDelay: totalChildren
+          ? Math.round(repeatDelaySum / totalChildren)
           : 0,
       };
 
