@@ -11,8 +11,10 @@
  */
 
 import bcrypt from 'bcrypt';
-import { Pool } from '@neondatabase/serverless';
+import pg from 'pg';
 import dotenv from 'dotenv';
+
+const { Pool } = pg;
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';

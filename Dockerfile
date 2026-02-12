@@ -32,7 +32,7 @@ COPY package*.json ./
 
 # Install production dependencies + drizzle-kit and typescript for migrations
 RUN npm ci --omit=dev && \
-    npm install drizzle-kit drizzle-orm typescript tsx @neondatabase/serverless bcrypt && \
+    npm install drizzle-kit drizzle-orm typescript tsx pg bcrypt && \
     npm cache clean --force
 
 # Copy built files from builder (dist contains both server and client)

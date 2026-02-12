@@ -163,7 +163,9 @@ services:
   redis:
     image: redis:7.2-alpine
     restart: always
-    command: ["redis-server", "--appendonly", "yes", "--maxmemory", "128mb", "--maxmemory-policy", "allkeys-lru"]
+    sysctls:
+      - net.core.somaxconn=511
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory", "128mb", "--maxmemory-policy", "allkeys-lru", "--stop-writes-on-bgsave-error", "no"]
     volumes:
       - redis_data:/data
     networks:
