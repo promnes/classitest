@@ -931,7 +931,7 @@ export async function registerAdminRoutes(app: Express) {
   // Get Admin Deposits (with parent info and payment method info) + filtering & pagination
   app.get("/api/admin/deposits", adminMiddleware, async (req: any, res) => {
     try {
-      const { status, page = "1", limit = "50" } = req.query;
+      const { status, q, page = "1", limit = "50" } = req.query;
       const pageNum = Math.max(1, parseInt(page as string) || 1);
       const limitNum = Math.min(200, Math.max(1, parseInt(limit as string) || 50));
       const offset = (pageNum - 1) * limitNum;
@@ -939,6 +939,20 @@ export async function registerAdminRoutes(app: Express) {
       const conditions: any[] = [];
       if (status && ["pending", "completed", "cancelled"].includes(status as string)) {
         conditions.push(eq(deposits.status, status as string));
+      }
+
+      const searchQuery = typeof q === "string" ? q.trim() : "";
+      if (searchQuery) {
+        const searchPattern = `%${searchQuery.toLowerCase()}%`;
+        conditions.push(
+          or(
+            sql`LOWER(COALESCE(${parents.name}, '')) LIKE ${searchPattern}`,
+            sql`LOWER(COALESCE(${parents.email}, '')) LIKE ${searchPattern}`,
+            sql`LOWER(COALESCE(${deposits.transactionId}, '')) LIKE ${searchPattern}`,
+            sql`LOWER(COALESCE(${paymentMethods.accountNumber}, '')) LIKE ${searchPattern}`,
+            sql`LOWER(COALESCE(${paymentMethods.bankName}, '')) LIKE ${searchPattern}`
+          )
+        );
       }
 
       const whereClause = conditions.length > 0 ? and(...conditions) : undefined;

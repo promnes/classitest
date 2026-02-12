@@ -46,13 +46,22 @@ export function DepositsTab({ token }: { token: string }) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [searchQuery, setSearchQuery] = useState("");
   const [reviewingId, setReviewingId] = useState<string | null>(null);
   const [adminNotes, setAdminNotes] = useState("");
 
   const { data: deposits, isLoading } = useQuery({
-    queryKey: ["admin-deposits"],
+    queryKey: ["admin-deposits", searchQuery],
     queryFn: async () => {
-      const res = await fetch("/api/admin/deposits", {
+      const params = new URLSearchParams();
+      if (searchQuery.trim()) {
+        params.set("q", searchQuery.trim());
+      }
+
+      const queryString = params.toString();
+      const endpoint = queryString ? `/api/admin/deposits?${queryString}` : "/api/admin/deposits";
+
+      const res = await fetch(endpoint, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const json = await res.json();
@@ -186,6 +195,14 @@ export function DepositsTab({ token }: { token: string }) {
             {f.label}
           </button>
         ))}
+
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="بحث بالاسم، الإيميل، رقم العملية، رقم الحساب..."
+          className="min-w-[260px] flex-1 px-4 py-2 border rounded-lg dark:bg-gray-800 dark:border-gray-700"
+        />
       </div>
 
       {/* Table */}
