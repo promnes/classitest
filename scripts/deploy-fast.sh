@@ -47,12 +47,27 @@ fi
 
 cd "$PROJECT_DIR"
 
-# Step 1: Git Pull
+# Step 1: Git Pull (or Clone)
 echo -e "\n${YELLOW}[1/5] Pulling latest code from $BRANCH...${NC}"
-git fetch origin
-git checkout "$BRANCH"
-git pull origin "$BRANCH"
-echo -e "${GREEN}✓ Code updated${NC}"
+if [ -d ".git" ]; then
+    git fetch origin
+    git checkout "$BRANCH"
+    git pull origin "$BRANCH"
+    echo -e "${GREEN}✓ Code updated via git pull${NC}"
+else
+    echo -e "${YELLOW}⚠ No git repo found. Initializing from remote...${NC}"
+    # Save .env before re-cloning
+    [ -f .env ] && cp .env /tmp/classify-env-backup
+    cd ..
+    PARENT_DIR=$(pwd)
+    PROJ_NAME=$(basename "$PROJECT_DIR")
+    rm -rf "$PROJECT_DIR"
+    git clone --branch "$BRANCH" --depth 1 https://github.com/promnes/classitest.git "$PROJ_NAME"
+    cd "$PROJECT_DIR"
+    # Restore .env
+    [ -f /tmp/classify-env-backup ] && mv /tmp/classify-env-backup .env
+    echo -e "${GREEN}✓ Code cloned from remote${NC}"
+fi
 
 # Step 2: Check if .env exists
 echo -e "\n${YELLOW}[2/5] Checking environment configuration...${NC}"

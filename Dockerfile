@@ -17,10 +17,16 @@ FROM node:20-alpine AS deps
 WORKDIR /app
 
 # Copy only package files for better caching
-COPY package.json package-lock.json ./
+COPY package*.json ./
 
 # Install ALL dependencies (needed for build)
-RUN npm ci --no-audit --no-fund && \
+# Uses npm ci when package-lock.json exists (faster, deterministic)
+# Falls back to npm install when missing (manual/non-git deploys)
+RUN if [ -f package-lock.json ]; then \
+      npm ci --no-audit --no-fund; \
+    else \
+      npm install --no-audit --no-fund; \
+    fi && \
     npm cache clean --force
 
 # ------------------------------------------------------------------------------
@@ -54,11 +60,15 @@ RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 appuser
 
 # Copy package files
-COPY package.json package-lock.json ./
+COPY package*.json ./
 
 # Install ONLY production deps + migration tools
 # (drizzle-kit, tsx needed for db:push at startup)
-RUN npm ci --omit=dev --no-audit --no-fund && \
+RUN if [ -f package-lock.json ]; then \
+      npm ci --omit=dev --no-audit --no-fund; \
+    else \
+      npm install --omit=dev --no-audit --no-fund; \
+    fi && \
     npm install --no-save drizzle-kit tsx && \
     npm cache clean --force
 
