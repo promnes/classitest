@@ -11,9 +11,10 @@ import {
   themeSettings,
   seoSettings,
   supportSettings,
+  paymentMethods,
 } from "../../shared/schema";
 import { adminMiddleware } from "./middleware";
-import { eq } from "drizzle-orm";
+import { eq, and, isNull } from "drizzle-orm";
 import { successResponse, errorResponse, ErrorCode } from "../utils/apiResponse";
 
 const db = storage.db;
@@ -272,14 +273,28 @@ export function registerAdminSettingsRoutes(app: Express) {
     }
   });
 
-  // Public settings endpoint - returns merged minimal settings
+  // Public settings endpoint - returns merged minimal settings + active payment methods
   app.get("/api/settings", async (_req, res) => {
     try {
-      const site = await db.select().from(siteSettings);
-      const theme = await db.select().from(themeSettings);
-      const store = await db.select().from(storeSettings);
-      const notification = await db.select().from(notificationSettings);
-      const payment = await db.select().from(paymentSettings);
+      const [site, theme, store, notification, payment, activePaymentMethods] = await Promise.all([
+        db.select().from(siteSettings),
+        db.select().from(themeSettings),
+        db.select().from(storeSettings),
+        db.select().from(notificationSettings),
+        db.select().from(paymentSettings),
+        db.select({
+          id: paymentMethods.id,
+          type: paymentMethods.type,
+          accountName: paymentMethods.accountName,
+          bankName: paymentMethods.bankName,
+          accountNumber: paymentMethods.accountNumber,
+          phoneNumber: paymentMethods.phoneNumber,
+          isDefault: paymentMethods.isDefault,
+        }).from(paymentMethods).where(and(
+          isNull(paymentMethods.parentId),
+          eq(paymentMethods.isActive, true)
+        )),
+      ]);
 
       const response = {
         site: site.reduce((acc: any, row: any) => ({ ...acc, [row.key]: row.value }), {}),
@@ -287,6 +302,7 @@ export function registerAdminSettingsRoutes(app: Express) {
         store: store[0] || null,
         notification: notification[0] || null,
         payment: payment[0] || null,
+        paymentMethods: activePaymentMethods,
       };
 
       res.json(successResponse(response));
@@ -298,17 +314,19 @@ export function registerAdminSettingsRoutes(app: Express) {
     }
   });
 
-  // Admin: get all settings
+  // Admin: get all settings (parallelized for performance)
   app.get("/api/admin/settings", adminMiddleware, async (_req: any, res) => {
     try {
-      const appS = await db.select().from(appSettings);
-      const rewards = await db.select().from(rewardsSettings);
-      const tasks = await db.select().from(tasksSettings);
-      const store = await db.select().from(storeSettings);
-      const notification = await db.select().from(notificationSettings);
-      const payment = await db.select().from(paymentSettings);
-      const site = await db.select().from(siteSettings);
-      const theme = await db.select().from(themeSettings);
+      const [appS, rewards, tasks, store, notification, payment, site, theme] = await Promise.all([
+        db.select().from(appSettings),
+        db.select().from(rewardsSettings),
+        db.select().from(tasksSettings),
+        db.select().from(storeSettings),
+        db.select().from(notificationSettings),
+        db.select().from(paymentSettings),
+        db.select().from(siteSettings),
+        db.select().from(themeSettings),
+      ]);
 
       res.json(successResponse({ app: appS, rewards, tasks, store, notification, payment, site, theme }));
     } catch (error: any) {

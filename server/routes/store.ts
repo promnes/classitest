@@ -47,6 +47,33 @@ interface StoreProduct {
 }
 
 export async function registerStoreRoutes(app: Express) {
+  // PUBLIC: Get active payment methods visible to ALL users (no auth required)
+  // This allows visitors to see available payment methods before registering
+  app.get("/api/public/payment-methods", async (_req, res) => {
+    try {
+      const methods = await db
+        .select({
+          id: paymentMethods.id,
+          type: paymentMethods.type,
+          accountName: paymentMethods.accountName,
+          bankName: paymentMethods.bankName,
+          accountNumber: paymentMethods.accountNumber,
+          phoneNumber: paymentMethods.phoneNumber,
+          isDefault: paymentMethods.isDefault,
+        })
+        .from(paymentMethods)
+        .where(and(
+          isNull(paymentMethods.parentId),
+          eq(paymentMethods.isActive, true)
+        ));
+      
+      res.json({ success: true, data: methods });
+    } catch (error: any) {
+      console.error("Get public payment methods error:", error);
+      res.status(500).json({ success: false, error: "INTERNAL_SERVER_ERROR", message: "Failed to get payment methods" });
+    }
+  });
+
   // Get active payment methods for store checkout (admin-configured only, safe fields)
   app.get("/api/store/payment-methods", authMiddleware, async (req: any, res) => {
     try {
@@ -68,7 +95,7 @@ export async function registerStoreRoutes(app: Express) {
       res.json({ success: true, data: methods });
     } catch (error: any) {
       console.error("Get store payment methods error:", error);
-      res.status(500).json({ message: "Failed to get payment methods" });
+      res.status(500).json({ success: false, error: "INTERNAL_SERVER_ERROR", message: "Failed to get payment methods" });
     }
   });
 

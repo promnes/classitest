@@ -3,6 +3,7 @@ import express from "express";
 import Stripe from "stripe";
 import { storage } from "../storage";
 import { successResponse, errorResponse, ErrorCode } from "../utils/apiResponse";
+import { ensureWallet, recalcWalletBalance } from "../utils/walletHelper";
 import {
   webhookEvents,
   storeOrders,
@@ -45,22 +46,6 @@ async function upsertTransaction(params: {
     })
     .returning();
   return inserted[0];
-}
-
-async function ensureWallet(parentId: string) {
-  const existing = await db.select().from(wallets).where(eq(wallets.parentId, parentId));
-  if (existing[0]) return existing[0];
-  const created = await db
-    .insert(wallets)
-    .values({ parentId, balance: "0", currency: "USD", status: "active" })
-    .returning();
-  return created[0];
-}
-
-async function recalcWalletBalance(walletId: string) {
-  const transfers = await db.select().from(walletTransfers).where(eq(walletTransfers.walletId, walletId));
-  const total = transfers.reduce((sum: number, t: any) => sum + Number(t.amount), 0);
-  await db.update(wallets).set({ balance: total.toString() }).where(eq(wallets.id, walletId));
 }
 
 async function fulfillOrder(orderId: string) {

@@ -4,11 +4,39 @@ import { useLocation } from "wouter";
 import { useTheme } from "@/contexts/ThemeContext";
 import { LanguageSelector } from "@/components/LanguageSelector";
 import { PWAInstallButton } from "@/components/PWAInstallButton";
+import { useQuery } from "@tanstack/react-query";
+
+const PAYMENT_TYPE_LABELS: Record<string, { label: string; emoji: string }> = {
+  bank_transfer: { label: "تحويل بنكي", emoji: "🏦" },
+  vodafone_cash: { label: "فودافون كاش", emoji: "📱" },
+  orange_money: { label: "أورنج موني", emoji: "🟠" },
+  etisalat_cash: { label: "اتصالات موني", emoji: "🟣" },
+  we_pay: { label: "وي باي", emoji: "💳" },
+  instapay: { label: "إنستاباي", emoji: "⚡" },
+  fawry: { label: "فوري", emoji: "🎫" },
+  mobile_wallet: { label: "محفظة إلكترونية", emoji: "📲" },
+  credit_card: { label: "بطاقة ائتمان", emoji: "💳" },
+  other: { label: "أخرى", emoji: "💰" },
+};
 
 export const Home = (): JSX.Element => {
   const { t } = useTranslation();
   const [, navigate] = useLocation();
   const { isDark, toggleTheme } = useTheme();
+
+  // Fetch public payment methods (no auth required)
+  const { data: paymentMethodsRaw } = useQuery({
+    queryKey: ["/api/public/payment-methods"],
+    queryFn: async () => {
+      const res = await fetch("/api/public/payment-methods");
+      if (!res.ok) return [];
+      const json = await res.json();
+      return json?.data || [];
+    },
+    staleTime: 60000, // cache 1 minute
+  });
+
+  const paymentMethods = Array.isArray(paymentMethodsRaw) ? paymentMethodsRaw : [];
 
   return (
     <div className={`min-h-screen flex flex-col ${
@@ -121,6 +149,59 @@ export const Home = (): JSX.Element => {
           </button>
         </div>
       </main>
+
+      {/* Public Payment Methods Section */}
+      {paymentMethods.length > 0 && (
+        <section className={`px-4 py-12 ${isDark ? "bg-gray-800/50" : "bg-white/10"}`}>
+          <div className="max-w-4xl mx-auto">
+            <h2 className={`text-3xl font-bold text-center mb-2 ${isDark ? "text-white" : "text-white"}`}>
+              💳 وسائل الدفع المتاحة
+            </h2>
+            <p className={`text-center mb-8 ${isDark ? "text-gray-400" : "text-purple-200"}`}>
+              يمكنك إيداع الأموال عبر أي من الوسائل التالية بعد تسجيل الدخول
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {paymentMethods.map((method: any) => {
+                const typeInfo = PAYMENT_TYPE_LABELS[method.type] || { label: method.type, emoji: "💰" };
+                return (
+                  <div
+                    key={method.id}
+                    className={`rounded-xl p-5 shadow-lg border-2 transition-transform hover:-translate-y-1 ${
+                      isDark 
+                        ? "bg-gray-800 border-gray-700 hover:border-purple-500" 
+                        : "bg-white/90 backdrop-blur border-purple-200 hover:border-purple-400"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3 mb-3">
+                      <span className="text-3xl">{typeInfo.emoji}</span>
+                      <div>
+                        <span className={`font-bold text-lg ${isDark ? "text-white" : "text-gray-800"}`}>
+                          {typeInfo.label}
+                        </span>
+                        {method.isDefault && (
+                          <span className="block text-xs text-yellow-600 font-semibold">★ موصى به</span>
+                        )}
+                      </div>
+                    </div>
+                    <div className={`space-y-1 text-sm ${isDark ? "text-gray-300" : "text-gray-700"}`}>
+                      {method.bankName && (
+                        <p>🏦 <strong>البنك:</strong> {method.bankName}</p>
+                      )}
+                      <p>🔢 <strong>رقم الحساب:</strong> <span className="font-mono">{method.accountNumber}</span></p>
+                      {method.accountName && (
+                        <p>👤 <strong>باسم:</strong> {method.accountName}</p>
+                      )}
+                      {method.phoneNumber && (
+                        <p>📞 <strong>الهاتف:</strong> <span className="font-mono">{method.phoneNumber}</span></p>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Footer */}
       <footer className={`text-center py-6 ${isDark ? "text-gray-300" : "text-purple-100"}`}>

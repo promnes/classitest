@@ -928,9 +928,21 @@ export async function registerAdminRoutes(app: Express) {
     }
   });
 
-  // Get Admin Deposits (with parent info and payment method info)
+  // Get Admin Deposits (with parent info and payment method info) + filtering & pagination
   app.get("/api/admin/deposits", adminMiddleware, async (req: any, res) => {
     try {
+      const { status, page = "1", limit = "50" } = req.query;
+      const pageNum = Math.max(1, parseInt(page as string) || 1);
+      const limitNum = Math.min(200, Math.max(1, parseInt(limit as string) || 50));
+      const offset = (pageNum - 1) * limitNum;
+
+      const conditions: any[] = [];
+      if (status && ["pending", "completed", "cancelled"].includes(status as string)) {
+        conditions.push(eq(deposits.status, status as string));
+      }
+
+      const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
       const result = await db
         .select({
           id: deposits.id,
@@ -953,8 +965,10 @@ export async function registerAdminRoutes(app: Express) {
         .from(deposits)
         .leftJoin(parents, eq(deposits.parentId, parents.id))
         .leftJoin(paymentMethods, eq(deposits.paymentMethodId, paymentMethods.id))
+        .where(whereClause)
         .orderBy(desc(deposits.createdAt))
-        .limit(500);
+        .limit(limitNum)
+        .offset(offset);
 
       res.json(successResponse(result));
     } catch (error: any) {
@@ -1081,11 +1095,13 @@ export async function registerAdminRoutes(app: Express) {
 
   // ===== WALLET MANAGEMENT ROUTES =====
 
-  // Get all wallets with parent info
+  // Get all wallets with parent info (optimized with parallel queries)
   app.get("/api/admin/wallets", adminMiddleware, async (req: any, res) => {
     try {
-      const walletsData = await db.select().from(parentWallet);
-      const parentsData = await db.select().from(parents);
+      const [walletsData, parentsData] = await Promise.all([
+        db.select().from(parentWallet),
+        db.select({ id: parents.id, email: parents.email, name: parents.name }).from(parents),
+      ]);
       const parentsMap: Map<string, any> = new Map(parentsData.map((p: any) => [p.id, p]));
 
       const result = walletsData.map((wallet: any) => {

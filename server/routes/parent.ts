@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { z } from "zod";
 import { storage } from "../storage";
 import { successResponse, errorResponse, ErrorCode } from "../utils/apiResponse";
+import { ensureWallet } from "../utils/walletHelper";
 import { trackOtpEvent } from "../utils/otpMonitoring";
 import {
   parents,
@@ -90,16 +91,6 @@ function normalizeAnswersForStorage(answers: any, correctAnswerIndex: number = 0
     }
     return { id, text: String(answer), isCorrect: index === correctAnswerIndex };
   });
-}
-
-async function ensureWallet(parentId: string) {
-  const existing = await db.select().from(wallets).where(eq(wallets.parentId, parentId));
-  if (existing[0]) return existing[0];
-  const created = await db
-    .insert(wallets)
-    .values({ parentId, balance: "0", currency: "USD", status: "active" })
-    .returning();
-  return created[0];
 }
 
 export async function registerParentRoutes(app: Express) {
