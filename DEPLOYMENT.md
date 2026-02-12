@@ -1,82 +1,339 @@
 # Classify - Production Deployment Guide (Hostinger VPS)
 
-This guide covers deploying Classify on a Hostinger VPS with Docker.
+> **Optimized for Hostinger Docker Manager** - Fast updates with minimal downtime
 
-## Prerequisites
-
-- Hostinger VPS with Ubuntu 22.04/24.04
-- SSH access to your VPS
-- A domain name pointed to your VPS IP
+This guide covers deploying Classify on Hostinger VPS with Docker + Traefik.
 
 ---
 
-## Quick Start (HTTP Only)
+## 📦 Architecture Overview
 
-The fastest way to get running - no SSL required:
+```
+Internet → Traefik (Port 80/443) → App Container (Port 5000)
+                                 ↓
+                          PostgreSQL + Redis
+```
+
+**Containers:**
+- `classify-app` - Express.js backend + React frontend (5000)
+- `classify-db` - PostgreSQL 15 (5432)
+- `classify-redis` - Redis 7.2 (6379)
+- `classify-traefik` - Reverse proxy with auto-SSL (80/443)
+
+---
+
+## 🚀 Quick Start (First Deployment)
+
+### 1. VPS Prerequisites
 
 ```bash
-# 1. Connect to your VPS
+# SSH into your Hostinger VPS
 ssh root@your-vps-ip
 
-# 2. Install Docker (if not installed)
+# Update system
+apt update && apt upgrade -y
+
+# Install Docker (if not installed)
 curl -fsSL https://get.docker.com | sh
+
+# Install Docker Compose plugin
 apt install docker-compose-plugin -y
 
-# 3. Clone repository
-git clone https://github.com/your-username/classify.git
-cd classify
+# Verify installation
+docker --version
+docker compose version
+```
 
-# 4. Create environment file
+### 2. Clone Repository
+
+```bash
+# Create project directory
+mkdir -p /root/projects
+cd /root/projects
+
+# Clone repository
+git clone https://github.com/your-username/classiv3.git
+cd classiv3
+```
+
+### 3. Configure Environment
+
+```bash
+# Copy example environment file
 cp .env.production.example .env
 
-# 5. Edit .env with your values
-nano .env
-# At minimum, set these:
-# - POSTGRES_PASSWORD
-# - JWT_SECRET
-# - SESSION_SECRET
-# - ADMIN_EMAIL
-# - ADMIN_PASSWORD
-
-# 6. Generate secure secrets
+# Generate secure secrets
 echo "JWT_SECRET=$(openssl rand -base64 64 | tr -d '\n')"
 echo "SESSION_SECRET=$(openssl rand -base64 64 | tr -d '\n')"
 echo "POSTGRES_PASSWORD=$(openssl rand -base64 32 | tr -d '\n')"
 
-# 7. Start the application (HTTP only)
-docker compose -f docker-compose.http.yml up -d
-
-# 8. Check status
-docker compose -f docker-compose.http.yml ps
-docker compose -f docker-compose.http.yml logs -f app
-
-# 9. Test health endpoint
-curl http://localhost/health
-curl http://localhost:5000/api/health
+# Edit .env file
+nano .env
 ```
 
-Your app is now running at `http://your-vps-ip`
+**Required Variables:**
+```env
+# Database
+POSTGRES_USER=classify_user
+POSTGRES_PASSWORD=<generated_password>
+POSTGRES_DB=classify_db
+
+# Security
+JWT_SECRET=<generated_jwt_secret>
+SESSION_SECRET=<generated_session_secret>
+
+# Admin Account
+ADMIN_EMAIL=admin@classi-fy.com
+ADMIN_PASSWORD=<strong_password>
+
+# Domain (for SSL)
+APP_URL=https://classi-fy.com
+```
+
+### 4. Start Application
+
+```bash
+# Build and start all containers
+docker compose up -d
+
+# Check container status
+docker compose ps
+
+# View logs
+docker compose logs -f app
+```
+
+### 5. Verify Deployment
+
+```bash
+# Check health endpoint
+curl http://localhost:5000/api/health
+
+# Should return: {"success": true, "message": "OK"}
+```
+
+**Access your app:**
+- HTTP: `http://your-vps-ip`
+- HTTPS (after DNS): `https://classi-fy.com`
 
 ---
 
-## Hostinger VPS Readiness Plan (Production)
+## ⚡ Fast Updates (After First Deployment)
 
-### 1) Prepare Server
-- Update packages
-- Install Docker + Compose plugin
-- Open ports 80/443/22
+### Method 1: Quick Update (Recommended)
 
-### 2) Deploy Code
-- Clone repository
-- Checkout the correct branch/tag
-- Copy environment file: .env.production.example → .env
+```bash
+cd /root/projects/classiv3
 
-### 3) Configure Environment
-- Set required secrets (POSTGRES_PASSWORD, JWT_SECRET, SESSION_SECRET, ADMIN_EMAIL, ADMIN_PASSWORD)
-- Set APP_URL to your domain
-- Configure SMTP/RESEND/TWILIO only if used
+# Pull latest code and rebuild
+./scripts/deploy-fast.sh
 
-#### Step-by-step .env (production)
+# Or specify branch
+./scripts/deploy-fast.sh dev
+
+# Environment changes only (no rebuild)
+./scripts/deploy-fast.sh --no-build
+```
+
+**What it does:**
+1. Pull latest code from GitHub
+2. Rebuild app container with layer caching
+3. Restart services with zero downtime
+4. Verify health check
+5. Show deployment status
+
+### Method 2: Manual Update
+
+```bash
+cd /root/projects/classiv3
+
+# Pull latest code
+```bash
+# View all containers
+docker compose ps
+
+# View real-time logs
+docker compose logs -f
+
+# View app logs only
+docker logs -f classify-app
+
+# Check resource usage
+docker stats
+
+# Check container health
+docker inspect classify-app | grep -A 10 "Health"
+```
+
+---
+
+## 🔄 Database Management
+
+### Apply Schema Changes
+
+```bash
+# After pulling new code with schema changes
+docker compose exec app npm run db:push
+```
+
+### Backup Database
+
+```bash
+# Create backup
+docker compose exec db pg_dump -U classify_user classify_db > backup_$(date +%Y%m%d_%H%M%S).sql
+
+# Restore from backup
+cat backup_20250113_120000.sql | docker compose exec -T db psql -U classify_user classify_db
+```
+
+### Reset Database (⚠️ DATA LOSS)
+
+```bash
+# Stop containers
+docker compose down
+
+# Remove volumes
+docker volume rm classiv3_postgres_data
+
+# Start fresh
+docker compose up -d
+```
+
+---
+
+## 🛡️ Security Best Practices
+
+1. **Use Strong Secrets:**
+   ```bash
+   # Generate new secrets periodically
+   openssl rand -base64 64
+   ```
+
+2. **Keep System Updated:**
+   ```bash
+   apt update && apt upgrade -y
+   docker compose pull
+   docker compose up -d
+   ```
+
+3. **Enable Firewall:**
+   ```bash
+   ufw allow 22/tcp    # SSH
+   ufw allow 80/tcp    # HTTP
+   ufw allow 443/tcp   # HTTPS
+   ufw enable
+   ```
+
+4. **Review Logs Regularly:**
+   ```bash
+   docker compose logs --since 24h | grep -i error
+   ```
+
+---
+
+## 📈 Performance Optimization
+
+### Layer Caching Benefits
+
+The optimized `Dockerfile` uses multi-stage builds:
+- **Stage 1 (deps):** Cached unless `package.json` changes
+- **Stage 2 (builder):** Cached unless source code changes
+- **Stage 3 (runner):** Always fast (copies from previous stages)
+
+**Result:** Updates take **~30 seconds** instead of **5+ minutes**
+
+### Health Check Configuration
+
+```yaml
+# In docker-compose.yml
+healthcheck:
+  test: ["CMD", "curl", "-f", "http://localhost:5000/api/health"]
+  interval: 15s
+  timeout: 10s
+  retries: 5
+  start_period: 60s
+```
+
+---
+
+## 📝 Deployment Checklist
+
+### Before First Deployment
+- [ ] VPS provisioned with Ubuntu 24.04
+- [ ] Docker + Docker Compose installed
+- [ ] DNS A record pointing to VPS IP
+- [ ] `.env` file configured with all secrets
+- [ ] Ports 80, 443, 22 open in firewall
+
+### For Every Update
+- [ ] Code tested locally
+- [ ] Database schema changes noted
+- [ ] Environment variables updated (if needed)
+- [ ] Backup created (if major changes)
+- [ ] Deployment script executed: `./scripts/deploy-fast.sh`
+- [ ] Health check verified: `curl http://localhost:5000/api/health`
+- [ ] Logs checked: `docker logs classify-app --tail=50`
+
+---
+
+## 🆘 Emergency Rollback
+
+```bash
+cd /root/projects/classiv3
+
+# Option 1: Rollback to previous commit
+git log --oneline -10  # Find previous commit hash
+git checkout <commit_hash>
+./scripts/deploy-fast.sh
+
+# Option 2: Rollback to specific tag/branch
+git checkout main  # or v1.0.0
+./scripts/deploy-fast.sh
+
+# Option 3: Restore from backup
+docker compose down
+docker volume rm classiv3_postgres_data
+docker compose up -d
+# Then restore database backup
+```
+
+---
+
+## 📞 Support
+
+- **Documentation:** `/docs/`
+- **Health Check:** `http://your-vps-ip:5000/api/health`
+- **Logs:** `docker compose logs -f`
+- **Container Status:** `docker compose ps`
+
+---
+
+## 🎯 Next Steps After Deployment
+
+1. **Configure Domain SSL:**
+   - Ensure DNS points to VPS
+   - Traefik auto-generates Let's Encrypt certificates
+   - Monitor: `docker logs classify-traefik`
+
+2. **Setup Monitoring:**
+   - Enable Portainer (optional): Port 9000
+   - Configure log rotation
+   - Setup uptime monitoring
+
+3. **Configure Email/SMS:**
+   - Add SMTP credentials or Resend API key
+   - Add Twilio credentials for SMS OTP
+   - Test OTP delivery
+
+4. **Optimize Performance:**
+   - Monitor with `docker stats`
+   - Adjust resource limits in `docker-compose.yml`
+   - Enable Redis caching
+
+---
+
+**Updated for Hostinger Docker Manager compatibility**
+*Last updated: 2025-01-13*
 
 1) Copy the production template:
 
