@@ -24,6 +24,24 @@ const STATUS_LABELS: Record<string, { label: string; color: string; bg: string }
   cancelled: { label: "مرفوض ✗", color: "text-red-700", bg: "bg-red-100" },
 };
 
+const extractApiErrorMessage = (error: unknown): string => {
+  if (!error || typeof error !== "object") return "حدث خطأ أثناء إرسال طلب الإيداع";
+  const message = (error as any)?.message;
+  if (typeof message !== "string") return "حدث خطأ أثناء إرسال طلب الإيداع";
+
+  const jsonStart = message.indexOf("{");
+  if (jsonStart >= 0) {
+    try {
+      const parsed = JSON.parse(message.slice(jsonStart));
+      if (parsed?.message) return parsed.message;
+    } catch {
+      return message;
+    }
+  }
+
+  return message;
+};
+
 export const Wallet = (): JSX.Element => {
   const { t } = useTranslation();
   const [, navigate] = useLocation();
@@ -87,8 +105,8 @@ export const Wallet = (): JSX.Element => {
       setStep("select");
       alert("✅ تم إرسال طلب الإيداع بنجاح! سيتم مراجعته من الإدارة.");
     },
-    onError: () => {
-      alert("❌ حدث خطأ أثناء إرسال طلب الإيداع");
+    onError: (error: any) => {
+      alert(`❌ ${extractApiErrorMessage(error)}`);
     },
   });
 
@@ -355,6 +373,10 @@ export const Wallet = (): JSX.Element => {
                   قم بالتحويل للحساب التالي ثم أدخل المبلغ
                 </p>
 
+                <p className={`text-xs mb-4 ${isDark ? "text-gray-500" : "text-gray-500"}`}>
+                  ⚠️ رقم العملية مطلوب للمراجعة، ورابط الإثبات يساعد على تسريع قبول الطلب.
+                </p>
+
                 {/* Payment details card */}
                 <div className={`p-4 rounded-xl mb-6 ${isDark ? "bg-blue-900/30 border border-blue-800" : "bg-blue-50 border border-blue-200"}`}>
                   <p className="font-bold text-lg mb-2">
@@ -451,7 +473,7 @@ export const Wallet = (): JSX.Element => {
                     }
                     className="flex-1 px-4 py-3 bg-green-500 hover:bg-green-600 text-white rounded-lg font-bold text-lg disabled:opacity-50"
                   >
-                    {depositMutation.isPending ? "جاري الإرسال..." : "✅ تأكيد الإيداع"}
+                    {depositMutation.isPending ? "جاري الإرسال..." : "✅ إرسال الطلب للمراجعة"}
                   </button>
                   <button
                     onClick={() => setStep("select")}

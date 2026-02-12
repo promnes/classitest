@@ -204,7 +204,7 @@ export function DepositsTab({ token }: { token: string }) {
                 <th className="px-4 py-3 text-right font-semibold text-sm">الوالد</th>
                 <th className="px-4 py-3 text-right font-semibold text-sm">وسيلة الدفع</th>
                 <th className="px-4 py-3 text-right font-semibold text-sm">المبلغ</th>
-                <th className="px-4 py-3 text-right font-semibold text-sm">ملاحظات المستخدم</th>
+                <th className="px-4 py-3 text-right font-semibold text-sm">المرجع / الإثبات / الملاحظات</th>
                 <th className="px-4 py-3 text-right font-semibold text-sm">الحالة</th>
                 <th className="px-4 py-3 text-right font-semibold text-sm">التاريخ</th>
                 <th className="px-4 py-3 text-right font-semibold text-sm">إجراء</th>
@@ -328,7 +328,7 @@ export function DepositsTab({ token }: { token: string }) {
                             </div>
 
                             <div>
-                              <label className="block text-sm font-medium mb-1">ملاحظات الأدمن (اختياري)</label>
+                              <label className="block text-sm font-medium mb-1">ملاحظات الأدمن (سبب القبول/الرفض - اختياري)</label>
                               <textarea
                                 value={adminNotes}
                                 onChange={(e) => setAdminNotes(e.target.value)}
