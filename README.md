@@ -263,6 +263,23 @@ Password: admin123
 
 **⚠️ Change admin credentials in production!**
 
+### Managing Admin Credentials | إدارة بيانات الإدمن
+
+To change admin email or password:
+
+```bash
+# 1. Edit .env
+ADMIN_EMAIL=newemail@domain.com
+ADMIN_PASSWORD=NewPassword@2025
+
+# 2. Apply changes to database
+npm run admin:setup
+```
+
+**Important:** Changes in `.env` alone are not enough. You must run `npm run admin:setup` to sync changes to the database.
+
+For detailed guide, see [ADMIN_CREDENTIALS.md](docs/ADMIN_CREDENTIALS.md)
+
 ## API Endpoints | نقاط النهاية
 
 ### Public
