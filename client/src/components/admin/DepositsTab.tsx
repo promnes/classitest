@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { CheckCircle, XCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -47,15 +47,24 @@ export function DepositsTab({ token }: { token: string }) {
   const { toast } = useToast();
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
   const [reviewingId, setReviewingId] = useState<string | null>(null);
   const [adminNotes, setAdminNotes] = useState("");
 
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery.trim());
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
   const { data: deposits, isLoading } = useQuery({
-    queryKey: ["admin-deposits", searchQuery],
+    queryKey: ["admin-deposits", debouncedSearchQuery],
     queryFn: async () => {
       const params = new URLSearchParams();
-      if (searchQuery.trim()) {
-        params.set("q", searchQuery.trim());
+      if (debouncedSearchQuery) {
+        params.set("q", debouncedSearchQuery);
       }
 
       const queryString = params.toString();
@@ -203,6 +212,14 @@ export function DepositsTab({ token }: { token: string }) {
           placeholder="بحث بالاسم، الإيميل، رقم العملية، رقم الحساب..."
           className="min-w-[260px] flex-1 px-4 py-2 border rounded-lg dark:bg-gray-800 dark:border-gray-700"
         />
+
+        <button
+          onClick={() => setSearchQuery("")}
+          disabled={!searchQuery}
+          className="px-4 py-2 rounded-lg border dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-50"
+        >
+          مسح البحث
+        </button>
       </div>
 
       {/* Table */}
