@@ -925,7 +925,7 @@ export const ParentDashboard = (): JSX.Element => {
                     <span>{t('parentDashboard.myInventory')}</span>
                   </Button>
                   <Button 
-                    onClick={() => navigate("/cart")}
+                    onClick={() => navigate("/parent-store")}
                     variant="outline"
                     className="h-auto py-6 flex-col gap-2"
                     data-testid="button-cart"
@@ -934,7 +934,7 @@ export const ParentDashboard = (): JSX.Element => {
                     <span>{t('parentDashboard.cart')}</span>
                   </Button>
                   <Button 
-                    onClick={() => navigate("/orders")}
+                    onClick={() => navigate("/parent-store")}
                     variant="outline"
                     className="h-auto py-6 flex-col gap-2"
                     data-testid="button-orders"

@@ -160,7 +160,7 @@ export default function SubjectTasks() {
   }, [childrenList, selectedChildId]);
 
   if (!subjectId) {
-    navigate("/parent");
+    navigate("/parent-dashboard");
     return null;
   }
 
@@ -169,7 +169,7 @@ export default function SubjectTasks() {
       <div className="max-w-4xl mx-auto p-4">
         <Button
           variant="ghost"
-          onClick={() => navigate("/parent")}
+          onClick={() => navigate("/parent-dashboard")}
           className="mb-4"
           data-testid="button-back"
         >
