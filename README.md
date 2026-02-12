@@ -6,6 +6,23 @@
 
 </div>
 
+## 📚 Complete Documentation | التوثيق الشامل
+
+**New team members?** Start here → [**COMPLETE_OVERVIEW.md**](COMPLETE_OVERVIEW.md) | **Quick lookup?** → [**QUICK_REFERENCE.md**](QUICK_REFERENCE.md) | **How to deploy?** → [**DEPLOYMENT_CHECKLIST.md**](DEPLOYMENT_CHECKLIST.md)
+
+| Document | Purpose | Best For |
+|----------|---------|----------|
+| [**PROJECT_BLUEPRINT.md**](PROJECT_BLUEPRINT.md) | Complete system reference (80+ tables, 150+ endpoints) | Understanding everything |
+| [**ARCHITECTURE.md**](ARCHITECTURE.md) | System diagrams & flows (20+ visuals) | Visual learners |
+| [**QUICK_REFERENCE.md**](QUICK_REFERENCE.md) | 50+ common tasks with examples | Day-to-day development |
+| [**DEPLOYMENT_CHECKLIST.md**](DEPLOYMENT_CHECKLIST.md) | Operations & deployment procedures | DevOps & deployment |
+| [**COMPLETE_OVERVIEW.md**](COMPLETE_OVERVIEW.md) | Navigation & learning paths | New team members |
+| [**DOCUMENTATION_INDEX.md**](DOCUMENTATION_INDEX.md) | Master index & cross-references | Finding specific topics |
+
+**✨ Total: 5,000+ lines, 30,000+ words, 100+ code examples, 20+ diagrams**
+
+---
+
 ## Features | الميزات
 
 ### Authentication | المصادقة
