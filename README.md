@@ -317,6 +317,30 @@ docker-compose logs -f app
 docker-compose logs -f nginx
 ```
 
+### Monitoring Tools | أدوات المراقبة
+
+#### 🎛️ Management Tools | أدوات الإدارة
+
+| Tool | URL | Purpose | Credentials |
+|------|-----|---------|-----------|
+| **Portainer** | `http://localhost:9000` | إدارة Docker | [First login] |
+| **pgAdmin** | `http://localhost:5050` | إدارة قاعدة البيانات | `admin@classiv3.com` / `admin123` |
+| **Redis Commander** | `http://localhost:8081` | مراقبة Redis | - |
+
+#### 📊 Observability Tools | أدوات المراقبة المتقدمة
+
+| Tool | URL | Purpose |
+|------|-----|---------|
+| **Prometheus** | `http://localhost:9090` | جمع مقاييس الأداء |
+| **Grafana** | `http://localhost:3000` | لوحات تحكم بصرية |
+| **Loki** | `http://localhost:3100` | مركز السجلات المركزي |
+
+#### 📧 Communication Tools | أدوات الاتصالات
+
+| Tool | URL | Purpose |
+|------|-----|---------|
+| **Mailhog** | `http://localhost:8025` | اختبار الرسائل والـ OTP |
+
 ## Backup | النسخ الاحتياطي
 
 ```bash
