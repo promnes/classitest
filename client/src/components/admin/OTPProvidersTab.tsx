@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTheme } from "@/contexts/ThemeContext";
 import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 import { 
   Mail, 
   Smartphone,
@@ -46,6 +47,7 @@ const iconMap: Record<string, any> = {
 export const OTPProvidersTab = () => {
   const { t, i18n } = useTranslation();
   const { isDark } = useTheme();
+  const { toast } = useToast();
   const queryClient = useQueryClient();
   const isRTL = i18n.language === 'ar';
   
@@ -60,10 +62,38 @@ export const OTPProvidersTab = () => {
 
   const providers: OTPProvider[] = Array.isArray(providersData) ? providersData : [];
 
+  const getErrorMessage = (error: unknown) => {
+    if (!(error instanceof Error)) {
+      return isRTL ? "فشلت تهيئة وسائل OTP" : "Failed to initialize OTP providers";
+    }
+
+    const rawMessage = error.message.replace(/^\d+:\s*/, "");
+
+    try {
+      const parsed = JSON.parse(rawMessage);
+      if (parsed?.message) return parsed.message;
+    } catch {
+      return rawMessage;
+    }
+
+    return rawMessage;
+  };
+
   const initializeMutation = useMutation({
     mutationFn: () => apiRequest("POST", "/api/admin/otp-providers/initialize"),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/otp-providers"] });
+      toast({
+        title: isRTL ? "تمت التهيئة بنجاح" : "Initialization successful",
+        description: isRTL ? "تم تجهيز وسائل OTP الافتراضية" : "Default OTP providers have been initialized",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: isRTL ? "فشل التهيئة" : "Initialization failed",
+        description: getErrorMessage(error),
+        variant: "destructive",
+      });
     },
   });
 

@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTheme } from "@/contexts/ThemeContext";
 import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 import { 
   Chrome, 
   Facebook, 
@@ -54,6 +55,7 @@ const iconMap: Record<string, any> = {
 export const SocialLoginTab = () => {
   const { t, i18n } = useTranslation();
   const { isDark } = useTheme();
+  const { toast } = useToast();
   const queryClient = useQueryClient();
   const isRTL = i18n.language === 'ar';
   
@@ -70,10 +72,38 @@ export const SocialLoginTab = () => {
   // queryClient extracts .data automatically, so providersData is already the array
   const providers: SocialProvider[] = Array.isArray(providersData) ? providersData : [];
 
+  const getErrorMessage = (error: unknown) => {
+    if (!(error instanceof Error)) {
+      return isRTL ? "فشلت تهيئة الوسائل الافتراضية" : "Failed to initialize default providers";
+    }
+
+    const rawMessage = error.message.replace(/^\d+:\s*/, "");
+
+    try {
+      const parsed = JSON.parse(rawMessage);
+      if (parsed?.message) return parsed.message;
+    } catch {
+      return rawMessage;
+    }
+
+    return rawMessage;
+  };
+
   const initializeMutation = useMutation({
     mutationFn: () => apiRequest("POST", "/api/admin/social-login-providers/initialize"),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/social-login-providers"] });
+      toast({
+        title: isRTL ? "تمت التهيئة بنجاح" : "Initialization successful",
+        description: isRTL ? "تم تجهيز الوسائل الافتراضية" : "Default social providers have been initialized",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: isRTL ? "فشل التهيئة" : "Initialization failed",
+        description: getErrorMessage(error),
+        variant: "destructive",
+      });
     },
   });
 

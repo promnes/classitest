@@ -38,8 +38,11 @@ function getAuthToken(url?: string): string | null {
   const parentToken = localStorage.getItem("token");
   const childToken = localStorage.getItem("childToken");
   const adminToken = localStorage.getItem("adminToken");
+  const isAdminRoute = typeof url === "string" && url.startsWith("/api/admin");
   const isChildRoute = typeof url === "string" && url.startsWith("/api/child");
-  return isChildRoute
+  return isAdminRoute
+    ? (adminToken || parentToken || childToken)
+    : isChildRoute
     ? (childToken || parentToken || adminToken)
     : (parentToken || childToken || adminToken);
 }

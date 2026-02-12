@@ -4,8 +4,11 @@ function getAuthHeaders(url?: string): Record<string, string> {
   const parentToken = localStorage.getItem("token");
   const childToken = localStorage.getItem("childToken");
   const adminToken = localStorage.getItem("adminToken");
+  const isAdminRoute = typeof url === "string" && url.startsWith("/api/admin");
   const isChildRoute = typeof url === "string" && url.startsWith("/api/child");
-  const token = isChildRoute
+  const token = isAdminRoute
+    ? (adminToken || parentToken || childToken)
+    : isChildRoute
     ? (childToken || parentToken || adminToken)
     : (parentToken || childToken || adminToken);
   const headers: Record<string, string> = {};
