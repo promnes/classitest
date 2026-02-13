@@ -268,7 +268,7 @@ export async function registerAdminRoutes(app: Express) {
   // Create Product (Admin)
   app.post("/api/admin/products", adminMiddleware, async (req: any, res) => {
     try {
-      const { parentId, name, description, price, pointsPrice, stock, image } = req.body;
+      const { parentId, name, nameAr, description, descriptionAr, price, originalPrice, pointsPrice, stock, image, images, categoryId, productType, brand, isFeatured, isActive } = req.body;
 
       if (!name || price === undefined || pointsPrice === undefined) {
         return res
@@ -279,11 +279,20 @@ export async function registerAdminRoutes(app: Express) {
       const inserted = await db.insert(products).values({
         parentId: parentId || null,
         name,
+        nameAr: nameAr || null,
         description,
+        descriptionAr: descriptionAr || null,
         price: price.toString(),
+        originalPrice: originalPrice ? originalPrice.toString() : null,
         pointsPrice: parseInt(pointsPrice),
         stock: stock !== undefined ? parseInt(stock) : 999,
         image,
+        images: images || [],
+        categoryId: categoryId || null,
+        productType: productType || "digital",
+        brand: brand || null,
+        isFeatured: isFeatured === true,
+        isActive: isActive !== false,
       }).returning();
 
       const created = inserted[0];
@@ -305,10 +314,28 @@ export async function registerAdminRoutes(app: Express) {
   app.put("/api/admin/products/:id", adminMiddleware, async (req: any, res) => {
     try {
       const { id } = req.params;
-      const { name, description, price, pointsPrice, stock, image, parentId } = req.body;
+      const { name, nameAr, description, descriptionAr, price, originalPrice, pointsPrice, stock, image, images, categoryId, productType, brand, isFeatured, isActive, parentId } = req.body;
+      const setData: Record<string, any> = {};
+      if (name !== undefined) setData.name = name;
+      if (nameAr !== undefined) setData.nameAr = nameAr;
+      if (description !== undefined) setData.description = description;
+      if (descriptionAr !== undefined) setData.descriptionAr = descriptionAr;
+      if (price !== undefined) setData.price = price.toString();
+      if (originalPrice !== undefined) setData.originalPrice = originalPrice ? originalPrice.toString() : null;
+      if (pointsPrice !== undefined) setData.pointsPrice = parseInt(pointsPrice);
+      if (stock !== undefined) setData.stock = parseInt(stock);
+      if (image !== undefined) setData.image = image;
+      if (images !== undefined) setData.images = images;
+      if (categoryId !== undefined) setData.categoryId = categoryId || null;
+      if (productType !== undefined) setData.productType = productType;
+      if (brand !== undefined) setData.brand = brand || null;
+      if (isFeatured !== undefined) setData.isFeatured = isFeatured;
+      if (isActive !== undefined) setData.isActive = isActive;
+      if (parentId !== undefined) setData.parentId = parentId || null;
+
       const updated = await db
         .update(products)
-        .set({ name, description, price: price?.toString(), pointsPrice: pointsPrice !== undefined ? parseInt(pointsPrice) : undefined, stock: stock !== undefined ? parseInt(stock) : undefined, image, parentId: parentId || null })
+        .set(setData)
         .where(eq(products.id, id))
         .returning();
       if (!updated || updated.length === 0) {
