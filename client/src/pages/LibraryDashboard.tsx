@@ -243,16 +243,45 @@ export default function LibraryDashboard() {
         throw new Error(presignJson?.message || "فشل تجهيز رفع الصورة");
       }
 
-      const putRes = await fetch(presignJson.data.uploadURL, {
-        method: "PUT",
-        headers: {
-          "Content-Type": file.type || "image/jpeg",
-        },
-        body: file,
-      });
+      let putRes: Response | null = null;
+      let directUploadError: unknown = null;
 
-      if (!putRes.ok) {
-        throw new Error("فشل رفع الصورة إلى التخزين");
+      try {
+        putRes = await fetch(presignJson.data.uploadURL, {
+          method: "PUT",
+          headers: {
+            "Content-Type": file.type || "image/jpeg",
+          },
+          body: file,
+        });
+      } catch (error) {
+        directUploadError = error;
+      }
+
+      if (!putRes?.ok) {
+        const isAbsoluteUploadURL = /^https?:\/\//i.test(String(presignJson.data.uploadURL || ""));
+
+        if (isAbsoluteUploadURL) {
+          const proxyRes = await fetch("/api/library/uploads/proxy", {
+            method: "PUT",
+            headers: {
+              "Content-Type": file.type || "image/jpeg",
+              Authorization: `Bearer ${token}`,
+              "x-upload-url": presignJson.data.uploadURL,
+            },
+            body: file,
+          });
+
+          if (!proxyRes.ok) {
+            const proxyJson = await proxyRes.json().catch(() => ({}));
+            throw new Error(proxyJson?.message || "فشل رفع الصورة إلى التخزين");
+          }
+        } else {
+          if (putRes) {
+            throw new Error("فشل رفع الصورة إلى التخزين");
+          }
+          throw new Error((directUploadError as any)?.message || "فشل رفع الصورة إلى التخزين");
+        }
       }
 
       const finalizeRes = await fetch("/api/library/uploads/finalize", {

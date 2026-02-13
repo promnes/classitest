@@ -200,6 +200,57 @@ export async function registerLibraryRoutes(app: Express) {
     }
   });
 
+  app.put("/api/library/uploads/proxy", libraryMiddleware, async (req: LibraryRequest, res) => {
+    try {
+      const uploadURL = String(req.headers["x-upload-url"] || "").trim();
+      if (!uploadURL) {
+        return res.status(400).json({ success: false, message: "رابط الرفع مطلوب" });
+      }
+
+      let parsed: URL;
+      try {
+        parsed = new URL(uploadURL);
+      } catch {
+        return res.status(400).json({ success: false, message: "رابط رفع غير صالح" });
+      }
+
+      const allowedHosts = new Set<string>([
+        "127.0.0.1",
+        "localhost",
+        "minio",
+        String(process.env.MINIO_ENDPOINT || "").trim(),
+      ].filter(Boolean));
+
+      if (!allowedHosts.has(parsed.hostname)) {
+        return res.status(400).json({ success: false, message: "نطاق رابط الرفع غير مسموح" });
+      }
+
+      const upstreamRes = await fetch(uploadURL, {
+        method: "PUT",
+        headers: {
+          "Content-Type": String(req.headers["content-type"] || "application/octet-stream"),
+          ...(req.headers["content-length"] ? { "Content-Length": String(req.headers["content-length"]) } : {}),
+        },
+        body: req as any,
+        duplex: "half" as any,
+      });
+
+      if (!upstreamRes.ok) {
+        const details = await upstreamRes.text().catch(() => "");
+        return res.status(502).json({
+          success: false,
+          message: "فشل رفع الملف إلى التخزين",
+          details: details.slice(0, 500),
+        });
+      }
+
+      return res.json({ success: true });
+    } catch (error: any) {
+      console.error("Library upload proxy error:", error);
+      return res.status(500).json({ success: false, message: "فشل رفع الملف عبر الخادم" });
+    }
+  });
+
   app.get("/api/library/products", libraryMiddleware, async (req: LibraryRequest, res) => {
     try {
       const libraryId = req.library!.libraryId;
