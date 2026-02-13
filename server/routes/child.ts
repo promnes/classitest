@@ -1918,47 +1918,50 @@ export async function registerChildRoutes(app: Express) {
   // This endpoint finds all parents linked to a child and sends them login requests
   app.post("/api/child/request-login-by-name", async (req, res) => {
     try {
-      const { childName, deviceId } = req.body;
+      const { childName, parentCode, deviceId } = req.body;
 
       if (!childName || childName.trim().length < 2) {
         return res.status(400).json({ message: "يرجى إدخال اسمك الكامل" });
       }
 
-      const normalizedName = childName.toLowerCase().trim();
+      if (!parentCode || String(parentCode).trim().length < 4) {
+        return res.status(400).json({ message: "يرجى إدخال كود الوالد" });
+      }
 
-      // Find children with this name (case-insensitive)
-      const allChildren = await db.select().from(children);
-      const matchingChildren = allChildren.filter((c: any) => 
-        c.name.toLowerCase().trim() === normalizedName
+      const normalizedName = childName.toLowerCase().trim();
+      const normalizedParentCode = String(parentCode).trim().toUpperCase();
+
+      const parent = await db
+        .select()
+        .from(parents)
+        .where(eq(parents.uniqueCode, normalizedParentCode))
+        .limit(1);
+
+      if (!parent[0]) {
+        return res.status(400).json({ message: "كود الوالد غير صحيح" });
+      }
+
+      const linkedChildren = await db
+        .select({ child: children })
+        .from(parentChild)
+        .innerJoin(children, eq(parentChild.childId, children.id))
+        .where(eq(parentChild.parentId, parent[0].id));
+
+      const matchedChild = linkedChildren.find((lc: any) =>
+        lc.child.name.toLowerCase().trim() === normalizedName
       );
 
-      if (matchingChildren.length === 0) {
-        return res.status(400).json({ message: "لم يتم العثور على حساب بهذا الاسم. تأكد من كتابة اسمك بالشكل الصحيح." });
+      if (!matchedChild) {
+        return res.status(400).json({ message: "الاسم غير مطابق لأي طفل مرتبط بهذا الوالد" });
       }
 
-      // Use the first matching child (in most cases there should only be one)
-      const child = matchingChildren[0];
-
-      // Find the parent linked to this child
-      const parentLinks = await db.select({
-        parent: parents,
-      })
-        .from(parentChild)
-        .innerJoin(parents, eq(parentChild.parentId, parents.id))
-        .where(eq(parentChild.childId, child.id));
-
-      if (parentLinks.length === 0) {
-        return res.status(400).json({ message: "لم يتم العثور على والد مرتبط بهذا الحساب" });
-      }
-
-      const parentData = parentLinks[0].parent;
       const generatedDeviceId = deviceId || crypto.randomUUID();
       const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
 
       // Create login request
       const loginRequest = await db.insert(childLoginRequests).values({
-        childId: child.id,
-        parentId: parentData.id,
+        childId: matchedChild.child.id,
+        parentId: parent[0].id,
         deviceId: generatedDeviceId,
         deviceName: req.get("User-Agent") || "Unknown Device",
         browserInfo: req.get("User-Agent"),
@@ -1969,17 +1972,17 @@ export async function registerChildRoutes(app: Express) {
 
       // Notify parent with approve/reject buttons
       await createNotification({
-        parentId: parentData.id,
+        parentId: parent[0].id,
         type: "login_code_request",
-        title: `${child.name} يطلب الدخول`,
-        message: `${child.name} يريد تسجيل الدخول للتطبيق. هل توافق؟`,
+        title: `${matchedChild.child.name} يطلب الدخول`,
+        message: `${matchedChild.child.name} يريد تسجيل الدخول للتطبيق. هل توافق؟`,
         style: "modal",
         priority: "urgent",
         soundAlert: true,
         metadata: {
-          childId: child.id,
-          childName: child.name,
-          parentCode: parentData.uniqueCode,
+          childId: matchedChild.child.id,
+          childName: matchedChild.child.name,
+          parentCode: parent[0].uniqueCode,
           loginRequestId: loginRequest[0].id,
           deviceInfo: req.get("User-Agent"),
         },

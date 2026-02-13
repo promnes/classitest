@@ -35,6 +35,7 @@ export const ChildLink = (): JSX.Element => {
   const [, navigate] = useLocation();
   const [step, setStep] = useState<LoginStep>("welcome");
   const [childName, setChildName] = useState("");
+  const [loginParentCode, setLoginParentCode] = useState("");
   const [code, setCode] = useState("");
   const [rememberDevice, setRememberDevice] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
@@ -132,10 +133,14 @@ export const ChildLink = (): JSX.Element => {
   const requestLoginMutation = useMutation({
     mutationFn: async () => {
       if (!childName.trim()) throw new Error("ENTER_NAME_FIRST");
-      const res = await fetch("/api/child/request-login-by-name", {
+      if (!loginParentCode.trim()) throw new Error("ENTER_PARENT_CODE_FIRST");
+      const res = await fetch("/api/child/login-request", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ childName: childName.trim() }),
+        body: JSON.stringify({
+          childName: childName.trim(),
+          parentCode: loginParentCode.trim().toUpperCase(),
+        }),
       });
       if (!res.ok) {
         const error = await res.json();
@@ -581,6 +586,19 @@ export const ChildLink = (): JSX.Element => {
                 data-testid="input-child-name"
               />
 
+              <input
+                type="text"
+                value={loginParentCode}
+                onChange={(e) => {
+                  setLoginParentCode(e.target.value.toUpperCase());
+                  setErrorMessage("");
+                }}
+                placeholder={t("parentCode") || "كود الوالد"}
+                className="w-full px-5 py-4 border-2 border-gray-200 rounded-2xl focus:outline-none focus:border-blue-400 text-xl text-center font-mono tracking-wider text-gray-900 bg-gray-50"
+                maxLength={10}
+                data-testid="input-login-parent-code"
+              />
+
               <label className="flex items-center gap-3 cursor-pointer p-3 bg-gray-50 rounded-xl">
                 <input
                   type="checkbox"
@@ -600,7 +618,7 @@ export const ChildLink = (): JSX.Element => {
 
               <button
                 onClick={() => requestLoginMutation.mutate()}
-                disabled={requestLoginMutation.isPending || !childName.trim()}
+                disabled={requestLoginMutation.isPending || !childName.trim() || !loginParentCode.trim()}
                 className="w-full py-5 bg-gradient-to-r from-pink-500 via-red-500 to-orange-500 hover:from-pink-600 hover:via-red-600 hover:to-orange-600 text-white font-bold text-xl rounded-2xl transition-all disabled:opacity-50 flex items-center justify-center gap-3 shadow-lg"
                 data-testid="button-request-login"
               >
