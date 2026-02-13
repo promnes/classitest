@@ -1,4 +1,67 @@
-import React from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
+import { ChevronDown, Search, X, Phone } from "lucide-react";
+
+interface CountryData {
+  code: string;
+  name: string;
+  nameAr: string;
+  flag: string;
+  dialCode: string;
+}
+
+const countries: CountryData[] = [
+  // Gulf / Middle East — top priority
+  { code: "SA", name: "Saudi Arabia", nameAr: "السعودية", flag: "🇸🇦", dialCode: "+966" },
+  { code: "EG", name: "Egypt", nameAr: "مصر", flag: "🇪🇬", dialCode: "+20" },
+  { code: "AE", name: "UAE", nameAr: "الإمارات", flag: "🇦🇪", dialCode: "+971" },
+  { code: "QA", name: "Qatar", nameAr: "قطر", flag: "🇶🇦", dialCode: "+974" },
+  { code: "KW", name: "Kuwait", nameAr: "الكويت", flag: "🇰🇼", dialCode: "+965" },
+  { code: "BH", name: "Bahrain", nameAr: "البحرين", flag: "🇧🇭", dialCode: "+973" },
+  { code: "OM", name: "Oman", nameAr: "عُمان", flag: "🇴🇲", dialCode: "+968" },
+  { code: "YE", name: "Yemen", nameAr: "اليمن", flag: "🇾🇪", dialCode: "+967" },
+  { code: "JO", name: "Jordan", nameAr: "الأردن", flag: "🇯🇴", dialCode: "+962" },
+  { code: "IQ", name: "Iraq", nameAr: "العراق", flag: "🇮🇶", dialCode: "+964" },
+  { code: "PS", name: "Palestine", nameAr: "فلسطين", flag: "🇵🇸", dialCode: "+970" },
+  { code: "LB", name: "Lebanon", nameAr: "لبنان", flag: "🇱🇧", dialCode: "+961" },
+  { code: "SY", name: "Syria", nameAr: "سوريا", flag: "🇸🇾", dialCode: "+963" },
+  // North Africa
+  { code: "MA", name: "Morocco", nameAr: "المغرب", flag: "🇲🇦", dialCode: "+212" },
+  { code: "DZ", name: "Algeria", nameAr: "الجزائر", flag: "🇩🇿", dialCode: "+213" },
+  { code: "TN", name: "Tunisia", nameAr: "تونس", flag: "🇹🇳", dialCode: "+216" },
+  { code: "LY", name: "Libya", nameAr: "ليبيا", flag: "🇱🇾", dialCode: "+218" },
+  { code: "SD", name: "Sudan", nameAr: "السودان", flag: "🇸🇩", dialCode: "+249" },
+  { code: "SO", name: "Somalia", nameAr: "الصومال", flag: "🇸🇴", dialCode: "+252" },
+  { code: "MR", name: "Mauritania", nameAr: "موريتانيا", flag: "🇲🇷", dialCode: "+222" },
+  { code: "DJ", name: "Djibouti", nameAr: "جيبوتي", flag: "🇩🇯", dialCode: "+253" },
+  { code: "KM", name: "Comoros", nameAr: "جزر القمر", flag: "🇰🇲", dialCode: "+269" },
+  // Europe & Americas
+  { code: "US", name: "United States", nameAr: "أمريكا", flag: "🇺🇸", dialCode: "+1" },
+  { code: "GB", name: "United Kingdom", nameAr: "بريطانيا", flag: "🇬🇧", dialCode: "+44" },
+  { code: "FR", name: "France", nameAr: "فرنسا", flag: "🇫🇷", dialCode: "+33" },
+  { code: "DE", name: "Germany", nameAr: "ألمانيا", flag: "🇩🇪", dialCode: "+49" },
+  { code: "IT", name: "Italy", nameAr: "إيطاليا", flag: "🇮🇹", dialCode: "+39" },
+  { code: "ES", name: "Spain", nameAr: "إسبانيا", flag: "🇪🇸", dialCode: "+34" },
+  { code: "NL", name: "Netherlands", nameAr: "هولندا", flag: "🇳🇱", dialCode: "+31" },
+  { code: "SE", name: "Sweden", nameAr: "السويد", flag: "🇸🇪", dialCode: "+46" },
+  { code: "CA", name: "Canada", nameAr: "كندا", flag: "🇨🇦", dialCode: "+1" },
+  { code: "AU", name: "Australia", nameAr: "أستراليا", flag: "🇦🇺", dialCode: "+61" },
+  // Asia
+  { code: "TR", name: "Turkey", nameAr: "تركيا", flag: "🇹🇷", dialCode: "+90" },
+  { code: "PK", name: "Pakistan", nameAr: "باكستان", flag: "🇵🇰", dialCode: "+92" },
+  { code: "IN", name: "India", nameAr: "الهند", flag: "🇮🇳", dialCode: "+91" },
+  { code: "MY", name: "Malaysia", nameAr: "ماليزيا", flag: "🇲🇾", dialCode: "+60" },
+  { code: "ID", name: "Indonesia", nameAr: "إندونيسيا", flag: "🇮🇩", dialCode: "+62" },
+  { code: "CN", name: "China", nameAr: "الصين", flag: "🇨🇳", dialCode: "+86" },
+  { code: "JP", name: "Japan", nameAr: "اليابان", flag: "🇯🇵", dialCode: "+81" },
+  { code: "KR", name: "South Korea", nameAr: "كوريا الجنوبية", flag: "🇰🇷", dialCode: "+82" },
+  { code: "PH", name: "Philippines", nameAr: "الفلبين", flag: "🇵🇭", dialCode: "+63" },
+  { code: "BD", name: "Bangladesh", nameAr: "بنغلاديش", flag: "🇧🇩", dialCode: "+880" },
+  // Africa
+  { code: "NG", name: "Nigeria", nameAr: "نيجيريا", flag: "🇳🇬", dialCode: "+234" },
+  { code: "KE", name: "Kenya", nameAr: "كينيا", flag: "🇰🇪", dialCode: "+254" },
+  { code: "ZA", name: "South Africa", nameAr: "جنوب أفريقيا", flag: "🇿🇦", dialCode: "+27" },
+  { code: "ET", name: "Ethiopia", nameAr: "إثيوبيا", flag: "🇪🇹", dialCode: "+251" },
+];
 
 interface PhoneInputProps {
   value: string;
@@ -11,8 +74,7 @@ interface PhoneInputProps {
 }
 
 /**
- * Phone input component with country code selector
- * Supports international phone numbers with validation
+ * Professional phone input with searchable country selector
  */
 export const PhoneInput: React.FC<PhoneInputProps> = ({
   value,
@@ -21,47 +83,90 @@ export const PhoneInput: React.FC<PhoneInputProps> = ({
   onCountryCodeChange,
   disabled,
   error,
-  placeholder = "1234567890",
+  placeholder = "5XXXXXXXX",
 }) => {
-  const countryCodes = [
-    { code: "+966", label: "🇸🇦 Saudi Arabia" },
-    { code: "+20", label: "🇪🇬 Egypt" },
-    { code: "+971", label: "🇦🇪 UAE" },
-    { code: "+974", label: "🇶🇦 Qatar" },
-    { code: "+965", label: "🇰🇼 Kuwait" },
-    { code: "+973", label: "🇧🇭 Bahrain" },
-    { code: "+968", label: "🇴🇲 Oman" },
-    { code: "+966", label: "🇾🇪 Yemen" },
-    { code: "+212", label: "🇲🇦 Morocco" },
-    { code: "+1", label: "🇺🇸 USA" },
-    { code: "+44", label: "🇬🇧 UK" },
-    { code: "+33", label: "🇫🇷 France" },
-  ];
+  const [isOpen, setIsOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const phoneInputRef = useRef<HTMLInputElement>(null);
+
+  const selectedCountry = countries.find(c => c.dialCode === countryCode) || countries[0];
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+        setSearch("");
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Focus search when dropdown opens
+  useEffect(() => {
+    if (isOpen) {
+      setTimeout(() => searchInputRef.current?.focus(), 50);
+    }
+  }, [isOpen]);
+
+  const filtered = useMemo(() => {
+    if (!search.trim()) return countries;
+    const q = search.toLowerCase().trim();
+    return countries.filter(
+      c =>
+        c.name.toLowerCase().includes(q) ||
+        c.nameAr.includes(q) ||
+        c.dialCode.includes(q) ||
+        c.code.toLowerCase().includes(q)
+    );
+  }, [search]);
+
+  const handleSelect = (c: CountryData) => {
+    onCountryCodeChange(c.dialCode);
+    setIsOpen(false);
+    setSearch("");
+    setTimeout(() => phoneInputRef.current?.focus(), 50);
+  };
 
   return (
-    <div className="space-y-2">
-      <label className="block text-sm font-bold text-gray-700 dark:text-gray-300">
-        📱 رقم الهاتف / Phone Number
+    <div className="space-y-1.5">
+      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
+        <Phone className="w-3.5 h-3.5" />
+        رقم الهاتف / Phone Number
       </label>
-      
-      <div className="flex gap-2">
-        {/* Country Code Select */}
-        <select
-          value={countryCode}
-          onChange={(e) => onCountryCodeChange(e.target.value)}
+
+      <div className="flex gap-0 relative" ref={dropdownRef}>
+        {/* Country Selector Button */}
+        <button
+          type="button"
+          onClick={() => !disabled && setIsOpen(!isOpen)}
           disabled={disabled}
-          className="px-3 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-400 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white font-bold"
+          className={`
+            flex items-center gap-1.5 px-3 py-3 rounded-r-xl border-2 border-l-0
+            transition-all duration-200 min-w-[110px] justify-between
+            ${isOpen
+              ? "border-blue-500 dark:border-blue-400 bg-blue-50 dark:bg-blue-900/30"
+              : "border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 hover:border-gray-400 dark:hover:border-gray-500"
+            }
+            ${error ? "border-red-400 dark:border-red-500" : ""}
+            ${disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}
+          `}
         >
-          {countryCodes.map((item) => (
-            <option key={item.code} value={item.code}>
-              {item.label}
-            </option>
-          ))}
-        </select>
+          <span className="text-xl leading-none">{selectedCountry.flag}</span>
+          <span className="text-sm font-bold text-gray-800 dark:text-gray-100 tabular-nums">
+            {selectedCountry.dialCode}
+          </span>
+          <ChevronDown className={`w-3.5 h-3.5 text-gray-400 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} />
+        </button>
 
         {/* Phone Number Input */}
         <input
+          ref={phoneInputRef}
           type="tel"
+          inputMode="numeric"
           value={value}
           onChange={(e) => {
             const cleaned = e.target.value.replace(/\D/g, "");
@@ -70,22 +175,116 @@ export const PhoneInput: React.FC<PhoneInputProps> = ({
           placeholder={placeholder}
           disabled={disabled}
           maxLength={15}
-          className={`flex-1 px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-400 dark:bg-gray-700 dark:border-gray-600 dark:text-white text-gray-900 bg-white ${
-            error ? "border-red-500" : ""
-          } disabled:opacity-50`}
+          dir="ltr"
+          className={`
+            flex-1 px-4 py-3 rounded-l-xl border-2 text-base font-medium tracking-wide
+            transition-all duration-200 outline-none min-w-0
+            ${error
+              ? "border-red-400 dark:border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-200 dark:focus:ring-red-800"
+              : "border-gray-300 dark:border-gray-600 focus:border-blue-500 dark:focus:border-blue-400 focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-800"
+            }
+            bg-white dark:bg-gray-700 text-gray-900 dark:text-white
+            placeholder:text-gray-400 dark:placeholder:text-gray-500
+            disabled:opacity-50 disabled:cursor-not-allowed
+          `}
         />
+
+        {/* Dropdown */}
+        {isOpen && (
+          <div
+            className="
+              absolute top-full right-0 left-0 mt-1.5 z-50
+              bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-600
+              rounded-xl shadow-2xl overflow-hidden
+              animate-in fade-in slide-in-from-top-2 duration-200
+            "
+            style={{ maxHeight: "340px" }}
+          >
+            {/* Search Bar */}
+            <div className="sticky top-0 bg-white dark:bg-gray-800 p-2.5 border-b border-gray-100 dark:border-gray-700">
+              <div className="relative">
+                <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="ابحث عن دولة..."
+                  dir="rtl"
+                  className="
+                    w-full pr-9 pl-8 py-2.5 text-sm rounded-lg
+                    bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600
+                    text-gray-900 dark:text-white placeholder:text-gray-400
+                    outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-200
+                    dark:focus:border-blue-500 dark:focus:ring-blue-800
+                  "
+                />
+                {search && (
+                  <button
+                    type="button"
+                    onClick={() => setSearch("")}
+                    className="absolute left-2.5 top-1/2 -translate-y-1/2 p-0.5 hover:bg-gray-200 dark:hover:bg-gray-600 rounded"
+                  >
+                    <X className="w-3.5 h-3.5 text-gray-400" />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Country List */}
+            <div className="overflow-y-auto" style={{ maxHeight: "270px" }}>
+              {filtered.length === 0 ? (
+                <div className="text-center py-8 text-gray-400 dark:text-gray-500 text-sm">
+                  لا توجد نتائج
+                </div>
+              ) : (
+                filtered.map((c) => {
+                  const isSelected = c.dialCode === countryCode && c.code === selectedCountry.code;
+                  return (
+                    <button
+                      key={c.code}
+                      type="button"
+                      onClick={() => handleSelect(c)}
+                      className={`
+                        w-full flex items-center gap-3 px-3.5 py-2.5 text-sm transition-colors duration-100
+                        ${isSelected
+                          ? "bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300"
+                          : "text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/60"
+                        }
+                      `}
+                    >
+                      <span className="text-xl leading-none">{c.flag}</span>
+                      <span className="flex-1 text-right truncate font-medium">{c.nameAr}</span>
+                      <span className="text-xs text-gray-400 dark:text-gray-500 hidden sm:inline">{c.name}</span>
+                      <span className={`tabular-nums font-bold text-xs min-w-[50px] text-left ${
+                        isSelected ? "text-blue-600 dark:text-blue-400" : "text-gray-500 dark:text-gray-400"
+                      }`}>
+                        {c.dialCode}
+                      </span>
+                      {isSelected && (
+                        <span className="text-blue-500 text-xs">✓</span>
+                      )}
+                    </button>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Display Full Phone Number */}
-      {value && (
-        <p className="text-xs text-gray-500 dark:text-gray-400">
-          📲 Full: {countryCode}{value}
+      {/* Full Number Preview */}
+      {value && !error && (
+        <p className="text-xs text-gray-400 dark:text-gray-500 flex items-center gap-1 font-mono" dir="ltr">
+          <span className="opacity-60">📲</span> {countryCode}{value}
         </p>
       )}
 
-      {/* Error Message */}
+      {/* Error */}
       {error && (
-        <p className="text-sm text-red-500 font-medium">❌ {error}</p>
+        <p className="text-sm text-red-500 dark:text-red-400 font-medium flex items-center gap-1">
+          <span>⚠️</span> {error}
+        </p>
       )}
     </div>
   );
