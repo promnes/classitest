@@ -38,6 +38,7 @@ export default function LibraryDashboard() {
 
   const [showProductModal, setShowProductModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [productForm, setProductForm] = useState({
     title: "",
     description: "",
@@ -216,6 +217,75 @@ export default function LibraryDashboard() {
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
     toast({ title: "تم النسخ" });
+  };
+
+  const uploadProductImage = async (file: File) => {
+    if (!token) return;
+
+    setIsUploadingImage(true);
+    try {
+      const presignRes = await fetch("/api/library/uploads/presign", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          contentType: file.type || "image/jpeg",
+          size: file.size,
+          purpose: "library_product_image",
+          originalName: file.name,
+        }),
+      });
+
+      const presignJson = await presignRes.json();
+      if (!presignRes.ok || !presignJson?.data?.uploadURL || !presignJson?.data?.objectPath) {
+        throw new Error(presignJson?.message || "فشل تجهيز رفع الصورة");
+      }
+
+      const putRes = await fetch(presignJson.data.uploadURL, {
+        method: "PUT",
+        headers: {
+          "Content-Type": file.type || "image/jpeg",
+        },
+        body: file,
+      });
+
+      if (!putRes.ok) {
+        throw new Error("فشل رفع الصورة إلى التخزين");
+      }
+
+      const finalizeRes = await fetch("/api/library/uploads/finalize", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          objectPath: presignJson.data.objectPath,
+          mimeType: file.type || "image/jpeg",
+          size: file.size,
+          originalName: file.name,
+          purpose: "library_product_image",
+          dedupeKey: `library-product-${file.name}-${file.size}-${file.lastModified}`,
+        }),
+      });
+
+      const finalizeJson = await finalizeRes.json();
+      if (!finalizeRes.ok || !finalizeJson?.data?.url) {
+        throw new Error(finalizeJson?.message || "فشل تأكيد رفع الصورة");
+      }
+
+      setProductForm((prev) => ({ ...prev, imageUrl: finalizeJson.data.url }));
+      toast({ title: "تم رفع الصورة بنجاح" });
+    } catch (error: any) {
+      toast({
+        title: error?.message || "فشل رفع الصورة",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploadingImage(false);
+    }
   };
 
   const referralLink = `${window.location.origin}/store/libraries?ref=${profile?.referralCode || libraryData.referralCode}`;
@@ -503,6 +573,33 @@ export default function LibraryDashboard() {
                 onChange={(e) => setProductForm({ ...productForm, imageUrl: e.target.value })}
                 data-testid="input-product-image"
               />
+              <div className="mt-2 flex items-center gap-2">
+                <label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    className="hidden"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        await uploadProductImage(file);
+                      }
+                      e.currentTarget.value = "";
+                    }}
+                  />
+                  <span className={`inline-flex items-center rounded-md border px-3 py-2 text-sm cursor-pointer ${isUploadingImage ? "opacity-60 pointer-events-none" : ""}`}>
+                    {isUploadingImage ? "جاري الرفع..." : "اختيار من المعرض / الكاميرا"}
+                  </span>
+                </label>
+              </div>
+              {productForm.imageUrl && (
+                <img
+                  src={productForm.imageUrl}
+                  alt="preview"
+                  className="mt-2 h-20 w-20 rounded-md object-cover border"
+                />
+              )}
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>

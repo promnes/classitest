@@ -1,5 +1,6 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { storage } from "../storage";
+import { z } from "zod";
 import { 
   libraries, 
   libraryProducts, 
@@ -10,6 +11,8 @@ import {
 import { eq, desc, and, sql, like, or } from "drizzle-orm";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
+import { createPresignedUpload, finalizeUpload } from "../services/uploadService";
+import { finalizeUploadSchema } from "../../shared/media";
 
 const db = storage.db;
 const JWT_SECRET = process.env.JWT_SECRET ?? "";
@@ -142,6 +145,58 @@ export async function registerLibraryRoutes(app: Express) {
     } catch (error: any) {
       console.error("Get library profile error:", error);
       res.status(500).json({ message: "Failed to fetch profile" });
+    }
+  });
+
+  app.post("/api/library/uploads/presign", libraryMiddleware, async (req: LibraryRequest, res) => {
+    try {
+      const body = z
+        .object({
+          contentType: z.string().min(1),
+          size: z.number().int().positive(),
+          purpose: z.string().min(1),
+          originalName: z.string().min(1),
+        })
+        .parse(req.body);
+
+      const result = await createPresignedUpload({
+        actor: { type: "parent", id: req.library!.libraryId },
+        purpose: body.purpose,
+        contentType: body.contentType,
+        size: body.size,
+      });
+
+      res.json({ success: true, data: result });
+    } catch (error: any) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ success: false, message: error.message });
+      }
+      if (error?.message === "POLICY_REJECTED_MIME" || error?.message === "POLICY_REJECTED_SIZE") {
+        return res.status(400).json({ success: false, message: error.message });
+      }
+      console.error("Library upload presign error:", error);
+      res.status(500).json({ success: false, message: "Failed to generate upload URL" });
+    }
+  });
+
+  app.post("/api/library/uploads/finalize", libraryMiddleware, async (req: LibraryRequest, res) => {
+    try {
+      const body = finalizeUploadSchema.parse(req.body);
+      const media = await finalizeUpload({
+        actor: { type: "parent", id: req.library!.libraryId },
+        input: body,
+      });
+
+      res.json({ success: true, data: media });
+    } catch (error: any) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ success: false, message: error.message });
+      }
+      if (error?.message === "POLICY_REJECTED_MIME" || error?.message === "POLICY_REJECTED_SIZE") {
+        return res.status(400).json({ success: false, message: error.message });
+      }
+      console.error("Library upload finalize error:", error);
+      res.status(500).json({ success: false, message: "Failed to finalize upload" });
     }
   });
 
