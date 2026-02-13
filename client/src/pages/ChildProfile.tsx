@@ -81,14 +81,14 @@ export default function ChildProfile() {
       queryClient.invalidateQueries({ queryKey: ["child-profile"] });
       queryClient.invalidateQueries({ queryKey: ["child-info"] });
       toast({
-        title: isRTL ? "تم الحفظ ✅" : "Saved ✅",
-        description: isRTL ? "تم تحديث ملفك الشخصي بنجاح" : "Your profile has been updated",
+        title: t("childProfile.updateSuccess") + " ✅",
+        description: t("childProfile.profileUpdated"),
       });
     },
     onError: (error: any) => {
       toast({
-        title: isRTL ? "خطأ" : "Error",
-        description: error.message || (isRTL ? "حاول مرة أخرى" : "Try again"),
+        title: t("error"),
+        description: error.message || t("errors.updateError"),
         variant: "destructive",
       });
     },
@@ -97,8 +97,8 @@ export default function ChildProfile() {
   const handleAvatarUpload = async (file: File) => {
     if (file.size > 3 * 1024 * 1024) {
       toast({
-        title: isRTL ? "الملف كبير جداً" : "File too large",
-        description: isRTL ? "الحد الأقصى 3 ميجابايت" : "Max 3MB allowed",
+        title: t("childProfile.fileTooLarge"),
+        description: t("childProfile.maxFileSize"),
         variant: "destructive",
       });
       return;
@@ -124,13 +124,13 @@ export default function ChildProfile() {
       queryClient.invalidateQueries({ queryKey: ["child-profile"] });
       queryClient.invalidateQueries({ queryKey: ["child-info"] });
       toast({
-        title: isRTL ? "تم رفع الصورة ✅" : "Photo uploaded ✅",
-        description: isRTL ? "تم تحديث صورتك الشخصية" : "Your profile picture has been updated",
+        title: t("childProfile.photoUploaded") + " ✅",
+        description: t("childProfile.photoUpdated"),
       });
     } catch (error: any) {
       setAvatarPreview(null);
       toast({
-        title: isRTL ? "فشل الرفع" : "Upload failed",
+        title: t("childProfile.uploadFailed"),
         description: error.message,
         variant: "destructive",
       });
@@ -143,8 +143,8 @@ export default function ChildProfile() {
     e.preventDefault();
     if (formData.name.trim().length < 2) {
       toast({
-        title: isRTL ? "اسم غير صالح" : "Invalid name",
-        description: isRTL ? "الاسم يجب أن يكون حرفين على الأقل" : "Name must be at least 2 characters",
+        title: t("childProfile.invalidName"),
+        description: t("childProfile.nameMinLength"),
         variant: "destructive",
       });
       return;
@@ -153,18 +153,18 @@ export default function ChildProfile() {
   };
 
   const gradeOptions = [
-    { value: "grade1", label: isRTL ? "الصف الأول" : "Grade 1" },
-    { value: "grade2", label: isRTL ? "الصف الثاني" : "Grade 2" },
-    { value: "grade3", label: isRTL ? "الصف الثالث" : "Grade 3" },
-    { value: "grade4", label: isRTL ? "الصف الرابع" : "Grade 4" },
-    { value: "grade5", label: isRTL ? "الصف الخامس" : "Grade 5" },
-    { value: "grade6", label: isRTL ? "الصف السادس" : "Grade 6" },
-    { value: "grade7", label: isRTL ? "الصف السابع" : "Grade 7" },
-    { value: "grade8", label: isRTL ? "الصف الثامن" : "Grade 8" },
-    { value: "grade9", label: isRTL ? "الصف التاسع" : "Grade 9" },
-    { value: "grade10", label: isRTL ? "الصف العاشر" : "Grade 10" },
-    { value: "grade11", label: isRTL ? "الصف الحادي عشر" : "Grade 11" },
-    { value: "grade12", label: isRTL ? "الصف الثاني عشر" : "Grade 12" },
+    { value: "grade1", label: t("childProfile.grades.grade1") },
+    { value: "grade2", label: t("childProfile.grades.grade2") },
+    { value: "grade3", label: t("childProfile.grades.grade3") },
+    { value: "grade4", label: t("childProfile.grades.grade4") },
+    { value: "grade5", label: t("childProfile.grades.grade5") },
+    { value: "grade6", label: t("childProfile.grades.grade6") },
+    { value: "grade7", label: t("childProfile.grades.grade7") },
+    { value: "grade8", label: t("childProfile.grades.grade8") },
+    { value: "grade9", label: t("childProfile.grades.grade9") },
+    { value: "grade10", label: t("childProfile.grades.grade10") },
+    { value: "grade11", label: t("childProfile.grades.grade11") },
+    { value: "grade12", label: t("childProfile.grades.grade12") },
   ];
 
   if (isLoading) {
@@ -173,7 +173,7 @@ export default function ChildProfile() {
         <div className="flex flex-col items-center gap-3">
           <Loader2 className="w-10 h-10 animate-spin text-purple-500" />
           <p className={`text-sm ${isDark ? "text-gray-400" : "text-purple-400"}`}>
-            {isRTL ? "جار التحميل..." : "Loading..."}
+            {t("common.loading")}
           </p>
         </div>
       </div>
@@ -197,7 +197,7 @@ export default function ChildProfile() {
               </button>
               <div className="flex items-center gap-2">
                 <User className="w-5 h-5" />
-                <h1 className="text-lg font-bold">{isRTL ? "ملفي الشخصي" : "My Profile"}</h1>
+                <h1 className="text-lg font-bold">{t("childProfile.title")}</h1>
               </div>
             </div>
             <div className="flex items-center gap-1.5 bg-white/15 px-3 py-1.5 rounded-full">
@@ -257,7 +257,7 @@ export default function ChildProfile() {
               <div className="flex items-center justify-center gap-2 mt-2 flex-wrap">
                 <div className="flex items-center gap-1 bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-sm font-medium">
                   <Trophy className="w-3.5 h-3.5" />
-                  {profileData?.totalPoints || 0} {isRTL ? "نقطة" : "pts"}
+                  {profileData?.totalPoints || 0} {t("childProfile.pts")}
                 </div>
                 {profileData?.academicGrade && (
                   <div className="flex items-center gap-1 bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-sm font-medium">
@@ -267,7 +267,7 @@ export default function ChildProfile() {
                 )}
               </div>
               <p className={`text-xs mt-3 ${isDark ? "text-gray-500" : "text-gray-400"}`}>
-                {isRTL ? "اضغط على أيقونة الكاميرا لتغيير صورتك" : "Tap the camera icon to change your photo"}
+                {t("childProfile.photoNote")}
               </p>
             </CardContent>
           </Card>
@@ -288,19 +288,19 @@ export default function ChildProfile() {
                     <User className="w-4 h-4 text-blue-600" />
                   </div>
                   <h3 className={`font-bold ${isDark ? "text-white" : "text-gray-800"}`}>
-                    {isRTL ? "المعلومات الشخصية" : "Personal Info"}
+                    {t("childProfile.personalInfo")}
                   </h3>
                 </div>
 
                 <div className="space-y-1.5">
                   <Label htmlFor="name" className={`text-sm font-medium ${isDark ? "text-gray-300" : "text-gray-600"}`}>
-                    {isRTL ? "الاسم" : "Name"} <span className="text-red-400">*</span>
+                    {t("childProfile.name")} <span className="text-red-400">*</span>
                   </Label>
                   <Input
                     id="name"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    placeholder={isRTL ? "اكتب اسمك هنا" : "Enter your name"}
+                    placeholder={t("childProfile.namePlaceholder")}
                     className={`min-h-[48px] rounded-xl text-base ${isDark ? "bg-gray-700 border-gray-600 text-white" : "bg-gray-50 border-gray-200"}`}
                   />
                 </div>
@@ -308,7 +308,7 @@ export default function ChildProfile() {
                 <div className="space-y-1.5">
                   <Label htmlFor="birthday" className={`text-sm font-medium flex items-center gap-1.5 ${isDark ? "text-gray-300" : "text-gray-600"}`}>
                     <Calendar className="w-3.5 h-3.5" />
-                    {isRTL ? "تاريخ الميلاد" : "Birthday"}
+                    {t("childProfile.birthday")}
                   </Label>
                   <Input
                     id="birthday"
@@ -335,19 +335,19 @@ export default function ChildProfile() {
                     <School className="w-4 h-4 text-green-600" />
                   </div>
                   <h3 className={`font-bold ${isDark ? "text-white" : "text-gray-800"}`}>
-                    {isRTL ? "معلومات المدرسة" : "School Info"}
+                    {t("childProfile.schoolInfo")}
                   </h3>
                 </div>
 
                 <div className="space-y-1.5">
                   <Label htmlFor="schoolName" className={`text-sm font-medium ${isDark ? "text-gray-300" : "text-gray-600"}`}>
-                    {isRTL ? "اسم المدرسة" : "School Name"}
+                    {t("childProfile.schoolName")}
                   </Label>
                   <Input
                     id="schoolName"
                     value={formData.schoolName}
                     onChange={(e) => setFormData({ ...formData, schoolName: e.target.value })}
-                    placeholder={isRTL ? "مثال: مدرسة النور الأهلية" : "e.g. Al-Noor Academy"}
+                    placeholder={t("childProfile.schoolNamePlaceholder")}
                     className={`min-h-[48px] rounded-xl text-base ${isDark ? "bg-gray-700 border-gray-600 text-white" : "bg-gray-50 border-gray-200"}`}
                   />
                 </div>
@@ -355,7 +355,7 @@ export default function ChildProfile() {
                 <div className="space-y-1.5">
                   <Label htmlFor="academicGrade" className={`text-sm font-medium flex items-center gap-1.5 ${isDark ? "text-gray-300" : "text-gray-600"}`}>
                     <BookOpen className="w-3.5 h-3.5" />
-                    {isRTL ? "الصف الدراسي" : "Grade"}
+                    {t("childProfile.grade")}
                   </Label>
                   <select
                     id="academicGrade"
@@ -363,7 +363,7 @@ export default function ChildProfile() {
                     onChange={(e) => setFormData({ ...formData, academicGrade: e.target.value })}
                     className={`w-full min-h-[48px] px-3 py-2 rounded-xl text-base border ${isDark ? "bg-gray-700 border-gray-600 text-white" : "bg-gray-50 border-gray-200 text-gray-900"}`}
                   >
-                    <option value="">{isRTL ? "اختر الصف الدراسي" : "Select grade"}</option>
+                    <option value="">{t("childProfile.selectGrade")}</option>
                     {gradeOptions.map((g) => (
                       <option key={g.value} value={g.value}>{g.label}</option>
                     ))}
@@ -386,7 +386,7 @@ export default function ChildProfile() {
                     <Heart className="w-4 h-4 text-pink-600" />
                   </div>
                   <h3 className={`font-bold ${isDark ? "text-white" : "text-gray-800"}`}>
-                    {isRTL ? "هواياتي" : "My Hobbies"}
+                    {t("childProfile.hobbies")}
                   </h3>
                 </div>
 
@@ -395,7 +395,7 @@ export default function ChildProfile() {
                     id="hobbies"
                     value={formData.hobbies}
                     onChange={(e) => setFormData({ ...formData, hobbies: e.target.value })}
-                    placeholder={isRTL ? "أحب الرسم والقراءة والسباحة..." : "I love drawing, reading, swimming..."}
+                    placeholder={t("childProfile.hobbiesPlaceholder")}
                     className={`min-h-[100px] resize-none rounded-xl text-base ${isDark ? "bg-gray-700 border-gray-600 text-white" : "bg-gray-50 border-gray-200"}`}
                     maxLength={500}
                   />
@@ -424,7 +424,7 @@ export default function ChildProfile() {
               ) : (
                 <span className="flex items-center gap-2">
                   <Save className="w-5 h-5" />
-                  {isRTL ? "حفظ التعديلات" : "Save Changes"}
+                  {t("childProfile.save")}
                 </span>
               )}
             </Button>

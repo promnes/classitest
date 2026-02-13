@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
+import { getDateLocale } from "@/i18n/config";
 import { queryClient } from "@/lib/queryClient";
 import { 
   Store, Package, Users, TrendingUp, Plus, Edit, Trash2, 
@@ -523,7 +524,7 @@ export default function LibraryDashboard() {
                         {ref.status === "clicked" ? "زيارة" : ref.status === "registered" ? "تسجيل" : "شراء"}
                       </Badge>
                       <span className="mr-2 text-sm text-muted-foreground">
-                        {new Date(ref.createdAt).toLocaleDateString("ar")}
+                        {new Date(ref.createdAt).toLocaleDateString(getDateLocale())}
                       </span>
                     </div>
                     {ref.pointsAwarded > 0 && (
@@ -555,7 +556,7 @@ export default function LibraryDashboard() {
                     <div className="flex items-center gap-2">
                       <Badge variant="outline">+{log.points}</Badge>
                       <span className="text-xs text-muted-foreground">
-                        {new Date(log.createdAt).toLocaleDateString("ar")}
+                        {new Date(log.createdAt).toLocaleDateString(getDateLocale())}
                       </span>
                     </div>
                   </div>

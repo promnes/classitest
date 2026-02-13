@@ -4,6 +4,7 @@ import { useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useTheme } from "@/contexts/ThemeContext";
+import { getDateLocale } from "@/i18n/config";
 
 const PAYMENT_TYPE_LABELS: Record<string, { label: string; emoji: string }> = {
   bank_transfer: { label: "تحويل بنكي", emoji: "🏦" },
@@ -247,7 +248,7 @@ export const Wallet = (): JSX.Element => {
                         ₪{Number(deposit.amount).toFixed(2)}
                       </p>
                       <p className={`text-sm ${isDark ? "text-gray-400" : "text-gray-600"}`}>
-                        {new Date(deposit.createdAt).toLocaleDateString("ar-EG")} — {new Date(deposit.createdAt).toLocaleTimeString("ar-EG")}
+                        {new Date(deposit.createdAt).toLocaleDateString(getDateLocale())} — {new Date(deposit.createdAt).toLocaleTimeString(getDateLocale())}
                       </p>
                       {(deposit.methodType || deposit.methodBank || deposit.methodAccount) && (
                         <p className={`text-xs mt-1 ${isDark ? "text-gray-500" : "text-gray-500"}`}>

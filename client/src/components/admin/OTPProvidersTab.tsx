@@ -64,7 +64,7 @@ export const OTPProvidersTab = () => {
 
   const getErrorMessage = (error: unknown) => {
     if (!(error instanceof Error)) {
-      return isRTL ? "فشلت تهيئة وسائل OTP" : "Failed to initialize OTP providers";
+      return t("adminOtp.initFailed");
     }
 
     const rawMessage = error.message.replace(/^\d+:\s*/, "");
@@ -84,13 +84,13 @@ export const OTPProvidersTab = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/otp-providers"] });
       toast({
-        title: isRTL ? "تمت التهيئة بنجاح" : "Initialization successful",
-        description: isRTL ? "تم تجهيز وسائل OTP الافتراضية" : "Default OTP providers have been initialized",
+        title: t("adminOtp.initSuccess"),
+        description: t("adminOtp.initSuccessDesc"),
       });
     },
     onError: (error) => {
       toast({
-        title: isRTL ? "فشل التهيئة" : "Initialization failed",
+        title: t("adminOtp.initFailedTitle"),
         description: getErrorMessage(error),
         variant: "destructive",
       });
@@ -155,7 +155,7 @@ export const OTPProvidersTab = () => {
       <div className="flex justify-between items-center mb-6 flex-wrap gap-4">
         <h2 className="text-2xl font-bold flex items-center gap-2">
           <Shield className="w-6 h-6" />
-          {isRTL ? "إعدادات رمز التحقق (OTP)" : "OTP Verification Settings"}
+          {t("adminOtp.title")}
         </h2>
         
         {providers.length === 0 && (
@@ -166,7 +166,7 @@ export const OTPProvidersTab = () => {
             data-testid="button-initialize-otp-providers"
           >
             <RefreshCw className={`w-4 h-4 ${initializeMutation.isPending ? "animate-spin" : ""}`} />
-            {isRTL ? "تهيئة وسائل OTP" : "Initialize OTP Providers"}
+            {t("adminOtp.initProviders")}
           </button>
         )}
       </div>
@@ -209,7 +209,7 @@ export const OTPProvidersTab = () => {
                         data-testid={`button-save-otp-${provider.provider}`}
                       >
                         <Save className="w-4 h-4" />
-                        {isRTL ? "حفظ" : "Save"}
+                        {t("common.save")}
                       </button>
                       <button
                         onClick={() => {
@@ -220,7 +220,7 @@ export const OTPProvidersTab = () => {
                         data-testid={`button-cancel-otp-${provider.provider}`}
                       >
                         <X className="w-4 h-4" />
-                        {isRTL ? "إلغاء" : "Cancel"}
+                        {t("common.cancel")}
                       </button>
                     </div>
                   </div>
@@ -228,7 +228,7 @@ export const OTPProvidersTab = () => {
                   <div className="grid md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium mb-1">
-                        {isRTL ? "الاسم (إنجليزي)" : "Display Name (English)"}
+                        {t("adminOtp.displayNameEn")}
                       </label>
                       <input
                         type="text"
@@ -242,7 +242,7 @@ export const OTPProvidersTab = () => {
                     </div>
                     <div>
                       <label className="block text-sm font-medium mb-1">
-                        {isRTL ? "الاسم (عربي)" : "Display Name (Arabic)"}
+                        {t("adminOtp.displayNameAr")}
                       </label>
                       <input
                         type="text"
@@ -257,7 +257,7 @@ export const OTPProvidersTab = () => {
                     </div>
                     <div>
                       <label className="block text-sm font-medium mb-1">
-                        {isRTL ? "الوصف (إنجليزي)" : "Description (English)"}
+                        {t("adminOtp.descriptionEn")}
                       </label>
                       <input
                         type="text"
@@ -271,7 +271,7 @@ export const OTPProvidersTab = () => {
                     </div>
                     <div>
                       <label className="block text-sm font-medium mb-1">
-                        {isRTL ? "الوصف (عربي)" : "Description (Arabic)"}
+                        {t("adminOtp.descriptionAr")}
                       </label>
                       <input
                         type="text"
@@ -289,12 +289,12 @@ export const OTPProvidersTab = () => {
                   <div className="border-t pt-4 mt-4">
                     <h4 className="font-medium mb-3 flex items-center gap-2">
                       <Settings className="w-4 h-4" />
-                      {isRTL ? "إعدادات OTP" : "OTP Settings"}
+                      {t("adminOtp.otpSettings")}
                     </h4>
                     <div className="grid md:grid-cols-5 gap-4">
                       <div>
                         <label className="block text-sm font-medium mb-1">
-                          {isRTL ? "الأولوية" : "Priority"}
+                          {t("adminOtp.priority")}
                         </label>
                         <input
                           type="number"
@@ -311,7 +311,7 @@ export const OTPProvidersTab = () => {
                       <div>
                         <label className="block text-sm font-medium mb-1 flex items-center gap-1">
                           <Hash className="w-3 h-3" />
-                          {isRTL ? "طول الرمز" : "Code Length"}
+                          {t("adminOtp.codeLength")}
                         </label>
                         <input
                           type="number"
@@ -328,7 +328,7 @@ export const OTPProvidersTab = () => {
                       <div>
                         <label className="block text-sm font-medium mb-1 flex items-center gap-1">
                           <Clock className="w-3 h-3" />
-                          {isRTL ? "مدة الصلاحية (دقائق)" : "Expiry (minutes)"}
+                          {t("adminOtp.expiryMinutes")}
                         </label>
                         <input
                           type="number"
@@ -344,7 +344,7 @@ export const OTPProvidersTab = () => {
                       </div>
                       <div>
                         <label className="block text-sm font-medium mb-1">
-                          {isRTL ? "الحد الأقصى للمحاولات" : "Max Attempts"}
+                          {t("adminOtp.maxAttempts")}
                         </label>
                         <input
                           type="number"
@@ -360,7 +360,7 @@ export const OTPProvidersTab = () => {
                       </div>
                       <div>
                         <label className="block text-sm font-medium mb-1">
-                          {isRTL ? "فترة الانتظار (دقائق)" : "Cooldown (minutes)"}
+                          {t("adminOtp.cooldownMinutes")}
                         </label>
                         <input
                           type="number"
@@ -400,22 +400,22 @@ export const OTPProvidersTab = () => {
                         <span className={`text-xs px-2 py-1 rounded ${
                           isDark ? "bg-gray-700" : "bg-gray-100"
                         }`}>
-                          {provider.codeLength} {isRTL ? "أرقام" : "digits"}
+                          {provider.codeLength} {t("adminOtp.digits")}
                         </span>
                         <span className={`text-xs px-2 py-1 rounded ${
                           isDark ? "bg-gray-700" : "bg-gray-100"
                         }`}>
-                          {provider.expiryMinutes} {isRTL ? "دقائق" : "min"}
+                          {provider.expiryMinutes} {t("adminOtp.min")}
                         </span>
                         <span className={`text-xs px-2 py-1 rounded ${
                           isDark ? "bg-gray-700" : "bg-gray-100"
                         }`}>
-                          {provider.maxAttempts} {isRTL ? "محاولات" : "attempts"}
+                          {provider.maxAttempts} {t("adminOtp.attempts")}
                         </span>
                         <span className={`text-xs px-2 py-1 rounded ${
                           isDark ? "bg-gray-700" : "bg-gray-100"
                         }`}>
-                          {isRTL ? "أولوية" : "Priority"}: {provider.sortOrder}
+                          {t("adminOtp.priority")}: {provider.sortOrder}
                         </span>
                       </div>
                     </div>
@@ -448,12 +448,12 @@ export const OTPProvidersTab = () => {
                       {provider.isActive ? (
                         <>
                           <Power className="w-4 h-4" />
-                          {isRTL ? "مفعل" : "Active"}
+                          {t("common.active")}
                         </>
                       ) : (
                         <>
                           <PowerOff className="w-4 h-4" />
-                          {isRTL ? "معطل" : "Inactive"}
+                          {t("common.inactive")}
                         </>
                       )}
                     </button>
@@ -469,7 +469,7 @@ export const OTPProvidersTab = () => {
         <div className={`text-center py-12 rounded-xl ${isDark ? "bg-gray-800" : "bg-gray-50"}`}>
           <Shield className="w-16 h-16 mx-auto mb-4 text-gray-400" />
           <h3 className="text-xl font-bold mb-2">
-            {isRTL ? "لا توجد وسائل OTP" : "No OTP Providers"}
+            {t("adminOtp.noProviders")}
           </h3>
           <p className="text-gray-500 mb-4">
             {isRTL 

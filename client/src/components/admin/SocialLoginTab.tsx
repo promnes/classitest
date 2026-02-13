@@ -74,7 +74,7 @@ export const SocialLoginTab = () => {
 
   const getErrorMessage = (error: unknown) => {
     if (!(error instanceof Error)) {
-      return isRTL ? "فشلت تهيئة الوسائل الافتراضية" : "Failed to initialize default providers";
+      return t("adminSocialLogin.initFailed");
     }
 
     const rawMessage = error.message.replace(/^\d+:\s*/, "");
@@ -94,13 +94,13 @@ export const SocialLoginTab = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/social-login-providers"] });
       toast({
-        title: isRTL ? "تمت التهيئة بنجاح" : "Initialization successful",
-        description: isRTL ? "تم تجهيز الوسائل الافتراضية" : "Default social providers have been initialized",
+        title: t("adminSocialLogin.initSuccess"),
+        description: t("adminSocialLogin.initSuccessDesc"),
       });
     },
     onError: (error) => {
       toast({
-        title: isRTL ? "فشل التهيئة" : "Initialization failed",
+        title: t("adminSocialLogin.initFailedTitle"),
         description: getErrorMessage(error),
         variant: "destructive",
       });
@@ -175,7 +175,7 @@ export const SocialLoginTab = () => {
       <div className="flex justify-between items-center mb-6 flex-wrap gap-4">
         <h2 className="text-2xl font-bold flex items-center gap-2">
           <Settings className="w-6 h-6" />
-          {isRTL ? "إعدادات تسجيل الدخول الاجتماعي" : "Social Login Settings"}
+          {t("adminSocialLogin.title")}
         </h2>
         
         {providers.length === 0 && (
@@ -186,7 +186,7 @@ export const SocialLoginTab = () => {
             data-testid="button-initialize-providers"
           >
             <RefreshCw className={`w-4 h-4 ${initializeMutation.isPending ? "animate-spin" : ""}`} />
-            {isRTL ? "تهيئة الوسائل الافتراضية" : "Initialize Default Providers"}
+            {t("adminSocialLogin.initDefaultProviders")}
           </button>
         )}
       </div>
@@ -220,7 +220,7 @@ export const SocialLoginTab = () => {
                         data-testid={`button-save-${provider.provider}`}
                       >
                         <Save className="w-4 h-4" />
-                        {isRTL ? "حفظ" : "Save"}
+                        {t("common.save")}
                       </button>
                       <button
                         onClick={() => {
@@ -231,7 +231,7 @@ export const SocialLoginTab = () => {
                         data-testid={`button-cancel-${provider.provider}`}
                       >
                         <X className="w-4 h-4" />
-                        {isRTL ? "إلغاء" : "Cancel"}
+                        {t("common.cancel")}
                       </button>
                     </div>
                   </div>
@@ -239,7 +239,7 @@ export const SocialLoginTab = () => {
                   <div className="grid md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium mb-1">
-                        {isRTL ? "الاسم (إنجليزي)" : "Display Name (English)"}
+                        {t("adminSocialLogin.displayNameEn")}
                       </label>
                       <input
                         type="text"
@@ -253,7 +253,7 @@ export const SocialLoginTab = () => {
                     </div>
                     <div>
                       <label className="block text-sm font-medium mb-1">
-                        {isRTL ? "الاسم (عربي)" : "Display Name (Arabic)"}
+                        {t("adminSocialLogin.displayNameAr")}
                       </label>
                       <input
                         type="text"
@@ -322,7 +322,7 @@ export const SocialLoginTab = () => {
                     </div>
                     <div>
                       <label className="block text-sm font-medium mb-1">
-                        Scopes ({isRTL ? "مفصولة بفاصلة" : "comma separated"})
+                        Scopes ({t("adminSocialLogin.commaSeparated")})
                       </label>
                       <input
                         type="text"
@@ -337,7 +337,7 @@ export const SocialLoginTab = () => {
                     </div>
                     <div>
                       <label className="block text-sm font-medium mb-1">
-                        {isRTL ? "رابط الأيقونة المخصصة" : "Custom Icon URL"}
+                        {t("adminSocialLogin.customIconUrl")}
                       </label>
                       <input
                         type="text"
@@ -352,7 +352,7 @@ export const SocialLoginTab = () => {
                     </div>
                     <div>
                       <label className="block text-sm font-medium mb-1">
-                        {isRTL ? "اسم الأيقونة (Lucide)" : "Icon Name (Lucide)"}
+                        {t("adminSocialLogin.iconNameLucide")}
                       </label>
                       <select
                         value={formData.iconName || ""}
@@ -388,7 +388,7 @@ export const SocialLoginTab = () => {
                     <div>
                       <h3 className="font-bold text-lg">{isRTL && provider.displayNameAr ? provider.displayNameAr : provider.displayName}</h3>
                       <p className={`text-sm ${isDark ? "text-gray-400" : "text-gray-500"}`}>
-                        {provider.provider} • {provider.clientId ? (isRTL ? "مُعَد" : "Configured") : (isRTL ? "غير مُعَد" : "Not Configured")}
+                        {provider.provider} • {provider.clientId ? t("adminSocialLogin.configured") : t("adminSocialLogin.notConfigured")}
                       </p>
                     </div>
                   </div>
@@ -399,7 +399,7 @@ export const SocialLoginTab = () => {
                         ? "bg-green-100 text-green-800"
                         : "bg-gray-100 text-gray-600"
                     }`}>
-                      {provider.isActive ? (isRTL ? "مفعل" : "Active") : (isRTL ? "معطل" : "Inactive")}
+                      {provider.isActive ? t("common.active") : t("common.inactive")}
                     </span>
                     
                     <button
@@ -410,7 +410,7 @@ export const SocialLoginTab = () => {
                           ? "bg-red-100 text-red-600 hover:bg-red-200"
                           : "bg-green-100 text-green-600 hover:bg-green-200"
                       }`}
-                      title={provider.isActive ? (isRTL ? "إيقاف" : "Disable") : (isRTL ? "تفعيل" : "Enable")}
+                      title={provider.isActive ? t("adminSocialLogin.disable") : t("adminSocialLogin.enable")}
                       data-testid={`button-toggle-${provider.provider}`}
                     >
                       {provider.isActive ? <PowerOff className="w-4 h-4" /> : <Power className="w-4 h-4" />}
@@ -421,7 +421,7 @@ export const SocialLoginTab = () => {
                       className={`p-2 rounded-lg ${
                         isDark ? "bg-gray-700 hover:bg-gray-600" : "bg-gray-100 hover:bg-gray-200"
                       } transition-colors`}
-                      title={isRTL ? "تعديل" : "Edit"}
+                      title={t("common.edit")}
                       data-testid={`button-edit-${provider.provider}`}
                     >
                       <Settings className="w-4 h-4" />
@@ -429,13 +429,13 @@ export const SocialLoginTab = () => {
                     
                     <button
                       onClick={() => {
-                        if (confirm(isRTL ? "هل تريد حذف هذا الوسيلة؟" : "Delete this provider?")) {
+                        if (confirm(t("adminSocialLogin.deleteConfirm"))) {
                           deleteMutation.mutate(provider.id);
                         }
                       }}
                       disabled={deleteMutation.isPending}
                       className="p-2 rounded-lg bg-red-100 text-red-600 hover:bg-red-200 transition-colors"
-                      title={isRTL ? "حذف" : "Delete"}
+                      title={t("common.delete")}
                       data-testid={`button-delete-${provider.provider}`}
                     >
                       <Trash2 className="w-4 h-4" />
@@ -452,7 +452,7 @@ export const SocialLoginTab = () => {
         <div className={`text-center py-12 ${isDark ? "text-gray-400" : "text-gray-500"}`}>
           <MessageCircle className="w-16 h-16 mx-auto mb-4 opacity-50" />
           <p className="text-lg">
-            {isRTL ? "لا توجد وسائل تسجيل دخول. اضغط على الزر أعلاه لتهيئة الوسائل الافتراضية." : "No login providers found. Click the button above to initialize default providers."}
+            {t("adminSocialLogin.noProviders")}
           </p>
         </div>
       )}

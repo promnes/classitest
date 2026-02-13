@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { getDateLocale } from "@/i18n/config";
 
 interface ProfitSummary {
   totalAppCommission: number;
@@ -228,7 +229,7 @@ export function ProfitSystemTab({ token }: { token: string }) {
                           <div className="text-left">
                             <div className="font-bold">{t.totalPoints} نقطة</div>
                             <div className="text-xs text-muted-foreground">
-                              {new Date(t.createdAt).toLocaleDateString("ar-SA")}
+                              {new Date(t.createdAt).toLocaleDateString(getDateLocale())}
                             </div>
                           </div>
                           {expandedTransaction === t.id ? (

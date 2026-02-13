@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { useTheme } from "@/contexts/ThemeContext";
+import { getDateLocale } from "@/i18n/config";
 import { Bell, Star, Wallet, Users } from "lucide-react";
 
 interface StatsCardsProps {
@@ -38,7 +39,7 @@ export function StatsCards({
     {
       id: "wallet" as const,
       label: t("parentDashboard.walletBalance") || "رصيد المحفظة",
-      value: walletBalance.toLocaleString(i18n.language === "ar" ? "ar-EG" : "en-US"),
+      value: walletBalance.toLocaleString(getDateLocale()),
       icon: Wallet,
       color: "from-green-500 to-emerald-600",
     },

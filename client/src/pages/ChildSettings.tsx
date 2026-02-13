@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import { useTheme } from "@/contexts/ThemeContext";
+import { getDateLocale } from "@/i18n/config";
 import { apiRequest } from "@/lib/queryClient";
 import { motion } from "framer-motion";
 
@@ -85,8 +86,8 @@ export default function ChildSettings() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["child-trusted-devices"] });
       toast({
-        title: isRTL ? "تم الحذف" : "Removed",
-        description: isRTL ? "تم إزالة الجهاز بنجاح" : "Device removed successfully",
+        title: t("childSettings.removed"),
+        description: t("childSettings.deviceRemoved"),
       });
     },
   });
@@ -111,18 +112,18 @@ export default function ChildSettings() {
       document.documentElement.classList.remove("dark");
     }
     toast({
-      title: isRTL ? "تم تغيير المظهر" : "Theme Changed",
+      title: t("childSettings.themeChanged"),
       description: theme === "dark"
-        ? (isRTL ? "الوضع الليلي" : "Dark Mode")
-        : (isRTL ? "الوضع النهاري" : "Light Mode"),
+        ? t("childSettings.darkMode")
+        : t("childSettings.lightMode"),
     });
   };
 
   const handleToggle = (key: keyof ChildSettings) => {
     setSettings(prev => ({ ...prev, [key]: !prev[key] }));
     toast({
-      title: isRTL ? "تم الحفظ" : "Saved",
-      description: isRTL ? "تم حفظ الإعداد" : "Setting saved",
+      title: t("childSettings.saved"),
+      description: t("childSettings.settingSaved"),
     });
   };
 
@@ -132,7 +133,7 @@ export default function ChildSettings() {
         <div className="flex flex-col items-center gap-3">
           <Loader2 className="w-10 h-10 animate-spin text-purple-500" />
           <p className={`text-sm ${isDark ? "text-gray-400" : "text-purple-400"}`}>
-            {isRTL ? "جار التحميل..." : "Loading..."}
+            {t("common.loading")}
           </p>
         </div>
       </div>
@@ -156,7 +157,7 @@ export default function ChildSettings() {
               </button>
               <div className="flex items-center gap-2">
                 <Settings className="w-5 h-5" />
-                <h1 className="text-lg font-bold">{isRTL ? "الإعدادات" : "Settings"}</h1>
+                <h1 className="text-lg font-bold">{t("childSettings.title")}</h1>
               </div>
             </div>
             <div className="flex items-center gap-1.5 bg-white/15 px-3 py-1.5 rounded-full">
@@ -188,10 +189,10 @@ export default function ChildSettings() {
                 </Avatar>
                 <div className="flex-1 min-w-0">
                   <h2 className={`text-lg font-bold truncate ${isDark ? "text-white" : "text-gray-800"}`}>
-                    {childInfo?.name || (isRTL ? "طفلي" : "My Child")}
+                    {childInfo?.name || t("childSettings.myChild")}
                   </h2>
                   <p className={`text-sm ${isDark ? "text-gray-400" : "text-gray-500"}`}>
-                    {isRTL ? "عرض وتعديل الملف الشخصي" : "View & edit profile"}
+                    {t("childSettings.viewEditProfile")}
                   </p>
                 </div>
                 <NavChevron className={`w-5 h-5 ${isDark ? "text-gray-500" : "text-gray-400"}`} />
@@ -213,7 +214,7 @@ export default function ChildSettings() {
                   <Globe className="w-4 h-4 text-blue-600" />
                 </div>
                 <h3 className={`font-bold ${isDark ? "text-white" : "text-gray-800"}`}>
-                  {isRTL ? "اللغة والمظهر" : "Language & Appearance"}
+                  {t("childSettings.languageAppearance")}
                 </h3>
               </div>
 
@@ -221,7 +222,7 @@ export default function ChildSettings() {
                 <div className="flex items-center gap-2.5">
                   <Globe className={`w-4 h-4 ${isDark ? "text-gray-400" : "text-gray-500"}`} />
                   <Label className={`text-sm ${isDark ? "text-gray-300" : "text-gray-700"}`}>
-                    {isRTL ? "اللغة" : "Language"}
+                    {t("childSettings.language")}
                   </Label>
                 </div>
                 <Select value={settings.language} onValueChange={handleLanguageChange}>
@@ -243,7 +244,7 @@ export default function ChildSettings() {
                     <Sun className="w-4 h-4 text-yellow-500" />
                   )}
                   <Label className={`text-sm ${isDark ? "text-gray-300" : "text-gray-700"}`}>
-                    {isRTL ? "المظهر" : "Theme"}
+                    {t("childSettings.theme")}
                   </Label>
                 </div>
                 <Select value={settings.theme} onValueChange={handleThemeChange}>
@@ -251,8 +252,8 @@ export default function ChildSettings() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="light">{isRTL ? "فاتح ☀️" : "Light ☀️"}</SelectItem>
-                    <SelectItem value="dark">{isRTL ? "داكن 🌙" : "Dark 🌙"}</SelectItem>
+                    <SelectItem value="light">{t("childSettings.lightTheme")}</SelectItem>
+                    <SelectItem value="dark">{t("childSettings.darkTheme")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -273,7 +274,7 @@ export default function ChildSettings() {
                   <Bell className="w-4 h-4 text-orange-600" />
                 </div>
                 <h3 className={`font-bold ${isDark ? "text-white" : "text-gray-800"}`}>
-                  {isRTL ? "الإشعارات والأصوات" : "Notifications & Sounds"}
+                  {t("childSettings.notificationsAndSounds")}
                 </h3>
               </div>
 
@@ -285,7 +286,7 @@ export default function ChildSettings() {
                     <BellOff className={`w-4 h-4 ${isDark ? "text-gray-500" : "text-gray-400"}`} />
                   )}
                   <Label className={`text-sm ${isDark ? "text-gray-300" : "text-gray-700"}`}>
-                    {isRTL ? "الإشعارات" : "Notifications"}
+                    {t("childSettings.notifications")}
                   </Label>
                 </div>
                 <Switch
@@ -302,7 +303,7 @@ export default function ChildSettings() {
                     <VolumeX className={`w-4 h-4 ${isDark ? "text-gray-500" : "text-gray-400"}`} />
                   )}
                   <Label className={`text-sm ${isDark ? "text-gray-300" : "text-gray-700"}`}>
-                    {isRTL ? "الأصوات" : "Sounds"}
+                    {t("childSettings.sounds")}
                   </Label>
                 </div>
                 <Switch
@@ -327,7 +328,7 @@ export default function ChildSettings() {
                   <Shield className="w-4 h-4 text-green-600" />
                 </div>
                 <h3 className={`font-bold ${isDark ? "text-white" : "text-gray-800"}`}>
-                  {isRTL ? "الخصوصية" : "Privacy"}
+                  {t("childSettings.privacy")}
                 </h3>
               </div>
 
@@ -339,7 +340,7 @@ export default function ChildSettings() {
                     <EyeOff className={`w-4 h-4 ${isDark ? "text-gray-500" : "text-gray-400"}`} />
                   )}
                   <Label className={`text-sm ${isDark ? "text-gray-300" : "text-gray-700"}`}>
-                    {isRTL ? "إظهار حالة الاتصال" : "Show Online Status"}
+                    {t("childSettings.showOnlineStatus")}
                   </Label>
                 </div>
                 <Switch
@@ -352,7 +353,7 @@ export default function ChildSettings() {
                 <div className="flex items-center gap-2.5">
                   <CheckCircle className="w-4 h-4 text-purple-500" />
                   <Label className={`text-sm ${isDark ? "text-gray-300" : "text-gray-700"}`}>
-                    {isRTL ? "إظهار تقدمي للوالدين" : "Show Progress to Parents"}
+                    {t("childSettings.showProgressToParents")}
                   </Label>
                 </div>
                 <Switch
@@ -377,7 +378,7 @@ export default function ChildSettings() {
                   <Smartphone className="w-4 h-4 text-indigo-600" />
                 </div>
                 <h3 className={`font-bold ${isDark ? "text-white" : "text-gray-800"}`}>
-                  {isRTL ? "الأجهزة الموثوقة" : "Trusted Devices"}
+                  {t("childSettings.trustedDevices")}
                 </h3>
               </div>
 
@@ -394,15 +395,15 @@ export default function ChildSettings() {
                         </div>
                         <div>
                           <p className={`text-sm font-medium ${isDark ? "text-white" : "text-gray-800"}`}>
-                            {device.deviceName || (isRTL ? "جهاز غير معروف" : "Unknown Device")}
+                            {device.deviceName || t("childSettings.unknownDevice")}
                           </p>
                           <p className={`text-xs ${isDark ? "text-gray-500" : "text-gray-400"}`}>
                             {device.isCurrent && (
                               <span className="text-green-500 font-medium">
-                                {isRTL ? "الجهاز الحالي • " : "Current • "}
+                                {t("childSettings.currentDevice")}
                               </span>
                             )}
-                            {new Date(device.lastUsed).toLocaleDateString(isRTL ? 'ar-SA' : 'en-US')}
+                            {new Date(device.lastUsed).toLocaleDateString(getDateLocale())}
                           </p>
                         </div>
                       </div>
@@ -424,7 +425,7 @@ export default function ChildSettings() {
                 <div className={`text-center py-6 rounded-xl ${isDark ? "bg-gray-700/30" : "bg-gray-50"}`}>
                   <Smartphone className={`w-10 h-10 mx-auto mb-2 ${isDark ? "text-gray-600" : "text-gray-300"}`} />
                   <p className={`text-sm ${isDark ? "text-gray-500" : "text-gray-400"}`}>
-                    {isRTL ? "لا توجد أجهزة موثوقة" : "No trusted devices"}
+                    {t("childSettings.noTrustedDevices")}
                   </p>
                 </div>
               )}

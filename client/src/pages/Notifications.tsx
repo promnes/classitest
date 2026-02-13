@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTheme } from "@/contexts/ThemeContext";
+import { getDateLocale } from "@/i18n/config";
 import { apiRequest } from "@/lib/queryClient";
 import { Check, X, Copy, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -177,7 +178,7 @@ export const Notifications = (): JSX.Element => {
                       </p>
                       
                       <p className={`text-xs ${isDark ? "text-gray-500" : "text-gray-400"} mt-2`}>
-                        {new Date(notification.createdAt).toLocaleDateString("ar-EG", {
+                        {new Date(notification.createdAt).toLocaleDateString(getDateLocale(), {
                           year: "numeric",
                           month: "long",
                           day: "numeric",

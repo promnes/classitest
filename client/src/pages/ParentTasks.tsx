@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { useTheme } from "@/contexts/ThemeContext";
+import { getDateLocale } from "@/i18n/config";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -781,7 +782,7 @@ export default function ParentTasks() {
                           </Badge>
                           <span className="text-muted-foreground">
                             <Clock className="h-3 w-3 inline ml-1" />
-                            {new Date(st.scheduledAt).toLocaleString("ar-SA")}
+                            {new Date(st.scheduledAt).toLocaleString(getDateLocale())}
                           </span>
                         </div>
                       </div>

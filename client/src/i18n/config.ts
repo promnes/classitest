@@ -39,3 +39,9 @@ if (typeof window !== 'undefined') {
 }
 
 export default i18n;
+
+/** Map i18n language code to the proper Intl locale string */
+export function getDateLocale(): string {
+  const map: Record<string, string> = { ar: "ar-EG", en: "en-US", pt: "pt-BR" };
+  return map[i18n.language] || "en-US";
+}

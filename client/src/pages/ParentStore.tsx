@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useTheme } from "@/contexts/ThemeContext";
+import { getDateLocale } from "@/i18n/config";
 
 const categoryIcons: Record<string, any> = {
   Smartphone, Gamepad2, BookOpen, Dumbbell, Shirt, Book, Palette, Gift, Package
@@ -462,7 +463,7 @@ export const ParentStore = (): JSX.Element => {
                           طلب #{order.id?.slice(0, 8)}
                         </p>
                         <p className={`text-sm ${isDark ? "text-gray-400" : "text-gray-500"}`}>
-                          {order.createdAt ? new Date(order.createdAt).toLocaleDateString("ar-EG", { 
+                          {order.createdAt ? new Date(order.createdAt).toLocaleDateString(getDateLocale(), { 
                             year: "numeric", month: "long", day: "numeric" 
                           }) : ""}
                         </p>

@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next";
 import { useLocation } from "wouter";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTheme } from "@/contexts/ThemeContext";
+import { getDateLocale } from "@/i18n/config";
 import { MandatoryTaskModal } from "@/components/MandatoryTaskModal";
 import { Bell, Gift, Star, Trophy, Target, CheckCircle, Clock, Gamepad2, ShoppingBag } from "lucide-react";
 
@@ -269,7 +270,7 @@ export const ChildNotifications = (): JSX.Element => {
                         </div>
                         
                         <p className={`text-xs mt-3 ${isDark ? "text-gray-500" : "text-gray-400"}`}>
-                          {new Date(notification.createdAt).toLocaleDateString("ar-EG", {
+                          {new Date(notification.createdAt).toLocaleDateString(getDateLocale(), {
                             year: "numeric",
                             month: "short",
                             day: "numeric",

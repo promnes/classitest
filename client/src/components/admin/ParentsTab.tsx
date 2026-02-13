@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { getDateLocale } from "@/i18n/config";
 
 interface Parent {
   id: string;
@@ -197,7 +198,7 @@ export function ParentsTab({ token }: { token: string }) {
                 )}
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <Calendar className="h-4 w-4" />
-                  <span>{new Date(parent.createdAt).toLocaleDateString("ar-SA")}</span>
+                  <span>{new Date(parent.createdAt).toLocaleDateString(getDateLocale())}</span>
                 </div>
                 <div className="flex gap-2 mt-2 flex-wrap">
                   <Badge variant="secondary">
@@ -380,7 +381,7 @@ export function ParentsTab({ token }: { token: string }) {
                           <div className="text-xs text-muted-foreground space-y-1">
                             <div>الوسيلة: {deposit.paymentMethod?.name || deposit.paymentMethod?.type || "غير معروف"}</div>
                             {deposit.transactionId && <div>رقم العملية: {deposit.transactionId}</div>}
-                            <div>{new Date(deposit.createdAt).toLocaleString("ar-SA")}</div>
+                            <div>{new Date(deposit.createdAt).toLocaleString(getDateLocale())}</div>
                           </div>
                         </div>
                       );
@@ -434,7 +435,7 @@ export function ParentsTab({ token }: { token: string }) {
                           <div className="text-xs text-muted-foreground space-y-1">
                             <div>عدد المنتجات: {purchase.itemsCount || 0}</div>
                             {purchase.invoiceNumber && <div>الفاتورة: {purchase.invoiceNumber}</div>}
-                            <div>{new Date(purchase.createdAt).toLocaleString("ar-SA")}</div>
+                            <div>{new Date(purchase.createdAt).toLocaleString(getDateLocale())}</div>
                           </div>
                         </div>
                       );

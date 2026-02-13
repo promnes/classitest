@@ -2,6 +2,7 @@ import { Component, type ErrorInfo, type ReactNode, useState, useEffect } from "
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle, RefreshCw, Mail, Phone, MessageCircle, Home, Send } from "lucide-react";
+import i18n from "@/i18n/config";
 
 interface SupportSettings {
   supportEmail?: string;
@@ -94,18 +95,18 @@ function ErrorFallback({
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Button onClick={onReset} className="gap-2" data-testid="button-retry">
               <RefreshCw className="w-4 h-4" />
-              {isRTL ? "حاول مرة أخرى" : "Try Again"}
+              {i18n.t("errors.tryAgain")}
             </Button>
             <Button variant="outline" onClick={handleGoHome} className="gap-2" data-testid="button-go-home">
               <Home className="w-4 h-4" />
-              {isRTL ? "الصفحة الرئيسية" : "Go Home"}
+              {i18n.t("errors.goHome")}
             </Button>
           </div>
 
           {support.showContactOnError && (
             <div className="pt-4 border-t dark:border-gray-700">
               <p className="text-center text-sm font-medium text-gray-600 dark:text-gray-400 mb-4">
-                {isRTL ? "هل تحتاج مساعدة؟" : "Need help?"}
+                {i18n.t("errors.needHelp")}
               </p>
               <div className="flex flex-wrap justify-center gap-3">
                 {support.supportEmail && (
@@ -155,7 +156,7 @@ function ErrorFallback({
               </div>
               {support.workingDays && (
                 <p className="text-center text-xs text-gray-500 dark:text-gray-400 mt-4">
-                  {isRTL ? "ساعات العمل" : "Working Hours"}: {support.workingDays}{" "}
+                  {i18n.t("errors.workingHours")}: {support.workingDays}{" "}
                   {support.workingHoursStart && support.workingHoursEnd && (
                     <>({support.workingHoursStart} - {support.workingHoursEnd})</>
                   )}

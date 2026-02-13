@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "@/contexts/ThemeContext";
+import { getDateLocale } from "@/i18n/config";
 import { 
   Gamepad2, X, Check, Star, BarChart3, Clock, 
   ToggleLeft, ToggleRight, Shield, Trophy, Loader2, ChevronDown, ChevronUp 
@@ -152,7 +153,7 @@ export function ChildGamesControl({ childId, childName, token, onClose }: Props)
             </div>
             <div>
               <h2 className={`text-lg font-bold ${isDark ? "text-white" : "text-gray-900"}`}>
-                {isRTL ? "ألعاب الطفل" : "Child Games"}
+                {t("childGamesControl.title")}
               </h2>
               <p className={`text-sm ${isDark ? "text-gray-400" : "text-gray-500"}`}>{childName}</p>
             </div>
@@ -173,7 +174,7 @@ export function ChildGamesControl({ childId, childName, token, onClose }: Props)
             }`}
           >
             <Shield className="w-4 h-4" />
-            {isRTL ? "التحكم" : "Control"}
+            {t("childGamesControl.control")}
           </button>
           <button
             onClick={() => setActiveTab("stats")}
@@ -184,7 +185,7 @@ export function ChildGamesControl({ childId, childName, token, onClose }: Props)
             }`}
           >
             <BarChart3 className="w-4 h-4" />
-            {isRTL ? "الإحصائيات" : "Statistics"}
+            {t("childGamesControl.statistics")}
           </button>
         </div>
 
@@ -265,7 +266,7 @@ export function ChildGamesControl({ childId, childName, token, onClose }: Props)
                           <div className={`px-4 pb-3 pt-1 border-t ${isDark ? "border-gray-700" : "border-gray-200"}`}>
                             <div className="flex items-center justify-between">
                               <label className={`text-xs ${isDark ? "text-gray-400" : "text-gray-500"}`}>
-                                {isRTL ? "الحد الأقصى للعب يومياً:" : "Max plays per day:"}
+                                {t("childGamesControl.maxPlaysPerDay")}
                               </label>
                               <div className="flex items-center gap-2">
                                 <input
@@ -280,7 +281,7 @@ export function ChildGamesControl({ childId, childName, token, onClose }: Props)
                                   onClick={(e) => e.stopPropagation()}
                                 />
                                 <span className={`text-xs ${isDark ? "text-gray-500" : "text-gray-400"}`}>
-                                  {isRTL ? "(0 = بلا حدود)" : "(0 = unlimited)"}
+                                  {t("childGamesControl.unlimitedNote")}
                                 </span>
                               </div>
                             </div>
@@ -298,7 +299,7 @@ export function ChildGamesControl({ childId, childName, token, onClose }: Props)
                   {(!games || games.length === 0) && (
                     <div className={`text-center py-8 ${isDark ? "text-gray-500" : "text-gray-400"}`}>
                       <Gamepad2 className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                      <p>{isRTL ? "لا توجد ألعاب متاحة" : "No games available"}</p>
+                      <p>{t("childGamesControl.noGamesAvailable")}</p>
                     </div>
                   )}
                 </div>
@@ -320,28 +321,28 @@ export function ChildGamesControl({ childId, childName, token, onClose }: Props)
                       <Gamepad2 className="w-6 h-6 text-blue-500 mb-2" />
                       <p className={`text-2xl font-bold ${isDark ? "text-white" : "text-gray-900"}`}>{stats.today.gamesPlayed}</p>
                       <p className={`text-xs ${isDark ? "text-gray-400" : "text-gray-500"}`}>
-                        {isRTL ? "ألعاب اليوم" : "Games Today"}
+                        {t("childGamesControl.gamesToday")}
                       </p>
                     </div>
                     <div className={`p-4 rounded-xl ${isDark ? "bg-gray-800" : "bg-yellow-50"}`}>
                       <Star className="w-6 h-6 text-yellow-500 mb-2" />
                       <p className={`text-2xl font-bold ${isDark ? "text-white" : "text-gray-900"}`}>{stats.today.pointsEarned}</p>
                       <p className={`text-xs ${isDark ? "text-gray-400" : "text-gray-500"}`}>
-                        {isRTL ? "نقاط اليوم" : "Points Today"}
+                        {t("childGamesControl.pointsToday")}
                       </p>
                     </div>
                     <div className={`p-4 rounded-xl ${isDark ? "bg-gray-800" : "bg-green-50"}`}>
                       <Trophy className="w-6 h-6 text-green-500 mb-2" />
                       <p className={`text-2xl font-bold ${isDark ? "text-white" : "text-gray-900"}`}>{stats.allTime.gamesPlayed}</p>
                       <p className={`text-xs ${isDark ? "text-gray-400" : "text-gray-500"}`}>
-                        {isRTL ? "إجمالي الألعاب" : "Total Games"}
+                        {t("childGamesControl.totalGames")}
                       </p>
                     </div>
                     <div className={`p-4 rounded-xl ${isDark ? "bg-gray-800" : "bg-purple-50"}`}>
                       <Star className="w-6 h-6 text-purple-500 mb-2" />
                       <p className={`text-2xl font-bold ${isDark ? "text-white" : "text-gray-900"}`}>{stats.allTime.pointsEarned}</p>
                       <p className={`text-xs ${isDark ? "text-gray-400" : "text-gray-500"}`}>
-                        {isRTL ? "إجمالي النقاط" : "Total Points"}
+                        {t("childGamesControl.totalPoints")}
                       </p>
                     </div>
                   </div>
@@ -350,7 +351,7 @@ export function ChildGamesControl({ childId, childName, token, onClose }: Props)
                   {stats.recentPlays.length > 0 && (
                     <div>
                       <h3 className={`text-sm font-bold mb-2 ${isDark ? "text-gray-300" : "text-gray-700"}`}>
-                        {isRTL ? "آخر الألعاب" : "Recent Plays"}
+                        {t("childGamesControl.recentPlays")}
                       </h3>
                       <div className="space-y-2">
                         {stats.recentPlays.map((play) => (
@@ -365,7 +366,7 @@ export function ChildGamesControl({ childId, childName, token, onClose }: Props)
                             <div className="flex-1 min-w-0">
                               <p className={`text-sm font-medium truncate ${isDark ? "text-white" : "text-gray-900"}`}>{play.gameTitle}</p>
                               <p className={`text-xs ${isDark ? "text-gray-500" : "text-gray-400"}`}>
-                                {new Date(play.playedAt).toLocaleString(isRTL ? "ar-EG" : "en-US", {
+                                {new Date(play.playedAt).toLocaleString(getDateLocale(), {
                                   month: "short", day: "numeric", hour: "2-digit", minute: "2-digit"
                                 })}
                               </p>
@@ -380,7 +381,7 @@ export function ChildGamesControl({ childId, childName, token, onClose }: Props)
                   {stats.recentPlays.length === 0 && (
                     <div className={`text-center py-8 ${isDark ? "text-gray-500" : "text-gray-400"}`}>
                       <Gamepad2 className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                      <p>{isRTL ? "لم يلعب الطفل أي لعبة بعد" : "No games played yet"}</p>
+                      <p>{t("childGamesControl.noGamesPlayedYet")}</p>
                     </div>
                   )}
                 </div>
@@ -393,7 +394,7 @@ export function ChildGamesControl({ childId, childName, token, onClose }: Props)
         {activeTab === "control" && (
           <div className={`flex items-center justify-between p-4 border-t ${isDark ? "border-gray-700 bg-gray-800/50" : "border-gray-200 bg-gray-50"}`}>
             <p className={`text-xs ${isDark ? "text-gray-500" : "text-gray-400"}`}>
-              {selectedGames.size} {isRTL ? "لعبة محددة" : "games selected"}
+              {selectedGames.size} {t("childGamesControl.gamesSelected")}
             </p>
             <div className="flex gap-2">
               <button
@@ -402,7 +403,7 @@ export function ChildGamesControl({ childId, childName, token, onClose }: Props)
                   isDark ? "border-gray-600 hover:bg-gray-700 text-gray-300" : "hover:bg-gray-100"
                 }`}
               >
-                {isRTL ? "إلغاء" : "Cancel"}
+                {t("common.cancel")}
               </button>
               <button
                 onClick={() => saveMutation.mutate()}
@@ -414,7 +415,7 @@ export function ChildGamesControl({ childId, childName, token, onClose }: Props)
                 ) : (
                   <Check className="w-4 h-4" />
                 )}
-                {isRTL ? "حفظ" : "Save"}
+                {t("common.save")}
               </button>
             </div>
           </div>

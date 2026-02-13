@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Users, Gift, TrendingUp, Clock, CheckCircle, Star } from "lucide-react";
+import { getDateLocale } from "@/i18n/config";
 
 interface Referral {
   id: string;
@@ -215,7 +216,7 @@ export function ReferralsTab({ token }: { token: string }) {
                         <td className="p-3">{getStatusBadge(ref.status)}</td>
                         <td className="p-3 font-bold text-green-600">{ref.pointsAwarded}</td>
                         <td className="p-3 text-muted-foreground">
-                          {new Date(ref.referredAt).toLocaleDateString("ar-SA")}
+                          {new Date(ref.referredAt).toLocaleDateString(getDateLocale())}
                         </td>
                       </tr>
                     ))}
@@ -269,7 +270,7 @@ export function ReferralsTab({ token }: { token: string }) {
                         </td>
                         <td className="p-3 font-bold text-amber-600">{code.totalPointsEarned}</td>
                         <td className="p-3 text-muted-foreground">
-                          {new Date(code.createdAt).toLocaleDateString("ar-SA")}
+                          {new Date(code.createdAt).toLocaleDateString(getDateLocale())}
                         </td>
                       </tr>
                     ))}
