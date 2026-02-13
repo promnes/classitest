@@ -1,6 +1,6 @@
 import type { Express } from "express";
 import { storage } from "../storage";
-import { parents, otpCodes, otpRequestLogs, sessions, loginHistory, trustedDevices, socialLoginProviders, otpProviders } from "../../shared/schema";
+import { parents, otpCodes, otpRequestLogs, sessions, loginHistory, trustedDevices, socialLoginProviders, otpProviders, libraries, libraryReferrals } from "../../shared/schema";
 import { eq, and, gt, isNull, desc, or } from "drizzle-orm";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
@@ -114,7 +114,7 @@ export async function registerAuthRoutes(app: Express) {
   // Parent Register (with rate limiting)
   app.post("/api/auth/register", registerLimiter, async (req, res) => {
     try {
-      const { email, password, name, phoneNumber } = req.body;
+      const { email, password, name, phoneNumber, libraryReferralCode } = req.body;
       const normalizedEmail = normalizeEmail(email);
 
       // Validation
@@ -147,6 +147,55 @@ export async function registerAuthRoutes(app: Express) {
           uniqueCode,
         })
         .returning();
+
+      if (libraryReferralCode && typeof libraryReferralCode === "string") {
+        try {
+          const normalizedReferralCode = libraryReferralCode.trim().toUpperCase();
+          if (normalizedReferralCode) {
+            const library = await db
+              .select({ id: libraries.id })
+              .from(libraries)
+              .where(and(eq(libraries.referralCode, normalizedReferralCode), eq(libraries.isActive, true)))
+              .limit(1);
+
+            if (library[0]) {
+              const libraryId = library[0].id;
+
+              const pendingByCode = await db
+                .select({ id: libraryReferrals.id })
+                .from(libraryReferrals)
+                .where(
+                  and(
+                    eq(libraryReferrals.libraryId, libraryId),
+                    eq(libraryReferrals.referralCode, normalizedReferralCode),
+                    isNull(libraryReferrals.referredParentId)
+                  )
+                )
+                .orderBy(desc(libraryReferrals.createdAt))
+                .limit(1);
+
+              if (pendingByCode[0]) {
+                await db
+                  .update(libraryReferrals)
+                  .set({
+                    referredParentId: result[0].id,
+                    status: "registered",
+                  })
+                  .where(eq(libraryReferrals.id, pendingByCode[0].id));
+              } else {
+                await db.insert(libraryReferrals).values({
+                  libraryId,
+                  referredParentId: result[0].id,
+                  referralCode: normalizedReferralCode,
+                  status: "registered",
+                });
+              }
+            }
+          }
+        } catch (referralErr) {
+          console.error("Library referral register mapping failed:", referralErr);
+        }
+      }
 
       const token = jwt.sign({ userId: result[0].id, type: "parent" }, JWT_SECRET, { expiresIn: "30d" });
 

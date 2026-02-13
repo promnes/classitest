@@ -288,7 +288,7 @@ export default function LibraryDashboard() {
     }
   };
 
-  const referralLink = `${window.location.origin}/library-store?ref=${profile?.referralCode || libraryData.referralCode}`;
+  const referralLink = `${window.location.origin}/?libraryRef=${profile?.referralCode || libraryData.referralCode}`;
 
   if (!token) return null;
 

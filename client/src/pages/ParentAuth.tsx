@@ -24,6 +24,7 @@ export const ParentAuth = (): JSX.Element => {
   const [showSMSVerification, setShowSMSVerification] = useState(false);
   const [otpMethod, setOtpMethod] = useState<"email" | "sms">("email");
   const [availableMethods, setAvailableMethods] = useState<("email" | "sms")[]>(["email"]);
+  const libraryReferralCode = new URLSearchParams(window.location.search).get("libraryRef")?.trim() || undefined;
 
   const smsOTP = useSMSOTP({
     onSuccess: () => {
@@ -44,7 +45,7 @@ export const ParentAuth = (): JSX.Element => {
           body: JSON.stringify(
             isLogin
               ? { phoneNumber: phone, password }
-              : { email, password, name, phoneNumber: phone }
+              : { email, password, name, phoneNumber: phone, libraryReferralCode }
           ),
         });
         if (!res.ok) {
@@ -58,7 +59,7 @@ export const ParentAuth = (): JSX.Element => {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(
-            isLogin ? { email, password } : { email, password, name }
+            isLogin ? { email, password } : { email, password, name, libraryReferralCode }
           ),
         });
         if (!res.ok) {

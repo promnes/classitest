@@ -29,12 +29,15 @@ import {
   childLoginRequests,
   libraryProducts,
   libraries,
+  libraryReferrals,
+  libraryActivityLogs,
+  libraryReferralSettings,
   childGameAssignments,
   gamePlayHistory,
 } from "../../shared/schema";
 import bcrypt from "bcrypt";
 import crypto from "crypto";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and, or, desc, sql } from "drizzle-orm";
 import jwt from "jsonwebtoken";
 import { authMiddleware, JWT_SECRET } from "./middleware";
 import { emitGiftEvent } from "../giftEvents";
@@ -227,6 +230,58 @@ export async function registerChildRoutes(app: Express) {
         message: `تم ربط ${trimmedName} بحسابك بنجاح`,
         metadata: { childId: childResult[0].id, childName: trimmedName }
       });
+
+      try {
+        const referral = await db
+          .select()
+          .from(libraryReferrals)
+          .where(
+            and(
+              eq(libraryReferrals.referredParentId, parentList[0].id),
+              or(
+                eq(libraryReferrals.status, "clicked"),
+                eq(libraryReferrals.status, "registered")
+              )
+            )
+          )
+          .orderBy(desc(libraryReferrals.createdAt))
+          .limit(1);
+
+        if (referral[0]) {
+          const settings = await db.select().from(libraryReferralSettings).limit(1);
+          const referralPoints = settings[0]?.pointsPerReferral ?? 50;
+
+          await db
+            .update(libraryReferrals)
+            .set({
+              status: "purchased",
+              pointsAwarded: referralPoints,
+              convertedAt: new Date(),
+            })
+            .where(eq(libraryReferrals.id, referral[0].id));
+
+          await db.insert(libraryActivityLogs).values({
+            libraryId: referral[0].libraryId,
+            action: "referral_conversion",
+            points: referralPoints,
+            metadata: {
+              parentId: parentList[0].id,
+              childId: childResult[0].id,
+              referralCode: referral[0].referralCode,
+            },
+          });
+
+          await db
+            .update(libraries)
+            .set({
+              activityScore: sql`${libraries.activityScore} + ${referralPoints}`,
+              updatedAt: new Date(),
+            })
+            .where(eq(libraries.id, referral[0].libraryId));
+        }
+      } catch (referralRewardErr) {
+        console.error("Library referral conversion on child-link failed:", referralRewardErr);
+      }
 
       const token = jwt.sign({ childId: childResult[0].id, type: "child" }, JWT_SECRET, { expiresIn: "30d" });
       res.status(201).json({ 

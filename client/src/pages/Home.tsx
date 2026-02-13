@@ -23,6 +23,10 @@ export const Home = (): JSX.Element => {
   const { t } = useTranslation();
   const [, navigate] = useLocation();
   const { isDark, toggleTheme } = useTheme();
+  const libraryRef = new URLSearchParams(window.location.search).get("libraryRef")?.trim();
+  const parentAuthPath = libraryRef
+    ? `/parent-auth?libraryRef=${encodeURIComponent(libraryRef)}`
+    : "/parent-auth";
 
   // Fetch public payment methods (no auth required)
   const { data: paymentMethodsRaw } = useQuery({
@@ -122,7 +126,7 @@ export const Home = (): JSX.Element => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-2xl">
           {/* Parent - Red Card */}
           <button
-            onClick={() => navigate("/parent-auth")}
+            onClick={() => navigate(parentAuthPath)}
             className={`${
               isDark ? "bg-red-900 hover:bg-red-800" : "bg-white hover:shadow-xl"
             } rounded-2xl p-8 shadow-lg transition-all hover:-translate-y-1 border-4 border-red-500`}
