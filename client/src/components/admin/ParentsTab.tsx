@@ -77,6 +77,8 @@ const purchaseStatusMeta: Record<string, { label: string; className: string }> =
 export function ParentsTab({ token }: { token: string }) {
   const queryClient = useQueryClient();
   const [selectedParent, setSelectedParent] = useState<ParentDetails | null>(null);
+  const [depositFilter, setDepositFilter] = useState<"all" | "pending" | "completed" | "cancelled">("all");
+  const [purchaseFilter, setPurchaseFilter] = useState<"all" | "pending" | "paid" | "failed" | "refunded">("all");
   const [showNotifyModal, setShowNotifyModal] = useState(false);
   const [notifyForm, setNotifyForm] = useState({ title: "", message: "", imageUrl: "" });
   const [searchTerm, setSearchTerm] = useState("");
@@ -125,6 +127,8 @@ export function ParentsTab({ token }: { token: string }) {
     const details = await getParentDetails(parent.id);
     if (details) {
       setSelectedParent(details);
+      setDepositFilter("all");
+      setPurchaseFilter("all");
     }
   };
 
@@ -137,6 +141,14 @@ export function ParentsTab({ token }: { token: string }) {
     p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     p.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
     p.phoneNumber?.includes(searchTerm)
+  ) || [];
+
+  const filteredDeposits = selectedParent?.deposits?.filter((deposit) =>
+    depositFilter === "all" ? true : deposit.status === depositFilter
+  ) || [];
+
+  const filteredPurchases = selectedParent?.purchases?.filter((purchase) =>
+    purchaseFilter === "all" ? true : purchase.paymentStatus === purchaseFilter
   ) || [];
 
   if (isLoading) {
@@ -329,11 +341,31 @@ export function ParentsTab({ token }: { token: string }) {
               <div className="border rounded-xl p-4">
                 <h4 className="font-semibold mb-3 flex items-center gap-2">
                   <ArrowDownCircle className="h-4 w-4 text-blue-600" />
-                  سجلات الإيداعات ({selectedParent.deposits?.length || 0})
+                  سجلات الإيداعات ({filteredDeposits.length}/{selectedParent.deposits?.length || 0})
                 </h4>
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {[
+                    { key: "all", label: "الكل" },
+                    { key: "pending", label: "قيد المراجعة" },
+                    { key: "completed", label: "مقبول" },
+                    { key: "cancelled", label: "مرفوض" },
+                  ].map((item) => (
+                    <button
+                      key={item.key}
+                      onClick={() => setDepositFilter(item.key as "all" | "pending" | "completed" | "cancelled")}
+                      className={`px-3 py-1 rounded-full text-xs border transition ${
+                        depositFilter === item.key
+                          ? "bg-blue-600 text-white border-blue-600"
+                          : "bg-background hover:bg-muted"
+                      }`}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
                 <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
-                  {selectedParent.deposits?.length ? (
-                    selectedParent.deposits.map((deposit) => {
+                  {filteredDeposits.length ? (
+                    filteredDeposits.map((deposit) => {
                       const status = depositStatusMeta[deposit.status] || {
                         label: deposit.status,
                         className: "bg-gray-100 text-gray-700",
@@ -354,7 +386,7 @@ export function ParentsTab({ token }: { token: string }) {
                       );
                     })
                   ) : (
-                    <p className="text-sm text-muted-foreground text-center py-6">لا توجد إيداعات حتى الآن</p>
+                    <p className="text-sm text-muted-foreground text-center py-6">لا توجد نتائج مطابقة لهذا الفلتر</p>
                   )}
                 </div>
               </div>
@@ -362,11 +394,32 @@ export function ParentsTab({ token }: { token: string }) {
               <div className="border rounded-xl p-4">
                 <h4 className="font-semibold mb-3 flex items-center gap-2">
                   <ShoppingBag className="h-4 w-4 text-purple-600" />
-                  سجلات المشتريات ({selectedParent.purchases?.length || 0})
+                  سجلات المشتريات ({filteredPurchases.length}/{selectedParent.purchases?.length || 0})
                 </h4>
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {[
+                    { key: "all", label: "الكل" },
+                    { key: "paid", label: "مدفوع" },
+                    { key: "pending", label: "قيد الانتظار" },
+                    { key: "failed", label: "فشل" },
+                    { key: "refunded", label: "مسترجع" },
+                  ].map((item) => (
+                    <button
+                      key={item.key}
+                      onClick={() => setPurchaseFilter(item.key as "all" | "pending" | "paid" | "failed" | "refunded")}
+                      className={`px-3 py-1 rounded-full text-xs border transition ${
+                        purchaseFilter === item.key
+                          ? "bg-purple-600 text-white border-purple-600"
+                          : "bg-background hover:bg-muted"
+                      }`}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
                 <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
-                  {selectedParent.purchases?.length ? (
-                    selectedParent.purchases.map((purchase) => {
+                  {filteredPurchases.length ? (
+                    filteredPurchases.map((purchase) => {
                       const status = purchaseStatusMeta[purchase.paymentStatus] || {
                         label: purchase.paymentStatus,
                         className: "bg-gray-100 text-gray-700",
@@ -387,7 +440,7 @@ export function ParentsTab({ token }: { token: string }) {
                       );
                     })
                   ) : (
-                    <p className="text-sm text-muted-foreground text-center py-6">لا توجد مشتريات حتى الآن</p>
+                    <p className="text-sm text-muted-foreground text-center py-6">لا توجد نتائج مطابقة لهذا الفلتر</p>
                   )}
                 </div>
               </div>
