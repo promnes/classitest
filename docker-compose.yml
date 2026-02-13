@@ -380,7 +380,7 @@ services:
           memory: 256M
 
   loki:
-    image: grafana/loki:latest
+    image: grafana/loki:3.0.0
     container_name: classify-loki
     restart: always
     ports:

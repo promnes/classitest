@@ -238,7 +238,7 @@ services:
           memory: 256M
 
   loki:
-    image: grafana/loki:latest
+    image: grafana/loki:3.0.0
     restart: unless-stopped
     ports:
       - "127.0.0.1:3100:3100"
