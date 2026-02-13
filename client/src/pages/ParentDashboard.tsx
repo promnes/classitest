@@ -296,6 +296,8 @@ export const ParentDashboard = (): JSX.Element => {
   const ordersList = Array.isArray(recentOrders) ? recentOrders : (recentOrders as any)?.data || [];
   const ownedProductsList = Array.isArray(ownedProducts) ? ownedProducts : (ownedProducts as any)?.data || [];
   const purchaseRequestsList = Array.isArray(purchaseRequests) ? purchaseRequests : [];
+  const availableInventoryCount = ownedProductsList.filter((p: any) => p.status === "active").length;
+  const activeOrdersCount = ordersList.filter((o: any) => !["FAILED", "REFUNDED"].includes(o.status)).length;
   const pendingPurchaseRequests = purchaseRequestsList.filter((r: any) => r.status === "pending_parent_approval");
   const parentData = parentInfo as any || {};
   const walletData = wallet as any || {};
@@ -958,56 +960,83 @@ export const ParentDashboard = (): JSX.Element => {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                  <Button 
+                  {/* Visit Store */}
+                  <button
                     onClick={() => navigate("/parent-store")}
-                    className="h-auto py-6 flex-col gap-2 bg-gradient-to-br from-green-500 to-green-600"
+                    className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-green-500 to-emerald-600 p-5 text-white shadow-lg shadow-green-500/20 transition-all duration-300 hover:shadow-xl hover:shadow-green-500/30 hover:scale-[1.02] active:scale-[0.98]"
                     data-testid="button-shop-now"
                   >
-                    <ShoppingBag className="h-8 w-8" />
-                    <span>{t('parentDashboard.shopNow')}</span>
-                  </Button>
-                  <Button 
+                    <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                    <div className="relative flex flex-col items-center gap-3">
+                      <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-white/20 backdrop-blur-sm ring-1 ring-white/30">
+                        <ShoppingBag className="h-7 w-7" />
+                      </div>
+                      <span className="text-sm font-semibold tracking-wide">{t('parentDashboard.shopNow')}</span>
+                    </div>
+                  </button>
+
+                  {/* My Inventory */}
+                  <button
                     onClick={() => navigate("/parent-inventory")}
-                    variant="outline"
-                    className="h-auto py-6 flex-col gap-2"
+                    className={`group relative overflow-hidden rounded-2xl p-5 shadow-md transition-all duration-300 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] ring-1 ${isDark ? "bg-gray-800/80 ring-gray-700/50 hover:bg-gray-800" : "bg-white ring-gray-200/80 hover:ring-purple-200"}`}
                     data-testid="button-my-inventory"
                   >
-                    <div className="relative">
-                      <Gift className="h-8 w-8" />
-                      <span className="absolute -top-2 -left-2 min-w-5 h-5 px-1 rounded-full bg-orange-500 text-white text-[10px] leading-5 font-bold text-center">
-                        {ownedProductsList.length}
-                      </span>
+                    <div className="relative flex flex-col items-center gap-3">
+                      <div className="relative">
+                        <div className={`flex h-14 w-14 items-center justify-center rounded-xl transition-colors duration-300 ${isDark ? "bg-purple-500/15 group-hover:bg-purple-500/25" : "bg-purple-50 group-hover:bg-purple-100"}`}>
+                          <Package className={`h-7 w-7 ${isDark ? "text-purple-400" : "text-purple-600"}`} />
+                        </div>
+                        {availableInventoryCount > 0 && (
+                          <span className="absolute -top-2 -right-2 flex h-6 min-w-6 items-center justify-center rounded-full bg-gradient-to-r from-purple-500 to-violet-500 px-1.5 text-[11px] font-bold text-white shadow-lg shadow-purple-500/30 ring-2 ring-white dark:ring-gray-800">
+                            {availableInventoryCount}
+                          </span>
+                        )}
+                      </div>
+                      <span className={`text-sm font-semibold ${isDark ? "text-gray-200" : "text-gray-700"}`}>{t('parentDashboard.myInventory')}</span>
                     </div>
-                    <span>{t('parentDashboard.myInventory')}</span>
-                  </Button>
-                  <Button 
+                  </button>
+
+                  {/* Cart */}
+                  <button
                     onClick={() => navigate("/parent-store?view=cart")}
-                    variant="outline"
-                    className="h-auto py-6 flex-col gap-2"
+                    className={`group relative overflow-hidden rounded-2xl p-5 shadow-md transition-all duration-300 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] ring-1 ${isDark ? "bg-gray-800/80 ring-gray-700/50 hover:bg-gray-800" : "bg-white ring-gray-200/80 hover:ring-blue-200"}`}
                     data-testid="button-cart"
                   >
-                    <div className="relative">
-                      <ShoppingBag className="h-8 w-8" />
-                      <span className="absolute -top-2 -left-2 min-w-5 h-5 px-1 rounded-full bg-orange-500 text-white text-[10px] leading-5 font-bold text-center">
-                        {cartCount}
-                      </span>
+                    <div className="relative flex flex-col items-center gap-3">
+                      <div className="relative">
+                        <div className={`flex h-14 w-14 items-center justify-center rounded-xl transition-colors duration-300 ${isDark ? "bg-blue-500/15 group-hover:bg-blue-500/25" : "bg-blue-50 group-hover:bg-blue-100"}`}>
+                          <ShoppingBag className={`h-7 w-7 ${isDark ? "text-blue-400" : "text-blue-600"}`} />
+                        </div>
+                        {cartCount > 0 && (
+                          <span className="absolute -top-2 -right-2 flex h-6 min-w-6 items-center justify-center rounded-full bg-gradient-to-r from-blue-500 to-cyan-500 px-1.5 text-[11px] font-bold text-white shadow-lg shadow-blue-500/30 ring-2 ring-white dark:ring-gray-800">
+                            {cartCount}
+                          </span>
+                        )}
+                      </div>
+                      <span className={`text-sm font-semibold ${isDark ? "text-gray-200" : "text-gray-700"}`}>{t('parentDashboard.cart')}</span>
                     </div>
-                    <span>{t('parentDashboard.cart')}</span>
-                  </Button>
-                  <Button 
+                  </button>
+
+                  {/* My Orders */}
+                  <button
                     onClick={() => navigate("/parent-store?view=orders")}
-                    variant="outline"
-                    className="h-auto py-6 flex-col gap-2"
+                    className={`group relative overflow-hidden rounded-2xl p-5 shadow-md transition-all duration-300 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] ring-1 ${isDark ? "bg-gray-800/80 ring-gray-700/50 hover:bg-gray-800" : "bg-white ring-gray-200/80 hover:ring-amber-200"}`}
                     data-testid="button-orders"
                   >
-                    <div className="relative">
-                      <Clock className="h-8 w-8" />
-                      <span className="absolute -top-2 -left-2 min-w-5 h-5 px-1 rounded-full bg-orange-500 text-white text-[10px] leading-5 font-bold text-center">
-                        {ordersList.length}
-                      </span>
+                    <div className="relative flex flex-col items-center gap-3">
+                      <div className="relative">
+                        <div className={`flex h-14 w-14 items-center justify-center rounded-xl transition-colors duration-300 ${isDark ? "bg-amber-500/15 group-hover:bg-amber-500/25" : "bg-amber-50 group-hover:bg-amber-100"}`}>
+                          <Clock className={`h-7 w-7 ${isDark ? "text-amber-400" : "text-amber-600"}`} />
+                        </div>
+                        {activeOrdersCount > 0 && (
+                          <span className="absolute -top-2 -right-2 flex h-6 min-w-6 items-center justify-center rounded-full bg-gradient-to-r from-amber-500 to-orange-500 px-1.5 text-[11px] font-bold text-white shadow-lg shadow-amber-500/30 ring-2 ring-white dark:ring-gray-800">
+                            {activeOrdersCount}
+                          </span>
+                        )}
+                      </div>
+                      <span className={`text-sm font-semibold ${isDark ? "text-gray-200" : "text-gray-700"}`}>{t('parentDashboard.myOrders')}</span>
                     </div>
-                    <span>{t('parentDashboard.myOrders')}</span>
-                  </Button>
+                  </button>
                 </div>
 
                 {ordersList.length > 0 && (
