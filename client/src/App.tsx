@@ -8,6 +8,7 @@ import { ThemeProvider } from "@/contexts/ThemeContext";
 import { SEOProvider } from "@/components/SEOProvider";
 import { ChildAppWrapper } from "@/components/ChildAppWrapper";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { RandomAdPopup } from "@/components/RandomAdPopup";
 import { Loader2 } from "lucide-react";
 import NotFound from "@/pages/not-found";
 
@@ -226,6 +227,7 @@ function App() {
               <Router />
             </div>
             <Toaster />
+            <RandomAdPopup />
           </TooltipProvider>
         </SEOProvider>
       </ThemeProvider>
