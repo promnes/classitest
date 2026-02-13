@@ -1,10 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useTheme } from "@/contexts/ThemeContext";
 import { getDateLocale } from "@/i18n/config";
+import { ExternalLink, ChevronLeft, ChevronRight, Megaphone } from "lucide-react";
 
 const PAYMENT_TYPE_LABELS: Record<string, { label: string; emoji: string }> = {
   bank_transfer: { label: "تحويل بنكي", emoji: "🏦" },
@@ -42,6 +43,151 @@ const extractApiErrorMessage = (error: unknown): string => {
 
   return message;
 };
+
+// ===== Ads Carousel Component =====
+function AdsCarousel({ isDark }: { isDark: boolean }) {
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  const { data: adsData } = useQuery<any[]>({
+    queryKey: ["/api/ads", "parents"],
+    queryFn: async () => {
+      const res = await fetch("/api/ads?audience=parents");
+      const json = await res.json();
+      return json.data || [];
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const adsList = Array.isArray(adsData) ? adsData : [];
+
+  // Auto-rotate every 5s
+  useEffect(() => {
+    if (adsList.length <= 1) return;
+    const timer = setInterval(() => {
+      setCurrentIndex((prev) => (prev + 1) % adsList.length);
+    }, 5000);
+    return () => clearInterval(timer);
+  }, [adsList.length]);
+
+  // Track view
+  useEffect(() => {
+    const ad = adsList[currentIndex];
+    if (ad) {
+      fetch(`/api/ads/${ad.id}/view`, { method: "POST" }).catch(() => {});
+    }
+  }, [currentIndex, adsList]);
+
+  const handleClick = useCallback((ad: any) => {
+    fetch(`/api/ads/${ad.id}/click`, { method: "POST" }).catch(() => {});
+    if (ad.linkUrl) {
+      window.open(ad.linkUrl, "_blank", "noopener,noreferrer");
+    }
+  }, []);
+
+  const goNext = useCallback(() => {
+    setCurrentIndex((prev) => (prev + 1) % adsList.length);
+  }, [adsList.length]);
+
+  const goPrev = useCallback(() => {
+    setCurrentIndex((prev) => (prev - 1 + adsList.length) % adsList.length);
+  }, [adsList.length]);
+
+  if (adsList.length === 0) return null;
+
+  const currentAd = adsList[currentIndex];
+
+  return (
+    <div className={`rounded-2xl overflow-hidden shadow-lg mb-8 ${isDark ? "bg-gray-800 ring-1 ring-gray-700" : "bg-white ring-1 ring-gray-100"}`}>
+      {/* Header */}
+      <div className={`flex items-center gap-2 px-5 py-3 border-b ${isDark ? "border-gray-700/50" : "border-gray-100"}`}>
+        <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${isDark ? "bg-amber-500/15" : "bg-amber-50"}`}>
+          <Megaphone className={`h-4 w-4 ${isDark ? "text-amber-400" : "text-amber-600"}`} />
+        </div>
+        <span className={`text-sm font-semibold ${isDark ? "text-gray-300" : "text-gray-600"}`}>إعلانات</span>
+        {adsList.length > 1 && (
+          <span className={`mr-auto text-xs px-2 py-0.5 rounded-full ${isDark ? "bg-gray-700 text-gray-400" : "bg-gray-100 text-gray-500"}`}>
+            {currentIndex + 1}/{adsList.length}
+          </span>
+        )}
+      </div>
+
+      {/* Ad Content */}
+      <div
+        className="relative cursor-pointer group"
+        onClick={() => handleClick(currentAd)}
+      >
+        {currentAd.imageUrl ? (
+          <div className="relative">
+            <img
+              src={currentAd.imageUrl}
+              alt={currentAd.title}
+              className="w-full h-44 sm:h-52 object-cover transition-transform duration-500 group-hover:scale-[1.02]"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+            <div className="absolute bottom-0 inset-x-0 p-5">
+              <h3 className="text-white font-bold text-lg leading-tight drop-shadow-md">{currentAd.title}</h3>
+              <p className="text-white/80 text-sm mt-1 line-clamp-2">{currentAd.content}</p>
+              {currentAd.linkUrl && (
+                <div className="flex items-center gap-1 mt-2 text-white/70 text-xs">
+                  <ExternalLink className="h-3 w-3" />
+                  <span>عرض التفاصيل</span>
+                </div>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div className={`p-6 ${isDark ? "bg-gradient-to-br from-gray-800 to-gray-900" : "bg-gradient-to-br from-gray-50 to-white"}`}>
+            <h3 className={`font-bold text-lg ${isDark ? "text-white" : "text-gray-900"}`}>{currentAd.title}</h3>
+            <p className={`text-sm mt-2 leading-relaxed line-clamp-3 ${isDark ? "text-gray-400" : "text-gray-600"}`}>
+              {currentAd.content}
+            </p>
+            {currentAd.linkUrl && (
+              <div className={`flex items-center gap-1 mt-3 text-xs ${isDark ? "text-blue-400" : "text-blue-600"}`}>
+                <ExternalLink className="h-3 w-3" />
+                <span>عرض التفاصيل</span>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Navigation Arrows */}
+        {adsList.length > 1 && (
+          <>
+            <button
+              onClick={(e) => { e.stopPropagation(); goPrev(); }}
+              className="absolute left-2 top-1/2 -translate-y-1/2 flex h-8 w-8 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/60"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); goNext(); }}
+              className="absolute right-2 top-1/2 -translate-y-1/2 flex h-8 w-8 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/60"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </>
+        )}
+      </div>
+
+      {/* Dots Indicator */}
+      {adsList.length > 1 && (
+        <div className={`flex items-center justify-center gap-1.5 py-3 border-t ${isDark ? "border-gray-700/50" : "border-gray-100"}`}>
+          {adsList.map((_: any, i: number) => (
+            <button
+              key={i}
+              onClick={() => setCurrentIndex(i)}
+              className={`h-1.5 rounded-full transition-all duration-300 ${
+                i === currentIndex
+                  ? `w-6 ${isDark ? "bg-amber-400" : "bg-amber-500"}`
+                  : `w-1.5 ${isDark ? "bg-gray-600 hover:bg-gray-500" : "bg-gray-300 hover:bg-gray-400"}`
+              }`}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export const Wallet = (): JSX.Element => {
   const { t } = useTranslation();
@@ -169,59 +315,8 @@ export const Wallet = (): JSX.Element => {
           </div>
         </div>
 
-        {/* Available Payment Methods */}
-        <div className={`${isDark ? "bg-gray-800" : "bg-white"} rounded-lg p-6 shadow mb-8`}>
-          <h2 className={`text-2xl font-bold mb-4 ${isDark ? "text-white" : "text-gray-800"}`}>
-            💳 وسائل الدفع المتاحة
-          </h2>
-          <p className={`text-sm mb-4 ${isDark ? "text-gray-400" : "text-gray-600"}`}>
-            يمكنك الدفع عبر أي من الوسائل التالية ثم تأكيد عملية الدفع
-          </p>
-
-          {paymentMethods.length === 0 ? (
-            <p className={isDark ? "text-gray-400" : "text-gray-600"}>
-              لا توجد وسائل دفع متاحة حالياً
-            </p>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {paymentMethods.map((method: any) => {
-                const typeInfo = getTypeInfo(method.type);
-                return (
-                  <div
-                    key={method.id}
-                    className={`border-2 rounded-xl p-4 ${
-                      isDark ? "border-gray-700 bg-gray-700/50" : "border-gray-200 bg-gray-50"
-                    }`}
-                  >
-                    <div className="flex items-center gap-2 mb-3">
-                      <span className="text-2xl">{typeInfo.emoji}</span>
-                      <span className={`font-bold text-lg ${isDark ? "text-white" : "text-gray-800"}`}>
-                        {typeInfo.label}
-                      </span>
-                      {method.isDefault && (
-                        <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full">
-                          ★ موصى به
-                        </span>
-                      )}
-                    </div>
-                    <div className={`space-y-1 text-sm ${isDark ? "text-gray-300" : "text-gray-700"}`}>
-                      {method.bankName && (
-                        <p>🏦 <strong>البنك:</strong> {method.bankName}</p>
-                      )}
-                      <p>🔢 <strong>رقم الحساب:</strong> <span className="font-mono">{method.accountNumber}</span></p>
-                      {method.accountName && (
-                        <p>👤 <strong>باسم:</strong> {method.accountName}</p>
-                      )}
-                      {method.phoneNumber && (
-                        <p>📞 <strong>الهاتف:</strong> <span className="font-mono">{method.phoneNumber}</span></p>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
+        {/* Ads Section */}
+        <AdsCarousel isDark={isDark} />
 
         {/* Deposit History */}
         <div className={`${isDark ? "bg-gray-800" : "bg-white"} rounded-lg p-6 shadow`}>
