@@ -1,19 +1,22 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { 
-  ArrowRight, Settings, Globe, Moon, Sun, Bell, BellOff, 
-  Shield, Eye, EyeOff, Save, Loader2, Smartphone, Trash2,
-  CheckCircle, Volume2, VolumeX
+import {
+  ArrowRight, ArrowLeft, Settings, Globe, Moon, Sun, Bell, BellOff,
+  Shield, Eye, EyeOff, Loader2, Smartphone, Trash2,
+  CheckCircle, Volume2, VolumeX, User, ChevronLeft, ChevronRight, Star
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
+import { useTheme } from "@/contexts/ThemeContext";
 import { apiRequest } from "@/lib/queryClient";
+import { motion } from "framer-motion";
 
 interface ChildSettings {
   language: string;
@@ -36,6 +39,7 @@ export default function ChildSettings() {
   const [, navigate] = useLocation();
   const { t, i18n } = useTranslation();
   const { toast } = useToast();
+  const { isDark } = useTheme();
   const queryClient = useQueryClient();
   const token = localStorage.getItem("childToken");
   const isRTL = i18n.language === "ar";
@@ -108,8 +112,8 @@ export default function ChildSettings() {
     }
     toast({
       title: isRTL ? "تم تغيير المظهر" : "Theme Changed",
-      description: theme === "dark" 
-        ? (isRTL ? "الوضع الليلي" : "Dark Mode") 
+      description: theme === "dark"
+        ? (isRTL ? "الوضع الليلي" : "Dark Mode")
         : (isRTL ? "الوضع النهاري" : "Light Mode"),
     });
   };
@@ -124,229 +128,313 @@ export default function ChildSettings() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-orange-50 to-white dark:from-gray-900 dark:to-gray-800 flex items-center justify-center" dir={isRTL ? "rtl" : "ltr"}>
-        <Loader2 className="w-8 h-8 animate-spin text-orange-500" />
+      <div className={`min-h-screen flex items-center justify-center ${isDark ? "bg-gray-900" : "bg-gradient-to-br from-indigo-50 via-purple-50 to-violet-50"}`}>
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="w-10 h-10 animate-spin text-purple-500" />
+          <p className={`text-sm ${isDark ? "text-gray-400" : "text-purple-400"}`}>
+            {isRTL ? "جار التحميل..." : "Loading..."}
+          </p>
+        </div>
       </div>
     );
   }
 
+  const NavChevron = isRTL ? ChevronLeft : ChevronRight;
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-orange-50 to-white dark:from-gray-900 dark:to-gray-800" dir={isRTL ? "rtl" : "ltr"}>
-      <header className="bg-gradient-to-r from-purple-500 to-indigo-500 text-white sticky top-0 z-50">
-        <div className="max-w-2xl mx-auto px-3 sm:px-4 py-3 sm:py-4">
-          <div className="flex items-center gap-3">
-            <button 
-              onClick={() => navigate("/child-games")}
-              className="p-2 hover:bg-white/20 rounded-full transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
-              data-testid="button-back"
-            >
-              <ArrowRight className={`w-5 h-5 ${!isRTL ? 'rotate-180' : ''}`} />
-            </button>
-            <div className="flex items-center gap-2">
-              <Settings className="w-6 h-6" />
-              <h1 className="text-lg sm:text-xl font-bold">
-                {isRTL ? "الإعدادات" : "Settings"}
-              </h1>
+    <div className={`min-h-screen ${isDark ? "bg-gray-900" : "bg-gradient-to-br from-indigo-50 via-purple-50 to-violet-50"}`} dir={isRTL ? "rtl" : "ltr"}>
+      {/* Header */}
+      <header className="bg-gradient-to-r from-indigo-600 via-purple-600 to-violet-600 text-white sticky top-0 z-50 shadow-lg">
+        <div className="max-w-2xl mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => navigate("/child-games")}
+                className="p-2 hover:bg-white/15 rounded-xl transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+              >
+                {isRTL ? <ArrowRight className="w-5 h-5" /> : <ArrowLeft className="w-5 h-5" />}
+              </button>
+              <div className="flex items-center gap-2">
+                <Settings className="w-5 h-5" />
+                <h1 className="text-lg font-bold">{isRTL ? "الإعدادات" : "Settings"}</h1>
+              </div>
+            </div>
+            <div className="flex items-center gap-1.5 bg-white/15 px-3 py-1.5 rounded-full">
+              <Star className="w-4 h-4 text-yellow-300" />
+              <span className="text-sm font-bold">{childInfo?.totalPoints || 0}</span>
             </div>
           </div>
         </div>
       </header>
 
-      <main className="max-w-2xl mx-auto px-3 sm:px-4 py-4 sm:py-6 space-y-4">
-        <Card className="dark:bg-gray-800 dark:border-gray-700">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-              <Globe className="w-5 h-5 text-blue-500" />
-              {isRTL ? "اللغة والمظهر" : "Language & Appearance"}
-            </CardTitle>
-            <CardDescription className="text-sm">
-              {isRTL ? "اختر لغتك المفضلة ومظهر التطبيق" : "Choose your preferred language and app theme"}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-2">
-                <Globe className="w-4 h-4 text-gray-500" />
-                <Label className="text-sm">{isRTL ? "اللغة" : "Language"}</Label>
+      <main className="max-w-2xl mx-auto px-4 py-6 space-y-4">
+        {/* Profile Card - Clickable */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+        >
+          <Card
+            className={`border-0 shadow-lg cursor-pointer hover:shadow-xl transition-shadow overflow-hidden ${isDark ? "bg-gray-800" : "bg-white"}`}
+            onClick={() => navigate("/child-profile")}
+          >
+            <CardContent className="p-4">
+              <div className="flex items-center gap-4">
+                <Avatar className={`w-16 h-16 border-2 ${isDark ? "border-purple-500" : "border-purple-200"} shadow-md`}>
+                  <AvatarImage src={childInfo?.avatarUrl || undefined} className="object-cover" />
+                  <AvatarFallback className="bg-gradient-to-br from-purple-400 to-fuchsia-500 text-white text-xl font-bold">
+                    {childInfo?.name?.charAt(0) || "؟"}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1 min-w-0">
+                  <h2 className={`text-lg font-bold truncate ${isDark ? "text-white" : "text-gray-800"}`}>
+                    {childInfo?.name || (isRTL ? "طفلي" : "My Child")}
+                  </h2>
+                  <p className={`text-sm ${isDark ? "text-gray-400" : "text-gray-500"}`}>
+                    {isRTL ? "عرض وتعديل الملف الشخصي" : "View & edit profile"}
+                  </p>
+                </div>
+                <NavChevron className={`w-5 h-5 ${isDark ? "text-gray-500" : "text-gray-400"}`} />
               </div>
-              <Select value={settings.language} onValueChange={handleLanguageChange}>
-                <SelectTrigger className="w-32 min-h-[44px]" data-testid="select-language">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ar">العربية</SelectItem>
-                  <SelectItem value="en">English</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            </CardContent>
+          </Card>
+        </motion.div>
 
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-2">
-                {settings.theme === "dark" ? (
-                  <Moon className="w-4 h-4 text-gray-500" />
-                ) : (
-                  <Sun className="w-4 h-4 text-yellow-500" />
-                )}
-                <Label className="text-sm">{isRTL ? "المظهر" : "Theme"}</Label>
+        {/* Language & Theme */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.05 }}
+        >
+          <Card className={`border-0 shadow-lg ${isDark ? "bg-gray-800" : "bg-white"}`}>
+            <CardContent className="pt-5 pb-5 space-y-5">
+              <div className="flex items-center gap-2 mb-1">
+                <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center">
+                  <Globe className="w-4 h-4 text-blue-600" />
+                </div>
+                <h3 className={`font-bold ${isDark ? "text-white" : "text-gray-800"}`}>
+                  {isRTL ? "اللغة والمظهر" : "Language & Appearance"}
+                </h3>
               </div>
-              <Select value={settings.theme} onValueChange={handleThemeChange}>
-                <SelectTrigger className="w-32 min-h-[44px]" data-testid="select-theme">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="light">{isRTL ? "فاتح" : "Light"}</SelectItem>
-                  <SelectItem value="dark">{isRTL ? "داكن" : "Dark"}</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </CardContent>
-        </Card>
 
-        <Card className="dark:bg-gray-800 dark:border-gray-700">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-              <Bell className="w-5 h-5 text-orange-500" />
-              {isRTL ? "الإشعارات" : "Notifications"}
-            </CardTitle>
-            <CardDescription className="text-sm">
-              {isRTL ? "تحكم في إشعارات التطبيق" : "Control app notifications"}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-2">
-                {settings.notificationsEnabled ? (
-                  <Bell className="w-4 h-4 text-orange-500" />
-                ) : (
-                  <BellOff className="w-4 h-4 text-gray-400" />
-                )}
-                <Label className="text-sm">{isRTL ? "الإشعارات" : "Notifications"}</Label>
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-2.5">
+                  <Globe className={`w-4 h-4 ${isDark ? "text-gray-400" : "text-gray-500"}`} />
+                  <Label className={`text-sm ${isDark ? "text-gray-300" : "text-gray-700"}`}>
+                    {isRTL ? "اللغة" : "Language"}
+                  </Label>
+                </div>
+                <Select value={settings.language} onValueChange={handleLanguageChange}>
+                  <SelectTrigger className={`w-32 min-h-[44px] rounded-xl ${isDark ? "bg-gray-700 border-gray-600" : "bg-gray-50 border-gray-200"}`}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ar">العربية</SelectItem>
+                    <SelectItem value="en">English</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-              <Switch 
-                checked={settings.notificationsEnabled}
-                onCheckedChange={() => handleToggle("notificationsEnabled")}
-                data-testid="switch-notifications"
-              />
-            </div>
 
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-2">
-                {settings.soundEnabled ? (
-                  <Volume2 className="w-4 h-4 text-green-500" />
-                ) : (
-                  <VolumeX className="w-4 h-4 text-gray-400" />
-                )}
-                <Label className="text-sm">{isRTL ? "الأصوات" : "Sounds"}</Label>
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-2.5">
+                  {settings.theme === "dark" ? (
+                    <Moon className={`w-4 h-4 ${isDark ? "text-gray-400" : "text-gray-500"}`} />
+                  ) : (
+                    <Sun className="w-4 h-4 text-yellow-500" />
+                  )}
+                  <Label className={`text-sm ${isDark ? "text-gray-300" : "text-gray-700"}`}>
+                    {isRTL ? "المظهر" : "Theme"}
+                  </Label>
+                </div>
+                <Select value={settings.theme} onValueChange={handleThemeChange}>
+                  <SelectTrigger className={`w-32 min-h-[44px] rounded-xl ${isDark ? "bg-gray-700 border-gray-600" : "bg-gray-50 border-gray-200"}`}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="light">{isRTL ? "فاتح ☀️" : "Light ☀️"}</SelectItem>
+                    <SelectItem value="dark">{isRTL ? "داكن 🌙" : "Dark 🌙"}</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-              <Switch 
-                checked={settings.soundEnabled}
-                onCheckedChange={() => handleToggle("soundEnabled")}
-                data-testid="switch-sounds"
-              />
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </motion.div>
 
-        <Card className="dark:bg-gray-800 dark:border-gray-700">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-              <Shield className="w-5 h-5 text-green-500" />
-              {isRTL ? "الخصوصية" : "Privacy"}
-            </CardTitle>
-            <CardDescription className="text-sm">
-              {isRTL ? "تحكم في خصوصيتك" : "Control your privacy settings"}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-2">
-                {settings.showOnlineStatus ? (
-                  <Eye className="w-4 h-4 text-blue-500" />
-                ) : (
-                  <EyeOff className="w-4 h-4 text-gray-400" />
-                )}
-                <Label className="text-sm">{isRTL ? "إظهار حالة الاتصال" : "Show Online Status"}</Label>
+        {/* Notifications */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.1 }}
+        >
+          <Card className={`border-0 shadow-lg ${isDark ? "bg-gray-800" : "bg-white"}`}>
+            <CardContent className="pt-5 pb-5 space-y-5">
+              <div className="flex items-center gap-2 mb-1">
+                <div className="w-8 h-8 rounded-lg bg-orange-100 flex items-center justify-center">
+                  <Bell className="w-4 h-4 text-orange-600" />
+                </div>
+                <h3 className={`font-bold ${isDark ? "text-white" : "text-gray-800"}`}>
+                  {isRTL ? "الإشعارات والأصوات" : "Notifications & Sounds"}
+                </h3>
               </div>
-              <Switch 
-                checked={settings.showOnlineStatus}
-                onCheckedChange={() => handleToggle("showOnlineStatus")}
-                data-testid="switch-online-status"
-              />
-            </div>
 
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-2">
-                <CheckCircle className="w-4 h-4 text-purple-500" />
-                <Label className="text-sm">{isRTL ? "إظهار تقدمي للوالدين" : "Show Progress to Parents"}</Label>
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-2.5">
+                  {settings.notificationsEnabled ? (
+                    <Bell className="w-4 h-4 text-orange-500" />
+                  ) : (
+                    <BellOff className={`w-4 h-4 ${isDark ? "text-gray-500" : "text-gray-400"}`} />
+                  )}
+                  <Label className={`text-sm ${isDark ? "text-gray-300" : "text-gray-700"}`}>
+                    {isRTL ? "الإشعارات" : "Notifications"}
+                  </Label>
+                </div>
+                <Switch
+                  checked={settings.notificationsEnabled}
+                  onCheckedChange={() => handleToggle("notificationsEnabled")}
+                />
               </div>
-              <Switch 
-                checked={settings.showProgress}
-                onCheckedChange={() => handleToggle("showProgress")}
-                data-testid="switch-show-progress"
-              />
-            </div>
-          </CardContent>
-        </Card>
 
-        <Card className="dark:bg-gray-800 dark:border-gray-700">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-              <Smartphone className="w-5 h-5 text-indigo-500" />
-              {isRTL ? "الأجهزة الموثوقة" : "Trusted Devices"}
-            </CardTitle>
-            <CardDescription className="text-sm">
-              {isRTL ? "الأجهزة التي يمكنها الدخول لحسابك" : "Devices that can access your account"}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {trustedDevices && trustedDevices.length > 0 ? (
-              <div className="space-y-3">
-                {trustedDevices.map((device: TrustedDevice) => (
-                  <div 
-                    key={device.id} 
-                    className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg"
-                  >
-                    <div className="flex items-center gap-3">
-                      <Smartphone className="w-5 h-5 text-gray-500" />
-                      <div>
-                        <p className="text-sm font-medium dark:text-white">
-                          {device.deviceName || (isRTL ? "جهاز غير معروف" : "Unknown Device")}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          {device.isCurrent && (
-                            <span className="text-green-500 font-medium">
-                              {isRTL ? "الجهاز الحالي • " : "Current device • "}
-                            </span>
-                          )}
-                          {new Date(device.lastUsed).toLocaleDateString(isRTL ? 'ar-SA' : 'en-US')}
-                        </p>
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-2.5">
+                  {settings.soundEnabled ? (
+                    <Volume2 className="w-4 h-4 text-green-500" />
+                  ) : (
+                    <VolumeX className={`w-4 h-4 ${isDark ? "text-gray-500" : "text-gray-400"}`} />
+                  )}
+                  <Label className={`text-sm ${isDark ? "text-gray-300" : "text-gray-700"}`}>
+                    {isRTL ? "الأصوات" : "Sounds"}
+                  </Label>
+                </div>
+                <Switch
+                  checked={settings.soundEnabled}
+                  onCheckedChange={() => handleToggle("soundEnabled")}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* Privacy */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.15 }}
+        >
+          <Card className={`border-0 shadow-lg ${isDark ? "bg-gray-800" : "bg-white"}`}>
+            <CardContent className="pt-5 pb-5 space-y-5">
+              <div className="flex items-center gap-2 mb-1">
+                <div className="w-8 h-8 rounded-lg bg-green-100 flex items-center justify-center">
+                  <Shield className="w-4 h-4 text-green-600" />
+                </div>
+                <h3 className={`font-bold ${isDark ? "text-white" : "text-gray-800"}`}>
+                  {isRTL ? "الخصوصية" : "Privacy"}
+                </h3>
+              </div>
+
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-2.5">
+                  {settings.showOnlineStatus ? (
+                    <Eye className="w-4 h-4 text-blue-500" />
+                  ) : (
+                    <EyeOff className={`w-4 h-4 ${isDark ? "text-gray-500" : "text-gray-400"}`} />
+                  )}
+                  <Label className={`text-sm ${isDark ? "text-gray-300" : "text-gray-700"}`}>
+                    {isRTL ? "إظهار حالة الاتصال" : "Show Online Status"}
+                  </Label>
+                </div>
+                <Switch
+                  checked={settings.showOnlineStatus}
+                  onCheckedChange={() => handleToggle("showOnlineStatus")}
+                />
+              </div>
+
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-2.5">
+                  <CheckCircle className="w-4 h-4 text-purple-500" />
+                  <Label className={`text-sm ${isDark ? "text-gray-300" : "text-gray-700"}`}>
+                    {isRTL ? "إظهار تقدمي للوالدين" : "Show Progress to Parents"}
+                  </Label>
+                </div>
+                <Switch
+                  checked={settings.showProgress}
+                  onCheckedChange={() => handleToggle("showProgress")}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* Trusted Devices */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.2 }}
+        >
+          <Card className={`border-0 shadow-lg ${isDark ? "bg-gray-800" : "bg-white"}`}>
+            <CardContent className="pt-5 pb-5 space-y-4">
+              <div className="flex items-center gap-2 mb-1">
+                <div className="w-8 h-8 rounded-lg bg-indigo-100 flex items-center justify-center">
+                  <Smartphone className="w-4 h-4 text-indigo-600" />
+                </div>
+                <h3 className={`font-bold ${isDark ? "text-white" : "text-gray-800"}`}>
+                  {isRTL ? "الأجهزة الموثوقة" : "Trusted Devices"}
+                </h3>
+              </div>
+
+              {trustedDevices && trustedDevices.length > 0 ? (
+                <div className="space-y-2.5">
+                  {trustedDevices.map((device: TrustedDevice) => (
+                    <div
+                      key={device.id}
+                      className={`flex items-center justify-between p-3 rounded-xl ${isDark ? "bg-gray-700/50" : "bg-gray-50"}`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${isDark ? "bg-gray-600" : "bg-white shadow-sm"}`}>
+                          <Smartphone className={`w-4 h-4 ${isDark ? "text-gray-300" : "text-gray-500"}`} />
+                        </div>
+                        <div>
+                          <p className={`text-sm font-medium ${isDark ? "text-white" : "text-gray-800"}`}>
+                            {device.deviceName || (isRTL ? "جهاز غير معروف" : "Unknown Device")}
+                          </p>
+                          <p className={`text-xs ${isDark ? "text-gray-500" : "text-gray-400"}`}>
+                            {device.isCurrent && (
+                              <span className="text-green-500 font-medium">
+                                {isRTL ? "الجهاز الحالي • " : "Current • "}
+                              </span>
+                            )}
+                            {new Date(device.lastUsed).toLocaleDateString(isRTL ? 'ar-SA' : 'en-US')}
+                          </p>
+                        </div>
                       </div>
+                      {!device.isCurrent && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => removeDeviceMutation.mutate(device.id)}
+                          disabled={removeDeviceMutation.isPending}
+                          className="text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 min-h-[40px] min-w-[40px] rounded-xl"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      )}
                     </div>
-                    {!device.isCurrent && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => removeDeviceMutation.mutate(device.id)}
-                        disabled={removeDeviceMutation.isPending}
-                        className="text-red-500 hover:text-red-600 hover:bg-red-50 min-h-[44px] min-w-[44px]"
-                        data-testid={`button-remove-device-${device.id}`}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    )}
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-gray-500 text-center py-4">
-                {isRTL ? "لا توجد أجهزة موثوقة" : "No trusted devices"}
-              </p>
-            )}
-          </CardContent>
-        </Card>
+                  ))}
+                </div>
+              ) : (
+                <div className={`text-center py-6 rounded-xl ${isDark ? "bg-gray-700/30" : "bg-gray-50"}`}>
+                  <Smartphone className={`w-10 h-10 mx-auto mb-2 ${isDark ? "text-gray-600" : "text-gray-300"}`} />
+                  <p className={`text-sm ${isDark ? "text-gray-500" : "text-gray-400"}`}>
+                    {isRTL ? "لا توجد أجهزة موثوقة" : "No trusted devices"}
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </motion.div>
 
-        <div className="text-center text-xs text-gray-400 py-4">
-          {isRTL ? `مرحباً ${childInfo?.name || ""}` : `Hello ${childInfo?.name || ""}`}
+        {/* Footer */}
+        <div className={`text-center text-xs py-6 ${isDark ? "text-gray-600" : "text-gray-400"}`}>
+          {isRTL ? `مرحباً ${childInfo?.name || ""} 👋` : `Hello ${childInfo?.name || ""} 👋`}
         </div>
       </main>
     </div>

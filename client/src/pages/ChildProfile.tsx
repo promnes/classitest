@@ -1,19 +1,21 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { 
-  ArrowRight, User, Camera, Calendar, School, BookOpen, Heart, 
-  Save, Loader2, AlertCircle, CheckCircle
+import {
+  ArrowRight, ArrowLeft, User, Camera, Calendar, School, BookOpen, Heart,
+  Save, Loader2, Star, Trophy, Sparkles
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
+import { useTheme } from "@/contexts/ThemeContext";
 import { apiRequest } from "@/lib/queryClient";
+import { motion } from "framer-motion";
 
 interface ChildProfile {
   id: string;
@@ -30,9 +32,13 @@ export default function ChildProfile() {
   const [, navigate] = useLocation();
   const { t, i18n } = useTranslation();
   const { toast } = useToast();
+  const { isDark } = useTheme();
   const queryClient = useQueryClient();
   const token = localStorage.getItem("childToken");
   const isRTL = i18n.language === "ar";
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -75,209 +81,354 @@ export default function ChildProfile() {
       queryClient.invalidateQueries({ queryKey: ["child-profile"] });
       queryClient.invalidateQueries({ queryKey: ["child-info"] });
       toast({
-        title: t("childProfile.updateSuccess"),
-        description: t("childProfile.profileUpdated"),
+        title: isRTL ? "تم الحفظ ✅" : "Saved ✅",
+        description: isRTL ? "تم تحديث ملفك الشخصي بنجاح" : "Your profile has been updated",
       });
     },
     onError: (error: any) => {
       toast({
-        title: t("errors.updateFailed"),
-        description: error.message || t("errors.tryAgain"),
+        title: isRTL ? "خطأ" : "Error",
+        description: error.message || (isRTL ? "حاول مرة أخرى" : "Try again"),
         variant: "destructive",
       });
     },
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (formData.name.trim().length < 2) {
+  const handleAvatarUpload = async (file: File) => {
+    if (file.size > 3 * 1024 * 1024) {
       toast({
-        title: t("validation.invalidName"),
-        description: t("validation.nameTooShort"),
+        title: isRTL ? "الملف كبير جداً" : "File too large",
+        description: isRTL ? "الحد الأقصى 3 ميجابايت" : "Max 3MB allowed",
         variant: "destructive",
       });
       return;
     }
 
+    const previewUrl = URL.createObjectURL(file);
+    setAvatarPreview(previewUrl);
+    setIsUploading(true);
+
+    try {
+      const fd = new FormData();
+      fd.append("avatar", file);
+
+      const res = await fetch("/api/child/avatar", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: fd,
+      });
+
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.message || "Upload failed");
+
+      queryClient.invalidateQueries({ queryKey: ["child-profile"] });
+      queryClient.invalidateQueries({ queryKey: ["child-info"] });
+      toast({
+        title: isRTL ? "تم رفع الصورة ✅" : "Photo uploaded ✅",
+        description: isRTL ? "تم تحديث صورتك الشخصية" : "Your profile picture has been updated",
+      });
+    } catch (error: any) {
+      setAvatarPreview(null);
+      toast({
+        title: isRTL ? "فشل الرفع" : "Upload failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (formData.name.trim().length < 2) {
+      toast({
+        title: isRTL ? "اسم غير صالح" : "Invalid name",
+        description: isRTL ? "الاسم يجب أن يكون حرفين على الأقل" : "Name must be at least 2 characters",
+        variant: "destructive",
+      });
+      return;
+    }
     updateMutation.mutate(formData);
   };
 
-  const gradeKeys = [
-    "grade1", "grade2", "grade3", "grade4",
-    "grade5", "grade6", "grade7", "grade8",
-    "grade9", "grade10", "grade11", "grade12"
+  const gradeOptions = [
+    { value: "grade1", label: isRTL ? "الصف الأول" : "Grade 1" },
+    { value: "grade2", label: isRTL ? "الصف الثاني" : "Grade 2" },
+    { value: "grade3", label: isRTL ? "الصف الثالث" : "Grade 3" },
+    { value: "grade4", label: isRTL ? "الصف الرابع" : "Grade 4" },
+    { value: "grade5", label: isRTL ? "الصف الخامس" : "Grade 5" },
+    { value: "grade6", label: isRTL ? "الصف السادس" : "Grade 6" },
+    { value: "grade7", label: isRTL ? "الصف السابع" : "Grade 7" },
+    { value: "grade8", label: isRTL ? "الصف الثامن" : "Grade 8" },
+    { value: "grade9", label: isRTL ? "الصف التاسع" : "Grade 9" },
+    { value: "grade10", label: isRTL ? "الصف العاشر" : "Grade 10" },
+    { value: "grade11", label: isRTL ? "الصف الحادي عشر" : "Grade 11" },
+    { value: "grade12", label: isRTL ? "الصف الثاني عشر" : "Grade 12" },
   ];
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-orange-50 to-white flex items-center justify-center" dir={isRTL ? "rtl" : "ltr"}>
-        <Loader2 className="w-8 h-8 animate-spin text-orange-500" />
+      <div className={`min-h-screen flex items-center justify-center ${isDark ? "bg-gray-900" : "bg-gradient-to-br from-violet-50 via-purple-50 to-fuchsia-50"}`}>
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="w-10 h-10 animate-spin text-purple-500" />
+          <p className={`text-sm ${isDark ? "text-gray-400" : "text-purple-400"}`}>
+            {isRTL ? "جار التحميل..." : "Loading..."}
+          </p>
+        </div>
       </div>
     );
   }
 
+  const currentAvatar = avatarPreview || profileData?.avatarUrl;
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-orange-50 to-white" dir={isRTL ? "rtl" : "ltr"}>
-      <header className="bg-gradient-to-r from-orange-500 to-red-500 text-white sticky top-0 z-50">
-        <div className="max-w-2xl mx-auto px-3 sm:px-4 py-3 sm:py-4">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => navigate("/child-games")}
-              className="p-2 hover:bg-white/10 rounded-lg transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
-              data-testid="button-back"
-            >
-              <ArrowRight className="w-5 h-5" />
-            </button>
-            <div className="flex items-center gap-2">
-              <User className="w-5 h-5" />
-              <h1 className="text-lg sm:text-xl font-bold">{t("childProfile.title")}</h1>
+    <div className={`min-h-screen ${isDark ? "bg-gray-900" : "bg-gradient-to-br from-violet-50 via-purple-50 to-fuchsia-50"}`} dir={isRTL ? "rtl" : "ltr"}>
+      {/* Header */}
+      <header className="bg-gradient-to-r from-violet-600 via-purple-600 to-fuchsia-600 text-white sticky top-0 z-50 shadow-lg">
+        <div className="max-w-2xl mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => navigate("/child-settings")}
+                className="p-2 hover:bg-white/15 rounded-xl transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+              >
+                {isRTL ? <ArrowRight className="w-5 h-5" /> : <ArrowLeft className="w-5 h-5" />}
+              </button>
+              <div className="flex items-center gap-2">
+                <User className="w-5 h-5" />
+                <h1 className="text-lg font-bold">{isRTL ? "ملفي الشخصي" : "My Profile"}</h1>
+              </div>
+            </div>
+            <div className="flex items-center gap-1.5 bg-white/15 px-3 py-1.5 rounded-full">
+              <Star className="w-4 h-4 text-yellow-300" />
+              <span className="text-sm font-bold">{profileData?.totalPoints || 0}</span>
             </div>
           </div>
         </div>
       </header>
 
-      <main className="max-w-2xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
-        <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
-          <Card>
-            <CardHeader className="pb-3 sm:pb-4">
-              <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-                <Camera className="w-4 h-4 sm:w-5 sm:h-5 text-orange-500" />
-                {t("childProfile.photo")}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="flex flex-col items-center gap-4">
-              <Avatar className="w-20 h-20 sm:w-24 sm:h-24 border-4 border-orange-200">
-                <AvatarImage src={profileData?.avatarUrl} />
-                <AvatarFallback className="bg-orange-100 text-orange-600 text-2xl sm:text-3xl">
-                  {formData.name.charAt(0) || "؟"}
-                </AvatarFallback>
-              </Avatar>
-              <p className="text-xs sm:text-sm text-gray-500 text-center">
-                {t("childProfile.photoNote")}
+      <main className="max-w-2xl mx-auto px-4 py-6 space-y-5">
+        {/* Avatar Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+        >
+          <Card className={`overflow-hidden border-0 shadow-xl ${isDark ? "bg-gray-800" : "bg-white"}`}>
+            <div className="bg-gradient-to-r from-violet-500 via-purple-500 to-fuchsia-500 h-24 relative">
+              <div className="absolute -bottom-14 left-1/2 -translate-x-1/2">
+                <div className="relative group">
+                  <Avatar className={`w-28 h-28 border-4 ${isDark ? "border-gray-800" : "border-white"} shadow-xl`}>
+                    <AvatarImage src={currentAvatar || undefined} className="object-cover" />
+                    <AvatarFallback className="bg-gradient-to-br from-purple-400 to-fuchsia-500 text-white text-3xl font-bold">
+                      {formData.name.charAt(0) || "؟"}
+                    </AvatarFallback>
+                  </Avatar>
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isUploading}
+                    className="absolute bottom-0 right-0 w-9 h-9 bg-purple-600 hover:bg-purple-700 text-white rounded-full flex items-center justify-center shadow-lg transition-all group-hover:scale-110"
+                  >
+                    {isUploading ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Camera className="w-4 h-4" />
+                    )}
+                  </button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/gif"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handleAvatarUpload(file);
+                      e.target.value = "";
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+            <CardContent className="pt-16 pb-5 text-center">
+              <h2 className={`text-xl font-bold ${isDark ? "text-white" : "text-gray-800"}`}>
+                {profileData?.name || ""}
+              </h2>
+              <div className="flex items-center justify-center gap-2 mt-2 flex-wrap">
+                <div className="flex items-center gap-1 bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-sm font-medium">
+                  <Trophy className="w-3.5 h-3.5" />
+                  {profileData?.totalPoints || 0} {isRTL ? "نقطة" : "pts"}
+                </div>
+                {profileData?.academicGrade && (
+                  <div className="flex items-center gap-1 bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-sm font-medium">
+                    <BookOpen className="w-3.5 h-3.5" />
+                    {gradeOptions.find(g => g.value === profileData.academicGrade)?.label || profileData.academicGrade}
+                  </div>
+                )}
+              </div>
+              <p className={`text-xs mt-3 ${isDark ? "text-gray-500" : "text-gray-400"}`}>
+                {isRTL ? "اضغط على أيقونة الكاميرا لتغيير صورتك" : "Tap the camera icon to change your photo"}
               </p>
             </CardContent>
           </Card>
+        </motion.div>
 
-          <Card>
-            <CardHeader className="pb-3 sm:pb-4">
-              <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-                <User className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500" />
-                {t("childProfile.personalInfo")}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name" className="text-sm">{t("childProfile.name")}</Label>
-                <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder={t("childProfile.namePlaceholder")}
-                  className="min-h-[44px]"
-                  data-testid="input-name"
-                />
-              </div>
+        {/* Profile Form */}
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Personal Info */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.1 }}
+          >
+            <Card className={`border-0 shadow-lg ${isDark ? "bg-gray-800" : "bg-white"}`}>
+              <CardContent className="pt-5 pb-5 space-y-4">
+                <div className="flex items-center gap-2 mb-1">
+                  <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center">
+                    <User className="w-4 h-4 text-blue-600" />
+                  </div>
+                  <h3 className={`font-bold ${isDark ? "text-white" : "text-gray-800"}`}>
+                    {isRTL ? "المعلومات الشخصية" : "Personal Info"}
+                  </h3>
+                </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="birthday" className="text-sm flex items-center gap-1.5">
-                  <Calendar className="w-3.5 h-3.5" />
-                  {t("childProfile.birthday")}
-                </Label>
-                <Input
-                  id="birthday"
-                  type="date"
-                  value={formData.birthday}
-                  onChange={(e) => setFormData({ ...formData, birthday: e.target.value })}
-                  className="min-h-[44px]"
-                  data-testid="input-birthday"
-                />
-              </div>
-            </CardContent>
-          </Card>
+                <div className="space-y-1.5">
+                  <Label htmlFor="name" className={`text-sm font-medium ${isDark ? "text-gray-300" : "text-gray-600"}`}>
+                    {isRTL ? "الاسم" : "Name"} <span className="text-red-400">*</span>
+                  </Label>
+                  <Input
+                    id="name"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    placeholder={isRTL ? "اكتب اسمك هنا" : "Enter your name"}
+                    className={`min-h-[48px] rounded-xl text-base ${isDark ? "bg-gray-700 border-gray-600 text-white" : "bg-gray-50 border-gray-200"}`}
+                  />
+                </div>
 
-          <Card>
-            <CardHeader className="pb-3 sm:pb-4">
-              <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-                <School className="w-4 h-4 sm:w-5 sm:h-5 text-green-500" />
-                {t("childProfile.schoolInfo")}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="schoolName" className="text-sm">{t("childProfile.schoolName")}</Label>
-                <Input
-                  id="schoolName"
-                  value={formData.schoolName}
-                  onChange={(e) => setFormData({ ...formData, schoolName: e.target.value })}
-                  placeholder={t("childProfile.schoolNamePlaceholder")}
-                  className="min-h-[44px]"
-                  data-testid="input-school"
-                />
-              </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="birthday" className={`text-sm font-medium flex items-center gap-1.5 ${isDark ? "text-gray-300" : "text-gray-600"}`}>
+                    <Calendar className="w-3.5 h-3.5" />
+                    {isRTL ? "تاريخ الميلاد" : "Birthday"}
+                  </Label>
+                  <Input
+                    id="birthday"
+                    type="date"
+                    value={formData.birthday}
+                    onChange={(e) => setFormData({ ...formData, birthday: e.target.value })}
+                    className={`min-h-[48px] rounded-xl ${isDark ? "bg-gray-700 border-gray-600 text-white" : "bg-gray-50 border-gray-200"}`}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
 
-              <div className="space-y-2">
-                <Label htmlFor="academicGrade" className="text-sm flex items-center gap-1.5">
-                  <BookOpen className="w-3.5 h-3.5" />
-                  {t("childProfile.grade")}
-                </Label>
-                <select
-                  id="academicGrade"
-                  value={formData.academicGrade}
-                  onChange={(e) => setFormData({ ...formData, academicGrade: e.target.value })}
-                  className="w-full min-h-[44px] px-3 py-2 border rounded-md bg-background text-sm"
-                  data-testid="select-grade"
-                >
-                  <option value="">{t("childProfile.selectGrade")}</option>
-                  {gradeKeys.map((key) => (
-                    <option key={key} value={key}>{t(`childProfile.grades.${key}`)}</option>
-                  ))}
-                </select>
-              </div>
-            </CardContent>
-          </Card>
+          {/* School Info */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.2 }}
+          >
+            <Card className={`border-0 shadow-lg ${isDark ? "bg-gray-800" : "bg-white"}`}>
+              <CardContent className="pt-5 pb-5 space-y-4">
+                <div className="flex items-center gap-2 mb-1">
+                  <div className="w-8 h-8 rounded-lg bg-green-100 flex items-center justify-center">
+                    <School className="w-4 h-4 text-green-600" />
+                  </div>
+                  <h3 className={`font-bold ${isDark ? "text-white" : "text-gray-800"}`}>
+                    {isRTL ? "معلومات المدرسة" : "School Info"}
+                  </h3>
+                </div>
 
-          <Card>
-            <CardHeader className="pb-3 sm:pb-4">
-              <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-                <Heart className="w-4 h-4 sm:w-5 sm:h-5 text-pink-500" />
-                {t("childProfile.hobbies")}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                <Label htmlFor="hobbies" className="text-sm">{t("childProfile.hobbiesLabel")}</Label>
-                <Textarea
-                  id="hobbies"
-                  value={formData.hobbies}
-                  onChange={(e) => setFormData({ ...formData, hobbies: e.target.value })}
-                  placeholder={t("childProfile.hobbiesPlaceholder")}
-                  className="min-h-[80px] resize-none"
-                  maxLength={500}
-                  data-testid="textarea-hobbies"
-                />
-                <p className="text-xs text-gray-400 text-left">{formData.hobbies.length}/500</p>
-              </div>
-            </CardContent>
-          </Card>
+                <div className="space-y-1.5">
+                  <Label htmlFor="schoolName" className={`text-sm font-medium ${isDark ? "text-gray-300" : "text-gray-600"}`}>
+                    {isRTL ? "اسم المدرسة" : "School Name"}
+                  </Label>
+                  <Input
+                    id="schoolName"
+                    value={formData.schoolName}
+                    onChange={(e) => setFormData({ ...formData, schoolName: e.target.value })}
+                    placeholder={isRTL ? "مثال: مدرسة النور الأهلية" : "e.g. Al-Noor Academy"}
+                    className={`min-h-[48px] rounded-xl text-base ${isDark ? "bg-gray-700 border-gray-600 text-white" : "bg-gray-50 border-gray-200"}`}
+                  />
+                </div>
 
-          <div className="flex gap-3 pt-2">
+                <div className="space-y-1.5">
+                  <Label htmlFor="academicGrade" className={`text-sm font-medium flex items-center gap-1.5 ${isDark ? "text-gray-300" : "text-gray-600"}`}>
+                    <BookOpen className="w-3.5 h-3.5" />
+                    {isRTL ? "الصف الدراسي" : "Grade"}
+                  </Label>
+                  <select
+                    id="academicGrade"
+                    value={formData.academicGrade}
+                    onChange={(e) => setFormData({ ...formData, academicGrade: e.target.value })}
+                    className={`w-full min-h-[48px] px-3 py-2 rounded-xl text-base border ${isDark ? "bg-gray-700 border-gray-600 text-white" : "bg-gray-50 border-gray-200 text-gray-900"}`}
+                  >
+                    <option value="">{isRTL ? "اختر الصف الدراسي" : "Select grade"}</option>
+                    {gradeOptions.map((g) => (
+                      <option key={g.value} value={g.value}>{g.label}</option>
+                    ))}
+                  </select>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          {/* Hobbies */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.3 }}
+          >
+            <Card className={`border-0 shadow-lg ${isDark ? "bg-gray-800" : "bg-white"}`}>
+              <CardContent className="pt-5 pb-5 space-y-4">
+                <div className="flex items-center gap-2 mb-1">
+                  <div className="w-8 h-8 rounded-lg bg-pink-100 flex items-center justify-center">
+                    <Heart className="w-4 h-4 text-pink-600" />
+                  </div>
+                  <h3 className={`font-bold ${isDark ? "text-white" : "text-gray-800"}`}>
+                    {isRTL ? "هواياتي" : "My Hobbies"}
+                  </h3>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Textarea
+                    id="hobbies"
+                    value={formData.hobbies}
+                    onChange={(e) => setFormData({ ...formData, hobbies: e.target.value })}
+                    placeholder={isRTL ? "أحب الرسم والقراءة والسباحة..." : "I love drawing, reading, swimming..."}
+                    className={`min-h-[100px] resize-none rounded-xl text-base ${isDark ? "bg-gray-700 border-gray-600 text-white" : "bg-gray-50 border-gray-200"}`}
+                    maxLength={500}
+                  />
+                  <p className={`text-xs text-left ${isDark ? "text-gray-500" : "text-gray-400"}`}>
+                    {formData.hobbies.length}/500
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          {/* Save Button */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.4 }}
+            className="pt-1 pb-8"
+          >
             <Button
               type="submit"
-              className="flex-1 bg-orange-500 hover:bg-orange-600 min-h-[48px] text-base"
+              className="w-full min-h-[52px] text-base font-bold rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-700 hover:to-fuchsia-700 shadow-lg shadow-purple-200 dark:shadow-none"
               disabled={updateMutation.isPending}
-              data-testid="button-save"
             >
               {updateMutation.isPending ? (
                 <Loader2 className="w-5 h-5 animate-spin" />
               ) : (
-                <>
-                  <Save className="w-4 h-4 ml-2" />
-                  {t("childProfile.save")}
-                </>
+                <span className="flex items-center gap-2">
+                  <Save className="w-5 h-5" />
+                  {isRTL ? "حفظ التعديلات" : "Save Changes"}
+                </span>
               )}
             </Button>
-          </div>
+          </motion.div>
         </form>
       </main>
     </div>

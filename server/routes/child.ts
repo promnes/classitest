@@ -350,6 +350,93 @@ export async function registerChildRoutes(app: Express) {
     }
   });
 
+  // Update Child Profile
+  app.put("/api/child/profile", authMiddleware, async (req: any, res) => {
+    try {
+      const childId = req.user.childId;
+      const { name, birthday, schoolName, academicGrade, hobbies } = req.body;
+
+      if (!name || name.trim().length < 2) {
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "الاسم مطلوب (حرفين على الأقل)"));
+      }
+
+      const updateData: Record<string, any> = {
+        name: name.trim(),
+        schoolName: schoolName?.trim() || null,
+        academicGrade: academicGrade?.trim() || null,
+        hobbies: hobbies?.trim() || null,
+      };
+
+      if (birthday) {
+        updateData.birthday = new Date(birthday);
+      }
+
+      await db.update(children).set(updateData).where(eq(children.id, childId));
+
+      res.json(successResponse({ updated: true }, "تم تحديث الملف الشخصي بنجاح"));
+    } catch (error: any) {
+      console.error("Update child profile error:", error);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "فشل تحديث الملف الشخصي"));
+    }
+  });
+
+  // Upload Child Avatar
+  app.post("/api/child/avatar", authMiddleware, async (req: any, res) => {
+    try {
+      const multer = await import("multer");
+      const path = await import("path");
+      const fs = await import("fs");
+
+      const uploadDir = path.join(process.cwd(), "uploads", "avatars");
+      if (!fs.existsSync(uploadDir)) {
+        fs.mkdirSync(uploadDir, { recursive: true });
+      }
+
+      const multerStorage = multer.default.diskStorage({
+        destination: (_req: any, _file: any, cb: any) => {
+          cb(null, uploadDir);
+        },
+        filename: (_req: any, file: any, cb: any) => {
+          const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+          cb(null, uniqueSuffix + path.extname(file.originalname));
+        },
+      });
+
+      const upload = multer.default({
+        storage: multerStorage,
+        limits: { fileSize: 3 * 1024 * 1024 },
+        fileFilter: (_req: any, file: any, cb: any) => {
+          const allowed = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+          if (allowed.includes(file.mimetype)) {
+            cb(null, true);
+          } else {
+            cb(new Error("نوع الملف غير مدعوم. يُسمح بـ JPG, PNG, WebP, GIF فقط"));
+          }
+        },
+      }).single("avatar");
+
+      upload(req, res, async (err: any) => {
+        if (err) {
+          console.error("Avatar upload error:", err);
+          return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, err.message || "فشل رفع الصورة"));
+        }
+
+        if (!req.file) {
+          return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "لم يتم اختيار صورة"));
+        }
+
+        const avatarUrl = `/uploads/avatars/${req.file.filename}`;
+
+        await db.update(children).set({ avatarUrl }).where(eq(children.id, req.user.childId));
+
+        res.json(successResponse({ avatarUrl }, "تم رفع الصورة الشخصية بنجاح"));
+      });
+    } catch (error: any) {
+      console.error("Avatar upload error:", error);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "فشل رفع الصورة"));
+    }
+  });
+
   // Get Child Progress and Stats
   app.get("/api/child/progress", authMiddleware, async (req: any, res) => {
     try {

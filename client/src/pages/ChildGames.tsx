@@ -7,9 +7,10 @@ import { LanguageSelector } from "@/components/LanguageSelector";
 import { GrowthTree } from "@/components/GrowthTree";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useChildAuth } from "@/hooks/useChildAuth";
-import { Gamepad2, Star, Gift, Bell, ShoppingBag, X, Trophy, Play, BookOpen, TrendingUp, LogOut, TreePine, Settings } from "lucide-react";
+import { Gamepad2, Star, Gift, Bell, ShoppingBag, X, Trophy, Play, BookOpen, TrendingUp, LogOut, TreePine, Settings, User } from "lucide-react";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface Game {
   id: string;
@@ -106,16 +107,25 @@ export const ChildGames = (): JSX.Element => {
       
       <div className="max-w-6xl mx-auto mb-8 flex flex-wrap justify-between items-center gap-4">
         <div className="flex items-center gap-4">
-          <Gamepad2 className="w-10 h-10 text-white" />
+          <div className="cursor-pointer" onClick={() => navigate("/child-profile")}>
+            <Avatar className={`w-12 h-12 border-2 ${isDark ? "border-purple-300" : "border-white/70"} shadow-lg`}>
+              <AvatarImage src={childInfo?.avatarUrl || undefined} className="object-cover" />
+              <AvatarFallback className="bg-gradient-to-br from-yellow-400 to-orange-500 text-white text-lg font-bold">
+                {childInfo?.name?.charAt(0) || "؟"}
+              </AvatarFallback>
+            </Avatar>
+          </div>
           <div>
-            <h1 className="text-3xl font-bold text-white">{t("educationalGames")}</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-white">
+              {isRTL ? `مرحباً ${childInfo?.name || ""} 👋` : `Hi ${childInfo?.name || ""} 👋`}
+            </h1>
             <p className="text-white text-opacity-80 flex items-center gap-2">
               <Star className="w-5 h-5 text-yellow-400" />
               {t("pointsLabel")} {childInfo?.totalPoints || 0}
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-3 flex-wrap">
+        <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
           <LanguageSelector />
           <PWAInstallButton 
             variant="outline" 
@@ -144,7 +154,7 @@ export const ChildGames = (): JSX.Element => {
           </button>
           <button
             onClick={() => navigate("/child-store")}
-            className="px-6 py-3 bg-pink-500 hover:bg-pink-600 text-white font-bold rounded-xl shadow-lg transition-all flex items-center gap-2"
+            className="px-4 py-3 bg-pink-500 hover:bg-pink-600 text-white font-bold rounded-xl shadow-lg transition-all flex items-center gap-2"
             data-testid="button-child-store"
           >
             <ShoppingBag className="w-5 h-5" />
