@@ -1,23 +1,159 @@
-import React from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { useLocation } from "wouter";
 import { useTheme } from "@/contexts/ThemeContext";
 import { LanguageSelector } from "@/components/LanguageSelector";
 import { PWAInstallButton } from "@/components/PWAInstallButton";
 import { useQuery } from "@tanstack/react-query";
+import { ExternalLink, ChevronLeft, ChevronRight, Megaphone } from "lucide-react";
 
-const PAYMENT_TYPE_LABELS: Record<string, { label: string; emoji: string }> = {
-  bank_transfer: { label: "تحويل بنكي", emoji: "🏦" },
-  vodafone_cash: { label: "فودافون كاش", emoji: "📱" },
-  orange_money: { label: "أورنج موني", emoji: "🟠" },
-  etisalat_cash: { label: "اتصالات موني", emoji: "🟣" },
-  we_pay: { label: "وي باي", emoji: "💳" },
-  instapay: { label: "إنستاباي", emoji: "⚡" },
-  fawry: { label: "فوري", emoji: "🎫" },
-  mobile_wallet: { label: "محفظة إلكترونية", emoji: "📲" },
-  credit_card: { label: "بطاقة ائتمان", emoji: "💳" },
-  other: { label: "أخرى", emoji: "💰" },
-};
+// ===== Home Ads Carousel (public, no auth) =====
+function HomeAdsCarousel({ isDark }: { isDark: boolean }) {
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  const { data: adsData } = useQuery<any[]>({
+    queryKey: ["/api/ads", "all"],
+    queryFn: async () => {
+      const res = await fetch("/api/ads?audience=all");
+      if (!res.ok) return [];
+      const json = await res.json();
+      return json.data || [];
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const adsList = Array.isArray(adsData) ? adsData : [];
+
+  // Auto-rotate every 5s
+  useEffect(() => {
+    if (adsList.length <= 1) return;
+    const timer = setInterval(() => {
+      setCurrentIndex((prev) => (prev + 1) % adsList.length);
+    }, 5000);
+    return () => clearInterval(timer);
+  }, [adsList.length]);
+
+  // Track view
+  useEffect(() => {
+    const ad = adsList[currentIndex];
+    if (ad) {
+      fetch(`/api/ads/${ad.id}/view`, { method: "POST" }).catch(() => {});
+    }
+  }, [currentIndex, adsList]);
+
+  const handleClick = useCallback((ad: any) => {
+    fetch(`/api/ads/${ad.id}/click`, { method: "POST" }).catch(() => {});
+    if (ad.linkUrl) {
+      window.open(ad.linkUrl, "_blank", "noopener,noreferrer");
+    }
+  }, []);
+
+  const goNext = useCallback(() => {
+    setCurrentIndex((prev) => (prev + 1) % adsList.length);
+  }, [adsList.length]);
+
+  const goPrev = useCallback(() => {
+    setCurrentIndex((prev) => (prev - 1 + adsList.length) % adsList.length);
+  }, [adsList.length]);
+
+  if (adsList.length === 0) return null;
+
+  const currentAd = adsList[currentIndex];
+
+  return (
+    <section className={`px-4 py-10 ${isDark ? "bg-gray-800/50" : "bg-white/10"}`}>
+      <div className="max-w-4xl mx-auto">
+        {/* Header */}
+        <div className="flex items-center justify-center gap-2 mb-6">
+          <div className={`flex h-9 w-9 items-center justify-center rounded-xl ${isDark ? "bg-amber-500/20" : "bg-white/20"}`}>
+            <Megaphone className={`h-5 w-5 ${isDark ? "text-amber-400" : "text-yellow-300"}`} />
+          </div>
+          <h2 className="text-2xl font-bold text-white">إعلانات</h2>
+          {adsList.length > 1 && (
+            <span className="text-xs px-2 py-0.5 rounded-full bg-white/15 text-white/70 mr-2">
+              {currentIndex + 1}/{adsList.length}
+            </span>
+          )}
+        </div>
+
+        {/* Card */}
+        <div
+          className={`relative rounded-2xl overflow-hidden shadow-2xl cursor-pointer group ring-1 ${isDark ? "bg-gray-800 ring-gray-700" : "bg-white/90 backdrop-blur ring-white/20"}`}
+          onClick={() => handleClick(currentAd)}
+        >
+          {currentAd.imageUrl ? (
+            <div className="relative">
+              <img
+                src={currentAd.imageUrl}
+                alt={currentAd.title}
+                className="w-full h-48 sm:h-60 object-cover transition-transform duration-500 group-hover:scale-[1.02]"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+              <div className="absolute bottom-0 inset-x-0 p-6">
+                <h3 className="text-white font-bold text-xl leading-tight drop-shadow-md">{currentAd.title}</h3>
+                <p className="text-white/80 text-sm mt-1.5 line-clamp-2">{currentAd.content}</p>
+                {currentAd.linkUrl && (
+                  <div className="flex items-center gap-1.5 mt-2 text-white/60 text-xs">
+                    <ExternalLink className="h-3 w-3" />
+                    <span>عرض التفاصيل</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className={`p-8 ${isDark ? "" : ""}`}>
+              <h3 className={`font-bold text-xl ${isDark ? "text-white" : "text-gray-900"}`}>{currentAd.title}</h3>
+              <p className={`text-sm mt-2 leading-relaxed line-clamp-3 ${isDark ? "text-gray-400" : "text-gray-600"}`}>
+                {currentAd.content}
+              </p>
+              {currentAd.linkUrl && (
+                <div className={`flex items-center gap-1.5 mt-3 text-xs ${isDark ? "text-blue-400" : "text-blue-600"}`}>
+                  <ExternalLink className="h-3 w-3" />
+                  <span>عرض التفاصيل</span>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Nav Arrows */}
+          {adsList.length > 1 && (
+            <>
+              <button
+                onClick={(e) => { e.stopPropagation(); goPrev(); }}
+                className="absolute left-2 top-1/2 -translate-y-1/2 flex h-9 w-9 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/60"
+              >
+                <ChevronLeft className="h-5 w-5" />
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); goNext(); }}
+                className="absolute right-2 top-1/2 -translate-y-1/2 flex h-9 w-9 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/60"
+              >
+                <ChevronRight className="h-5 w-5" />
+              </button>
+            </>
+          )}
+        </div>
+
+        {/* Dots */}
+        {adsList.length > 1 && (
+          <div className="flex items-center justify-center gap-1.5 mt-4">
+            {adsList.map((_: any, i: number) => (
+              <button
+                key={i}
+                onClick={() => setCurrentIndex(i)}
+                className={`h-2 rounded-full transition-all duration-300 ${
+                  i === currentIndex
+                    ? "w-7 bg-yellow-400"
+                    : "w-2 bg-white/30 hover:bg-white/50"
+                }`}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
 
 export const Home = (): JSX.Element => {
   const { t } = useTranslation();
@@ -27,20 +163,6 @@ export const Home = (): JSX.Element => {
   const parentAuthPath = libraryRef
     ? `/parent-auth?libraryRef=${encodeURIComponent(libraryRef)}`
     : "/parent-auth";
-
-  // Fetch public payment methods (no auth required)
-  const { data: paymentMethodsRaw } = useQuery({
-    queryKey: ["/api/public/payment-methods"],
-    queryFn: async () => {
-      const res = await fetch("/api/public/payment-methods");
-      if (!res.ok) return [];
-      const json = await res.json();
-      return json?.data || [];
-    },
-    staleTime: 60000, // cache 1 minute
-  });
-
-  const paymentMethods = Array.isArray(paymentMethodsRaw) ? paymentMethodsRaw : [];
 
   return (
     <div className={`min-h-screen flex flex-col ${
@@ -154,58 +276,8 @@ export const Home = (): JSX.Element => {
         </div>
       </main>
 
-      {/* Public Payment Methods Section */}
-      {paymentMethods.length > 0 && (
-        <section className={`px-4 py-12 ${isDark ? "bg-gray-800/50" : "bg-white/10"}`}>
-          <div className="max-w-4xl mx-auto">
-            <h2 className={`text-3xl font-bold text-center mb-2 ${isDark ? "text-white" : "text-white"}`}>
-              💳 وسائل الدفع المتاحة
-            </h2>
-            <p className={`text-center mb-8 ${isDark ? "text-gray-400" : "text-purple-200"}`}>
-              يمكنك إيداع الأموال عبر أي من الوسائل التالية بعد تسجيل الدخول
-            </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {paymentMethods.map((method: any) => {
-                const typeInfo = PAYMENT_TYPE_LABELS[method.type] || { label: method.type, emoji: "💰" };
-                return (
-                  <div
-                    key={method.id}
-                    className={`rounded-xl p-5 shadow-lg border-2 transition-transform hover:-translate-y-1 ${
-                      isDark 
-                        ? "bg-gray-800 border-gray-700 hover:border-purple-500" 
-                        : "bg-white/90 backdrop-blur border-purple-200 hover:border-purple-400"
-                    }`}
-                  >
-                    <div className="flex items-center gap-3 mb-3">
-                      <span className="text-3xl">{typeInfo.emoji}</span>
-                      <div>
-                        <span className={`font-bold text-lg ${isDark ? "text-white" : "text-gray-800"}`}>
-                          {typeInfo.label}
-                        </span>
-                        {method.isDefault && (
-                          <span className="block text-xs text-yellow-600 font-semibold">★ موصى به</span>
-                        )}
-                      </div>
-                    </div>
-                    <div className={`space-y-1 text-sm ${isDark ? "text-gray-300" : "text-gray-700"}`}>
-                      {method.bankName && (
-                        <p>🏦 <strong>البنك:</strong> {method.bankName}</p>
-                      )}
-                      <p>🔢 <strong>رقم الحساب:</strong> <span className="font-mono">{method.accountNumber}</span></p>
-                      {method.accountName && (
-                        <p>👤 <strong>باسم:</strong> {method.accountName}</p>
-                      )}
-                      {method.phoneNumber && (
-                        <p>📞 <strong>الهاتف:</strong> <span className="font-mono">{method.phoneNumber}</span></p>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </section>
-      )}
+      {/* Ads Section */}
+      <HomeAdsCarousel isDark={isDark} />
 
       {/* Footer */}
       <footer className={`text-center py-6 ${isDark ? "text-gray-300" : "text-purple-100"}`}>
