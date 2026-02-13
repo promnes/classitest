@@ -69,14 +69,14 @@ function ChildReportCard({ child, token, isDark, t }: { child: any; token: strin
           <div className={`h-12 w-12 rounded-full flex items-center justify-center text-xl font-bold ${
             isDark ? "bg-blue-900 text-blue-300" : "bg-blue-100 text-blue-600"
           }`}>
-            {child.displayName?.charAt(0) || "👤"}
+            {child.name?.charAt(0) || "👤"}
           </div>
           <div>
             <h3 className={`font-bold ${isDark ? "text-white" : "text-gray-800"}`}>
-              {child.displayName}
+              {child.name}
             </h3>
             <p className={`text-sm ${isDark ? "text-gray-400" : "text-gray-500"}`}>
-              {child.points || 0} {t('parentDashboard.points')} • {t('parentDashboard.level')} {child.level || 1}
+              {child.totalPoints || 0} {t('parentDashboard.points')} • {t('parentDashboard.level')} {child.level || 1}
             </p>
           </div>
         </div>
@@ -1059,7 +1059,7 @@ export const ParentDashboard = (): JSX.Element => {
                   <option value="all">{t('parentDashboard.allChildren')}</option>
                   {childrenList.map((child: any) => (
                     <option key={child.id} value={String(child.id)}>
-                      {child.displayName || child.username}
+                      {child.name}
                     </option>
                   ))}
                 </select>
