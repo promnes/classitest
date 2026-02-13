@@ -146,7 +146,7 @@ export async function registerStoreRoutes(app: Express) {
           createdAt: products.createdAt,
         })
         .from(products)
-        .where(eq(products.isActive, true));
+        .where(and(eq(products.isActive, true), isNull(products.parentId)));
       
       // Map regular products to StoreProduct format with discount info
       const mappedRegularProducts: StoreProduct[] = regularProducts.map((p: typeof regularProducts[number]) => ({
@@ -457,7 +457,7 @@ export async function registerStoreRoutes(app: Express) {
                 productType: "physical",
                 brand: item.libraryProduct.libraryName,
                 isFeatured: false,
-                isActive: true,
+                isActive: false,
               })
               .returning();
 

@@ -499,7 +499,7 @@ export async function registerParentRoutes(app: Express) {
   // ===== Store Core: List Products with Price Tiers =====
   app.get("/api/parent/store/products", authMiddleware, async (_req: any, res) => {
     try {
-      const productList = await db.select().from(products);
+      const productList = await db.select().from(products).where(isNull(products.parentId));
       const tierList = await db.select().from(priceTiers);
 
       const tiersByProduct: Record<string, (typeof priceTiers.$inferSelect)[]> = {};
@@ -1544,18 +1544,6 @@ export async function registerParentRoutes(app: Express) {
     } catch (error: any) {
       console.error("Purchase error:", error);
       res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "فشل في إتمام الشراء"));
-    }
-  });
-
-  // List store products (global/admin products)
-  app.get("/api/parent/store/products", authMiddleware, async (req: any, res) => {
-    try {
-      // products where parent_id IS NULL (global store items)
-      const result = await db.select().from(products).where(sql`parent_id IS NULL`);
-      res.json({ success: true, data: result });
-    } catch (error: any) {
-      console.error("Fetch store products error:", error);
-      res.status(500).json({ message: "Failed to fetch store products" });
     }
   });
 

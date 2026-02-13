@@ -988,7 +988,7 @@ export async function registerChildRoutes(app: Express) {
             productType: "physical",
             brand: libraryProduct[0].libraryName,
             isFeatured: false,
-            isActive: true,
+            isActive: false,
           })
           .returning();
 
