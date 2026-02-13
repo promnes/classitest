@@ -77,6 +77,7 @@ export function AnnualReportChart({ childId, isParentView = false }: AnnualRepor
   }
 
   const { monthlyData, yearlyTotals, growthTree } = data.data;
+  const safeTotals = yearlyTotals || { totalTasks: 0, totalPoints: 0 };
 
   const chartData = monthlyData.map((m) => ({
     name: m.monthName,
@@ -178,7 +179,7 @@ export function AnnualReportChart({ childId, isParentView = false }: AnnualRepor
                   {t("yearlyTotal")} - {t("tasksCompleted")}
                 </span>
               </div>
-              <p className="text-3xl font-bold text-green-600">{yearlyTotals.totalTasks}</p>
+              <p className="text-3xl font-bold text-green-600">{safeTotals.totalTasks}</p>
             </div>
             <div className={`p-4 rounded-xl ${isDark ? "bg-gray-700" : "bg-purple-50"}`}>
               <div className="flex items-center gap-2 mb-2">
@@ -187,7 +188,7 @@ export function AnnualReportChart({ childId, isParentView = false }: AnnualRepor
                   {t("yearlyTotal")} - {t("points")}
                 </span>
               </div>
-              <p className="text-3xl font-bold text-purple-600">{yearlyTotals.totalPoints}</p>
+              <p className="text-3xl font-bold text-purple-600">{safeTotals.totalPoints}</p>
             </div>
           </div>
 

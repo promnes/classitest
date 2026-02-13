@@ -2191,10 +2191,8 @@ export async function registerParentRoutes(app: Express) {
         data: {
           child: {
             id: child[0].id,
-            displayName: child[0].displayName,
-            points: child[0].points || 0,
+            name: child[0].name,
             totalPoints: child[0].totalPoints || 0,
-            level: child[0].level || 1,
           },
           period,
           startDate: startDate.toISOString(),

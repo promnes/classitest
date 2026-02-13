@@ -2347,7 +2347,7 @@ export async function registerChildRoutes(app: Express) {
   // Parent endpoint: Get child's annual report
   app.get("/api/parent/children/:childId/annual-report", authMiddleware, async (req: any, res) => {
     try {
-      const parentId = req.user.parentId;
+      const parentId = req.user.userId;
       const { childId } = req.params;
       const year = parseInt(req.query.year as string) || new Date().getFullYear();
 
@@ -2395,6 +2395,17 @@ export async function registerChildRoutes(app: Express) {
         });
       }
 
+      // Get yearly totals
+      const yearlyTotals = await db.select({
+        totalTasks: sql<number>`count(*)`,
+        totalPoints: sql<number>`COALESCE(SUM(${taskResults.pointsEarned}), 0)`
+      })
+        .from(taskResults)
+        .where(and(
+          eq(taskResults.childId, childId),
+          sql`EXTRACT(YEAR FROM ${taskResults.completedAt}) = ${year}`
+        ));
+
       // Get child's growth tree
       const tree = await db.select().from(childGrowthTrees).where(eq(childGrowthTrees.childId, childId));
 
@@ -2403,6 +2414,10 @@ export async function registerChildRoutes(app: Express) {
         data: {
           year,
           monthlyData,
+          yearlyTotals: {
+            totalTasks: Number(yearlyTotals[0]?.totalTasks || 0),
+            totalPoints: Number(yearlyTotals[0]?.totalPoints || 0),
+          },
           growthTree: tree[0] || null,
         }
       });
