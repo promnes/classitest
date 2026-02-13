@@ -29,6 +29,8 @@ import {
   childLoginRequests,
   libraryProducts,
   libraries,
+  childGameAssignments,
+  gamePlayHistory,
 } from "../../shared/schema";
 import bcrypt from "bcrypt";
 import crypto from "crypto";
@@ -678,14 +680,118 @@ export async function registerChildRoutes(app: Express) {
     }
   });
 
-  // Get Games
-  app.get("/api/games", async (req, res) => {
+  // Get Games — filtered by child assignments (assigned games + unassigned global games)
+  app.get("/api/games", async (req: any, res) => {
     try {
-      const result = await db.select().from(flashGames).where(eq(flashGames.isActive, true));
-      res.json(result);
+      // Try to get child from token
+      let childId: string | null = null;
+      const authHeader = req.headers.authorization;
+      if (authHeader?.startsWith("Bearer ")) {
+        try {
+          const decoded: any = jwt.verify(authHeader.split(" ")[1], JWT_SECRET);
+          if (decoded.childId) childId = decoded.childId;
+        } catch {}
+      }
+
+      const allActiveGames = await db.select().from(flashGames).where(eq(flashGames.isActive, true));
+
+      if (!childId) {
+        // No auth — return all active games
+        return res.json(allActiveGames);
+      }
+
+      // Check if this child has ANY assignments
+      const assignments = await db.select().from(childGameAssignments)
+        .where(and(eq(childGameAssignments.childId, childId), eq(childGameAssignments.isActive, true)));
+
+      if (assignments.length === 0) {
+        // No assignments exist → return all active games (backwards compatible)
+        return res.json(allActiveGames);
+      }
+
+      // Child has assignments → return only assigned games
+      const assignedGameIds = new Set(assignments.map(a => a.gameId));
+      const filteredGames = allActiveGames.filter(g => assignedGameIds.has(g.id));
+      return res.json(filteredGames);
     } catch (error: any) {
       console.error("Fetch games error:", error);
       res.status(500).json({ message: "Failed to fetch games" });
+    }
+  });
+
+  // Complete Game — award points, record play history, update growth tree
+  app.post("/api/child/complete-game", authMiddleware, async (req: any, res) => {
+    try {
+      const childId = req.user.childId;
+      const { gameId } = req.body;
+
+      if (!gameId) {
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "gameId is required"));
+      }
+
+      // Verify game exists and is active
+      const [game] = await db.select().from(flashGames).where(and(eq(flashGames.id, gameId), eq(flashGames.isActive, true)));
+      if (!game) {
+        return res.status(404).json(errorResponse(ErrorCode.NOT_FOUND, "Game not found or inactive"));
+      }
+
+      // Check daily play limit
+      const effectiveMaxPlays = game.maxPlaysPerDay; // game-level default
+      
+      // Check child-specific assignment limit
+      const [assignment] = await db.select().from(childGameAssignments)
+        .where(and(eq(childGameAssignments.childId, childId), eq(childGameAssignments.gameId, gameId)));
+      
+      const maxPlays = (assignment?.maxPlaysPerDay && assignment.maxPlaysPerDay > 0)
+        ? assignment.maxPlaysPerDay
+        : effectiveMaxPlays;
+
+      if (maxPlays > 0) {
+        const todayStart = new Date();
+        todayStart.setHours(0, 0, 0, 0);
+        
+        const todayPlays = await db.select({ count: sql<number>`count(*)` })
+          .from(gamePlayHistory)
+          .where(and(
+            eq(gamePlayHistory.childId, childId),
+            eq(gamePlayHistory.gameId, gameId),
+            sql`${gamePlayHistory.playedAt} >= ${todayStart}`
+          ));
+        
+        if (Number(todayPlays[0]?.count || 0) >= maxPlays) {
+          return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Daily play limit reached for this game"));
+        }
+      }
+
+      // Award points via transaction
+      const result = await db.transaction(async (tx) => {
+        const { newTotalPoints } = await applyPointsDelta(tx, {
+          childId,
+          delta: game.pointsPerPlay,
+          reason: "GAME_COMPLETED",
+          requestId: `game-${gameId}-${Date.now()}`,
+        });
+
+        // Record play history
+        await tx.insert(gamePlayHistory).values({
+          childId,
+          gameId,
+          pointsEarned: game.pointsPerPlay,
+        });
+
+        return { newTotalPoints };
+      });
+
+      // Update growth tree (outside transaction, non-blocking)
+      recordGrowthEvent(childId, "game_played", 3, { gameId, title: game.title }).catch(() => {});
+
+      res.json(successResponse({
+        pointsEarned: game.pointsPerPlay,
+        newTotalPoints: result.newTotalPoints,
+      }, "Game completed successfully"));
+    } catch (error: any) {
+      console.error("Complete game error:", error);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to complete game"));
     }
   });
 

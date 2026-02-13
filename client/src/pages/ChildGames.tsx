@@ -35,7 +35,9 @@ export const ChildGames = (): JSX.Element => {
   const { data: games, isLoading } = useQuery<Game[]>({
     queryKey: ["games"],
     queryFn: async () => {
-      const res = await fetch("/api/games");
+      const headers: Record<string, string> = {};
+      if (token) headers.Authorization = `Bearer ${token}`;
+      const res = await fetch("/api/games", { headers });
       return res.json();
     },
   });
@@ -79,7 +81,8 @@ export const ChildGames = (): JSX.Element => {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["child-info"] });
-      setShowReward({ points: data.pointsEarned, total: data.newTotalPoints });
+      const d = data?.data || data;
+      setShowReward({ points: d.pointsEarned, total: d.newTotalPoints });
       setSelectedGame(null);
       setTimeout(() => setShowReward(null), 3000);
     },

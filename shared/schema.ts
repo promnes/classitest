@@ -357,9 +357,35 @@ export const flashGames = pgTable("flash_games", {
   description: text("description"),
   embedUrl: text("embed_url").notNull(),
   thumbnailUrl: text("thumbnail_url"),
+  category: varchar("category", { length: 50 }).default("general").notNull(),
+  minAge: integer("min_age"),
+  maxAge: integer("max_age"),
   pointsPerPlay: integer("points_per_play").default(5).notNull(),
+  maxPlaysPerDay: integer("max_plays_per_day").default(0).notNull(), // 0 = unlimited
   isActive: boolean("is_active").default(true).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// ===== Child Game Assignments =====
+export const childGameAssignments = pgTable("child_game_assignments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  childId: varchar("child_id").notNull().references(() => children.id, { onDelete: "cascade" }),
+  gameId: varchar("game_id").notNull().references(() => flashGames.id, { onDelete: "cascade" }),
+  maxPlaysPerDay: integer("max_plays_per_day").default(0).notNull(), // 0 = use game default
+  isActive: boolean("is_active").default(true).notNull(),
+  assignedBy: varchar("assigned_by").notNull(), // admin id
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  uniqueChildGame: sql`UNIQUE (${table.childId}, ${table.gameId})`,
+}));
+
+// ===== Game Play History =====
+export const gamePlayHistory = pgTable("game_play_history", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  childId: varchar("child_id").notNull().references(() => children.id, { onDelete: "cascade" }),
+  gameId: varchar("game_id").notNull().references(() => flashGames.id, { onDelete: "cascade" }),
+  pointsEarned: integer("points_earned").default(0).notNull(),
+  playedAt: timestamp("played_at").defaultNow().notNull(),
 });
 
 export const pointsHistory = pgTable("points_history", {

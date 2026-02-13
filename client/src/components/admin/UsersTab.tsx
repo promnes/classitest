@@ -1,5 +1,7 @@
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { Gamepad2 } from "lucide-react";
+import { ChildGameManager } from "./ChildGameManager";
 
 interface ParentData {
   id: string;
@@ -29,6 +31,7 @@ interface ChildData {
 
 export function UsersTab({ token }: { token: string }) {
   const [searchTerm, setSearchTerm] = useState("");
+  const [gameManagerChild, setGameManagerChild] = useState<{ id: string; name: string } | null>(null);
 
   const { data: children, isLoading } = useQuery({
     queryKey: ["admin-children"],
@@ -79,6 +82,7 @@ export function UsersTab({ token }: { token: string }) {
               <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Points</th>
               <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Tasks</th>
               <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Joined</th>
+              <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Games</th>
             </tr>
           </thead>
           <tbody>
@@ -110,6 +114,15 @@ export function UsersTab({ token }: { token: string }) {
                 <td className="px-6 py-4 text-sm text-gray-600">
                   {new Date(child.createdAt).toLocaleDateString()}
                 </td>
+                <td className="px-6 py-4 text-sm">
+                  <button
+                    onClick={() => setGameManagerChild({ id: child.id, name: child.name })}
+                    className="flex items-center gap-1 px-3 py-1.5 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition text-xs font-medium"
+                  >
+                    <Gamepad2 className="w-4 h-4" />
+                    إدارة الألعاب
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>
@@ -120,6 +133,16 @@ export function UsersTab({ token }: { token: string }) {
           </div>
         )}
       </div>
+
+      {/* Game Manager Dialog */}
+      {gameManagerChild && (
+        <ChildGameManager
+          childId={gameManagerChild.id}
+          childName={gameManagerChild.name}
+          token={token}
+          onClose={() => setGameManagerChild(null)}
+        />
+      )}
     </div>
   );
 }

@@ -49,6 +49,8 @@ import {
   parentSocialIdentities,
   otpProviders,
   siteSettings,
+  childGameAssignments,
+  gamePlayHistory,
 } from "../../shared/schema";
 import { createNotification } from "../notifications";
 import { emitGiftEvent } from "../giftEvents";
@@ -1995,7 +1997,7 @@ export async function registerAdminRoutes(app: Express) {
   // Create a new game
   app.post("/api/admin/games", adminMiddleware, async (req: any, res) => {
     try {
-      const { title, description, embedUrl, thumbnailUrl, pointsPerPlay } = req.body;
+      const { title, description, embedUrl, thumbnailUrl, pointsPerPlay, category, minAge, maxAge, maxPlaysPerDay } = req.body;
       
       if (!title || !embedUrl) {
         return res
@@ -2009,6 +2011,10 @@ export async function registerAdminRoutes(app: Express) {
         embedUrl,
         thumbnailUrl: thumbnailUrl || null,
         pointsPerPlay: pointsPerPlay || 5,
+        category: category || "general",
+        minAge: minAge || null,
+        maxAge: maxAge || null,
+        maxPlaysPerDay: maxPlaysPerDay || 0,
         isActive: true,
       }).returning();
 
@@ -2033,17 +2039,22 @@ export async function registerAdminRoutes(app: Express) {
   app.put("/api/admin/games/:id", adminMiddleware, async (req: any, res) => {
     try {
       const { id } = req.params;
-      const { title, description, embedUrl, thumbnailUrl, pointsPerPlay, isActive } = req.body;
+      const { title, description, embedUrl, thumbnailUrl, pointsPerPlay, isActive, category, minAge, maxAge, maxPlaysPerDay } = req.body;
+
+      const updateData: Record<string, any> = {};
+      if (title !== undefined) updateData.title = title;
+      if (description !== undefined) updateData.description = description;
+      if (embedUrl !== undefined) updateData.embedUrl = embedUrl;
+      if (thumbnailUrl !== undefined) updateData.thumbnailUrl = thumbnailUrl;
+      if (pointsPerPlay !== undefined) updateData.pointsPerPlay = pointsPerPlay;
+      if (isActive !== undefined) updateData.isActive = isActive;
+      if (category !== undefined) updateData.category = category;
+      if (minAge !== undefined) updateData.minAge = minAge;
+      if (maxAge !== undefined) updateData.maxAge = maxAge;
+      if (maxPlaysPerDay !== undefined) updateData.maxPlaysPerDay = maxPlaysPerDay;
 
       const [game] = await db.update(flashGames)
-        .set({
-          title,
-          description,
-          embedUrl,
-          thumbnailUrl,
-          pointsPerPlay,
-          isActive,
-        })
+        .set(updateData)
         .where(eq(flashGames.id, id))
         .returning();
 
@@ -2118,6 +2129,194 @@ export async function registerAdminRoutes(app: Express) {
       res
         .status(500)
         .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to toggle game"));
+    }
+  });
+
+  // ================= CHILD-GAME ASSIGNMENTS =================
+
+  // Get games assigned to a specific child
+  app.get("/api/admin/children/:childId/games", adminMiddleware, async (req: any, res) => {
+    try {
+      const { childId } = req.params;
+      const child = await db.select().from(children).where(eq(children.id, childId));
+      if (!child[0]) {
+        return res.status(404).json(errorResponse(ErrorCode.NOT_FOUND, "Child not found"));
+      }
+
+      const assignments = await db.select({
+        id: childGameAssignments.id,
+        childId: childGameAssignments.childId,
+        gameId: childGameAssignments.gameId,
+        maxPlaysPerDay: childGameAssignments.maxPlaysPerDay,
+        isActive: childGameAssignments.isActive,
+        assignedBy: childGameAssignments.assignedBy,
+        createdAt: childGameAssignments.createdAt,
+        gameTitle: flashGames.title,
+        gameThumbnail: flashGames.thumbnailUrl,
+        gameCategory: flashGames.category,
+        gamePointsPerPlay: flashGames.pointsPerPlay,
+        gameIsActive: flashGames.isActive,
+      })
+        .from(childGameAssignments)
+        .innerJoin(flashGames, eq(childGameAssignments.gameId, flashGames.id))
+        .where(eq(childGameAssignments.childId, childId));
+
+      res.json(successResponse(assignments));
+    } catch (error: any) {
+      console.error("Get child games error:", error);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to fetch child games"));
+    }
+  });
+
+  // Assign games to a child (bulk — accepts array of gameIds)
+  app.post("/api/admin/children/:childId/games", adminMiddleware, async (req: any, res) => {
+    try {
+      const { childId } = req.params;
+      const { gameIds, maxPlaysPerDay } = req.body;
+      const adminId = req.admin.adminId;
+
+      if (!gameIds || !Array.isArray(gameIds) || gameIds.length === 0) {
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "gameIds array is required"));
+      }
+
+      const child = await db.select().from(children).where(eq(children.id, childId));
+      if (!child[0]) {
+        return res.status(404).json(errorResponse(ErrorCode.NOT_FOUND, "Child not found"));
+      }
+
+      // Verify all games exist
+      const existingGames = await db.select({ id: flashGames.id }).from(flashGames);
+      const existingIds = new Set(existingGames.map(g => g.id));
+      const invalidIds = gameIds.filter((id: string) => !existingIds.has(id));
+      if (invalidIds.length > 0) {
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, `Invalid game IDs: ${invalidIds.join(", ")}`));
+      }
+
+      // Get existing assignments to avoid duplicates
+      const existing = await db.select({ gameId: childGameAssignments.gameId })
+        .from(childGameAssignments)
+        .where(eq(childGameAssignments.childId, childId));
+      const existingSet = new Set(existing.map(e => e.gameId));
+
+      const newGameIds = gameIds.filter((id: string) => !existingSet.has(id));
+
+      if (newGameIds.length > 0) {
+        await db.insert(childGameAssignments).values(
+          newGameIds.map((gameId: string) => ({
+            childId,
+            gameId,
+            maxPlaysPerDay: maxPlaysPerDay || 0,
+            assignedBy: adminId,
+          }))
+        );
+      }
+
+      await db.insert(activityLog).values({
+        adminId,
+        action: "ASSIGN_GAMES_TO_CHILD",
+        entity: "child",
+        entityId: childId,
+        meta: { gameIds: newGameIds, childName: child[0].name },
+      });
+
+      res.json(successResponse({ assigned: newGameIds.length }, `${newGameIds.length} games assigned`));
+    } catch (error: any) {
+      console.error("Assign games error:", error);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to assign games"));
+    }
+  });
+
+  // Remove a game assignment from a child
+  app.delete("/api/admin/children/:childId/games/:gameId", adminMiddleware, async (req: any, res) => {
+    try {
+      const { childId, gameId } = req.params;
+
+      await db.delete(childGameAssignments)
+        .where(and(eq(childGameAssignments.childId, childId), eq(childGameAssignments.gameId, gameId)));
+
+      await db.insert(activityLog).values({
+        adminId: req.admin.adminId,
+        action: "REMOVE_GAME_FROM_CHILD",
+        entity: "child",
+        entityId: childId,
+        meta: { gameId },
+      });
+
+      res.json(successResponse(undefined, "Game removed from child"));
+    } catch (error: any) {
+      console.error("Remove game assignment error:", error);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to remove game"));
+    }
+  });
+
+  // Update a child's game assignment (max plays per day)
+  app.patch("/api/admin/children/:childId/games/:gameId", adminMiddleware, async (req: any, res) => {
+    try {
+      const { childId, gameId } = req.params;
+      const { maxPlaysPerDay, isActive } = req.body;
+
+      const updateData: Record<string, any> = {};
+      if (maxPlaysPerDay !== undefined) updateData.maxPlaysPerDay = maxPlaysPerDay;
+      if (isActive !== undefined) updateData.isActive = isActive;
+
+      const [updated] = await db.update(childGameAssignments)
+        .set(updateData)
+        .where(and(eq(childGameAssignments.childId, childId), eq(childGameAssignments.gameId, gameId)))
+        .returning();
+
+      if (!updated) {
+        return res.status(404).json(errorResponse(ErrorCode.NOT_FOUND, "Assignment not found"));
+      }
+
+      res.json(successResponse(updated, "Assignment updated"));
+    } catch (error: any) {
+      console.error("Update game assignment error:", error);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to update assignment"));
+    }
+  });
+
+  // Bulk replace all game assignments for a child
+  app.put("/api/admin/children/:childId/games", adminMiddleware, async (req: any, res) => {
+    try {
+      const { childId } = req.params;
+      const { gameIds, maxPlaysPerDay } = req.body;
+      const adminId = req.admin.adminId;
+
+      if (!Array.isArray(gameIds)) {
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "gameIds array is required"));
+      }
+
+      const child = await db.select().from(children).where(eq(children.id, childId));
+      if (!child[0]) {
+        return res.status(404).json(errorResponse(ErrorCode.NOT_FOUND, "Child not found"));
+      }
+
+      // Delete all existing and re-insert
+      await db.delete(childGameAssignments).where(eq(childGameAssignments.childId, childId));
+
+      if (gameIds.length > 0) {
+        await db.insert(childGameAssignments).values(
+          gameIds.map((gameId: string) => ({
+            childId,
+            gameId,
+            maxPlaysPerDay: maxPlaysPerDay || 0,
+            assignedBy: adminId,
+          }))
+        );
+      }
+
+      await db.insert(activityLog).values({
+        adminId,
+        action: "REPLACE_CHILD_GAMES",
+        entity: "child",
+        entityId: childId,
+        meta: { gameIds, childName: child[0].name },
+      });
+
+      res.json(successResponse({ total: gameIds.length }, `Child now has ${gameIds.length} games assigned`));
+    } catch (error: any) {
+      console.error("Replace child games error:", error);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to replace games"));
     }
   });
 
