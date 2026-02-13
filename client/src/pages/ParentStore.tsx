@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { 
@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useTheme } from "@/contexts/ThemeContext";
 
 const categoryIcons: Record<string, any> = {
   Smartphone, Gamepad2, BookOpen, Dumbbell, Shirt, Book, Palette, Gift, Package
@@ -56,8 +57,14 @@ interface CartItem {
 export const ParentStore = (): JSX.Element => {
   const [, navigate] = useLocation();
   const queryClient = useQueryClient();
+  const { isDark } = useTheme();
   const token = localStorage.getItem("token");
   
+  // Read view param from URL
+  const urlParams = new URLSearchParams(window.location.search);
+  const initialView = urlParams.get("view") as "store" | "cart" | "orders" | null;
+  
+  const [activeView, setActiveView] = useState<"store" | "cart" | "orders">(initialView || "store");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState("featured");
@@ -131,6 +138,11 @@ export const ParentStore = (): JSX.Element => {
     enabled: !!token,
   });
 
+  const { data: ordersData, isLoading: loadingOrders } = useQuery({
+    queryKey: ["/api/parent/store/orders"],
+    enabled: !!token && activeView === "orders",
+  });
+
   const checkoutMutation = useMutation({
     mutationFn: async (data: any) => {
       const res = await fetch("/api/store/checkout", {
@@ -174,6 +186,7 @@ export const ParentStore = (): JSX.Element => {
   const paymentMethods = (paymentMethodsData as any)?.data || paymentMethodsData || [];
   const wallet = walletData?.data || walletData;
   const referralCode = new URLSearchParams(window.location.search).get("ref");
+  const ordersList: any[] = Array.isArray(ordersData) ? ordersData : (ordersData as any)?.data || [];
 
   const featuredProducts = useMemo(() => 
     products.filter((p: Product) => p.isFeatured).slice(0, 6), [products]
@@ -241,7 +254,7 @@ export const ParentStore = (): JSX.Element => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50" dir="rtl">
+    <div className={`min-h-screen ${isDark ? "bg-gray-900" : "bg-gray-50"}`} dir="rtl">
       <header className="bg-gradient-to-r from-orange-500 via-orange-600 to-red-500 text-white sticky top-0 z-50 shadow-lg">
         <div className="max-w-7xl mx-auto px-4">
           <div className="flex items-center justify-between py-3">
@@ -264,7 +277,7 @@ export const ParentStore = (): JSX.Element => {
                   placeholder="ابحث عن منتجات..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-12 pr-4 py-2 rounded-lg bg-white text-gray-800 placeholder-gray-500 border-0"
+                  className={`w-full pl-12 pr-4 py-2 rounded-lg border-0 ${isDark ? "bg-gray-700 text-gray-200 placeholder-gray-400" : "bg-white text-gray-800 placeholder-gray-500"}`}
                   data-testid="input-search"
                 />
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -334,9 +347,201 @@ export const ParentStore = (): JSX.Element => {
         </div>
       </header>
 
-      <div className="bg-white border-b shadow-sm py-2">
+      {/* View Tabs */}
+      <div className={`border-b ${isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"} shadow-sm`}>
         <div className="max-w-7xl mx-auto px-4">
-          <div className="flex items-center justify-between gap-4 text-xs text-gray-600">
+          <div className="flex gap-1 py-2">
+            {[
+              { id: "store" as const, label: "🛍️ المتجر", icon: Package },
+              { id: "cart" as const, label: `🛒 السلة (${cart.length})`, icon: ShoppingCart },
+              { id: "orders" as const, label: "📦 طلباتي", icon: Clock },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveView(tab.id)}
+                className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${
+                  activeView === tab.id
+                    ? "bg-orange-500 text-white shadow-md"
+                    : isDark
+                    ? "text-gray-300 hover:bg-gray-700"
+                    : "text-gray-600 hover:bg-gray-100"
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+            <button
+              onClick={() => navigate("/parent-inventory")}
+              className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${
+                isDark ? "text-gray-300 hover:bg-gray-700" : "text-gray-600 hover:bg-gray-100"
+              }`}
+            >
+              📋 مخزوني
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Orders View */}
+      {activeView === "orders" && (
+        <main className="max-w-4xl mx-auto px-4 py-6">
+          <h2 className={`text-xl font-bold mb-4 flex items-center gap-2 ${isDark ? "text-white" : "text-gray-800"}`}>
+            <Package className="w-6 h-6 text-orange-500" />
+            طلباتي
+          </h2>
+          {loadingOrders ? (
+            <div className="flex items-center justify-center py-16">
+              <div className="w-10 h-10 border-4 border-orange-500 border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : ordersList.length === 0 ? (
+            <Card className={isDark ? "bg-gray-800 border-gray-700" : ""}>
+              <CardContent className="text-center py-16">
+                <Package className={`w-16 h-16 mx-auto mb-4 ${isDark ? "text-gray-600" : "text-gray-300"}`} />
+                <h3 className={`text-xl font-bold mb-2 ${isDark ? "text-gray-300" : "text-gray-600"}`}>لا توجد طلبات بعد</h3>
+                <p className={`mb-6 ${isDark ? "text-gray-500" : "text-gray-400"}`}>تصفح المتجر واشترِ منتجات</p>
+                <Button onClick={() => setActiveView("store")} className="bg-orange-500 hover:bg-orange-600">
+                  تصفح المتجر
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-3">
+              {ordersList.map((order: any) => (
+                <Card key={order.id} className={`overflow-hidden ${isDark ? "bg-gray-800 border-gray-700" : ""}`}>
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <div>
+                        <p className={`font-bold ${isDark ? "text-white" : "text-gray-800"}`}>
+                          طلب #{order.id?.slice(0, 8)}
+                        </p>
+                        <p className={`text-sm ${isDark ? "text-gray-400" : "text-gray-500"}`}>
+                          {order.createdAt ? new Date(order.createdAt).toLocaleDateString("ar-EG", { 
+                            year: "numeric", month: "long", day: "numeric" 
+                          }) : ""}
+                        </p>
+                      </div>
+                      <div className="text-left">
+                        <Badge variant={
+                          order.status === "completed" || order.status === "delivered" ? "default" :
+                          order.status === "cancelled" ? "destructive" : "secondary"
+                        }>
+                          {order.status === "completed" || order.status === "delivered" ? "✅ مكتمل" :
+                           order.status === "pending" ? "⏳ قيد المعالجة" :
+                           order.status === "processing" ? "🔄 جاري التجهيز" :
+                           order.status === "shipped" ? "🚚 تم الشحن" :
+                           order.status === "cancelled" ? "❌ ملغي" : order.status}
+                        </Badge>
+                        <p className={`text-lg font-bold mt-1 ${isDark ? "text-orange-400" : "text-orange-600"}`}>
+                          {order.totalAmount} ج.م
+                        </p>
+                      </div>
+                    </div>
+                    {order.shippingAddress && (
+                      <div className={`text-sm flex items-center gap-1 ${isDark ? "text-gray-400" : "text-gray-500"}`}>
+                        <MapPin className="w-3.5 h-3.5" />
+                        {typeof order.shippingAddress === "string" 
+                          ? order.shippingAddress 
+                          : `${order.shippingAddress.city || ""} - ${order.shippingAddress.line1 || ""}`}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </main>
+      )}
+
+      {/* Cart View (inline, not dialog) */}
+      {activeView === "cart" && (
+        <main className="max-w-2xl mx-auto px-4 py-6">
+          <h2 className={`text-xl font-bold mb-4 flex items-center gap-2 ${isDark ? "text-white" : "text-gray-800"}`}>
+            <ShoppingCart className="w-6 h-6 text-orange-500" />
+            سلة التسوق
+          </h2>
+          {cart.length === 0 ? (
+            <Card className={isDark ? "bg-gray-800 border-gray-700" : ""}>
+              <CardContent className="text-center py-16">
+                <ShoppingCart className={`w-16 h-16 mx-auto mb-4 ${isDark ? "text-gray-600" : "text-gray-300"}`} />
+                <h3 className={`text-xl font-bold mb-2 ${isDark ? "text-gray-300" : "text-gray-600"}`}>السلة فارغة</h3>
+                <p className={`mb-6 ${isDark ? "text-gray-500" : "text-gray-400"}`}>أضف منتجات من المتجر</p>
+                <Button onClick={() => setActiveView("store")} className="bg-orange-500 hover:bg-orange-600">
+                  تصفح المتجر
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-3">
+              {cart.map((item) => (
+                <Card key={item.product.id} className={isDark ? "bg-gray-800 border-gray-700" : ""}>
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-4">
+                      <div className={`w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 ${isDark ? "bg-gray-700" : "bg-gray-100"}`}>
+                        {item.product.image ? (
+                          <img src={item.product.image} alt={item.product.name} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <Package className={`w-6 h-6 ${isDark ? "text-gray-500" : "text-gray-300"}`} />
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <h4 className={`font-bold ${isDark ? "text-white" : "text-gray-800"}`}>
+                          {item.product.nameAr || item.product.name}
+                        </h4>
+                        <p className={`text-sm ${isDark ? "text-orange-400" : "text-orange-600"} font-bold`}>
+                          {item.product.price} ج.م
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => updateCartQuantity(item.product.id, item.quantity - 1)}
+                          className={`w-8 h-8 rounded-full flex items-center justify-center ${isDark ? "bg-gray-700 text-white" : "bg-gray-200"}`}
+                        >
+                          <Minus className="w-3 h-3" />
+                        </button>
+                        <span className={`font-bold w-6 text-center ${isDark ? "text-white" : ""}`}>{item.quantity}</span>
+                        <button
+                          onClick={() => updateCartQuantity(item.product.id, item.quantity + 1)}
+                          className={`w-8 h-8 rounded-full flex items-center justify-center ${isDark ? "bg-gray-700 text-white" : "bg-gray-200"}`}
+                        >
+                          <Plus className="w-3 h-3" />
+                        </button>
+                      </div>
+                      <button onClick={() => removeFromCart(item.product.id)} className="text-red-500 hover:text-red-700">
+                        <X className="w-5 h-5" />
+                      </button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+              <Card className={isDark ? "bg-gray-800 border-gray-700" : ""}>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between mb-4">
+                    <span className={`font-bold text-lg ${isDark ? "text-white" : "text-gray-800"}`}>المجموع</span>
+                    <span className="text-xl font-bold text-orange-600">{cartTotal.toFixed(2)} ج.م</span>
+                  </div>
+                  <Button
+                    className="w-full bg-orange-500 hover:bg-orange-600"
+                    onClick={() => setShowCheckout(true)}
+                    disabled={cart.length === 0}
+                  >
+                    <CreditCard className="w-4 h-4 ml-2" />
+                    إتمام الشراء
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+        </main>
+      )}
+
+      {/* Store View */}
+      {activeView === "store" && (
+      <>
+      <div className={`${isDark ? "bg-gray-800 border-gray-700" : "bg-white border-b"} shadow-sm py-2`}>
+        <div className="max-w-7xl mx-auto px-4">
+          <div className={`flex items-center justify-between gap-4 text-xs ${isDark ? "text-gray-400" : "text-gray-600"}`}>
             <div className="flex items-center gap-6">
               <div className="flex items-center gap-2">
                 <Truck className="w-4 h-4 text-green-500" />
@@ -389,7 +594,7 @@ export const ParentStore = (): JSX.Element => {
         {!selectedCategory && !searchQuery && featuredProducts.length > 0 && (
           <section className="mb-8">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+              <h2 className={`text-xl font-bold flex items-center gap-2 ${isDark ? "text-white" : "text-gray-800"}`}>
                 <Sparkles className="w-5 h-5 text-orange-500" />
                 المنتجات المميزة
               </h2>
@@ -406,12 +611,12 @@ export const ParentStore = (): JSX.Element => {
                   }}
                   data-testid={`card-featured-product-${product.id}`}
                 >
-                  <div className="relative aspect-square bg-gray-100 overflow-hidden">
+                  <div className={`relative aspect-square overflow-hidden ${isDark ? "bg-gray-700" : "bg-gray-100"}`}>
                     {product.image ? (
                       <img src={product.image} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
-                        <Package className="w-12 h-12 text-gray-300" />
+                        <Package className={`w-12 h-12 ${isDark ? "text-gray-500" : "text-gray-300"}`} />
                       </div>
                     )}
                     {(product.discountPercent && product.discountPercent > 0) ? (
@@ -430,15 +635,15 @@ export const ParentStore = (): JSX.Element => {
                     )}
                   </div>
                   <CardContent className="p-3">
-                    <p className="text-xs text-gray-500 mb-1">{product.brand || "Classify"}</p>
-                    <h3 className="font-medium text-sm text-gray-800 line-clamp-2 mb-2">{product.nameAr || product.name}</h3>
+                    <p className={`text-xs mb-1 ${isDark ? "text-gray-400" : "text-gray-500"}`}>{product.brand || "Classify"}</p>
+                    <h3 className={`font-medium text-sm line-clamp-2 mb-2 ${isDark ? "text-gray-200" : "text-gray-800"}`}>{product.nameAr || product.name}</h3>
                     <div className="flex items-center gap-1 mb-2">
                       {renderStars(product.rating)}
                       <span className="text-xs text-gray-400">({product.reviewCount || 0})</span>
                     </div>
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-orange-600 font-bold">{product.price} ج.م</p>
+                        <p className={`font-bold ${isDark ? "text-orange-400" : "text-orange-600"}`}>{product.price} ج.م</p>
                         {product.originalPrice && (
                           <p className="text-xs text-gray-400 line-through">{product.originalPrice} ج.م</p>
                         )}
@@ -461,13 +666,13 @@ export const ParentStore = (): JSX.Element => {
 
         <section>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold text-gray-800">
+            <h2 className={`text-xl font-bold ${isDark ? "text-white" : "text-gray-800"}`}>
               {selectedCategory 
                 ? categories.find((c: Category) => c.id === selectedCategory)?.nameAr || "المنتجات"
                 : searchQuery ? `نتائج البحث: "${searchQuery}"` : "جميع المنتجات"
               }
             </h2>
-            <p className="text-sm text-gray-500">{products.length} منتج</p>
+            <p className={`text-sm ${isDark ? "text-gray-400" : "text-gray-500"}`}>{products.length} منتج</p>
           </div>
 
           {loadingProducts ? (
@@ -498,11 +703,11 @@ export const ParentStore = (): JSX.Element => {
                 viewMode === "grid" ? (
                   <Card 
                     key={product.id} 
-                    className="group cursor-pointer hover:shadow-xl transition-all duration-300 overflow-hidden border-0 bg-white"
+                    className={`group cursor-pointer hover:shadow-xl transition-all duration-300 overflow-hidden border-0 ${isDark ? "bg-gray-800" : "bg-white"}`}
                     data-testid={`card-product-${product.id}`}
                   >
                     <div 
-                      className="relative aspect-square bg-gray-100 overflow-hidden"
+                      className={`relative aspect-square overflow-hidden ${isDark ? "bg-gray-700" : "bg-gray-100"}`}
                       onClick={() => {
                         setSelectedProduct(product);
                         setShowAssign(true);
@@ -538,15 +743,15 @@ export const ParentStore = (): JSX.Element => {
                       </button>
                     </div>
                     <CardContent className="p-3">
-                      <p className="text-xs text-gray-500 mb-1">{product.brand || "Classify"}</p>
-                      <h3 className="font-medium text-sm text-gray-800 line-clamp-2 mb-2 h-10">{product.nameAr || product.name}</h3>
+                      <p className={`text-xs mb-1 ${isDark ? "text-gray-400" : "text-gray-500"}`}>{product.brand || "Classify"}</p>
+                      <h3 className={`font-medium text-sm line-clamp-2 mb-2 h-10 ${isDark ? "text-gray-200" : "text-gray-800"}`}>{product.nameAr || product.name}</h3>
                       <div className="flex items-center gap-1 mb-2">
                         {renderStars(product.rating)}
                         <span className="text-xs text-gray-400">({product.reviewCount || 0})</span>
                       </div>
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="text-orange-600 font-bold text-lg">{product.price} ج.م</p>
+                          <p className={`font-bold text-lg ${isDark ? "text-orange-400" : "text-orange-600"}`}>{product.price} ج.م</p>
                           {product.originalPrice && (
                             <p className="text-xs text-gray-400 line-through">{product.originalPrice} ج.م</p>
                           )}
@@ -561,8 +766,8 @@ export const ParentStore = (): JSX.Element => {
                           أضف
                         </Button>
                       </div>
-                      <div className="mt-2 pt-2 border-t">
-                        <p className="text-xs text-gray-500 flex items-center gap-1">
+                      <div className={`mt-2 pt-2 border-t ${isDark ? "border-gray-700" : ""}`}>
+                        <p className={`text-xs flex items-center gap-1 ${isDark ? "text-gray-400" : "text-gray-500"}`}>
                           <Star className="w-3 h-3 text-yellow-500" />
                           يحتاج <span className="font-bold text-orange-600">{product.pointsPrice}</span> نقطة
                         </p>
@@ -572,7 +777,7 @@ export const ParentStore = (): JSX.Element => {
                 ) : (
                   <Card 
                     key={product.id} 
-                    className="flex overflow-hidden hover:shadow-lg transition-shadow cursor-pointer"
+                    className={`flex overflow-hidden hover:shadow-lg transition-shadow cursor-pointer ${isDark ? "bg-gray-800 border-gray-700" : ""}`}
                     onClick={() => {
                       setSelectedProduct(product);
                       setShowAssign(true);
@@ -580,7 +785,7 @@ export const ParentStore = (): JSX.Element => {
                     }}
                     data-testid={`card-product-list-${product.id}`}
                   >
-                    <div className="relative w-40 h-40 bg-gray-100 flex-shrink-0">
+                    <div className={`relative w-40 h-40 flex-shrink-0 ${isDark ? "bg-gray-700" : "bg-gray-100"}`}>
                       {product.image ? (
                         <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
                       ) : (
@@ -605,9 +810,9 @@ export const ParentStore = (): JSX.Element => {
                     </div>
                     <CardContent className="flex-1 p-4 flex flex-col justify-between">
                       <div>
-                        <p className="text-xs text-gray-500 mb-1">{product.brand || "Classify"}</p>
-                        <h3 className="font-medium text-gray-800 mb-2">{product.nameAr || product.name}</h3>
-                        <p className="text-sm text-gray-500 line-clamp-2">{product.description}</p>
+                        <p className={`text-xs mb-1 ${isDark ? "text-gray-400" : "text-gray-500"}`}>{product.brand || "Classify"}</p>
+                        <h3 className={`font-medium mb-2 ${isDark ? "text-gray-200" : "text-gray-800"}`}>{product.nameAr || product.name}</h3>
+                        <p className={`text-sm line-clamp-2 ${isDark ? "text-gray-400" : "text-gray-500"}`}>{product.description}</p>
                         <div className="flex items-center gap-2 mt-2">
                           {renderStars(product.rating)}
                           <span className="text-xs text-gray-400">({product.reviewCount || 0} تقييم)</span>
@@ -615,8 +820,8 @@ export const ParentStore = (): JSX.Element => {
                       </div>
                       <div className="flex items-center justify-between mt-4">
                         <div>
-                          <p className="text-xl font-bold text-orange-600">{product.price} ج.م</p>
-                          <p className="text-xs text-gray-500">النقاط المطلوبة: {product.pointsPrice}</p>
+                          <p className={`text-xl font-bold ${isDark ? "text-orange-400" : "text-orange-600"}`}>{product.price} ج.م</p>
+                          <p className={`text-xs ${isDark ? "text-gray-400" : "text-gray-500"}`}>النقاط المطلوبة: {product.pointsPrice}</p>
                         </div>
                         <Button 
                           className="bg-orange-500 hover:bg-orange-600"
@@ -634,6 +839,8 @@ export const ParentStore = (): JSX.Element => {
           )}
         </section>
       </main>
+      </>
+      )}
 
       <Dialog open={showCart} onOpenChange={setShowCart}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto" dir="rtl">

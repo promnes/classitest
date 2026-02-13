@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Package, Gift, ArrowRight, Truck, Star, Clock, CheckCircle, ArrowLeft } from "lucide-react";
 import { useLocation } from "wouter";
+import { useTheme } from "@/contexts/ThemeContext";
 
 const statusConfig: Record<string, { label: string; color: string; icon: any }> = {
   pending_admin_approval: { label: "بانتظار موافقة الإدارة", color: "bg-yellow-100 text-yellow-800 border-yellow-200", icon: Clock },
@@ -20,6 +21,7 @@ const statusConfig: Record<string, { label: string; color: string; icon: any }> 
 export default function ParentInventory() {
   const [, navigate] = useLocation();
   const queryClient = useQueryClient();
+  const { isDark } = useTheme();
   const token = localStorage.getItem("token");
 
   const [assignDialog, setAssignDialog] = useState<any>(null);
@@ -53,17 +55,17 @@ export default function ParentInventory() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center" dir="rtl">
+      <div className={`min-h-screen ${isDark ? "bg-gray-900" : "bg-gray-50"} flex items-center justify-center`} dir="rtl">
         <div className="text-center">
           <div className="w-10 h-10 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-          <p className="text-gray-500">جاري تحميل المنتجات...</p>
+          <p className={isDark ? "text-gray-400" : "text-gray-500"}>جاري تحميل المنتجات...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50" dir="rtl">
+    <div className={`min-h-screen ${isDark ? "bg-gray-900" : "bg-gray-50"}`} dir="rtl">
       {/* Header */}
       <header className="bg-gradient-to-r from-orange-500 via-orange-600 to-red-500 text-white shadow-lg">
         <div className="max-w-4xl mx-auto px-4 py-5">
@@ -90,12 +92,12 @@ export default function ParentInventory() {
 
       <div className="max-w-4xl mx-auto px-4 py-6">
         {products.length === 0 ? (
-          <Card className="text-center py-16">
+          <Card className={`text-center py-16 ${isDark ? "bg-gray-800 border-gray-700" : ""}`}>
             <CardContent>
-              <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-              <h3 className="text-xl font-bold text-gray-600 mb-2">لا توجد منتجات بعد</h3>
-              <p className="text-gray-400 mb-6">اشترِ منتجات من المتجر لتظهر هنا</p>
-              <Button onClick={() => navigate("/store")} className="bg-orange-500 hover:bg-orange-600">
+              <Package className={`w-16 h-16 mx-auto mb-4 ${isDark ? "text-gray-600" : "text-gray-300"}`} />
+              <h3 className={`text-xl font-bold mb-2 ${isDark ? "text-gray-300" : "text-gray-600"}`}>لا توجد منتجات بعد</h3>
+              <p className={`mb-6 ${isDark ? "text-gray-500" : "text-gray-400"}`}>اشترِ منتجات من المتجر لتظهر هنا</p>
+              <Button onClick={() => navigate("/parent-store")} className="bg-orange-500 hover:bg-orange-600">
                 تصفح المتجر
               </Button>
             </CardContent>
@@ -109,11 +111,11 @@ export default function ParentInventory() {
               const StatusIcon = sCfg.icon;
 
               return (
-                <Card key={p.id} className="overflow-hidden hover:shadow-md transition-shadow">
+                <Card key={p.id} className={`overflow-hidden hover:shadow-md transition-shadow ${isDark ? "bg-gray-800 border-gray-700" : ""}`}>
                   <CardContent className="p-0">
                     <div className="flex items-center gap-4 p-4">
                       {/* Product Image */}
-                      <div className="w-20 h-20 rounded-xl overflow-hidden bg-gradient-to-br from-gray-100 to-gray-50 flex-shrink-0 shadow-sm">
+                      <div className={`w-20 h-20 rounded-xl overflow-hidden flex-shrink-0 shadow-sm ${isDark ? "bg-gray-700" : "bg-gradient-to-br from-gray-100 to-gray-50"}`}>
                         {product.image ? (
                           <img
                             src={product.image}
@@ -122,20 +124,20 @@ export default function ParentInventory() {
                           />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center">
-                            <Package className="w-8 h-8 text-gray-300" />
+                            <Package className={`w-8 h-8 ${isDark ? "text-gray-500" : "text-gray-300"}`} />
                           </div>
                         )}
                       </div>
 
                       {/* Product Info */}
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-bold text-gray-800 text-lg truncate">{productName}</h3>
+                        <h3 className={`font-bold text-lg truncate ${isDark ? "text-white" : "text-gray-800"}`}>{productName}</h3>
                         <div className="flex items-center gap-3 mt-1">
                           {product.price && (
                             <span className="text-orange-600 font-bold">{product.price} ج.م</span>
                           )}
                           {product.pointsPrice > 0 && (
-                            <span className="text-sm text-gray-500 flex items-center gap-1">
+                            <span className={`text-sm flex items-center gap-1 ${isDark ? "text-gray-400" : "text-gray-500"}`}>
                               <Star className="w-3.5 h-3.5 text-yellow-500 fill-yellow-500" />
                               {product.pointsPrice} نقطة
                             </span>
@@ -195,8 +197,8 @@ export default function ParentInventory() {
           {assignDialog && (
             <div className="space-y-5">
               {/* Product Preview */}
-              <div className="flex items-center gap-4 p-4 bg-gradient-to-r from-orange-50 to-yellow-50 rounded-xl">
-                <div className="w-16 h-16 rounded-lg overflow-hidden bg-white shadow-sm">
+                <div className={`flex items-center gap-4 p-4 rounded-xl ${isDark ? "bg-gray-700" : "bg-gradient-to-r from-orange-50 to-yellow-50"}`}>
+                <div className={`w-16 h-16 rounded-lg overflow-hidden shadow-sm ${isDark ? "bg-gray-600" : "bg-white"}`}>
                   {assignDialog.product?.image ? (
                     <img src={assignDialog.product.image} alt="" className="w-full h-full object-cover" />
                   ) : (
@@ -206,7 +208,7 @@ export default function ParentInventory() {
                   )}
                 </div>
                 <div>
-                  <h4 className="font-bold text-gray-800">
+                  <h4 className={`font-bold ${isDark ? "text-white" : "text-gray-800"}`}>
                     {assignDialog.product?.nameAr || assignDialog.product?.name || "منتج"}
                   </h4>
                   {assignDialog.product?.price && (
