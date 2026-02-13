@@ -1051,13 +1051,14 @@ export const ParentDashboard = (): JSX.Element => {
                   className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium border transition-colors ${
                     isDark
                       ? "bg-gray-800 border-gray-700 text-white"
-                      : "bg-gray-50 border-gray-200 text-gray-800"
+                      : "bg-white border-gray-200 text-gray-900"
                   }`}
+                  style={{ colorScheme: isDark ? "dark" : "light" }}
                   data-testid="select-report-child"
                 >
                   <option value="all">{t('parentDashboard.allChildren')}</option>
                   {childrenList.map((child: any) => (
-                    <option key={child.id} value={child.id}>
+                    <option key={child.id} value={String(child.id)}>
                       {child.displayName || child.username}
                     </option>
                   ))}
@@ -1077,7 +1078,7 @@ export const ParentDashboard = (): JSX.Element => {
                   <div className="space-y-6">
                     {(selectedReportChild === "all"
                       ? childrenList
-                      : childrenList.filter((c: any) => c.id === selectedReportChild)
+                      : childrenList.filter((c: any) => String(c.id) === selectedReportChild)
                     ).map((child: any) => (
                       <ChildReportCard key={child.id} child={child} token={token} isDark={isDark} t={t} />
                     ))}
