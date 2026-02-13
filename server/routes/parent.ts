@@ -1667,12 +1667,18 @@ export async function registerParentRoutes(app: Express) {
     try {
       const { id } = req.params; // parentOwnedProducts id
       const { childId, requiredPoints } = req.body;
+      const requiredPointsNum = parseInt(requiredPoints);
       const owned = await db.select().from(parentOwnedProducts).where(eq(parentOwnedProducts.id, id));
       if (!owned[0] || owned[0].parentId !== req.user.userId) return res.status(403).json({ message: "Unauthorized" });
       if (owned[0].status !== 'active') return res.status(400).json({ message: "Product not available for assignment — must be approved and active" });
 
+      const childRow = await db.select({ totalPoints: children.totalPoints }).from(children).where(eq(children.id, childId));
+      if (!childRow[0]) return res.status(404).json({ message: "Child not found" });
+
+      const initialProgress = Math.max(0, Math.min(requiredPointsNum, Number(childRow[0].totalPoints || 0)));
+
       // create child assigned product
-      const assigned = await db.insert(childAssignedProducts).values({ childId, parentOwnedProductId: id, requiredPoints: parseInt(requiredPoints) }).returning();
+      const assigned = await db.insert(childAssignedProducts).values({ childId, parentOwnedProductId: id, requiredPoints: requiredPointsNum, progressPoints: initialProgress }).returning();
 
       // update parent owned product
       await db.update(parentOwnedProducts).set({ status: 'assigned_to_child', updatedAt: new Date() }).where(eq(parentOwnedProducts.id, id));

@@ -1,5 +1,5 @@
 import { eq, sql } from "drizzle-orm";
-import { children, pointsLedger } from "../../shared/schema";
+import { childAssignedProducts, children, pointsLedger } from "../../shared/schema";
 
 export type PointsLedgerReason =
   | "TASK_COMPLETED"
@@ -73,6 +73,13 @@ export async function applyPointsDelta(tx: any, params: PointsDeltaParams): Prom
     .update(children)
     .set({ totalPoints: newTotalPoints })
     .where(eq(children.id, childId));
+
+  await tx
+    .update(childAssignedProducts)
+    .set({
+      progressPoints: sql`GREATEST(0, LEAST(${childAssignedProducts.requiredPoints}, ${newTotalPoints}))`,
+    })
+    .where(eq(childAssignedProducts.childId, childId));
 
   return {
     newTotalPoints,
