@@ -47,6 +47,10 @@ import {
   libraryDailySales,
   libraryActivityLogs,
   libraryReferralSettings,
+  flashGames,
+  childGameAssignments,
+  gamePlayHistory,
+  childGrowthTrees,
 } from "../../shared/schema";
 import jwt from "jsonwebtoken";
 import { JWT_SECRET } from "./middleware";
@@ -198,6 +202,34 @@ export async function registerParentRoutes(app: Express) {
       const giftMap = new Map(giftCounts.map((g: any) => [g.childId, Number(g.count)]));
       const notifMap = new Map(notifCounts.map((n: any) => [n.childId, Number(n.count)]));
 
+      // Batch query: Get games played count from gamePlayHistory
+      const gamePlayCounts = await db
+        .select({
+          childId: gamePlayHistory.childId,
+          count: sql<number>`count(*)`,
+        })
+        .from(gamePlayHistory)
+        .where(inArray(gamePlayHistory.childId, childIds))
+        .groupBy(gamePlayHistory.childId);
+
+      // Today's game plays
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+      const gameTodayCounts = await db
+        .select({
+          childId: gamePlayHistory.childId,
+          count: sql<number>`count(*)`,
+        })
+        .from(gamePlayHistory)
+        .where(and(
+          inArray(gamePlayHistory.childId, childIds),
+          sql`${gamePlayHistory.playedAt} >= ${todayStart}`
+        ))
+        .groupBy(gamePlayHistory.childId);
+
+      const gameMap = new Map(gamePlayCounts.map((g: any) => [g.childId, Number(g.count)]));
+      const gameTodayMap = new Map(gameTodayCounts.map((g: any) => [g.childId, Number(g.count)]));
+
       const statusReports = childrenList.map((child: any) => {
         // Calculate days since joined
         const createdAt = new Date(child.createdAt || Date.now());
@@ -231,6 +263,8 @@ export async function registerParentRoutes(app: Express) {
           tasksCompleted: taskMap.get(child.id) || 0,
           pendingGifts: giftMap.get(child.id) || 0,
           unreadNotifications: notifMap.get(child.id) || 0,
+          gamesPlayed: gameMap.get(child.id) || 0,
+          gamesToday: gameTodayMap.get(child.id) || 0,
           speedLevel,
           pointsPerDay,
           daysSinceJoined,
@@ -2905,6 +2939,242 @@ export async function registerParentRoutes(app: Express) {
     } catch (error: any) {
       console.error("Mark notification read error:", error);
       res.status(500).json({ message: "Failed to mark notification as read" });
+    }
+  });
+
+  // ================= PARENT GAME CONTROL =================
+
+  // Get all games + child's assignments
+  app.get("/api/parent/children/:childId/games", authMiddleware, async (req: any, res) => {
+    try {
+      const parentId = req.user.userId;
+      const { childId } = req.params;
+
+      // Verify parent owns child
+      const link = await db.select().from(parentChild)
+        .where(and(eq(parentChild.parentId, parentId), eq(parentChild.childId, childId)));
+      if (!link[0]) {
+        return res.status(403).json(errorResponse(ErrorCode.UNAUTHORIZED, "Not authorized"));
+      }
+
+      // Get all active games
+      const allGames = await db.select().from(flashGames).where(eq(flashGames.isActive, true));
+
+      // Get child's assignments
+      const assignments = await db.select().from(childGameAssignments)
+        .where(eq(childGameAssignments.childId, childId));
+      const assignmentMap = new Map(assignments.map(a => [a.gameId, a]));
+
+      // Get today's play counts per game
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+      const todayPlays = await db.select({
+        gameId: gamePlayHistory.gameId,
+        count: sql<number>`count(*)`,
+        totalPoints: sql<number>`coalesce(sum(${gamePlayHistory.pointsEarned}), 0)`,
+      })
+        .from(gamePlayHistory)
+        .where(and(
+          eq(gamePlayHistory.childId, childId),
+          sql`${gamePlayHistory.playedAt} >= ${todayStart}`
+        ))
+        .groupBy(gamePlayHistory.gameId);
+      const todayPlayMap = new Map(todayPlays.map(p => [p.gameId, { count: Number(p.count), points: Number(p.totalPoints) }]));
+
+      // Get total play counts per game
+      const totalPlays = await db.select({
+        gameId: gamePlayHistory.gameId,
+        count: sql<number>`count(*)`,
+        totalPoints: sql<number>`coalesce(sum(${gamePlayHistory.pointsEarned}), 0)`,
+      })
+        .from(gamePlayHistory)
+        .where(eq(gamePlayHistory.childId, childId))
+        .groupBy(gamePlayHistory.gameId);
+      const totalPlayMap = new Map(totalPlays.map(p => [p.gameId, { count: Number(p.count), points: Number(p.totalPoints) }]));
+
+      const gamesWithStatus = allGames.map(game => {
+        const assignment = assignmentMap.get(game.id);
+        const today = todayPlayMap.get(game.id) || { count: 0, points: 0 };
+        const total = totalPlayMap.get(game.id) || { count: 0, points: 0 };
+        return {
+          ...game,
+          isAssigned: !!assignment,
+          assignmentActive: assignment?.isActive ?? true,
+          maxPlaysPerDay: assignment?.maxPlaysPerDay || game.maxPlaysPerDay || 0,
+          todayPlays: today.count,
+          todayPoints: today.points,
+          totalPlays: total.count,
+          totalPoints: total.points,
+        };
+      });
+
+      res.json(successResponse(gamesWithStatus));
+    } catch (error: any) {
+      console.error("Parent get child games error:", error);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to fetch games"));
+    }
+  });
+
+  // Parent: assign/unassign games for child (bulk replace)
+  app.put("/api/parent/children/:childId/games", authMiddleware, async (req: any, res) => {
+    try {
+      const parentId = req.user.userId;
+      const { childId } = req.params;
+      const { gameIds, maxPlaysPerDay } = req.body;
+
+      // Verify parent owns child
+      const link = await db.select().from(parentChild)
+        .where(and(eq(parentChild.parentId, parentId), eq(parentChild.childId, childId)));
+      if (!link[0]) {
+        return res.status(403).json(errorResponse(ErrorCode.UNAUTHORIZED, "Not authorized"));
+      }
+
+      if (!Array.isArray(gameIds)) {
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "gameIds array is required"));
+      }
+
+      // Delete all existing and re-insert
+      await db.delete(childGameAssignments).where(eq(childGameAssignments.childId, childId));
+
+      if (gameIds.length > 0) {
+        await db.insert(childGameAssignments).values(
+          gameIds.map((gameId: string) => ({
+            childId,
+            gameId,
+            maxPlaysPerDay: maxPlaysPerDay || 0,
+            assignedBy: parentId,
+          }))
+        );
+      }
+
+      res.json(successResponse({ total: gameIds.length }, `${gameIds.length} games assigned`));
+    } catch (error: any) {
+      console.error("Parent assign games error:", error);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to assign games"));
+    }
+  });
+
+  // Parent: update daily limit for a specific game
+  app.patch("/api/parent/children/:childId/games/:gameId", authMiddleware, async (req: any, res) => {
+    try {
+      const parentId = req.user.userId;
+      const { childId, gameId } = req.params;
+      const { maxPlaysPerDay, isActive } = req.body;
+
+      // Verify parent owns child
+      const link = await db.select().from(parentChild)
+        .where(and(eq(parentChild.parentId, parentId), eq(parentChild.childId, childId)));
+      if (!link[0]) {
+        return res.status(403).json(errorResponse(ErrorCode.UNAUTHORIZED, "Not authorized"));
+      }
+
+      // Check if assignment exists
+      const existing = await db.select().from(childGameAssignments)
+        .where(and(eq(childGameAssignments.childId, childId), eq(childGameAssignments.gameId, gameId)));
+
+      if (!existing[0]) {
+        // Create new assignment
+        const [created] = await db.insert(childGameAssignments).values({
+          childId,
+          gameId,
+          maxPlaysPerDay: maxPlaysPerDay || 0,
+          isActive: isActive !== undefined ? isActive : true,
+          assignedBy: parentId,
+        }).returning();
+        return res.json(successResponse(created, "Assignment created"));
+      }
+
+      // Update existing
+      const updateData: Record<string, any> = {};
+      if (maxPlaysPerDay !== undefined) updateData.maxPlaysPerDay = maxPlaysPerDay;
+      if (isActive !== undefined) updateData.isActive = isActive;
+
+      const [updated] = await db.update(childGameAssignments)
+        .set(updateData)
+        .where(and(eq(childGameAssignments.childId, childId), eq(childGameAssignments.gameId, gameId)))
+        .returning();
+
+      res.json(successResponse(updated, "Assignment updated"));
+    } catch (error: any) {
+      console.error("Parent update game assignment error:", error);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to update game"));
+    }
+  });
+
+  // Parent: get child game statistics
+  app.get("/api/parent/children/:childId/game-stats", authMiddleware, async (req: any, res) => {
+    try {
+      const parentId = req.user.userId;
+      const { childId } = req.params;
+
+      // Verify parent owns child
+      const link = await db.select().from(parentChild)
+        .where(and(eq(parentChild.parentId, parentId), eq(parentChild.childId, childId)));
+      if (!link[0]) {
+        return res.status(403).json(errorResponse(ErrorCode.UNAUTHORIZED, "Not authorized"));
+      }
+
+      // Today's stats
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+      const todayStats = await db.select({
+        count: sql<number>`count(*)`,
+        totalPoints: sql<number>`coalesce(sum(${gamePlayHistory.pointsEarned}), 0)`,
+      })
+        .from(gamePlayHistory)
+        .where(and(
+          eq(gamePlayHistory.childId, childId),
+          sql`${gamePlayHistory.playedAt} >= ${todayStart}`
+        ));
+
+      // All-time stats
+      const allTimeStats = await db.select({
+        count: sql<number>`count(*)`,
+        totalPoints: sql<number>`coalesce(sum(${gamePlayHistory.pointsEarned}), 0)`,
+      })
+        .from(gamePlayHistory)
+        .where(eq(gamePlayHistory.childId, childId));
+
+      // Recent plays (last 10)
+      const recentPlays = await db.select({
+        id: gamePlayHistory.id,
+        gameId: gamePlayHistory.gameId,
+        pointsEarned: gamePlayHistory.pointsEarned,
+        playedAt: gamePlayHistory.playedAt,
+        gameTitle: flashGames.title,
+        gameThumbnail: flashGames.thumbnailUrl,
+      })
+        .from(gamePlayHistory)
+        .innerJoin(flashGames, eq(gamePlayHistory.gameId, flashGames.id))
+        .where(eq(gamePlayHistory.childId, childId))
+        .orderBy(desc(gamePlayHistory.playedAt))
+        .limit(10);
+
+      // Growth tree data
+      const tree = await db.select().from(childGrowthTrees)
+        .where(eq(childGrowthTrees.childId, childId));
+
+      // Assigned games count
+      const assignedCount = await db.select({ count: sql<number>`count(*)` })
+        .from(childGameAssignments)
+        .where(and(eq(childGameAssignments.childId, childId), eq(childGameAssignments.isActive, true)));
+
+      res.json(successResponse({
+        today: {
+          gamesPlayed: Number(todayStats[0]?.count || 0),
+          pointsEarned: Number(todayStats[0]?.totalPoints || 0),
+        },
+        allTime: {
+          gamesPlayed: Number(allTimeStats[0]?.count || 0),
+          pointsEarned: Number(allTimeStats[0]?.totalPoints || 0),
+        },
+        assignedGames: Number(assignedCount[0]?.count || 0),
+        gamesPlayedInTree: tree[0]?.gamesPlayed || 0,
+        recentPlays,
+      }));
+    } catch (error: any) {
+      console.error("Parent get child game stats error:", error);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to fetch game stats"));
     }
   });
 }

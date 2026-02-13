@@ -7,6 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useTheme } from "@/contexts/ThemeContext";
 import { LanguageSelector } from "@/components/LanguageSelector";
 import { PWAInstallButton } from "@/components/PWAInstallButton";
+import { ChildGamesControl } from "@/components/parent/ChildGamesControl";
 import { QRCodeSVG } from "qrcode.react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -179,6 +180,7 @@ export const ParentDashboard = (): JSX.Element => {
   const [copied, setCopied] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
   const [showLinkCode, setShowLinkCode] = useState(false);
+  const [gamesChild, setGamesChild] = useState<any>(null);
 
   const { data: parentInfo } = useQuery({
     queryKey: ["/api/parent/info"],
@@ -739,6 +741,16 @@ export const ParentDashboard = (): JSX.Element => {
                               {t('parentDashboard.sendTask')}
                             </Button>
                             <Button 
+                              onClick={() => setGamesChild(child)}
+                              variant="outline"
+                              size="sm"
+                              className="flex-1 gap-1"
+                              data-testid={`button-games-${child.id}`}
+                            >
+                              <Gamepad2 className="h-4 w-4" />
+                              {t('parentDashboard.games')}
+                            </Button>
+                            <Button 
                               onClick={() => navigate("/parent-inventory")}
                               variant="outline"
                               size="sm"
@@ -1097,6 +1109,16 @@ export const ParentDashboard = (): JSX.Element => {
             </Button>
           </div>
         </div>
+      )}
+
+      {/* Child Games Control Dialog */}
+      {gamesChild && (
+        <ChildGamesControl
+          childId={gamesChild.id}
+          childName={gamesChild.name}
+          token={token || ""}
+          onClose={() => setGamesChild(null)}
+        />
       )}
     </div>
   );
