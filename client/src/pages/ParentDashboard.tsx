@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
@@ -177,6 +177,7 @@ export const ParentDashboard = (): JSX.Element => {
   const { t } = useTranslation();
   const { isDark, toggleTheme } = useTheme();
   const token = localStorage.getItem("token");
+  const [cartCount, setCartCount] = useState(0);
   const [showQR, setShowQR] = useState(false);
   const [copied, setCopied] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
@@ -218,6 +219,11 @@ export const ParentDashboard = (): JSX.Element => {
 
   const { data: recentOrders } = useQuery({
     queryKey: ["/api/parent/store/orders"],
+    enabled: !!token,
+  });
+
+  const { data: ownedProducts } = useQuery({
+    queryKey: ["/api/parent/owned-products"],
     enabled: !!token,
   });
 
@@ -287,7 +293,8 @@ export const ParentDashboard = (): JSX.Element => {
   const tasksList = Array.isArray(tasks) ? tasks : [];
   const subjectsList = Array.isArray(subjects) ? subjects : [];
   const tasksBySubjectList = Array.isArray(tasksBySubject) ? tasksBySubject : [];
-  const ordersList = Array.isArray(recentOrders) ? recentOrders : [];
+  const ordersList = Array.isArray(recentOrders) ? recentOrders : (recentOrders as any)?.data || [];
+  const ownedProductsList = Array.isArray(ownedProducts) ? ownedProducts : (ownedProducts as any)?.data || [];
   const purchaseRequestsList = Array.isArray(purchaseRequests) ? purchaseRequests : [];
   const pendingPurchaseRequests = purchaseRequestsList.filter((r: any) => r.status === "pending_parent_approval");
   const parentData = parentInfo as any || {};
@@ -299,6 +306,36 @@ export const ParentDashboard = (): JSX.Element => {
   const totalChildrenPoints = childrenList.reduce((sum: number, c: any) => sum + (c.totalPoints || 0), 0) || 0;
   const pendingTasks = tasksList.filter((t: any) => t.status === "pending").length || 0;
   const completedTasks = tasksList.filter((t: any) => t.status === "completed").length || 0;
+
+  useEffect(() => {
+    const updateCartCount = () => {
+      try {
+        const rawCart = localStorage.getItem("parent-store-cart");
+        if (!rawCart) {
+          setCartCount(0);
+          return;
+        }
+        const parsedCart = JSON.parse(rawCart);
+        if (!Array.isArray(parsedCart)) {
+          setCartCount(0);
+          return;
+        }
+        const totalItems = parsedCart.reduce((sum: number, item: any) => sum + (item?.quantity || 0), 0);
+        setCartCount(totalItems);
+      } catch {
+        setCartCount(0);
+      }
+    };
+
+    updateCartCount();
+    window.addEventListener("storage", updateCartCount);
+    window.addEventListener("parent-store-cart-updated", updateCartCount as EventListener);
+
+    return () => {
+      window.removeEventListener("storage", updateCartCount);
+      window.removeEventListener("parent-store-cart-updated", updateCartCount as EventListener);
+    };
+  }, []);
 
   return (
     <div className={`min-h-screen ${isDark ? "bg-gray-950" : "bg-gradient-to-br from-slate-50 to-blue-50"}`}>
@@ -936,7 +973,7 @@ export const ParentDashboard = (): JSX.Element => {
                     data-testid="button-my-inventory"
                   >
                     <Gift className="h-8 w-8" />
-                    <span>{t('parentDashboard.myInventory')}</span>
+                    <span>{t('parentDashboard.myInventory')} ({ownedProductsList.length})</span>
                   </Button>
                   <Button 
                     onClick={() => navigate("/parent-store?view=cart")}
@@ -945,7 +982,7 @@ export const ParentDashboard = (): JSX.Element => {
                     data-testid="button-cart"
                   >
                     <ShoppingBag className="h-8 w-8" />
-                    <span>{t('parentDashboard.cart')}</span>
+                    <span>{t('parentDashboard.cart')} ({cartCount})</span>
                   </Button>
                   <Button 
                     onClick={() => navigate("/parent-store?view=orders")}
@@ -954,7 +991,7 @@ export const ParentDashboard = (): JSX.Element => {
                     data-testid="button-orders"
                   >
                     <Clock className="h-8 w-8" />
-                    <span>{t('parentDashboard.myOrders')}</span>
+                    <span>{t('parentDashboard.myOrders')} ({ordersList.length})</span>
                   </Button>
                 </div>
 

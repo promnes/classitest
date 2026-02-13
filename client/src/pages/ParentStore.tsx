@@ -54,6 +54,8 @@ interface CartItem {
   quantity: number;
 }
 
+const CART_STORAGE_KEY = "parent-store-cart";
+
 export const ParentStore = (): JSX.Element => {
   const [, navigate] = useLocation();
   const queryClient = useQueryClient();
@@ -140,7 +142,12 @@ export const ParentStore = (): JSX.Element => {
 
   const { data: ordersData, isLoading: loadingOrders } = useQuery({
     queryKey: ["/api/parent/store/orders"],
-    enabled: !!token && activeView === "orders",
+    enabled: !!token,
+  });
+
+  const { data: ownedProductsData } = useQuery({
+    queryKey: ["/api/parent/owned-products"],
+    enabled: !!token,
   });
 
   const checkoutMutation = useMutation({
@@ -187,14 +194,40 @@ export const ParentStore = (): JSX.Element => {
   const wallet = walletData?.data || walletData;
   const referralCode = new URLSearchParams(window.location.search).get("ref");
   const ordersList: any[] = Array.isArray(ordersData) ? ordersData : (ordersData as any)?.data || [];
+  const inventoryList: any[] = Array.isArray(ownedProductsData) ? ownedProductsData : (ownedProductsData as any)?.data || [];
 
   const featuredProducts = useMemo(() => 
     products.filter((p: Product) => p.isFeatured).slice(0, 6), [products]
   );
 
+  const cartItemsCount = useMemo(
+    () => cart.reduce((sum, item) => sum + item.quantity, 0),
+    [cart]
+  );
+
   const cartTotal = useMemo(() => 
     cart.reduce((sum, item) => sum + parseFloat(item.product.price) * item.quantity, 0), [cart]
   );
+
+  useEffect(() => {
+    try {
+      const storedCart = localStorage.getItem(CART_STORAGE_KEY);
+      if (!storedCart) return;
+      const parsed = JSON.parse(storedCart);
+      if (Array.isArray(parsed)) {
+        setCart(parsed);
+      }
+    } catch {
+      localStorage.removeItem(CART_STORAGE_KEY);
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart));
+    window.dispatchEvent(
+      new CustomEvent("parent-store-cart-updated", { detail: { count: cartItemsCount } })
+    );
+  }, [cart, cartItemsCount]);
 
   const addToCart = (product: Product) => {
     setCart(prev => {
@@ -353,8 +386,8 @@ export const ParentStore = (): JSX.Element => {
           <div className="flex gap-1 py-2">
             {[
               { id: "store" as const, label: "🛍️ المتجر", icon: Package },
-              { id: "cart" as const, label: `🛒 السلة (${cart.length})`, icon: ShoppingCart },
-              { id: "orders" as const, label: "📦 طلباتي", icon: Clock },
+              { id: "cart" as const, label: `🛒 السلة (${cartItemsCount})`, icon: ShoppingCart },
+              { id: "orders" as const, label: `📦 طلباتي (${ordersList.length})`, icon: Clock },
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -376,7 +409,7 @@ export const ParentStore = (): JSX.Element => {
                 isDark ? "text-gray-300 hover:bg-gray-700" : "text-gray-600 hover:bg-gray-100"
               }`}
             >
-              📋 مخزوني
+              📋 مخزوني ({inventoryList.length})
             </button>
           </div>
         </div>
