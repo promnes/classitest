@@ -385,14 +385,14 @@ export const ParentStore = (): JSX.Element => {
         <div className="max-w-7xl mx-auto px-4">
           <div className="flex gap-1 py-2">
             {[
-              { id: "store" as const, label: "🛍️ المتجر", icon: Package },
-              { id: "cart" as const, label: `🛒 السلة (${cartItemsCount})`, icon: ShoppingCart },
-              { id: "orders" as const, label: `📦 طلباتي (${ordersList.length})`, icon: Clock },
+              { id: "store" as const, label: "المتجر", icon: Package, count: null },
+              { id: "cart" as const, label: "السلة", icon: ShoppingCart, count: cartItemsCount },
+              { id: "orders" as const, label: "طلباتي", icon: Clock, count: ordersList.length },
             ].map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveView(tab.id)}
-                className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${
+                className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${
                   activeView === tab.id
                     ? "bg-orange-500 text-white shadow-md"
                     : isDark
@@ -400,16 +400,30 @@ export const ParentStore = (): JSX.Element => {
                     : "text-gray-600 hover:bg-gray-100"
                 }`}
               >
-                {tab.label}
+                <div className="relative">
+                  <tab.icon className="w-4 h-4" />
+                  {tab.count !== null && (
+                    <span className="absolute -top-2 -left-2 min-w-4 h-4 px-1 rounded-full bg-orange-500 text-white text-[10px] leading-4 font-bold text-center">
+                      {tab.count}
+                    </span>
+                  )}
+                </div>
+                <span>{tab.label}</span>
               </button>
             ))}
             <button
               onClick={() => navigate("/parent-inventory")}
-              className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${
+              className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${
                 isDark ? "text-gray-300 hover:bg-gray-700" : "text-gray-600 hover:bg-gray-100"
               }`}
             >
-              📋 مخزوني ({inventoryList.length})
+              <div className="relative">
+                <Package className="w-4 h-4" />
+                <span className="absolute -top-2 -left-2 min-w-4 h-4 px-1 rounded-full bg-orange-500 text-white text-[10px] leading-4 font-bold text-center">
+                  {inventoryList.length}
+                </span>
+              </div>
+              <span>مخزوني</span>
             </button>
           </div>
         </div>

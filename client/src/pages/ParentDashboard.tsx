@@ -972,8 +972,13 @@ export const ParentDashboard = (): JSX.Element => {
                     className="h-auto py-6 flex-col gap-2"
                     data-testid="button-my-inventory"
                   >
-                    <Gift className="h-8 w-8" />
-                    <span>{t('parentDashboard.myInventory')} ({ownedProductsList.length})</span>
+                    <div className="relative">
+                      <Gift className="h-8 w-8" />
+                      <span className="absolute -top-2 -left-2 min-w-5 h-5 px-1 rounded-full bg-orange-500 text-white text-[10px] leading-5 font-bold text-center">
+                        {ownedProductsList.length}
+                      </span>
+                    </div>
+                    <span>{t('parentDashboard.myInventory')}</span>
                   </Button>
                   <Button 
                     onClick={() => navigate("/parent-store?view=cart")}
@@ -981,8 +986,13 @@ export const ParentDashboard = (): JSX.Element => {
                     className="h-auto py-6 flex-col gap-2"
                     data-testid="button-cart"
                   >
-                    <ShoppingBag className="h-8 w-8" />
-                    <span>{t('parentDashboard.cart')} ({cartCount})</span>
+                    <div className="relative">
+                      <ShoppingBag className="h-8 w-8" />
+                      <span className="absolute -top-2 -left-2 min-w-5 h-5 px-1 rounded-full bg-orange-500 text-white text-[10px] leading-5 font-bold text-center">
+                        {cartCount}
+                      </span>
+                    </div>
+                    <span>{t('parentDashboard.cart')}</span>
                   </Button>
                   <Button 
                     onClick={() => navigate("/parent-store?view=orders")}
@@ -990,8 +1000,13 @@ export const ParentDashboard = (): JSX.Element => {
                     className="h-auto py-6 flex-col gap-2"
                     data-testid="button-orders"
                   >
-                    <Clock className="h-8 w-8" />
-                    <span>{t('parentDashboard.myOrders')} ({ordersList.length})</span>
+                    <div className="relative">
+                      <Clock className="h-8 w-8" />
+                      <span className="absolute -top-2 -left-2 min-w-5 h-5 px-1 rounded-full bg-orange-500 text-white text-[10px] leading-5 font-bold text-center">
+                        {ordersList.length}
+                      </span>
+                    </div>
+                    <span>{t('parentDashboard.myOrders')}</span>
                   </Button>
                 </div>
 
