@@ -123,7 +123,9 @@ Incident response automation
 
 استخدم النشر عبر SSH (وده شغال عندك):
 cd /docker/classitest && git pull origin main && docker compose up -d --build app
+docker compose exec app npx drizzle-kit push
 ولو لازم من الواجهة: قلّل محتوى Compose أو انقل القيم الطويلة إلى .env/ملفات خارجية بدل لصق نصوص طويلة داخل الحقول.
 نعم، التشخيص اللي كتبه Kodee صحيح.
+
 
 

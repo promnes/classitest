@@ -35,7 +35,7 @@ export default function ParentStoreMulti() {
 
   async function previewCheckout() {
     const items = Object.entries(cart).map(([productId, quantity]) => ({ productId, quantity }));
-    const r = await apiRequest("POST", "/api/parent/store/checkout", { items });
+    const r = await apiRequest("POST", "/api/parent/store/checkout/preview", { items });
     const resp = await r.json();
     setPreview(resp.data);
   }

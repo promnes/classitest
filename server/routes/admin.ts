@@ -608,24 +608,41 @@ export async function registerAdminRoutes(app: Express) {
           .json(errorResponse(ErrorCode.NOT_FOUND, "Purchase not found"));
       }
 
-      // If approving, create parent_owned_products entries
+      // If approving, activate existing parent_owned_products (or create if missing)
       if (status === "approved") {
         const items = await db.select().from(parentPurchaseItems).where(eq(parentPurchaseItems.purchaseId, id));
-        const created: any[] = [];
+        const activated: any[] = [];
         for (const it of items) {
-          const owned = await db
-            .insert(parentOwnedProducts)
-            .values({ parentId: purchase[0].parentId, productId: it.productId, sourcePurchaseId: id, status: "active" })
-            .returning();
-          created.push(owned[0]);
+          // Check if parentOwnedProducts already exists (created at checkout/confirm)
+          const existing = await db.select().from(parentOwnedProducts).where(
+            and(
+              eq(parentOwnedProducts.parentId, purchase[0].parentId),
+              eq(parentOwnedProducts.productId, it.productId),
+              eq(parentOwnedProducts.sourcePurchaseId, id)
+            )
+          );
+          if (existing[0]) {
+            // Update existing to active
+            await db.update(parentOwnedProducts)
+              .set({ status: "active", updatedAt: new Date() })
+              .where(eq(parentOwnedProducts.id, existing[0].id));
+            activated.push({ ...existing[0], status: "active" });
+          } else {
+            // Fallback: create if not found (legacy orders)
+            const owned = await db
+              .insert(parentOwnedProducts)
+              .values({ parentId: purchase[0].parentId, productId: it.productId, sourcePurchaseId: id, status: "active" })
+              .returning();
+            activated.push(owned[0]);
+          }
         }
 
-        await db.update(parentPurchases).set({ paymentStatus: "approved" }).where(eq(parentPurchases.id, id));
+        await db.update(parentPurchases).set({ paymentStatus: "paid" }).where(eq(parentPurchases.id, id));
 
         // Notify parent
         await createNotification({ parentId: purchase[0].parentId, type: "purchase_approved", title: "✅ تمت الموافقة على طلبك", message: `تمت الموافقة على طلب الشراء الخاص بك وتم تفعيل المنتجات`, relatedId: id });
 
-        return res.json(successResponse({ created }));
+        return res.json(successResponse({ activated }));
       }
 
       // If rejected

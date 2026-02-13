@@ -1433,7 +1433,7 @@ export async function registerParentRoutes(app: Express) {
       const parentId = req.user.userId;
 
       if (!childId || !productId) {
-        return res.status(400).json({ message: "childId and productId are required" });
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "childId و productId مطلوبان"));
       }
 
       // التحقق من ارتباط الطفل بالأب
@@ -1443,19 +1443,19 @@ export async function registerParentRoutes(app: Express) {
         .where(and(eq(parentChild.parentId, parentId), eq(parentChild.childId, childId)));
 
       if (!linked[0]) {
-        return res.status(403).json({ message: "Child not linked to parent" });
+        return res.status(403).json(errorResponse(ErrorCode.UNAUTHORIZED, "الطفل غير مرتبط بهذا الحساب"));
       }
 
       // الحصول على تفاصيل المنتج
       const product = await db.select().from(products).where(eq(products.id, productId));
       if (!product[0]) {
-        return res.status(404).json({ message: "Product not found" });
+        return res.status(404).json(errorResponse(ErrorCode.NOT_FOUND, "المنتج غير موجود"));
       }
 
       // الحصول على محفظة الأب
       const wallet = await db.select().from(parentWallet).where(eq(parentWallet.parentId, parentId));
       if (!wallet[0]) {
-        return res.status(404).json({ message: "Wallet not found" });
+        return res.status(404).json(errorResponse(ErrorCode.NOT_FOUND, "المحفظة غير موجودة"));
       }
 
       const balanceNum = parseFloat(wallet[0].balance.toString());
@@ -1463,87 +1463,87 @@ export async function registerParentRoutes(app: Express) {
 
       // التحقق من الرصيد
       if (balanceNum < productPrice) {
-        return res.status(400).json({ message: "Insufficient wallet balance" });
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "رصيد المحفظة غير كافٍ"));
       }
 
-      // إنشاء أمر شراء
-      const order = await db
-        .insert(orders)
-        .values({
-          parentId,
-          childId,
-          productId,
-          quantity: 1,
-          pointsPrice: product[0].pointsPrice,
-          status: "completed",
-          shippingAddress: null,
-        })
-        .returning();
+      // تنفيذ العملية داخل transaction لضمان سلامة البيانات
+      const { order, gift } = await db.transaction(async (tx) => {
+        // إنشاء أمر شراء
+        const createdOrder = await tx
+          .insert(orders)
+          .values({
+            parentId,
+            childId,
+            productId,
+            quantity: 1,
+            pointsPrice: product[0].pointsPrice,
+            status: "completed",
+            shippingAddress: null,
+          })
+          .returning();
 
-      // خصم من محفظة الأب
-      const newBalance = (balanceNum - productPrice).toFixed(2);
-      const newSpent = parseFloat(wallet[0].totalSpent.toString()) + productPrice;
+        // خصم من محفظة الأب
+        const newBalance = (balanceNum - productPrice).toFixed(2);
+        const newSpent = parseFloat(wallet[0].totalSpent.toString()) + productPrice;
 
-      await db
-        .update(parentWallet)
-        .set({
-          balance: newBalance,
-          totalSpent: newSpent.toFixed(2),
-          updatedAt: new Date(),
-        })
-        .where(eq(parentWallet.parentId, parentId));
+        await tx
+          .update(parentWallet)
+          .set({
+            balance: newBalance,
+            totalSpent: newSpent.toFixed(2),
+            updatedAt: new Date(),
+          })
+          .where(eq(parentWallet.parentId, parentId));
 
-      // إنشاء سجل هدية للطفل
-      const gift = await db
-        .insert(childGifts)
-        .values({
-          parentId,
-          childId,
-          productId,
-          productName: product[0].name,
-          productImage: product[0].image || null,
-          pointsCost: product[0].pointsPrice,
-          status: "pending",
-        })
-        .returning();
-
-      // إنشاء حدث للطفل
-      await db
-        .insert(childEvents)
-        .values({
-          childId,
-          eventType: "GIFT_ASSIGNED",
-          relatedId: gift[0].id,
-          meta: {
+        // إنشاء سجل هدية للطفل
+        const createdGift = await tx
+          .insert(childGifts)
+          .values({
+            parentId,
+            childId,
+            productId,
             productName: product[0].name,
-            productImage: product[0].image,
-            parentName: null,
-          },
-        })
-        .returning();
+            productImage: product[0].image || null,
+            pointsCost: product[0].pointsPrice,
+            status: "pending",
+          })
+          .returning();
 
-      // إنشاء إشعار للطفل (داخل النظام)
+        // إنشاء حدث للطفل
+        await tx
+          .insert(childEvents)
+          .values({
+            childId,
+            eventType: "GIFT_ASSIGNED",
+            relatedId: createdGift[0].id,
+            meta: {
+              productName: product[0].name,
+              productImage: product[0].image,
+              parentName: null,
+            },
+          });
+
+        return { order: createdOrder[0], gift: createdGift[0] };
+      });
+
+      // إنشاء إشعار للطفل (خارج الـ transaction - غير حرج)
+      const productNameAr = product[0].nameAr || product[0].name;
       await db
         .insert(notifications)
         .values({
           childId,
           type: "gift_received",
-          message: `You received a gift: ${product[0].name}!`,
-          relatedId: gift[0].id,
-        })
-        .returning();
+          message: `حصلت على هدية جديدة: ${productNameAr}! 🎁`,
+          relatedId: gift.id,
+        });
 
-      res.status(201).json({
-        success: true,
-        data: {
-          orderId: order[0].id,
-          giftId: gift[0].id,
-          message: `Gift "${product[0].name}" sent to ${childId}`,
-        },
-      });
+      res.status(201).json(successResponse({
+        orderId: order.id,
+        giftId: gift.id,
+      }, `تم إرسال الهدية "${productNameAr}" بنجاح`));
     } catch (error: any) {
       console.error("Purchase error:", error);
-      res.status(500).json({ message: "Failed to purchase gift" });
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "فشل في إتمام الشراء"));
     }
   });
 
@@ -1559,8 +1559,8 @@ export async function registerParentRoutes(app: Express) {
     }
   });
 
-  // Checkout (invoice preview)
-  app.post("/api/parent/store/checkout", authMiddleware, async (req: any, res) => {
+  // Checkout invoice preview (manual purchase flow)
+  app.post("/api/parent/store/checkout/preview", authMiddleware, async (req: any, res) => {
     try {
       const { items } = req.body; // [{ productId, quantity }]
       if (!items || !Array.isArray(items) || items.length === 0) return res.status(400).json({ message: "Items required" });
@@ -1669,7 +1669,7 @@ export async function registerParentRoutes(app: Express) {
       const { childId, requiredPoints } = req.body;
       const owned = await db.select().from(parentOwnedProducts).where(eq(parentOwnedProducts.id, id));
       if (!owned[0] || owned[0].parentId !== req.user.userId) return res.status(403).json({ message: "Unauthorized" });
-      if (owned[0].status !== 'active' && owned[0].status !== 'pending_admin_approval') return res.status(400).json({ message: "Product not available for assignment" });
+      if (owned[0].status !== 'active') return res.status(400).json({ message: "Product not available for assignment — must be approved and active" });
 
       // create child assigned product
       const assigned = await db.insert(childAssignedProducts).values({ childId, parentOwnedProductId: id, requiredPoints: parseInt(requiredPoints) }).returning();
