@@ -8,6 +8,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { LanguageSelector } from "@/components/LanguageSelector";
 import { PWAInstallButton } from "@/components/PWAInstallButton";
 import { ChildGamesControl } from "@/components/parent/ChildGamesControl";
+import { AnnualReportChart } from "@/components/AnnualReportChart";
 import { QRCodeSVG } from "qrcode.react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -181,6 +182,7 @@ export const ParentDashboard = (): JSX.Element => {
   const [activeTab, setActiveTab] = useState("overview");
   const [showLinkCode, setShowLinkCode] = useState(false);
   const [gamesChild, setGamesChild] = useState<any>(null);
+  const [selectedReportChild, setSelectedReportChild] = useState<string>("all");
 
   const { data: parentInfo } = useQuery({
     queryKey: ["/api/parent/info"],
@@ -1036,6 +1038,33 @@ export const ParentDashboard = (): JSX.Element => {
           </TabsContent>
 
           <TabsContent value="reports" className="mt-6 space-y-6">
+            {/* Child Selector */}
+            {childrenList.length > 1 && (
+              <div className={`flex items-center gap-3 p-3 rounded-xl ${isDark ? "bg-gray-900 border border-gray-800" : "bg-white border"}`}>
+                <Users className="h-5 w-5 text-blue-500 flex-shrink-0" />
+                <span className={`text-sm font-medium flex-shrink-0 ${isDark ? "text-gray-300" : "text-gray-600"}`}>
+                  {t('parentDashboard.selectChild')}
+                </span>
+                <select
+                  value={selectedReportChild}
+                  onChange={(e) => setSelectedReportChild(e.target.value)}
+                  className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium border transition-colors ${
+                    isDark
+                      ? "bg-gray-800 border-gray-700 text-white"
+                      : "bg-gray-50 border-gray-200 text-gray-800"
+                  }`}
+                  data-testid="select-report-child"
+                >
+                  <option value="all">{t('parentDashboard.allChildren')}</option>
+                  {childrenList.map((child: any) => (
+                    <option key={child.id} value={child.id}>
+                      {child.displayName || child.username}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
             <Card className={isDark ? "bg-gray-900 border-gray-800" : ""}>
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg flex items-center gap-2">
@@ -1046,7 +1075,10 @@ export const ParentDashboard = (): JSX.Element => {
               <CardContent>
                 {childrenList.length > 0 ? (
                   <div className="space-y-6">
-                    {childrenList.map((child: any) => (
+                    {(selectedReportChild === "all"
+                      ? childrenList
+                      : childrenList.filter((c: any) => c.id === selectedReportChild)
+                    ).map((child: any) => (
                       <ChildReportCard key={child.id} child={child} token={token} isDark={isDark} t={t} />
                     ))}
                   </div>
@@ -1060,6 +1092,21 @@ export const ParentDashboard = (): JSX.Element => {
                 )}
               </CardContent>
             </Card>
+
+            {/* Annual Report Chart - shown when a single child is selected */}
+            {selectedReportChild !== "all" && (
+              <Card className={isDark ? "bg-gray-900 border-gray-800" : ""}>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Target className="h-5 w-5 text-purple-500" />
+                    {t('parentDashboard.annualReport')}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <AnnualReportChart childId={selectedReportChild} isParentView={true} />
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
         </Tabs>
       </main>
