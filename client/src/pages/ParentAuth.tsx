@@ -9,6 +9,7 @@ import { OTPMethodSelector } from "@/components/OTPMethodSelector";
 import { useAutoLogin } from "@/hooks/useAutoLogin";
 import { Loader2 } from "lucide-react";
 import { SocialLoginButtons } from "@/components/SocialLoginButtons";
+import { PhoneInput } from "@/components/PhoneInput";
 
 export const ParentAuth = (): JSX.Element => {
   const { t } = useTranslation();
@@ -18,6 +19,7 @@ export const ParentAuth = (): JSX.Element => {
   const [usePhone, setUsePhone] = useState(false);
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
+  const [countryCode, setCountryCode] = useState("+966");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [error, setError] = useState("");
@@ -44,8 +46,8 @@ export const ParentAuth = (): JSX.Element => {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(
             isLogin
-              ? { phoneNumber: phone, password }
-              : { email, password, name, phoneNumber: phone, libraryReferralCode }
+              ? { phoneNumber: `${countryCode}${phone}`, password }
+              : { email, password, name, phoneNumber: `${countryCode}${phone}`, libraryReferralCode }
           ),
         });
         if (!res.ok) {
@@ -285,14 +287,12 @@ export const ParentAuth = (): JSX.Element => {
                       <label className="block text-sm font-bold text-gray-700 mb-2">
                         رقم الهاتف
                       </label>
-                      <input
-                        type="tel"
+                      <PhoneInput
                         value={phone}
-                        onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
-                        placeholder="201012345678"
-                        autoComplete="tel"
-                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-400 text-gray-900 bg-white"
-                        required
+                        onChange={setPhone}
+                        countryCode={countryCode}
+                        onCountryCodeChange={setCountryCode}
+                        placeholder="5xxxxxxxx"
                       />
                     </div>
                   </>
