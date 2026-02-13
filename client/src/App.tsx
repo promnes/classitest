@@ -151,6 +151,10 @@ function WrappedChildSettings() {
   );
 }
 
+function LegacyLibraryStoreRedirect() {
+  return <Redirect to={`/library-store${window.location.search || ""}`} replace />;
+}
+
 function Router() {
   return (
     <Suspense fallback={<PageLoader />}>
@@ -203,6 +207,7 @@ function Router() {
         <Route path="/admin/purchases" component={AdminPurchasesTab} />
         <Route path="/library/login" component={LibraryLogin} />
         <Route path="/library/dashboard" component={LibraryDashboard} />
+        <Route path="/store/libraries" component={LegacyLibraryStoreRedirect} />
         <Route path="/library-store" component={LibraryStore} />
         <Route component={NotFound} />
       </Switch>

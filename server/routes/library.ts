@@ -369,6 +369,38 @@ export async function registerLibraryRoutes(app: Express) {
     }
   });
 
+  app.get("/api/store/libraries/by-referral/:code", async (req, res) => {
+    try {
+      const { code } = req.params;
+
+      if (!code || typeof code !== "string" || code.length > 64) {
+        return res.status(400).json({ message: "Invalid referral code" });
+      }
+
+      const library = await db.select({
+        id: libraries.id,
+        name: libraries.name,
+        description: libraries.description,
+        location: libraries.location,
+        imageUrl: libraries.imageUrl,
+        referralCode: libraries.referralCode,
+        activityScore: libraries.activityScore,
+        totalProducts: libraries.totalProducts,
+      }).from(libraries)
+        .where(and(eq(libraries.referralCode, code.trim().toUpperCase()), eq(libraries.isActive, true)))
+        .limit(1);
+
+      if (!library[0]) {
+        return res.status(404).json({ message: "Referral library not found" });
+      }
+
+      res.json({ success: true, data: library[0] });
+    } catch (error: any) {
+      console.error("Get library by referral code error:", error);
+      res.status(500).json({ message: "Failed to fetch referral library" });
+    }
+  });
+
   app.get("/api/store/libraries/:id", async (req, res) => {
     try {
       const { id } = req.params;

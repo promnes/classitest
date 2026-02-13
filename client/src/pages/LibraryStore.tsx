@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, Store, Star, Package, Search, Filter, ShoppingCart, BookOpen } from "lucide-react";
@@ -40,12 +40,26 @@ interface LibraryProduct {
 export default function LibraryStore() {
   const [, navigate] = useLocation();
   const { isDark } = useTheme();
-  const token = localStorage.getItem("token");
+  const referralCode = useMemo(() => {
+    const ref = new URLSearchParams(window.location.search).get("ref")?.trim();
+    return ref ? ref.toUpperCase() : "";
+  }, []);
   
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedLibrary, setSelectedLibrary] = useState<string | null>(null);
   const [showProductDetail, setShowProductDetail] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<LibraryProduct | null>(null);
+
+  const { data: referralLibraryData } = useQuery({
+    queryKey: ["library-by-referral", referralCode],
+    queryFn: async () => {
+      const res = await fetch(`/api/store/libraries/by-referral/${encodeURIComponent(referralCode)}`);
+      if (!res.ok) return null;
+      const json = await res.json();
+      return json?.data || null;
+    },
+    enabled: !!referralCode,
+  });
 
   const { data: librariesData, isLoading: loadingLibraries } = useQuery({
     queryKey: ["store-libraries"],
@@ -57,6 +71,27 @@ export default function LibraryStore() {
   });
 
   const libraries: Library[] = librariesData || [];
+
+  useEffect(() => {
+    const referralLibrary = referralLibraryData as Library | null;
+    if (!referralCode || !referralLibrary?.id) return;
+
+    setSelectedLibrary((current) => current || referralLibrary.id);
+    localStorage.setItem("libraryReferralCode", referralCode);
+    localStorage.setItem("libraryReferralLibraryId", referralLibrary.id);
+
+    const clickSessionKey = `library-ref-click-${referralCode}`;
+    if (sessionStorage.getItem(clickSessionKey) === "1") return;
+
+    sessionStorage.setItem(clickSessionKey, "1");
+    fetch(`/api/store/libraries/${referralLibrary.id}/referral-click`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ referralCode }),
+    }).catch(() => {
+      sessionStorage.removeItem(clickSessionKey);
+    });
+  }, [referralCode, referralLibraryData]);
 
   const { data: productsData, isLoading: loadingProducts } = useQuery({
     queryKey: ["library-products", selectedLibrary, libraries.length],
