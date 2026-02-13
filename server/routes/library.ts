@@ -175,7 +175,7 @@ export async function registerLibraryRoutes(app: Express) {
         return res.status(400).json({ success: false, message: error.message });
       }
       console.error("Library upload presign error:", error);
-      res.status(500).json({ success: false, message: "Failed to generate upload URL" });
+      res.status(500).json({ success: false, message: "فشل إنشاء رابط الرفع" });
     }
   });
 
@@ -196,7 +196,7 @@ export async function registerLibraryRoutes(app: Express) {
         return res.status(400).json({ success: false, message: error.message });
       }
       console.error("Library upload finalize error:", error);
-      res.status(500).json({ success: false, message: "Failed to finalize upload" });
+      res.status(500).json({ success: false, message: "فشل تأكيد رفع الملف" });
     }
   });
 

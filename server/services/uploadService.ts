@@ -82,10 +82,18 @@ export async function createPresignedUpload({
   }
 
   const uploadURL = await objectStorageService.getObjectEntityUploadURL();
+
+  // Local fallback: swap sentinel URL to a real server endpoint
+  let finalUploadURL = uploadURL;
+  if (uploadURL.startsWith("__local__://")) {
+    const objectId = uploadURL.slice("__local__://".length);
+    finalUploadURL = `/api/uploads/direct/${objectId}`;
+  }
+
   const objectPath = objectStorageService.normalizeObjectEntityPath(uploadURL);
 
   return {
-    uploadURL,
+    uploadURL: finalUploadURL,
     objectPath,
     metadata: { purpose, contentType, size },
   };

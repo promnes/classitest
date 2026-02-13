@@ -2,6 +2,8 @@ import { Storage, File } from "@google-cloud/storage";
 import { Response } from "express";
 import { randomUUID } from "crypto";
 import * as Minio from "minio";
+import * as fs from "fs";
+import * as path from "path";
 import {
   ObjectAclPolicy,
   ObjectPermission,
@@ -12,7 +14,9 @@ import {
 
 const REPLIT_SIDECAR_ENDPOINT = "http://127.0.0.1:1106";
 const STORAGE_PROVIDER = (process.env.OBJECT_STORAGE_PROVIDER || "replit").toLowerCase();
-const isS3Provider = STORAGE_PROVIDER === "s3" || process.env.MINIO_ENDPOINT;
+const isS3Provider = STORAGE_PROVIDER === "s3" || !!process.env.MINIO_ENDPOINT;
+const isLocalFallback = STORAGE_PROVIDER === "local";
+const LOCAL_UPLOAD_DIR = process.env.LOCAL_UPLOAD_DIR || path.resolve(process.cwd(), "uploads");
 
 const MINIO_BUCKET = process.env.MINIO_BUCKET || process.env.S3_BUCKET || "classify-media";
 const MINIO_ENDPOINT = process.env.MINIO_ENDPOINT || "127.0.0.1";
@@ -51,6 +55,30 @@ const minioClient = isS3Provider
       secretKey: MINIO_SECRET_KEY,
     })
   : null;
+
+// Auto-create MinIO bucket on startup if using S3 provider
+if (isS3Provider && minioClient) {
+  (async () => {
+    try {
+      const exists = await minioClient.bucketExists(MINIO_BUCKET);
+      if (!exists) {
+        await minioClient.makeBucket(MINIO_BUCKET, "");
+        console.log(`✅ MinIO bucket "${MINIO_BUCKET}" created`);
+      } else {
+        console.log(`✅ MinIO bucket "${MINIO_BUCKET}" exists`);
+      }
+    } catch (err) {
+      console.error(`⚠️ MinIO bucket check/create failed:`, err);
+    }
+  })();
+}
+
+// Ensure local upload directory exists
+if (!isS3Provider) {
+  try {
+    fs.mkdirSync(LOCAL_UPLOAD_DIR, { recursive: true });
+  } catch (_) {}
+}
 
 export class ObjectNotFoundError extends Error {
   constructor() {
@@ -96,10 +124,8 @@ export class ObjectStorageService {
     }
     const dir = process.env.PRIVATE_OBJECT_DIR || "";
     if (!dir) {
-      throw new Error(
-        "PRIVATE_OBJECT_DIR not set. Create a bucket in 'Object Storage' " +
-          "tool and set PRIVATE_OBJECT_DIR env var."
-      );
+      // Fallback to local uploads dir instead of throwing
+      return LOCAL_UPLOAD_DIR;
     }
     return dir;
   }
@@ -136,6 +162,40 @@ export class ObjectStorageService {
 
   // Downloads an object to the response.
   async downloadObject(file: File, res: Response, cacheTtlSec: number = 3600) {
+    // Local disk fallback
+    const localPath = (file as any).__localPath;
+    if (localPath && typeof localPath === "string") {
+      try {
+        const stat = fs.statSync(localPath);
+        const ext = path.extname(localPath).toLowerCase();
+        const mimeMap: Record<string, string> = {
+          ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png",
+          ".gif": "image/gif", ".webp": "image/webp", ".svg": "image/svg+xml",
+          ".mp4": "video/mp4", ".webm": "video/webm",
+        };
+        res.set({
+          "Content-Type": mimeMap[ext] || "application/octet-stream",
+          "Content-Length": String(stat.size),
+          "Cache-Control": `private, max-age=${cacheTtlSec}`,
+        });
+        const stream = fs.createReadStream(localPath);
+        stream.on("error", (err) => {
+          console.error("Local stream error:", err);
+          if (!res.headersSent) {
+            res.status(500).json({ error: "Error streaming file" });
+          }
+        });
+        stream.pipe(res);
+        return;
+      } catch (err) {
+        console.error("Error reading local file:", err);
+        if (!res.headersSent) {
+          res.status(500).json({ error: "Error reading file" });
+        }
+        return;
+      }
+    }
+
     if (isS3Provider && minioClient) {
       const bucketName = (file as any).bucket?.().name || MINIO_BUCKET;
       const objectName = (file as any).name;
@@ -200,8 +260,19 @@ export class ObjectStorageService {
 
   // Gets the upload URL for an object entity.
   async getObjectEntityUploadURL(): Promise<string> {
-    const privateObjectDir = this.getPrivateObjectDir();
     const objectId = randomUUID();
+
+    // Local disk fallback — returns a special URL the app intercepts
+    if (!isS3Provider || !minioClient) {
+      const uploadDir = path.join(LOCAL_UPLOAD_DIR, "uploads");
+      fs.mkdirSync(uploadDir, { recursive: true });
+      // Return a sentinel URL the client-side code won't actually PUT to;
+      // instead the presign endpoint will signal the client to use multipart.
+      // For presigned flow compat we return a local placeholder.
+      return `__local__://${objectId}`;
+    }
+
+    const privateObjectDir = this.getPrivateObjectDir();
 
     if (isS3Provider && minioClient) {
       const { bucketName, objectName } = parseObjectPath(`${privateObjectDir}/uploads/${objectId}`);
@@ -230,6 +301,17 @@ export class ObjectStorageService {
     }
 
     const entityId = parts.slice(1).join("/");
+
+    // Local disk fallback: check if file exists on disk
+    if (!isS3Provider || !minioClient) {
+      const localPath = path.join(LOCAL_UPLOAD_DIR, entityId);
+      if (fs.existsSync(localPath)) {
+        // Return a mock File-like object with __localPath for downloadObject
+        return { name: entityId, __localPath: localPath } as any;
+      }
+      throw new ObjectNotFoundError();
+    }
+
     let entityDir = this.getPrivateObjectDir();
     if (!entityDir.endsWith("/")) {
       entityDir = `${entityDir}/`;
@@ -258,6 +340,18 @@ export class ObjectStorageService {
   normalizeObjectEntityPath(
     rawPath: string,
   ): string {
+    // Local fallback sentinel: __local__://uuid → /objects/uploads/uuid
+    if (rawPath.startsWith("__local__://")) {
+      const objectId = rawPath.slice("__local__://".length);
+      return `/objects/uploads/${objectId}`;
+    }
+
+    // Local direct upload URL: /api/uploads/direct/uuid → /objects/uploads/uuid
+    if (rawPath.startsWith("/api/uploads/direct/")) {
+      const objectId = rawPath.slice("/api/uploads/direct/".length);
+      return `/objects/uploads/${objectId}`;
+    }
+
     if (isS3Provider) {
       try {
         const url = new URL(rawPath);
@@ -307,6 +401,11 @@ export class ObjectStorageService {
       return normalizedPath;
     }
 
+    // Local disk files: no ACL to set, just return normalized path
+    if (rawPath.startsWith("__local__://") || rawPath.startsWith("/api/uploads/direct/")) {
+      return normalizedPath;
+    }
+
     if (isS3Provider) {
       // MinIO/S3: store object as-is; custom ACL metadata skipped
       return normalizedPath;
@@ -327,6 +426,10 @@ export class ObjectStorageService {
     objectFile: File;
     requestedPermission?: ObjectPermission;
   }): Promise<boolean> {
+    // Local disk file: allow when caller is authenticated
+    if ((objectFile as any).__localPath) {
+      return !!userId;
+    }
     if (isS3Provider) {
       // MinIO branch: objects are private by convention; allow when caller is authenticated
       return !!userId;

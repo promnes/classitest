@@ -1,5 +1,9 @@
 import type { Express } from "express";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
+import * as fs from "fs";
+import * as path from "path";
+
+const LOCAL_UPLOAD_DIR = process.env.LOCAL_UPLOAD_DIR || path.resolve(process.cwd(), "uploads");
 
 /**
  * Register object storage routes for file uploads.
@@ -45,10 +49,17 @@ export function registerObjectStorageRoutes(app: Express): void {
         });
       }
 
-      const uploadURL = await objectStorageService.getObjectEntityUploadURL();
+      const rawUploadURL = await objectStorageService.getObjectEntityUploadURL();
+
+      // Local fallback: swap sentinel URL to a real server endpoint
+      let uploadURL = rawUploadURL;
+      if (rawUploadURL.startsWith("__local__://")) {
+        const objectId = rawUploadURL.slice("__local__://".length);
+        uploadURL = `/api/uploads/direct/${objectId}`;
+      }
 
       // Extract object path from the presigned URL for later reference
-      const objectPath = objectStorageService.normalizeObjectEntityPath(uploadURL);
+      const objectPath = objectStorageService.normalizeObjectEntityPath(rawUploadURL);
 
       res.json({
         uploadURL,
@@ -59,6 +70,44 @@ export function registerObjectStorageRoutes(app: Express): void {
     } catch (error) {
       console.error("Error generating upload URL:", error);
       res.status(500).json({ error: "Failed to generate upload URL" });
+    }
+  });
+
+  /**
+   * Direct file upload endpoint for local disk storage fallback.
+   * The client PUTs the raw file body here when MinIO/S3 is unavailable.
+   * URL format: PUT /api/uploads/direct/:id
+   */
+  app.put("/api/uploads/direct/:id", async (req, res) => {
+    try {
+      const objectId = req.params.id;
+      if (!objectId || objectId.includes("..") || objectId.includes("/")) {
+        return res.status(400).json({ success: false, message: "معرف غير صالح" });
+      }
+
+      const uploadsDir = path.join(LOCAL_UPLOAD_DIR, "uploads");
+      fs.mkdirSync(uploadsDir, { recursive: true });
+
+      const filePath = path.join(uploadsDir, objectId);
+      const writeStream = fs.createWriteStream(filePath);
+
+      req.pipe(writeStream);
+
+      writeStream.on("finish", () => {
+        res.json({ success: true });
+      });
+
+      writeStream.on("error", (err) => {
+        console.error("Direct upload write error:", err);
+        if (!res.headersSent) {
+          res.status(500).json({ success: false, message: "فشل حفظ الملف" });
+        }
+      });
+    } catch (error) {
+      console.error("Direct upload error:", error);
+      if (!res.headersSent) {
+        res.status(500).json({ success: false, message: "فشل رفع الملف" });
+      }
     }
   });
 
