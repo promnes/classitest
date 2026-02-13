@@ -623,7 +623,7 @@ export async function registerAdminRoutes(app: Express) {
         await db.update(parentPurchases).set({ paymentStatus: "approved" }).where(eq(parentPurchases.id, id));
 
         // Notify parent
-        await createNotification({ parentId: purchase[0].parentId, type: "purchase_approved", message: `Your purchase ${id} has been approved.`, relatedId: id });
+        await createNotification({ parentId: purchase[0].parentId, type: "purchase_approved", title: "✅ تمت الموافقة على طلبك", message: `تمت الموافقة على طلب الشراء الخاص بك وتم تفعيل المنتجات`, relatedId: id });
 
         return res.json(successResponse({ created }));
       }
@@ -631,7 +631,7 @@ export async function registerAdminRoutes(app: Express) {
       // If rejected
       if (status === "rejected") {
         await db.update(parentPurchases).set({ paymentStatus: "rejected" }).where(eq(parentPurchases.id, id));
-        await createNotification({ parentId: purchase[0].parentId, type: "purchase_rejected", message: `Your purchase ${id} was rejected. Reason: ${rejectionReason || 'No reason provided'}`, relatedId: id });
+        await createNotification({ parentId: purchase[0].parentId, type: "purchase_rejected", title: "❌ تم رفض طلب الشراء", message: rejectionReason ? `تم رفض طلب الشراء. السبب: ${rejectionReason}` : `تم رفض طلب الشراء. يرجى التواصل مع الدعم`, relatedId: id });
         return res.json(successResponse());
       }
     } catch (error: any) {
@@ -687,8 +687,11 @@ export async function registerAdminRoutes(app: Express) {
         await db.update(childAssignedProducts).set({ status: "shipped", shippedAt: new Date() }).where(eq(childAssignedProducts.id, reqRow[0].assignedProductId));
       }
 
-      // Notify parent and child
-      await createNotification({ parentId: reqRow[0].parentId, childId: reqRow[0].childId, type: "shipping_update", message: `Shipping request ${id} updated to ${status}`, relatedId: id });
+      // Notify parent and child (with child name)
+      const shippingChild = await db.select({ name: children.name }).from(children).where(eq(children.id, reqRow[0].childId));
+      const shippingChildName = shippingChild[0]?.name || "طفلك";
+      const statusAr: Record<string, string> = { requested: "مطلوب", approved: "تمت الموافقة", shipped: "تم الشحن", delivered: "تم التوصيل", cancelled: "ملغي" };
+      await createNotification({ parentId: reqRow[0].parentId, childId: reqRow[0].childId, type: "shipping_update", title: `تحديث شحن لـ ${shippingChildName}`, message: `تم تحديث حالة شحن طلب ${shippingChildName} إلى: ${statusAr[status] || status}`, relatedId: id, metadata: { childName: shippingChildName, status } });
 
       res.json(successResponse());
     } catch (error: any) {
@@ -1653,7 +1656,10 @@ export async function registerAdminRoutes(app: Express) {
       await createNotification({
         parentId,
         type: "security_alert",
-        message: "All your devices have been logged out. Please log in again.",
+        title: "🔒 تنبيه أمني",
+        message: "تم تسجيل الخروج من جميع أجهزتك. يرجى تسجيل الدخول مرة أخرى.",
+        style: "modal",
+        priority: "urgent",
         relatedId: parentId,
       });
 

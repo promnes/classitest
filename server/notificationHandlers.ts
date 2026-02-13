@@ -47,8 +47,8 @@ async function handleGiftUnlocked(event: GiftEvent): Promise<void> {
     const notification = await db.insert(notifications).values({
       childId: event.childId,
       type: "gift_unlocked",
-      title: "🎁 Gift Unlocked!",
-      message: "You've earned enough points to claim your gift!",
+      title: "🎁 تم فتح الهدية!",
+      message: "أحسنت! لقد جمعت نقاطاً كافية للحصول على هديتك!",
       style: "modal",
       priority: "normal",
       soundAlert: true,
@@ -73,8 +73,8 @@ async function handleGiftActivated(event: GiftEvent): Promise<void> {
     const notification = await db.insert(notifications).values({
       childId: event.childId,
       type: "gift_activated",
-      title: "✨ Gift Claimed!",
-      message: "You've successfully claimed your gift!",
+      title: "✨ تم استلام الهدية!",
+      message: "تهانينا! لقد حصلت على هديتك بنجاح!",
       style: "toast",
       priority: "normal",
       soundAlert: false,

@@ -192,16 +192,20 @@ export async function notifyChildGoalProgress(childId: string, productId: string
   });
 }
 
-export async function notifyParentChildActivity(parentId: string, childId: string, activityType: string, details: string) {
+export async function notifyParentChildActivity(parentId: string, childId: string, activityType: string, details: string, childName?: string) {
+  const resolvedName = childName || (await (async () => {
+    const childData = await db.select().from(children).where(eq(children.id, childId));
+    return childData[0]?.name || "طفلك";
+  })());
   return createNotification({
     parentId,
     type: "child_activity",
-    title: "نشاط الطفل",
+    title: `نشاط ${resolvedName}`,
     message: details,
     style: "toast",
     priority: "normal",
     relatedId: childId,
-    metadata: { activityType, childId },
+    metadata: { activityType, childId, childName: resolvedName },
   });
 }
 

@@ -1621,7 +1621,9 @@ export async function registerParentRoutes(app: Express) {
       }
 
       // Notify admins (create notification for admins via notifications table with no parentId)
-      await createNotification({ type: 'purchase_paid', message: `Purchase ${purchaseId} marked as paid`, relatedId: purchaseId });
+      const buyerParent = await db.select({ name: parents.name }).from(parents).where(eq(parents.id, req.user.userId));
+      const buyerName = buyerParent[0]?.name || "مستخدم";
+      await createNotification({ type: 'purchase_paid', title: "💳 طلب شراء جديد", message: `${buyerName} قام بالدفع لطلب الشراء وينتظر الموافقة`, relatedId: purchaseId, metadata: { parentName: buyerName, purchaseId } });
 
       res.status(201).json({ success: true, data: { purchaseId, message: 'Purchase recorded and pending admin approval' } });
     } catch (error: any) {
@@ -1675,8 +1677,10 @@ export async function registerParentRoutes(app: Express) {
       // update parent owned product
       await db.update(parentOwnedProducts).set({ status: 'assigned_to_child', updatedAt: new Date() }).where(eq(parentOwnedProducts.id, id));
 
-      // create notification for child
-      await createNotification({ childId, type: 'product_assigned', message: `A product was assigned to you by your parent`, relatedId: assigned[0].id });
+      // create notification for child (with product name)
+      const assignedProduct = await db.select({ name: products.name, nameAr: products.nameAr }).from(products).where(eq(products.id, owned[0].productId));
+      const assignedProductName = assignedProduct[0]?.nameAr || assignedProduct[0]?.name || "منتج";
+      await createNotification({ childId, type: 'product_assigned', title: "🎁 هدية جديدة في انتظارك!", message: `أضاف والداك "${assignedProductName}" كهدية! اجمع ${requiredPoints} نقطة للحصول عليها`, relatedId: assigned[0].id, metadata: { productName: assignedProductName, requiredPoints } });
 
       res.json({ success: true, data: assigned[0] });
     } catch (error: any) {
@@ -1723,8 +1727,10 @@ export async function registerParentRoutes(app: Express) {
       // update assigned product status
       await db.update(childAssignedProducts).set({ status: 'shipment_requested', shipmentRequestedAt: new Date() }).where(eq(childAssignedProducts.id, id));
 
-      // notify admin
-      await createNotification({ type: 'shipment_requested', message: `Shipment requested for assigned product ${id}`, relatedId: sr[0].id });
+      // notify admin (with child name + product info)
+      const shippedChild = await db.select({ name: children.name }).from(children).where(eq(children.id, assigned[0].childId));
+      const shippedChildName = shippedChild[0]?.name || "طفل";
+      await createNotification({ type: 'shipment_requested', title: "📦 طلب شحن جديد", message: `طلب شحن جديد لـ ${shippedChildName} — المنتج: ${id}`, relatedId: sr[0].id, metadata: { childName: shippedChildName, assignedProductId: id } });
 
       res.json({ success: true, data: sr[0] });
     } catch (error: any) {
