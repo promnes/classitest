@@ -386,11 +386,9 @@ services:
     ports:
       - "127.0.0.1:3100:3100"
     volumes:
-      - ./monitoring/loki-config.yml:/etc/loki/local-config.yml:ro
       - loki_data:/loki
     networks:
       - classify-network
-    command: -config.file=/etc/loki/local-config.yml
     logging:
       driver: json-file
       options:
