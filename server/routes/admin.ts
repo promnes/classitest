@@ -3399,6 +3399,82 @@ export async function registerAdminRoutes(app: Express) {
       
       // Get referral info
       const referralCode = await db.select().from(parentReferralCodes).where(eq(parentReferralCodes.parentId, id));
+
+      // Get deposits history
+      const parentDeposits = await db
+        .select()
+        .from(deposits)
+        .where(eq(deposits.parentId, id))
+        .orderBy(desc(deposits.createdAt));
+
+      const depositsWithMethod = await Promise.all(
+        parentDeposits.map(async (deposit: typeof deposits.$inferSelect) => {
+          const method = await db
+            .select()
+            .from(paymentMethods)
+            .where(eq(paymentMethods.id, deposit.paymentMethodId));
+
+          return {
+            ...deposit,
+            paymentMethod: method[0]
+              ? {
+                  id: method[0].id,
+                  name: method[0].name,
+                  type: method[0].type,
+                  bankName: method[0].bankName,
+                }
+              : null,
+          };
+        })
+      );
+
+      // Get purchases history
+      const purchases = await db
+        .select()
+        .from(parentPurchases)
+        .where(eq(parentPurchases.parentId, id))
+        .orderBy(desc(parentPurchases.createdAt));
+
+      const purchasesWithItems = await Promise.all(
+        purchases.map(async (purchase: typeof parentPurchases.$inferSelect) => {
+          const items = await db
+            .select()
+            .from(parentPurchaseItems)
+            .where(eq(parentPurchaseItems.purchaseId, purchase.id));
+
+          const itemsCount = items.reduce(
+            (sum: number, item: typeof parentPurchaseItems.$inferSelect) => sum + (item.quantity || 0),
+            0
+          );
+
+          return {
+            ...purchase,
+            itemsCount,
+          };
+        })
+      );
+
+      const totalDeposits = depositsWithMethod.reduce(
+        (sum: number, deposit) => sum + Number(deposit.amount || 0),
+        0
+      );
+
+      const completedDeposits = depositsWithMethod.reduce(
+        (sum: number, deposit) =>
+          deposit.status === "completed" ? sum + Number(deposit.amount || 0) : sum,
+        0
+      );
+
+      const totalPurchases = purchasesWithItems.reduce(
+        (sum: number, purchase) => sum + Number(purchase.totalAmount || 0),
+        0
+      );
+
+      const paidPurchases = purchasesWithItems.reduce(
+        (sum: number, purchase) =>
+          purchase.paymentStatus === "paid" ? sum + Number(purchase.totalAmount || 0) : sum,
+        0
+      );
       
       res.json(successResponse({
         ...parent[0],
@@ -3412,6 +3488,16 @@ export async function registerAdminRoutes(app: Express) {
           transactions: sellerProfits,
         },
         referral: referralCode[0] || null,
+        deposits: depositsWithMethod,
+        purchases: purchasesWithItems,
+        financeSummary: {
+          depositsCount: depositsWithMethod.length,
+          purchasesCount: purchasesWithItems.length,
+          totalDeposits,
+          completedDeposits,
+          totalPurchases,
+          paidPurchases,
+        },
       }));
     } catch (error: any) {
       console.error("Get parent details error:", error);

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Users, Eye, Send, Mail, Phone, Calendar, Wallet, ListTodo, Share2, X, Image } from "lucide-react";
+import { Users, Eye, Send, Mail, Phone, Calendar, Wallet, ListTodo, Share2, X, Image, ArrowDownCircle, ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -22,12 +22,57 @@ interface Parent {
 }
 
 interface ParentDetails extends Parent {
+  deposits: Array<{
+    id: string;
+    amount: string | number;
+    status: string;
+    createdAt: string;
+    transactionId?: string | null;
+    paymentMethod?: {
+      id: string;
+      name: string;
+      type: string;
+      bankName?: string | null;
+    } | null;
+  }>;
+  purchases: Array<{
+    id: string;
+    totalAmount: string | number;
+    paymentStatus: string;
+    currency: string;
+    invoiceNumber?: string | null;
+    createdAt: string;
+    itemsCount: number;
+  }>;
+  financeSummary?: {
+    depositsCount: number;
+    purchasesCount: number;
+    totalDeposits: number;
+    completedDeposits: number;
+    totalPurchases: number;
+    paidPurchases: number;
+  };
   wallet: { balance: number };
   tasks: Array<{ id: string; question: string; status: string }>;
   templateTasks: Array<{ id: string; title: string; isPublic: boolean; usageCount: number }>;
   earnings: { total: number; transactions: any[] };
   referral: { code: string; totalReferrals: number; activeReferrals: number } | null;
 }
+
+const formatAmount = (value: string | number | null | undefined) => Number(value || 0).toFixed(2);
+
+const depositStatusMeta: Record<string, { label: string; className: string }> = {
+  pending: { label: "قيد المراجعة", className: "bg-yellow-100 text-yellow-800" },
+  completed: { label: "مقبول", className: "bg-green-100 text-green-800" },
+  cancelled: { label: "مرفوض", className: "bg-red-100 text-red-800" },
+};
+
+const purchaseStatusMeta: Record<string, { label: string; className: string }> = {
+  pending: { label: "قيد الانتظار", className: "bg-yellow-100 text-yellow-800" },
+  paid: { label: "مدفوع", className: "bg-green-100 text-green-800" },
+  failed: { label: "فشل", className: "bg-red-100 text-red-800" },
+  refunded: { label: "مسترجع", className: "bg-gray-100 text-gray-700" },
+};
 
 export function ParentsTab({ token }: { token: string }) {
   const queryClient = useQueryClient();
@@ -198,7 +243,7 @@ export function ParentsTab({ token }: { token: string }) {
 
       {selectedParent && !showNotifyModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-background rounded-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+          <div className="bg-background rounded-xl p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto shadow-2xl border">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-xl font-bold">{selectedParent.name}</h3>
               <Button
@@ -227,6 +272,25 @@ export function ParentsTab({ token }: { token: string }) {
               <div className="p-4 border rounded-lg">
                 <div className="text-sm text-muted-foreground">الأرباح</div>
                 <div className="font-medium">{selectedParent.earnings?.total || 0} نقطة</div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-6">
+              <div className="p-4 rounded-lg border bg-blue-50">
+                <div className="text-xs text-blue-700 mb-1">إجمالي الإيداعات</div>
+                <div className="text-lg font-bold text-blue-900">{formatAmount(selectedParent.financeSummary?.totalDeposits)} ر.س</div>
+              </div>
+              <div className="p-4 rounded-lg border bg-green-50">
+                <div className="text-xs text-green-700 mb-1">الإيداعات المقبولة</div>
+                <div className="text-lg font-bold text-green-900">{formatAmount(selectedParent.financeSummary?.completedDeposits)} ر.س</div>
+              </div>
+              <div className="p-4 rounded-lg border bg-purple-50">
+                <div className="text-xs text-purple-700 mb-1">إجمالي المشتريات</div>
+                <div className="text-lg font-bold text-purple-900">{formatAmount(selectedParent.financeSummary?.totalPurchases)} ر.س</div>
+              </div>
+              <div className="p-4 rounded-lg border bg-amber-50">
+                <div className="text-xs text-amber-700 mb-1">المشتريات المدفوعة</div>
+                <div className="text-lg font-bold text-amber-900">{formatAmount(selectedParent.financeSummary?.paidPurchases)} ر.س</div>
               </div>
             </div>
 
@@ -260,6 +324,74 @@ export function ParentsTab({ token }: { token: string }) {
                 </div>
               </div>
             )}
+
+            <div className="mb-6 grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <div className="border rounded-xl p-4">
+                <h4 className="font-semibold mb-3 flex items-center gap-2">
+                  <ArrowDownCircle className="h-4 w-4 text-blue-600" />
+                  سجلات الإيداعات ({selectedParent.deposits?.length || 0})
+                </h4>
+                <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                  {selectedParent.deposits?.length ? (
+                    selectedParent.deposits.map((deposit) => {
+                      const status = depositStatusMeta[deposit.status] || {
+                        label: deposit.status,
+                        className: "bg-gray-100 text-gray-700",
+                      };
+
+                      return (
+                        <div key={deposit.id} className="p-3 border rounded-lg bg-muted/30">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="font-semibold text-sm">{formatAmount(deposit.amount)} ر.س</div>
+                            <Badge className={status.className}>{status.label}</Badge>
+                          </div>
+                          <div className="text-xs text-muted-foreground space-y-1">
+                            <div>الوسيلة: {deposit.paymentMethod?.name || deposit.paymentMethod?.type || "غير معروف"}</div>
+                            {deposit.transactionId && <div>رقم العملية: {deposit.transactionId}</div>}
+                            <div>{new Date(deposit.createdAt).toLocaleString("ar-SA")}</div>
+                          </div>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <p className="text-sm text-muted-foreground text-center py-6">لا توجد إيداعات حتى الآن</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="border rounded-xl p-4">
+                <h4 className="font-semibold mb-3 flex items-center gap-2">
+                  <ShoppingBag className="h-4 w-4 text-purple-600" />
+                  سجلات المشتريات ({selectedParent.purchases?.length || 0})
+                </h4>
+                <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                  {selectedParent.purchases?.length ? (
+                    selectedParent.purchases.map((purchase) => {
+                      const status = purchaseStatusMeta[purchase.paymentStatus] || {
+                        label: purchase.paymentStatus,
+                        className: "bg-gray-100 text-gray-700",
+                      };
+
+                      return (
+                        <div key={purchase.id} className="p-3 border rounded-lg bg-muted/30">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="font-semibold text-sm">{formatAmount(purchase.totalAmount)} {purchase.currency || "USD"}</div>
+                            <Badge className={status.className}>{status.label}</Badge>
+                          </div>
+                          <div className="text-xs text-muted-foreground space-y-1">
+                            <div>عدد المنتجات: {purchase.itemsCount || 0}</div>
+                            {purchase.invoiceNumber && <div>الفاتورة: {purchase.invoiceNumber}</div>}
+                            <div>{new Date(purchase.createdAt).toLocaleString("ar-SA")}</div>
+                          </div>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <p className="text-sm text-muted-foreground text-center py-6">لا توجد مشتريات حتى الآن</p>
+                  )}
+                </div>
+              </div>
+            </div>
 
             <div className="mb-4">
               <h4 className="font-medium mb-2">المهام العامة ({selectedParent.templateTasks?.filter(t => t.isPublic).length || 0})</h4>
