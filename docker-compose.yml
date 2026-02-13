@@ -100,14 +100,14 @@ services:
       - SMTP_USER=${SMTP_USER:-}
       - SMTP_PASSWORD=${SMTP_PASSWORD:-}
       - SMTP_FROM=${SMTP_FROM:-}
-      - CORS_ORIGIN=${CORS_ORIGIN:?CORS_ORIGIN is required}
+      - CORS_ORIGIN=${CORS_ORIGIN:-https://classi-fy.com}
       - LOG_LEVEL=${LOG_LEVEL:-info}
       - OBJECT_STORAGE_PROVIDER=s3
       - MINIO_ENDPOINT=minio
       - MINIO_PORT=9000
       - MINIO_USE_SSL=false
-      - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY:?MINIO_ACCESS_KEY is required}
-      - MINIO_SECRET_KEY=${MINIO_SECRET_KEY:?MINIO_SECRET_KEY is required}
+      - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY:-classifyminio}
+      - MINIO_SECRET_KEY=${MINIO_SECRET_KEY:-classifyminio123}
       - MINIO_BUCKET=classify-media
       - MINIO_PREFIX=private
       - MINIO_PUBLIC_URL=
@@ -407,8 +407,8 @@ services:
     restart: always
     command: server /data --console-address ":9001"
     environment:
-      - MINIO_ROOT_USER=${MINIO_ACCESS_KEY:?MINIO_ACCESS_KEY is required}
-      - MINIO_ROOT_PASSWORD=${MINIO_SECRET_KEY:?MINIO_SECRET_KEY is required}
+      - MINIO_ROOT_USER=${MINIO_ACCESS_KEY:-classifyminio}
+      - MINIO_ROOT_PASSWORD=${MINIO_SECRET_KEY:-classifyminio123}
     ports:
       - "127.0.0.1:9002:9000"
       - "127.0.0.1:9001:9001"
