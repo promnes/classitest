@@ -9,6 +9,7 @@ import {
   parentChild,
 } from "../../shared/schema";
 import { createNotification } from "../notifications";
+import { isWebPushReady, sendWebPushNotification } from "./webPushService";
 
 const db = storage.db;
 
@@ -157,37 +158,119 @@ async function handleTaskAssignedNotify(eventRow: typeof outboxEvents.$inferSele
   }
 
   if (policy.level >= 4 && (channels.webPush || channels.mobilePush)) {
-    const activeSubs = await db
-      .select({ id: childPushSubscriptions.id, platform: childPushSubscriptions.platform })
-      .from(childPushSubscriptions)
-      .where(and(eq(childPushSubscriptions.childId, childId), eq(childPushSubscriptions.isActive, true)));
+    let hasAnyPushSuccess = false;
 
-    if (activeSubs.length === 0) {
+    if (channels.webPush) {
+      const webSubs = await db
+        .select({
+          id: childPushSubscriptions.id,
+          endpoint: childPushSubscriptions.endpoint,
+          p256dh: childPushSubscriptions.p256dh,
+          auth: childPushSubscriptions.auth,
+        })
+        .from(childPushSubscriptions)
+        .where(
+          and(
+            eq(childPushSubscriptions.childId, childId),
+            eq(childPushSubscriptions.isActive, true),
+            eq(childPushSubscriptions.platform, "web")
+          )
+        );
+
+      if (!isWebPushReady()) {
+        await recordAttempt({
+          taskId,
+          childId,
+          channel: "web_push",
+          attemptNo,
+          status: "failed",
+          error: "WEB_PUSH_VAPID_NOT_CONFIGURED",
+        });
+      } else if (webSubs.length === 0) {
+        await recordAttempt({
+          taskId,
+          childId,
+          channel: "web_push",
+          attemptNo,
+          status: "failed",
+          error: "NO_ACTIVE_WEB_PUSH_SUBSCRIPTIONS",
+        });
+      } else {
+        for (const sub of webSubs) {
+          if (!sub.endpoint || !sub.p256dh || !sub.auth) {
+            await recordAttempt({
+              taskId,
+              childId,
+              channel: "web_push",
+              attemptNo,
+              status: "failed",
+              error: "INVALID_WEB_PUSH_SUBSCRIPTION",
+            });
+            continue;
+          }
+
+          try {
+            await sendWebPushNotification(
+              {
+                endpoint: sub.endpoint,
+                p256dh: sub.p256dh,
+                auth: sub.auth,
+              },
+              {
+                title: "مهمة جديدة!",
+                body: `لديك مهمة جديدة${payload.title ? `: ${payload.title}` : ""}`,
+                taskId,
+                childId,
+                level: policy.level,
+                url: "/child-tasks",
+              }
+            );
+
+            hasAnyPushSuccess = true;
+            await recordAttempt({
+              taskId,
+              childId,
+              channel: "web_push",
+              attemptNo,
+              status: "sent",
+            });
+          } catch (error: any) {
+            const statusCode = error?.statusCode;
+            if (statusCode === 404 || statusCode === 410) {
+              await db
+                .update(childPushSubscriptions)
+                .set({ isActive: false, updatedAt: new Date() })
+                .where(eq(childPushSubscriptions.id, sub.id));
+            }
+
+            await recordAttempt({
+              taskId,
+              childId,
+              channel: "web_push",
+              attemptNo,
+              status: "failed",
+              error: error?.message || "WEB_PUSH_SEND_FAILED",
+            });
+          }
+        }
+      }
+      attemptNo += 1;
+    }
+
+    if (channels.mobilePush) {
       await recordAttempt({
         taskId,
         childId,
-        channel: channels.webPush && channels.mobilePush ? "web_push+mobile_push" : channels.webPush ? "web_push" : "mobile_push",
+        channel: "mobile_push",
         attemptNo,
         status: "failed",
-        error: "NO_ACTIVE_PUSH_SUBSCRIPTIONS",
+        error: "MOBILE_PUSH_NOT_IMPLEMENTED_YET",
       });
+      attemptNo += 1;
+    }
 
-      if (policy.escalationEnabled || channels.parentEscalation) {
-        await sendParentEscalation(childId, taskId, payload.title);
-      }
-    } else {
-      await recordAttempt({
-        taskId,
-        childId,
-        channel: channels.webPush && channels.mobilePush ? "web_push+mobile_push" : channels.webPush ? "web_push" : "mobile_push",
-        attemptNo,
-        status: "failed",
-        error: "PUSH_DISPATCH_NOT_IMPLEMENTED_YET",
-      });
-
-      if (policy.escalationEnabled || channels.parentEscalation) {
-        await sendParentEscalation(childId, taskId, payload.title);
-      }
+    if (!hasAnyPushSuccess && (policy.escalationEnabled || channels.parentEscalation)) {
+      await sendParentEscalation(childId, taskId, payload.title);
     }
   }
 }

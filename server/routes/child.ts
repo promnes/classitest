@@ -45,6 +45,7 @@ import { emitGiftEvent } from "../giftEvents";
 import { unlockEligibleGifts } from "../giftUnlock";
 import { createNotification } from "../notifications";
 import { applyPointsDelta } from "../services/pointsService";
+import { getVapidPublicKey } from "../services/webPushService";
 
 const db = storage.db;
 
@@ -1533,6 +1534,24 @@ export async function registerChildRoutes(app: Express) {
     } catch (error: any) {
       console.error("Get child push subscriptions error:", error);
       res.status(500).json({ success: false, error: "INTERNAL_SERVER_ERROR", message: "Failed to fetch push subscriptions" });
+    }
+  });
+
+  app.get("/api/child/push-public-key", authMiddleware, async (req: any, res) => {
+    try {
+      const publicKey = getVapidPublicKey();
+      if (!publicKey) {
+        return res.status(503).json({
+          success: false,
+          error: "WEB_PUSH_NOT_CONFIGURED",
+          message: "Web push is not configured on server",
+        });
+      }
+
+      res.json({ success: true, data: { publicKey } });
+    } catch (error: any) {
+      console.error("Get push public key error:", error);
+      res.status(500).json({ success: false, error: "INTERNAL_SERVER_ERROR", message: "Failed to fetch public key" });
     }
   });
 
