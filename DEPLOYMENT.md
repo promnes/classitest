@@ -660,9 +660,20 @@ docker run --rm -v classify_app_uploads:/data -v $(pwd):/backup alpine tar czf /
 
 ## Performance Tuning
 
-### For high traffic (5000+ users)
+### Recommended profile (validated)
 
-Edit `docker-compose.yml`:
+Set these values in `.env` (already wired into `docker-compose.yml`):
+
+```env
+NODE_CLUSTER_ENABLED=true
+WEB_CONCURRENCY=4
+DB_POOL_MAX=50
+DB_POOL_MIN=5
+DB_POOL_IDLE_TIMEOUT_MS=30000
+DB_POOL_CONNECT_TIMEOUT_MS=10000
+```
+
+Container memory profile:
 
 ```yaml
 services:
@@ -682,6 +693,18 @@ services:
         reservations:
           memory: 512M
 ```
+
+### Benchmark snapshot (current environment)
+
+- Mixed workload (80/20 read/write): ~6.7k ops/s
+- Sustained write benchmark: ~13.7k ops/s
+- Error rate during benchmark: 0%
+
+### Safe scaling steps
+
+1. Increase `WEB_CONCURRENCY` by +1 and observe CPU, latency (P95/P99), and error rate.
+2. Increase `DB_POOL_MAX` in small steps while keeping PostgreSQL below `max_connections` safety margin.
+3. Keep changes if latency remains stable and error rate stays near zero.
 
 ### PostgreSQL tuning
 

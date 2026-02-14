@@ -367,10 +367,28 @@ For detailed guide, see [ADMIN_CREDENTIALS.md](docs/ADMIN_CREDENTIALS.md)
 - Docker BuildKit caching for faster rebuilds
 
 ### Scalability
-- Optimized for 5000+ concurrent users
+- Measured mixed workload (80/20 read/write) at **~6.7k ops/s** on current benchmark environment
+- Measured sustained DB write throughput at **~13.7k ops/s** (temporary UNLOGGED benchmark table)
 - Docker resource limits configured
-- Connection pooling enabled
+- Connection pooling and optional Node.js cluster mode enabled
 - Zero-downtime rolling updates
+
+### Production Capacity Profile (Recommended)
+
+Use these environment values in `.env` (or Docker manager) for the current tuning profile:
+
+```env
+NODE_CLUSTER_ENABLED=true
+WEB_CONCURRENCY=4
+DB_POOL_MAX=50
+DB_POOL_MIN=5
+DB_POOL_IDLE_TIMEOUT_MS=30000
+DB_POOL_CONNECT_TIMEOUT_MS=10000
+```
+
+Notes:
+- Increase `WEB_CONCURRENCY` gradually only after monitoring CPU saturation.
+- Keep `DB_POOL_MAX` below PostgreSQL `max_connections` headroom for admin/maintenance sessions.
 
 ## Monitoring | المراقبة
 
