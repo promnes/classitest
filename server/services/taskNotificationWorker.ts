@@ -10,6 +10,7 @@ import {
 } from "../../shared/schema";
 import { createNotification } from "../notifications";
 import { isWebPushReady, sendWebPushNotification } from "./webPushService";
+import { isMobilePushReady, sendMobilePushNotification } from "./mobilePushService";
 
 const db = storage.db;
 
@@ -258,14 +259,90 @@ async function handleTaskAssignedNotify(eventRow: typeof outboxEvents.$inferSele
     }
 
     if (channels.mobilePush) {
-      await recordAttempt({
-        taskId,
-        childId,
-        channel: "mobile_push",
-        attemptNo,
-        status: "failed",
-        error: "MOBILE_PUSH_NOT_IMPLEMENTED_YET",
-      });
+      const mobileSubs = await db
+        .select({
+          id: childPushSubscriptions.id,
+          token: childPushSubscriptions.token,
+          platform: childPushSubscriptions.platform,
+        })
+        .from(childPushSubscriptions)
+        .where(
+          and(
+            eq(childPushSubscriptions.childId, childId),
+            eq(childPushSubscriptions.isActive, true)
+          )
+        );
+
+      const mobileTokens = mobileSubs.filter(
+        (row: { id: string; token: string | null; platform: string }) =>
+          (row.platform === "android" || row.platform === "ios") && !!row.token
+      );
+
+      if (!isMobilePushReady()) {
+        await recordAttempt({
+          taskId,
+          childId,
+          channel: "mobile_push",
+          attemptNo,
+          status: "failed",
+          error: "MOBILE_PUSH_FCM_NOT_CONFIGURED",
+        });
+      } else if (mobileTokens.length === 0) {
+        await recordAttempt({
+          taskId,
+          childId,
+          channel: "mobile_push",
+          attemptNo,
+          status: "failed",
+          error: "NO_ACTIVE_MOBILE_PUSH_TOKENS",
+        });
+      } else {
+        for (const sub of mobileTokens) {
+          try {
+            await sendMobilePushNotification(sub.token as string, {
+              title: "مهمة جديدة!",
+              body: `لديك مهمة جديدة${payload.title ? `: ${payload.title}` : ""}`,
+              data: {
+                taskId: taskId || "",
+                childId,
+                level: String(policy.level),
+                url: "/child-tasks",
+              },
+            });
+
+            hasAnyPushSuccess = true;
+            await recordAttempt({
+              taskId,
+              childId,
+              channel: "mobile_push",
+              attemptNo,
+              status: "sent",
+            });
+          } catch (error: any) {
+            const errorMessage = error?.message || "MOBILE_PUSH_SEND_FAILED";
+
+            if (
+              errorMessage.includes("NotRegistered") ||
+              errorMessage.includes("InvalidRegistration")
+            ) {
+              await db
+                .update(childPushSubscriptions)
+                .set({ isActive: false, updatedAt: new Date() })
+                .where(eq(childPushSubscriptions.id, sub.id));
+            }
+
+            await recordAttempt({
+              taskId,
+              childId,
+              channel: "mobile_push",
+              attemptNo,
+              status: "failed",
+              error: errorMessage,
+            });
+          }
+        }
+      }
+
       attemptNo += 1;
     }
 

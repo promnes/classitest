@@ -4,6 +4,7 @@ import { ChildPermissionsSetup } from "./ChildPermissionsSetup";
 import { NotificationCenter } from "./notifications/NotificationCenter";
 import { ChildTaskNotificationManager } from "./child/SponsoredTaskNotification";
 import { ChildWebPushRegistrar } from "./child/ChildWebPushRegistrar";
+import { ChildMobilePushRegistrar } from "./child/ChildMobilePushRegistrar";
 
 interface ChildAppWrapperProps {
   children: React.ReactNode;
@@ -69,6 +70,7 @@ export function ChildAppWrapper({ children }: ChildAppWrapperProps) {
   return (
     <div data-testid="child-wrapper-root">
       <ChildWebPushRegistrar />
+      <ChildMobilePushRegistrar />
       <NotificationCenter />
       <ChildTaskNotificationManager />
       {children}
