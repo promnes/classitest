@@ -177,7 +177,7 @@ export const ParentDashboard = (): JSX.Element => {
               👶 {t("parent.manageChildren")}
             </h2>
             <button
-              onClick={() => navigate("/parent-tasks")}}
+              onClick={() => navigate("/parent-tasks")}
               className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white font-bold rounded-lg shadow-md hover:shadow-lg transition-all"
             >
               ✨ {t("parent.createTask")}
