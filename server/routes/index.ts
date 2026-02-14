@@ -1,6 +1,8 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "../storage";
+import { flashGames } from "../../shared/schema";
+import { eq } from "drizzle-orm";
 
 import { registerAuthRoutes } from "./auth";
 import { registerAdminRoutes } from "./admin";
@@ -23,10 +25,40 @@ import { registerObjectStorageRoutes } from "../replit_integrations/object_stora
 import { registerMediaUploadRoutes } from "./media-uploads";
 import { ensureOtpProviders } from "../providers/otp/bootstrap";
 
+// Seed built-in games if they don't exist yet
+async function seedDefaultGames() {
+  const db = storage.db;
+  try {
+    const existing = await db.select({ id: flashGames.id })
+      .from(flashGames)
+      .where(eq(flashGames.embedUrl, "/games/math-challenge.html"))
+      .limit(1);
+    
+    if (existing.length === 0) {
+      await db.insert(flashGames).values({
+        title: "تحدي الرياضيات - Math Challenge",
+        description: "لعبة تعليمية ممتعة لتحسين مهارات الحساب. أجب على أكبر عدد من المسائل قبل انتهاء الوقت!",
+        embedUrl: "/games/math-challenge.html",
+        thumbnailUrl: "",
+        category: "math",
+        minAge: 5,
+        maxAge: 14,
+        pointsPerPlay: 10,
+        maxPlaysPerDay: 5,
+        isActive: true,
+      });
+      console.log("✅ Seeded default game: Math Challenge");
+    }
+  } catch (err) {
+    console.warn("⚠️ Could not seed default games:", (err as Error).message);
+  }
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   const db = storage.db;
 
   await ensureOtpProviders();
+  await seedDefaultGames();
 
   // Health Check
   app.get("/api/health", (req, res) => {
