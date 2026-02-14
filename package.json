@@ -11,6 +11,8 @@
     "check-env-dynamic": "node ./scripts/check_env_dynamic.cjs",
     "env:example": "cp .env.example .env",
     "env:example:prod": "cp .env.example .env.production",
+    "env:profile:balanced": "node ./scripts/switch-capacity-profile.cjs balanced .env",
+    "env:profile:high": "node ./scripts/switch-capacity-profile.cjs high-throughput .env",
     "prestart": "npm run check-env",
     "check": "tsc",
     "db:push": "drizzle-kit push",

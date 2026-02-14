@@ -390,6 +390,16 @@ Notes:
 - Increase `WEB_CONCURRENCY` gradually only after monitoring CPU saturation.
 - Keep `DB_POOL_MAX` below PostgreSQL `max_connections` headroom for admin/maintenance sessions.
 
+Quick switch commands:
+
+```bash
+# Apply balanced profile to .env
+npm run env:profile:balanced
+
+# Apply high-throughput profile to .env
+npm run env:profile:high
+```
+
 ## Monitoring | المراقبة
 
 ```bash
