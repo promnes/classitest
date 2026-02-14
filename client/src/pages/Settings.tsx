@@ -3,6 +3,16 @@ import { useTranslation } from "react-i18next";
 import { useLocation } from "wouter";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useTheme } from "@/contexts/ThemeContext";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export const Settings = (): JSX.Element => {
   const { t } = useTranslation();
@@ -14,6 +24,7 @@ export const Settings = (): JSX.Element => {
   const [profileData, setProfileData] = useState({ name: "", email: "", phoneNumber: "" });
   const [passwordData, setPasswordData] = useState({ oldPassword: "", newPassword: "", confirmPassword: "" });
   const [deletePassword, setDeletePassword] = useState("");
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [otpData, setOtpData] = useState({ method: "email", code: "", otpId: "" });
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
@@ -452,12 +463,32 @@ export const Settings = (): JSX.Element => {
                 }`}
               />
               <button
-                onClick={() => deleteAccountMutation.mutate()}
-                disabled={deleteAccountMutation.isPending}
+                onClick={() => setShowDeleteConfirm(true)}
+                disabled={deleteAccountMutation.isPending || !deletePassword}
                 className="px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg disabled:opacity-50 w-full mt-6"
               >
                 {deleteAccountMutation.isPending ? t("settings.deletingAccount") : `🗑️ ${t("settings.deleteAccountButton")}`}
               </button>
+
+              <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>{t("settings.deleteAccountTitle")}</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      {t("settings.deleteAccountDescription")}
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
+                    <AlertDialogAction
+                      className="bg-red-600 hover:bg-red-700 text-white"
+                      onClick={() => deleteAccountMutation.mutate()}
+                    >
+                      {t("settings.deleteAccountButton")}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </div>
           </div>
         )}

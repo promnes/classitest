@@ -55,7 +55,7 @@ export default function ParentInventory() {
 
   if (isLoading) {
     return (
-      <div className={`min-h-screen ${isDark ? "bg-gray-900" : "bg-gray-50"} flex items-center justify-center`} dir="rtl">
+      <div className={`min-h-screen ${isDark ? "bg-gray-900" : "bg-gray-50"} flex items-center justify-center`}>
         <div className="text-center">
           <div className="w-10 h-10 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
           <p className={isDark ? "text-gray-400" : "text-gray-500"}>جاري تحميل المنتجات...</p>
@@ -65,7 +65,7 @@ export default function ParentInventory() {
   }
 
   return (
-    <div className={`min-h-screen ${isDark ? "bg-gray-900" : "bg-gray-50"}`} dir="rtl">
+    <div className={`min-h-screen ${isDark ? "bg-gray-900" : "bg-gray-50"}`}>
       {/* Header */}
       <header className="bg-gradient-to-r from-orange-500 via-orange-600 to-red-500 text-white shadow-lg">
         <div className="max-w-4xl mx-auto px-4 py-5">
@@ -186,7 +186,7 @@ export default function ParentInventory() {
 
       {/* Assign Dialog */}
       <Dialog open={!!assignDialog} onOpenChange={(open) => { if (!open) { setAssignDialog(null); setSelectedChild(""); setRequiredPoints(""); } }}>
-        <DialogContent className="max-w-md" dir="rtl">
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-right">
               <Gift className="w-5 h-5 text-orange-500" />

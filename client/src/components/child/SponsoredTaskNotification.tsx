@@ -111,11 +111,11 @@ export function SponsoredTaskNotification({
                   <Star className="w-8 h-8 text-white" />
                 </div>
               </div>
-              <CardTitle className="text-xl font-bold" dir="rtl">
+              <CardTitle className="text-xl font-bold">
                 {notification.title}
               </CardTitle>
               {notification.description && (
-                <p className="text-sm text-muted-foreground mt-1" dir="rtl">
+                <p className="text-sm text-muted-foreground mt-1">
                   {notification.description}
                 </p>
               )}
@@ -130,7 +130,7 @@ export function SponsoredTaskNotification({
             <CardContent className="space-y-4 pb-6">
               {notification.type === "question" && notification.question && (
                 <div className="space-y-4">
-                  <p className="text-center font-medium text-lg" dir="rtl">
+                  <p className="text-center font-medium text-lg">
                     {notification.question}
                   </p>
 
@@ -157,7 +157,7 @@ export function SponsoredTaskNotification({
                               className="w-12 h-12 mx-auto mb-2 object-contain"
                             />
                           )}
-                          <span className="text-sm font-medium" dir="rtl">
+                          <span className="text-sm font-medium">
                             {answer.text}
                           </span>
                         </motion.button>
@@ -169,7 +169,6 @@ export function SponsoredTaskNotification({
                       onChange={(e) => setInputAnswer(e.target.value)}
                       placeholder="اكتب إجابتك هنا..."
                       className="text-center"
-                      dir="rtl"
                       data-testid="input-task-answer"
                     />
                   )}

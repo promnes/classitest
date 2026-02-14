@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useToast } from "@/hooks/use-toast";
 import { MandatoryTaskModal } from "@/components/MandatoryTaskModal";
 
 export const ChildGifts = (): JSX.Element => {
@@ -11,6 +12,7 @@ export const ChildGifts = (): JSX.Element => {
   const { isDark } = useTheme();
   const queryClient = useQueryClient();
   const token = localStorage.getItem("childToken");
+  const { toast } = useToast();
   const [selectedGift, setSelectedGift] = useState<any>(null);
   const isRTL = i18n.language === 'ar';
 
@@ -57,7 +59,7 @@ export const ChildGifts = (): JSX.Element => {
       setSelectedGift(null);
     },
     onError: (error: any) => {
-      alert(error.message);
+      toast({ title: t("errors.error", "خطأ"), description: error.message, variant: "destructive" });
     },
   });
 

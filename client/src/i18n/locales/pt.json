@@ -739,7 +739,16 @@
     "send": "Enviar",
     "pointsDeductWarning": "{{points}} pontos serao deduzidos",
     "sendTask": "Enviar Tarefa",
-    "publicTasksNote": "Tarefas publicas requerem pontos para uso (10% comissao do app)"
+    "publicTasksNote": "Tarefas publicas requerem pontos para uso (10% comissao do app)",
+    "sendDirectlyToChild": "Enviar diretamente para a criança",
+    "selectChildOrLeaveEmpty": "Selecione uma criança para enviar a tarefa diretamente, ou deixe vazio para salvar como modelo",
+    "selectChildPlaceholder": "Selecione uma criança...",
+    "noChildTemplateOnly": "Sem criança (salvar apenas como modelo)",
+    "saveAsTemplate": "Salvar como modelo para depois",
+    "saveAsTemplateDesc": "A tarefa será salva na seção 'Minhas Tarefas' para reutilização",
+    "createAndSend": "Criar e Enviar",
+    "taskCreatedAndSent": "Tarefa criada e enviada para a criança",
+    "templateSaved": "Tarefa salva como modelo também"
   },
 
   "parentStore": {

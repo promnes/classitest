@@ -221,7 +221,7 @@ export const ChildStore = (): JSX.Element => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50" dir="rtl">
+    <div className="min-h-screen bg-gray-50">
       {childInfo?.id && <MandatoryTaskModal childId={childInfo.id} />}
       
       <header className="bg-gradient-to-r from-orange-500 via-orange-600 to-red-500 text-white sticky top-0 z-50 shadow-lg">
@@ -622,7 +622,7 @@ export const ChildStore = (): JSX.Element => {
       </main>
 
       <Dialog open={showCart} onOpenChange={setShowCart}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto" dir="rtl">
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <ShoppingCart className="w-5 h-5" />
@@ -737,7 +737,7 @@ export const ChildStore = (): JSX.Element => {
       </Dialog>
 
       <Dialog open={showCheckout} onOpenChange={setShowCheckout}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" dir="rtl">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Star className="w-5 h-5 text-yellow-500" />
@@ -828,7 +828,7 @@ export const ChildStore = (): JSX.Element => {
       </Dialog>
 
       <Dialog open={!!selectedProduct} onOpenChange={() => setSelectedProduct(null)}>
-        <DialogContent className="max-w-md" dir="rtl">
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Gift className="w-5 h-5 text-orange-500" />

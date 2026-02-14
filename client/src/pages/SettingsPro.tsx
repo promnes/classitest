@@ -3,11 +3,13 @@ import { useTranslation } from "react-i18next";
 import { useLocation } from "wouter";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useToast } from "@/hooks/use-toast";
 
 export const Settings = (): JSX.Element => {
   const { t } = useTranslation();
   const [, navigate] = useLocation();
   const { isDark, toggleTheme } = useTheme();
+  const { toast } = useToast();
   const token = localStorage.getItem("token");
 
   const [tab, setTab] = useState<"profile" | "security" | "appearance" | "notifications">("profile");
@@ -553,7 +555,7 @@ export const Settings = (): JSX.Element => {
             </div>
 
             <button
-              onClick={() => alert("تم حفظ إعدادات الإشعارات!")}
+              onClick={() => toast({ title: t("settings.notificationsSaved", "تم حفظ إعدادات الإشعارات!") })}
               className="w-full px-6 py-4 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-bold rounded-xl shadow-lg text-lg"
             >
               💾 حفظ إعدادات الإشعارات

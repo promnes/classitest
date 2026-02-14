@@ -4,6 +4,7 @@ import { useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useTheme } from "@/contexts/ThemeContext";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 export const Subjects = (): JSX.Element => {
   const { t } = useTranslation();
@@ -12,6 +13,7 @@ export const Subjects = (): JSX.Element => {
   const token = localStorage.getItem("token");
   const [selectedSubject, setSelectedSubject] = useState<any>(null);
   const [selectedTemplate, setSelectedTemplate] = useState<any>(null);
+  const { toast } = useToast();
   const [selectedChild, setSelectedChild] = useState("");
 
   const { data: subjectsRaw } = useQuery({
@@ -45,7 +47,7 @@ export const Subjects = (): JSX.Element => {
       return apiRequest("POST", "/api/parent/create-task-from-template", { templateId, childId });
     },
     onSuccess: () => {
-      alert("✅ تم إرسال المهمة بنجاح!");
+      toast({ title: t("subjects.taskSent", "تم إرسال المهمة بنجاح!") });
       setSelectedTemplate(null);
       setSelectedChild("");
       queryClient.invalidateQueries({ queryKey: ["/api/parent/wallet"] });

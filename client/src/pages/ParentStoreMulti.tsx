@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
 
 async function fetchProducts() {
   return fetch("/api/parent/store/products", {
@@ -11,6 +12,7 @@ async function fetchProducts() {
 
 export default function ParentStoreMulti() {
   const queryClient = useQueryClient();
+  const { toast } = useToast();
   const token = localStorage.getItem("token");
   const { data, isLoading, refetch } = useQuery<any, Error>({ queryKey: ["parent", "store", "products"], queryFn: async () => {
     const res = await apiRequest("GET", "/api/parent/store/products");
@@ -46,7 +48,7 @@ export default function ParentStoreMulti() {
     setCart({});
     setPreview(null);
     queryClient.invalidateQueries({ queryKey: ["parent", "store", "products"] });
-    alert("Purchase completed. Awaiting admin approval.");
+    toast({ title: "Purchase completed", description: "Awaiting admin approval." });
   }
 
   if (isLoading) return <div>Loading store...</div>;

@@ -1,9 +1,11 @@
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
 
 export default function ChildRewards() {
   const { t } = useTranslation();
+  const { toast } = useToast();
   const token = localStorage.getItem("childToken");
   
   const { data: rewardsRaw, isLoading } = useQuery({
@@ -28,7 +30,7 @@ export default function ChildRewards() {
                 <div className="text-sm text-gray-600">{t("child.progress")}: {r.progress || 0}%</div>
               </div>
               <div>
-                <Button onClick={() => alert(t("child.redeemReward"))} className="bg-indigo-600">{t("child.redeemReward")}</Button>
+                <Button onClick={() => toast({ title: t("child.redeemReward") })} className="bg-indigo-600">{t("child.redeemReward")}</Button>
               </div>
             </div>
           </li>

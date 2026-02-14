@@ -15,6 +15,16 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { 
   Users, 
   Wallet, 
@@ -275,6 +285,8 @@ export const ParentDashboard = (): JSX.Element => {
     },
   });
 
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("userId");
@@ -376,9 +388,26 @@ export const ParentDashboard = (): JSX.Element => {
             <Button variant="ghost" size="icon" onClick={() => navigate("/settings")} data-testid="button-settings">
               <Settings className="h-5 w-5" />
             </Button>
-            <Button variant="ghost" size="icon" onClick={handleLogout} className="text-red-500 hover:text-red-600" data-testid="button-logout">
+            <Button variant="ghost" size="icon" onClick={() => setShowLogoutConfirm(true)} className="text-red-500 hover:text-red-600" data-testid="button-logout">
               <LogOut className="h-5 w-5" />
             </Button>
+
+            <AlertDialog open={showLogoutConfirm} onOpenChange={setShowLogoutConfirm}>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>{t('parentDashboard.logoutTitle', 'تسجيل الخروج')}</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    {t('parentDashboard.logoutConfirm', 'هل أنت متأكد أنك تريد تسجيل الخروج؟')}
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>{t('common.cancel', 'إلغاء')}</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleLogout} className="bg-red-600 hover:bg-red-700 text-white">
+                    {t('parentDashboard.logout', 'تسجيل الخروج')}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
         </div>
       </header>
@@ -434,7 +463,7 @@ export const ParentDashboard = (): JSX.Element => {
           </Card>
         </div>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full" dir="rtl">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className={`w-full justify-start overflow-x-auto ${isDark ? "bg-gray-800" : "bg-white"} p-1 rounded-xl shadow-sm`}>
             <TabsTrigger value="overview" className="gap-2 flex-shrink-0" data-testid="tab-overview">
               <Target className="h-4 w-4" />

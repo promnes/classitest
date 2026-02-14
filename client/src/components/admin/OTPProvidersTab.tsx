@@ -251,7 +251,6 @@ export const OTPProvidersTab = () => {
                         className={`w-full px-3 py-2 rounded-lg border ${
                           isDark ? "bg-gray-700 border-gray-600 text-white" : "bg-white border-gray-300"
                         }`}
-                        dir="rtl"
                         data-testid={`input-otp-display-name-ar-${provider.provider}`}
                       />
                     </div>
@@ -280,7 +279,6 @@ export const OTPProvidersTab = () => {
                         className={`w-full px-3 py-2 rounded-lg border ${
                           isDark ? "bg-gray-700 border-gray-600 text-white" : "bg-white border-gray-300"
                         }`}
-                        dir="rtl"
                         data-testid={`input-otp-description-ar-${provider.provider}`}
                       />
                     </div>

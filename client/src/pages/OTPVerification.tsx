@@ -213,7 +213,7 @@ export const OTPVerification = (): JSX.Element => {
           onResend={() => resendOtpMutation.mutate()}
         />
 
-        <div className="flex items-center gap-3 mt-4 mb-4" dir="rtl">
+        <div className="flex items-center gap-3 mt-4 mb-4">
           <Checkbox
             id="remember-device"
             checked={rememberDevice}

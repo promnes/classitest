@@ -156,7 +156,6 @@ export default function LibraryStore() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pr-10"
-                dir="rtl"
                 data-testid="input-search"
               />
             </div>
@@ -241,7 +240,7 @@ export default function LibraryStore() {
                     </div>
                   )}
                   
-                  <h3 className="font-semibold text-sm mb-1 line-clamp-2" dir="rtl">
+                  <h3 className="font-semibold text-sm mb-1 line-clamp-2">
                     {product.nameAr || product.name}
                   </h3>
                   
@@ -270,7 +269,7 @@ export default function LibraryStore() {
       </main>
 
       <Dialog open={showProductDetail} onOpenChange={setShowProductDetail}>
-        <DialogContent className="max-w-md" dir="rtl">
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>{selectedProduct?.nameAr || selectedProduct?.name}</DialogTitle>
           </DialogHeader>

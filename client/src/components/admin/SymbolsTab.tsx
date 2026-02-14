@@ -235,7 +235,6 @@ export function SymbolsTab({ token }: { token: string }) {
                 value={formData.nameAr}
                 onChange={(e) => setFormData({ ...formData, nameAr: e.target.value })}
                 placeholder="نجمة"
-                dir="rtl"
                 data-testid="input-symbol-name-ar"
               />
             </div>

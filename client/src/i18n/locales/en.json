@@ -739,7 +739,16 @@
     "send": "Send",
     "pointsDeductWarning": "{{points}} points will be deducted",
     "sendTask": "Send Task",
-    "publicTasksNote": "Public tasks require points to use (10% app commission)"
+    "publicTasksNote": "Public tasks require points to use (10% app commission)",
+    "sendDirectlyToChild": "Send directly to child",
+    "selectChildOrLeaveEmpty": "Select a child to send the task directly, or leave empty to save as template",
+    "selectChildPlaceholder": "Select a child...",
+    "noChildTemplateOnly": "No child (save as template only)",
+    "saveAsTemplate": "Save as template for later",
+    "saveAsTemplateDesc": "The task will be saved in 'My Tasks' section for reuse",
+    "createAndSend": "Create & Send",
+    "taskCreatedAndSent": "Task created and sent to child",
+    "templateSaved": "Task saved as template too"
   },
 
   "parentStore": {

@@ -3,11 +3,13 @@ import { useTranslation } from "react-i18next";
 import { useLocation } from "wouter";
 import { useMutation } from "@tanstack/react-query";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useToast } from "@/hooks/use-toast";
 
 export const AdminAuth = (): JSX.Element => {
   const { t, i18n } = useTranslation();
   const [, navigate] = useLocation();
   const { isDark } = useTheme();
+  const { toast } = useToast();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showForgot, setShowForgot] = useState(false);
@@ -33,7 +35,7 @@ export const AdminAuth = (): JSX.Element => {
       localStorage.setItem("adminToken", token);
       navigate("/admin-dashboard");
     },
-    onError: () => alert(t("admin.invalidCredentials")),
+    onError: () => toast({ title: t("admin.invalidCredentials"), variant: "destructive" }),
   });
 
   const forgotMutation = useMutation({

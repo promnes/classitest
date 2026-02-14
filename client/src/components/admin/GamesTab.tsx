@@ -186,7 +186,7 @@ export function GamesTab({ token }: { token: string }) {
   if (isLoading) return <div className="p-4 text-gray-700 dark:text-gray-200">جاري التحميل...</div>;
 
   return (
-    <div className="p-4 space-y-4" dir="rtl">
+    <div className="p-4 space-y-4">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-2xl font-bold flex items-center gap-2 text-gray-800 dark:text-white">
           <Gamepad2 className="w-7 h-7" />

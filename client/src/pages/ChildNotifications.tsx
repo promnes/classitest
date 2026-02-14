@@ -158,7 +158,7 @@ export const ChildNotifications = (): JSX.Element => {
   const currentPoints = childInfo?.totalPoints || 0;
 
   return (
-    <div className={`min-h-screen ${isDark ? "bg-gradient-to-br from-gray-900 to-gray-800" : "bg-gradient-to-br from-orange-300 to-orange-500"} p-4 md:p-8`} dir="rtl">
+    <div className={`min-h-screen ${isDark ? "bg-gradient-to-br from-gray-900 to-gray-800" : "bg-gradient-to-br from-orange-300 to-orange-500"} p-4 md:p-8`}>
       {childInfo?.id && <MandatoryTaskModal childId={childInfo.id} />}
       
       <div className="max-w-4xl mx-auto">

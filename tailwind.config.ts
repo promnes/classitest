@@ -12,6 +12,23 @@ module.exports = {
         "icon-red": "var(--icon-red)",
         "neutral-gray-2": "var(--neutral-gray-2)",
         "neutral-white": "var(--neutral-white)",
+        "classify-purple": "hsl(var(--classify-purple))",
+        "classify-green": "hsl(var(--classify-green))",
+        "classify-orange": "hsl(var(--classify-orange))",
+        "classify-blue": "hsl(var(--classify-blue))",
+        "classify-pink": "hsl(var(--classify-pink))",
+        success: {
+          DEFAULT: "hsl(var(--success))",
+          foreground: "hsl(var(--success-foreground))",
+        },
+        warning: {
+          DEFAULT: "hsl(var(--warning))",
+          foreground: "hsl(var(--warning-foreground))",
+        },
+        info: {
+          DEFAULT: "hsl(var(--info))",
+          foreground: "hsl(var(--info-foreground))",
+        },
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",

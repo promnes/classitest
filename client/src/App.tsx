@@ -10,6 +10,7 @@ import { ChildAppWrapper } from "@/components/ChildAppWrapper";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { RandomAdPopup } from "@/components/RandomAdPopup";
 import { Loader2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import NotFound from "@/pages/not-found";
 
 import { Home } from "@/pages/Home";
@@ -51,11 +52,14 @@ const ChildProfile = lazy(() => import("@/pages/ChildProfile"));
 const ChildSettings = lazy(() => import("@/pages/ChildSettings"));
 
 function PageLoader() {
+  const { t } = useTranslation();
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-500 to-blue-500">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/90 to-purple-600">
       <div className="text-center text-white">
-        <Loader2 className="w-12 h-12 animate-spin mx-auto mb-4" />
-        <p className="text-lg font-semibold">جاري التحميل...</p>
+        <div className="relative">
+          <div className="w-16 h-16 rounded-full border-4 border-white/20 border-t-white animate-spin mx-auto mb-4" />
+        </div>
+        <p className="text-lg font-semibold">{t("common.loading", "Loading...")}</p>
       </div>
     </div>
   );
@@ -164,18 +168,34 @@ function Router() {
         <Route path="/parent-auth">
           <ErrorBoundary><ParentAuth /></ErrorBoundary>
         </Route>
-        <Route path="/child-link" component={ChildLink} />
+        <Route path="/child-link">
+          <ErrorBoundary><ChildLink /></ErrorBoundary>
+        </Route>
         <Route path="/parent-dashboard">
           <ErrorBoundary><ParentDashboard /></ErrorBoundary>
         </Route>
-        <Route path="/parent-store" component={ParentStore} />
-        <Route path="/parent-store-multi" component={ParentStoreMulti} />
-        <Route path="/parent-inventory" component={ParentInventory} />
-        <Route path="/wallet" component={Wallet} />
-        <Route path="/notifications" component={Notifications} />
-        <Route path="/subjects" component={Subjects} />
+        <Route path="/parent-store">
+          <ErrorBoundary><ParentStore /></ErrorBoundary>
+        </Route>
+        <Route path="/parent-store-multi">
+          <ErrorBoundary><ParentStoreMulti /></ErrorBoundary>
+        </Route>
+        <Route path="/parent-inventory">
+          <ErrorBoundary><ParentInventory /></ErrorBoundary>
+        </Route>
+        <Route path="/wallet">
+          <ErrorBoundary><Wallet /></ErrorBoundary>
+        </Route>
+        <Route path="/notifications">
+          <ErrorBoundary><Notifications /></ErrorBoundary>
+        </Route>
+        <Route path="/subjects">
+          <ErrorBoundary><Subjects /></ErrorBoundary>
+        </Route>
         <Route path="/admin" component={AdminAuth} />
-        <Route path="/admin-dashboard" component={AdminDashboard} />
+        <Route path="/admin-dashboard">
+          <ErrorBoundary><AdminDashboard /></ErrorBoundary>
+        </Route>
         <Route path="/otp">
           <ErrorBoundary><OTPVerification /></ErrorBoundary>
         </Route>
@@ -195,8 +215,12 @@ function Router() {
         <Route path="/create-task">
           <Redirect to="/parent-tasks" replace />
         </Route>
-        <Route path="/assign-task" component={AssignTask} />
-        <Route path="/subject-tasks" component={SubjectTasks} />
+        <Route path="/assign-task">
+          <ErrorBoundary><AssignTask /></ErrorBoundary>
+        </Route>
+        <Route path="/subject-tasks">
+          <ErrorBoundary><SubjectTasks /></ErrorBoundary>
+        </Route>
         <Route path="/parent-tasks">
           <ErrorBoundary><ParentTasks /></ErrorBoundary>
         </Route>
@@ -204,12 +228,18 @@ function Router() {
         <Route path="/privacy-policy" component={PrivacyPolicy} />
         <Route path="/accessibility" component={AccessibilityPolicy} />
         <Route path="/terms" component={Terms} />
-        <Route path="/settings" component={Settings} />
+        <Route path="/settings">
+          <ErrorBoundary><Settings /></ErrorBoundary>
+        </Route>
         <Route path="/admin/purchases" component={AdminPurchasesTab} />
         <Route path="/library/login" component={LibraryLogin} />
-        <Route path="/library/dashboard" component={LibraryDashboard} />
+        <Route path="/library/dashboard">
+          <ErrorBoundary><LibraryDashboard /></ErrorBoundary>
+        </Route>
         <Route path="/store/libraries" component={LegacyLibraryStoreRedirect} />
-        <Route path="/library-store" component={LibraryStore} />
+        <Route path="/library-store">
+          <ErrorBoundary><LibraryStore /></ErrorBoundary>
+        </Route>
         <Route component={NotFound} />
       </Switch>
     </Suspense>
@@ -222,9 +252,17 @@ function App() {
       <ThemeProvider>
         <SEOProvider>
           <TooltipProvider>
+            <a
+              href="#main-content"
+              className="sr-only focus:not-sr-only focus:absolute focus:z-[9999] focus:top-4 focus:start-4 focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-foreground focus:rounded-lg focus:shadow-lg"
+            >
+              Skip to content
+            </a>
             <div className="min-h-screen">
               <div data-testid="build-marker-2026-02-07" />
-              <Router />
+              <main id="main-content">
+                <Router />
+              </main>
             </div>
             <Toaster />
             <RandomAdPopup />

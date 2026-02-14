@@ -4,6 +4,7 @@ import { useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useToast } from "@/hooks/use-toast";
 import { getDateLocale } from "@/i18n/config";
 import { SlidingAdsCarousel } from "@/components/SlidingAdsCarousel";
 
@@ -50,6 +51,7 @@ export const Wallet = (): JSX.Element => {
   const { isDark, toggleTheme } = useTheme();
   const token = localStorage.getItem("token");
   const queryClient = useQueryClient();
+  const { toast } = useToast();
   const [showDeposit, setShowDeposit] = useState(false);
   const [selectedMethod, setSelectedMethod] = useState<any>(null);
   const [depositAmount, setDepositAmount] = useState("");
@@ -105,10 +107,10 @@ export const Wallet = (): JSX.Element => {
       setDepositReceiptUrl("");
       setDepositNotes("");
       setStep("select");
-      alert("✅ تم إرسال طلب الإيداع بنجاح! سيتم مراجعته من الإدارة.");
+      toast({ title: t("wallet.depositSuccess", "تم إرسال طلب الإيداع بنجاح!"), description: t("wallet.depositPending", "سيتم مراجعته من الإدارة") });
     },
     onError: (error: any) => {
-      alert(`❌ ${extractApiErrorMessage(error)}`);
+      toast({ title: t("errors.error", "خطأ"), description: extractApiErrorMessage(error), variant: "destructive" });
     },
   });
 

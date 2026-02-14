@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useToast } from "@/hooks/use-toast";
 import { ArrowRight, BookOpen, Plus, Send, Star, Clock, CheckCircle, Sparkles } from "lucide-react";
 
 interface Subject {
@@ -39,6 +40,7 @@ export default function SubjectTasks() {
   
   const { isDark } = useTheme();
   const queryClient = useQueryClient();
+  const { toast } = useToast();
   const token = localStorage.getItem("parentToken");
 
   const [activeTab, setActiveTab] = useState<"classy" | "mine">("classy");
@@ -119,7 +121,7 @@ export default function SubjectTasks() {
       setSelectedChildId("");
       setCustomPoints(10);
       queryClient.invalidateQueries({ queryKey: ["/api/parent/wallet"] });
-      alert("تم إرسال المهمة للطفل بنجاح!");
+      toast({ title: "تم إرسال المهمة للطفل بنجاح!" });
     },
   });
 

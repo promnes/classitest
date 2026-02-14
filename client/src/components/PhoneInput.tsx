@@ -210,7 +210,6 @@ export const PhoneInput: React.FC<PhoneInputProps> = ({
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="ابحث عن دولة..."
-                  dir="rtl"
                   className="
                     w-full pr-9 pl-8 py-2.5 text-sm rounded-lg
                     bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600

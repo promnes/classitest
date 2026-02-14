@@ -231,7 +231,6 @@ export function CategoriesTab({ token }: { token: string }) {
                 value={formData.nameAr}
                 onChange={(e) => setFormData({ ...formData, nameAr: e.target.value })}
                 placeholder="إلكترونيات"
-                dir="rtl"
                 data-testid="input-category-name-ar"
               />
             </div>
