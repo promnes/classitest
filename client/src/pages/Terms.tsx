@@ -64,7 +64,13 @@ export const Terms = (): JSX.Element => {
     <div className={isDark ? "bg-gray-900 text-white" : "bg-white text-black"}>
       <header className={`${isDark ? "bg-gray-800" : "bg-blue-500 text-white"} p-4`}>
         <div className="max-w-4xl mx-auto flex justify-between items-center">
-          <button onClick={() => navigate("/")} className="text-2xl">←</button>
+          <button onClick={() => {
+            if (window.history.length > 1) {
+              window.history.back();
+            } else {
+              navigate("/settings");
+            }
+          }} className="text-2xl">←</button>
           <h1 className="text-2xl font-bold">Terms of Service</h1>
           <button onClick={toggleTheme} className="text-2xl">
             {isDark ? "☀️" : "🌙"}
