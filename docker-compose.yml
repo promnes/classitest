@@ -102,6 +102,12 @@ services:
       - SMTP_FROM=${SMTP_FROM:-}
       - CORS_ORIGIN=${CORS_ORIGIN:-https://classi-fy.com}
       - LOG_LEVEL=${LOG_LEVEL:-info}
+      - NODE_CLUSTER_ENABLED=${NODE_CLUSTER_ENABLED:-true}
+      - WEB_CONCURRENCY=${WEB_CONCURRENCY:-4}
+      - DB_POOL_MAX=${DB_POOL_MAX:-50}
+      - DB_POOL_MIN=${DB_POOL_MIN:-5}
+      - DB_POOL_IDLE_TIMEOUT_MS=${DB_POOL_IDLE_TIMEOUT_MS:-30000}
+      - DB_POOL_CONNECT_TIMEOUT_MS=${DB_POOL_CONNECT_TIMEOUT_MS:-10000}
       - OBJECT_STORAGE_PROVIDER=s3
       - MINIO_ENDPOINT=minio
       - MINIO_PORT=9000
@@ -140,9 +146,9 @@ services:
     deploy:
       resources:
         limits:
-          memory: 1G
+          memory: 2G
         reservations:
-          memory: 512M
+          memory: 1G
 
   db:
     image: postgres:15.7-alpine

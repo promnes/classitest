@@ -1,6 +1,8 @@
 import "dotenv/config";
 
 import express, { type Request, Response, NextFunction } from "express";
+import cluster from "node:cluster";
+import os from "node:os";
 import { registerRoutes } from "./routes/index";
 import { serveStatic, log } from "./static";
 import { initializeGiftNotificationHandlers } from "./notificationHandlers";
@@ -194,7 +196,11 @@ app.use((req, res, next) => {
   next();
 });
 
-(async () => {
+const CLUSTER_ENABLED = process.env["NODE_CLUSTER_ENABLED"] === "true";
+const DEFAULT_WORKERS = process.env["NODE_ENV"] === "production" ? Math.min(os.cpus().length, 4) : 1;
+const WORKER_COUNT = Math.max(1, Number(process.env["WEB_CONCURRENCY"] || String(DEFAULT_WORKERS)));
+
+async function startHttpServer() {
   try {
     const server = await registerRoutes(app);
     
@@ -299,4 +305,19 @@ app.use((req, res, next) => {
     console.error("❌ Failed to start server:", error.message);
     process.exit(1);
   }
-})();
+}
+
+if (CLUSTER_ENABLED && cluster.isPrimary) {
+  log(`✓ Cluster mode enabled | workers=${WORKER_COUNT}`);
+
+  for (let i = 0; i < WORKER_COUNT; i++) {
+    cluster.fork();
+  }
+
+  cluster.on("exit", (worker, code, signal) => {
+    console.error(`❌ Worker ${worker.process.pid} exited (code=${code}, signal=${signal || "none"}). Restarting...`);
+    cluster.fork();
+  });
+} else {
+  startHttpServer();
+}
