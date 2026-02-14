@@ -449,6 +449,7 @@ export const themeSettings = pgTable("theme_settings", {
 
 export const admins = pgTable("admins", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  username: varchar("username", { length: 50 }).notNull().unique(),
   email: text("email").notNull().unique(),
   password: text("password").notNull(),
   role: varchar("role", { length: 50 }).default("superadmin").notNull(),

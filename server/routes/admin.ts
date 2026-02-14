@@ -63,17 +63,17 @@ import { applyPointsDelta } from "../services/pointsService";
 const db = storage.db;
 
 export async function registerAdminRoutes(app: Express) {
-  // Admin Login
+  // Admin Login — username + password only (email hidden)
   app.post("/api/admin/login", async (req, res) => {
     try {
-      const { email, password } = req.body;
-      if (!email || !password) {
+      const { username, password } = req.body;
+      if (!username || !password) {
         return res
           .status(400)
-          .json(errorResponse(ErrorCode.BAD_REQUEST, "Email and password are required"));
+          .json(errorResponse(ErrorCode.BAD_REQUEST, "Username and password are required"));
       }
 
-      const result = await db.select().from(admins).where(eq(admins.email, email));
+      const result = await db.select().from(admins).where(eq(admins.username, username));
       if (!result[0]) {
         return res
           .status(401)
@@ -104,7 +104,7 @@ export async function registerAdminRoutes(app: Express) {
   // Admin Register - Protected with secret key
   app.post("/api/admin/register", async (req, res) => {
     try {
-      const { email, password, adminSecret } = req.body;
+      const { username, email, password, adminSecret } = req.body;
       
       // SEC-001 FIX: Require admin creation secret
       const ADMIN_CREATION_SECRET = process.env.ADMIN_CREATION_SECRET;
@@ -114,10 +114,22 @@ export async function registerAdminRoutes(app: Express) {
           .json(errorResponse(ErrorCode.UNAUTHORIZED, "Admin registration not allowed"));
       }
       
-      if (!email || !password) {
+      if (!username || !password) {
         return res
           .status(400)
-          .json(errorResponse(ErrorCode.BAD_REQUEST, "Email and password are required"));
+          .json(errorResponse(ErrorCode.BAD_REQUEST, "Username and password are required"));
+      }
+
+      if (username.length < 3 || username.length > 50) {
+        return res
+          .status(400)
+          .json(errorResponse(ErrorCode.BAD_REQUEST, "Username must be 3-50 characters"));
+      }
+
+      if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+        return res
+          .status(400)
+          .json(errorResponse(ErrorCode.BAD_REQUEST, "Username can only contain letters, numbers, and underscores"));
       }
 
       if (password.length < 8) {
@@ -126,15 +138,28 @@ export async function registerAdminRoutes(app: Express) {
           .json(errorResponse(ErrorCode.BAD_REQUEST, "Password must be at least 8 characters"));
       }
 
-      const existing = await db.select().from(admins).where(eq(admins.email, email));
-      if (existing[0]) {
+      const existingUsername = await db.select().from(admins).where(eq(admins.username, username));
+      if (existingUsername[0]) {
         return res
           .status(400)
-          .json(errorResponse(ErrorCode.BAD_REQUEST, "Admin already exists"));
+          .json(errorResponse(ErrorCode.BAD_REQUEST, "Username already taken"));
+      }
+
+      if (email) {
+        const existingEmail = await db.select().from(admins).where(eq(admins.email, email));
+        if (existingEmail[0]) {
+          return res
+            .status(400)
+            .json(errorResponse(ErrorCode.BAD_REQUEST, "Email already in use"));
+        }
       }
 
       const hashedPassword = await bcrypt.hash(password, 10);
-      const result = await db.insert(admins).values({ email, password: hashedPassword }).returning();
+      const result = await db.insert(admins).values({
+        username,
+        email: email || `${username}@admin.local`,
+        password: hashedPassword,
+      }).returning();
 
       const token = jwt.sign(
         { adminId: result[0].id, type: "admin", role: result[0].role },
@@ -150,7 +175,7 @@ export async function registerAdminRoutes(app: Express) {
     }
   });
 
-  // Admin Profile - update email
+  // Admin Profile - update recovery email (hidden from public)
   app.put("/api/admin/profile", adminMiddleware, async (req: any, res) => {
     try {
       const { email } = req.body;
@@ -168,12 +193,111 @@ export async function registerAdminRoutes(app: Express) {
       }
 
       await db.update(admins).set({ email }).where(eq(admins.id, req.admin.adminId));
-      res.json(successResponse(undefined, "Profile updated"));
+      res.json(successResponse(undefined, "Recovery email updated"));
     } catch (error: any) {
       console.error("Profile update error:", error);
       res
         .status(500)
         .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Profile update failed"));
+    }
+  });
+
+  // Admin Get Profile (returns username only, email masked for security)
+  app.get("/api/admin/profile", adminMiddleware, async (req: any, res) => {
+    try {
+      const admin = await db.select().from(admins).where(eq(admins.id, req.admin.adminId));
+      if (!admin[0]) {
+        return res.status(404).json(errorResponse(ErrorCode.NOT_FOUND, "Admin not found"));
+      }
+      // Mask email: show first 2 chars + *** + domain
+      const emailParts = admin[0].email.split("@");
+      const maskedEmail = emailParts[0].substring(0, 2) + "***@" + emailParts[1];
+      res.json(successResponse({
+        username: admin[0].username,
+        maskedEmail,
+        role: admin[0].role,
+        createdAt: admin[0].createdAt,
+      }));
+    } catch (error: any) {
+      console.error("Get profile error:", error);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to get profile"));
+    }
+  });
+
+  // Admin Forgot Password - accepts username, sends reset to hidden email
+  app.post("/api/admin/forgot-password", async (req, res) => {
+    try {
+      const { username } = req.body;
+      if (!username) {
+        return res
+          .status(400)
+          .json(errorResponse(ErrorCode.BAD_REQUEST, "Username is required"));
+      }
+
+      const admin = await db.select().from(admins).where(eq(admins.username, username));
+      // Always return success to prevent username enumeration
+      if (!admin[0] || !admin[0].email || admin[0].email.endsWith("@admin.local")) {
+        return res.json(successResponse(undefined, "If an account exists with a recovery email, a reset link has been sent"));
+      }
+
+      // Generate a temporary password reset token (valid 1 hour)
+      const resetToken = jwt.sign(
+        { adminId: admin[0].id, type: "admin-reset" },
+        JWT_SECRET,
+        { expiresIn: "1h" }
+      );
+
+      // Mask email for response hint
+      const emailParts = admin[0].email.split("@");
+      const maskedEmail = emailParts[0].substring(0, 2) + "***@" + emailParts[1];
+
+      // In production, send email with resetToken. For now, log it.
+      console.log(`[ADMIN RESET] Token for ${admin[0].username}: ${resetToken}`);
+
+      res.json(successResponse(
+        { maskedEmail },
+        "If an account exists with a recovery email, a reset link has been sent"
+      ));
+    } catch (error: any) {
+      console.error("Forgot password error:", error);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Request failed"));
+    }
+  });
+
+  // Admin Reset Password - uses reset token
+  app.post("/api/admin/reset-password", async (req, res) => {
+    try {
+      const { resetToken, newPassword } = req.body;
+      if (!resetToken || !newPassword) {
+        return res
+          .status(400)
+          .json(errorResponse(ErrorCode.BAD_REQUEST, "Reset token and new password are required"));
+      }
+
+      if (newPassword.length < 8) {
+        return res
+          .status(400)
+          .json(errorResponse(ErrorCode.BAD_REQUEST, "Password must be at least 8 characters"));
+      }
+
+      let payload: any;
+      try {
+        payload = jwt.verify(resetToken, JWT_SECRET);
+      } catch {
+        return res.status(401).json(errorResponse(ErrorCode.UNAUTHORIZED, "Invalid or expired reset token"));
+      }
+
+      if (payload.type !== "admin-reset") {
+        return res.status(401).json(errorResponse(ErrorCode.UNAUTHORIZED, "Invalid reset token type"));
+      }
+
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+      await db.update(admins).set({ password: hashedPassword }).where(eq(admins.id, payload.adminId));
+
+      res.json(successResponse(undefined, "Password has been reset successfully"));
+    } catch (error: any) {
+      console.error("Reset password error:", error);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Password reset failed"));
     }
   });
 

@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Bell, Key, Mail, Settings, Volume2, Shield } from "lucide-react";
+import { Bell, Key, Mail, Settings, Volume2, Shield, User } from "lucide-react";
 
 interface OTPSettings {
   enabled: boolean;
@@ -34,7 +34,7 @@ const NOTIFICATION_SOUNDS = [
 
 export function SettingsTab({ token }: { token: string }) {
   const queryClient = useQueryClient();
-  const [email, setEmail] = useState("");
+  const [recoveryEmail, setRecoveryEmail] = useState("");
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -79,6 +79,20 @@ export function SettingsTab({ token }: { token: string }) {
     }
   }, [settingsData]);
 
+  // Fetch admin profile (username + masked email)
+  const { data: profileData } = useQuery({
+    queryKey: ["admin-profile"],
+    queryFn: async () => {
+      const res = await fetch("/api/admin/profile", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) return null;
+      const json = await res.json();
+      return json?.data || json;
+    },
+    enabled: !!token,
+  });
+
   const saveSettingsMutation = useMutation({
     mutationFn: async (data: any) => {
       const res = await fetch("/api/admin/app-settings", {
@@ -100,15 +114,16 @@ export function SettingsTab({ token }: { token: string }) {
       const res = await fetch("/api/admin/profile", {
         method: "PUT",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email: recoveryEmail }),
       });
       return res.json();
     },
     onSuccess: (data) => {
       if (data.success) {
-        setMessage("تم تحديث البريد الإلكتروني بنجاح");
-        setEmail("");
+        setMessage("تم تحديث بريد الاستعادة بنجاح");
+        setRecoveryEmail("");
         setTimeout(() => setMessage(""), 3000);
+        queryClient.invalidateQueries({ queryKey: ["admin-profile"] });
       }
     },
   });
@@ -335,24 +350,56 @@ export function SettingsTab({ token }: { token: string }) {
 
         <TabsContent value="account">
           <div className="space-y-6">
+            {/* Admin Profile Info */}
+            {profileData && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <User className="w-5 h-5" />
+                    معلومات الحساب
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                    <span className="text-sm font-medium">اسم المستخدم</span>
+                    <span className="font-mono font-bold">{profileData.username}</span>
+                  </div>
+                  <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                    <span className="text-sm font-medium">بريد الاستعادة</span>
+                    <span className="font-mono text-sm text-muted-foreground">{profileData.maskedEmail}</span>
+                  </div>
+                  <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                    <span className="text-sm font-medium">الصلاحية</span>
+                    <span className="font-mono">{profileData.role}</span>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             <Card>
               <CardHeader>
-                <CardTitle>تغيير البريد الإلكتروني</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  <Mail className="w-5 h-5" />
+                  تحديث بريد الاستعادة
+                </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
+                <p className="text-sm text-muted-foreground">
+                  البريد الإلكتروني يُستخدم فقط لاستعادة كلمة المرور ولا يظهر في أي مكان عام
+                </p>
                 <Input
                   type="email"
-                  placeholder="البريد الإلكتروني الجديد"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  data-testid="input-new-email"
+                  placeholder="البريد الإلكتروني للاستعادة"
+                  value={recoveryEmail}
+                  onChange={(e) => setRecoveryEmail(e.target.value)}
+                  data-testid="input-recovery-email"
                 />
                 <Button
                   onClick={() => changeEmailMutation.mutate()}
-                  disabled={!email || changeEmailMutation.isPending}
-                  data-testid="button-update-email"
+                  disabled={!recoveryEmail || changeEmailMutation.isPending}
+                  data-testid="button-update-recovery-email"
                 >
-                  {changeEmailMutation.isPending ? "جاري التحديث..." : "تحديث البريد"}
+                  {changeEmailMutation.isPending ? "جاري التحديث..." : "تحديث بريد الاستعادة"}
                 </Button>
               </CardContent>
             </Card>

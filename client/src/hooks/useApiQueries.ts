@@ -126,10 +126,10 @@ export function useVerifyOTP() {
  */
 export function useAdminLogin() {
   return useMutation({
-    mutationFn: async (credentials: { email: string; password: string }) => {
+    mutationFn: async (credentials: { username: string; password: string }) => {
       const response = await apiClient.post("/api/admin/login", credentials);
       if (response?.token) {
-        localStorage.setItem("token", response.token);
+        localStorage.setItem("adminToken", response.token);
       }
       return response;
     },
