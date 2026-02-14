@@ -183,12 +183,12 @@ export function GamesTab({ token }: { token: string }) {
     g.category?.toLowerCase().includes(searchTerm.toLowerCase())
   ) || [];
 
-  if (isLoading) return <div className="p-4">جاري التحميل...</div>;
+  if (isLoading) return <div className="p-4 text-gray-700 dark:text-gray-200">جاري التحميل...</div>;
 
   return (
     <div className="p-4 space-y-4" dir="rtl">
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-2xl font-bold flex items-center gap-2">
+        <h2 className="text-2xl font-bold flex items-center gap-2 text-gray-800 dark:text-white">
           <Gamepad2 className="w-7 h-7" />
           إدارة الألعاب
         </h2>
@@ -198,7 +198,7 @@ export function GamesTab({ token }: { token: string }) {
             placeholder="بحث..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="px-4 py-2 border rounded-lg focus:outline-none focus:border-blue-600"
+            className="px-4 py-2 border rounded-lg focus:outline-none focus:border-blue-600 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
           />
           <button
             onClick={() => { resetForm(); setShowForm(true); }}
@@ -212,60 +212,60 @@ export function GamesTab({ token }: { token: string }) {
 
       {/* Form */}
       {showForm && (
-        <div className="bg-white border rounded-xl p-6 shadow-lg">
+        <div className="bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-xl p-6 shadow-lg">
           <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-bold">{editingId ? "تعديل لعبة" : "إضافة لعبة جديدة"}</h3>
-            <button onClick={resetForm} className="p-2 hover:bg-gray-100 rounded-full">
+            <h3 className="text-lg font-bold text-gray-800 dark:text-white">{editingId ? "تعديل لعبة" : "إضافة لعبة جديدة"}</h3>
+            <button onClick={resetForm} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full text-gray-600 dark:text-gray-300">
               <X className="w-5 h-5" />
             </button>
           </div>
           <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium mb-1">عنوان اللعبة *</label>
+              <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-200">عنوان اللعبة *</label>
               <input
                 type="text"
                 value={form.title}
                 onChange={(e) => setForm({ ...form, title: e.target.value })}
                 required
-                className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:border-blue-600"
+                className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:border-blue-600 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">رابط التضمين (Embed URL) *</label>
+              <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-200">رابط التضمين (Embed URL) *</label>
               <input
                 type="url"
                 value={form.embedUrl}
                 onChange={(e) => setForm({ ...form, embedUrl: e.target.value })}
                 required
-                className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:border-blue-600"
+                className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:border-blue-600 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                 dir="ltr"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">الوصف</label>
+              <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-200">الوصف</label>
               <input
                 type="text"
                 value={form.description}
                 onChange={(e) => setForm({ ...form, description: e.target.value })}
-                className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:border-blue-600"
+                className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:border-blue-600 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">صورة مصغرة (URL)</label>
+              <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-200">صورة مصغرة (URL)</label>
               <input
                 type="url"
                 value={form.thumbnailUrl}
                 onChange={(e) => setForm({ ...form, thumbnailUrl: e.target.value })}
-                className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:border-blue-600"
+                className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:border-blue-600 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                 dir="ltr"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">الفئة</label>
+              <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-200">الفئة</label>
               <select
                 value={form.category}
                 onChange={(e) => setForm({ ...form, category: e.target.value })}
-                className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:border-blue-600"
+                className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:border-blue-600 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white"
               >
                 {CATEGORIES.map(c => (
                   <option key={c.value} value={c.value}>{c.label}</option>
@@ -273,48 +273,48 @@ export function GamesTab({ token }: { token: string }) {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">النقاط لكل لعبة</label>
+              <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-200">النقاط لكل لعبة</label>
               <input
                 type="number"
                 min="0"
                 value={form.pointsPerPlay}
                 onChange={(e) => setForm({ ...form, pointsPerPlay: e.target.value })}
-                className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:border-blue-600"
+                className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:border-blue-600 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">الحد الأقصى مرات اللعب يومياً</label>
+              <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-200">الحد الأقصى مرات اللعب يومياً</label>
               <input
                 type="number"
                 min="0"
                 value={form.maxPlaysPerDay}
                 onChange={(e) => setForm({ ...form, maxPlaysPerDay: e.target.value })}
-                className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:border-blue-600"
+                className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:border-blue-600 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                 placeholder="0 = بلا حدود"
               />
             </div>
             <div className="flex gap-4">
               <div className="flex-1">
-                <label className="block text-sm font-medium mb-1">الحد الأدنى للعمر</label>
+                <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-200">الحد الأدنى للعمر</label>
                 <input
                   type="number"
                   min="0"
                   max="18"
                   value={form.minAge}
                   onChange={(e) => setForm({ ...form, minAge: e.target.value })}
-                  className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:border-blue-600"
+                  className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:border-blue-600 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                   placeholder="اختياري"
                 />
               </div>
               <div className="flex-1">
-                <label className="block text-sm font-medium mb-1">الحد الأقصى للعمر</label>
+                <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-200">الحد الأقصى للعمر</label>
                 <input
                   type="number"
                   min="0"
                   max="18"
                   value={form.maxAge}
                   onChange={(e) => setForm({ ...form, maxAge: e.target.value })}
-                  className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:border-blue-600"
+                  className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:border-blue-600 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                   placeholder="اختياري"
                 />
               </div>
@@ -323,7 +323,7 @@ export function GamesTab({ token }: { token: string }) {
               <button
                 type="button"
                 onClick={resetForm}
-                className="px-4 py-2 border rounded-lg hover:bg-gray-100 transition"
+                className="px-4 py-2 border rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 dark:border-gray-600 text-gray-700 dark:text-gray-200 transition"
               >
                 إلغاء
               </button>
@@ -341,45 +341,45 @@ export function GamesTab({ token }: { token: string }) {
       )}
 
       {/* Games Table */}
-      <div className="bg-white rounded-lg shadow overflow-x-auto">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-x-auto border dark:border-gray-700">
         <table className="w-full">
           <thead>
-            <tr className="bg-gray-100 border-b">
-              <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700">اللعبة</th>
-              <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700">الفئة</th>
-              <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700">النقاط</th>
-              <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700">حد يومي</th>
-              <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700">العمر</th>
-              <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700">الحالة</th>
-              <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700">إجراءات</th>
+            <tr className="bg-gray-100 dark:bg-gray-700 border-b dark:border-gray-600">
+              <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700 dark:text-gray-200">اللعبة</th>
+              <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700 dark:text-gray-200">الفئة</th>
+              <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700 dark:text-gray-200">النقاط</th>
+              <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700 dark:text-gray-200">حد يومي</th>
+              <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700 dark:text-gray-200">العمر</th>
+              <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700 dark:text-gray-200">الحالة</th>
+              <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700 dark:text-gray-200">إجراءات</th>
             </tr>
           </thead>
           <tbody>
             {filtered.map((game) => (
-              <tr key={game.id} className="border-b hover:bg-gray-50">
+              <tr key={game.id} className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50">
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-3">
                     {game.thumbnailUrl ? (
                       <img src={game.thumbnailUrl} alt="" className="w-12 h-12 rounded-lg object-cover" />
                     ) : (
-                      <div className="w-12 h-12 rounded-lg bg-purple-100 flex items-center justify-center">
-                        <Gamepad2 className="w-6 h-6 text-purple-500" />
+                      <div className="w-12 h-12 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
+                        <Gamepad2 className="w-6 h-6 text-purple-500 dark:text-purple-400" />
                       </div>
                     )}
                     <div>
-                      <div className="font-medium">{game.title}</div>
-                      {game.description && <div className="text-xs text-gray-500 truncate max-w-[200px]">{game.description}</div>}
+                      <div className="font-medium text-gray-800 dark:text-white">{game.title}</div>
+                      {game.description && <div className="text-xs text-gray-500 dark:text-gray-400 truncate max-w-[200px]">{game.description}</div>}
                     </div>
                   </div>
                 </td>
                 <td className="px-4 py-3 text-sm">
-                  <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs">
+                  <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full text-xs">
                     {CATEGORIES.find(c => c.value === game.category)?.label || game.category}
                   </span>
                 </td>
-                <td className="px-4 py-3 text-sm font-semibold text-yellow-600">+{game.pointsPerPlay}</td>
-                <td className="px-4 py-3 text-sm">{game.maxPlaysPerDay > 0 ? game.maxPlaysPerDay : "∞"}</td>
-                <td className="px-4 py-3 text-sm">
+                <td className="px-4 py-3 text-sm font-semibold text-yellow-600 dark:text-yellow-400">+{game.pointsPerPlay}</td>
+                <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">{game.maxPlaysPerDay > 0 ? game.maxPlaysPerDay : "∞"}</td>
+                <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">
                   {game.minAge || game.maxAge
                     ? `${game.minAge || "—"} - ${game.maxAge || "—"}`
                     : "الكل"}
@@ -395,7 +395,7 @@ export function GamesTab({ token }: { token: string }) {
                     ) : (
                       <ToggleLeft className="w-6 h-6 text-gray-400" />
                     )}
-                    <span className={`text-xs ${game.isActive ? "text-green-600" : "text-gray-400"}`}>
+                    <span className={`text-xs ${game.isActive ? "text-green-600 dark:text-green-400" : "text-gray-400"}`}>
                       {game.isActive ? "مفعل" : "معطل"}
                     </span>
                   </button>
@@ -404,7 +404,7 @@ export function GamesTab({ token }: { token: string }) {
                   <div className="flex gap-2">
                     <button
                       onClick={() => startEdit(game)}
-                      className="p-2 hover:bg-blue-100 rounded-lg transition text-blue-600"
+                      className="p-2 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg transition text-blue-600 dark:text-blue-400"
                       title="تعديل"
                     >
                       <Pencil className="w-4 h-4" />
@@ -415,7 +415,7 @@ export function GamesTab({ token }: { token: string }) {
                           deleteMutation.mutate(game.id);
                         }
                       }}
-                      className="p-2 hover:bg-red-100 rounded-lg transition text-red-600"
+                      className="p-2 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition text-red-600 dark:text-red-400"
                       title="حذف"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -427,14 +427,14 @@ export function GamesTab({ token }: { token: string }) {
           </tbody>
         </table>
         {filtered.length === 0 && (
-          <div className="p-8 text-center text-gray-500">
+          <div className="p-8 text-center text-gray-500 dark:text-gray-400">
             <Gamepad2 className="w-12 h-12 mx-auto mb-2 opacity-50" />
             <p>لا توجد ألعاب</p>
           </div>
         )}
       </div>
 
-      <div className="text-sm text-gray-500">
+      <div className="text-sm text-gray-500 dark:text-gray-400">
         إجمالي: {games?.length || 0} لعبة | مفعل: {games?.filter(g => g.isActive).length || 0} | معطل: {games?.filter(g => !g.isActive).length || 0}
       </div>
     </div>
