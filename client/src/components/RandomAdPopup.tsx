@@ -73,6 +73,7 @@ function pickRandomAd(ads: Ad[]): Ad | null {
   // Pick from top 3 with some randomness
   const top = scored.slice(0, Math.min(3, scored.length));
   const pick = top[Math.floor(Math.random() * top.length)];
+  if (!pick) return null;
   return pick.ad;
 }
 

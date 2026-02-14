@@ -51,6 +51,7 @@ import {
   siteSettings,
   childGameAssignments,
   gamePlayHistory,
+  tasksSettings,
 } from "../../shared/schema";
 import { createNotification } from "../notifications";
 import { emitGiftEvent } from "../giftEvents";
@@ -107,7 +108,7 @@ export async function registerAdminRoutes(app: Express) {
       const { username, email, password, adminSecret } = req.body;
       
       // SEC-001 FIX: Require admin creation secret
-      const ADMIN_CREATION_SECRET = process.env.ADMIN_CREATION_SECRET;
+      const ADMIN_CREATION_SECRET = process.env['ADMIN_CREATION_SECRET'];
       if (!ADMIN_CREATION_SECRET || adminSecret !== ADMIN_CREATION_SECRET) {
         return res
           .status(403)
@@ -440,22 +441,22 @@ export async function registerAdminRoutes(app: Express) {
       const { id } = req.params;
       const { name, nameAr, description, descriptionAr, price, originalPrice, pointsPrice, stock, image, images, categoryId, productType, brand, isFeatured, isActive, parentId } = req.body;
       const setData: Record<string, any> = {};
-      if (name !== undefined) setData.name = name;
-      if (nameAr !== undefined) setData.nameAr = nameAr;
-      if (description !== undefined) setData.description = description;
-      if (descriptionAr !== undefined) setData.descriptionAr = descriptionAr;
-      if (price !== undefined) setData.price = price.toString();
-      if (originalPrice !== undefined) setData.originalPrice = originalPrice ? originalPrice.toString() : null;
-      if (pointsPrice !== undefined) setData.pointsPrice = parseInt(pointsPrice);
-      if (stock !== undefined) setData.stock = parseInt(stock);
-      if (image !== undefined) setData.image = image;
-      if (images !== undefined) setData.images = images;
-      if (categoryId !== undefined) setData.categoryId = categoryId || null;
-      if (productType !== undefined) setData.productType = productType;
-      if (brand !== undefined) setData.brand = brand || null;
-      if (isFeatured !== undefined) setData.isFeatured = isFeatured;
-      if (isActive !== undefined) setData.isActive = isActive;
-      if (parentId !== undefined) setData.parentId = parentId || null;
+      if (name !== undefined) setData['name'] = name;
+      if (nameAr !== undefined) setData['nameAr'] = nameAr;
+      if (description !== undefined) setData['description'] = description;
+      if (descriptionAr !== undefined) setData['descriptionAr'] = descriptionAr;
+      if (price !== undefined) setData['price'] = price.toString();
+      if (originalPrice !== undefined) setData['originalPrice'] = originalPrice ? originalPrice.toString() : null;
+      if (pointsPrice !== undefined) setData['pointsPrice'] = parseInt(pointsPrice);
+      if (stock !== undefined) setData['stock'] = parseInt(stock);
+      if (image !== undefined) setData['image'] = image;
+      if (images !== undefined) setData['images'] = images;
+      if (categoryId !== undefined) setData['categoryId'] = categoryId || null;
+      if (productType !== undefined) setData['productType'] = productType;
+      if (brand !== undefined) setData['brand'] = brand || null;
+      if (isFeatured !== undefined) setData['isFeatured'] = isFeatured;
+      if (isActive !== undefined) setData['isActive'] = isActive;
+      if (parentId !== undefined) setData['parentId'] = parentId || null;
 
       const updated = await db
         .update(products)
@@ -1020,7 +1021,7 @@ export async function registerAdminRoutes(app: Express) {
           return res.status(404).json(errorResponse(ErrorCode.NOT_FOUND, "Child not found"));
         }
 
-        await db.transaction(async (tx) => {
+        await db.transaction(async (tx: any) => {
           const inserted = await tx.insert(pointAdjustments).values({
             targetType,
             targetId,
@@ -1615,7 +1616,7 @@ export async function registerAdminRoutes(app: Express) {
         )
       );
       const getValue = (key: string, envKey: string) => {
-        const setting = settings.find(s => s.key === key);
+        const setting = settings.find((s: any) => s.key === key);
         return setting?.value || process.env[envKey] || "";
       };
       res.json(successResponse({
@@ -1675,7 +1676,7 @@ export async function registerAdminRoutes(app: Express) {
         )
       );
       const getValue = (key: string, envKey: string) => {
-        const setting = settings.find(s => s.key === key);
+        const setting = settings.find((s: any) => s.key === key);
         return setting?.value || process.env[envKey] || "";
       };
       res.json(successResponse({
@@ -2216,16 +2217,16 @@ export async function registerAdminRoutes(app: Express) {
       const { title, description, embedUrl, thumbnailUrl, pointsPerPlay, isActive, category, minAge, maxAge, maxPlaysPerDay } = req.body;
 
       const updateData: Record<string, any> = {};
-      if (title !== undefined) updateData.title = title;
-      if (description !== undefined) updateData.description = description;
-      if (embedUrl !== undefined) updateData.embedUrl = embedUrl;
-      if (thumbnailUrl !== undefined) updateData.thumbnailUrl = thumbnailUrl;
-      if (pointsPerPlay !== undefined) updateData.pointsPerPlay = pointsPerPlay;
-      if (isActive !== undefined) updateData.isActive = isActive;
-      if (category !== undefined) updateData.category = category;
-      if (minAge !== undefined) updateData.minAge = minAge;
-      if (maxAge !== undefined) updateData.maxAge = maxAge;
-      if (maxPlaysPerDay !== undefined) updateData.maxPlaysPerDay = maxPlaysPerDay;
+      if (title !== undefined) updateData['title'] = title;
+      if (description !== undefined) updateData['description'] = description;
+      if (embedUrl !== undefined) updateData['embedUrl'] = embedUrl;
+      if (thumbnailUrl !== undefined) updateData['thumbnailUrl'] = thumbnailUrl;
+      if (pointsPerPlay !== undefined) updateData['pointsPerPlay'] = pointsPerPlay;
+      if (isActive !== undefined) updateData['isActive'] = isActive;
+      if (category !== undefined) updateData['category'] = category;
+      if (minAge !== undefined) updateData['minAge'] = minAge;
+      if (maxAge !== undefined) updateData['maxAge'] = maxAge;
+      if (maxPlaysPerDay !== undefined) updateData['maxPlaysPerDay'] = maxPlaysPerDay;
 
       const [game] = await db.update(flashGames)
         .set(updateData)
@@ -2360,7 +2361,7 @@ export async function registerAdminRoutes(app: Express) {
 
       // Verify all games exist
       const existingGames = await db.select({ id: flashGames.id }).from(flashGames);
-      const existingIds = new Set(existingGames.map(g => g.id));
+      const existingIds = new Set(existingGames.map((g: any) => g.id));
       const invalidIds = gameIds.filter((id: string) => !existingIds.has(id));
       if (invalidIds.length > 0) {
         return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, `Invalid game IDs: ${invalidIds.join(", ")}`));
@@ -2370,7 +2371,7 @@ export async function registerAdminRoutes(app: Express) {
       const existing = await db.select({ gameId: childGameAssignments.gameId })
         .from(childGameAssignments)
         .where(eq(childGameAssignments.childId, childId));
-      const existingSet = new Set(existing.map(e => e.gameId));
+      const existingSet = new Set(existing.map((e: any) => e.gameId));
 
       const newGameIds = gameIds.filter((id: string) => !existingSet.has(id));
 
@@ -2430,8 +2431,8 @@ export async function registerAdminRoutes(app: Express) {
       const { maxPlaysPerDay, isActive } = req.body;
 
       const updateData: Record<string, any> = {};
-      if (maxPlaysPerDay !== undefined) updateData.maxPlaysPerDay = maxPlaysPerDay;
-      if (isActive !== undefined) updateData.isActive = isActive;
+      if (maxPlaysPerDay !== undefined) updateData['maxPlaysPerDay'] = maxPlaysPerDay;
+      if (isActive !== undefined) updateData['isActive'] = isActive;
 
       const [updated] = await db.update(childGameAssignments)
         .set(updateData)
@@ -2612,6 +2613,70 @@ export async function registerAdminRoutes(app: Express) {
       res
         .status(500)
         .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to delete subject"));
+    }
+  });
+
+  // ===== TASKS SETTINGS =====
+
+  // Get tasks settings
+  app.get("/api/admin/tasks-settings", adminMiddleware, async (req: any, res) => {
+    try {
+      const rows = await db.select().from(tasksSettings);
+      if (rows.length === 0) {
+        // Create default settings row
+        const [created] = await db.insert(tasksSettings).values({
+          maxTasksPerDay: 10,
+          allowCustomTasks: true,
+        }).returning();
+        return res.json(successResponse(created));
+      }
+      res.json(successResponse(rows[0]));
+    } catch (error: any) {
+      console.error("Fetch tasks settings error:", error);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to fetch tasks settings"));
+    }
+  });
+
+  // Update tasks settings
+  app.put("/api/admin/tasks-settings", adminMiddleware, async (req: any, res) => {
+    try {
+      const { maxTasksPerDay, allowCustomTasks } = req.body;
+      const rows = await db.select().from(tasksSettings);
+      if (rows.length === 0) {
+        const [created] = await db.insert(tasksSettings).values({
+          maxTasksPerDay: maxTasksPerDay ?? 10,
+          allowCustomTasks: allowCustomTasks ?? true,
+        }).returning();
+        await db.insert(activityLog).values({
+          adminId: req.admin.adminId,
+          action: "UPDATE_TASKS_SETTINGS",
+          entity: "tasks_settings",
+          entityId: created.id,
+          meta: { maxTasksPerDay, allowCustomTasks },
+        });
+        return res.json(successResponse(created, "Tasks settings saved"));
+      }
+      const updateData: Record<string, any> = { updatedAt: new Date() };
+      if (maxTasksPerDay !== undefined) updateData['maxTasksPerDay'] = maxTasksPerDay;
+      if (allowCustomTasks !== undefined) updateData['allowCustomTasks'] = allowCustomTasks;
+
+      const [updated] = await db.update(tasksSettings)
+        .set(updateData)
+        .where(eq(tasksSettings.id, rows[0]!.id))
+        .returning();
+
+      await db.insert(activityLog).values({
+        adminId: req.admin.adminId,
+        action: "UPDATE_TASKS_SETTINGS",
+        entity: "tasks_settings",
+        entityId: updated.id,
+        meta: { maxTasksPerDay, allowCustomTasks },
+      });
+
+      res.json(successResponse(updated, "Tasks settings saved"));
+    } catch (error: any) {
+      console.error("Update tasks settings error:", error);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to update tasks settings"));
     }
   });
 
@@ -3712,8 +3777,8 @@ export async function registerAdminRoutes(app: Express) {
         if (!sellerStats[t.sellerId]) {
           sellerStats[t.sellerId] = { earnings: 0, transactions: 0 };
         }
-        sellerStats[t.sellerId].earnings += t.sellerEarnings;
-        sellerStats[t.sellerId].transactions += 1;
+        sellerStats[t.sellerId]!.earnings += t.sellerEarnings;
+        sellerStats[t.sellerId]!.transactions += 1;
       }
       
       // Get top sellers
@@ -4217,7 +4282,7 @@ export async function registerAdminRoutes(app: Express) {
       // Don't return sensitive settings to frontend (mask API keys)
       const safeProviders = providers.map((p: typeof otpProviders.$inferSelect) => ({
         ...p,
-        settings: p.settings ? { ...p.settings, apiKey: p.settings.apiKey ? "********" : undefined } : null,
+        settings: p.settings ? { ...p.settings, apiKey: (p.settings as any).apiKey ? "********" : undefined } : null,
       }));
       
       res.json(successResponse(safeProviders));

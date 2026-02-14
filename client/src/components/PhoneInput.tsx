@@ -155,9 +155,9 @@ export const PhoneInput: React.FC<PhoneInputProps> = ({
             ${disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}
           `}
         >
-          <span className="text-xl leading-none">{selectedCountry.flag}</span>
+          <span className="text-xl leading-none">{selectedCountry?.flag}</span>
           <span className="text-sm font-bold text-gray-800 dark:text-gray-100 tabular-nums">
-            {selectedCountry.dialCode}
+            {selectedCountry?.dialCode}
           </span>
           <ChevronDown className={`w-3.5 h-3.5 text-gray-400 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} />
         </button>
@@ -239,7 +239,7 @@ export const PhoneInput: React.FC<PhoneInputProps> = ({
                 </div>
               ) : (
                 filtered.map((c) => {
-                  const isSelected = c.dialCode === countryCode && c.code === selectedCountry.code;
+                  const isSelected = c.dialCode === countryCode && c.code === selectedCountry?.code;
                   return (
                     <button
                       key={c.code}

@@ -65,7 +65,7 @@ export default function ChildProfile() {
     if (profileData) {
       setFormData({
         name: profileData.name || "",
-        birthday: profileData.birthday ? new Date(profileData.birthday).toISOString().split('T')[0] : "",
+        birthday: profileData.birthday ? (new Date(profileData.birthday).toISOString().split('T')[0] ?? "") : "",
         schoolName: profileData.schoolName || "",
         academicGrade: profileData.academicGrade || "",
         hobbies: profileData.hobbies || "",

@@ -23,6 +23,7 @@ import {
   templateTasks,
   seoSettings,
   supportSettings,
+  tasksSettings,
 } from "../../shared/schema";
 import {
   parentPurchases,
@@ -56,7 +57,7 @@ import jwt from "jsonwebtoken";
 import { JWT_SECRET } from "./middleware";
 import { createNotification } from "../notifications";
 import { emitGiftEvent } from "../giftEvents";
-import { eq, and, sql, isNull, inArray, or, desc } from "drizzle-orm";
+import { eq, and, sql, isNull, inArray, or, desc, gte, count } from "drizzle-orm";
 import bcrypt from "bcrypt";
 import { authMiddleware } from "./middleware";
 import { v4 as uuidv4 } from "uuid";
@@ -2478,6 +2479,42 @@ export async function registerParentRoutes(app: Express) {
         });
       }
 
+      // ===== Daily limit & custom tasks check =====
+      const settingsRows = await db.select().from(tasksSettings);
+      const settings = settingsRows[0];
+      const maxPerDay = settings?.maxTasksPerDay ?? 10;
+      const allowCustom = settings?.allowCustomTasks ?? true;
+
+      if (!allowCustom) {
+        return res.status(403).json({
+          success: false,
+          error: "CUSTOM_TASKS_DISABLED",
+          message: "المهام المخصصة معطلة حالياً من قبل الإدارة",
+        });
+      }
+
+      // Count today's tasks for this child
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+      const [todayCount] = await db
+        .select({ total: count() })
+        .from(tasks)
+        .where(
+          and(
+            eq(tasks.childId, childId),
+            gte(tasks.createdAt, todayStart)
+          )
+        );
+      if ((todayCount?.total ?? 0) >= maxPerDay) {
+        return res.status(429).json({
+          success: false,
+          error: "DAILY_LIMIT_REACHED",
+          message: `تم الوصول للحد الأقصى للمهام اليومية (${maxPerDay} مهام)`,
+          limit: maxPerDay,
+          current: todayCount?.total ?? 0,
+        });
+      }
+
       let templateTaskId = null;
 
       // Normalize answers to ensure each has an id and isCorrect flag
@@ -2591,6 +2628,23 @@ export async function registerParentRoutes(app: Express) {
       
       if (!link[0]) {
         return res.status(403).json({ message: "Child not linked to this parent" });
+      }
+
+      // ===== Daily limit check =====
+      const settingsRows2 = await db.select().from(tasksSettings);
+      const maxPerDay2 = settingsRows2[0]?.maxTasksPerDay ?? 10;
+      const todayStart2 = new Date();
+      todayStart2.setHours(0, 0, 0, 0);
+      const [todayCount2] = await db
+        .select({ total: count() })
+        .from(tasks)
+        .where(and(eq(tasks.childId, childId), gte(tasks.createdAt, todayStart2)));
+      if ((todayCount2?.total ?? 0) >= maxPerDay2) {
+        return res.status(429).json({
+          success: false,
+          error: "DAILY_LIMIT_REACHED",
+          message: `تم الوصول للحد الأقصى للمهام اليومية (${maxPerDay2} مهام)`,
+        });
       }
 
       // Get template task

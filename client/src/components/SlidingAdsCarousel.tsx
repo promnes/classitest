@@ -83,6 +83,7 @@ export function SlidingAdsCarousel({ audience, variant, isDark, className = "" }
   if (adsList.length === 0) return null;
 
   const currentAd = adsList[currentIndex];
+  if (!currentAd) return null;
   const isHome = variant === "home";
 
   // Animation classes for smooth RTL sliding

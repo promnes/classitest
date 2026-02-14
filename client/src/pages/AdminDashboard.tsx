@@ -32,8 +32,9 @@ import { SupportSettingsTab } from "@/components/admin/SupportSettingsTab";
 import { GiftsTab } from "@/components/admin/GiftsTab";
 import { NotificationSettingsTab } from "@/components/admin/NotificationSettingsTab";
 import { GamesTab } from "@/components/admin/GamesTab";
+import { TasksTab } from "@/components/admin/TasksTab";
 
-type TabType = "dashboard" | "products" | "categories" | "symbols" | "users" | "settings" | "wallets" | "orders" | "deposits" | "activity" | "analytics" | "payment-methods" | "subjects" | "notifications" | "notification-settings" | "gifts" | "referrals" | "ads" | "parents" | "profits" | "libraries" | "games" | "social-login" | "otp-providers" | "seo" | "support";
+type TabType = "dashboard" | "products" | "categories" | "symbols" | "users" | "settings" | "wallets" | "orders" | "deposits" | "activity" | "analytics" | "payment-methods" | "subjects" | "notifications" | "notification-settings" | "gifts" | "referrals" | "ads" | "parents" | "profits" | "libraries" | "games" | "tasks" | "social-login" | "otp-providers" | "seo" | "support";
 
 export const AdminDashboard = (): JSX.Element => {
   const { t, i18n } = useTranslation();
@@ -66,6 +67,7 @@ export const AdminDashboard = (): JSX.Element => {
     { id: "products", labelKey: "admin.products", icon: "🛍️" },
     { id: "users", labelKey: "admin.children", icon: "👥" },
     { id: "games", labelKey: "admin.games", icon: "🎮" },
+    { id: "tasks", labelKey: "admin.tasks", icon: "📝" },
     { id: "wallets", labelKey: "admin.wallets", icon: "💰" },
     { id: "orders", labelKey: "admin.orders", icon: "📦" },
     { id: "deposits", labelKey: "admin.deposits", icon: "💳" },
@@ -168,6 +170,7 @@ export const AdminDashboard = (): JSX.Element => {
           {activeTab === "profits" && <ProfitSystemTab token={token} />}
           {activeTab === "libraries" && <LibrariesTab />}
           {activeTab === "games" && <GamesTab token={token} />}
+          {activeTab === "tasks" && <TasksTab token={token} />}
           {activeTab === "social-login" && <SocialLoginTab />}
           {activeTab === "otp-providers" && <OTPProvidersTab />}
           {activeTab === "seo" && <SeoSettingsTab />}
