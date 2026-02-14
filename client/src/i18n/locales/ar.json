@@ -990,7 +990,16 @@
     "pointsPerDay": "نقطة/يوم",
     "progressTo1000": "التقدم نحو 1000 نقطة",
     "games": "ألعاب",
-    "days": "يوم"
+    "days": "يوم",
+    "adSharePoints": "نقاط مشاركة الإعلانات",
+    "adsToShare": "إعلانات للمشاركة",
+    "pointsPerShare": "نقطة لكل مشاركة",
+    "referralShareText": "انضم لمنصة كلاسيفاي التعليمية للأطفال! سجّل من خلال رابطي واحصل على مكافآت:",
+    "linkCopied": "تم نسخ الرابط",
+    "copyLink": "نسخ الرابط",
+    "viewAd": "عرض الإعلان",
+    "sharedTimes": "تمت المشاركة {{count}} مرات",
+    "pointsEarned": "نقاط مكتسبة"
   },
 
   "accessibility": {

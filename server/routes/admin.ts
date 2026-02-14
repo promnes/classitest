@@ -35,6 +35,8 @@ import {
   parentReferralCodes,
   referralSettings,
   ads,
+  adClicks,
+  adShares,
   parentChild,
   scheduledTasks,
   profitTransactions,
@@ -55,7 +57,7 @@ import {
 } from "../../shared/schema";
 import { createNotification } from "../notifications";
 import { emitGiftEvent } from "../giftEvents";
-import { eq, sum, and, isNull, not, or, sql, desc } from "drizzle-orm";
+import { eq, sum, and, isNull, not, or, sql, desc, inArray } from "drizzle-orm";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import { JWT_SECRET, adminMiddleware } from "./middleware";
@@ -2307,6 +2309,140 @@ export async function registerAdminRoutes(app: Express) {
     }
   });
 
+  // ===== UPLOAD GAME FILE =====
+  app.post("/api/admin/games/upload", adminMiddleware, async (req: any, res) => {
+    try {
+      const multer = await import("multer");
+      const pathMod = await import("path");
+      const fs = await import("fs");
+
+      const uploadDir = pathMod.join(process.cwd(), "uploads", "games");
+      if (!fs.existsSync(uploadDir)) {
+        fs.mkdirSync(uploadDir, { recursive: true });
+      }
+
+      const storage = multer.default.diskStorage({
+        destination: (_req: any, _file: any, cb: any) => {
+          cb(null, uploadDir);
+        },
+        filename: (_req: any, file: any, cb: any) => {
+          // Sanitize filename: replace spaces, keep extension
+          const safeName = file.originalname
+            .replace(/\s+/g, "-")
+            .replace(/[^a-zA-Z0-9._\-]/g, "");
+          const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+          const ext = pathMod.extname(safeName) || ".html";
+          const baseName = pathMod.basename(safeName, ext);
+          cb(null, `${baseName}-${uniqueSuffix}${ext}`);
+        },
+      });
+
+      const fileFilter = (_req: any, file: any, cb: any) => {
+        const allowed = [".html", ".htm"];
+        const ext = pathMod.extname(file.originalname).toLowerCase();
+        if (allowed.includes(ext)) {
+          cb(null, true);
+        } else {
+          cb(new Error(`File type ${ext} not allowed. Only .html and .htm files are accepted.`));
+        }
+      };
+
+      const upload = multer.default({
+        storage,
+        limits: { fileSize: 10 * 1024 * 1024 }, // 10MB max
+        fileFilter,
+      }).single("gameFile");
+
+      upload(req, res, async (err: any) => {
+        if (err) {
+          console.error("Game upload error:", err);
+          return res
+            .status(400)
+            .json(errorResponse(ErrorCode.BAD_REQUEST, `Upload failed: ${err.message}`));
+        }
+
+        if (!req.file) {
+          return res
+            .status(400)
+            .json(errorResponse(ErrorCode.BAD_REQUEST, "No file uploaded"));
+        }
+
+        const gameUrl = `/uploads/games/${req.file.filename}`;
+        res.json(successResponse({
+          url: gameUrl,
+          filename: req.file.filename,
+          originalName: req.file.originalname,
+          size: req.file.size,
+        }, "Game file uploaded successfully"));
+      });
+    } catch (error: any) {
+      console.error("Upload game file error:", error);
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to upload game file"));
+    }
+  });
+
+  // ===== BULK TOGGLE GAMES =====
+  app.patch("/api/admin/games/bulk-toggle", adminMiddleware, async (req: any, res) => {
+    try {
+      const { ids, isActive } = req.body;
+      if (!ids || !Array.isArray(ids) || ids.length === 0) {
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "No game IDs provided"));
+      }
+
+      for (const id of ids) {
+        await db.update(flashGames).set({ isActive }).where(eq(flashGames.id, id));
+      }
+
+      await db.insert(activityLog).values({
+        adminId: req.admin.adminId,
+        action: isActive ? "BULK_ACTIVATE_GAMES" : "BULK_DEACTIVATE_GAMES",
+        entity: "game",
+        entityId: ids[0],
+        meta: { count: ids.length, ids },
+      });
+
+      res.json(successResponse({ updated: ids.length }, `${ids.length} games ${isActive ? "activated" : "deactivated"}`));
+    } catch (error: any) {
+      console.error("Bulk toggle games error:", error);
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to bulk toggle games"));
+    }
+  });
+
+  // ===== BULK DELETE GAMES =====
+  app.delete("/api/admin/games/bulk-delete", adminMiddleware, async (req: any, res) => {
+    try {
+      const { ids } = req.body;
+      if (!ids || !Array.isArray(ids) || ids.length === 0) {
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "No game IDs provided"));
+      }
+
+      const games = await db.select().from(flashGames).where(inArray(flashGames.id, ids));
+
+      for (const id of ids) {
+        await db.delete(flashGames).where(eq(flashGames.id, id));
+      }
+
+      await db.insert(activityLog).values({
+        adminId: req.admin.adminId,
+        action: "BULK_DELETE_GAMES",
+        entity: "game",
+        entityId: ids[0],
+        meta: { count: ids.length, titles: games.map(g => g.title) },
+      });
+
+      res.json(successResponse({ deleted: ids.length }, `${ids.length} games deleted`));
+    } catch (error: any) {
+      console.error("Bulk delete games error:", error);
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to bulk delete games"));
+    }
+  });
+
   // ================= CHILD-GAME ASSIGNMENTS =================
 
   // Get games assigned to a specific child
@@ -3446,17 +3582,178 @@ export async function registerAdminRoutes(app: Express) {
   });
 
   // Track ad click
-  app.post("/api/ads/:id/click", async (req, res) => {
+  app.post("/api/ads/:id/click", async (req: any, res) => {
     try {
       const { id } = req.params;
       await db.update(ads)
         .set({ clickCount: sql`${ads.clickCount} + 1` })
         .where(eq(ads.id, id));
+
+      // Track per-user click if authenticated
+      const authHeader = req.headers.authorization;
+      if (authHeader) {
+        try {
+          const token = authHeader.replace("Bearer ", "");
+          const decoded: any = jwt.verify(token, JWT_SECRET);
+          const parentId = decoded.userId || decoded.parentId;
+          if (parentId) {
+            await db.insert(adClicks).values({ adId: id, parentId });
+          }
+        } catch {}
+      }
+
       res.json(successResponse());
     } catch (error: any) {
       res
         .status(500)
         .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to track click"));
+    }
+  });
+
+  // Track ad share + award points
+  app.post("/api/ads/:id/share", async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const { platform, parentId } = req.body;
+
+      if (!parentId || !platform) {
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "parentId and platform required"));
+      }
+
+      // Get referral settings for points
+      const settingsRows = await db.select().from(referralSettings);
+      const pointsPerShare = settingsRows[0]?.pointsPerAdShare ?? 10;
+
+      // Record the share
+      await db.insert(adShares).values({
+        adId: id,
+        parentId,
+        platform,
+        pointsAwarded: pointsPerShare,
+      });
+
+      // Award points to parent wallet
+      const wallet = await db.select().from(parentWallet).where(eq(parentWallet.parentId, parentId));
+      if (wallet[0]) {
+        await db.update(parentWallet)
+          .set({ balance: sql`${parentWallet.balance} + ${pointsPerShare}`, updatedAt: new Date() })
+          .where(eq(parentWallet.parentId, parentId));
+      } else {
+        await db.insert(parentWallet).values({ parentId, balance: pointsPerShare.toString() });
+      }
+
+      res.json(successResponse({ pointsAwarded: pointsPerShare }));
+    } catch (error: any) {
+      console.error("Track ad share error:", error);
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to track share"));
+    }
+  });
+
+  // Admin: Get detailed click/share tracking for an ad
+  app.get("/api/admin/ads/:id/tracking", adminMiddleware, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+
+      // Get clicks grouped by user
+      const clicks = await db.select({
+        parentId: adClicks.parentId,
+        parentName: parents.name,
+        parentEmail: parents.email,
+        clickCount: sql<number>`count(*)`,
+        lastClick: sql<string>`max(${adClicks.clickedAt})`,
+      })
+      .from(adClicks)
+      .leftJoin(parents, eq(adClicks.parentId, parents.id))
+      .where(eq(adClicks.adId, id))
+      .groupBy(adClicks.parentId, parents.name, parents.email);
+
+      // Get shares grouped by user
+      const shares = await db.select({
+        parentId: adShares.parentId,
+        parentName: parents.name,
+        parentEmail: parents.email,
+        shareCount: sql<number>`count(*)`,
+        totalPoints: sql<number>`COALESCE(sum(${adShares.pointsAwarded}), 0)`,
+        platforms: sql<string>`string_agg(DISTINCT ${adShares.platform}, ', ')`,
+        lastShare: sql<string>`max(${adShares.sharedAt})`,
+      })
+      .from(adShares)
+      .leftJoin(parents, eq(adShares.parentId, parents.id))
+      .where(eq(adShares.adId, id))
+      .groupBy(adShares.parentId, parents.name, parents.email);
+
+      res.json(successResponse({ clicks, shares }));
+    } catch (error: any) {
+      console.error("Get ad tracking error:", error);
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to fetch tracking data"));
+    }
+  });
+
+  // Admin: Get all user tracking summary across all ads
+  app.get("/api/admin/ads/user-tracking", adminMiddleware, async (req: any, res) => {
+    try {
+      const userClicks = await db.select({
+        parentId: adClicks.parentId,
+        parentName: parents.name,
+        parentEmail: parents.email,
+        totalClicks: sql<number>`count(*)`,
+        adsClicked: sql<number>`count(DISTINCT ${adClicks.adId})`,
+      })
+      .from(adClicks)
+      .leftJoin(parents, eq(adClicks.parentId, parents.id))
+      .groupBy(adClicks.parentId, parents.name, parents.email);
+
+      const userShares = await db.select({
+        parentId: adShares.parentId,
+        parentName: parents.name,
+        parentEmail: parents.email,
+        totalShares: sql<number>`count(*)`,
+        totalPointsEarned: sql<number>`COALESCE(sum(${adShares.pointsAwarded}), 0)`,
+        adsShared: sql<number>`count(DISTINCT ${adShares.adId})`,
+      })
+      .from(adShares)
+      .leftJoin(parents, eq(adShares.parentId, parents.id))
+      .groupBy(adShares.parentId, parents.name, parents.email);
+
+      // Merge clicks and shares by parentId
+      const userMap: Record<string, any> = {};
+      for (const c of userClicks) {
+        userMap[c.parentId] = {
+          parentId: c.parentId,
+          parentName: c.parentName,
+          parentEmail: c.parentEmail,
+          totalClicks: Number(c.totalClicks),
+          adsClicked: Number(c.adsClicked),
+          totalShares: 0,
+          totalPointsEarned: 0,
+          adsShared: 0,
+        };
+      }
+      for (const s of userShares) {
+        if (!userMap[s.parentId]) {
+          userMap[s.parentId] = {
+            parentId: s.parentId,
+            parentName: s.parentName,
+            parentEmail: s.parentEmail,
+            totalClicks: 0,
+            adsClicked: 0,
+          };
+        }
+        userMap[s.parentId].totalShares = Number(s.totalShares);
+        userMap[s.parentId].totalPointsEarned = Number(s.totalPointsEarned);
+        userMap[s.parentId].adsShared = Number(s.adsShared);
+      }
+
+      res.json(successResponse(Object.values(userMap)));
+    } catch (error: any) {
+      console.error("Get user tracking error:", error);
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to fetch user tracking"));
     }
   });
 
@@ -3470,6 +3767,7 @@ export async function registerAdminRoutes(app: Express) {
         // Create default settings if none exist
         const defaultSettings = await db.insert(referralSettings).values({
           pointsPerReferral: 100,
+          pointsPerAdShare: 10,
           commissionRate: "10.00",
           minActiveDays: 7,
           isActive: true,
@@ -3488,7 +3786,7 @@ export async function registerAdminRoutes(app: Express) {
   // Update referral settings
   app.put("/api/admin/referral-settings", adminMiddleware, async (req: any, res) => {
     try {
-      const { pointsPerReferral, commissionRate, minActiveDays, isActive } = req.body;
+      const { pointsPerReferral, pointsPerAdShare, commissionRate, minActiveDays, isActive } = req.body;
       
       const settings = await db.select().from(referralSettings);
       let updated;
@@ -3496,6 +3794,7 @@ export async function registerAdminRoutes(app: Express) {
       if (!settings[0]) {
         updated = await db.insert(referralSettings).values({
           pointsPerReferral: pointsPerReferral || 100,
+          pointsPerAdShare: pointsPerAdShare || 10,
           commissionRate: commissionRate || "10.00",
           minActiveDays: minActiveDays || 7,
           isActive: isActive !== undefined ? isActive : true,
@@ -3504,6 +3803,7 @@ export async function registerAdminRoutes(app: Express) {
         updated = await db.update(referralSettings)
           .set({
             pointsPerReferral: pointsPerReferral !== undefined ? pointsPerReferral : settings[0].pointsPerReferral,
+            pointsPerAdShare: pointsPerAdShare !== undefined ? pointsPerAdShare : settings[0].pointsPerAdShare,
             commissionRate: commissionRate !== undefined ? commissionRate : settings[0].commissionRate,
             minActiveDays: minActiveDays !== undefined ? minActiveDays : settings[0].minActiveDays,
             isActive: isActive !== undefined ? isActive : settings[0].isActive,
@@ -3527,7 +3827,7 @@ export async function registerAdminRoutes(app: Express) {
     try {
       const settings = await db.select().from(referralSettings).where(eq(referralSettings.isActive, true));
       if (!settings[0]) {
-        return res.json(successResponse({ pointsPerReferral: 100, commissionRate: "10.00", minActiveDays: 7, isActive: true }));
+        return res.json(successResponse({ pointsPerReferral: 100, pointsPerAdShare: 10, commissionRate: "10.00", minActiveDays: 7, isActive: true }));
       }
       res.json(successResponse(settings[0]));
     } catch (error: any) {

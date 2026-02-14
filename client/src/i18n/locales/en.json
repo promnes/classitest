@@ -990,7 +990,16 @@
     "pointsPerDay": "points/day",
     "progressTo1000": "Progress to 1000 points",
     "games": "Games",
-    "days": "days"
+    "days": "days",
+    "adSharePoints": "Ad Share Points",
+    "adsToShare": "Ads to Share",
+    "pointsPerShare": "points per share",
+    "referralShareText": "Join Classify, the fun educational platform for kids! Sign up with my link and earn rewards:",
+    "linkCopied": "Link copied",
+    "copyLink": "Copy Link",
+    "viewAd": "View Ad",
+    "sharedTimes": "Shared {{count}} times",
+    "pointsEarned": "points earned"
   },
 
   "accessibility": {

@@ -1,6 +1,6 @@
 import type { Express } from "express";
 import { storage } from "../storage";
-import { parents, otpCodes, otpRequestLogs, sessions, loginHistory, trustedDevices, socialLoginProviders, otpProviders, libraries, libraryReferrals } from "../../shared/schema";
+import { parents, otpCodes, otpRequestLogs, sessions, loginHistory, trustedDevices, socialLoginProviders, otpProviders, libraries, libraryReferrals, parentReferralCodes, referrals, parentWallet } from "../../shared/schema";
 import { eq, and, gt, isNull, desc, or } from "drizzle-orm";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
@@ -114,7 +114,7 @@ export async function registerAuthRoutes(app: Express) {
   // Parent Register (with rate limiting)
   app.post("/api/auth/register", registerLimiter, async (req, res) => {
     try {
-      const { email, password, name, phoneNumber, libraryReferralCode } = req.body;
+      const { email, password, name, phoneNumber, libraryReferralCode, referralCode } = req.body;
       const normalizedEmail = normalizeEmail(email);
 
       // Validation
@@ -194,6 +194,54 @@ export async function registerAuthRoutes(app: Express) {
           }
         } catch (referralErr) {
           console.error("Library referral register mapping failed:", referralErr);
+        }
+      }
+
+      // Process parent-to-parent referral code
+      if (referralCode && typeof referralCode === "string") {
+        try {
+          const normalizedCode = referralCode.trim().toUpperCase();
+          if (normalizedCode) {
+            const codeRecord = await db
+              .select()
+              .from(parentReferralCodes)
+              .where(eq(parentReferralCodes.code, normalizedCode))
+              .limit(1);
+
+            if (codeRecord[0] && codeRecord[0].parentId !== result[0].id) {
+              // Check no duplicate referral
+              const existingReferral = await db
+                .select({ id: referrals.id })
+                .from(referrals)
+                .where(
+                  and(
+                    eq(referrals.referrerId, codeRecord[0].parentId),
+                    eq(referrals.referredId, result[0].id)
+                  )
+                )
+                .limit(1);
+
+              if (!existingReferral[0]) {
+                await db.insert(referrals).values({
+                  referrerId: codeRecord[0].parentId,
+                  referredId: result[0].id,
+                  referralCode: normalizedCode,
+                  status: "pending",
+                  pointsAwarded: 0,
+                });
+
+                // Update referral code stats
+                await db
+                  .update(parentReferralCodes)
+                  .set({
+                    totalReferrals: (codeRecord[0].totalReferrals || 0) + 1,
+                  })
+                  .where(eq(parentReferralCodes.id, codeRecord[0].id));
+              }
+            }
+          }
+        } catch (refErr) {
+          console.error("Parent referral code mapping failed:", refErr);
         }
       }
 

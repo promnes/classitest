@@ -1050,6 +1050,7 @@ export const refunds = pgTable("refunds", {
 export const referralSettings = pgTable("referral_settings", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   pointsPerReferral: integer("points_per_referral").default(100).notNull(),
+  pointsPerAdShare: integer("points_per_ad_share").default(10).notNull(),
   commissionRate: decimal("commission_rate", { precision: 5, scale: 2 }).default("10.00").notNull(),
   minActiveDays: integer("min_active_days").default(7).notNull(),
   isActive: boolean("is_active").default(true).notNull(),
@@ -1113,6 +1114,24 @@ export const ads = pgTable("ads", {
 });
 
 export const insertAdSchema = createInsertSchema(ads).omit({ id: true, createdAt: true, updatedAt: true, viewCount: true, clickCount: true });
+
+// ===== Ad Click Tracking (per user per ad) =====
+export const adClicks = pgTable("ad_clicks", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  adId: varchar("ad_id").notNull().references(() => ads.id, { onDelete: "cascade" }),
+  parentId: varchar("parent_id").notNull().references(() => parents.id, { onDelete: "cascade" }),
+  clickedAt: timestamp("clicked_at").defaultNow().notNull(),
+});
+
+// ===== Ad Share Tracking (per user per ad per platform) =====
+export const adShares = pgTable("ad_shares", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  adId: varchar("ad_id").notNull().references(() => ads.id, { onDelete: "cascade" }),
+  parentId: varchar("parent_id").notNull().references(() => parents.id, { onDelete: "cascade" }),
+  platform: varchar("platform", { length: 30 }).notNull(), // whatsapp | facebook | twitter | telegram | copy | other
+  pointsAwarded: integer("points_awarded").default(0).notNull(),
+  sharedAt: timestamp("shared_at").defaultNow().notNull(),
+});
 export type Ad = typeof ads.$inferSelect;
 export type InsertAd = z.infer<typeof insertAdSchema>;
 

@@ -1,6 +1,12 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Gamepad2, Plus, Pencil, Trash2, ToggleLeft, ToggleRight, Save, X, BookOpen, ChevronDown, ChevronUp, ExternalLink, Download, Globe, Code, Upload, CheckCircle2, AlertTriangle, Lightbulb, FolderOpen } from "lucide-react";
+import {
+  Gamepad2, Plus, Pencil, Trash2, ToggleLeft, ToggleRight, Save, X,
+  BookOpen, ChevronDown, ChevronUp, ExternalLink, Download, Globe,
+  Code, Upload, CheckCircle2, AlertTriangle, Lightbulb, FolderOpen,
+  Eye, Link, FileUp, Search, Filter, CheckSquare, Square, Power,
+  PowerOff, Play, RefreshCw, BarChart3, XCircle
+} from "lucide-react";
 
 interface Game {
   id: string;
@@ -29,6 +35,8 @@ interface GameForm {
   maxPlaysPerDay: string;
 }
 
+type AddMethod = "url" | "upload" | null;
+
 const emptyForm: GameForm = {
   title: "",
   description: "",
@@ -42,24 +50,36 @@ const emptyForm: GameForm = {
 };
 
 const CATEGORIES = [
-  { value: "general", label: "عام" },
-  { value: "educational", label: "تعليمي" },
-  { value: "math", label: "رياضيات" },
-  { value: "language", label: "لغات" },
-  { value: "science", label: "علوم" },
-  { value: "puzzle", label: "ألغاز" },
-  { value: "creative", label: "إبداعي" },
-  { value: "sport", label: "رياضة" },
+  { value: "general", label: "عام", icon: "🎮" },
+  { value: "educational", label: "تعليمي", icon: "📚" },
+  { value: "math", label: "رياضيات", icon: "🔢" },
+  { value: "language", label: "لغات", icon: "🗣️" },
+  { value: "science", label: "علوم", icon: "🔬" },
+  { value: "puzzle", label: "ألغاز", icon: "🧩" },
+  { value: "creative", label: "إبداعي", icon: "🎨" },
+  { value: "sport", label: "رياضة", icon: "⚽" },
 ];
 
 export function GamesTab({ token }: { token: string }) {
   const queryClient = useQueryClient();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // State
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<GameForm>(emptyForm);
   const [searchTerm, setSearchTerm] = useState("");
   const [showGuide, setShowGuide] = useState(false);
+  const [addMethod, setAddMethod] = useState<AddMethod>(null);
+  const [selectedGames, setSelectedGames] = useState<Set<string>>(new Set());
+  const [filterCategory, setFilterCategory] = useState<string>("all");
+  const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<string | null>(null);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [bulkAction, setBulkAction] = useState<"delete" | "activate" | "deactivate" | null>(null);
 
+  // Queries
   const { data: games, isLoading } = useQuery<Game[]>({
     queryKey: ["admin-games"],
     queryFn: async () => {
@@ -72,6 +92,7 @@ export function GamesTab({ token }: { token: string }) {
     enabled: !!token,
   });
 
+  // Mutations
   const createMutation = useMutation({
     mutationFn: async (data: GameForm) => {
       const res = await fetch("/api/admin/games", {
@@ -133,7 +154,10 @@ export function GamesTab({ token }: { token: string }) {
       if (!res.ok) throw new Error("Failed to delete game");
       return res.json();
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin-games"] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-games"] });
+      setDeleteConfirmId(null);
+    },
   });
 
   const toggleMutation = useMutation({
@@ -148,10 +172,47 @@ export function GamesTab({ token }: { token: string }) {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin-games"] }),
   });
 
+  const bulkToggleMutation = useMutation({
+    mutationFn: async ({ ids, isActive }: { ids: string[]; isActive: boolean }) => {
+      const res = await fetch("/api/admin/games/bulk-toggle", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ ids, isActive }),
+      });
+      if (!res.ok) throw new Error("Failed to bulk toggle");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-games"] });
+      setSelectedGames(new Set());
+      setBulkAction(null);
+    },
+  });
+
+  const bulkDeleteMutation = useMutation({
+    mutationFn: async (ids: string[]) => {
+      const res = await fetch("/api/admin/games/bulk-delete", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ ids }),
+      });
+      if (!res.ok) throw new Error("Failed to bulk delete");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-games"] });
+      setSelectedGames(new Set());
+      setBulkAction(null);
+    },
+  });
+
+  // Handlers
   const resetForm = () => {
     setForm(emptyForm);
     setShowForm(false);
     setEditingId(null);
+    setAddMethod(null);
+    setUploadProgress(null);
   };
 
   const startEdit = (game: Game) => {
@@ -167,6 +228,7 @@ export function GamesTab({ token }: { token: string }) {
       maxPlaysPerDay: game.maxPlaysPerDay?.toString() || "0",
     });
     setEditingId(game.id);
+    setAddMethod("url");
     setShowForm(true);
   };
 
@@ -179,30 +241,111 @@ export function GamesTab({ token }: { token: string }) {
     }
   };
 
-  const filtered = games?.filter(g =>
-    g.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    g.category?.toLowerCase().includes(searchTerm.toLowerCase())
-  ) || [];
+  const handleFileUpload = useCallback(async (file: File) => {
+    if (!file.name.match(/\.(html|htm)$/i)) {
+      setUploadProgress("❌ يجب أن يكون الملف بصيغة .html أو .htm");
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      setUploadProgress("❌ حجم الملف يجب أن لا يتجاوز 10MB");
+      return;
+    }
+
+    setUploadProgress("⏳ جاري الرفع...");
+    const formData = new FormData();
+    formData.append("gameFile", file);
+
+    try {
+      const res = await fetch("/api/admin/games/upload", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      });
+      const json = await res.json();
+      if (json.success) {
+        const gameUrl = json.data.url;
+        setForm(prev => ({ ...prev, embedUrl: gameUrl }));
+        setUploadProgress(`✅ تم الرفع — ${json.data.originalName} (${(json.data.size / 1024).toFixed(1)}KB)`);
+        // Auto-fill title from filename if empty
+        if (!form.title) {
+          const name = json.data.originalName.replace(/\.(html|htm)$/i, "").replace(/[-_]/g, " ");
+          setForm(prev => ({ ...prev, title: name, embedUrl: gameUrl }));
+        }
+      } else {
+        setUploadProgress(`❌ فشل الرفع: ${json.message}`);
+      }
+    } catch (err: any) {
+      setUploadProgress(`❌ خطأ في الرفع: ${err.message}`);
+    }
+  }, [token, form.title]);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const file = e.dataTransfer.files[0];
+    if (file) handleFileUpload(file);
+  }, [handleFileUpload]);
+
+  const toggleSelectGame = (id: string) => {
+    setSelectedGames(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedGames.size === filtered.length) {
+      setSelectedGames(new Set());
+    } else {
+      setSelectedGames(new Set(filtered.map(g => g.id)));
+    }
+  };
+
+  const executeBulkAction = () => {
+    const ids = Array.from(selectedGames);
+    if (bulkAction === "delete") {
+      bulkDeleteMutation.mutate(ids);
+    } else if (bulkAction === "activate") {
+      bulkToggleMutation.mutate({ ids, isActive: true });
+    } else if (bulkAction === "deactivate") {
+      bulkToggleMutation.mutate({ ids, isActive: false });
+    }
+  };
+
+  // Filtering
+  const filtered = games?.filter(g => {
+    const matchSearch = g.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      g.category?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      g.embedUrl?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchCategory = filterCategory === "all" || g.category === filterCategory;
+    const matchStatus = filterStatus === "all" ||
+      (filterStatus === "active" && g.isActive) ||
+      (filterStatus === "inactive" && !g.isActive);
+    return matchSearch && matchCategory && matchStatus;
+  }) || [];
+
+  // Stats
+  const totalGames = games?.length || 0;
+  const activeGames = games?.filter(g => g.isActive).length || 0;
+  const inactiveGames = totalGames - activeGames;
+  const localGames = games?.filter(g => g.embedUrl.startsWith("/")).length || 0;
+  const externalGames = totalGames - localGames;
 
   if (isLoading) return <div className="p-4 text-gray-700 dark:text-gray-200">جاري التحميل...</div>;
 
   return (
     <div className="p-4 space-y-4">
-      <div className="flex justify-between items-center mb-4">
+      {/* Header */}
+      <div className="flex flex-wrap justify-between items-center gap-3 mb-4">
         <h2 className="text-2xl font-bold flex items-center gap-2 text-gray-800 dark:text-white">
           <Gamepad2 className="w-7 h-7" />
           إدارة الألعاب
         </h2>
-        <div className="flex gap-2">
-          <input
-            type="text"
-            placeholder="بحث..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="px-4 py-2 border rounded-lg focus:outline-none focus:border-blue-600 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
-          />
+        <div className="flex flex-wrap gap-2">
           <button
-            onClick={() => { resetForm(); setShowForm(true); }}
+            onClick={() => { resetForm(); setShowForm(true); setAddMethod(null); }}
             className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
           >
             <Plus className="w-5 h-5" />
@@ -213,24 +356,46 @@ export function GamesTab({ token }: { token: string }) {
             className="flex items-center gap-2 bg-amber-500 text-white px-4 py-2 rounded-lg hover:bg-amber-600 transition"
           >
             <BookOpen className="w-5 h-5" />
-            دليل الألعاب
+            الدليل
             {showGuide ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
           </button>
+        </div>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border dark:border-gray-700 text-center">
+          <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">{totalGames}</div>
+          <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">إجمالي الألعاب</div>
+        </div>
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border dark:border-gray-700 text-center">
+          <div className="text-3xl font-bold text-green-600 dark:text-green-400">{activeGames}</div>
+          <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">مفعّلة</div>
+        </div>
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border dark:border-gray-700 text-center">
+          <div className="text-3xl font-bold text-red-500 dark:text-red-400">{inactiveGames}</div>
+          <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">معطّلة</div>
+        </div>
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border dark:border-gray-700 text-center">
+          <div className="text-3xl font-bold text-purple-600 dark:text-purple-400">{localGames}</div>
+          <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">محلية</div>
+        </div>
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border dark:border-gray-700 text-center">
+          <div className="text-3xl font-bold text-cyan-600 dark:text-cyan-400">{externalGames}</div>
+          <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">خارجية</div>
         </div>
       </div>
 
       {/* ========== GUIDE PANEL ========== */}
       {showGuide && (
         <div className="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-gray-800 dark:to-gray-800 border-2 border-amber-200 dark:border-amber-700/50 rounded-2xl p-6 space-y-6 shadow-lg">
-          
-          {/* Guide Header */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 bg-amber-500 rounded-xl flex items-center justify-center">
                 <BookOpen className="w-7 h-7 text-white" />
               </div>
               <div>
-                <h3 className="text-xl font-bold text-gray-800 dark:text-white">📖 دليل إضافة الألعاب الشامل</h3>
+                <h3 className="text-xl font-bold text-gray-800 dark:text-white">دليل إضافة الألعاب الشامل</h3>
                 <p className="text-sm text-gray-500 dark:text-gray-400">من الصفر حتى تشغيل اللعبة على المنصة</p>
               </div>
             </div>
@@ -239,542 +404,470 @@ export function GamesTab({ token }: { token: string }) {
             </button>
           </div>
 
-          {/* Section 1: How it works */}
           <div className="bg-white dark:bg-gray-700/50 rounded-xl p-5 space-y-3">
             <h4 className="font-bold text-lg flex items-center gap-2 text-purple-700 dark:text-purple-300">
               <Gamepad2 className="w-5 h-5" /> كيف يعمل نظام الألعاب؟
             </h4>
             <div className="text-sm text-gray-600 dark:text-gray-300 space-y-2">
-              <p>الألعاب تعمل عبر <strong>iframe</strong> — أي صفحة ويب (HTML) يمكن تحميلها داخل إطار في صفحة الطفل.</p>
+              <p>الألعاب تعمل عبر <strong>iframe</strong> — أي صفحة HTML يمكن تحميلها داخل إطار في صفحة الطفل.</p>
               <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-3 font-mono text-xs" dir="ltr">
-                الأدمن يضيف اللعبة → الولي يتحكم بالوصول → الطفل يلعب → يضغط "أنهيت" → يحصل نقاط
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-3">
-                <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 text-center">
-                  <div className="text-2xl mb-1">🎮</div>
-                  <div className="font-semibold text-blue-700 dark:text-blue-300 text-xs">نوع اللعبة</div>
-                  <div className="text-xs mt-1">HTML5 / ويب</div>
-                </div>
-                <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-3 text-center">
-                  <div className="text-2xl mb-1">📦</div>
-                  <div className="font-semibold text-green-700 dark:text-green-300 text-xs">التضمين</div>
-                  <div className="text-xs mt-1">iframe بداخل الموقع</div>
-                </div>
-                <div className="bg-yellow-50 dark:bg-yellow-900/20 rounded-lg p-3 text-center">
-                  <div className="text-2xl mb-1">⭐</div>
-                  <div className="font-semibold text-yellow-700 dark:text-yellow-300 text-xs">المكافأة</div>
-                  <div className="text-xs mt-1">نقاط عند الانتهاء</div>
-                </div>
+                الأدمن يضيف اللعبة ← الولي يتحكم بالوصول ← الطفل يلعب ← يحصل نقاط
               </div>
             </div>
           </div>
 
-          {/* Section 2: Game types */}
           <div className="bg-white dark:bg-gray-700/50 rounded-xl p-5 space-y-3">
             <h4 className="font-bold text-lg flex items-center gap-2 text-blue-700 dark:text-blue-300">
-              <Code className="w-5 h-5" /> أنواع الألعاب المدعومة
+              <Code className="w-5 h-5" /> طرق إضافة الألعاب
             </h4>
-            <div className="text-sm text-gray-600 dark:text-gray-300 space-y-2">
-              <p>أي لعبة تعمل في المتصفح (HTML5) مدعومة. أشهر الأنواع:</p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div className="border dark:border-gray-600 rounded-lg p-3">
-                  <div className="font-semibold flex items-center gap-2">✅ مدعوم</div>
-                  <ul className="mt-2 space-y-1 text-xs">
-                    <li>• ألعاب HTML5 + CSS + JavaScript (ملف واحد أو مجلد)</li>
-                    <li>• ألعاب مصنوعة بـ Construct 2/3, GDevelop, Phaser</li>
-                    <li>• ألعاب Canvas / WebGL</li>
-                    <li>• ألعاب من مواقع التضمين (embed URL)</li>
-                    <li>• أي صفحة ويب تفاعلية</li>
-                  </ul>
+            <div className="text-sm text-gray-600 dark:text-gray-300 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="border dark:border-gray-600 rounded-lg p-4 bg-blue-50/50 dark:bg-blue-900/10">
+                <div className="font-bold text-blue-700 dark:text-blue-300 flex items-center gap-2 mb-2">
+                  <Link className="w-4 h-4" /> رابط خارجي (URL)
                 </div>
-                <div className="border dark:border-gray-600 rounded-lg p-3">
-                  <div className="font-semibold flex items-center gap-2">❌ غير مدعوم</div>
-                  <ul className="mt-2 space-y-1 text-xs">
-                    <li>• ألعاب Flash (SWF) — متوقفة من 2020</li>
-                    <li>• ألعاب تحتاج تثبيت (EXE, APK)</li>
-                    <li>• ألعاب Unity WebGL ثقيلة جداً (&gt;50MB)</li>
-                    <li>• ألعاب تحتاج اتصال بسيرفر خاص</li>
-                  </ul>
+                <ul className="text-xs space-y-1">
+                  <li>• ألصق رابط اللعبة من أي موقع يدعم iframe</li>
+                  <li>• مثل: itch.io, CrazyGames, HTML5Games</li>
+                  <li>• لا يستهلك مساحة السيرفر</li>
+                  <li>• يعتمد على توفر الموقع الخارجي</li>
+                </ul>
+              </div>
+              <div className="border dark:border-gray-600 rounded-lg p-4 bg-green-50/50 dark:bg-green-900/10">
+                <div className="font-bold text-green-700 dark:text-green-300 flex items-center gap-2 mb-2">
+                  <FileUp className="w-4 h-4" /> رفع ملف HTML
                 </div>
+                <ul className="text-xs space-y-1">
+                  <li>• ارفع ملف .html مباشرة من جهازك</li>
+                  <li>• الرابط يتولّد تلقائياً</li>
+                  <li>• أسرع وأكثر موثوقية</li>
+                  <li>• حد أقصى: 10MB لكل ملف</li>
+                </ul>
               </div>
             </div>
           </div>
 
-          {/* Section 3: Free sources */}
           <div className="bg-white dark:bg-gray-700/50 rounded-xl p-5 space-y-3">
             <h4 className="font-bold text-lg flex items-center gap-2 text-green-700 dark:text-green-300">
-              <Download className="w-5 h-5" /> مصادر ألعاب مجانية 🆓
+              <Download className="w-5 h-5" /> مصادر ألعاب مجانية
             </h4>
-            <div className="text-sm text-gray-600 dark:text-gray-300">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-
-                <a href="https://itch.io/games/html5/free" target="_blank" rel="noopener noreferrer" className="block border dark:border-gray-600 rounded-lg p-4 hover:border-green-400 hover:bg-green-50/50 dark:hover:bg-green-900/10 transition group">
-                  <div className="flex items-center justify-between">
-                    <div className="font-bold text-green-700 dark:text-green-400 group-hover:underline">🎮 itch.io</div>
-                    <ExternalLink className="w-4 h-4 text-gray-400" />
-                  </div>
-                  <p className="text-xs mt-1">أكبر مكتبة ألعاب HTML5 مجانية. آلاف الألعاب التعليمية والترفيهية.</p>
-                  <div className="text-xs mt-2 text-green-600 dark:text-green-400 font-medium">💡 ابحث عن: "educational HTML5 game"</div>
-                </a>
-
-                <a href="https://github.com/nicknamedev/html5-games" target="_blank" rel="noopener noreferrer" className="block border dark:border-gray-600 rounded-lg p-4 hover:border-green-400 hover:bg-green-50/50 dark:hover:bg-green-900/10 transition group">
-                  <div className="flex items-center justify-between">
-                    <div className="font-bold text-green-700 dark:text-green-400 group-hover:underline">🐙 GitHub</div>
-                    <ExternalLink className="w-4 h-4 text-gray-400" />
-                  </div>
-                  <p className="text-xs mt-1">مستودعات مفتوحة المصدر. حمّل الكود وضعه في مجلد public/games/</p>
-                  <div className="text-xs mt-2 text-green-600 dark:text-green-400 font-medium">💡 ابحث عن: "html5 math game for kids"</div>
-                </a>
-
-                <a href="https://www.crazygames.com/t/html5" target="_blank" rel="noopener noreferrer" className="block border dark:border-gray-600 rounded-lg p-4 hover:border-green-400 hover:bg-green-50/50 dark:hover:bg-green-900/10 transition group">
-                  <div className="flex items-center justify-between">
-                    <div className="font-bold text-green-700 dark:text-green-400 group-hover:underline">🤪 CrazyGames</div>
-                    <ExternalLink className="w-4 h-4 text-gray-400" />
-                  </div>
-                  <p className="text-xs mt-1">ألعاب مجانية يمكن تضمينها عبر رابط مباشر (embed URL).</p>
-                  <div className="text-xs mt-2 text-green-600 dark:text-green-400 font-medium">💡 استخدم رابط اللعبة مباشرة</div>
-                </a>
-
-                <a href="https://html5games.com" target="_blank" rel="noopener noreferrer" className="block border dark:border-gray-600 rounded-lg p-4 hover:border-green-400 hover:bg-green-50/50 dark:hover:bg-green-900/10 transition group">
-                  <div className="flex items-center justify-between">
-                    <div className="font-bold text-green-700 dark:text-green-400 group-hover:underline">🌐 HTML5Games.com</div>
-                    <ExternalLink className="w-4 h-4 text-gray-400" />
-                  </div>
-                  <p className="text-xs mt-1">مكتبة كبيرة من ألعاب HTML5 مصنفة حسب النوع.</p>
-                  <div className="text-xs mt-2 text-green-600 dark:text-green-400 font-medium">💡 مناسبة للتضمين المباشر</div>
-                </a>
-
-                <a href="https://gdevelop.io/game-example" target="_blank" rel="noopener noreferrer" className="block border dark:border-gray-600 rounded-lg p-4 hover:border-green-400 hover:bg-green-50/50 dark:hover:bg-green-900/10 transition group">
-                  <div className="flex items-center justify-between">
-                    <div className="font-bold text-green-700 dark:text-green-400 group-hover:underline">🔧 GDevelop</div>
-                    <ExternalLink className="w-4 h-4 text-gray-400" />
-                  </div>
-                  <p className="text-xs mt-1">أداة مجانية لصنع ألعاب HTML5 بدون برمجة! + أمثلة جاهزة.</p>
-                  <div className="text-xs mt-2 text-green-600 dark:text-green-400 font-medium">💡 صدّر اللعبة كـ HTML5 وارفعها</div>
-                </a>
-
-                <a href="https://www.codepen.io/search/pens?q=html5+game" target="_blank" rel="noopener noreferrer" className="block border dark:border-gray-600 rounded-lg p-4 hover:border-green-400 hover:bg-green-50/50 dark:hover:bg-green-900/10 transition group">
-                  <div className="flex items-center justify-between">
-                    <div className="font-bold text-green-700 dark:text-green-400 group-hover:underline">✏️ CodePen</div>
-                    <ExternalLink className="w-4 h-4 text-gray-400" />
-                  </div>
-                  <p className="text-xs mt-1">ألعاب صغيرة مصنوعة بـ HTML/CSS/JS. انسخ الكود واحفظه كملف HTML.</p>
-                  <div className="text-xs mt-2 text-green-600 dark:text-green-400 font-medium">💡 ابحث عن: "kids math game"</div>
-                </a>
-              </div>
-            </div>
-          </div>
-
-          {/* Section 4: Paid sources */}
-          <div className="bg-white dark:bg-gray-700/50 rounded-xl p-5 space-y-3">
-            <h4 className="font-bold text-lg flex items-center gap-2 text-orange-700 dark:text-orange-300">
-              <Globe className="w-5 h-5" /> مصادر ألعاب مدفوعة 💰
-            </h4>
-            <div className="text-sm text-gray-600 dark:text-gray-300">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <a href="https://codecanyon.net/category/games/html5" target="_blank" rel="noopener noreferrer" className="block border dark:border-gray-600 rounded-lg p-4 hover:border-orange-400 transition group">
-                  <div className="font-bold text-orange-700 dark:text-orange-400 group-hover:underline flex items-center justify-between">
-                    CodeCanyon <ExternalLink className="w-3 h-3" />
-                  </div>
-                  <p className="text-xs mt-1">ألعاب HTML5 احترافية</p>
-                  <p className="text-xs font-bold text-orange-600 mt-1">💲 $5 - $50</p>
-                </a>
-                <a href="https://www.construct.net/en/game-jams" target="_blank" rel="noopener noreferrer" className="block border dark:border-gray-600 rounded-lg p-4 hover:border-orange-400 transition group">
-                  <div className="font-bold text-orange-700 dark:text-orange-400 group-hover:underline flex items-center justify-between">
-                    Construct Store <ExternalLink className="w-3 h-3" />
-                  </div>
-                  <p className="text-xs mt-1">ألعاب + قوالب Construct 3</p>
-                  <p className="text-xs font-bold text-orange-600 mt-1">💲 $5 - $30</p>
-                </a>
-                <a href="https://www.gamegorillaz.com" target="_blank" rel="noopener noreferrer" className="block border dark:border-gray-600 rounded-lg p-4 hover:border-orange-400 transition group">
-                  <div className="font-bold text-orange-700 dark:text-orange-400 group-hover:underline flex items-center justify-between">
-                    GameGorillaz <ExternalLink className="w-3 h-3" />
-                  </div>
-                  <p className="text-xs mt-1">ألعاب تعليمية جاهزة</p>
-                  <p className="text-xs font-bold text-orange-600 mt-1">💲 اشتراك شهري</p>
-                </a>
-              </div>
-            </div>
-          </div>
-
-          {/* Section 5: Step by step */}
-          <div className="bg-white dark:bg-gray-700/50 rounded-xl p-5 space-y-4">
-            <h4 className="font-bold text-lg flex items-center gap-2 text-indigo-700 dark:text-indigo-300">
-              <CheckCircle2 className="w-5 h-5" /> خطوات إضافة لعبة (من الصفر)
-            </h4>
-            <div className="text-sm text-gray-600 dark:text-gray-300">
-              
-              {/* Method A */}
-              <div className="mb-4">
-                <div className="font-bold text-base mb-3 flex items-center gap-2 text-indigo-600 dark:text-indigo-400">
-                  <span className="w-7 h-7 bg-indigo-600 text-white rounded-full flex items-center justify-center text-xs font-bold">A</span>
-                  الطريقة الأولى: رابط خارجي (الأسَهل) ⚡
+            <div className="text-sm text-gray-600 dark:text-gray-300 grid grid-cols-1 md:grid-cols-3 gap-3">
+              <a href="https://itch.io/games/html5/free" target="_blank" rel="noopener noreferrer" className="block border dark:border-gray-600 rounded-lg p-3 hover:border-green-400 transition group">
+                <div className="font-bold text-green-700 dark:text-green-400 group-hover:underline flex items-center justify-between">
+                  🎮 itch.io <ExternalLink className="w-3 h-3" />
                 </div>
-                <ol className="space-y-2 mr-6">
-                  <li className="flex items-start gap-2">
-                    <span className="w-6 h-6 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">1</span>
-                    <span>اذهب لأحد المواقع أعلاه (مثل CrazyGames, HTML5Games)</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="w-6 h-6 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">2</span>
-                    <span>اختر لعبة مناسبة وانسخ <strong>رابط اللعبة المباشر</strong> (URL)</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="w-6 h-6 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">3</span>
-                    <span>اضغط <strong>"إضافة لعبة"</strong> أعلاه</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="w-6 h-6 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">4</span>
-                    <span>ضع الرابط في حقل <strong>"رابط التضمين (Embed URL)"</strong></span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="w-6 h-6 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">5</span>
-                    <span>املأ الاسم والوصف والنقاط → اضغط <strong>"إنشاء"</strong> ✅</span>
-                  </li>
-                </ol>
-              </div>
-
-              {/* Method B */}
-              <div className="mb-4">
-                <div className="font-bold text-base mb-3 flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
-                  <span className="w-7 h-7 bg-emerald-600 text-white rounded-full flex items-center justify-center text-xs font-bold">B</span>
-                  الطريقة الثانية: رفع لعبة محلية (مستحسن) 🏠
+                <p className="text-xs mt-1">أكبر مكتبة ألعاب HTML5 مجانية</p>
+              </a>
+              <a href="https://github.com/nicknamedev/html5-games" target="_blank" rel="noopener noreferrer" className="block border dark:border-gray-600 rounded-lg p-3 hover:border-green-400 transition group">
+                <div className="font-bold text-green-700 dark:text-green-400 group-hover:underline flex items-center justify-between">
+                  🐙 GitHub <ExternalLink className="w-3 h-3" />
                 </div>
-                <ol className="space-y-2 mr-6">
-                  <li className="flex items-start gap-2">
-                    <span className="w-6 h-6 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">1</span>
-                    <span>حمّل لعبة HTML5 (ملف .html واحد أو مجلد فيه index.html)</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="w-6 h-6 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">2</span>
-                    <div>
-                      <span>ارفع الملف إلى مجلد المشروع:</span>
-                      <code className="block mt-1 bg-gray-100 dark:bg-gray-800 rounded px-3 py-1.5 text-xs font-mono" dir="ltr">client/public/games/اسم-اللعبة.html</code>
-                      <span className="text-xs text-gray-500">أو لعبة بعدة ملفات:</span>
-                      <code className="block mt-1 bg-gray-100 dark:bg-gray-800 rounded px-3 py-1.5 text-xs font-mono" dir="ltr">client/public/games/game-name/index.html</code>
-                    </div>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="w-6 h-6 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">3</span>
-                    <div>
-                      <span>في حقل "رابط التضمين" اكتب المسار المحلي:</span>
-                      <code className="block mt-1 bg-gray-100 dark:bg-gray-800 rounded px-3 py-1.5 text-xs font-mono" dir="ltr">/games/اسم-اللعبة.html</code>
-                      <span className="text-xs text-gray-500">أو:</span>
-                      <code className="block mt-1 bg-gray-100 dark:bg-gray-800 rounded px-3 py-1.5 text-xs font-mono" dir="ltr">/games/game-name/index.html</code>
-                    </div>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="w-6 h-6 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">4</span>
-                    <span>أعد البناء: <code className="bg-gray-100 dark:bg-gray-800 rounded px-2 py-0.5 text-xs font-mono" dir="ltr">npm run build</code> ثم أعد الدبلوي</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="w-6 h-6 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">5</span>
-                    <span>أضف اللعبة من هنا بالمسار المحلي ✅</span>
-                  </li>
-                </ol>
-              </div>
-
-              {/* Tip Box */}
-              <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700/50 rounded-lg p-4 flex items-start gap-3">
-                <Lightbulb className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
-                <div>
-                  <div className="font-bold text-amber-700 dark:text-amber-300 text-sm">نصيحة مهمة</div>
-                  <p className="text-xs mt-1">الألعاب المحلية <strong>أسرع وأضمن</strong> — لا تعتمد على موقع خارجي قد يتوقف. كما أنها تعمل بدون إنترنت قوي للطفل.</p>
+                <p className="text-xs mt-1">مستودعات مفتوحة المصدر</p>
+              </a>
+              <a href="https://www.crazygames.com/t/html5" target="_blank" rel="noopener noreferrer" className="block border dark:border-gray-600 rounded-lg p-3 hover:border-green-400 transition group">
+                <div className="font-bold text-green-700 dark:text-green-400 group-hover:underline flex items-center justify-between">
+                  🤪 CrazyGames <ExternalLink className="w-3 h-3" />
                 </div>
-              </div>
+                <p className="text-xs mt-1">ألعاب مجانية قابلة للتضمين</p>
+              </a>
+              <a href="https://html5games.com" target="_blank" rel="noopener noreferrer" className="block border dark:border-gray-600 rounded-lg p-3 hover:border-green-400 transition group">
+                <div className="font-bold text-green-700 dark:text-green-400 group-hover:underline flex items-center justify-between">
+                  🌐 HTML5Games <ExternalLink className="w-3 h-3" />
+                </div>
+                <p className="text-xs mt-1">مكتبة كبيرة مصنفة</p>
+              </a>
+              <a href="https://gdevelop.io/game-example" target="_blank" rel="noopener noreferrer" className="block border dark:border-gray-600 rounded-lg p-3 hover:border-green-400 transition group">
+                <div className="font-bold text-green-700 dark:text-green-400 group-hover:underline flex items-center justify-between">
+                  🔧 GDevelop <ExternalLink className="w-3 h-3" />
+                </div>
+                <p className="text-xs mt-1">صنع ألعاب بدون برمجة</p>
+              </a>
+              <a href="https://www.codepen.io/search/pens?q=html5+game" target="_blank" rel="noopener noreferrer" className="block border dark:border-gray-600 rounded-lg p-3 hover:border-green-400 transition group">
+                <div className="font-bold text-green-700 dark:text-green-400 group-hover:underline flex items-center justify-between">
+                  ✏️ CodePen <ExternalLink className="w-3 h-3" />
+                </div>
+                <p className="text-xs mt-1">ألعاب صغيرة بـ HTML/CSS/JS</p>
+              </a>
             </div>
           </div>
 
-          {/* Section 6: Form fields explained */}
-          <div className="bg-white dark:bg-gray-700/50 rounded-xl p-5 space-y-3">
-            <h4 className="font-bold text-lg flex items-center gap-2 text-cyan-700 dark:text-cyan-300">
-              <FolderOpen className="w-5 h-5" /> شرح حقول النموذج
-            </h4>
-            <div className="text-sm text-gray-600 dark:text-gray-300">
-              <div className="overflow-x-auto">
-                <table className="w-full text-xs border-collapse">
-                  <thead>
-                    <tr className="bg-cyan-50 dark:bg-cyan-900/20">
-                      <th className="border dark:border-gray-600 px-3 py-2 text-right font-bold">الحقل</th>
-                      <th className="border dark:border-gray-600 px-3 py-2 text-right font-bold">مطلوب</th>
-                      <th className="border dark:border-gray-600 px-3 py-2 text-right font-bold">الشرح</th>
-                      <th className="border dark:border-gray-600 px-3 py-2 text-right font-bold">مثال</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr>
-                      <td className="border dark:border-gray-600 px-3 py-2 font-semibold">عنوان اللعبة</td>
-                      <td className="border dark:border-gray-600 px-3 py-2 text-center">✅</td>
-                      <td className="border dark:border-gray-600 px-3 py-2">اسم اللعبة كما يظهر للطفل</td>
-                      <td className="border dark:border-gray-600 px-3 py-2 font-mono" dir="ltr">تحدي الرياضيات 🧮</td>
-                    </tr>
-                    <tr className="bg-gray-50 dark:bg-gray-800/50">
-                      <td className="border dark:border-gray-600 px-3 py-2 font-semibold">رابط التضمين</td>
-                      <td className="border dark:border-gray-600 px-3 py-2 text-center">✅</td>
-                      <td className="border dark:border-gray-600 px-3 py-2">URL اللعبة — رابط خارجي أو مسار محلي</td>
-                      <td className="border dark:border-gray-600 px-3 py-2 font-mono" dir="ltr">/games/math.html</td>
-                    </tr>
-                    <tr>
-                      <td className="border dark:border-gray-600 px-3 py-2 font-semibold">الوصف</td>
-                      <td className="border dark:border-gray-600 px-3 py-2 text-center">❌</td>
-                      <td className="border dark:border-gray-600 px-3 py-2">وصف مختصر يظهر تحت اسم اللعبة</td>
-                      <td className="border dark:border-gray-600 px-3 py-2">لعبة رياضيات ممتعة!</td>
-                    </tr>
-                    <tr className="bg-gray-50 dark:bg-gray-800/50">
-                      <td className="border dark:border-gray-600 px-3 py-2 font-semibold">صورة مصغرة</td>
-                      <td className="border dark:border-gray-600 px-3 py-2 text-center">❌</td>
-                      <td className="border dark:border-gray-600 px-3 py-2">رابط صورة بطاقة اللعبة (إن لم توجد تظهر أيقونة)</td>
-                      <td className="border dark:border-gray-600 px-3 py-2 font-mono" dir="ltr">https://...png</td>
-                    </tr>
-                    <tr>
-                      <td className="border dark:border-gray-600 px-3 py-2 font-semibold">الفئة</td>
-                      <td className="border dark:border-gray-600 px-3 py-2 text-center">❌</td>
-                      <td className="border dark:border-gray-600 px-3 py-2">تصنيف اللعبة (تعليمي، رياضيات، ألغاز...)</td>
-                      <td className="border dark:border-gray-600 px-3 py-2">رياضيات</td>
-                    </tr>
-                    <tr className="bg-gray-50 dark:bg-gray-800/50">
-                      <td className="border dark:border-gray-600 px-3 py-2 font-semibold">النقاط</td>
-                      <td className="border dark:border-gray-600 px-3 py-2 text-center">❌</td>
-                      <td className="border dark:border-gray-600 px-3 py-2">كم نقطة يحصل الطفل عند إكمال اللعب (افتراضي: 5)</td>
-                      <td className="border dark:border-gray-600 px-3 py-2">10</td>
-                    </tr>
-                    <tr>
-                      <td className="border dark:border-gray-600 px-3 py-2 font-semibold">حد يومي</td>
-                      <td className="border dark:border-gray-600 px-3 py-2 text-center">❌</td>
-                      <td className="border dark:border-gray-600 px-3 py-2">أقصى مرات لعب يومياً (0 = بلا حدود)</td>
-                      <td className="border dark:border-gray-600 px-3 py-2">10</td>
-                    </tr>
-                    <tr className="bg-gray-50 dark:bg-gray-800/50">
-                      <td className="border dark:border-gray-600 px-3 py-2 font-semibold">العمر</td>
-                      <td className="border dark:border-gray-600 px-3 py-2 text-center">❌</td>
-                      <td className="border dark:border-gray-600 px-3 py-2">نطاق العمر المناسب (معلوماتي فقط حالياً)</td>
-                      <td className="border dark:border-gray-600 px-3 py-2">6 - 14</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-
-          {/* Section 7: Warnings */}
-          <div className="bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800/50 rounded-xl p-5 space-y-3">
-            <h4 className="font-bold text-lg flex items-center gap-2 text-red-700 dark:text-red-300">
+          <div className="bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800/50 rounded-xl p-4">
+            <h4 className="font-bold flex items-center gap-2 text-red-700 dark:text-red-300 mb-2">
               <AlertTriangle className="w-5 h-5" /> تنبيهات مهمة
             </h4>
-            <div className="text-sm text-gray-600 dark:text-gray-300 space-y-2">
-              <div className="flex items-start gap-2">
-                <span className="text-red-500 font-bold">⚠️</span>
-                <span>تأكد أن اللعبة الخارجية تسمح بالتضمين (بعض المواقع تمنع iframe)</span>
-              </div>
-              <div className="flex items-start gap-2">
-                <span className="text-red-500 font-bold">⚠️</span>
-                <span>اختبر اللعبة على الموبايل — أغلب الأطفال يستخدمون الجوال</span>
-              </div>
-              <div className="flex items-start gap-2">
-                <span className="text-red-500 font-bold">⚠️</span>
-                <span>تحقق أن اللعبة آمنة وخالية من إعلانات غير مناسبة للأطفال</span>
-              </div>
-              <div className="flex items-start gap-2">
-                <span className="text-red-500 font-bold">⚠️</span>
-                <span>النقاط تُمنح عند ضغط الطفل "أنهيت" — لا يوجد تحقق تلقائي من إنهاء اللعبة</span>
-              </div>
-              <div className="flex items-start gap-2">
-                <span className="text-red-500 font-bold">⚠️</span>
-                <span>بعد رفع لعبة محلية يجب إعادة البناء والنشر: <code className="bg-red-100 dark:bg-red-900/30 rounded px-2 py-0.5 font-mono text-xs" dir="ltr">npm run build</code></span>
-              </div>
+            <div className="text-xs text-gray-600 dark:text-gray-300 space-y-1">
+              <p>⚠️ تأكد أن اللعبة الخارجية تسمح بالتضمين (iframe)</p>
+              <p>⚠️ اختبر اللعبة على الموبايل — أغلب الأطفال يستخدمون الجوال</p>
+              <p>⚠️ تحقق أن اللعبة آمنة وخالية من إعلانات غير مناسبة</p>
+              <p>⚠️ النقاط تُمنح عند ضغط الطفل "أنهيت اللعبة"</p>
             </div>
           </div>
-
-          {/* Example game */}
-          <div className="bg-purple-50 dark:bg-purple-900/10 border border-purple-200 dark:border-purple-800/50 rounded-xl p-5 space-y-3">
-            <h4 className="font-bold text-lg flex items-center gap-2 text-purple-700 dark:text-purple-300">
-              <Gamepad2 className="w-5 h-5" /> اللعبة المضمنة: تحدي الرياضيات 🧮
-            </h4>
-            <div className="text-sm text-gray-600 dark:text-gray-300 space-y-2">
-              <p>تم تضمين لعبة <strong>تحدي الرياضيات</strong> كنموذج جاهز:</p>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="bg-white dark:bg-gray-800 rounded-lg p-3">
-                  <div className="text-xs text-gray-500">المسار</div>
-                  <code className="text-xs font-mono" dir="ltr">/games/math-challenge.html</code>
-                </div>
-                <div className="bg-white dark:bg-gray-800 rounded-lg p-3">
-                  <div className="text-xs text-gray-500">المميزات</div>
-                  <div className="text-xs">10 أسئلة × 3 مستويات × مؤقت</div>
-                </div>
-              </div>
-              <p className="text-xs text-gray-500 mt-2">💡 استخدم ملف هذه اللعبة كنموذج لإنشاء ألعاب مشابهة. الملف موجود في: <code className="font-mono" dir="ltr">client/public/games/math-challenge.html</code></p>
-            </div>
-          </div>
-
         </div>
       )}
 
-      {/* Form */}
+      {/* ========== ADD GAME FORM ========== */}
       {showForm && (
-        <div className="bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-xl p-6 shadow-lg">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-bold text-gray-800 dark:text-white">{editingId ? "تعديل لعبة" : "إضافة لعبة جديدة"}</h3>
+        <div className="bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-xl shadow-lg overflow-hidden">
+          {/* Form Header */}
+          <div className="flex justify-between items-center p-5 border-b dark:border-gray-700 bg-gradient-to-l from-blue-50 to-white dark:from-gray-800 dark:to-gray-800">
+            <h3 className="text-lg font-bold text-gray-800 dark:text-white flex items-center gap-2">
+              {editingId ? <><Pencil className="w-5 h-5 text-blue-600" /> تعديل لعبة</> : <><Plus className="w-5 h-5 text-blue-600" /> إضافة لعبة جديدة</>}
+            </h3>
             <button onClick={resetForm} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full text-gray-600 dark:text-gray-300">
               <X className="w-5 h-5" />
             </button>
           </div>
-          <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-200">عنوان اللعبة *</label>
-              <input
-                type="text"
-                value={form.title}
-                onChange={(e) => setForm({ ...form, title: e.target.value })}
-                required
-                className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:border-blue-600 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-              />
+
+          {/* Method Selection (only for new games) */}
+          {!editingId && !addMethod && (
+            <div className="p-6">
+              <p className="text-sm text-gray-600 dark:text-gray-300 mb-4 font-medium">اختر طريقة إضافة اللعبة:</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <button
+                  onClick={() => setAddMethod("url")}
+                  className="flex flex-col items-center gap-3 p-6 border-2 border-dashed border-blue-300 dark:border-blue-600 rounded-xl hover:border-blue-500 hover:bg-blue-50/50 dark:hover:bg-blue-900/10 transition group"
+                >
+                  <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center group-hover:scale-110 transition">
+                    <Link className="w-8 h-8 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <div className="font-bold text-blue-700 dark:text-blue-300 text-lg">رابط خارجي (URL)</div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 text-center">ألصق رابط لعبة من موقع خارجي مثل itch.io أو CrazyGames أو أي رابط HTML</p>
+                </button>
+                <button
+                  onClick={() => setAddMethod("upload")}
+                  className="flex flex-col items-center gap-3 p-6 border-2 border-dashed border-green-300 dark:border-green-600 rounded-xl hover:border-green-500 hover:bg-green-50/50 dark:hover:bg-green-900/10 transition group"
+                >
+                  <div className="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center group-hover:scale-110 transition">
+                    <FileUp className="w-8 h-8 text-green-600 dark:text-green-400" />
+                  </div>
+                  <div className="font-bold text-green-700 dark:text-green-300 text-lg">رفع ملف HTML</div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 text-center">ارفع ملف .html من جهازك — يتم تخزينه على السيرفر والرابط يتولّد تلقائياً</p>
+                </button>
+              </div>
             </div>
-            <div>
-              <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-200">رابط التضمين (Embed URL) *</label>
-              <input
-                type="url"
-                value={form.embedUrl}
-                onChange={(e) => setForm({ ...form, embedUrl: e.target.value })}
-                required
-                className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:border-blue-600 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                dir="ltr"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-200">الوصف</label>
-              <input
-                type="text"
-                value={form.description}
-                onChange={(e) => setForm({ ...form, description: e.target.value })}
-                className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:border-blue-600 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-200">صورة مصغرة (URL)</label>
-              <input
-                type="url"
-                value={form.thumbnailUrl}
-                onChange={(e) => setForm({ ...form, thumbnailUrl: e.target.value })}
-                className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:border-blue-600 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                dir="ltr"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-200">الفئة</label>
-              <select
-                value={form.category}
-                onChange={(e) => setForm({ ...form, category: e.target.value })}
-                className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:border-blue-600 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+          )}
+
+          {/* Upload Zone (for upload method) */}
+          {addMethod === "upload" && !editingId && (
+            <div className="p-6 border-b dark:border-gray-700">
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-sm font-medium text-gray-700 dark:text-gray-200 flex items-center gap-2">
+                  <FileUp className="w-4 h-4 text-green-600" /> رفع ملف اللعبة
+                </p>
+                <button onClick={() => setAddMethod(null)} className="text-xs text-blue-600 hover:underline flex items-center gap-1">
+                  <RefreshCw className="w-3 h-3" /> تغيير الطريقة
+                </button>
+              </div>
+              <div
+                onDrop={handleDrop}
+                onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                onClick={() => fileInputRef.current?.click()}
+                className="border-2 border-dashed border-green-300 dark:border-green-600 rounded-xl p-8 text-center cursor-pointer hover:border-green-500 hover:bg-green-50/30 dark:hover:bg-green-900/10 transition"
               >
-                {CATEGORIES.map(c => (
-                  <option key={c.value} value={c.value}>{c.label}</option>
-                ))}
-              </select>
+                <Upload className="w-12 h-12 text-green-400 mx-auto mb-3" />
+                <p className="text-sm font-medium text-gray-700 dark:text-gray-200">اسحب ملف HTML هنا أو اضغط للاختيار</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">يقبل ملفات .html و .htm — حد أقصى 10MB</p>
+              </div>
+              <input ref={fileInputRef} type="file" accept=".html,.htm" className="hidden" onChange={(e) => { if (e.target.files?.[0]) handleFileUpload(e.target.files[0]); }} />
+              {uploadProgress && (
+                <div className={`mt-3 text-sm p-3 rounded-lg ${uploadProgress.startsWith("✅") ? "bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-300" : uploadProgress.startsWith("❌") ? "bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-300" : "bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300"}`}>
+                  {uploadProgress}
+                </div>
+              )}
             </div>
-            <div>
-              <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-200">النقاط لكل لعبة</label>
-              <input
-                type="number"
-                min="0"
-                value={form.pointsPerPlay}
-                onChange={(e) => setForm({ ...form, pointsPerPlay: e.target.value })}
-                className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:border-blue-600 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-              />
+          )}
+
+          {/* URL input hint */}
+          {addMethod === "url" && !editingId && (
+            <div className="px-6 pt-4">
+              <div className="flex items-center justify-between mb-1">
+                <p className="text-sm font-medium text-gray-700 dark:text-gray-200 flex items-center gap-2">
+                  <Link className="w-4 h-4 text-blue-600" /> إضافة عبر رابط
+                </p>
+                <button onClick={() => setAddMethod(null)} className="text-xs text-blue-600 hover:underline flex items-center gap-1">
+                  <RefreshCw className="w-3 h-3" /> تغيير الطريقة
+                </button>
+              </div>
             </div>
-            <div>
-              <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-200">الحد الأقصى مرات اللعب يومياً</label>
-              <input
-                type="number"
-                min="0"
-                value={form.maxPlaysPerDay}
-                onChange={(e) => setForm({ ...form, maxPlaysPerDay: e.target.value })}
-                className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:border-blue-600 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                placeholder="0 = بلا حدود"
-              />
-            </div>
-            <div className="flex gap-4">
-              <div className="flex-1">
-                <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-200">الحد الأدنى للعمر</label>
+          )}
+
+          {/* Game Details Form */}
+          {(addMethod || editingId) && (
+            <form onSubmit={handleSubmit} className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-200">عنوان اللعبة *</label>
+                <input
+                  type="text"
+                  value={form.title}
+                  onChange={(e) => setForm({ ...form, title: e.target.value })}
+                  required
+                  placeholder="مثال: تحدي الرياضيات"
+                  className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:border-blue-600 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-200">
+                  رابط التضمين (Embed URL) *
+                  {form.embedUrl && (
+                    <button type="button" onClick={() => setPreviewUrl(form.embedUrl)} className="mr-2 text-blue-600 hover:underline text-xs">معاينة</button>
+                  )}
+                </label>
+                <input
+                  type="text"
+                  value={form.embedUrl}
+                  onChange={(e) => setForm({ ...form, embedUrl: e.target.value })}
+                  required
+                  placeholder={addMethod === "upload" ? "سيتم ملؤه تلقائياً بعد الرفع" : "https://example.com/game أو /games/file.html"}
+                  className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:border-blue-600 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  dir="ltr"
+                  readOnly={addMethod === "upload" && !!form.embedUrl}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-200">الوصف</label>
+                <input
+                  type="text"
+                  value={form.description}
+                  onChange={(e) => setForm({ ...form, description: e.target.value })}
+                  placeholder="وصف مختصر يظهر للأطفال"
+                  className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:border-blue-600 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-200">صورة مصغرة (URL)</label>
+                <input
+                  type="url"
+                  value={form.thumbnailUrl}
+                  onChange={(e) => setForm({ ...form, thumbnailUrl: e.target.value })}
+                  placeholder="https://example.com/image.png"
+                  className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:border-blue-600 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  dir="ltr"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-200">الفئة</label>
+                <select
+                  value={form.category}
+                  onChange={(e) => setForm({ ...form, category: e.target.value })}
+                  className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:border-blue-600 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                >
+                  {CATEGORIES.map(c => (
+                    <option key={c.value} value={c.value}>{c.icon} {c.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-200">النقاط لكل لعبة</label>
                 <input
                   type="number"
                   min="0"
-                  max="18"
-                  value={form.minAge}
-                  onChange={(e) => setForm({ ...form, minAge: e.target.value })}
+                  value={form.pointsPerPlay}
+                  onChange={(e) => setForm({ ...form, pointsPerPlay: e.target.value })}
                   className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:border-blue-600 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                  placeholder="اختياري"
                 />
               </div>
-              <div className="flex-1">
-                <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-200">الحد الأقصى للعمر</label>
+              <div>
+                <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-200">الحد الأقصى مرات اللعب يومياً</label>
                 <input
                   type="number"
                   min="0"
-                  max="18"
-                  value={form.maxAge}
-                  onChange={(e) => setForm({ ...form, maxAge: e.target.value })}
+                  value={form.maxPlaysPerDay}
+                  onChange={(e) => setForm({ ...form, maxPlaysPerDay: e.target.value })}
                   className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:border-blue-600 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                  placeholder="اختياري"
+                  placeholder="0 = بلا حدود"
                 />
               </div>
-            </div>
-            <div className="md:col-span-2 flex gap-2 justify-end">
-              <button
-                type="button"
-                onClick={resetForm}
-                className="px-4 py-2 border rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 dark:border-gray-600 text-gray-700 dark:text-gray-200 transition"
-              >
-                إلغاء
-              </button>
-              <button
-                type="submit"
-                disabled={createMutation.isPending || updateMutation.isPending}
-                className="flex items-center gap-2 bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition disabled:opacity-50"
-              >
-                <Save className="w-4 h-4" />
-                {editingId ? "تحديث" : "إنشاء"}
-              </button>
-            </div>
-          </form>
+              <div className="flex gap-4">
+                <div className="flex-1">
+                  <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-200">الحد الأدنى للعمر</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="18"
+                    value={form.minAge}
+                    onChange={(e) => setForm({ ...form, minAge: e.target.value })}
+                    className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:border-blue-600 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                    placeholder="اختياري"
+                  />
+                </div>
+                <div className="flex-1">
+                  <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-200">الحد الأقصى للعمر</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="18"
+                    value={form.maxAge}
+                    onChange={(e) => setForm({ ...form, maxAge: e.target.value })}
+                    className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:border-blue-600 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                    placeholder="اختياري"
+                  />
+                </div>
+              </div>
+              <div className="md:col-span-2 flex gap-2 justify-end pt-2 border-t dark:border-gray-700">
+                <button
+                  type="button"
+                  onClick={resetForm}
+                  className="px-5 py-2 border rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 dark:border-gray-600 text-gray-700 dark:text-gray-200 transition"
+                >
+                  إلغاء
+                </button>
+                {form.embedUrl && (
+                  <button
+                    type="button"
+                    onClick={() => setPreviewUrl(form.embedUrl)}
+                    className="flex items-center gap-2 px-5 py-2 border border-purple-300 dark:border-purple-600 text-purple-700 dark:text-purple-300 rounded-lg hover:bg-purple-50 dark:hover:bg-purple-900/20 transition"
+                  >
+                    <Eye className="w-4 h-4" />
+                    معاينة
+                  </button>
+                )}
+                <button
+                  type="submit"
+                  disabled={createMutation.isPending || updateMutation.isPending || !form.embedUrl}
+                  className="flex items-center gap-2 bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition disabled:opacity-50"
+                >
+                  <Save className="w-4 h-4" />
+                  {editingId ? "تحديث" : "إنشاء اللعبة"}
+                </button>
+              </div>
+            </form>
+          )}
         </div>
       )}
 
-      {/* Games Table */}
+      {/* ========== FILTERS & SEARCH ========== */}
+      <div className="flex flex-wrap gap-3 items-center">
+        <div className="flex-1 min-w-[200px] relative">
+          <Search className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <input
+            type="text"
+            placeholder="بحث بالاسم أو الرابط..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pr-10 pl-4 py-2 border rounded-lg focus:outline-none focus:border-blue-600 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
+          />
+        </div>
+        <select
+          value={filterCategory}
+          onChange={(e) => setFilterCategory(e.target.value)}
+          className="border rounded-lg px-3 py-2 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white text-sm"
+        >
+          <option value="all">كل الفئات</option>
+          {CATEGORIES.map(c => (
+            <option key={c.value} value={c.value}>{c.icon} {c.label}</option>
+          ))}
+        </select>
+        <select
+          value={filterStatus}
+          onChange={(e) => setFilterStatus(e.target.value)}
+          className="border rounded-lg px-3 py-2 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white text-sm"
+        >
+          <option value="all">كل الحالات</option>
+          <option value="active">مفعّلة فقط</option>
+          <option value="inactive">معطّلة فقط</option>
+        </select>
+      </div>
+
+      {/* ========== BULK ACTIONS BAR ========== */}
+      {selectedGames.size > 0 && (
+        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-xl p-3 flex flex-wrap items-center gap-3">
+          <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
+            تم تحديد {selectedGames.size} لعبة
+          </span>
+          <div className="flex gap-2 mr-auto">
+            <button
+              onClick={() => setBulkAction("activate")}
+              className="flex items-center gap-1 px-3 py-1.5 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 transition"
+            >
+              <Power className="w-4 h-4" />
+              تفعيل الكل
+            </button>
+            <button
+              onClick={() => setBulkAction("deactivate")}
+              className="flex items-center gap-1 px-3 py-1.5 bg-yellow-600 text-white rounded-lg text-sm hover:bg-yellow-700 transition"
+            >
+              <PowerOff className="w-4 h-4" />
+              تعطيل الكل
+            </button>
+            <button
+              onClick={() => setBulkAction("delete")}
+              className="flex items-center gap-1 px-3 py-1.5 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700 transition"
+            >
+              <Trash2 className="w-4 h-4" />
+              حذف الكل
+            </button>
+            <button
+              onClick={() => setSelectedGames(new Set())}
+              className="flex items-center gap-1 px-3 py-1.5 border dark:border-gray-600 rounded-lg text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition text-gray-700 dark:text-gray-200"
+            >
+              <X className="w-4 h-4" />
+              إلغاء التحديد
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ========== GAMES TABLE ========== */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-x-auto border dark:border-gray-700">
         <table className="w-full">
           <thead>
             <tr className="bg-gray-100 dark:bg-gray-700 border-b dark:border-gray-600">
+              <th className="px-3 py-3 text-center w-10">
+                <button onClick={toggleSelectAll} className="text-gray-500 hover:text-blue-600 transition">
+                  {selectedGames.size === filtered.length && filtered.length > 0 ? (
+                    <CheckSquare className="w-5 h-5 text-blue-600" />
+                  ) : (
+                    <Square className="w-5 h-5" />
+                  )}
+                </button>
+              </th>
               <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700 dark:text-gray-200">اللعبة</th>
               <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700 dark:text-gray-200">الفئة</th>
+              <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700 dark:text-gray-200">المصدر</th>
               <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700 dark:text-gray-200">النقاط</th>
               <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700 dark:text-gray-200">حد يومي</th>
               <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700 dark:text-gray-200">العمر</th>
               <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700 dark:text-gray-200">الحالة</th>
-              <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700 dark:text-gray-200">إجراءات</th>
+              <th className="px-4 py-3 text-center text-sm font-semibold text-gray-700 dark:text-gray-200">إجراءات</th>
             </tr>
           </thead>
           <tbody>
             {filtered.map((game) => (
-              <tr key={game.id} className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50">
+              <tr key={game.id} className={`border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 ${selectedGames.has(game.id) ? "bg-blue-50/50 dark:bg-blue-900/10" : ""}`}>
+                <td className="px-3 py-3 text-center">
+                  <button onClick={() => toggleSelectGame(game.id)} className="text-gray-500 hover:text-blue-600 transition">
+                    {selectedGames.has(game.id) ? (
+                      <CheckSquare className="w-5 h-5 text-blue-600" />
+                    ) : (
+                      <Square className="w-5 h-5" />
+                    )}
+                  </button>
+                </td>
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-3">
                     {game.thumbnailUrl ? (
-                      <img src={game.thumbnailUrl} alt="" className="w-12 h-12 rounded-lg object-cover" />
+                      <img src={game.thumbnailUrl} alt="" className="w-12 h-12 rounded-lg object-cover flex-shrink-0" />
                     ) : (
-                      <div className="w-12 h-12 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
+                      <div className="w-12 h-12 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center flex-shrink-0">
                         <Gamepad2 className="w-6 h-6 text-purple-500 dark:text-purple-400" />
                       </div>
                     )}
-                    <div>
-                      <div className="font-medium text-gray-800 dark:text-white">{game.title}</div>
+                    <div className="min-w-0">
+                      <div className="font-medium text-gray-800 dark:text-white truncate">{game.title}</div>
                       {game.description && <div className="text-xs text-gray-500 dark:text-gray-400 truncate max-w-[200px]">{game.description}</div>}
                     </div>
                   </div>
                 </td>
                 <td className="px-4 py-3 text-sm">
-                  <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full text-xs">
-                    {CATEGORIES.find(c => c.value === game.category)?.label || game.category}
+                  <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full text-xs whitespace-nowrap">
+                    {CATEGORIES.find(c => c.value === game.category)?.icon} {CATEGORIES.find(c => c.value === game.category)?.label || game.category}
                   </span>
+                </td>
+                <td className="px-4 py-3 text-sm">
+                  {game.embedUrl.startsWith("/") ? (
+                    <span className="px-2 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-full text-xs whitespace-nowrap">📦 محلية</span>
+                  ) : (
+                    <span className="px-2 py-1 bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300 rounded-full text-xs whitespace-nowrap">🌐 خارجية</span>
+                  )}
                 </td>
                 <td className="px-4 py-3 text-sm font-semibold text-yellow-600 dark:text-yellow-400">+{game.pointsPerPlay}</td>
                 <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">{game.maxPlaysPerDay > 0 ? game.maxPlaysPerDay : "∞"}</td>
@@ -786,21 +879,29 @@ export function GamesTab({ token }: { token: string }) {
                 <td className="px-4 py-3">
                   <button
                     onClick={() => toggleMutation.mutate(game.id)}
-                    className="flex items-center gap-1"
+                    disabled={toggleMutation.isPending}
+                    className="flex items-center gap-1 disabled:opacity-50"
                     title={game.isActive ? "تعطيل" : "تفعيل"}
                   >
                     {game.isActive ? (
-                      <ToggleRight className="w-6 h-6 text-green-500" />
+                      <ToggleRight className="w-7 h-7 text-green-500" />
                     ) : (
-                      <ToggleLeft className="w-6 h-6 text-gray-400" />
+                      <ToggleLeft className="w-7 h-7 text-gray-400" />
                     )}
-                    <span className={`text-xs ${game.isActive ? "text-green-600 dark:text-green-400" : "text-gray-400"}`}>
-                      {game.isActive ? "مفعل" : "معطل"}
+                    <span className={`text-xs font-medium ${game.isActive ? "text-green-600 dark:text-green-400" : "text-gray-400"}`}>
+                      {game.isActive ? "مفعّل" : "معطّل"}
                     </span>
                   </button>
                 </td>
                 <td className="px-4 py-3">
-                  <div className="flex gap-2">
+                  <div className="flex items-center justify-center gap-1">
+                    <button
+                      onClick={() => setPreviewUrl(game.embedUrl)}
+                      className="p-2 hover:bg-purple-100 dark:hover:bg-purple-900/30 rounded-lg transition text-purple-600 dark:text-purple-400"
+                      title="معاينة"
+                    >
+                      <Eye className="w-4 h-4" />
+                    </button>
                     <button
                       onClick={() => startEdit(game)}
                       className="p-2 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg transition text-blue-600 dark:text-blue-400"
@@ -809,11 +910,7 @@ export function GamesTab({ token }: { token: string }) {
                       <Pencil className="w-4 h-4" />
                     </button>
                     <button
-                      onClick={() => {
-                        if (confirm("هل أنت متأكد من حذف هذه اللعبة؟")) {
-                          deleteMutation.mutate(game.id);
-                        }
-                      }}
+                      onClick={() => setDeleteConfirmId(game.id)}
                       className="p-2 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition text-red-600 dark:text-red-400"
                       title="حذف"
                     >
@@ -829,13 +926,144 @@ export function GamesTab({ token }: { token: string }) {
           <div className="p-8 text-center text-gray-500 dark:text-gray-400">
             <Gamepad2 className="w-12 h-12 mx-auto mb-2 opacity-50" />
             <p>لا توجد ألعاب</p>
+            <p className="text-xs mt-1">اضغط "إضافة لعبة" لبدء إضافة الألعاب</p>
           </div>
         )}
       </div>
 
-      <div className="text-sm text-gray-500 dark:text-gray-400">
-        إجمالي: {games?.length || 0} لعبة | مفعل: {games?.filter(g => g.isActive).length || 0} | معطل: {games?.filter(g => !g.isActive).length || 0}
+      {/* Footer Stats */}
+      <div className="text-sm text-gray-500 dark:text-gray-400 flex gap-4 flex-wrap">
+        <span>إجمالي: {totalGames}</span>
+        <span>مفعّل: {activeGames}</span>
+        <span>معطّل: {inactiveGames}</span>
+        <span>محلية: {localGames}</span>
+        <span>خارجية: {externalGames}</span>
+        {filtered.length !== totalGames && <span className="text-blue-600 dark:text-blue-400">نتائج الفلتر: {filtered.length}</span>}
       </div>
+
+      {/* ========== DELETE CONFIRMATION MODAL ========== */}
+      {deleteConfirmId && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setDeleteConfirmId(null)}>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 max-w-md w-full shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center">
+                <Trash2 className="w-6 h-6 text-red-600 dark:text-red-400" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-gray-800 dark:text-white">تأكيد الحذف</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  هل أنت متأكد من حذف لعبة "{games?.find(g => g.id === deleteConfirmId)?.title}"؟
+                </p>
+              </div>
+            </div>
+            <p className="text-xs text-red-600 dark:text-red-400 mb-4 bg-red-50 dark:bg-red-900/10 p-3 rounded-lg">
+              ⚠️ هذا الإجراء لا يمكن التراجع عنه. سيتم حذف اللعبة وجميع بياناتها نهائياً.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setDeleteConfirmId(null)}
+                className="flex-1 px-4 py-2 border dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 transition"
+              >
+                إلغاء
+              </button>
+              <button
+                onClick={() => deleteMutation.mutate(deleteConfirmId)}
+                disabled={deleteMutation.isPending}
+                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {deleteMutation.isPending ? (
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <><Trash2 className="w-4 h-4" /> حذف نهائي</>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========== BULK ACTION CONFIRMATION MODAL ========== */}
+      {bulkAction && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setBulkAction(null)}>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 max-w-md w-full shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center gap-3 mb-4">
+              <div className={`w-12 h-12 rounded-full flex items-center justify-center ${bulkAction === "delete" ? "bg-red-100 dark:bg-red-900/30" : bulkAction === "activate" ? "bg-green-100 dark:bg-green-900/30" : "bg-yellow-100 dark:bg-yellow-900/30"}`}>
+                {bulkAction === "delete" ? <Trash2 className="w-6 h-6 text-red-600 dark:text-red-400" /> :
+                 bulkAction === "activate" ? <Power className="w-6 h-6 text-green-600 dark:text-green-400" /> :
+                 <PowerOff className="w-6 h-6 text-yellow-600 dark:text-yellow-400" />}
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-gray-800 dark:text-white">
+                  {bulkAction === "delete" ? "حذف جماعي" : bulkAction === "activate" ? "تفعيل جماعي" : "تعطيل جماعي"}
+                </h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  سيتم {bulkAction === "delete" ? "حذف" : bulkAction === "activate" ? "تفعيل" : "تعطيل"} {selectedGames.size} لعبة
+                </p>
+              </div>
+            </div>
+            {bulkAction === "delete" && (
+              <p className="text-xs text-red-600 dark:text-red-400 mb-4 bg-red-50 dark:bg-red-900/10 p-3 rounded-lg">
+                ⚠️ هذا الإجراء لا يمكن التراجع عنه. سيتم حذف جميع الألعاب المحددة نهائياً.
+              </p>
+            )}
+            <div className="max-h-32 overflow-y-auto mb-4 text-xs text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-900/30 p-3 rounded-lg space-y-1">
+              {Array.from(selectedGames).map(id => {
+                const game = games?.find(g => g.id === id);
+                return game && <div key={id}>• {game.title}</div>;
+              })}
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setBulkAction(null)}
+                className="flex-1 px-4 py-2 border dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 transition"
+              >
+                إلغاء
+              </button>
+              <button
+                onClick={executeBulkAction}
+                disabled={bulkDeleteMutation.isPending || bulkToggleMutation.isPending}
+                className={`flex-1 px-4 py-2 text-white rounded-lg transition disabled:opacity-50 flex items-center justify-center gap-2 ${bulkAction === "delete" ? "bg-red-600 hover:bg-red-700" : bulkAction === "activate" ? "bg-green-600 hover:bg-green-700" : "bg-yellow-600 hover:bg-yellow-700"}`}
+              >
+                {(bulkDeleteMutation.isPending || bulkToggleMutation.isPending) ? (
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <>تأكيد</>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========== PREVIEW MODAL ========== */}
+      {previewUrl && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4" onClick={() => setPreviewUrl(null)}>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-4 border-b dark:border-gray-700">
+              <div className="flex items-center gap-2">
+                <Eye className="w-5 h-5 text-purple-600" />
+                <h3 className="font-bold text-gray-800 dark:text-white">معاينة اللعبة</h3>
+                <span className="text-xs text-gray-500 dark:text-gray-400 font-mono" dir="ltr">{previewUrl}</span>
+              </div>
+              <button
+                onClick={() => setPreviewUrl(null)}
+                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="aspect-video bg-black">
+              <iframe
+                src={previewUrl}
+                className="w-full h-full"
+                allowFullScreen
+                title="معاينة اللعبة"
+                sandbox="allow-scripts allow-same-origin"
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

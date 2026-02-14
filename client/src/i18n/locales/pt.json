@@ -990,7 +990,16 @@
     "pointsPerDay": "pontos/dia",
     "progressTo1000": "Progresso para 1000 pontos",
     "games": "Jogos",
-    "days": "dias"
+    "days": "dias",
+    "adSharePoints": "Pontos de Compartilhamento",
+    "adsToShare": "Anuncios para Compartilhar",
+    "pointsPerShare": "pontos por compartilhamento",
+    "referralShareText": "Junte-se ao Classify, a plataforma educacional divertida para criancas! Inscreva-se com meu link e ganhe recompensas:",
+    "linkCopied": "Link copiado",
+    "copyLink": "Copiar Link",
+    "viewAd": "Ver Anuncio",
+    "sharedTimes": "Compartilhado {{count}} vezes",
+    "pointsEarned": "pontos ganhos"
   },
 
   "accessibility": {

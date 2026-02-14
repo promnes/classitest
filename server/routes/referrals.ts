@@ -4,9 +4,12 @@ import {
   parents,
   referrals,
   parentReferralCodes,
-  parentWallet
+  parentWallet,
+  ads,
+  adShares,
+  referralSettings,
 } from "../../shared/schema";
-import { eq, sql } from "drizzle-orm";
+import { eq, sql, and, or, isNull } from "drizzle-orm";
 import { authMiddleware } from "./middleware";
 import { createNotification } from "../notifications";
 
@@ -159,6 +162,10 @@ export async function registerReferralRoutes(app: Express) {
 
       const referral = pendingReferral[0];
 
+      // Get dynamic points from settings
+      const settingsRows = await db.select().from(referralSettings);
+      const rewardPoints = settingsRows[0]?.pointsPerReferral ?? REFERRAL_REWARD_POINTS;
+
       await db.update(referrals)
         .set({ 
           status: "active",
@@ -174,44 +181,174 @@ export async function registerReferralRoutes(app: Express) {
       if (wallet[0]) {
         await db.update(parentWallet)
           .set({ 
-            balance: sql`${parentWallet.balance} + ${REFERRAL_REWARD_POINTS}`,
+            balance: sql`${parentWallet.balance} + ${rewardPoints}`,
             updatedAt: new Date()
           })
           .where(eq(parentWallet.parentId, referral.referrerId));
       } else {
         await db.insert(parentWallet).values({
           parentId: referral.referrerId,
-          balance: REFERRAL_REWARD_POINTS.toString(),
+          balance: rewardPoints.toString(),
         });
       }
 
       await db.update(referrals)
         .set({ 
           status: "rewarded",
-          pointsAwarded: REFERRAL_REWARD_POINTS,
+          pointsAwarded: rewardPoints,
           rewardedAt: new Date()
         })
         .where(eq(referrals.id, referral.id));
 
       await db.update(parentReferralCodes)
-        .set({ totalPointsEarned: sql`${parentReferralCodes.totalPointsEarned} + ${REFERRAL_REWARD_POINTS}` })
+        .set({ totalPointsEarned: sql`${parentReferralCodes.totalPointsEarned} + ${rewardPoints}` })
         .where(eq(parentReferralCodes.parentId, referral.referrerId));
 
       await createNotification({
         parentId: referral.referrerId,
         type: "referral_reward",
         title: "مكافأة الإحالة!",
-        message: `تهانينا! حصلت على ${REFERRAL_REWARD_POINTS} نقطة كمكافأة للإحالة الناجحة!`,
+        message: `تهانينا! حصلت على ${rewardPoints} نقطة كمكافأة للإحالة الناجحة!`,
         relatedId: referral.id,
       });
 
       res.json({ 
         success: true, 
-        message: `Referral activated! Referrer received ${REFERRAL_REWARD_POINTS} points.`
+        message: `Referral activated! Referrer received ${rewardPoints} points.`
       });
     } catch (error: any) {
       console.error("Activate referral error:", error);
       res.status(500).json({ message: "Failed to activate referral" });
+    }
+  });
+
+  // ===== Parent Ads (for referral section) =====
+
+  // Get active ads for parent to view and share
+  app.get("/api/parent/ads", authMiddleware, async (req: any, res) => {
+    try {
+      const now = new Date();
+      const activeAds = await db.select().from(ads)
+        .where(and(
+          eq(ads.isActive, true),
+          or(isNull(ads.startDate), sql`${ads.startDate} <= ${now}`),
+          or(isNull(ads.endDate), sql`${ads.endDate} >= ${now}`),
+          or(eq(ads.targetAudience, "all"), eq(ads.targetAudience, "parents"))
+        ));
+
+      // Get share counts for this parent
+      const parentId = req.user?.parentId || req.user?.userId;
+      const shares = await db.select({
+        adId: adShares.adId,
+        shareCount: sql<number>`count(*)`,
+        totalPoints: sql<number>`COALESCE(sum(${adShares.pointsAwarded}), 0)`,
+      })
+      .from(adShares)
+      .where(eq(adShares.parentId, parentId))
+      .groupBy(adShares.adId);
+
+      const shareMap: Record<string, { shareCount: number; totalPoints: number }> = {};
+      for (const s of shares) {
+        shareMap[s.adId] = { shareCount: Number(s.shareCount), totalPoints: Number(s.totalPoints) };
+      }
+
+      const adsWithShares = activeAds.map((ad: any) => ({
+        ...ad,
+        myShares: shareMap[ad.id]?.shareCount || 0,
+        mySharePoints: shareMap[ad.id]?.totalPoints || 0,
+      }));
+
+      res.json({ success: true, data: adsWithShares });
+    } catch (error: any) {
+      console.error("Get parent ads error:", error);
+      res.status(500).json({ message: "Failed to get ads" });
+    }
+  });
+
+  // Track parent ad share + award points
+  app.post("/api/parent/ads/:id/share", authMiddleware, async (req: any, res) => {
+    try {
+      const parentId = req.user?.parentId || req.user?.userId;
+      const { id } = req.params;
+      const { platform } = req.body;
+
+      if (!platform) {
+        return res.status(400).json({ message: "Platform is required" });
+      }
+
+      // Get settings for points
+      const settingsRows = await db.select().from(referralSettings);
+      const pointsPerShare = settingsRows[0]?.pointsPerAdShare ?? 10;
+
+      // Record share
+      await db.insert(adShares).values({
+        adId: id,
+        parentId,
+        platform,
+        pointsAwarded: pointsPerShare,
+      });
+
+      // Award points
+      const wallet = await db.select().from(parentWallet).where(eq(parentWallet.parentId, parentId));
+      if (wallet[0]) {
+        await db.update(parentWallet)
+          .set({ balance: sql`${parentWallet.balance} + ${pointsPerShare}`, updatedAt: new Date() })
+          .where(eq(parentWallet.parentId, parentId));
+      } else {
+        await db.insert(parentWallet).values({ parentId, balance: pointsPerShare.toString() });
+      }
+
+      res.json({ success: true, data: { pointsAwarded: pointsPerShare } });
+    } catch (error: any) {
+      console.error("Share ad error:", error);
+      res.status(500).json({ message: "Failed to track share" });
+    }
+  });
+
+  // Get parent's referral stats including ads sharing summary
+  app.get("/api/parent/referral-stats", authMiddleware, async (req: any, res) => {
+    try {
+      const parentId = req.user?.parentId || req.user?.userId;
+
+      // Referral code info
+      const codeInfo = await db.select().from(parentReferralCodes).where(eq(parentReferralCodes.parentId, parentId));
+
+      // Get referral settings
+      const settingsRows = await db.select().from(referralSettings);
+      const settingsData = settingsRows[0] || { pointsPerReferral: 100, pointsPerAdShare: 10 };
+
+      // Get total ad share points
+      const shareStats = await db.select({
+        totalShares: sql<number>`count(*)`,
+        totalSharePoints: sql<number>`COALESCE(sum(${adShares.pointsAwarded}), 0)`,
+      })
+      .from(adShares)
+      .where(eq(adShares.parentId, parentId));
+
+      // Build share link
+      const code = codeInfo[0]?.code;
+      const baseUrl = process.env.APP_URL || process.env.REPLIT_DEV_DOMAIN || 'https://classi-fy.com';
+      const shareLink = code ? `${baseUrl}/register?ref=${code}` : null;
+
+      res.json({
+        success: true,
+        data: {
+          referralCode: code || null,
+          shareLink,
+          totalReferrals: codeInfo[0]?.totalReferrals || 0,
+          activeReferrals: codeInfo[0]?.activeReferrals || 0,
+          pointsEarned: codeInfo[0]?.totalPointsEarned || 0,
+          totalAdShares: Number(shareStats[0]?.totalShares || 0),
+          totalAdSharePoints: Number(shareStats[0]?.totalSharePoints || 0),
+          settings: {
+            pointsPerReferral: settingsData.pointsPerReferral,
+            pointsPerAdShare: settingsData.pointsPerAdShare,
+          },
+        },
+      });
+    } catch (error: any) {
+      console.error("Get referral stats error:", error);
+      res.status(500).json({ message: "Failed to get referral stats" });
     }
   });
 }

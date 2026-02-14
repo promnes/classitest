@@ -53,7 +53,10 @@ import {
   EyeOff,
   CheckCircle,
   XCircle,
-  Package
+  Package,
+  Megaphone,
+  ExternalLink,
+  MousePointer
 } from "lucide-react";
 
 function ChildReportCard({ child, token, isDark, t }: { child: any; token: string | null; isDark: boolean; t: (key: string, options?: any) => string }) {
@@ -223,7 +226,12 @@ export const ParentDashboard = (): JSX.Element => {
   });
 
   const { data: referralStats } = useQuery({
-    queryKey: ["/api/parent/referrals"],
+    queryKey: ["/api/parent/referral-stats"],
+    enabled: !!token,
+  });
+
+  const { data: parentAds } = useQuery({
+    queryKey: ["/api/parent/ads"],
     enabled: !!token,
   });
 
@@ -313,7 +321,8 @@ export const ParentDashboard = (): JSX.Element => {
   const pendingPurchaseRequests = purchaseRequestsList.filter((r: any) => r.status === "pending_parent_approval");
   const parentData = parentInfo as any || {};
   const walletData = wallet as any || {};
-  const referralData = referralStats as any || {};
+  const referralData = (referralStats as any)?.data || referralStats as any || {};
+  const parentAdsList = Array.isArray((parentAds as any)?.data) ? (parentAds as any).data : Array.isArray(parentAds) ? parentAds : [];
   const statusData = childrenStatus as any || {};
 
   const unreadNotifications = notificationsList.filter((n: any) => !n.isRead).length || 0;
@@ -1097,7 +1106,8 @@ export const ParentDashboard = (): JSX.Element => {
             </Card>
           </TabsContent>
 
-          <TabsContent value="referral" className="mt-6">
+          <TabsContent value="referral" className="mt-6 space-y-6">
+            {/* Referral Code & Share Section */}
             <Card className={isDark ? "bg-gray-900 border-gray-800" : ""}>
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg flex items-center gap-2">
@@ -1112,11 +1122,14 @@ export const ParentDashboard = (): JSX.Element => {
                       <Gift className="h-8 w-8" />
                     </div>
                     <div>
-                      <h3 className="text-xl font-bold">{t('parentDashboard.earn100Points')}</h3>
+                      <h3 className="text-xl font-bold">
+                        {t('parentDashboard.earn100Points').replace('100', String(referralData?.settings?.pointsPerReferral || 100))}
+                      </h3>
                       <p className="text-sm opacity-90">{t('parentDashboard.perFriendSignup')}</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 bg-white/20 rounded-lg p-3">
+                  {/* Referral Code */}
+                  <div className="flex items-center gap-2 bg-white/20 rounded-lg p-3 mb-3">
                     <p className="flex-1 font-mono text-lg">{referralData?.referralCode || parentData?.uniqueCode || "..."}</p>
                     <Button 
                       variant="secondary"
@@ -1127,24 +1140,174 @@ export const ParentDashboard = (): JSX.Element => {
                       {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                     </Button>
                   </div>
+                  {/* Share Referral Link on Social Media */}
+                  {referralData?.shareLink && (
+                    <div className="space-y-2">
+                      <p className="text-xs opacity-80">{t('parentDashboard.shareReferralCode')}</p>
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          className="gap-1 bg-green-500 hover:bg-green-600 text-white border-0"
+                          onClick={() => window.open(`https://wa.me/?text=${encodeURIComponent(t('parentDashboard.referralShareText') + ' ' + referralData.shareLink)}`, '_blank')}
+                        >
+                          WhatsApp
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          className="gap-1 bg-blue-600 hover:bg-blue-700 text-white border-0"
+                          onClick={() => window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(referralData.shareLink)}`, '_blank')}
+                        >
+                          Facebook
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          className="gap-1 bg-sky-500 hover:bg-sky-600 text-white border-0"
+                          onClick={() => window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(t('parentDashboard.referralShareText') + ' ' + referralData.shareLink)}`, '_blank')}
+                        >
+                          X / Twitter
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          className="gap-1 bg-blue-400 hover:bg-blue-500 text-white border-0"
+                          onClick={() => window.open(`https://t.me/share/url?url=${encodeURIComponent(referralData.shareLink)}&text=${encodeURIComponent(t('parentDashboard.referralShareText'))}`, '_blank')}
+                        >
+                          Telegram
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          className="gap-1"
+                          onClick={() => {
+                            navigator.clipboard.writeText(referralData.shareLink);
+                            toast({ title: t('parentDashboard.linkCopied') });
+                          }}
+                        >
+                          <Copy className="h-3 w-3" /> {t('parentDashboard.copyLink')}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
-                <div className="grid grid-cols-3 gap-4">
+                {/* Stats Grid */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   <div className={`${isDark ? "bg-gray-800" : "bg-gray-50"} p-4 rounded-xl text-center`}>
-                    <p className="text-3xl font-bold text-blue-500">{referralData?.totalReferrals || 0}</p>
-                    <p className={`text-sm ${isDark ? "text-gray-400" : "text-gray-500"}`}>{t('parentDashboard.totalReferrals')}</p>
+                    <p className="text-2xl font-bold text-blue-500">{referralData?.totalReferrals || 0}</p>
+                    <p className={`text-xs ${isDark ? "text-gray-400" : "text-gray-500"}`}>{t('parentDashboard.totalReferrals')}</p>
                   </div>
                   <div className={`${isDark ? "bg-gray-800" : "bg-gray-50"} p-4 rounded-xl text-center`}>
-                    <p className="text-3xl font-bold text-green-500">{referralData?.activeReferrals || 0}</p>
-                    <p className={`text-sm ${isDark ? "text-gray-400" : "text-gray-500"}`}>{t('parentDashboard.activeReferrals')}</p>
+                    <p className="text-2xl font-bold text-green-500">{referralData?.activeReferrals || 0}</p>
+                    <p className={`text-xs ${isDark ? "text-gray-400" : "text-gray-500"}`}>{t('parentDashboard.activeReferrals')}</p>
                   </div>
                   <div className={`${isDark ? "bg-gray-800" : "bg-gray-50"} p-4 rounded-xl text-center`}>
-                    <p className="text-3xl font-bold text-purple-500">{referralData?.pointsEarned || 0}</p>
-                    <p className={`text-sm ${isDark ? "text-gray-400" : "text-gray-500"}`}>{t('parentDashboard.earnedFromReferrals')}</p>
+                    <p className="text-2xl font-bold text-purple-500">{referralData?.pointsEarned || 0}</p>
+                    <p className={`text-xs ${isDark ? "text-gray-400" : "text-gray-500"}`}>{t('parentDashboard.earnedFromReferrals')}</p>
+                  </div>
+                  <div className={`${isDark ? "bg-gray-800" : "bg-gray-50"} p-4 rounded-xl text-center`}>
+                    <p className="text-2xl font-bold text-amber-500">{referralData?.totalAdSharePoints || 0}</p>
+                    <p className={`text-xs ${isDark ? "text-gray-400" : "text-gray-500"}`}>{t('parentDashboard.adSharePoints')}</p>
                   </div>
                 </div>
               </CardContent>
             </Card>
+
+            {/* Ads Section */}
+            {parentAdsList.length > 0 && (
+              <Card className={isDark ? "bg-gray-900 border-gray-800" : ""}>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Megaphone className="h-5 w-5 text-orange-500" />
+                    {t('parentDashboard.adsToShare')}
+                    <Badge variant="secondary" className="text-xs">
+                      +{referralData?.settings?.pointsPerAdShare || 10} {t('parentDashboard.pointsPerShare')}
+                    </Badge>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {parentAdsList.map((ad: any) => (
+                      <div
+                        key={ad.id}
+                        className={`rounded-xl border p-4 ${isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"}`}
+                      >
+                        <div className="flex items-start gap-4">
+                          {ad.imageUrl && (
+                            <img
+                              src={ad.imageUrl}
+                              alt={ad.title}
+                              className="w-20 h-20 rounded-lg object-cover flex-shrink-0"
+                            />
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-bold text-base mb-1">{ad.title}</h4>
+                            <p className={`text-sm mb-3 ${isDark ? "text-gray-400" : "text-gray-600"}`}>
+                              {ad.content?.length > 120 ? ad.content.substring(0, 120) + "..." : ad.content}
+                            </p>
+                            {ad.linkUrl && (
+                              <a
+                                href={ad.linkUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-sm text-blue-500 hover:underline flex items-center gap-1 mb-3"
+                                onClick={() => {
+                                  fetch(`/api/ads/${ad.id}/click`, {
+                                    method: "POST",
+                                    headers: { Authorization: `Bearer ${token}` },
+                                  });
+                                }}
+                              >
+                                <ExternalLink className="h-3 w-3" /> {t('parentDashboard.viewAd')}
+                              </a>
+                            )}
+                            {/* Share Buttons */}
+                            <div className="flex flex-wrap gap-2">
+                              {[
+                                { platform: "whatsapp", label: "WhatsApp", color: "bg-green-500 hover:bg-green-600", url: `https://wa.me/?text=${encodeURIComponent(ad.title + (ad.linkUrl ? ' ' + ad.linkUrl : ''))}` },
+                                { platform: "facebook", label: "Facebook", color: "bg-blue-600 hover:bg-blue-700", url: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(ad.linkUrl || window.location.origin)}` },
+                                { platform: "twitter", label: "X", color: "bg-gray-800 hover:bg-gray-900", url: `https://twitter.com/intent/tweet?text=${encodeURIComponent(ad.title + (ad.linkUrl ? ' ' + ad.linkUrl : ''))}` },
+                                { platform: "telegram", label: "Telegram", color: "bg-blue-400 hover:bg-blue-500", url: `https://t.me/share/url?url=${encodeURIComponent(ad.linkUrl || window.location.origin)}&text=${encodeURIComponent(ad.title)}` },
+                              ].map(({ platform, label, color, url }) => (
+                                <Button
+                                  key={platform}
+                                  size="sm"
+                                  className={`text-xs text-white border-0 ${color}`}
+                                  onClick={() => {
+                                    window.open(url, '_blank');
+                                    fetch(`/api/parent/ads/${ad.id}/share`, {
+                                      method: "POST",
+                                      headers: {
+                                        Authorization: `Bearer ${token}`,
+                                        "Content-Type": "application/json",
+                                      },
+                                      body: JSON.stringify({ platform }),
+                                    }).then(() => {
+                                      queryClient.invalidateQueries({ queryKey: ["/api/parent/referral-stats"] });
+                                      queryClient.invalidateQueries({ queryKey: ["/api/parent/ads"] });
+                                      toast({ title: `+${referralData?.settings?.pointsPerAdShare || 10} ${t('parentDashboard.pointsEarned')}` });
+                                    });
+                                  }}
+                                >
+                                  {label}
+                                </Button>
+                              ))}
+                            </div>
+                            {ad.myShares > 0 && (
+                              <p className={`text-xs mt-2 ${isDark ? "text-gray-500" : "text-gray-400"}`}>
+                                {t('parentDashboard.sharedTimes', { count: ad.myShares })} — +{ad.mySharePoints} {t('parentDashboard.points')}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
 
           <TabsContent value="reports" className="mt-6 space-y-6">
