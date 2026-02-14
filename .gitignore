@@ -67,8 +67,7 @@ android/*.jks
 ios/Pods/
 ios/build/
 *.ipa
-*.apk
 *.aab
 
-# APK in public (deployed separately)
-client/public/classify-app.apk
+# APK builds (except the published one)
+android/app/build/
