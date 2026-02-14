@@ -294,7 +294,7 @@ export const ParentDashboard = (): JSX.Element => {
   const { toast } = useToast();
 
   const purchaseDecisionMutation = useMutation({
-    mutationFn: async ({ requestId, decision, shippingAddress }: { requestId: string; decision: "approved" | "rejected"; shippingAddress?: string }) => {
+    mutationFn: async ({ requestId, decision, shippingAddress }: { requestId: string; decision: "approve" | "reject"; shippingAddress?: string }) => {
       return apiRequest("PATCH", `/api/parent/purchase-requests/${requestId}/decision`, {
         decision,
         shippingAddress,
@@ -343,7 +343,7 @@ export const ParentDashboard = (): JSX.Element => {
   const purchaseRequestsList = Array.isArray(purchaseRequests) ? purchaseRequests : [];
   const availableInventoryCount = ownedProductsList.filter((p: any) => p.status === "active").length;
   const activeOrdersCount = ordersList.filter((o: any) => !["FAILED", "REFUNDED"].includes(o.status)).length;
-  const pendingPurchaseRequests = purchaseRequestsList.filter((r: any) => r.status === "pending_parent_approval");
+  const pendingPurchaseRequests = purchaseRequestsList.filter((r: any) => r.status === "pending");
   const parentData = parentInfo as any || {};
   const walletData = wallet as any || {};
   const referralData = (referralStats as any)?.data || referralStats as any || {};
@@ -638,8 +638,8 @@ export const ParentDashboard = (): JSX.Element => {
                       >
                         <div className="flex items-start gap-3">
                           <div className={`h-12 w-12 rounded-lg flex items-center justify-center ${isDark ? "bg-gray-700" : "bg-white"}`}>
-                            {request.productImage ? (
-                              <img src={request.productImage} alt="" className="h-10 w-10 object-cover rounded" />
+                            {request.product?.image ? (
+                              <img src={request.product.image} alt="" className="h-10 w-10 object-cover rounded" />
                             ) : (
                               <Package className="h-6 w-6 text-gray-400" />
                             )}
@@ -647,23 +647,23 @@ export const ParentDashboard = (): JSX.Element => {
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-1">
                               <span className={`font-medium ${isDark ? "text-white" : "text-gray-900"}`}>
-                                {request.childName}
+                                {request.child?.name}
                               </span>
                               <span className={`text-sm ${isDark ? "text-gray-400" : "text-gray-500"}`}>
                                 {t('parentDashboard.wantsToBuy')}
                               </span>
                             </div>
                             <p className={`font-medium ${isDark ? "text-white" : "text-gray-800"}`}>
-                              {request.productName}
+                              {request.product?.nameAr || request.product?.name}
                             </p>
                             <div className="flex items-center gap-2 mt-1">
                               <Badge className="bg-yellow-100 text-yellow-700">
                                 <Star className="h-3 w-3 ml-1" />
-                                {request.totalPoints} {t('parentDashboard.points')}
+                                {request.pointsPrice} {t('parentDashboard.points')}
                               </Badge>
-                              {request.isLibraryProduct && (
+                              {request.libraryProductId && (
                                 <Badge className="bg-purple-100 text-purple-700">
-                                  {request.libraryName || t('parentDashboard.library')}
+                                  {t('parentDashboard.library')}
                                 </Badge>
                               )}
                             </div>
@@ -674,8 +674,8 @@ export const ParentDashboard = (): JSX.Element => {
                             className="flex-1 bg-green-500 hover:bg-green-600"
                             onClick={() => purchaseDecisionMutation.mutate({ 
                               requestId: request.id, 
-                              decision: "approved",
-                              shippingAddress: parentData.address || ""
+                              decision: "approve",
+                              shippingAddress: parentData.address || "منزل"
                             })}
                             disabled={purchaseDecisionMutation.isPending}
                             data-testid={`button-approve-${request.id}`}
@@ -688,7 +688,7 @@ export const ParentDashboard = (): JSX.Element => {
                             className="flex-1 border-red-300 text-red-600 hover:bg-red-50"
                             onClick={() => purchaseDecisionMutation.mutate({ 
                               requestId: request.id, 
-                              decision: "rejected"
+                              decision: "reject"
                             })}
                             disabled={purchaseDecisionMutation.isPending}
                             data-testid={`button-reject-${request.id}`}
