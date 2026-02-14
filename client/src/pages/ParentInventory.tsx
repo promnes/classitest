@@ -80,11 +80,17 @@ export default function ParentInventory() {
               </p>
             </div>
             <button
-              onClick={() => navigate("/parent-dashboard")}
+              onClick={() => {
+                if (window.history.length > 1) {
+                  window.history.back();
+                } else {
+                  navigate("/parent-dashboard");
+                }
+              }}
               className="flex items-center gap-1 px-3 py-2 bg-white/20 hover:bg-white/30 rounded-lg transition"
             >
               <ArrowLeft className="w-4 h-4" />
-              الرئيسية
+              رجوع
             </button>
           </div>
         </div>
