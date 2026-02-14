@@ -27,6 +27,40 @@ export const tasksSettings = pgTable("tasks_settings", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// إعدادات إشعارات المهام (افتراضي عام)
+export const taskNotificationGlobalPolicy = pgTable("task_notification_global_policy", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  levelDefault: integer("level_default").default(1).notNull(), // 1..4
+  repeatIntervalMinutes: integer("repeat_interval_minutes").default(5).notNull(),
+  maxRetries: integer("max_retries").default(3).notNull(),
+  escalationEnabled: boolean("escalation_enabled").default(false).notNull(),
+  quietHoursStart: varchar("quiet_hours_start", { length: 5 }), // HH:mm
+  quietHoursEnd: varchar("quiet_hours_end", { length: 5 }), // HH:mm
+  channelsJson: json("channels_json")
+    .$type<{ inApp: boolean; webPush: boolean; mobilePush: boolean; parentEscalation: boolean }>()
+    .default(sql`'{"inApp":true,"webPush":false,"mobilePush":false,"parentEscalation":false}'::jsonb`)
+    .notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// إعدادات إشعارات المهام لكل طفل (Override)
+export const taskNotificationChildPolicy = pgTable("task_notification_child_policy", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  childId: varchar("child_id").notNull().unique().references(() => children.id, { onDelete: "cascade" }),
+  level: integer("level").notNull(), // 1..4
+  repeatIntervalMinutes: integer("repeat_interval_minutes").notNull(),
+  maxRetries: integer("max_retries").notNull(),
+  escalationEnabled: boolean("escalation_enabled").notNull(),
+  quietHoursStart: varchar("quiet_hours_start", { length: 5 }),
+  quietHoursEnd: varchar("quiet_hours_end", { length: 5 }),
+  channelsJson: json("channels_json")
+    .$type<{ inApp: boolean; webPush: boolean; mobilePush: boolean; parentEscalation: boolean }>()
+    .notNull(),
+  isOverride: boolean("is_override").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 // إعدادات المتجر
 export const storeSettings = pgTable("store_settings", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -626,6 +660,41 @@ export const childNotificationSettings = pgTable("child_notification_settings", 
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
+
+// اشتراكات Push الخاصة بالطفل (ويب/أندرويد/iOS)
+export const childPushSubscriptions = pgTable("child_push_subscriptions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  childId: varchar("child_id").notNull().references(() => children.id, { onDelete: "cascade" }),
+  platform: varchar("platform", { length: 20 }).notNull(), // web | android | ios
+  endpoint: text("endpoint"), // web push endpoint
+  token: text("token"), // mobile token
+  p256dh: text("p256dh"),
+  auth: text("auth"),
+  deviceId: text("device_id"),
+  isActive: boolean("is_active").default(true).notNull(),
+  lastSeenAt: timestamp("last_seen_at").defaultNow().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => ({
+  byChildActiveIdx: index("idx_child_push_subscriptions_child_active").on(table.childId, table.isActive),
+}));
+
+// سجل محاولات تسليم إشعارات المهام
+export const taskNotificationDeliveryAttempts = pgTable("task_notification_delivery_attempts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  taskId: varchar("task_id").references(() => tasks.id, { onDelete: "set null" }),
+  childId: varchar("child_id").notNull().references(() => children.id, { onDelete: "cascade" }),
+  channel: varchar("channel", { length: 20 }).notNull(), // in_app | web_push | mobile_push | parent_escalation
+  attemptNo: integer("attempt_no").default(1).notNull(),
+  status: varchar("status", { length: 20 }).default("pending").notNull(), // pending | sent | failed | acknowledged
+  error: text("error"),
+  sentAt: timestamp("sent_at"),
+  nextRetryAt: timestamp("next_retry_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  byTaskChildTimeIdx: index("idx_task_notification_attempts_task_child_time").on(table.taskId, table.childId, table.createdAt),
+  byStatusRetryIdx: index("idx_task_notification_attempts_status_retry").on(table.status, table.nextRetryAt),
+}));
 
 // جدول الأحداث للأطفال
 export const childEvents = pgTable("child_events", {

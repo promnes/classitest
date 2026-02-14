@@ -33,8 +33,9 @@ import { GiftsTab } from "@/components/admin/GiftsTab";
 import { NotificationSettingsTab } from "@/components/admin/NotificationSettingsTab";
 import { GamesTab } from "@/components/admin/GamesTab";
 import { TasksTab } from "@/components/admin/TasksTab";
+import { TaskNotificationLevelsTab } from "@/components/admin/TaskNotificationLevelsTab";
 
-type TabType = "dashboard" | "products" | "categories" | "symbols" | "users" | "settings" | "wallets" | "orders" | "deposits" | "activity" | "analytics" | "payment-methods" | "subjects" | "notifications" | "notification-settings" | "gifts" | "referrals" | "ads" | "parents" | "profits" | "libraries" | "games" | "tasks" | "social-login" | "otp-providers" | "seo" | "support";
+type TabType = "dashboard" | "products" | "categories" | "symbols" | "users" | "settings" | "wallets" | "orders" | "deposits" | "activity" | "analytics" | "payment-methods" | "subjects" | "notifications" | "notification-settings" | "task-notification-levels" | "gifts" | "referrals" | "ads" | "parents" | "profits" | "libraries" | "games" | "tasks" | "social-login" | "otp-providers" | "seo" | "support";
 
 export const AdminDashboard = (): JSX.Element => {
   const { t, i18n } = useTranslation();
@@ -76,6 +77,7 @@ export const AdminDashboard = (): JSX.Element => {
     { id: "activity", labelKey: "admin.activityLog", icon: "📋" },
     { id: "notifications", labelKey: "admin.notifications", icon: "🔔" },
     { id: "notification-settings", labelKey: "admin.notificationSettings", icon: "🧩" },
+    { id: "task-notification-levels", labelKey: "admin.taskNotificationLevels", icon: "🚨" },
     { id: "gifts", labelKey: "admin.gifts", icon: "🎁" },
     { id: "referrals", labelKey: "admin.referrals", icon: "🤝" },
     { id: "ads", labelKey: "admin.ads", icon: "📢" },
@@ -163,6 +165,7 @@ export const AdminDashboard = (): JSX.Element => {
           {activeTab === "activity" && <ActivityLogTab token={token} />}
           {activeTab === "notifications" && <NotificationsTab token={token} />}
           {activeTab === "notification-settings" && <NotificationSettingsTab token={token} />}
+          {activeTab === "task-notification-levels" && <TaskNotificationLevelsTab token={token} />}
           {activeTab === "gifts" && <GiftsTab token={token} />}
           {activeTab === "referrals" && <ReferralsTab token={token} />}
           {activeTab === "ads" && <AdsTab token={token} />}

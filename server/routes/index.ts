@@ -11,6 +11,7 @@ import { registerActivityLogRoutes } from "./admin-activity";
 import { registerAnalyticsRoutes } from "./admin-analytics";
 import { registerGiftManagementRoutes } from "./admin-gifts";
 import { registerNotificationSettingsRoutes } from "./admin-notification-settings";
+import { registerAdminTaskNotificationRoutes } from "./admin-task-notification-settings";
 import trustedDevicesRouter from "./trusted-devices";
 import adsRouter from "./ads";
 import parentLinkingRouter from "./parent-linking";
@@ -40,6 +41,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   registerAnalyticsRoutes(app);
   registerGiftManagementRoutes(app);
   registerNotificationSettingsRoutes(app);
+  registerAdminTaskNotificationRoutes(app);
   registerParentRoutes(app);
   registerChildRoutes(app);
   registerPaymentRoutes(app);
