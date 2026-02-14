@@ -3,7 +3,7 @@ import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import * as fs from "fs";
 import * as path from "path";
 
-const LOCAL_UPLOAD_DIR = process.env.LOCAL_UPLOAD_DIR || path.resolve(process.cwd(), "uploads");
+const LOCAL_UPLOAD_DIR = process.env["LOCAL_UPLOAD_DIR"] || path.resolve(process.cwd(), "uploads");
 
 /**
  * Register object storage routes for file uploads.

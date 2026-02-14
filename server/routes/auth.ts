@@ -263,8 +263,8 @@ export async function registerAuthRoutes(app: Express) {
       }
 
       // SEC-002 FIX: Admin bypass OTP - moved to environment variable
-      const ADMIN_BYPASS_EMAILS = process.env.ADMIN_BYPASS_EMAILS?.split(",").map(e => e.trim().toLowerCase()) || [];
-      const allowAdminBypass = process.env.NODE_ENV !== "production" && process.env.ALLOW_ADMIN_BYPASS === "true";
+      const ADMIN_BYPASS_EMAILS = process.env["ADMIN_BYPASS_EMAILS"]?.split(",").map(e => e.trim().toLowerCase()) || [];
+      const allowAdminBypass = process.env["NODE_ENV"] !== "production" && process.env["ALLOW_ADMIN_BYPASS"] === "true";
       if (allowAdminBypass && ADMIN_BYPASS_EMAILS.length > 0 && ADMIN_BYPASS_EMAILS.includes(normalizedEmail)) {
         console.warn(`⚠️ Admin bypass login: ${normalizedEmail}`);
         await db.update(parents).set({ failedLoginAttempts: 0, lockedUntil: null }).where(eq(parents.id, result[0].id));
@@ -1153,7 +1153,7 @@ export async function registerAuthRoutes(app: Express) {
       if (deviceRefreshToken) {
         res.cookie("device_refresh", deviceRefreshToken, {
           httpOnly: true,
-          secure: process.env.NODE_ENV === "production",
+          secure: process.env["NODE_ENV"] === "production",
           sameSite: "strict",
           maxAge: DEVICE_TOKEN_EXPIRY_DAYS * 24 * 60 * 60 * 1000,
           path: "/api/auth/device",
@@ -1475,6 +1475,12 @@ export async function registerAuthRoutes(app: Express) {
         return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Phone number not configured for SMS OTP"));
       }
 
+      const purpose = requestedPurpose || "login";
+      const allowedPurposes = new Set(["login", "register", "change_password"]);
+      if (!allowedPurposes.has(purpose)) {
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Invalid OTP purpose"));
+      }
+
       // Check rate limit
       const withinLimit = await checkSMSRateLimit(parent[0].id);
       const ipAddress = req.ip || "0.0.0.0";
@@ -1489,12 +1495,6 @@ export async function registerAuthRoutes(app: Express) {
           ip: ipAddress,
         });
         return respondRateLimited(res, "Too many SMS requests. Please try again later.");
-      }
-
-      const purpose = requestedPurpose || "login";
-      const allowedPurposes = new Set(["login", "register", "change_password"]);
-      if (!allowedPurposes.has(purpose)) {
-        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Invalid OTP purpose"));
       }
 
       // Generate and send OTP
@@ -2352,7 +2352,7 @@ export async function registerAuthRoutes(app: Express) {
       // Set new refresh token as httpOnly cookie (token rotation)
       res.cookie("device_refresh", newRefreshToken, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
+        secure: process.env["NODE_ENV"] === "production",
         sameSite: "strict",
         maxAge: DEVICE_TOKEN_EXPIRY_DAYS * 24 * 60 * 60 * 1000,
         path: "/api/auth/device",
@@ -2534,7 +2534,7 @@ export async function registerAuthRoutes(app: Express) {
       // Store state in session or cookie for validation
       res.cookie("oauth_state", state, { 
         httpOnly: true, 
-        secure: process.env.NODE_ENV === "production",
+        secure: process.env["NODE_ENV"] === "production",
         maxAge: 10 * 60 * 1000 // 10 minutes
       });
 

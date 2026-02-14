@@ -389,7 +389,7 @@ export async function registerStoreRoutes(app: Express) {
         }
       }
 
-      const [purchase] = await db.transaction(async (tx) => {
+      const [purchase] = await db.transaction(async (tx: any) => {
         const referralSettingsRows = await tx.select().from(libraryReferralSettings);
         const saleActivityPoints = referralSettingsRows[0]?.pointsPerSale ?? 10;
 

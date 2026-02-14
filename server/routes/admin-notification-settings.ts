@@ -23,7 +23,7 @@ export async function registerNotificationSettingsRoutes(app: Express) {
           .from(parentChild)
           .where(eq(parentChild.parentId, String(parentId)));
 
-        const uniqueIds = Array.from(new Set(childrenList.map((row: any) => row.childId)));
+        const uniqueIds: string[] = Array.from(new Set(childrenList.map((row: { childId: string }) => String(row.childId))));
         if (uniqueIds.length === 0) {
           return res.json(
             successResponse({
@@ -61,11 +61,22 @@ export async function registerNotificationSettingsRoutes(app: Express) {
 
       const searchedChildIds = searchedChildren.map((child: any) => child.id);
       const settingsRows = await db
-        .select()
+        .select({
+          id: childNotificationSettings.id,
+          childId: childNotificationSettings.childId,
+          mode: childNotificationSettings.mode,
+          repeatDelayMinutes: childNotificationSettings.repeatDelayMinutes,
+          requireOverlayPermission: childNotificationSettings.requireOverlayPermission,
+          createdAt: childNotificationSettings.createdAt,
+          updatedAt: childNotificationSettings.updatedAt,
+        })
         .from(childNotificationSettings)
         .where(inArray(childNotificationSettings.childId, searchedChildIds));
 
-      const settingsByChildId = new Map(settingsRows.map((row: any) => [row.childId, row]));
+      type NotificationSettingRow = typeof settingsRows[number];
+      const settingsByChildId = new Map<string, NotificationSettingRow>(
+        settingsRows.map((row: NotificationSettingRow) => [row.childId, row])
+      );
 
       const parentLinks = await db
         .select({
@@ -250,7 +261,10 @@ export async function registerNotificationSettingsRoutes(app: Express) {
         })
         .from(childNotificationSettings);
 
-      const settingsByChildId = new Map(allSettings.map((row: any) => [row.childId, row]));
+      type AllSettingsRow = typeof allSettings[number];
+      const settingsByChildId = new Map<string, AllSettingsRow>(
+        allSettings.map((row: AllSettingsRow) => [row.childId, row])
+      );
       const totalChildren = allChildren.length;
 
       let strictCount = 0;

@@ -113,7 +113,7 @@ router.post("/child/ads/:adId/watch", authMiddleware, async (req, res) => {
     const pointsEarned = isCompleted ? ad[0].pointsReward : 0;
     
     // تسجيل المشاهدة
-    const result = await db.transaction(async (tx) => {
+    const result = await db.transaction(async (tx: any) => {
       const watchRecord = await tx
         .insert(adWatchHistory)
         .values({

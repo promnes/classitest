@@ -16,7 +16,7 @@ function createLimiter(max: number, keyGenerator: (req: any) => string, eventTyp
       if (eventType) {
         trackOtpEvent(eventType, {
           path: req.path,
-          ip: ipKeyGenerator(req),
+          ip: ipKeyGenerator(req.ip || ""),
           destination: req.body?.email || req.body?.phoneNumber,
         });
       }
@@ -27,12 +27,12 @@ function createLimiter(max: number, keyGenerator: (req: any) => string, eventTyp
 }
 
 function compositeKey(req: any) {
-  const ip = ipKeyGenerator(req);
+  const ip = ipKeyGenerator(req.ip || "");
   const email = (req.body?.email || "").toString().trim().toLowerCase();
   return email ? `${ip}:${email}` : ip;
 }
 
-export const registerLimiter = createLimiter(5, (req) => ipKeyGenerator(req));
+export const registerLimiter = createLimiter(5, (req) => ipKeyGenerator(req.ip || ""));
 export const loginLimiter = createLimiter(5, compositeKey);
 export const otpRequestLimiter = createLimiter(3, compositeKey, "rate_limited");
 export const otpVerifyLimiter = createLimiter(5, compositeKey, "rate_limited");

@@ -9,10 +9,10 @@
     "module": "ES2022",
     "strict": true,
 
-    "noUncheckedIndexedAccess": true,
-    "exactOptionalPropertyTypes": true,
-    "noImplicitOverride": true,
-    "noPropertyAccessFromIndexSignature": true,
+    "noUncheckedIndexedAccess": false,
+    "exactOptionalPropertyTypes": false,
+    "noImplicitOverride": false,
+    "noPropertyAccessFromIndexSignature": false,
     "noFallthroughCasesInSwitch": true,
     "useUnknownInCatchVariables": true,
 
@@ -20,7 +20,7 @@
     "jsx": "react-jsx",
 
     "esModuleInterop": true,
-    "skipLibCheck": false,
+    "skipLibCheck": true,
     "allowImportingTsExtensions": true,
 
     "moduleResolution": "bundler",

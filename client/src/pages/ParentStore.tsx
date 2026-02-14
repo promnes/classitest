@@ -543,14 +543,14 @@ export const ParentStore = (): JSX.Element => {
                       </div>
                       <div className="flex items-center gap-2">
                         <button
-                          onClick={() => updateCartQuantity(item.product.id, item.quantity - 1)}
+                          onClick={() => updateQuantity(item.product.id, item.quantity - 1)}
                           className={`w-8 h-8 rounded-full flex items-center justify-center ${isDark ? "bg-gray-700 text-white" : "bg-gray-200"}`}
                         >
                           <Minus className="w-3 h-3" />
                         </button>
                         <span className={`font-bold w-6 text-center ${isDark ? "text-white" : ""}`}>{item.quantity}</span>
                         <button
-                          onClick={() => updateCartQuantity(item.product.id, item.quantity + 1)}
+                          onClick={() => updateQuantity(item.product.id, item.quantity + 1)}
                           className={`w-8 h-8 rounded-full flex items-center justify-center ${isDark ? "bg-gray-700 text-white" : "bg-gray-200"}`}
                         >
                           <Plus className="w-3 h-3" />

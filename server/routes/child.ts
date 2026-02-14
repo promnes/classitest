@@ -139,7 +139,7 @@ async function logTaskCompletion(childId: string, task: typeof tasks.$inferSelec
 }
 
 function getMotivationalMessage(speedLevel: string, totalPoints: number, tasksCompleted: number): string {
-  const messages: Record<string, string[]> = {
+  const messages = {
     superfast: [
       "أنت نجم! استمر في التألق!",
       "رائع جداً! أنت من أفضل المتعلمين!",
@@ -160,10 +160,12 @@ function getMotivationalMessage(speedLevel: string, totalPoints: number, tasksCo
       "العب المزيد من الألعاب لتكسب النقاط!",
       "أنت قادر على تحقيق المزيد! جرب الآن!",
     ],
-  };
+  } as const;
 
-  const levelMessages = messages[speedLevel] || messages.slow;
-  return levelMessages[Math.floor(Math.random() * levelMessages.length)];
+  const slowMessages = messages.slow;
+  const levelMessages = (messages as Record<string, readonly string[]>)[speedLevel] ?? slowMessages;
+  const randomIndex = Math.floor(Math.random() * levelMessages.length);
+  return levelMessages[randomIndex] ?? slowMessages[0] ?? "أحسنت!";
 }
 
 interface GoalProgress {
@@ -370,7 +372,7 @@ export async function registerChildRoutes(app: Express) {
       };
 
       if (birthday) {
-        updateData.birthday = new Date(birthday);
+        updateData["birthday"] = new Date(birthday);
       }
 
       await db.update(children).set(updateData).where(eq(children.id, childId));
@@ -526,7 +528,7 @@ export async function registerChildRoutes(app: Express) {
     try {
       const result = await db.select().from(tasks).where(eq(tasks.childId, req.user.childId));
       // Normalize answers to ensure each has an id
-      const normalizedTasks = result.map(task => ({
+      const normalizedTasks = result.map((task: typeof result[number]) => ({
         ...task,
         answers: normalizeAnswers(task.answers, task.question)
       }));
@@ -545,7 +547,7 @@ export async function registerChildRoutes(app: Express) {
         .from(tasks)
         .where(and(eq(tasks.childId, req.user.childId), eq(tasks.status, "pending")));
       // Normalize answers to ensure each has an id
-      const normalizedTasks = result.map(task => ({
+      const normalizedTasks = result.map((task: typeof result[number]) => ({
         ...task,
         answers: normalizeAnswers(task.answers, task.question)
       }));
@@ -583,7 +585,7 @@ export async function registerChildRoutes(app: Express) {
 
       const isCorrect = selectedAnswer.isCorrect === true;
 
-      const result = await db.transaction(async (tx) => {
+      const result = await db.transaction(async (tx: any) => {
         const existingCorrect = await tx
           .select()
           .from(taskResults)
@@ -717,7 +719,7 @@ export async function registerChildRoutes(app: Express) {
 
       const isCorrect = selectedAnswer.isCorrect === true;
 
-      const result = await db.transaction(async (tx) => {
+      const result = await db.transaction(async (tx: any) => {
         const existingCorrect = await tx
           .select()
           .from(taskResults)
@@ -854,8 +856,8 @@ export async function registerChildRoutes(app: Express) {
       }
 
       // Child has assignments → return only assigned games
-      const assignedGameIds = new Set(assignments.map(a => a.gameId));
-      const filteredGames = allActiveGames.filter(g => assignedGameIds.has(g.id));
+      const assignedGameIds = new Set(assignments.map((a: typeof assignments[number]) => a.gameId));
+      const filteredGames = allActiveGames.filter((g: typeof allActiveGames[number]) => assignedGameIds.has(g.id));
       return res.json(filteredGames);
     } catch (error: any) {
       console.error("Fetch games error:", error);
@@ -908,7 +910,7 @@ export async function registerChildRoutes(app: Express) {
       }
 
       // Award points via transaction
-      const result = await db.transaction(async (tx) => {
+      const result = await db.transaction(async (tx: any) => {
         const { newTotalPoints } = await applyPointsDelta(tx, {
           childId,
           delta: game.pointsPerPlay,
@@ -1791,7 +1793,7 @@ export async function registerChildRoutes(app: Express) {
         return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Invalid answer"));
       }
 
-      const result = await db.transaction(async (tx) => {
+      const result = await db.transaction(async (tx: any) => {
         const existingCorrect = await tx
           .select()
           .from(taskResults)
@@ -2285,8 +2287,9 @@ export async function registerChildRoutes(app: Express) {
 
   function calculateTreeStage(totalPoints: number): number {
     for (let i = GROWTH_STAGES.length - 1; i >= 0; i--) {
-      if (totalPoints >= GROWTH_STAGES[i].minPoints) {
-        return GROWTH_STAGES[i].stage;
+      const stage = GROWTH_STAGES[i];
+      if (stage && totalPoints >= stage.minPoints) {
+        return stage.stage;
       }
     }
     return 1;
@@ -2376,16 +2379,16 @@ export async function registerChildRoutes(app: Express) {
 
         // Update specific counters
         if (eventType === "task_complete") {
-          updateData.tasksCompleted = tree[0].tasksCompleted + 1;
+          updateData["tasksCompleted"] = tree[0].tasksCompleted + 1;
         } else if (eventType === "game_played") {
-          updateData.gamesPlayed = tree[0].gamesPlayed + 1;
+          updateData["gamesPlayed"] = tree[0].gamesPlayed + 1;
         } else if (eventType === "reward_earned") {
-          updateData.rewardsEarned = tree[0].rewardsEarned + 1;
+          updateData["rewardsEarned"] = tree[0].rewardsEarned + 1;
         }
 
         // Update stage if changed
         if (newStage > tree[0].currentStage) {
-          updateData.currentStage = newStage;
+          updateData["currentStage"] = newStage;
         }
 
         await db.update(childGrowthTrees)

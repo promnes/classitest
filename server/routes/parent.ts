@@ -669,7 +669,7 @@ export async function registerParentRoutes(app: Express) {
       }
 
       // Deduct points from parent wallet and create task in a transaction
-      const result = await db.transaction(async (tx) => {
+      const result = await db.transaction(async (tx: any) => {
         await tx.update(parentWallet)
           .set({
             balance: sql`${parentWallet.balance} - ${pointsReward}`,
@@ -1231,7 +1231,7 @@ export async function registerParentRoutes(app: Express) {
 
         let orderResult: typeof orders.$inferSelect[] = [];
         try {
-          orderResult = await db.transaction(async (tx) => {
+          orderResult = await db.transaction(async (tx: any) => {
             const referralSettingsRows = await tx.select().from(libraryReferralSettings);
             const saleActivityPoints = referralSettingsRows[0]?.pointsPerSale ?? 10;
 
@@ -1469,7 +1469,7 @@ export async function registerParentRoutes(app: Express) {
       }
 
       // تنفيذ العملية داخل transaction لضمان سلامة البيانات
-      const { order, gift } = await db.transaction(async (tx) => {
+      const { order, gift } = await db.transaction(async (tx: any) => {
         // إنشاء أمر شراء
         const createdOrder = await tx
           .insert(orders)
@@ -2071,7 +2071,7 @@ export async function registerParentRoutes(app: Express) {
       }
 
       // Deduct from wallet and create task atomically
-      const result = await db.transaction(async (tx) => {
+      const result = await db.transaction(async (tx: any) => {
         await tx.update(parentWallet)
           .set({
             balance: sql`${parentWallet.balance} - ${finalReward}`,
@@ -2563,7 +2563,7 @@ export async function registerParentRoutes(app: Express) {
       }
 
       // Deduct from wallet and create task atomically
-      const newTask = await db.transaction(async (tx) => {
+      const newTask = await db.transaction(async (tx: any) => {
         await tx.update(parentWallet)
           .set({
             balance: sql`${parentWallet.balance} - ${finalReward}`,
@@ -2673,7 +2673,7 @@ export async function registerParentRoutes(app: Express) {
         let pointsAvailable = 0;
 
         try {
-          await db.transaction(async (tx) => {
+          await db.transaction(async (tx: any) => {
             const childData = await tx.select().from(children).where(eq(children.id, childId));
             pointsAvailable = childData[0]?.totalPoints || 0;
 
@@ -2761,7 +2761,7 @@ export async function registerParentRoutes(app: Express) {
       }
 
       // Deduct from wallet and create task atomically
-      const newTask = await db.transaction(async (tx) => {
+      const newTask = await db.transaction(async (tx: any) => {
         await tx.update(parentWallet)
           .set({
             balance: sql`${parentWallet.balance} - ${finalReward}`,
@@ -3038,7 +3038,8 @@ export async function registerParentRoutes(app: Express) {
       // Get child's assignments
       const assignments = await db.select().from(childGameAssignments)
         .where(eq(childGameAssignments.childId, childId));
-      const assignmentMap = new Map(assignments.map(a => [a.gameId, a]));
+      type AssignmentRow = typeof assignments[number];
+      const assignmentMap = new Map<string, AssignmentRow>(assignments.map((a: AssignmentRow) => [a.gameId, a]));
 
       // Get today's play counts per game
       const todayStart = new Date();
@@ -3054,7 +3055,9 @@ export async function registerParentRoutes(app: Express) {
           sql`${gamePlayHistory.playedAt} >= ${todayStart}`
         ))
         .groupBy(gamePlayHistory.gameId);
-      const todayPlayMap = new Map(todayPlays.map(p => [p.gameId, { count: Number(p.count), points: Number(p.totalPoints) }]));
+      const todayPlayMap = new Map<string, { count: number; points: number }>(
+        todayPlays.map((p: typeof todayPlays[number]) => [p.gameId, { count: Number(p.count), points: Number(p.totalPoints) }])
+      );
 
       // Get total play counts per game
       const totalPlays = await db.select({
@@ -3065,9 +3068,11 @@ export async function registerParentRoutes(app: Express) {
         .from(gamePlayHistory)
         .where(eq(gamePlayHistory.childId, childId))
         .groupBy(gamePlayHistory.gameId);
-      const totalPlayMap = new Map(totalPlays.map(p => [p.gameId, { count: Number(p.count), points: Number(p.totalPoints) }]));
+      const totalPlayMap = new Map<string, { count: number; points: number }>(
+        totalPlays.map((p: typeof totalPlays[number]) => [p.gameId, { count: Number(p.count), points: Number(p.totalPoints) }])
+      );
 
-      const gamesWithStatus = allGames.map(game => {
+      const gamesWithStatus = allGames.map((game: typeof allGames[number]) => {
         const assignment = assignmentMap.get(game.id);
         const today = todayPlayMap.get(game.id) || { count: 0, points: 0 };
         const total = totalPlayMap.get(game.id) || { count: 0, points: 0 };

@@ -76,7 +76,7 @@ export async function notifyChildPointsEarned(childId: string, pointsEarned: num
     style: "toast",
     priority: "normal",
     soundAlert: true,
-    relatedId,
+    relatedId: relatedId ?? null,
     metadata: { pointsEarned, newTotal: child.points + pointsEarned },
   });
 }

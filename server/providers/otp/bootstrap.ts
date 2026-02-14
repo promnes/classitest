@@ -34,9 +34,9 @@ const defaultProviders = [
 ];
 
 function canAutoActivateEmail(): boolean {
-  const hasResend = Boolean(process.env.RESEND_API_KEY);
-  const hasSmtp = Boolean(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASSWORD);
-  const devMode = process.env.OTP_DEV_MODE === "true" || process.env.NODE_ENV !== "production";
+  const hasResend = Boolean(process.env["RESEND_API_KEY"]);
+  const hasSmtp = Boolean(process.env["SMTP_HOST"] && process.env["SMTP_USER"] && process.env["SMTP_PASSWORD"]);
+  const devMode = process.env["OTP_DEV_MODE"] === "true" || process.env["NODE_ENV"] !== "production";
   return hasResend || hasSmtp || devMode;
 }
 
@@ -49,12 +49,12 @@ export async function ensureOtpProviders(): Promise<void> {
     return;
   }
 
-  const hasActive = existing.some((p) => p.isActive);
+  const hasActive = existing.some((p: typeof existing[number]) => p.isActive);
   if (hasActive) return;
 
   if (!canAutoActivateEmail()) return;
 
-  const email = existing.find((p) => p.provider === "email");
+  const email = existing.find((p: typeof existing[number]) => p.provider === "email");
   if (email) {
     await db
       .update(otpProviders)

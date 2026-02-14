@@ -15,7 +15,7 @@ import { createPresignedUpload, finalizeUpload } from "../services/uploadService
 import { finalizeUploadSchema } from "../../shared/media";
 
 const db = storage.db;
-const JWT_SECRET = process.env.JWT_SECRET ?? "";
+const JWT_SECRET = process.env["JWT_SECRET"] ?? "";
 
 if (!JWT_SECRET) {
   throw new Error("CRITICAL: JWT_SECRET environment variable is required. Library authentication cannot start without it.");
@@ -33,7 +33,11 @@ const libraryMiddleware = async (req: LibraryRequest, res: Response, next: NextF
     }
     
     const token = authHeader.split(" ")[1];
-    const decoded = jwt.verify(token, JWT_SECRET) as { libraryId: string; type: string; exp?: number };
+    if (!token) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const decoded = jwt.verify(token, JWT_SECRET) as unknown as { libraryId: string; type: string; exp?: number };
     
     if (decoded.type !== "library") {
       return res.status(401).json({ message: "Invalid token type" });
@@ -218,22 +222,24 @@ export async function registerLibraryRoutes(app: Express) {
         "127.0.0.1",
         "localhost",
         "minio",
-        String(process.env.MINIO_ENDPOINT || "").trim(),
+        String(process.env["MINIO_ENDPOINT"] || "").trim(),
       ].filter(Boolean));
 
       if (!allowedHosts.has(parsed.hostname)) {
         return res.status(400).json({ success: false, message: "نطاق رابط الرفع غير مسموح" });
       }
 
-      const upstreamRes = await fetch(uploadURL, {
+      const upstreamRequestInit: any = {
         method: "PUT",
         headers: {
           "Content-Type": String(req.headers["content-type"] || "application/octet-stream"),
           ...(req.headers["content-length"] ? { "Content-Length": String(req.headers["content-length"]) } : {}),
         },
         body: req as any,
-        duplex: "half" as any,
-      });
+        duplex: "half",
+      };
+
+      const upstreamRes = await fetch(uploadURL, upstreamRequestInit);
 
       if (!upstreamRes.ok) {
         const details = await upstreamRes.text().catch(() => "");
@@ -285,8 +291,9 @@ export async function registerLibraryRoutes(app: Express) {
         stock: stock || 0,
       }).returning();
       
+      const [currentLibrary] = await db.select().from(libraries).where(eq(libraries.id, libraryId));
       await db.update(libraries).set({
-        totalProducts: (await db.select().from(libraries).where(eq(libraries.id, libraryId)))[0].totalProducts + 1,
+        totalProducts: (currentLibrary?.totalProducts ?? 0) + 1,
         updatedAt: new Date(),
       }).where(eq(libraries.id, libraryId));
       

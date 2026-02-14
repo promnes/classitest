@@ -13,19 +13,19 @@ import {
 } from "./objectAcl";
 
 const REPLIT_SIDECAR_ENDPOINT = "http://127.0.0.1:1106";
-const STORAGE_PROVIDER = (process.env.OBJECT_STORAGE_PROVIDER || "replit").toLowerCase();
-const isS3Provider = STORAGE_PROVIDER === "s3" || !!process.env.MINIO_ENDPOINT;
+const STORAGE_PROVIDER = (process.env["OBJECT_STORAGE_PROVIDER"] || "replit").toLowerCase();
+const isS3Provider = STORAGE_PROVIDER === "s3" || !!process.env["MINIO_ENDPOINT"];
 const isLocalFallback = STORAGE_PROVIDER === "local";
-const LOCAL_UPLOAD_DIR = process.env.LOCAL_UPLOAD_DIR || path.resolve(process.cwd(), "uploads");
+const LOCAL_UPLOAD_DIR = process.env["LOCAL_UPLOAD_DIR"] || path.resolve(process.cwd(), "uploads");
 
-const MINIO_BUCKET = process.env.MINIO_BUCKET || process.env.S3_BUCKET || "classify-media";
-const MINIO_ENDPOINT = process.env.MINIO_ENDPOINT || "127.0.0.1";
-const MINIO_PORT = Number(process.env.MINIO_PORT || "9000");
-const MINIO_USE_SSL = String(process.env.MINIO_USE_SSL || "false").toLowerCase() === "true";
-const MINIO_ACCESS_KEY = process.env.MINIO_ACCESS_KEY || process.env.S3_ACCESS_KEY || "minioadmin";
-const MINIO_SECRET_KEY = process.env.MINIO_SECRET_KEY || process.env.S3_SECRET_KEY || "minioadmin";
-const MINIO_PREFIX = process.env.MINIO_PREFIX || "private";
-const MINIO_PUBLIC_BASE = process.env.MINIO_PUBLIC_URL || "";
+const MINIO_BUCKET = process.env["MINIO_BUCKET"] || process.env["S3_BUCKET"] || "classify-media";
+const MINIO_ENDPOINT = process.env["MINIO_ENDPOINT"] || "127.0.0.1";
+const MINIO_PORT = Number(process.env["MINIO_PORT"] || "9000");
+const MINIO_USE_SSL = String(process.env["MINIO_USE_SSL"] || "false").toLowerCase() === "true";
+const MINIO_ACCESS_KEY = process.env["MINIO_ACCESS_KEY"] || process.env["S3_ACCESS_KEY"] || "minioadmin";
+const MINIO_SECRET_KEY = process.env["MINIO_SECRET_KEY"] || process.env["S3_SECRET_KEY"] || "minioadmin";
+const MINIO_PREFIX = process.env["MINIO_PREFIX"] || "private";
+const MINIO_PUBLIC_BASE = process.env["MINIO_PUBLIC_URL"] || "";
 
 // The object storage client is used to interact with the object storage service.
 export const objectStorageClient = new Storage({
@@ -99,7 +99,7 @@ export class ObjectStorageService {
     if (isS3Provider) {
       return ["/" + MINIO_BUCKET];
     }
-    const pathsStr = process.env.PUBLIC_OBJECT_SEARCH_PATHS || "";
+    const pathsStr = process.env["PUBLIC_OBJECT_SEARCH_PATHS"] || "";
     const paths = Array.from(
       new Set(
         pathsStr
@@ -122,7 +122,7 @@ export class ObjectStorageService {
     if (isS3Provider) {
       return `/${MINIO_BUCKET}/${MINIO_PREFIX}`;
     }
-    const dir = process.env.PRIVATE_OBJECT_DIR || "";
+    const dir = process.env["PRIVATE_OBJECT_DIR"] || "";
     if (!dir) {
       // Fallback to local uploads dir instead of throwing
       return LOCAL_UPLOAD_DIR;
@@ -435,7 +435,7 @@ export class ObjectStorageService {
       return !!userId;
     }
     return canAccessObject({
-      userId,
+      ...(userId ? { userId } : {}),
       objectFile,
       requestedPermission: requestedPermission ?? ObjectPermission.READ,
     });
@@ -456,6 +456,10 @@ function parseObjectPath(path: string): {
 
   const bucketName = pathParts[1];
   const objectName = pathParts.slice(2).join("/");
+
+  if (!bucketName) {
+    throw new Error("Invalid path: missing bucket name");
+  }
 
   return {
     bucketName,

@@ -1,25 +1,25 @@
 type OtpEvent = "send" | "verify_success" | "verify_failed" | "blocked" | "rate_limited";
 
 type OtpEventMeta = {
-  purpose?: string;
-  method?: string;
-  destination?: string;
-  parentId?: string;
-  ip?: string;
-  path?: string;
-  reason?: string;
-  otpId?: string;
-  action?: string;
+  purpose?: string | undefined;
+  method?: string | undefined;
+  destination?: string | undefined;
+  parentId?: string | undefined;
+  ip?: string | undefined;
+  path?: string | undefined;
+  reason?: string | undefined;
+  otpId?: string | undefined;
+  action?: string | undefined;
 };
 
 const WINDOW_MS = 60 * 1000;
-const ALERT_THRESHOLD = Number(process.env.OTP_ALERT_THRESHOLD || "50");
+const ALERT_THRESHOLD = Number(process.env["OTP_ALERT_THRESHOLD"] || "50");
 const ALERT_EVENTS = new Set<OtpEvent>(["verify_failed", "blocked", "rate_limited"]);
 const eventBuckets: Record<string, number[]> = {};
 const lastAlertAt: Record<string, number> = {};
 
 function pruneOldTimestamps(timestamps: number[], cutoff: number) {
-  while (timestamps.length && timestamps[0] < cutoff) {
+  while (timestamps.length > 0 && (timestamps[0] ?? Number.MAX_SAFE_INTEGER) < cutoff) {
     timestamps.shift();
   }
 }
