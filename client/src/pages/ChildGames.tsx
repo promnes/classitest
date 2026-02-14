@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { MandatoryTaskModal } from "@/components/MandatoryTaskModal";
@@ -32,6 +32,7 @@ export const ChildGames = (): JSX.Element => {
   const [selectedGame, setSelectedGame] = useState<Game | null>(null);
   const [showReward, setShowReward] = useState<{ points: number; total: number } | null>(null);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [gameResult, setGameResult] = useState<{ score: number; total: number } | null>(null);
 
   const { data: games, isLoading } = useQuery<Game[]>({
     queryKey: ["games"],
@@ -68,15 +69,26 @@ export const ChildGames = (): JSX.Element => {
     refetchInterval: token ? 30000 : false,
   });
 
+  // Listen for game completion messages from iframe
+  useEffect(() => {
+    const handler = (e: MessageEvent) => {
+      if (e.data?.type === 'GAME_COMPLETE' && typeof e.data.score === 'number') {
+        setGameResult({ score: e.data.score, total: e.data.total || 10 });
+      }
+    };
+    window.addEventListener('message', handler);
+    return () => window.removeEventListener('message', handler);
+  }, []);
+
   const completeGameMutation = useMutation({
-    mutationFn: async (gameId: string) => {
+    mutationFn: async ({ gameId, score, totalQuestions }: { gameId: string; score?: number; totalQuestions?: number }) => {
       const res = await fetch("/api/child/complete-game", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ gameId }),
+        body: JSON.stringify({ gameId, score, totalQuestions }),
       });
       if (!res.ok) {
         throw new Error("Failed to complete game");
@@ -88,17 +100,23 @@ export const ChildGames = (): JSX.Element => {
       const d = data?.data || data;
       setShowReward({ points: d.pointsEarned, total: d.newTotalPoints });
       setSelectedGame(null);
+      setGameResult(null);
       setTimeout(() => setShowReward(null), 3000);
     },
   });
 
   const handlePlayGame = (game: Game) => {
     setSelectedGame(game);
+    setGameResult(null);
   };
 
   const handleCompleteGame = () => {
-    if (selectedGame) {
-      completeGameMutation.mutate(selectedGame.id);
+    if (selectedGame && gameResult) {
+      completeGameMutation.mutate({
+        gameId: selectedGame.id,
+        score: gameResult.score,
+        totalQuestions: gameResult.total,
+      });
     }
   };
 
@@ -335,22 +353,33 @@ export const ChildGames = (): JSX.Element => {
                 title={selectedGame.title}
               />
             </div>
-            <div className="p-4 flex justify-center gap-4">
-              <button
-                onClick={handleCompleteGame}
-                disabled={completeGameMutation.isPending}
-                className="px-8 py-3 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-bold rounded-xl flex items-center gap-2 disabled:opacity-50 transition-all"
-                data-testid="button-complete-game"
-              >
-                {completeGameMutation.isPending ? (
-                  <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent" />
-                ) : (
-                  <>
-                    <Trophy className="w-5 h-5" />
-                    {t("finishedGame")}
-                  </>
-                )}
-              </button>
+            <div className="p-4 flex flex-col items-center gap-3">
+              {gameResult ? (
+                <>
+                  <p className={`text-sm font-semibold ${isDark ? "text-gray-300" : "text-gray-600"}`}>
+                    🎯 {isRTL ? `نتيجتك: ${gameResult.score} من ${gameResult.total}` : `Your score: ${gameResult.score}/${gameResult.total}`}
+                  </p>
+                  <button
+                    onClick={handleCompleteGame}
+                    disabled={completeGameMutation.isPending}
+                    className="px-8 py-3 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-bold rounded-xl flex items-center gap-2 disabled:opacity-50 transition-all"
+                    data-testid="button-complete-game"
+                  >
+                    {completeGameMutation.isPending ? (
+                      <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent" />
+                    ) : (
+                      <>
+                        <Trophy className="w-5 h-5" />
+                        {t("finishedGame")}
+                      </>
+                    )}
+                  </button>
+                </>
+              ) : (
+                <p className={`text-sm animate-pulse ${isDark ? "text-gray-400" : "text-gray-500"}`}>
+                  🎮 {isRTL ? "أكمل اللعبة للحصول على النقاط..." : "Complete the game to earn points..."}
+                </p>
+              )}
             </div>
           </div>
         </div>

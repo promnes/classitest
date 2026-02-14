@@ -630,6 +630,17 @@
     function showCompletion() {
       clearInterval(timer);
       const elapsed = Math.round((Date.now() - startTime) / 1000);
+
+      // Notify parent app that game is truly completed with real score
+      try {
+        window.parent.postMessage({
+          type: 'GAME_COMPLETE',
+          score: score,
+          total: totalQuestions,
+          timeElapsed: elapsed,
+          difficulty: difficulty
+        }, '*');
+      } catch (e) {}
       
       document.getElementById('game-screen').style.display = 'none';
       document.getElementById('completion-screen').style.display = 'block';

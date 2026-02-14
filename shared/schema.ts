@@ -419,6 +419,8 @@ export const gamePlayHistory = pgTable("game_play_history", {
   childId: varchar("child_id").notNull().references(() => children.id, { onDelete: "cascade" }),
   gameId: varchar("game_id").notNull().references(() => flashGames.id, { onDelete: "cascade" }),
   pointsEarned: integer("points_earned").default(0).notNull(),
+  score: integer("score"),
+  totalQuestions: integer("total_questions"),
   playedAt: timestamp("played_at").defaultNow().notNull(),
 });
 

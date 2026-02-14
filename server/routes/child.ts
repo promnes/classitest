@@ -869,7 +869,7 @@ export async function registerChildRoutes(app: Express) {
   app.post("/api/child/complete-game", authMiddleware, async (req: any, res) => {
     try {
       const childId = req.user.childId;
-      const { gameId } = req.body;
+      const { gameId, score: gameScore, totalQuestions: gameTotalQ } = req.body;
 
       if (!gameId) {
         return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "gameId is required"));
@@ -909,20 +909,39 @@ export async function registerChildRoutes(app: Express) {
         }
       }
 
+      // Scale points by performance if score is provided
+      const rawScore = typeof gameScore === 'number' ? gameScore : null;
+      const rawTotal = typeof gameTotalQ === 'number' && gameTotalQ > 0 ? gameTotalQ : null;
+      let earnedPoints = game.pointsPerPlay;
+
+      if (rawScore !== null && rawTotal !== null) {
+        const pct = rawScore / rawTotal;
+        if (pct <= 0) {
+          earnedPoints = 0;
+        } else if (pct < 0.5) {
+          earnedPoints = Math.max(1, Math.round(game.pointsPerPlay * 0.3));
+        } else if (pct < 0.8) {
+          earnedPoints = Math.round(game.pointsPerPlay * 0.7);
+        }
+        // pct >= 0.8 → full points
+      }
+
       // Award points via transaction
       const result = await db.transaction(async (tx: any) => {
         const { newTotalPoints } = await applyPointsDelta(tx, {
           childId,
-          delta: game.pointsPerPlay,
+          delta: earnedPoints,
           reason: "GAME_COMPLETED",
           requestId: `game-${gameId}-${Date.now()}`,
         });
 
-        // Record play history
+        // Record play history with score
         await tx.insert(gamePlayHistory).values({
           childId,
           gameId,
-          pointsEarned: game.pointsPerPlay,
+          pointsEarned: earnedPoints,
+          ...(rawScore !== null ? { score: rawScore } : {}),
+          ...(rawTotal !== null ? { totalQuestions: rawTotal } : {}),
         });
 
         return { newTotalPoints };
@@ -932,8 +951,10 @@ export async function registerChildRoutes(app: Express) {
       recordGrowthEvent(childId, "game_played", 3, { gameId, title: game.title }).catch(() => {});
 
       res.json(successResponse({
-        pointsEarned: game.pointsPerPlay,
+        pointsEarned: earnedPoints,
         newTotalPoints: result.newTotalPoints,
+        score: rawScore,
+        totalQuestions: rawTotal,
       }, "Game completed successfully"));
     } catch (error: any) {
       console.error("Complete game error:", error);
