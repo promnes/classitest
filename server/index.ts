@@ -104,7 +104,7 @@ app.use(helmet({
         "https://fonts.googleapis.com",
         "https://storage.googleapis.com",
       ],
-      frameSrc: ["'none'"],
+      frameSrc: ["'self'"],
       objectSrc: ["'none'"],
       // Note: upgradeInsecureRequests removed - causes ERR_SSL_PROTOCOL_ERROR when serving over HTTP
       // Re-enable when HTTPS/SSL is configured
