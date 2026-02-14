@@ -3017,6 +3017,87 @@ export async function registerAdminRoutes(app: Express) {
     }
   });
 
+  // ===== UPLOAD PUBLIC IMAGE (SEO / Crawlers compatible) =====
+  // Uploads to /uploads/public/ served statically — accessible to search engine crawlers
+  app.post("/api/admin/upload-public-image", adminMiddleware, async (req: any, res) => {
+    try {
+      const multer = await import("multer");
+      const path = await import("path");
+      const fs = await import("fs");
+
+      const uploadDir = path.join(process.cwd(), "uploads", "public");
+      if (!fs.existsSync(uploadDir)) {
+        fs.mkdirSync(uploadDir, { recursive: true });
+      }
+
+      const storage = multer.default.diskStorage({
+        destination: (_req: any, _file: any, cb: any) => {
+          cb(null, uploadDir);
+        },
+        filename: (_req: any, file: any, cb: any) => {
+          // Use a readable slug-based name for SEO
+          const ext = path.extname(file.originalname).toLowerCase();
+          const baseName = path.basename(file.originalname, ext)
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, "-")
+            .replace(/^-|-$/g, "")
+            .substring(0, 50);
+          const uniqueSuffix = Date.now().toString(36);
+          cb(null, `${baseName}-${uniqueSuffix}${ext}`);
+        },
+      });
+
+      const fileFilter = (_req: any, file: any, cb: any) => {
+        const allowed = ["image/jpeg", "image/png", "image/webp", "image/svg+xml", "image/gif"];
+        if (allowed.includes(file.mimetype)) {
+          cb(null, true);
+        } else {
+          cb(new Error("Only image files (JPEG, PNG, WebP, SVG, GIF) are allowed"));
+        }
+      };
+
+      const upload = multer.default({
+        storage,
+        limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+        fileFilter,
+      }).single("file");
+
+      upload(req, res, (err: any) => {
+        if (err) {
+          console.error("Public image upload error:", err);
+          return res
+            .status(400)
+            .json(errorResponse(ErrorCode.BAD_REQUEST, `Upload failed: ${err.message}`));
+        }
+
+        if (!req.file) {
+          return res
+            .status(400)
+            .json(errorResponse(ErrorCode.BAD_REQUEST, "No file uploaded"));
+        }
+
+        const relativePath = `/uploads/public/${req.file.filename}`;
+        // Build full URL for SEO/OG tags (crawlers need absolute URLs)
+        const protocol = req.headers["x-forwarded-proto"] || req.protocol || "https";
+        const host = req.headers["x-forwarded-host"] || req.headers.host || "classi-fy.com";
+        const fullUrl = `${protocol}://${host}${relativePath}`;
+
+        res.json(successResponse({
+          url: relativePath,
+          fullUrl,
+          filename: req.file.filename,
+          size: req.file.size,
+          mimetype: req.file.mimetype,
+        }));
+      });
+    } catch (error: any) {
+      console.error("Upload public image error:", error);
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to upload image"));
+    }
+  });
+
   // ===== ADMIN NOTIFICATIONS MANAGEMENT =====
   app.get("/api/admin/notifications", adminMiddleware, async (req: any, res) => {
     try {

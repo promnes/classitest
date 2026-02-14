@@ -116,6 +116,12 @@ app.use(compression());
 
 // Serve uploaded files (task images, etc.)
 import path from "path";
+// Public images (SEO/OG) — long cache, no auth, crawler-friendly
+app.use("/uploads/public", express.static(path.join(process.cwd(), "uploads", "public"), {
+  maxAge: "30d",
+  immutable: true,
+  etag: true,
+}));
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
 // Allow Stripe webhook to use raw body for signature verification

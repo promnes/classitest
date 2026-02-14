@@ -11,7 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Save, Smartphone, Download, Globe, Shield, Palette, Bot, Info } from "lucide-react";
+import { Save, Smartphone, Download, Globe, Shield, Palette, Bot, Info, Upload, Image, Loader2, X } from "lucide-react";
 
 interface AppConfig {
   // Basic App Info
@@ -122,6 +122,31 @@ export function MobileAppSettingsTab({ token }: { token: string }) {
   const isRTL = i18n.language === "ar";
 
   const [config, setConfig] = useState<AppConfig>(DEFAULT_CONFIG);
+  const [uploadingField, setUploadingField] = useState<string | null>(null);
+
+  const handleImageUpload = async (field: keyof AppConfig, file: File) => {
+    setUploadingField(field);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch("/api/admin/upload-public-image", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.message || "Upload failed");
+      const data = json.data || json;
+      // Use fullUrl for SEO fields, relative path for internal use
+      const url = field === "appOgImage" ? data.fullUrl : data.url;
+      handleChange(field, url);
+      toast({ title: isRTL ? "تم رفع الصورة بنجاح" : "Image uploaded successfully" });
+    } catch (err: any) {
+      toast({ title: isRTL ? "فشل رفع الصورة" : "Image upload failed", description: err.message, variant: "destructive" });
+    } finally {
+      setUploadingField(null);
+    }
+  };
 
   const { data: settingsData, isLoading } = useQuery({
     queryKey: ["admin-app-settings"],
@@ -269,16 +294,51 @@ export function MobileAppSettingsTab({ token }: { token: string }) {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label>{isRTL ? "رابط أيقونة التطبيق" : "App Icon URL"}</Label>
-                <div className="flex items-center gap-4">
-                  <Input value={config.appIconUrl} onChange={(e) => handleChange("appIconUrl", e.target.value)} placeholder="/logo.jpg" className="flex-1" dir="ltr" />
-                  {config.appIconUrl && (
-                    <img src={config.appIconUrl} alt="App Icon" className="h-12 w-12 rounded-xl border object-cover" />
+                <Label>{isRTL ? "أيقونة التطبيق" : "App Icon"}</Label>
+                <div className="flex items-center gap-3">
+                  {config.appIconUrl ? (
+                    <div className="relative group">
+                      <img src={config.appIconUrl} alt="App Icon" className="h-16 w-16 rounded-xl border object-cover" />
+                      <button
+                        onClick={() => handleChange("appIconUrl", "")}
+                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className={`h-16 w-16 rounded-xl border-2 border-dashed flex items-center justify-center ${isDark ? "border-gray-600" : "border-gray-300"}`}>
+                      <Image className="w-6 h-6 text-gray-400" />
+                    </div>
                   )}
+                  <div className="flex-1 space-y-2">
+                    <div className="flex gap-2">
+                      <Input value={config.appIconUrl} onChange={(e) => handleChange("appIconUrl", e.target.value)} placeholder="/logo.jpg" className="flex-1" dir="ltr" />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={uploadingField === "appIconUrl"}
+                        onClick={() => {
+                          const input = document.createElement("input");
+                          input.type = "file";
+                          input.accept = "image/png,image/jpeg,image/webp,image/svg+xml";
+                          input.onchange = (e) => {
+                            const file = (e.target as HTMLInputElement).files?.[0];
+                            if (file) handleImageUpload("appIconUrl", file);
+                          };
+                          input.click();
+                        }}
+                      >
+                        {uploadingField === "appIconUrl" ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                        {isRTL ? "رفع" : "Upload"}
+                      </Button>
+                    </div>
+                    <p className={`text-xs ${isDark ? "text-gray-500" : "text-gray-400"}`}>
+                      {isRTL ? "يفضل 1024x1024 PNG مربعة — يمكنك لصق رابط أو رفع صورة" : "Preferably 1024x1024 square PNG — paste a URL or upload"}
+                    </p>
+                  </div>
                 </div>
-                <p className={`text-xs ${isDark ? "text-gray-500" : "text-gray-400"}`}>
-                  {isRTL ? "يفضل 1024x1024 PNG مربعة" : "Preferably 1024x1024 square PNG"}
-                </p>
               </div>
             </CardContent>
           </Card>
@@ -473,8 +533,51 @@ export function MobileAppSettingsTab({ token }: { token: string }) {
                   <Input value={config.appOgTitle} onChange={(e) => handleChange("appOgTitle", e.target.value)} />
                 </div>
                 <div className="space-y-2">
-                  <Label>OG Image URL</Label>
-                  <Input value={config.appOgImage} onChange={(e) => handleChange("appOgImage", e.target.value)} placeholder="https://classi-fy.com/og-app.png" dir="ltr" />
+                  <Label>OG Image</Label>
+                  <div className="flex items-center gap-3">
+                    {config.appOgImage ? (
+                      <div className="relative group">
+                        <img src={config.appOgImage} alt="OG" className="h-14 w-24 rounded-lg border object-cover" />
+                        <button
+                          onClick={() => handleChange("appOgImage", "")}
+                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className={`h-14 w-24 rounded-lg border-2 border-dashed flex items-center justify-center ${isDark ? "border-gray-600" : "border-gray-300"}`}>
+                        <Image className="w-5 h-5 text-gray-400" />
+                      </div>
+                    )}
+                    <div className="flex-1">
+                      <div className="flex gap-2">
+                        <Input value={config.appOgImage} onChange={(e) => handleChange("appOgImage", e.target.value)} placeholder="https://classi-fy.com/og-app.png" dir="ltr" className="flex-1" />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          disabled={uploadingField === "appOgImage"}
+                          onClick={() => {
+                            const input = document.createElement("input");
+                            input.type = "file";
+                            input.accept = "image/png,image/jpeg,image/webp";
+                            input.onchange = (e) => {
+                              const file = (e.target as HTMLInputElement).files?.[0];
+                              if (file) handleImageUpload("appOgImage", file);
+                            };
+                            input.click();
+                          }}
+                        >
+                          {uploadingField === "appOgImage" ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                          {isRTL ? "رفع" : "Upload"}
+                        </Button>
+                      </div>
+                      <p className={`text-xs mt-1 ${isDark ? "text-gray-500" : "text-gray-400"}`}>
+                        {isRTL ? "يفضل 1200x630 — الرابط الكامل مطلوب لمحركات البحث" : "Recommended 1200×630 — full URL required for search engines"}
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
               <div className="space-y-2">
