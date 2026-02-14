@@ -5,6 +5,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { LanguageSelector } from "@/components/LanguageSelector";
 import { PWAInstallButton } from "@/components/PWAInstallButton";
 import { SlidingAdsCarousel } from "@/components/SlidingAdsCarousel";
+import { Download } from "lucide-react";
 
 export const Home = (): JSX.Element => {
   const { t } = useTranslation();
@@ -124,6 +125,25 @@ export const Home = (): JSX.Element => {
             </h2>
             <p className={isDark ? "text-green-200" : "text-green-700"}>{t("gamesAndTasks")}</p>
           </button>
+        </div>
+
+        {/* Download App Button */}
+        <div className="mt-10 w-full max-w-md">
+          <a
+            href="/classify-app.apk"
+            download="Classify.apk"
+            className={`flex items-center justify-center gap-3 w-full py-4 px-6 rounded-2xl shadow-lg transition-all hover:-translate-y-1 hover:shadow-xl font-bold text-lg ${
+              isDark
+                ? "bg-gradient-to-r from-green-600 to-emerald-700 hover:from-green-500 hover:to-emerald-600 text-white"
+                : "bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-400 hover:to-emerald-500 text-white"
+            }`}
+          >
+            <Download className="w-6 h-6" />
+            <span>📱 {t("downloadApp")}</span>
+          </a>
+          <p className={`text-center text-sm mt-2 ${isDark ? "text-gray-400" : "text-purple-200"}`}>
+            Android APK • 6 MB
+          </p>
         </div>
       </main>
 

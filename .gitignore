@@ -69,3 +69,6 @@ ios/build/
 *.ipa
 *.apk
 *.aab
+
+# APK in public (deployed separately)
+client/public/classify-app.apk

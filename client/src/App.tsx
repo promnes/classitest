@@ -50,6 +50,7 @@ const LibraryDashboard = lazy(() => import("@/pages/LibraryDashboard"));
 const LibraryStore = lazy(() => import("@/pages/LibraryStore"));
 const ChildProfile = lazy(() => import("@/pages/ChildProfile"));
 const ChildSettings = lazy(() => import("@/pages/ChildSettings"));
+const DownloadApp = lazy(() => import("@/pages/DownloadApp"));
 
 function PageLoader() {
   const { t } = useTranslation();
@@ -170,6 +171,9 @@ function Router() {
       <Switch>
         <Route path="/" component={Home} />
         <Route path="/register" component={RegisterRedirect} />
+        <Route path="/download">
+          <ErrorBoundary><DownloadApp /></ErrorBoundary>
+        </Route>
         <Route path="/parent-auth">
           <ErrorBoundary><ParentAuth /></ErrorBoundary>
         </Route>
