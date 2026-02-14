@@ -61,7 +61,11 @@ uploads/*
 android/.gradle/
 android/build/
 android/app/build/
+android/keystore.properties
+android/*.keystore
+android/*.jks
 ios/Pods/
 ios/build/
 *.ipa
 *.apk
+*.aab
