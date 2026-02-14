@@ -673,6 +673,24 @@ DB_POOL_IDLE_TIMEOUT_MS=30000
 DB_POOL_CONNECT_TIMEOUT_MS=10000
 ```
 
+### High-throughput profile (optional)
+
+Use this profile only after confirming stable CPU, memory, and PostgreSQL headroom:
+
+```env
+NODE_CLUSTER_ENABLED=true
+WEB_CONCURRENCY=6
+DB_POOL_MAX=70
+DB_POOL_MIN=8
+DB_POOL_IDLE_TIMEOUT_MS=30000
+DB_POOL_CONNECT_TIMEOUT_MS=10000
+```
+
+Switching rule:
+
+- Start with the recommended profile.
+- Move to high-throughput only if P95/P99 stay stable and error rate remains near zero under load.
+
 Container memory profile:
 
 ```yaml
