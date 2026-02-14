@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>تحدي الرياضيات - Math Challenge</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    .game-container {
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 24px;
+      padding: 32px;
+      max-width: 480px;
+      width: 90%;
+      text-align: center;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      position: relative;
+      animation: slideUp 0.6s ease-out;
+    }
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(40px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .header {
+      margin-bottom: 24px;
+    }
+
+    .header h1 {
+      font-size: 28px;
+      color: #4c1d95;
+      margin-bottom: 8px;
+    }
+
+    .stats {
+      display: flex;
+      justify-content: center;
+      gap: 24px;
+      margin-bottom: 20px;
+    }
+
+    .stat {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .stat-value {
+      font-size: 32px;
+      font-weight: 800;
+      color: #7c3aed;
+    }
+
+    .stat-label {
+      font-size: 12px;
+      color: #6b7280;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .progress-bar {
+      width: 100%;
+      height: 8px;
+      background: #e5e7eb;
+      border-radius: 999px;
+      margin-bottom: 32px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #8b5cf6, #ec4899);
+      border-radius: 999px;
+      transition: width 0.4s ease;
+    }
+
+    .question-area {
+      margin-bottom: 32px;
+    }
+
+    .question {
+      font-size: 48px;
+      font-weight: 800;
+      color: #1f2937;
+      margin-bottom: 8px;
+      direction: ltr;
+    }
+
+    .question-hint {
+      font-size: 14px;
+      color: #9ca3af;
+    }
+
+    .answers-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .answer-btn {
+      padding: 16px;
+      font-size: 24px;
+      font-weight: 700;
+      border: 3px solid #e5e7eb;
+      border-radius: 16px;
+      background: white;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      color: #374151;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .answer-btn:hover {
+      border-color: #8b5cf6;
+      background: #f5f3ff;
+      transform: scale(1.03);
+    }
+
+    .answer-btn:active {
+      transform: scale(0.97);
+    }
+
+    .answer-btn.correct {
+      border-color: #10b981;
+      background: #d1fae5;
+      color: #065f46;
+      animation: pulse 0.4s ease;
+    }
+
+    .answer-btn.wrong {
+      border-color: #ef4444;
+      background: #fee2e2;
+      color: #991b1b;
+      animation: shake 0.4s ease;
+    }
+
+    .answer-btn:disabled {
+      cursor: default;
+      opacity: 0.7;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.08); }
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-8px); }
+      75% { transform: translateX(8px); }
+    }
+
+    .timer {
+      font-size: 14px;
+      color: #6b7280;
+      margin-bottom: 8px;
+    }
+
+    .timer-urgent {
+      color: #ef4444;
+      font-weight: 700;
+    }
+
+    /* Completion Screen */
+    .completion {
+      animation: slideUp 0.6s ease-out;
+    }
+
+    .completion .trophy {
+      font-size: 80px;
+      margin-bottom: 16px;
+      animation: bounce 1s infinite;
+    }
+
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-12px); }
+    }
+
+    .completion h2 {
+      font-size: 28px;
+      color: #4c1d95;
+      margin-bottom: 12px;
+    }
+
+    .completion .score {
+      font-size: 64px;
+      font-weight: 900;
+      background: linear-gradient(135deg, #8b5cf6, #ec4899);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .completion .score-label {
+      font-size: 16px;
+      color: #6b7280;
+      margin-bottom: 24px;
+    }
+
+    .result-details {
+      display: flex;
+      justify-content: center;
+      gap: 32px;
+      margin-bottom: 24px;
+    }
+
+    .result-item {
+      text-align: center;
+    }
+
+    .result-item .value {
+      font-size: 24px;
+      font-weight: 800;
+    }
+
+    .result-item .label {
+      font-size: 12px;
+      color: #9ca3af;
+    }
+
+    .result-item.correct-count .value { color: #10b981; }
+    .result-item.wrong-count .value { color: #ef4444; }
+    .result-item.time-count .value { color: #f59e0b; }
+
+    .play-again-btn {
+      padding: 14px 48px;
+      font-size: 18px;
+      font-weight: 700;
+      border: none;
+      border-radius: 16px;
+      background: linear-gradient(135deg, #8b5cf6, #ec4899);
+      color: white;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .play-again-btn:hover {
+      transform: scale(1.05);
+      box-shadow: 0 8px 24px rgba(139, 92, 246, 0.4);
+    }
+
+    /* Stars particles */
+    .star-particle {
+      position: fixed;
+      pointer-events: none;
+      font-size: 24px;
+      animation: float-up 1.5s ease-out forwards;
+      z-index: 999;
+    }
+
+    @keyframes float-up {
+      0% { opacity: 1; transform: translateY(0) scale(1) rotate(0deg); }
+      100% { opacity: 0; transform: translateY(-120px) scale(0.3) rotate(180deg); }
+    }
+
+    /* Start Screen */
+    .start-screen h1 {
+      font-size: 36px;
+      color: #4c1d95;
+      margin-bottom: 12px;
+    }
+
+    .start-screen .emoji {
+      font-size: 64px;
+      margin-bottom: 16px;
+    }
+
+    .start-screen p {
+      color: #6b7280;
+      margin-bottom: 8px;
+      font-size: 15px;
+    }
+
+    .start-screen .rules {
+      text-align: right;
+      margin: 16px 0 24px;
+      padding: 16px;
+      background: #f5f3ff;
+      border-radius: 12px;
+    }
+
+    .start-screen .rules li {
+      margin-bottom: 6px;
+      color: #4b5563;
+      font-size: 14px;
+    }
+
+    .start-btn {
+      padding: 16px 64px;
+      font-size: 20px;
+      font-weight: 700;
+      border: none;
+      border-radius: 16px;
+      background: linear-gradient(135deg, #8b5cf6, #ec4899);
+      color: white;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .start-btn:hover {
+      transform: scale(1.05);
+      box-shadow: 0 8px 24px rgba(139, 92, 246, 0.4);
+    }
+
+    .difficulty-select {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+
+    .diff-btn {
+      padding: 8px 20px;
+      border: 2px solid #e5e7eb;
+      border-radius: 12px;
+      background: white;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      transition: all 0.2s;
+      color: #4b5563;
+    }
+
+    .diff-btn.active {
+      border-color: #8b5cf6;
+      background: #f5f3ff;
+      color: #7c3aed;
+    }
+
+    .diff-btn:hover {
+      border-color: #8b5cf6;
+    }
+  </style>
+</head>
+<body>
+  <div class="game-container" id="game">
+    <!-- Start Screen -->
+    <div id="start-screen" class="start-screen">
+      <div class="emoji">🧮</div>
+      <h1>تحدي الرياضيات</h1>
+      <p>أجب على 10 أسئلة رياضية بأسرع وقت!</p>
+
+      <div class="rules">
+        <ul>
+          <li>🎯 10 أسئلة متنوعة (جمع، طرح، ضرب)</li>
+          <li>⏱️ 15 ثانية لكل سؤال</li>
+          <li>⭐ نقطة لكل إجابة صحيحة</li>
+          <li>🏆 حاول الحصول على 10/10!</li>
+        </ul>
+      </div>
+
+      <p style="font-weight:600; margin-bottom:12px;">اختر المستوى:</p>
+      <div class="difficulty-select">
+        <button class="diff-btn" data-diff="easy" onclick="setDifficulty('easy')">سهل</button>
+        <button class="diff-btn active" data-diff="medium" onclick="setDifficulty('medium')">متوسط</button>
+        <button class="diff-btn" data-diff="hard" onclick="setDifficulty('hard')">صعب</button>
+      </div>
+
+      <button class="start-btn" onclick="startGame()">🚀 ابدأ اللعب</button>
+    </div>
+
+    <!-- Game Screen -->
+    <div id="game-screen" style="display:none;">
+      <div class="header">
+        <h1>تحدي الرياضيات 🧮</h1>
+      </div>
+
+      <div class="stats">
+        <div class="stat">
+          <span class="stat-value" id="score">0</span>
+          <span class="stat-label">النقاط</span>
+        </div>
+        <div class="stat">
+          <span class="stat-value" id="question-num">1</span>
+          <span class="stat-label">السؤال</span>
+        </div>
+      </div>
+
+      <div class="progress-bar">
+        <div class="progress-fill" id="progress" style="width: 10%"></div>
+      </div>
+
+      <div class="timer" id="timer">⏱️ 15 ثانية</div>
+
+      <div class="question-area">
+        <div class="question" id="question">5 + 3 = ?</div>
+        <div class="question-hint" id="hint"></div>
+      </div>
+
+      <div class="answers-grid" id="answers">
+        <!-- Generated dynamically -->
+      </div>
+    </div>
+
+    <!-- Completion Screen -->
+    <div id="completion-screen" class="completion" style="display:none;">
+      <div class="trophy">🏆</div>
+      <h2 id="completion-title">أحسنت!</h2>
+      <div class="score" id="final-score">8</div>
+      <div class="score-label">من 10</div>
+
+      <div class="result-details">
+        <div class="result-item correct-count">
+          <div class="value" id="correct-count">8</div>
+          <div class="label">صحيح ✅</div>
+        </div>
+        <div class="result-item wrong-count">
+          <div class="value" id="wrong-count">2</div>
+          <div class="label">خطأ ❌</div>
+        </div>
+        <div class="result-item time-count">
+          <div class="value" id="total-time">45s</div>
+          <div class="label">الوقت ⏱️</div>
+        </div>
+      </div>
+
+      <button class="play-again-btn" onclick="resetGame()">🔄 العب مرة أخرى</button>
+    </div>
+  </div>
+
+  <script>
+    // Game State
+    let currentQuestion = 0;
+    let score = 0;
+    let totalQuestions = 10;
+    let questions = [];
+    let timer = null;
+    let timeLeft = 15;
+    let startTime = 0;
+    let difficulty = 'medium';
+    let answering = false;
+
+    function setDifficulty(diff) {
+      difficulty = diff;
+      document.querySelectorAll('.diff-btn').forEach(b => b.classList.remove('active'));
+      document.querySelector(`[data-diff="${diff}"]`).classList.add('active');
+    }
+
+    function generateQuestion() {
+      const ops = ['+', '-', '×'];
+      const op = ops[Math.floor(Math.random() * ops.length)];
+      let a, b, answer;
+
+      const ranges = {
+        easy:   { add: 20, sub: 15, mul: 5 },
+        medium: { add: 50, sub: 30, mul: 10 },
+        hard:   { add: 100, sub: 50, mul: 12 }
+      };
+      const r = ranges[difficulty];
+
+      switch (op) {
+        case '+':
+          a = Math.floor(Math.random() * r.add) + 1;
+          b = Math.floor(Math.random() * r.add) + 1;
+          answer = a + b;
+          break;
+        case '-':
+          a = Math.floor(Math.random() * r.sub) + 1;
+          b = Math.floor(Math.random() * a) + 1; // ensure positive result
+          answer = a - b;
+          break;
+        case '×':
+          a = Math.floor(Math.random() * r.mul) + 1;
+          b = Math.floor(Math.random() * r.mul) + 1;
+          answer = a * b;
+          break;
+      }
+
+      // Generate wrong answers
+      const wrongAnswers = new Set();
+      while (wrongAnswers.size < 3) {
+        let wrong;
+        const offset = Math.floor(Math.random() * 10) + 1;
+        wrong = Math.random() < 0.5 ? answer + offset : answer - offset;
+        if (wrong !== answer && wrong >= 0 && !wrongAnswers.has(wrong)) {
+          wrongAnswers.add(wrong);
+        }
+      }
+
+      const options = [answer, ...wrongAnswers];
+      // Shuffle
+      for (let i = options.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [options[i], options[j]] = [options[j], options[i]];
+      }
+
+      return { text: `${a} ${op} ${b} = ?`, answer, options };
+    }
+
+    function generateAllQuestions() {
+      questions = [];
+      for (let i = 0; i < totalQuestions; i++) {
+        questions.push(generateQuestion());
+      }
+    }
+
+    function startGame() {
+      generateAllQuestions();
+      currentQuestion = 0;
+      score = 0;
+      startTime = Date.now();
+      
+      document.getElementById('start-screen').style.display = 'none';
+      document.getElementById('game-screen').style.display = 'block';
+      document.getElementById('completion-screen').style.display = 'none';
+      
+      showQuestion();
+    }
+
+    function showQuestion() {
+      if (currentQuestion >= totalQuestions) {
+        showCompletion();
+        return;
+      }
+
+      answering = false;
+      const q = questions[currentQuestion];
+      
+      document.getElementById('question').textContent = q.text;
+      document.getElementById('question-num').textContent = currentQuestion + 1;
+      document.getElementById('score').textContent = score;
+      document.getElementById('progress').style.width = `${((currentQuestion + 1) / totalQuestions) * 100}%`;
+
+      const answersDiv = document.getElementById('answers');
+      answersDiv.innerHTML = '';
+      
+      q.options.forEach((opt, i) => {
+        const btn = document.createElement('button');
+        btn.className = 'answer-btn';
+        btn.textContent = opt;
+        btn.onclick = () => selectAnswer(opt, btn);
+        btn.setAttribute('data-testid', `answer-${i}`);
+        answersDiv.appendChild(btn);
+      });
+
+      // Start timer
+      timeLeft = 15;
+      updateTimerDisplay();
+      clearInterval(timer);
+      timer = setInterval(() => {
+        timeLeft--;
+        updateTimerDisplay();
+        if (timeLeft <= 0) {
+          clearInterval(timer);
+          timeUp();
+        }
+      }, 1000);
+    }
+
+    function updateTimerDisplay() {
+      const el = document.getElementById('timer');
+      el.textContent = `⏱️ ${timeLeft} ثانية`;
+      el.className = timeLeft <= 5 ? 'timer timer-urgent' : 'timer';
+    }
+
+    function selectAnswer(selected, btn) {
+      if (answering) return;
+      answering = true;
+      clearInterval(timer);
+
+      const q = questions[currentQuestion];
+      const allBtns = document.querySelectorAll('.answer-btn');
+      allBtns.forEach(b => b.disabled = true);
+
+      if (selected === q.answer) {
+        btn.classList.add('correct');
+        score++;
+        spawnStars(btn);
+      } else {
+        btn.classList.add('wrong');
+        // Highlight correct
+        allBtns.forEach(b => {
+          if (parseInt(b.textContent) === q.answer) {
+            b.classList.add('correct');
+          }
+        });
+      }
+
+      currentQuestion++;
+      setTimeout(showQuestion, 1200);
+    }
+
+    function timeUp() {
+      answering = true;
+      const q = questions[currentQuestion];
+      const allBtns = document.querySelectorAll('.answer-btn');
+      allBtns.forEach(b => {
+        b.disabled = true;
+        if (parseInt(b.textContent) === q.answer) {
+          b.classList.add('correct');
+        }
+      });
+      
+      document.getElementById('hint').textContent = '⏰ انتهى الوقت!';
+      currentQuestion++;
+      setTimeout(() => {
+        document.getElementById('hint').textContent = '';
+        showQuestion();
+      }, 1500);
+    }
+
+    function spawnStars(btn) {
+      const rect = btn.getBoundingClientRect();
+      for (let i = 0; i < 5; i++) {
+        const star = document.createElement('div');
+        star.className = 'star-particle';
+        star.textContent = ['⭐', '✨', '🌟'][Math.floor(Math.random() * 3)];
+        star.style.left = `${rect.left + Math.random() * rect.width}px`;
+        star.style.top = `${rect.top}px`;
+        document.body.appendChild(star);
+        setTimeout(() => star.remove(), 1500);
+      }
+    }
+
+    function showCompletion() {
+      clearInterval(timer);
+      const elapsed = Math.round((Date.now() - startTime) / 1000);
+      
+      document.getElementById('game-screen').style.display = 'none';
+      document.getElementById('completion-screen').style.display = 'block';
+
+      document.getElementById('final-score').textContent = score;
+      document.getElementById('correct-count').textContent = score;
+      document.getElementById('wrong-count').textContent = totalQuestions - score;
+      document.getElementById('total-time').textContent = `${elapsed}s`;
+
+      // Title based on score
+      const titles = {
+        10: '🌟 ممتاز! عبقري! 🌟',
+        8: '🎉 أحسنت! رائع!',
+        6: '👍 جيد جداً!',
+        4: '💪 حاول مرة أخرى!',
+        0: '📚 تحتاج تدريب أكثر'
+      };
+      
+      let title = titles[0];
+      if (score >= 10) title = titles[10];
+      else if (score >= 8) title = titles[8];
+      else if (score >= 6) title = titles[6];
+      else if (score >= 4) title = titles[4];
+
+      document.getElementById('completion-title').textContent = title;
+
+      // Victory stars
+      if (score >= 8) {
+        for (let i = 0; i < 15; i++) {
+          setTimeout(() => {
+            const star = document.createElement('div');
+            star.className = 'star-particle';
+            star.textContent = ['⭐', '✨', '🌟', '🎉', '🏆'][Math.floor(Math.random() * 5)];
+            star.style.left = `${Math.random() * window.innerWidth}px`;
+            star.style.top = `${window.innerHeight * 0.6}px`;
+            document.body.appendChild(star);
+            setTimeout(() => star.remove(), 1500);
+          }, i * 100);
+        }
+      }
+    }
+
+    function resetGame() {
+      document.getElementById('completion-screen').style.display = 'none';
+      document.getElementById('start-screen').style.display = 'block';
+    }
+  </script>
+</body>
+</html>

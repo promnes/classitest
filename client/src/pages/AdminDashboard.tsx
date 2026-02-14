@@ -34,8 +34,9 @@ import { NotificationSettingsTab } from "@/components/admin/NotificationSettings
 import { GamesTab } from "@/components/admin/GamesTab";
 import { TasksTab } from "@/components/admin/TasksTab";
 import { TaskNotificationLevelsTab } from "@/components/admin/TaskNotificationLevelsTab";
+import { LegalTab } from "@/components/admin/LegalTab";
 
-type TabType = "dashboard" | "products" | "categories" | "symbols" | "users" | "settings" | "wallets" | "orders" | "deposits" | "activity" | "analytics" | "payment-methods" | "subjects" | "notifications" | "notification-settings" | "task-notification-levels" | "gifts" | "referrals" | "ads" | "parents" | "profits" | "libraries" | "games" | "tasks" | "social-login" | "otp-providers" | "seo" | "support";
+type TabType = "dashboard" | "products" | "categories" | "symbols" | "users" | "settings" | "wallets" | "orders" | "deposits" | "activity" | "analytics" | "payment-methods" | "subjects" | "notifications" | "notification-settings" | "task-notification-levels" | "gifts" | "referrals" | "ads" | "parents" | "profits" | "libraries" | "games" | "tasks" | "social-login" | "otp-providers" | "seo" | "support" | "legal";
 
 export const AdminDashboard = (): JSX.Element => {
   const { t, i18n } = useTranslation();
@@ -86,6 +87,7 @@ export const AdminDashboard = (): JSX.Element => {
     { id: "otp-providers", labelKey: "admin.otpProviders", icon: "📱" },
     { id: "seo", labelKey: "admin.seoSettings", icon: "🔍" },
     { id: "support", labelKey: "admin.supportSettings", icon: "📞" },
+    { id: "legal", labelKey: "admin.legalPages", icon: "📜" },
     { id: "settings", labelKey: "admin.settings", icon: "⚙️" },
   ];
 
@@ -178,6 +180,7 @@ export const AdminDashboard = (): JSX.Element => {
           {activeTab === "otp-providers" && <OTPProvidersTab />}
           {activeTab === "seo" && <SeoSettingsTab />}
           {activeTab === "support" && <SupportSettingsTab />}
+          {activeTab === "legal" && <LegalTab token={token} />}
           {activeTab === "settings" && <SettingsTab token={token} />}
         </div>
       </div>

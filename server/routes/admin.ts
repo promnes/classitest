@@ -4438,4 +4438,108 @@ export async function registerAdminRoutes(app: Express) {
         .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to initialize OTP providers"));
     }
   });
+
+  // ===== Legal Pages Management (Privacy & Terms) =====
+
+  // GET /api/admin/legal — Get privacy & terms content (admin)
+  app.get("/api/admin/legal", adminMiddleware, async (req: any, res) => {
+    try {
+      const settings = await db.select().from(siteSettings).where(
+        or(
+          eq(siteSettings.key, 'legal_privacy'),
+          eq(siteSettings.key, 'legal_terms'),
+          eq(siteSettings.key, 'legal_privacy_updated_at'),
+          eq(siteSettings.key, 'legal_terms_updated_at')
+        )
+      );
+      const getValue = (key: string) => {
+        const s = settings.find((s: any) => s.key === key);
+        return s?.value || "";
+      };
+      res.json(successResponse({
+        privacy: getValue('legal_privacy'),
+        terms: getValue('legal_terms'),
+        privacyUpdatedAt: getValue('legal_privacy_updated_at'),
+        termsUpdatedAt: getValue('legal_terms_updated_at'),
+      }));
+    } catch (error: any) {
+      console.error("Fetch legal pages error:", error);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to fetch legal pages"));
+    }
+  });
+
+  // POST /api/admin/legal — Save privacy or terms + notify all parents
+  app.post("/api/admin/legal", adminMiddleware, async (req: any, res) => {
+    try {
+      const { type, content } = req.body;
+      if (!type || !['privacy', 'terms'].includes(type)) {
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "type must be 'privacy' or 'terms'"));
+      }
+      if (!content || typeof content !== 'string' || content.trim().length < 10) {
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Content must be at least 10 characters"));
+      }
+
+      const key = type === 'privacy' ? 'legal_privacy' : 'legal_terms';
+      const timestampKey = `${key}_updated_at`;
+      const now = new Date().toISOString();
+
+      // Upsert content
+      await db.insert(siteSettings)
+        .values({ key, value: content.trim() })
+        .onConflictDoUpdate({ target: siteSettings.key, set: { value: content.trim(), updatedAt: new Date() } });
+
+      // Upsert timestamp
+      await db.insert(siteSettings)
+        .values({ key: timestampKey, value: now })
+        .onConflictDoUpdate({ target: siteSettings.key, set: { value: now, updatedAt: new Date() } });
+
+      // Notify all parents
+      const allParentsList = await db.select({ id: parents.id }).from(parents);
+      const label = type === 'privacy' ? 'سياسة الخصوصية' : 'شروط الاستخدام';
+      const notifTitle = `📋 تحديث ${label}`;
+      const notifMessage = `تم تحديث ${label}. يرجى مراجعتها من خلال الإعدادات أو الصفحة الرئيسية.`;
+
+      // Insert notification for each parent
+      for (const p of allParentsList) {
+        await db.insert(parentNotifications).values({
+          parentId: p.id,
+          adminId: req.admin.adminId,
+          title: notifTitle,
+          message: notifMessage,
+        });
+      }
+
+      res.json(successResponse({
+        type,
+        updatedAt: now,
+        notifiedParents: allParentsList.length,
+      }, `تم حفظ ${label} وإشعار ${allParentsList.length} ولي أمر`));
+    } catch (error: any) {
+      console.error("Save legal page error:", error);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to save legal page"));
+    }
+  });
+
+  // GET /api/legal/:type — Public endpoint (no auth) for privacy/terms
+  app.get("/api/legal/:type", async (req, res) => {
+    try {
+      const { type } = req.params;
+      if (!['privacy', 'terms'].includes(type)) {
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "type must be 'privacy' or 'terms'"));
+      }
+      const key = type === 'privacy' ? 'legal_privacy' : 'legal_terms';
+      const timestampKey = `${key}_updated_at`;
+
+      const settings = await db.select().from(siteSettings).where(
+        or(eq(siteSettings.key, key), eq(siteSettings.key, timestampKey))
+      );
+      const content = settings.find((s: any) => s.key === key)?.value || "";
+      const updatedAt = settings.find((s: any) => s.key === timestampKey)?.value || "";
+
+      res.json(successResponse({ type, content, updatedAt }));
+    } catch (error: any) {
+      console.error("Fetch legal page error:", error);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to fetch legal page"));
+    }
+  });
 }
