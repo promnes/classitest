@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { storage } from "../storage";
-import { parents, otpCodes, otpRequestLogs, sessions, loginHistory, trustedDevices, socialLoginProviders, otpProviders, libraries, libraryReferrals, parentReferralCodes, referrals, parentWallet } from "../../shared/schema";
-import { eq, and, gt, isNull, desc, or } from "drizzle-orm";
+import { parents, otpCodes, otpRequestLogs, sessions, loginHistory, trustedDevices, socialLoginProviders, otpProviders, libraries, libraryReferrals, parentReferralCodes, referrals, parentWallet, referralSettings } from "../../shared/schema";
+import { eq, and, gt, isNull, desc, or, sql } from "drizzle-orm";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import { JWT_SECRET, authMiddleware } from "./middleware";
@@ -222,21 +222,60 @@ export async function registerAuthRoutes(app: Express) {
                 .limit(1);
 
               if (!existingReferral[0]) {
+                // Get reward points from settings
+                const settingsRows = await db.select().from(referralSettings);
+                const rewardPoints = settingsRows[0]?.pointsPerReferral ?? 100;
+
+                // Create referral record as rewarded directly
                 await db.insert(referrals).values({
                   referrerId: codeRecord[0].parentId,
                   referredId: result[0].id,
                   referralCode: normalizedCode,
-                  status: "pending",
-                  pointsAwarded: 0,
+                  status: "rewarded",
+                  pointsAwarded: rewardPoints,
+                  activatedAt: new Date(),
+                  rewardedAt: new Date(),
                 });
 
-                // Update referral code stats
+                // Update referral code stats (total + active + points)
                 await db
                   .update(parentReferralCodes)
                   .set({
                     totalReferrals: (codeRecord[0].totalReferrals || 0) + 1,
+                    activeReferrals: (codeRecord[0].activeReferrals || 0) + 1,
+                    totalPointsEarned: (codeRecord[0].totalPointsEarned || 0) + rewardPoints,
                   })
                   .where(eq(parentReferralCodes.id, codeRecord[0].id));
+
+                // Award points to referrer's wallet
+                const wallet = await db.select().from(parentWallet).where(eq(parentWallet.parentId, codeRecord[0].parentId));
+                if (wallet[0]) {
+                  await db.update(parentWallet)
+                    .set({
+                      balance: sql`${parentWallet.balance} + ${rewardPoints}`,
+                      updatedAt: new Date(),
+                    })
+                    .where(eq(parentWallet.parentId, codeRecord[0].parentId));
+                } else {
+                  await db.insert(parentWallet).values({
+                    parentId: codeRecord[0].parentId,
+                    balance: rewardPoints.toString(),
+                  });
+                }
+
+                // Notify referrer
+                try {
+                  const { createNotification } = await import("../notifications");
+                  await createNotification({
+                    parentId: codeRecord[0].parentId,
+                    type: "referral_reward",
+                    title: "مكافأة الإحالة! 🎉",
+                    message: `تهانينا! حصلت على ${rewardPoints} نقطة لأن شخصاً سجّل من خلال رابط الإحالة الخاص بك!`,
+                    relatedId: result[0].id,
+                  });
+                } catch (notifyErr) {
+                  console.error("Referral notification failed:", notifyErr);
+                }
               }
             }
           }
