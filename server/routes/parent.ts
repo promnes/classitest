@@ -24,6 +24,7 @@ import {
   seoSettings,
   supportSettings,
   tasksSettings,
+  outboxEvents,
 } from "../../shared/schema";
 import {
   parentPurchases,
@@ -2595,6 +2596,17 @@ export async function registerParentRoutes(app: Express) {
         metadata: { taskId: newTask[0].id },
       });
 
+      await db.insert(outboxEvents).values({
+        type: "TASK_ASSIGNED_NOTIFY",
+        payloadJson: {
+          taskId: newTask[0].id,
+          childId,
+          parentId,
+          title: title || null,
+          source: "create-and-send-task",
+        },
+      });
+
       res.json({ 
         success: true, 
         data: { 
@@ -2779,6 +2791,17 @@ export async function registerParentRoutes(app: Express) {
         message: `لديك مهمة جديدة: ${template[0].title}`,
         relatedId: newTask[0].id,
         metadata: { taskId: newTask[0].id },
+      });
+
+      await db.insert(outboxEvents).values({
+        type: "TASK_ASSIGNED_NOTIFY",
+        payloadJson: {
+          taskId: newTask[0].id,
+          childId,
+          parentId: buyerParentId,
+          title: template[0].title || null,
+          source: "send-template-task",
+        },
       });
 
       res.json({ success: true, data: newTask[0] });

@@ -20,6 +20,7 @@ import {
   childGifts,
   childEvents,
   childNotificationSettings,
+  childPushSubscriptions,
   gifts,
   entitlements,
   activityLog,
@@ -1517,6 +1518,112 @@ export async function registerChildRoutes(app: Express) {
     } catch (error: any) {
       console.error("Update notification settings error:", error);
       res.status(500).json({ message: "Failed to update settings" });
+    }
+  });
+
+  app.get("/api/child/push-subscriptions", authMiddleware, async (req: any, res) => {
+    try {
+      const childId = req.user.childId;
+      const rows = await db
+        .select()
+        .from(childPushSubscriptions)
+        .where(eq(childPushSubscriptions.childId, childId));
+
+      res.json({ success: true, data: rows });
+    } catch (error: any) {
+      console.error("Get child push subscriptions error:", error);
+      res.status(500).json({ success: false, error: "INTERNAL_SERVER_ERROR", message: "Failed to fetch push subscriptions" });
+    }
+  });
+
+  app.post("/api/child/push-subscriptions", authMiddleware, async (req: any, res) => {
+    try {
+      const childId = req.user.childId;
+      const { platform, endpoint, token, p256dh, auth, deviceId } = req.body || {};
+
+      if (!platform || !["web", "android", "ios"].includes(platform)) {
+        return res.status(400).json({ success: false, error: "BAD_REQUEST", message: "platform must be one of: web, android, ios" });
+      }
+
+      if (!endpoint && !token) {
+        return res.status(400).json({ success: false, error: "BAD_REQUEST", message: "endpoint or token is required" });
+      }
+
+      const existingRows = await db
+        .select()
+        .from(childPushSubscriptions)
+        .where(eq(childPushSubscriptions.childId, childId));
+
+      const existing = existingRows.find((row: any) => {
+        if (deviceId && row.deviceId && row.deviceId === deviceId && row.platform === platform) return true;
+        if (endpoint && row.endpoint && row.endpoint === endpoint) return true;
+        if (token && row.token && row.token === token) return true;
+        return false;
+      });
+
+      if (existing) {
+        const [updated] = await db
+          .update(childPushSubscriptions)
+          .set({
+            platform,
+            endpoint: endpoint || null,
+            token: token || null,
+            p256dh: p256dh || null,
+            auth: auth || null,
+            deviceId: deviceId || null,
+            isActive: true,
+            lastSeenAt: new Date(),
+            updatedAt: new Date(),
+          })
+          .where(eq(childPushSubscriptions.id, existing.id))
+          .returning();
+        return res.json({ success: true, data: updated });
+      }
+
+      const [created] = await db
+        .insert(childPushSubscriptions)
+        .values({
+          childId,
+          platform,
+          endpoint: endpoint || null,
+          token: token || null,
+          p256dh: p256dh || null,
+          auth: auth || null,
+          deviceId: deviceId || null,
+          isActive: true,
+        })
+        .returning();
+
+      res.json({ success: true, data: created });
+    } catch (error: any) {
+      console.error("Upsert child push subscription error:", error);
+      res.status(500).json({ success: false, error: "INTERNAL_SERVER_ERROR", message: "Failed to save push subscription" });
+    }
+  });
+
+  app.delete("/api/child/push-subscriptions/:id", authMiddleware, async (req: any, res) => {
+    try {
+      const childId = req.user.childId;
+      const { id } = req.params;
+
+      const row = await db
+        .select()
+        .from(childPushSubscriptions)
+        .where(eq(childPushSubscriptions.id, id));
+
+      if (!row[0] || row[0].childId !== childId) {
+        return res.status(404).json({ success: false, error: "NOT_FOUND", message: "Subscription not found" });
+      }
+
+      await db
+        .update(childPushSubscriptions)
+        .set({ isActive: false, updatedAt: new Date() })
+        .where(eq(childPushSubscriptions.id, id));
+
+      res.json({ success: true, message: "Push subscription deactivated" });
+    } catch (error: any) {
+      console.error("Delete child push subscription error:", error);
+      res.status(500).json({ success: false, error: "INTERNAL_SERVER_ERROR", message: "Failed to remove push subscription" });
     }
   });
 
