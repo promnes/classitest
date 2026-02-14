@@ -187,7 +187,8 @@ function ChildReportCard({ child, token, isDark, t }: { child: any; token: strin
 
 export const ParentDashboard = (): JSX.Element => {
   const [, navigate] = useLocation();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isRTL = i18n.language === "ar";
   const { isDark, toggleTheme } = useTheme();
   const token = localStorage.getItem("token");
   const [cartCount, setCartCount] = useState(0);

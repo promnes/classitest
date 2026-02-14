@@ -27,7 +27,6 @@ import {
 } from "lucide-react";
 import { getDateLocale } from "@/i18n/config";
 import { useToast } from "@/hooks/use-toast";
-import { getDateLocale } from "@/i18n/config";
 
 interface Referral {
   id: string;
