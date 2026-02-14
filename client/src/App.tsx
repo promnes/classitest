@@ -160,11 +160,16 @@ function LegacyLibraryStoreRedirect() {
   return <Redirect to={`/library-store${window.location.search || ""}`} replace />;
 }
 
+function RegisterRedirect() {
+  return <Redirect to={`/parent-auth${window.location.search || ""}`} replace />;
+}
+
 function Router() {
   return (
     <Suspense fallback={<PageLoader />}>
       <Switch>
         <Route path="/" component={Home} />
+        <Route path="/register" component={RegisterRedirect} />
         <Route path="/parent-auth">
           <ErrorBoundary><ParentAuth /></ErrorBoundary>
         </Route>

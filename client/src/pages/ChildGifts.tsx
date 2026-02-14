@@ -25,6 +25,7 @@ export const ChildGifts = (): JSX.Element => {
       const json = await res.json();
       return json?.data || json || [];
     },
+    refetchInterval: token ? 15000 : false,
   });
 
   const { data: childInfo } = useQuery({
@@ -35,6 +36,7 @@ export const ChildGifts = (): JSX.Element => {
       });
       return res.json();
     },
+    refetchInterval: token ? 30000 : false,
   });
 
   const redeemMutation = useMutation({

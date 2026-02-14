@@ -54,6 +54,7 @@ export const ChildProgress = (): JSX.Element => {
       return res.json();
     },
     enabled: !!token,
+    refetchInterval: token ? 30000 : false,
   });
 
   const { data: childInfo } = useQuery({
@@ -65,6 +66,7 @@ export const ChildProgress = (): JSX.Element => {
       return res.json();
     },
     enabled: !!token,
+    refetchInterval: token ? 30000 : false,
   });
 
   const progress = progressData?.data;

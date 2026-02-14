@@ -201,16 +201,19 @@ export const ParentDashboard = (): JSX.Element => {
   const { data: parentInfo } = useQuery({
     queryKey: ["/api/parent/info"],
     enabled: !!token,
+    refetchInterval: token ? 30000 : false,
   });
 
   const { data: children } = useQuery({
     queryKey: ["/api/parent/children"],
     enabled: !!token,
+    refetchInterval: token ? 30000 : false,
   });
 
   const { data: wallet } = useQuery({
     queryKey: ["/api/parent/wallet"],
     enabled: !!token,
+    refetchInterval: token ? 15000 : false,
   });
 
   const { data: notifications } = useQuery({
@@ -228,36 +231,43 @@ export const ParentDashboard = (): JSX.Element => {
   const { data: referralStats } = useQuery({
     queryKey: ["/api/parent/referral-stats"],
     enabled: !!token,
+    refetchInterval: token ? 30000 : false,
   });
 
   const { data: parentAds } = useQuery({
     queryKey: ["/api/parent/ads"],
     enabled: !!token,
+    refetchInterval: token ? 60000 : false,
   });
 
   const { data: recentOrders } = useQuery({
     queryKey: ["/api/parent/store/orders"],
     enabled: !!token,
+    refetchInterval: token ? 30000 : false,
   });
 
   const { data: ownedProducts } = useQuery({
     queryKey: ["/api/parent/owned-products"],
     enabled: !!token,
+    refetchInterval: token ? 30000 : false,
   });
 
   const { data: tasks } = useQuery({
     queryKey: ["/api/parent/tasks"],
     enabled: !!token,
+    refetchInterval: token ? 30000 : false,
   });
 
   const { data: subjects } = useQuery({
     queryKey: ["/api/subjects"],
     enabled: !!token,
+    refetchInterval: token ? 60000 : false,
   });
 
   const { data: tasksBySubject } = useQuery({
     queryKey: ["/api/parent/tasks/by-subject"],
     enabled: !!token,
+    refetchInterval: token ? 30000 : false,
   });
 
   const { data: purchaseRequests } = useQuery({

@@ -31,11 +31,13 @@ export const ChildTasks = (): JSX.Element => {
   const { data: tasksRaw, isLoading } = useQuery({
     queryKey: ["/api/child/tasks"],
     enabled: !!token,
+    refetchInterval: token ? 15000 : false,
   });
 
   const { data: childInfo } = useQuery({
     queryKey: ["/api/child/info"],
     enabled: !!token,
+    refetchInterval: token ? 30000 : false,
   });
 
   const tasks: Task[] = Array.isArray(tasksRaw) ? tasksRaw : [];

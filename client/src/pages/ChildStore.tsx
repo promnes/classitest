@@ -83,6 +83,7 @@ export const ChildStore = (): JSX.Element => {
       return json?.data || json || [];
     },
     enabled: !!token,
+    refetchInterval: token ? 60000 : false,
   });
 
   const { data: productsData, isLoading: loadingProducts } = useQuery({
@@ -99,6 +100,7 @@ export const ChildStore = (): JSX.Element => {
       return json?.data || json || [];
     },
     enabled: !!token,
+    refetchInterval: token ? 30000 : false,
   });
 
   const { data: childInfo } = useQuery({
@@ -110,6 +112,7 @@ export const ChildStore = (): JSX.Element => {
       return res.json();
     },
     enabled: !!token,
+    refetchInterval: token ? 15000 : false,
   });
 
   const checkoutMutation = useMutation({

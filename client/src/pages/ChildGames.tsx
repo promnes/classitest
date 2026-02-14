@@ -41,6 +41,7 @@ export const ChildGames = (): JSX.Element => {
       const res = await fetch("/api/games", { headers });
       return res.json();
     },
+    refetchInterval: 60000,
   });
 
   const { data: tasks } = useQuery({
@@ -52,6 +53,7 @@ export const ChildGames = (): JSX.Element => {
       return res.json();
     },
     enabled: !!token,
+    refetchInterval: token ? 15000 : false,
   });
 
   const { data: childInfo } = useQuery({
@@ -63,6 +65,7 @@ export const ChildGames = (): JSX.Element => {
       return res.json();
     },
     enabled: !!token,
+    refetchInterval: token ? 30000 : false,
   });
 
   const completeGameMutation = useMutation({

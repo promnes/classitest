@@ -11,6 +11,7 @@ export default function ChildRewards() {
   const { data: rewardsRaw, isLoading } = useQuery({
     queryKey: ["/api/child/rewards"],
     enabled: !!token,
+    refetchInterval: token ? 30000 : false,
   });
   
   const rewards = Array.isArray(rewardsRaw) ? rewardsRaw : [];

@@ -91,6 +91,7 @@ export const ChildNotifications = (): JSX.Element => {
       return json?.data || [];
     },
     enabled: !!token,
+    refetchInterval: token ? 10000 : false,
   });
 
   const { data: childInfo } = useQuery({
@@ -102,6 +103,7 @@ export const ChildNotifications = (): JSX.Element => {
       return res.json();
     },
     enabled: !!token,
+    refetchInterval: token ? 30000 : false,
   });
 
   const markAsRead = async (id: string) => {
