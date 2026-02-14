@@ -1150,6 +1150,28 @@ export const ParentDashboard = (): JSX.Element => {
                       {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                     </Button>
                   </div>
+                  {/* Referral Link - Visible */}
+                  {referralData?.shareLink && (
+                    <div className="bg-white/10 rounded-lg p-3 mb-3">
+                      <p className="text-xs opacity-70 mb-1">{isRTL ? "رابط الإحالة الخاص بك:" : "Your referral link:"}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="flex-1 font-mono text-sm break-all select-all text-yellow-200" dir="ltr">
+                          {referralData.shareLink}
+                        </p>
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => {
+                            navigator.clipboard.writeText(referralData.shareLink);
+                            toast({ title: t('parentDashboard.linkCopied') || (isRTL ? "تم نسخ الرابط!" : "Link copied!") });
+                          }}
+                          data-testid="button-copy-referral-link"
+                        >
+                          {<Copy className="h-4 w-4" />}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                   {/* Share Referral Link on Social Media */}
                   {referralData?.shareLink && (
                     <div className="space-y-2">
