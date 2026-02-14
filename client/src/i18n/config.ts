@@ -1,29 +1,48 @@
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import LanguageDetector from 'i18next-browser-languagedetector';
-import ar from './locales/ar.json';
-import en from './locales/en.json';
-import pt from './locales/pt.json';
 
-const resources = {
-  ar: { translation: ar },
-  en: { translation: en },
-  pt: { translation: pt },
+// Lazy-load translation files: only the active language is loaded on demand,
+// saving ~90 KB from the initial bundle for unused languages.
+const translationLoaders: Record<string, () => Promise<any>> = {
+  ar: () => import('./locales/ar.json').then(m => m.default),
+  en: () => import('./locales/en.json').then(m => m.default),
+  pt: () => import('./locales/pt.json').then(m => m.default),
 };
 
+// Custom lazy backend plugin for i18next
+const LazyBackend = {
+  type: 'backend' as const,
+  init() {},
+  read(language: string, namespace: string, callback: (err: any, data: any) => void) {
+    const loader = translationLoaders[language];
+    if (loader) {
+      loader()
+        .then((data) => callback(null, data))
+        .catch((err) => callback(err, null));
+    } else {
+      callback(new Error(`No loader for ${language}`), null);
+    }
+  },
+};
+
+const detectedLng = localStorage.getItem('i18nextLng') || 'ar';
+const initialLng = detectedLng in translationLoaders ? detectedLng : 'ar';
+
 i18n
+  .use(LazyBackend)
   .use(LanguageDetector)
   .use(initReactI18next)
   .init({
-    resources,
     fallbackLng: 'ar',
-    lng: localStorage.getItem('i18nextLng') || 'ar',
+    lng: initialLng,
     detection: {
       order: ['localStorage', 'navigator'],
       lookupLocalStorage: 'i18nextLng',
       caches: ['localStorage'],
     },
     interpolation: { escapeValue: false },
+    partialBundledLanguages: true,
   });
 
 i18n.on('languageChanged', (lng) => {

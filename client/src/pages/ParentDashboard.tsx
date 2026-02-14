@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, lazy, Suspense } from "react";
 import { useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
@@ -8,8 +8,11 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { LanguageSelector } from "@/components/LanguageSelector";
 import { PWAInstallButton } from "@/components/PWAInstallButton";
 import { ChildGamesControl } from "@/components/parent/ChildGamesControl";
-import { AnnualReportChart } from "@/components/AnnualReportChart";
-import { QRCodeSVG } from "qrcode.react";
+
+// Lazy-load heavy chart library (recharts ~200KB + framer-motion ~30KB)
+const AnnualReportChart = lazy(() => import("@/components/AnnualReportChart").then(m => ({ default: m.AnnualReportChart })));
+// Lazy-load QR code library
+const QRCodeSVG = lazy(() => import("qrcode.react").then(m => ({ default: m.QRCodeSVG })));
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -199,10 +202,13 @@ export const ParentDashboard = (): JSX.Element => {
   const [gamesChild, setGamesChild] = useState<any>(null);
   const [selectedReportChild, setSelectedReportChild] = useState<string>("all");
 
+  // Optimized polling: reduced frequencies to minimize network load
+  // Critical data: 30s | Secondary data: 60s | Rarely changing: 5min
   const { data: parentInfo } = useQuery({
     queryKey: ["/api/parent/info"],
     enabled: !!token,
-    refetchInterval: token ? 30000 : false,
+    refetchInterval: token ? 60000 : false,
+    staleTime: 60000,
   });
 
   const { data: children } = useQuery({
@@ -214,67 +220,75 @@ export const ParentDashboard = (): JSX.Element => {
   const { data: wallet } = useQuery({
     queryKey: ["/api/parent/wallet"],
     enabled: !!token,
-    refetchInterval: token ? 15000 : false,
+    refetchInterval: token ? 30000 : false,
   });
 
   const { data: notifications } = useQuery({
     queryKey: ["/api/parent/notifications"],
     enabled: !!token,
-    refetchInterval: token ? 5000 : false, // Stop polling when no token
+    refetchInterval: token ? 30000 : false,
   });
 
   const { data: childrenStatus } = useQuery({
     queryKey: ["/api/parent/children/status"],
     enabled: !!token,
-    refetchInterval: token ? 300000 : false, // Stop polling when no token
+    refetchInterval: token ? 300000 : false,
+    staleTime: 300000,
   });
 
   const { data: referralStats } = useQuery({
     queryKey: ["/api/parent/referral-stats"],
     enabled: !!token,
-    refetchInterval: token ? 30000 : false,
+    refetchInterval: token ? 120000 : false,
+    staleTime: 120000,
   });
 
   const { data: parentAds } = useQuery({
     queryKey: ["/api/parent/ads"],
     enabled: !!token,
-    refetchInterval: token ? 60000 : false,
+    refetchInterval: token ? 300000 : false,
+    staleTime: 300000,
   });
 
   const { data: recentOrders } = useQuery({
     queryKey: ["/api/parent/store/orders"],
     enabled: !!token,
-    refetchInterval: token ? 30000 : false,
+    refetchInterval: token ? 60000 : false,
+    staleTime: 60000,
   });
 
   const { data: ownedProducts } = useQuery({
     queryKey: ["/api/parent/owned-products"],
     enabled: !!token,
-    refetchInterval: token ? 30000 : false,
+    refetchInterval: token ? 60000 : false,
+    staleTime: 60000,
   });
 
   const { data: tasks } = useQuery({
     queryKey: ["/api/parent/tasks"],
     enabled: !!token,
-    refetchInterval: token ? 30000 : false,
+    refetchInterval: token ? 60000 : false,
+    staleTime: 60000,
   });
 
   const { data: subjects } = useQuery({
     queryKey: ["/api/subjects"],
     enabled: !!token,
-    refetchInterval: token ? 60000 : false,
+    refetchInterval: token ? 300000 : false,
+    staleTime: 300000,
   });
 
   const { data: tasksBySubject } = useQuery({
     queryKey: ["/api/parent/tasks/by-subject"],
     enabled: !!token,
-    refetchInterval: token ? 30000 : false,
+    refetchInterval: token ? 60000 : false,
+    staleTime: 60000,
   });
 
   const { data: purchaseRequests } = useQuery({
     queryKey: ["/api/parent/purchase-requests"],
     enabled: !!token,
-    refetchInterval: token ? 10000 : false,
+    refetchInterval: token ? 30000 : false,
   });
 
   const { toast } = useToast();
@@ -1410,7 +1424,9 @@ export const ParentDashboard = (): JSX.Element => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <AnnualReportChart childId={selectedReportChild} isParentView={true} />
+                  <Suspense fallback={<div className="flex justify-center py-8"><div className="w-8 h-8 border-4 border-purple-500 border-t-transparent rounded-full animate-spin" /></div>}>
+                    <AnnualReportChart childId={selectedReportChild} isParentView={true} />
+                  </Suspense>
                 </CardContent>
               </Card>
             )}
@@ -1431,7 +1447,9 @@ export const ParentDashboard = (): JSX.Element => {
               </Button>
             </div>
             <div className={`${isDark ? "bg-white" : "bg-gray-100"} p-6 rounded-xl inline-block mb-4`}>
-              <QRCodeSVG value={parentData?.uniqueCode || "PARENT"} size={180} />
+              <Suspense fallback={<div className="w-[180px] h-[180px] flex items-center justify-center"><div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" /></div>}>
+                <QRCodeSVG value={parentData?.uniqueCode || "PARENT"} size={180} />
+              </Suspense>
             </div>
             <p className={`text-sm mb-4 ${isDark ? "text-gray-400" : "text-gray-600"}`}>
               {t('parentDashboard.scanWithChild')}

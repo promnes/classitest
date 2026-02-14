@@ -196,6 +196,28 @@ app.use((req, res, next) => {
   next();
 });
 
+// API response cache headers for stable/semi-stable endpoints
+// Reduces server load by allowing browsers to reuse recent responses
+const apiCacheRules: Array<{ pattern: RegExp; maxAge: number }> = [
+  { pattern: /^\/api\/subjects$/, maxAge: 300 },           // 5 min
+  { pattern: /^\/api\/parent\/ads$/, maxAge: 300 },         // 5 min
+  { pattern: /^\/api\/parent\/referral-stats$/, maxAge: 120 }, // 2 min
+  { pattern: /^\/api\/parent\/children\/status$/, maxAge: 120 }, // 2 min
+  { pattern: /^\/api\/parent\/info$/, maxAge: 60 },         // 1 min
+];
+
+app.use((req, res, next) => {
+  if (req.method === "GET") {
+    for (const rule of apiCacheRules) {
+      if (rule.pattern.test(req.path)) {
+        res.set("Cache-Control", `private, max-age=${rule.maxAge}`);
+        break;
+      }
+    }
+  }
+  next();
+});
+
 const CLUSTER_ENABLED = process.env["NODE_CLUSTER_ENABLED"] === "true";
 const DEFAULT_WORKERS = process.env["NODE_ENV"] === "production" ? Math.min(os.cpus().length, 4) : 1;
 const WORKER_COUNT = Math.max(1, Number(process.env["WEB_CONCURRENCY"] || String(DEFAULT_WORKERS)));
