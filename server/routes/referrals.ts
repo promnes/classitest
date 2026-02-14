@@ -310,8 +310,24 @@ export async function registerReferralRoutes(app: Express) {
     try {
       const parentId = req.user?.parentId || req.user?.userId;
 
-      // Referral code info
-      const codeInfo = await db.select().from(parentReferralCodes).where(eq(parentReferralCodes.parentId, parentId));
+      // Referral code info — auto-create if missing
+      let codeInfo = await db.select().from(parentReferralCodes).where(eq(parentReferralCodes.parentId, parentId));
+      
+      if (!codeInfo[0]) {
+        let code = generateReferralCode();
+        let attempts = 0;
+        while (attempts < 10) {
+          const checkCode = await db.select().from(parentReferralCodes).where(eq(parentReferralCodes.code, code));
+          if (!checkCode[0]) break;
+          code = generateReferralCode();
+          attempts++;
+        }
+        const [newCode] = await db.insert(parentReferralCodes).values({
+          parentId,
+          code,
+        }).returning();
+        codeInfo = [newCode];
+      }
 
       // Get referral settings
       const settingsRows = await db.select().from(referralSettings);
