@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { BellRing, ShieldAlert, Smartphone, Globe, Save } from "lucide-react";
+import { BellRing, ShieldAlert, Smartphone, Globe, Save, CheckCircle2, XCircle } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 interface ChildItem {
   id: string;
@@ -62,6 +63,7 @@ function defaultChannels(): Channels {
 
 export function TaskNotificationLevelsTab({ token }: { token: string }) {
   const queryClient = useQueryClient();
+  const { toast } = useToast();
   const [search, setSearch] = useState("");
   const [selectedChildId, setSelectedChildId] = useState<string>("");
 
@@ -154,6 +156,17 @@ export function TaskNotificationLevelsTab({ token }: { token: string }) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["task-notify-global"] });
       queryClient.invalidateQueries({ queryKey: ["task-notify-stats"] });
+      toast({
+        title: "✅ تم الحفظ بنجاح",
+        description: "تم حفظ السياسة العامة لإشعارات المهام",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "❌ فشل الحفظ",
+        description: error.message || "حدث خطأ أثناء حفظ السياسة العامة",
+        variant: "destructive",
+      });
     },
   });
 
@@ -181,6 +194,17 @@ export function TaskNotificationLevelsTab({ token }: { token: string }) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["task-notify-child", selectedChildId] });
       queryClient.invalidateQueries({ queryKey: ["task-notify-stats"] });
+      toast({
+        title: "✅ تم الحفظ بنجاح",
+        description: `تم حفظ إعدادات الإشعارات للطفل: ${childForm?.childName || ""}`
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "❌ فشل الحفظ",
+        description: error.message || "حدث خطأ أثناء حفظ إعدادات الطفل",
+        variant: "destructive",
+      });
     },
   });
 
@@ -316,9 +340,22 @@ export function TaskNotificationLevelsTab({ token }: { token: string }) {
               <button
                 onClick={() => saveGlobalMutation.mutate()}
                 disabled={saveGlobalMutation.isPending}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white"
+                className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-white transition-colors ${
+                  saveGlobalMutation.isSuccess ? "bg-green-600 hover:bg-green-700" :
+                  saveGlobalMutation.isError ? "bg-red-600 hover:bg-red-700" :
+                  "bg-indigo-600 hover:bg-indigo-700"
+                }`}
               >
-                <Save className="h-4 w-4" /> Save Global
+                {saveGlobalMutation.isPending ? (
+                  <span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : saveGlobalMutation.isSuccess ? (
+                  <CheckCircle2 className="h-4 w-4" />
+                ) : saveGlobalMutation.isError ? (
+                  <XCircle className="h-4 w-4" />
+                ) : (
+                  <Save className="h-4 w-4" />
+                )}
+                {saveGlobalMutation.isPending ? "جاري الحفظ..." : saveGlobalMutation.isSuccess ? "تم الحفظ" : saveGlobalMutation.isError ? "فشل الحفظ" : "Save Global"}
               </button>
             </div>
           </>
@@ -469,9 +506,22 @@ export function TaskNotificationLevelsTab({ token }: { token: string }) {
               <button
                 onClick={() => saveChildMutation.mutate()}
                 disabled={saveChildMutation.isPending}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white"
+                className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-white transition-colors ${
+                  saveChildMutation.isSuccess ? "bg-green-600 hover:bg-green-700" :
+                  saveChildMutation.isError ? "bg-red-600 hover:bg-red-700" :
+                  "bg-indigo-600 hover:bg-indigo-700"
+                }`}
               >
-                <Save className="h-4 w-4" /> Save Child Override
+                {saveChildMutation.isPending ? (
+                  <span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : saveChildMutation.isSuccess ? (
+                  <CheckCircle2 className="h-4 w-4" />
+                ) : saveChildMutation.isError ? (
+                  <XCircle className="h-4 w-4" />
+                ) : (
+                  <Save className="h-4 w-4" />
+                )}
+                {saveChildMutation.isPending ? "جاري الحفظ..." : saveChildMutation.isSuccess ? "تم الحفظ" : saveChildMutation.isError ? "فشل الحفظ" : "Save Child Override"}
               </button>
             </div>
           </>
