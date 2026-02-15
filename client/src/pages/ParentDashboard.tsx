@@ -59,7 +59,8 @@ import {
   Package,
   Megaphone,
   ExternalLink,
-  MousePointer
+  MousePointer,
+  KeyRound
 } from "lucide-react";
 
 function ChildReportCard({ child, token, isDark, t }: { child: any; token: string | null; isDark: boolean; t: (key: string, options?: any) => string }) {
@@ -201,6 +202,16 @@ export const ParentDashboard = (): JSX.Element => {
   const [showLinkCode, setShowLinkCode] = useState(false);
   const [gamesChild, setGamesChild] = useState<any>(null);
   const [selectedReportChild, setSelectedReportChild] = useState<string>("all");
+  
+  // PIN management state
+  const [showAddChildPin, setShowAddChildPin] = useState(false);
+  const [newChildName, setNewChildName] = useState("");
+  const [newChildPin, setNewChildPin] = useState("");
+  const [showSetPinModal, setShowSetPinModal] = useState(false);
+  const [pinTargetChild, setPinTargetChild] = useState<any>(null);
+  const [childPinValue, setChildPinValue] = useState("");
+  const [showSetMyPin, setShowSetMyPin] = useState(false);
+  const [myPinValue, setMyPinValue] = useState("");
 
   // Optimized polling: reduced frequencies to minimize network load
   // Critical data: 30s | Secondary data: 60s | Rarely changing: 5min
@@ -248,6 +259,12 @@ export const ParentDashboard = (): JSX.Element => {
     enabled: !!token,
     refetchInterval: token ? 300000 : false,
     staleTime: 300000,
+  });
+
+  const { data: familyPinStatus } = useQuery({
+    queryKey: ["/api/auth/family-pin-status"],
+    enabled: !!token,
+    staleTime: 60000,
   });
 
   const { data: recentOrders } = useQuery({
@@ -318,6 +335,55 @@ export const ParentDashboard = (): JSX.Element => {
     },
   });
 
+  // PIN mutations
+  const addChildWithPinMutation = useMutation({
+    mutationFn: async ({ name, pin }: { name: string; pin: string }) => {
+      return apiRequest("POST", "/api/auth/add-child-with-pin", { name, pin });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/parent/children"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/family-pin-status"] });
+      setShowAddChildPin(false);
+      setNewChildName("");
+      setNewChildPin("");
+      toast({ title: "تم إضافة الطفل بنجاح ✅", description: "يمكنه الآن الدخول برمز PIN" });
+    },
+    onError: (err: any) => {
+      toast({ title: "خطأ", description: err?.message || "فشل إضافة الطفل", variant: "destructive" });
+    },
+  });
+
+  const setChildPinMutation = useMutation({
+    mutationFn: async ({ childId, pin }: { childId: number; pin: string }) => {
+      return apiRequest("PUT", "/api/auth/set-child-pin", { childId, pin });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/family-pin-status"] });
+      setShowSetPinModal(false);
+      setPinTargetChild(null);
+      setChildPinValue("");
+      toast({ title: "تم تعيين رمز PIN ✅" });
+    },
+    onError: (err: any) => {
+      toast({ title: "خطأ", description: err?.message || "فشل تعيين الرمز", variant: "destructive" });
+    },
+  });
+
+  const setMyPinMutation = useMutation({
+    mutationFn: async ({ pin }: { pin: string }) => {
+      return apiRequest("PUT", "/api/auth/set-pin", { pin });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/family-pin-status"] });
+      setShowSetMyPin(false);
+      setMyPinValue("");
+      toast({ title: "تم تعيين رمز PIN الخاص بك ✅" });
+    },
+    onError: (err: any) => {
+      toast({ title: "خطأ", description: err?.message || "فشل تعيين الرمز", variant: "destructive" });
+    },
+  });
+
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   const handleLogout = () => {
@@ -349,6 +415,7 @@ export const ParentDashboard = (): JSX.Element => {
   const referralData = (referralStats as any)?.data || referralStats as any || {};
   const parentAdsList = Array.isArray((parentAds as any)?.data) ? (parentAds as any).data : Array.isArray(parentAds) ? parentAds : [];
   const statusData = childrenStatus as any || {};
+  const pinData = (familyPinStatus as any)?.data || familyPinStatus as any || {};
 
   const unreadNotifications = notificationsList.filter((n: any) => !n.isRead).length || 0;
   const totalChildrenPoints = childrenList.reduce((sum: number, c: any) => sum + (c.totalPoints || 0), 0) || 0;
@@ -752,7 +819,46 @@ export const ParentDashboard = (): JSX.Element => {
             )}
           </TabsContent>
 
-          <TabsContent value="children" className="mt-6">
+          <TabsContent value="children" className="mt-6 space-y-4">
+            {/* PIN Status Card */}
+            <Card className={isDark ? "bg-gray-900 border-gray-800" : ""}>
+              <CardContent className="py-4">
+                <div className="flex items-center justify-between flex-wrap gap-3">
+                  <div className="flex items-center gap-2">
+                    <KeyRound className="h-5 w-5 text-amber-500" />
+                    <span className={`text-sm font-medium ${isDark ? "text-gray-200" : "text-gray-700"}`}>
+                      رمز PIN العائلي
+                    </span>
+                    {pinData?.parentHasPin ? (
+                      <Badge variant="default" className="bg-green-500 text-xs">✓ مفعّل</Badge>
+                    ) : (
+                      <Badge variant="secondary" className="text-xs">غير مفعّل</Badge>
+                    )}
+                  </div>
+                  <div className="flex gap-2">
+                    <Button 
+                      onClick={() => setShowSetMyPin(true)} 
+                      variant={pinData?.parentHasPin ? "outline" : "default"} 
+                      size="sm" 
+                      className="gap-1"
+                    >
+                      <KeyRound className="h-3 w-3" />
+                      {pinData?.parentHasPin ? "تغيير PIN" : "تعيين PIN"}
+                    </Button>
+                    <Button onClick={() => setShowAddChildPin(true)} size="sm" className="gap-1">
+                      <Plus className="h-3 w-3" />
+                      إضافة طفل
+                    </Button>
+                  </div>
+                </div>
+                {pinData?.familyCode && (
+                  <p className={`text-xs mt-2 ${isDark ? "text-gray-500" : "text-gray-400"}`}>
+                    رمز العائلة: {pinData.familyCode}
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+
             <Card className={isDark ? "bg-gray-900 border-gray-800" : ""}>
               <CardHeader className="pb-3 flex-row items-center justify-between">
                 <CardTitle className="text-lg flex items-center gap-2">
@@ -788,6 +894,14 @@ export const ParentDashboard = (): JSX.Element => {
                                 <Badge variant={status?.status === "excellent" ? "default" : status?.status === "needs_attention" ? "destructive" : "secondary"} className="text-xs">
                                   {status?.statusMessage || t('parentDashboard.active')}
                                 </Badge>
+                                {(() => {
+                                  const pinChild = pinData?.children?.find((c: any) => c.id === child.id);
+                                  return pinChild?.hasPin ? (
+                                    <Badge variant="outline" className="text-xs gap-1 border-amber-400 text-amber-600">
+                                      <KeyRound className="h-2.5 w-2.5" /> PIN
+                                    </Badge>
+                                  ) : null;
+                                })()}
                                 {status?.speedLevel && (
                                   <span className="text-xs text-gray-500">
                                     {status.speedLevel === "superfast" ? "🚀" : status.speedLevel === "fast" ? "⚡" : status.speedLevel === "moderate" ? "📈" : "🌱"}
@@ -863,6 +977,15 @@ export const ParentDashboard = (): JSX.Element => {
                             >
                               <Gift className="h-4 w-4" />
                               {t('parentDashboard.gifts')}
+                            </Button>
+                            <Button 
+                              onClick={() => { setPinTargetChild(child); setChildPinValue(""); setShowSetPinModal(true); }}
+                              variant="outline"
+                              size="sm"
+                              className="gap-1"
+                              data-testid={`button-pin-${child.id}`}
+                            >
+                              <KeyRound className="h-4 w-4" />
                             </Button>
                           </div>
                         </div>
@@ -1491,6 +1614,141 @@ export const ParentDashboard = (): JSX.Element => {
           token={token || ""}
           onClose={() => setGamesChild(null)}
         />
+      )}
+
+      {/* Add Child with PIN Modal */}
+      {showAddChildPin && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className={`w-full max-w-sm rounded-2xl p-6 shadow-2xl ${isDark ? "bg-gray-900" : "bg-white"}`}>
+            <h3 className={`text-lg font-bold mb-4 flex items-center gap-2 ${isDark ? "text-white" : "text-gray-900"}`}>
+              <Plus className="h-5 w-5 text-blue-500" /> إضافة طفل جديد
+            </h3>
+            <div className="space-y-4">
+              <div>
+                <label className={`block text-sm font-medium mb-1 ${isDark ? "text-gray-300" : "text-gray-700"}`}>
+                  اسم الطفل
+                </label>
+                <input
+                  type="text"
+                  value={newChildName}
+                  onChange={(e) => setNewChildName(e.target.value)}
+                  placeholder="مثال: أحمد"
+                  className={`w-full px-4 py-3 rounded-lg border-2 focus:outline-none focus:border-blue-400 ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-white border-gray-300 text-gray-900"}`}
+                />
+              </div>
+              <div>
+                <label className={`block text-sm font-medium mb-1 ${isDark ? "text-gray-300" : "text-gray-700"}`}>
+                  🔑 رمز PIN (4 أرقام)
+                </label>
+                <input
+                  type="tel"
+                  inputMode="numeric"
+                  value={newChildPin}
+                  onChange={(e) => setNewChildPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                  placeholder="1234"
+                  maxLength={4}
+                  className={`w-full px-4 py-3 rounded-lg border-2 focus:outline-none focus:border-blue-400 text-center text-xl tracking-widest font-mono ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-white border-gray-300 text-gray-900"}`}
+                />
+                <p className={`text-xs mt-1 ${isDark ? "text-gray-500" : "text-gray-400"}`}>
+                  سيستخدم الطفل هذا الرمز لدخول حسابه
+                </p>
+              </div>
+              <div className="flex gap-2 pt-2">
+                <Button
+                  onClick={() => addChildWithPinMutation.mutate({ name: newChildName, pin: newChildPin })}
+                  disabled={!newChildName.trim() || newChildPin.length < 4 || addChildWithPinMutation.isPending}
+                  className="flex-1"
+                >
+                  {addChildWithPinMutation.isPending ? "جاري الإضافة..." : "إضافة ✅"}
+                </Button>
+                <Button variant="outline" onClick={() => { setShowAddChildPin(false); setNewChildName(""); setNewChildPin(""); }}>
+                  إلغاء
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Set Child PIN Modal */}
+      {showSetPinModal && pinTargetChild && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className={`w-full max-w-sm rounded-2xl p-6 shadow-2xl ${isDark ? "bg-gray-900" : "bg-white"}`}>
+            <h3 className={`text-lg font-bold mb-4 flex items-center gap-2 ${isDark ? "text-white" : "text-gray-900"}`}>
+              <KeyRound className="h-5 w-5 text-amber-500" /> تعيين PIN لـ {pinTargetChild.name}
+            </h3>
+            <div className="space-y-4">
+              <div>
+                <label className={`block text-sm font-medium mb-1 ${isDark ? "text-gray-300" : "text-gray-700"}`}>
+                  رمز PIN جديد (4 أرقام)
+                </label>
+                <input
+                  type="tel"
+                  inputMode="numeric"
+                  value={childPinValue}
+                  onChange={(e) => setChildPinValue(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                  placeholder="1234"
+                  maxLength={4}
+                  className={`w-full px-4 py-3 rounded-lg border-2 focus:outline-none focus:border-blue-400 text-center text-xl tracking-widest font-mono ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-white border-gray-300 text-gray-900"}`}
+                />
+              </div>
+              <div className="flex gap-2 pt-2">
+                <Button
+                  onClick={() => setChildPinMutation.mutate({ childId: pinTargetChild.id, pin: childPinValue })}
+                  disabled={childPinValue.length < 4 || setChildPinMutation.isPending}
+                  className="flex-1"
+                >
+                  {setChildPinMutation.isPending ? "جاري التعيين..." : "تعيين ✅"}
+                </Button>
+                <Button variant="outline" onClick={() => { setShowSetPinModal(false); setPinTargetChild(null); setChildPinValue(""); }}>
+                  إلغاء
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Set My PIN Modal */}
+      {showSetMyPin && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className={`w-full max-w-sm rounded-2xl p-6 shadow-2xl ${isDark ? "bg-gray-900" : "bg-white"}`}>
+            <h3 className={`text-lg font-bold mb-4 flex items-center gap-2 ${isDark ? "text-white" : "text-gray-900"}`}>
+              <KeyRound className="h-5 w-5 text-amber-500" /> تعيين رمز PIN الخاص بك
+            </h3>
+            <p className={`text-sm mb-4 ${isDark ? "text-gray-400" : "text-gray-500"}`}>
+              رمز PIN يسمح لك بالدخول لحسابك بسرعة من نفس الجهاز
+            </p>
+            <div className="space-y-4">
+              <div>
+                <label className={`block text-sm font-medium mb-1 ${isDark ? "text-gray-300" : "text-gray-700"}`}>
+                  رمز PIN (4 أرقام)
+                </label>
+                <input
+                  type="tel"
+                  inputMode="numeric"
+                  value={myPinValue}
+                  onChange={(e) => setMyPinValue(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                  placeholder="1234"
+                  maxLength={4}
+                  className={`w-full px-4 py-3 rounded-lg border-2 focus:outline-none focus:border-blue-400 text-center text-xl tracking-widest font-mono ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-white border-gray-300 text-gray-900"}`}
+                />
+              </div>
+              <div className="flex gap-2 pt-2">
+                <Button
+                  onClick={() => setMyPinMutation.mutate({ pin: myPinValue })}
+                  disabled={myPinValue.length < 4 || setMyPinMutation.isPending}
+                  className="flex-1"
+                >
+                  {setMyPinMutation.isPending ? "جاري التعيين..." : "تعيين ✅"}
+                </Button>
+                <Button variant="outline" onClick={() => { setShowSetMyPin(false); setMyPinValue(""); }}>
+                  إلغاء
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

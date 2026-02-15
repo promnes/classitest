@@ -23,6 +23,7 @@ export const ParentAuth = (): JSX.Element => {
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [error, setError] = useState("");
+  const [pinCode, setPinCode] = useState("");
   const [showSMSVerification, setShowSMSVerification] = useState(false);
   const [otpMethod, setOtpMethod] = useState<"email" | "sms">("email");
   const [availableMethods, setAvailableMethods] = useState<("email" | "sms")[]>(["email"]);
@@ -48,7 +49,7 @@ export const ParentAuth = (): JSX.Element => {
           body: JSON.stringify(
             isLogin
               ? { phoneNumber: `${countryCode}${phone}`, password }
-              : { email, password, name, phoneNumber: `${countryCode}${phone}`, libraryReferralCode, referralCode }
+              : { email, password, name, phoneNumber: `${countryCode}${phone}`, libraryReferralCode, referralCode, pin: pinCode || undefined }
           ),
         });
         if (!res.ok) {
@@ -62,7 +63,7 @@ export const ParentAuth = (): JSX.Element => {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(
-            isLogin ? { email, password } : { email, password, name, libraryReferralCode, referralCode }
+            isLogin ? { email, password } : { email, password, name, libraryReferralCode, referralCode, pin: pinCode || undefined }
           ),
         });
         if (!res.ok) {
@@ -114,6 +115,10 @@ export const ParentAuth = (): JSX.Element => {
         }
         if (payload?.userId) {
           localStorage.setItem("userId", payload.userId);
+        }
+        // Save familyCode for PIN login flow
+        if (payload?.uniqueCode) {
+          localStorage.setItem("familyCode", payload.uniqueCode);
         }
         navigate("/parent-dashboard");
       }
@@ -328,6 +333,27 @@ export const ParentAuth = (): JSX.Element => {
                     required
                   />
                 </div>
+
+                {/* PIN Code - Registration only */}
+                {!isLogin && (
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-2">
+                      🔑 رمز PIN (4 أرقام)
+                    </label>
+                    <input
+                      type="tel"
+                      inputMode="numeric"
+                      value={pinCode}
+                      onChange={(e) => setPinCode(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                      placeholder="مثال: 1234"
+                      maxLength={4}
+                      className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-400 text-gray-900 bg-white text-center text-xl tracking-widest font-mono"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      رمز سري لدخول حسابك بسرعة من نفس الجهاز (اختياري)
+                    </p>
+                  </div>
+                )}
 
                 {error && <p className="text-red-500 text-sm">{error}</p>}
 

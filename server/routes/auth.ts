@@ -114,7 +114,7 @@ export async function registerAuthRoutes(app: Express) {
   // Parent Register (with rate limiting)
   app.post("/api/auth/register", registerLimiter, async (req, res) => {
     try {
-      const { email, password, name, phoneNumber, libraryReferralCode, referralCode } = req.body;
+      const { email, password, name, phoneNumber, libraryReferralCode, referralCode, pin } = req.body;
       const normalizedEmail = normalizeEmail(email);
 
       // Validation
@@ -126,6 +126,16 @@ export async function registerAuthRoutes(app: Express) {
       }
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
         return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Invalid email format"));
+      }
+
+      // Validate optional PIN
+      let hashedPin: string | null = null;
+      if (pin) {
+        const pinStr = String(pin).trim();
+        if (!/^\d{4,6}$/.test(pinStr)) {
+          return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "PIN must be 4-6 digits"));
+        }
+        hashedPin = await bcrypt.hash(pinStr, 10);
       }
 
       // Check if email exists
@@ -145,6 +155,7 @@ export async function registerAuthRoutes(app: Express) {
           name,
           phoneNumber: phoneNumber || null,
           uniqueCode,
+          pin: hashedPin,
         })
         .returning();
 
@@ -1258,6 +1269,8 @@ export async function registerAuthRoutes(app: Express) {
         token: jwtToken, // JWT for stateless fallback
         sessionToken, // Session token for httpOnly cookie
         parentId: parent[0].id,
+        userId: parent[0].id,
+        uniqueCode: parent[0].uniqueCode, // For family PIN login flow
         deviceTrusted: !!deviceRefreshToken, // Indicate if device was saved
       }, "Login successful"));
     } catch (error: any) {
@@ -2663,6 +2676,303 @@ export async function registerAuthRoutes(app: Express) {
     } catch (error: any) {
       console.error("OAuth redirect error:", error);
       res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to initiate OAuth"));
+    }
+  });
+
+  // ===== PIN Login (family shared device) =====
+  app.post("/api/auth/pin-login", loginLimiter, async (req, res) => {
+    try {
+      const { pin, familyCode } = req.body;
+
+      if (!pin || !familyCode) {
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "PIN and family code are required"));
+      }
+
+      const pinStr = String(pin).trim();
+      const code = String(familyCode).trim().toUpperCase();
+
+      if (!/^\d{4,6}$/.test(pinStr)) {
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "PIN must be 4-6 digits"));
+      }
+
+      // Find parent by unique code
+      const parentList = await db.select().from(parents).where(eq(parents.uniqueCode, code));
+      if (!parentList[0]) {
+        return res.status(401).json(errorResponse(ErrorCode.UNAUTHORIZED, "Invalid family code or PIN"));
+      }
+
+      const parent = parentList[0];
+
+      // Check parent PIN first
+      if (parent.pin) {
+        const parentMatch = await bcrypt.compare(pinStr, parent.pin);
+        if (parentMatch) {
+          const token = jwt.sign({ userId: parent.id, type: "parent" }, JWT_SECRET, { expiresIn: "30d" });
+          return res.json(successResponse({
+            type: "parent",
+            token,
+            id: parent.id,
+            name: parent.name,
+            familyCode: parent.uniqueCode,
+          }, "Parent PIN login successful"));
+        }
+      }
+
+      // Check children PINs
+      const links = await db
+        .select({ childId: parentChild.childId })
+        .from(parentChild)
+        .where(eq(parentChild.parentId, parent.id));
+
+      for (const link of links) {
+        const childList = await db.select().from(children).where(eq(children.id, link.childId));
+        const child = childList[0];
+        if (child?.pin) {
+          const childMatch = await bcrypt.compare(pinStr, child.pin);
+          if (childMatch) {
+            const token = jwt.sign({ childId: child.id, parentId: parent.id, type: "child" }, JWT_SECRET, { expiresIn: "7d" });
+            return res.json(successResponse({
+              type: "child",
+              token,
+              id: child.id,
+              name: child.name,
+              familyCode: parent.uniqueCode,
+            }, "Child PIN login successful"));
+          }
+        }
+      }
+
+      return res.status(401).json(errorResponse(ErrorCode.UNAUTHORIZED, "Invalid family code or PIN"));
+    } catch (error: any) {
+      console.error("PIN login error:", error);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "PIN login failed"));
+    }
+  });
+
+  // ===== Set Parent PIN =====
+  app.put("/api/auth/set-pin", authMiddleware, async (req: any, res) => {
+    try {
+      const { pin } = req.body;
+      const parentId = req.user.userId;
+
+      if (!pin) {
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "PIN is required"));
+      }
+
+      const pinStr = String(pin).trim();
+      if (!/^\d{4,6}$/.test(pinStr)) {
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "PIN must be 4-6 digits"));
+      }
+
+      // Ensure PIN is unique within this family (no child has the same PIN)
+      const links = await db
+        .select({ childId: parentChild.childId })
+        .from(parentChild)
+        .where(eq(parentChild.parentId, parentId));
+
+      for (const link of links) {
+        const childList = await db.select().from(children).where(eq(children.id, link.childId));
+        if (childList[0]?.pin) {
+          const conflict = await bcrypt.compare(pinStr, childList[0].pin);
+          if (conflict) {
+            return res.status(409).json(errorResponse(ErrorCode.CONFLICT, "This PIN is already used by a child. Choose a different PIN."));
+          }
+        }
+      }
+
+      const hashedPin = await bcrypt.hash(pinStr, 10);
+      await db.update(parents).set({ pin: hashedPin }).where(eq(parents.id, parentId));
+
+      // Return familyCode for localStorage
+      const parent = await db.select({ uniqueCode: parents.uniqueCode }).from(parents).where(eq(parents.id, parentId));
+
+      res.json(successResponse({ familyCode: parent[0]?.uniqueCode }, "PIN set successfully"));
+    } catch (error: any) {
+      console.error("Set parent PIN error:", error);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to set PIN"));
+    }
+  });
+
+  // ===== Set Child PIN (by parent) =====
+  app.put("/api/auth/set-child-pin", authMiddleware, async (req: any, res) => {
+    try {
+      const { childId, pin } = req.body;
+      const parentId = req.user.userId;
+
+      if (!childId || !pin) {
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Child ID and PIN are required"));
+      }
+
+      const pinStr = String(pin).trim();
+      if (!/^\d{4,6}$/.test(pinStr)) {
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "PIN must be 4-6 digits"));
+      }
+
+      // Verify parent owns this child
+      const link = await db.select().from(parentChild).where(
+        and(eq(parentChild.parentId, parentId), eq(parentChild.childId, childId))
+      );
+      if (!link[0]) {
+        return res.status(403).json(errorResponse(ErrorCode.UNAUTHORIZED, "Not authorized for this child"));
+      }
+
+      // Check PIN doesn't conflict with parent's PIN
+      const parent = await db.select().from(parents).where(eq(parents.id, parentId));
+      if (parent[0]?.pin) {
+        const conflictParent = await bcrypt.compare(pinStr, parent[0].pin);
+        if (conflictParent) {
+          return res.status(409).json(errorResponse(ErrorCode.CONFLICT, "This PIN is already used. Choose a different PIN."));
+        }
+      }
+
+      // Check PIN doesn't conflict with other children's PINs
+      const allLinks = await db
+        .select({ childId: parentChild.childId })
+        .from(parentChild)
+        .where(eq(parentChild.parentId, parentId));
+
+      for (const l of allLinks) {
+        if (l.childId === childId) continue; // skip self
+        const childList = await db.select().from(children).where(eq(children.id, l.childId));
+        if (childList[0]?.pin) {
+          const conflict = await bcrypt.compare(pinStr, childList[0].pin);
+          if (conflict) {
+            return res.status(409).json(errorResponse(ErrorCode.CONFLICT, "This PIN is already used by another child. Choose a different PIN."));
+          }
+        }
+      }
+
+      const hashedPin = await bcrypt.hash(pinStr, 10);
+      await db.update(children).set({ pin: hashedPin }).where(eq(children.id, childId));
+
+      res.json(successResponse(null, "Child PIN set successfully"));
+    } catch (error: any) {
+      console.error("Set child PIN error:", error);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to set child PIN"));
+    }
+  });
+
+  // ===== Add Child with PIN (from parent dashboard) =====
+  app.post("/api/auth/add-child-with-pin", authMiddleware, async (req: any, res) => {
+    try {
+      const { childName, pin } = req.body;
+      const parentId = req.user.userId;
+
+      if (!childName || !pin) {
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Child name and PIN are required"));
+      }
+
+      const trimmedName = String(childName).trim();
+      if (trimmedName.length < 2 || trimmedName.length > 100) {
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Child name must be 2-100 characters"));
+      }
+
+      const pinStr = String(pin).trim();
+      if (!/^\d{4,6}$/.test(pinStr)) {
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "PIN must be 4-6 digits"));
+      }
+
+      // Check PIN doesn't conflict with parent's PIN
+      const parent = await db.select().from(parents).where(eq(parents.id, parentId));
+      if (parent[0]?.pin) {
+        const conflictParent = await bcrypt.compare(pinStr, parent[0].pin);
+        if (conflictParent) {
+          return res.status(409).json(errorResponse(ErrorCode.CONFLICT, "This PIN is already used. Choose a different PIN."));
+        }
+      }
+
+      // Check PIN doesn't conflict with existing children
+      const allLinks = await db
+        .select({ childId: parentChild.childId })
+        .from(parentChild)
+        .where(eq(parentChild.parentId, parentId));
+
+      for (const l of allLinks) {
+        const childList = await db.select().from(children).where(eq(children.id, l.childId));
+        if (childList[0]?.pin) {
+          const conflict = await bcrypt.compare(pinStr, childList[0].pin);
+          if (conflict) {
+            return res.status(409).json(errorResponse(ErrorCode.CONFLICT, "This PIN is already used by another child. Choose a different PIN."));
+          }
+        }
+      }
+
+      const hashedPin = await bcrypt.hash(pinStr, 10);
+
+      // Create child
+      const childResult = await db.insert(children).values({
+        name: trimmedName,
+        pin: hashedPin,
+      }).returning();
+
+      // Link to parent
+      await db.insert(parentChild).values({
+        parentId,
+        childId: childResult[0].id,
+      });
+
+      // Initialize growth tree
+      const { childGrowthTrees } = await import("../../shared/schema");
+      await db.insert(childGrowthTrees).values({
+        childId: childResult[0].id,
+        currentStage: 1,
+        totalGrowthPoints: 0,
+      }).onConflictDoNothing();
+
+      // Notify parent
+      const { createNotification } = await import("../notifications");
+      await createNotification({
+        parentId,
+        type: "child_linked",
+        title: "تم إضافة طفل جديد!",
+        message: `تم إضافة ${trimmedName} بنجاح وتعيين رمز PIN خاص به`,
+        metadata: { childId: childResult[0].id, childName: trimmedName },
+      });
+
+      res.json(successResponse({
+        child: { id: childResult[0].id, name: trimmedName },
+        familyCode: parent[0]?.uniqueCode,
+      }, "Child added successfully"));
+    } catch (error: any) {
+      console.error("Add child with PIN error:", error);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to add child"));
+    }
+  });
+
+  // ===== Get family PIN status =====
+  app.get("/api/auth/family-pin-status", authMiddleware, async (req: any, res) => {
+    try {
+      const parentId = req.user.userId;
+      const parent = await db.select().from(parents).where(eq(parents.id, parentId));
+      if (!parent[0]) {
+        return res.status(404).json(errorResponse(ErrorCode.NOT_FOUND, "Parent not found"));
+      }
+
+      const links = await db
+        .select({ childId: parentChild.childId })
+        .from(parentChild)
+        .where(eq(parentChild.parentId, parentId));
+
+      const childrenPinStatus = [];
+      for (const link of links) {
+        const childList = await db.select().from(children).where(eq(children.id, link.childId));
+        if (childList[0]) {
+          childrenPinStatus.push({
+            id: childList[0].id,
+            name: childList[0].name,
+            hasPin: !!childList[0].pin,
+          });
+        }
+      }
+
+      res.json(successResponse({
+        parentHasPin: !!parent[0].pin,
+        familyCode: parent[0].uniqueCode,
+        children: childrenPinStatus,
+      }, "Family PIN status retrieved"));
+    } catch (error: any) {
+      console.error("Family PIN status error:", error);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to get PIN status"));
     }
   });
 }

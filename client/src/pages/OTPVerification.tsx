@@ -98,6 +98,10 @@ export const OTPVerification = (): JSX.Element => {
       if (userId) {
         localStorage.setItem("userId", userId);
       }
+      // Save familyCode for PIN login flow
+      if (payload?.uniqueCode) {
+        localStorage.setItem("familyCode", payload.uniqueCode);
+      }
       localStorage.removeItem("otpEmail");
       localStorage.removeItem("smsPendingPhone");
       localStorage.removeItem("otpId");

@@ -1,22 +1,25 @@
-import React, { useEffect, useRef, useCallback } from "react";
+import React, { useEffect, useRef, useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useLocation } from "wouter";
 import { useTheme } from "@/contexts/ThemeContext";
 import { LanguageSelector } from "@/components/LanguageSelector";
 import { PWAInstallButton } from "@/components/PWAInstallButton";
 import { SlidingAdsCarousel } from "@/components/SlidingAdsCarousel";
+import { PinEntry } from "@/components/PinEntry";
 import { Download, Gamepad2, Star, Sparkles, BookOpen, Trophy } from "lucide-react";
 
 export const Home = (): JSX.Element => {
   const { t } = useTranslation();
   const [, navigate] = useLocation();
   const { isDark, toggleTheme } = useTheme();
+  const [familyCode, setFamilyCode] = useState<string | null>(null);
+  const [showLanding, setShowLanding] = useState(false);
   const libraryRef = new URLSearchParams(window.location.search).get("libraryRef")?.trim();
   const parentAuthPath = libraryRef
     ? `/parent-auth?libraryRef=${encodeURIComponent(libraryRef)}`
     : "/parent-auth";
 
-  // Hidden parent access: triple-tap on logo
+  // Hidden parent access: 5 taps on logo
   const tapCountRef = useRef(0);
   const tapTimerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -33,15 +36,27 @@ export const Home = (): JSX.Element => {
     }, 1500);
   }, [navigate, parentAuthPath]);
 
-  // Auto-redirect: if saved child profiles exist, go straight to child profile picker
+  // Check for familyCode or existing sessions
   useEffect(() => {
+    // If already logged in as parent, go to dashboard
+    const parentToken = localStorage.getItem("token");
+    if (parentToken) {
+      navigate("/parent-dashboard");
+      return;
+    }
     // If child already logged in, go to games
     const childToken = localStorage.getItem("childToken");
     if (childToken) {
       navigate("/child-games");
       return;
     }
-    // If saved children exist, go to child profile picker
+    // If familyCode exists, show PIN entry
+    const storedFamilyCode = localStorage.getItem("familyCode");
+    if (storedFamilyCode) {
+      setFamilyCode(storedFamilyCode);
+      return;
+    }
+    // If saved children exist (legacy), redirect to child-link
     const savedChildren = localStorage.getItem("savedChildren");
     if (savedChildren) {
       try {
@@ -51,16 +66,36 @@ export const Home = (): JSX.Element => {
           return;
         }
       } catch (e) {
-        // ignore parse errors
+        // ignore
       }
     }
-    // Legacy format check
     const rememberedChild = localStorage.getItem("rememberedChild");
     if (rememberedChild) {
       navigate("/child-link");
       return;
     }
+    // Show landing page
+    setShowLanding(true);
   }, [navigate]);
+
+  // If familyCode exists, show PIN entry screen
+  if (familyCode) {
+    return (
+      <PinEntry
+        familyCode={familyCode}
+        onSwitchAccount={() => {
+          localStorage.removeItem("familyCode");
+          setFamilyCode(null);
+          setShowLanding(true);
+        }}
+      />
+    );
+  }
+
+  // Don't render landing until checks are done
+  if (!showLanding) {
+    return <div className="min-h-screen bg-gradient-to-b from-purple-400 via-pink-300 to-yellow-200" />;
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-purple-400 via-pink-300 to-yellow-200 relative overflow-hidden">
