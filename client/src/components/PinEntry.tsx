@@ -52,10 +52,16 @@ export function PinEntry({ familyCode, onSwitchAccount }: PinEntryProps) {
       setSuccess({ type: payload.type, name: payload.name });
 
       if (payload.type === "parent") {
+        // Clear child session before setting parent session
+        localStorage.removeItem("childToken");
+        localStorage.removeItem("childId");
         localStorage.setItem("token", payload.token);
         localStorage.setItem("userId", payload.id);
         setTimeout(() => navigate("/parent-dashboard"), 800);
       } else {
+        // Clear parent session before setting child session
+        localStorage.removeItem("token");
+        localStorage.removeItem("userId");
         localStorage.setItem("childToken", payload.token);
         localStorage.setItem("childId", payload.id);
         // Also save to savedChildren for profile picker compatibility

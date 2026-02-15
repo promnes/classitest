@@ -116,8 +116,8 @@ export const ParentAuth = (): JSX.Element => {
         if (payload?.userId) {
           localStorage.setItem("userId", payload.userId);
         }
-        // Save familyCode for PIN login flow
-        if (payload?.uniqueCode) {
+        // Save familyCode for PIN login flow (only if parent has PIN set)
+        if (payload?.uniqueCode && payload?.hasPin) {
           localStorage.setItem("familyCode", payload.uniqueCode);
         }
         navigate("/parent-dashboard");

@@ -313,7 +313,7 @@ export async function registerAuthRoutes(app: Express) {
         console.error("Failed to send linking code notification:", err);
       }
 
-      res.json(successResponse({ token, userId: result[0].id, uniqueCode }, "Registration successful"));
+      res.json(successResponse({ token, userId: result[0].id, uniqueCode, hasPin: !!hashedPin }, "Registration successful"));
     } catch (error: any) {
       console.error("Registration error:", error);
       res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Registration failed"));
@@ -1271,6 +1271,7 @@ export async function registerAuthRoutes(app: Express) {
         parentId: parent[0].id,
         userId: parent[0].id,
         uniqueCode: parent[0].uniqueCode, // For family PIN login flow
+        hasPin: !!parent[0].pin, // Only enable PIN flow if parent has PIN
         deviceTrusted: !!deviceRefreshToken, // Indicate if device was saved
       }, "Login successful"));
     } catch (error: any) {
@@ -1937,6 +1938,7 @@ export async function registerAuthRoutes(app: Express) {
         parentId: parent[0].id,
         userId: parent[0].id,
         uniqueCode: parent[0].uniqueCode,
+        hasPin: !!parent[0].pin,
         user: {
           id: parent[0].id,
           email: parent[0].email,

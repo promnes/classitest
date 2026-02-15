@@ -38,6 +38,12 @@ export const Home = (): JSX.Element => {
 
   // Check for familyCode or existing sessions
   useEffect(() => {
+    // If familyCode exists, always show PIN entry (shared device mode)
+    const storedFamilyCode = localStorage.getItem("familyCode");
+    if (storedFamilyCode) {
+      setFamilyCode(storedFamilyCode);
+      return;
+    }
     // If already logged in as parent, go to dashboard
     const parentToken = localStorage.getItem("token");
     if (parentToken) {
@@ -48,12 +54,6 @@ export const Home = (): JSX.Element => {
     const childToken = localStorage.getItem("childToken");
     if (childToken) {
       navigate("/child-games");
-      return;
-    }
-    // If familyCode exists, show PIN entry
-    const storedFamilyCode = localStorage.getItem("familyCode");
-    if (storedFamilyCode) {
-      setFamilyCode(storedFamilyCode);
       return;
     }
     // If saved children exist (legacy), redirect to child-link
@@ -84,7 +84,13 @@ export const Home = (): JSX.Element => {
       <PinEntry
         familyCode={familyCode}
         onSwitchAccount={() => {
+          // Clear all session data when switching accounts
           localStorage.removeItem("familyCode");
+          localStorage.removeItem("token");
+          localStorage.removeItem("userId");
+          localStorage.removeItem("childToken");
+          localStorage.removeItem("childId");
+          localStorage.removeItem("deviceTrusted");
           setFamilyCode(null);
           setShowLanding(true);
         }}
