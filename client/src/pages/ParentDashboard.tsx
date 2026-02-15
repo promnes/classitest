@@ -337,8 +337,8 @@ export const ParentDashboard = (): JSX.Element => {
 
   // PIN mutations
   const addChildWithPinMutation = useMutation({
-    mutationFn: async ({ name, pin }: { name: string; pin: string }) => {
-      return apiRequest("POST", "/api/auth/add-child-with-pin", { name, pin });
+    mutationFn: async ({ childName, pin }: { childName: string; pin: string }) => {
+      return apiRequest("POST", "/api/auth/add-child-with-pin", { childName, pin });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/parent/children"] });
@@ -1655,7 +1655,7 @@ export const ParentDashboard = (): JSX.Element => {
               </div>
               <div className="flex gap-2 pt-2">
                 <Button
-                  onClick={() => addChildWithPinMutation.mutate({ name: newChildName, pin: newChildPin })}
+                        onClick={() => addChildWithPinMutation.mutate({ childName: newChildName, pin: newChildPin })}
                   disabled={!newChildName.trim() || newChildPin.length < 4 || addChildWithPinMutation.isPending}
                   className="flex-1"
                 >
