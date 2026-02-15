@@ -1,11 +1,11 @@
-import React from "react";
+import React, { useEffect, useRef, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { useLocation } from "wouter";
 import { useTheme } from "@/contexts/ThemeContext";
 import { LanguageSelector } from "@/components/LanguageSelector";
 import { PWAInstallButton } from "@/components/PWAInstallButton";
 import { SlidingAdsCarousel } from "@/components/SlidingAdsCarousel";
-import { Download } from "lucide-react";
+import { Download, Gamepad2, Star, Sparkles, BookOpen, Trophy } from "lucide-react";
 
 export const Home = (): JSX.Element => {
   const { t } = useTranslation();
@@ -16,132 +16,137 @@ export const Home = (): JSX.Element => {
     ? `/parent-auth?libraryRef=${encodeURIComponent(libraryRef)}`
     : "/parent-auth";
 
+  // Hidden parent access: triple-tap on logo
+  const tapCountRef = useRef(0);
+  const tapTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const handleLogoTap = useCallback(() => {
+    tapCountRef.current += 1;
+    if (tapTimerRef.current) clearTimeout(tapTimerRef.current);
+    if (tapCountRef.current >= 5) {
+      tapCountRef.current = 0;
+      navigate(parentAuthPath);
+      return;
+    }
+    tapTimerRef.current = setTimeout(() => {
+      tapCountRef.current = 0;
+    }, 1500);
+  }, [navigate, parentAuthPath]);
+
+  // Auto-redirect: if saved child profiles exist, go straight to child profile picker
+  useEffect(() => {
+    // If child already logged in, go to games
+    const childToken = localStorage.getItem("childToken");
+    if (childToken) {
+      navigate("/child-games");
+      return;
+    }
+    // If saved children exist, go to child profile picker
+    const savedChildren = localStorage.getItem("savedChildren");
+    if (savedChildren) {
+      try {
+        const parsed = JSON.parse(savedChildren);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          navigate("/child-link");
+          return;
+        }
+      } catch (e) {
+        // ignore parse errors
+      }
+    }
+    // Legacy format check
+    const rememberedChild = localStorage.getItem("rememberedChild");
+    if (rememberedChild) {
+      navigate("/child-link");
+      return;
+    }
+  }, [navigate]);
+
   return (
-    <div className={`min-h-screen flex flex-col ${
-      isDark
-        ? "bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900"
-        : "bg-gradient-to-br from-purple-600 via-purple-500 to-purple-700"
-    }`}>
-      {/* Header */}
-      <header className="p-4 md:p-6 bg-gradient-to-r from-purple-700 to-purple-800 shadow-lg">
-        <div className="max-w-7xl mx-auto flex justify-between items-center flex-wrap gap-4">
-          <div className="flex items-center gap-4">
-            <div className="relative">
-              <img 
-                src="/logo.jpg" 
-                alt="Classify" 
-                width={56}
-                height={56}
-                decoding="async"
-                loading="eager"
-                className="h-14 w-14 rounded-full shadow-lg border-4 border-yellow-400 object-cover"
-              />
-              <div className="absolute -bottom-1 -right-1 bg-green-500 text-white text-sm rounded-full w-6 h-6 flex items-center justify-center font-bold shadow-lg">
-                ✓
-              </div>
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold text-white tracking-wider">Classify</h1>
-              <p className="text-sm text-purple-200 font-semibold">by proomnes 🚀</p>
-            </div>
-          </div>
-          <div className="flex gap-2 items-center flex-wrap">
-            <LanguageSelector />
-            <PWAInstallButton 
-              variant="default" 
-              size="default"
-              showText={true}
-              className="bg-cyan-500 hover:bg-cyan-600 text-white rounded-full px-4 py-2 font-semibold shadow-md hover:shadow-lg"
-            />
-            <button
-              onClick={toggleTheme}
-              type="button"
-              aria-label={isDark ? "Switch to light theme" : "Switch to dark theme"}
-              className="px-3 py-2 bg-yellow-400 hover:bg-yellow-500 text-gray-900 rounded-full font-semibold transition-all shadow-md hover:shadow-lg text-lg"
-              title="Toggle theme"
-            >
-              {isDark ? "☀️" : "🌙"}
-            </button>
-          </div>
-        </div>
+    <div className="min-h-screen flex flex-col bg-gradient-to-b from-purple-400 via-pink-300 to-yellow-200 relative overflow-hidden">
+      {/* Floating decorations */}
+      <div className="absolute top-8 left-8 animate-bounce">
+        <Star className="w-8 h-8 text-yellow-400 drop-shadow-lg" fill="currentColor" />
+      </div>
+      <div className="absolute top-20 right-12 animate-pulse">
+        <Sparkles className="w-6 h-6 text-pink-400" />
+      </div>
+      <div className="absolute bottom-32 left-12 animate-bounce" style={{ animationDelay: "0.3s" }}>
+        <Gamepad2 className="w-10 h-10 text-purple-500 drop-shadow-lg" />
+      </div>
+      <div className="absolute bottom-20 right-8 animate-pulse" style={{ animationDelay: "0.5s" }}>
+        <Trophy className="w-8 h-8 text-yellow-500 drop-shadow-lg" fill="currentColor" />
+      </div>
+      <div className="absolute top-40 left-1/4 animate-bounce" style={{ animationDelay: "0.7s" }}>
+        <BookOpen className="w-7 h-7 text-blue-400 drop-shadow-lg" />
+      </div>
+
+      {/* Header - minimal kid-friendly */}
+      <header className="p-4 flex justify-end items-center gap-2 relative z-10">
+        <LanguageSelector />
+        <PWAInstallButton variant="compact" />
+        <button
+          onClick={toggleTheme}
+          type="button"
+          aria-label={isDark ? "Switch to light theme" : "Switch to dark theme"}
+          className="px-3 py-2 bg-white/80 hover:bg-white text-gray-900 rounded-full font-semibold transition-all shadow-md text-lg"
+          title="Toggle theme"
+        >
+          {isDark ? "☀️" : "🌙"}
+        </button>
       </header>
 
-      {/* Hero */}
-      <main className="flex-1 flex flex-col items-center justify-center px-4 py-20">
-        <div className="flex items-center gap-6 mb-4">
+      {/* Hero - Kid-friendly */}
+      <main className="flex-1 flex flex-col items-center justify-center px-4 py-12 relative z-10">
+        {/* Logo with hidden parent access (5 taps) */}
+        <button
+          onClick={handleLogoTap}
+          className="mb-6 focus:outline-none"
+          aria-label="Classify"
+          type="button"
+        >
           <img 
             src="/logo.jpg" 
-            alt="Classify Logo" 
+            alt="Classify" 
             width={128}
             height={128}
             decoding="async"
             loading="eager"
             fetchPriority="high"
-            className="h-24 w-24 md:h-32 md:w-32 rounded-full shadow-2xl border-4 border-yellow-400 object-cover animate-bounce"
+            className="h-28 w-28 md:h-36 md:w-36 rounded-full shadow-2xl border-4 border-yellow-400 object-cover animate-bounce"
           />
-          <h1 className={`text-4xl md:text-6xl font-bold text-center ${
-            isDark ? "text-white" : "text-white"
-          }`}>
-            Classify
-          </h1>
-        </div>
-        <p className={`text-2xl font-bold text-center mb-4 ${
-          isDark ? "text-blue-400" : "text-blue-100"
-        }`}>
+        </button>
+        
+        <h1 className="text-5xl md:text-7xl font-bold text-center bg-gradient-to-r from-purple-600 via-pink-600 to-orange-500 bg-clip-text text-transparent mb-3">
+          Classify
+        </h1>
+        <p className="text-2xl font-bold text-center text-purple-700 mb-2">
           {t("welcome")}
         </p>
-        <p className={`text-lg text-center mb-12 ${
-          isDark ? "text-gray-300" : "text-blue-100"
-        }`}>
-          {t("smartParentalControl")}
+        <p className="text-lg text-center text-purple-600/80 mb-10">
+          {t("letsPlay") || "هيا نلعب ونتعلم! 🎮"}
         </p>
 
-        {/* Account Selection */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-2xl">
-          {/* Parent - Red Card */}
-          <button
-            onClick={() => navigate(parentAuthPath)}
-            className={`${
-              isDark ? "bg-red-900 hover:bg-red-800" : "bg-white hover:shadow-xl"
-            } rounded-2xl p-8 shadow-lg transition-all hover:-translate-y-1 border-4 border-red-500`}
-          >
-            <div className="text-6xl mb-4">👨‍💼</div>
-            <h2 className={`text-2xl font-bold mb-2 ${isDark ? "text-red-300" : "text-red-600"}`}>
-              {t("parentTitle")}
-            </h2>
-            <p className={isDark ? "text-red-200" : "text-red-700"}>{t("manageChildTasks")}</p>
-          </button>
-
-          {/* Child - Green Card */}
+        {/* Single CTA: Start Playing */}
+        <div className="w-full max-w-sm space-y-4">
           <button
             onClick={() => navigate("/child-link")}
-            className={`${
-              isDark ? "bg-green-900 hover:bg-green-800" : "bg-white hover:shadow-xl"
-            } rounded-2xl p-8 shadow-lg transition-all hover:-translate-y-1 border-4 border-green-500`}
+            className="w-full py-5 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-bold text-2xl rounded-2xl transition-all hover:scale-[1.02] flex items-center justify-center gap-3 shadow-xl"
           >
-            <div className="text-6xl mb-4">👧</div>
-            <h2 className={`text-2xl font-bold mb-2 ${isDark ? "text-green-300" : "text-green-600"}`}>
-              {t("childTitle")}
-            </h2>
-            <p className={isDark ? "text-green-200" : "text-green-700"}>{t("gamesAndTasks")}</p>
+            <Gamepad2 className="w-8 h-8" />
+            {t("startPlaying") || "ابدأ اللعب! 🚀"}
           </button>
-        </div>
 
-        {/* Download App Button */}
-        <div className="mt-10 w-full max-w-md">
+          {/* Download App */}
           <a
             href="/classify-app.apk"
             download="Classify.apk"
-            className={`flex items-center justify-center gap-3 w-full py-4 px-6 rounded-2xl shadow-lg transition-all hover:-translate-y-1 hover:shadow-xl font-bold text-lg ${
-              isDark
-                ? "bg-gradient-to-r from-green-600 to-emerald-700 hover:from-green-500 hover:to-emerald-600 text-white"
-                : "bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-400 hover:to-emerald-500 text-white"
-            }`}
+            className="flex items-center justify-center gap-3 w-full py-4 px-6 rounded-2xl shadow-lg transition-all hover:scale-[1.01] font-bold text-lg bg-white/80 hover:bg-white text-purple-700"
           >
             <Download className="w-6 h-6" />
             <span>📱 {t("downloadApp")}</span>
           </a>
-          <p className={`text-center text-sm mt-2 ${isDark ? "text-gray-400" : "text-purple-200"}`}>
+          <p className="text-center text-sm text-purple-500/70">
             Android APK • 6 MB
           </p>
         </div>
@@ -151,7 +156,7 @@ export const Home = (): JSX.Element => {
       <SlidingAdsCarousel audience="all" variant="home" isDark={isDark} />
 
       {/* Footer */}
-      <footer className={`text-center py-6 ${isDark ? "text-gray-300" : "text-purple-100"}`}>
+      <footer className="text-center py-6 text-purple-600/70 relative z-10">
         <div className="flex justify-center gap-6 mb-4">
           <button onClick={() => navigate("/privacy")} className="hover:underline text-sm">
             🔒 Privacy
@@ -160,7 +165,7 @@ export const Home = (): JSX.Element => {
             📋 Terms
           </button>
         </div>
-        <p className="text-xs opacity-70">© 2024 Classify by proomnes. All rights reserved. v1.0.0</p>
+        <p className="text-xs opacity-70">© 2024 Classify by proomnes. All rights reserved.</p>
       </footer>
     </div>
   );

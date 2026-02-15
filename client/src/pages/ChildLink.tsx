@@ -11,6 +11,27 @@ import {
 // @ts-ignore
 import jsQR from "jsqr";
 
+// Hidden parent access via 5 rapid taps on logo
+function useHiddenParentAccess(navigate: (path: string) => void) {
+  const tapCountRef = useRef(0);
+  const tapTimerRef = useRef<NodeJS.Timeout | null>(null);
+  
+  const handleLogoTap = useCallback(() => {
+    tapCountRef.current += 1;
+    if (tapTimerRef.current) clearTimeout(tapTimerRef.current);
+    if (tapCountRef.current >= 5) {
+      tapCountRef.current = 0;
+      navigate("/parent-auth");
+      return;
+    }
+    tapTimerRef.current = setTimeout(() => {
+      tapCountRef.current = 0;
+    }, 1500);
+  }, [navigate]);
+  
+  return handleLogoTap;
+}
+
 interface SavedChildInfo {
   childId: string;
   displayName: string;
@@ -33,6 +54,7 @@ const AVATAR_COLORS = [
 export const ChildLink = (): JSX.Element => {
   const { t } = useTranslation();
   const [, navigate] = useLocation();
+  const handleLogoTap = useHiddenParentAccess(navigate);
   const [step, setStep] = useState<LoginStep>("welcome");
   const [childName, setChildName] = useState("");
   const [loginParentCode, setLoginParentCode] = useState("");
@@ -488,9 +510,21 @@ export const ChildLink = (): JSX.Element => {
         {step === "welcome" && (
           <div className="bg-white rounded-3xl p-8 shadow-2xl">
             <div className="text-center mb-6">
-              <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full mb-4 shadow-xl">
-                <Gamepad2 className="w-10 h-10 text-white" />
-              </div>
+              {/* Logo: 5 rapid taps opens hidden parent access */}
+              <button
+                onClick={handleLogoTap}
+                className="inline-flex items-center justify-center mb-4 focus:outline-none"
+                type="button"
+                aria-label="Classify"
+              >
+                <img
+                  src="/logo.jpg"
+                  alt="Classify"
+                  width={80}
+                  height={80}
+                  className="h-20 w-20 rounded-full shadow-xl border-4 border-yellow-400 object-cover"
+                />
+              </button>
               <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
                 {t("welcome") || "مرحباً!"}
               </h1>
