@@ -189,6 +189,19 @@ function ChildReportCard({ child, token, isDark, t }: { child: any; token: strin
   );
 }
 
+// Parse error message from apiRequest errors (format: "statusCode: {json}")
+function extractErrorMessage(err: any): string {
+  const raw = err?.message || "";
+  try {
+    const jsonPart = raw.substring(raw.indexOf("{"));
+    if (jsonPart) {
+      const parsed = JSON.parse(jsonPart);
+      return parsed?.message || parsed?.error || raw;
+    }
+  } catch {}
+  return raw;
+}
+
 export const ParentDashboard = (): JSX.Element => {
   const [, navigate] = useLocation();
   const { t, i18n } = useTranslation();
@@ -338,7 +351,8 @@ export const ParentDashboard = (): JSX.Element => {
   // PIN mutations
   const addChildWithPinMutation = useMutation({
     mutationFn: async ({ childName, pin }: { childName: string; pin: string }) => {
-      return apiRequest("POST", "/api/auth/add-child-with-pin", { childName, pin });
+      const res = await apiRequest("POST", "/api/auth/add-child-with-pin", { childName, pin });
+      return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/parent/children"] });
@@ -349,13 +363,15 @@ export const ParentDashboard = (): JSX.Element => {
       toast({ title: "تم إضافة الطفل بنجاح ✅", description: "يمكنه الآن الدخول برمز PIN" });
     },
     onError: (err: any) => {
-      toast({ title: "خطأ", description: err?.message || "فشل إضافة الطفل", variant: "destructive" });
+      const msg = extractErrorMessage(err);
+      toast({ title: "خطأ", description: msg || "فشل إضافة الطفل", variant: "destructive" });
     },
   });
 
   const setChildPinMutation = useMutation({
     mutationFn: async ({ childId, pin }: { childId: number; pin: string }) => {
-      return apiRequest("PUT", "/api/auth/set-child-pin", { childId, pin });
+      const res = await apiRequest("PUT", "/api/auth/set-child-pin", { childId, pin });
+      return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/auth/family-pin-status"] });
@@ -365,22 +381,29 @@ export const ParentDashboard = (): JSX.Element => {
       toast({ title: "تم تعيين رمز PIN ✅" });
     },
     onError: (err: any) => {
-      toast({ title: "خطأ", description: err?.message || "فشل تعيين الرمز", variant: "destructive" });
+      const msg = extractErrorMessage(err);
+      toast({ title: "خطأ", description: msg || "فشل تعيين الرمز", variant: "destructive" });
     },
   });
 
   const setMyPinMutation = useMutation({
     mutationFn: async ({ pin }: { pin: string }) => {
-      return apiRequest("PUT", "/api/auth/set-pin", { pin });
+      const res = await apiRequest("PUT", "/api/auth/set-pin", { pin });
+      return res.json();
     },
-    onSuccess: () => {
+    onSuccess: (data: any) => {
+      const payload = data?.data || data;
+      if (payload?.familyCode) {
+        localStorage.setItem("familyCode", payload.familyCode);
+      }
       queryClient.invalidateQueries({ queryKey: ["/api/auth/family-pin-status"] });
       setShowSetMyPin(false);
       setMyPinValue("");
       toast({ title: "تم تعيين رمز PIN الخاص بك ✅" });
     },
     onError: (err: any) => {
-      toast({ title: "خطأ", description: err?.message || "فشل تعيين الرمز", variant: "destructive" });
+      const msg = extractErrorMessage(err);
+      toast({ title: "خطأ", description: msg || "فشل تعيين الرمز", variant: "destructive" });
     },
   });
 

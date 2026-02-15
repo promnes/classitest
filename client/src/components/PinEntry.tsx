@@ -89,7 +89,7 @@ export function PinEntry({ familyCode, onSwitchAccount }: PinEntryProps) {
   // Auto-submit when all 4 digits entered
   useEffect(() => {
     const full = pin.join("");
-    if (full.length === 4 && pin.every((d) => d !== "")) {
+    if (full.length === 4 && pin.every((d) => d !== "") && !pinLoginMutation.isPending) {
       pinLoginMutation.mutate(full);
     }
   }, [pin]);

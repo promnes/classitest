@@ -1934,6 +1934,9 @@ export async function registerAuthRoutes(app: Express) {
 
       res.json(successResponse({
         token,
+        parentId: parent[0].id,
+        userId: parent[0].id,
+        uniqueCode: parent[0].uniqueCode,
         user: {
           id: parent[0].id,
           email: parent[0].email,
