@@ -50,6 +50,20 @@ import {
   libraryBalances,
   libraryWithdrawalRequests,
   libraryDailyInvoices,
+  schools,
+  schoolTeachers,
+  schoolPosts,
+  schoolReviews,
+  teacherReviews,
+  teacherTasks,
+  teacherTaskOrders,
+  teacherBalances,
+  teacherWithdrawalRequests,
+  schoolActivityLogs,
+  schoolReferralSettings,
+  childSchoolAssignment,
+  childTeacherAssignment,
+  teacherHiring,
   pointAdjustments,
   socialLoginProviders,
   parentSocialIdentities,
@@ -4751,6 +4765,313 @@ export async function registerAdminRoutes(app: Express) {
       res
         .status(500)
         .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to reject withdrawal"));
+    }
+  });
+
+  // ===== Schools Management =====
+
+  // Get all schools
+  app.get("/api/admin/schools", adminMiddleware, async (req: any, res) => {
+    try {
+      const allSchools = await db.select().from(schools).orderBy(desc(schools.activityScore));
+      res.json(successResponse(allSchools));
+    } catch (error: any) {
+      console.error("Get schools error:", error);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to fetch schools"));
+    }
+  });
+
+  // Get single school with stats
+  app.get("/api/admin/schools/:id", adminMiddleware, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const school = await db.select().from(schools).where(eq(schools.id, id));
+      if (!school[0]) {
+        return res.status(404).json(errorResponse(ErrorCode.NOT_FOUND, "School not found"));
+      }
+
+      const teachers = await db.select().from(schoolTeachers).where(eq(schoolTeachers.schoolId, id));
+      const students = await db.select().from(childSchoolAssignment).where(eq(childSchoolAssignment.schoolId, id));
+      const posts = await db.select().from(schoolPosts).where(eq(schoolPosts.schoolId, id)).orderBy(desc(schoolPosts.createdAt)).limit(50);
+      const reviews = await db.select().from(schoolReviews).where(eq(schoolReviews.schoolId, id)).orderBy(desc(schoolReviews.createdAt));
+      const activityLogs = await db.select().from(schoolActivityLogs).where(eq(schoolActivityLogs.schoolId, id)).orderBy(desc(schoolActivityLogs.createdAt)).limit(50);
+
+      const { password, ...safeSchool } = school[0];
+
+      res.json(successResponse({
+        ...safeSchool,
+        teachers: teachers.map(({ password: _pw, ...t }: any) => t),
+        students,
+        posts,
+        reviews,
+        activityLogs,
+        stats: {
+          totalTeachers: teachers.length,
+          activeTeachers: teachers.filter((t: typeof schoolTeachers.$inferSelect) => t.isActive).length,
+          totalStudents: students.length,
+          totalPosts: posts.length,
+          totalReviews: reviews.length,
+        },
+      }));
+    } catch (error: any) {
+      console.error("Get school error:", error);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to fetch school"));
+    }
+  });
+
+  // Create school
+  app.post("/api/admin/schools", adminMiddleware, async (req: any, res) => {
+    try {
+      const { name, nameAr, description, address, city, governorate, imageUrl, coverImageUrl, username, password, phoneNumber, email, commissionRatePct, withdrawalCommissionPct } = req.body;
+
+      if (!name || !username || !password) {
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Name, username and password are required"));
+      }
+
+      const existing = await db.select().from(schools).where(eq(schools.username, username));
+      if (existing[0]) {
+        return res.status(400).json(errorResponse(ErrorCode.CONFLICT, "Username already exists"));
+      }
+
+      const hashedPassword = await bcrypt.hash(password, 10);
+      const referralCode = `SCH${Date.now().toString(36).toUpperCase()}`;
+
+      const newSchool = await db.insert(schools).values({
+        name,
+        nameAr: nameAr || null,
+        description: description || null,
+        address: address || null,
+        city: city || null,
+        governorate: governorate || null,
+        imageUrl: imageUrl || null,
+        coverImageUrl: coverImageUrl || null,
+        username,
+        password: hashedPassword,
+        referralCode,
+        phoneNumber: phoneNumber || null,
+        email: email || null,
+        commissionRatePct: commissionRatePct !== undefined ? Number(commissionRatePct).toFixed(2) : "10.00",
+        withdrawalCommissionPct: withdrawalCommissionPct !== undefined ? Number(withdrawalCommissionPct).toFixed(2) : "0.00",
+      }).returning();
+
+      res.json(successResponse(newSchool[0]));
+    } catch (error: any) {
+      console.error("Create school error:", error);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to create school"));
+    }
+  });
+
+  // Update school
+  app.put("/api/admin/schools/:id", adminMiddleware, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const { name, nameAr, description, address, city, governorate, imageUrl, coverImageUrl, username, password, phoneNumber, email, isActive, isVerified, commissionRatePct, withdrawalCommissionPct } = req.body;
+
+      const school = await db.select().from(schools).where(eq(schools.id, id));
+      if (!school[0]) {
+        return res.status(404).json(errorResponse(ErrorCode.NOT_FOUND, "School not found"));
+      }
+
+      if (username && username !== school[0].username) {
+        const existing = await db.select().from(schools).where(eq(schools.username, username));
+        if (existing[0]) {
+          return res.status(400).json(errorResponse(ErrorCode.CONFLICT, "Username already exists"));
+        }
+      }
+
+      const updates: any = { updatedAt: new Date() };
+      if (name) updates.name = name;
+      if (nameAr !== undefined) updates.nameAr = nameAr;
+      if (description !== undefined) updates.description = description;
+      if (address !== undefined) updates.address = address;
+      if (city !== undefined) updates.city = city;
+      if (governorate !== undefined) updates.governorate = governorate;
+      if (imageUrl !== undefined) updates.imageUrl = imageUrl;
+      if (coverImageUrl !== undefined) updates.coverImageUrl = coverImageUrl;
+      if (username) updates.username = username;
+      if (password) updates.password = await bcrypt.hash(password, 10);
+      if (phoneNumber !== undefined) updates.phoneNumber = phoneNumber;
+      if (email !== undefined) updates.email = email;
+      if (typeof isActive === "boolean") updates.isActive = isActive;
+      if (typeof isVerified === "boolean") updates.isVerified = isVerified;
+      if (commissionRatePct !== undefined) updates.commissionRatePct = Number(commissionRatePct).toFixed(2);
+      if (withdrawalCommissionPct !== undefined) updates.withdrawalCommissionPct = Number(withdrawalCommissionPct).toFixed(2);
+
+      const updated = await db.update(schools).set(updates).where(eq(schools.id, id)).returning();
+      res.json(successResponse(updated[0]));
+    } catch (error: any) {
+      console.error("Update school error:", error);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to update school"));
+    }
+  });
+
+  // Delete school
+  app.delete("/api/admin/schools/:id", adminMiddleware, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      await db.delete(schools).where(eq(schools.id, id));
+      res.json(successResponse(undefined, "School deleted"));
+    } catch (error: any) {
+      console.error("Delete school error:", error);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to delete school"));
+    }
+  });
+
+  // Get school referral settings
+  app.get("/api/admin/school-referral-settings", adminMiddleware, async (req: any, res) => {
+    try {
+      let settings = await db.select().from(schoolReferralSettings);
+      if (!settings[0]) {
+        const created = await db.insert(schoolReferralSettings).values({}).returning();
+        settings = created;
+      }
+      res.json(successResponse(settings[0]));
+    } catch (error: any) {
+      console.error("Get school referral settings error:", error);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to fetch settings"));
+    }
+  });
+
+  // Update school referral settings
+  app.put("/api/admin/school-referral-settings", adminMiddleware, async (req: any, res) => {
+    try {
+      const { pointsPerReferral, pointsPerTeacherAdd, pointsPerStudentJoin, isActive } = req.body;
+
+      let settings = await db.select().from(schoolReferralSettings);
+      if (!settings[0]) {
+        const created = await db.insert(schoolReferralSettings).values({
+          pointsPerReferral: pointsPerReferral || 50,
+          pointsPerTeacherAdd: pointsPerTeacherAdd || 20,
+          pointsPerStudentJoin: pointsPerStudentJoin || 10,
+          isActive: isActive !== undefined ? isActive : true,
+        }).returning();
+        return res.json(successResponse(created[0]));
+      }
+
+      const updated = await db.update(schoolReferralSettings).set({
+        pointsPerReferral: pointsPerReferral ?? settings[0].pointsPerReferral,
+        pointsPerTeacherAdd: pointsPerTeacherAdd ?? settings[0].pointsPerTeacherAdd,
+        pointsPerStudentJoin: pointsPerStudentJoin ?? settings[0].pointsPerStudentJoin,
+        isActive: isActive !== undefined ? isActive : settings[0].isActive,
+        updatedAt: new Date(),
+      }).where(eq(schoolReferralSettings.id, settings[0].id)).returning();
+
+      res.json(successResponse(updated[0]));
+    } catch (error: any) {
+      console.error("Update school referral settings error:", error);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to update settings"));
+    }
+  });
+
+  // Get teacher withdrawal requests (admin)
+  app.get("/api/admin/teacher-withdrawals", adminMiddleware, async (req: any, res) => {
+    try {
+      const rows = await db
+        .select({
+          request: teacherWithdrawalRequests,
+          teacherName: schoolTeachers.name,
+          schoolName: schools.name,
+          availableBalance: teacherBalances.availableBalance,
+          pendingBalance: teacherBalances.pendingBalance,
+        })
+        .from(teacherWithdrawalRequests)
+        .leftJoin(schoolTeachers, eq(teacherWithdrawalRequests.teacherId, schoolTeachers.id))
+        .leftJoin(schools, eq(schoolTeachers.schoolId, schools.id))
+        .leftJoin(teacherBalances, eq(teacherWithdrawalRequests.teacherId, teacherBalances.teacherId))
+        .orderBy(desc(teacherWithdrawalRequests.requestedAt));
+
+      const data = rows.map((row: any) => ({
+        ...row.request,
+        teacherName: row.teacherName,
+        schoolName: row.schoolName,
+        availableBalance: row.availableBalance,
+        pendingBalance: row.pendingBalance,
+      }));
+
+      res.json(successResponse(data));
+    } catch (error: any) {
+      console.error("Get admin teacher withdrawals error:", error);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to fetch teacher withdrawals"));
+    }
+  });
+
+  // Approve teacher withdrawal
+  app.put("/api/admin/teacher-withdrawals/:id/approve", adminMiddleware, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const rows = await db.select().from(teacherWithdrawalRequests).where(eq(teacherWithdrawalRequests.id, id)).limit(1);
+      const request = rows[0];
+      if (!request) {
+        return res.status(404).json(errorResponse(ErrorCode.NOT_FOUND, "Withdrawal request not found"));
+      }
+      if (request.status !== "pending") {
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Withdrawal request already processed"));
+      }
+
+      await db.transaction(async (tx: any) => {
+        await tx.update(teacherWithdrawalRequests).set({
+          status: "approved",
+          processedAt: new Date(),
+        }).where(eq(teacherWithdrawalRequests.id, id));
+
+        const existingBalance = await tx.select().from(teacherBalances).where(eq(teacherBalances.teacherId, request.teacherId)).limit(1);
+        if (existingBalance[0]) {
+          await tx.update(teacherBalances).set({
+            totalWithdrawnAmount: sql`${teacherBalances.totalWithdrawnAmount} + ${request.netAmount}`,
+            updatedAt: new Date(),
+          }).where(eq(teacherBalances.teacherId, request.teacherId));
+        }
+      });
+
+      const updatedRows = await db.select().from(teacherWithdrawalRequests).where(eq(teacherWithdrawalRequests.id, id)).limit(1);
+      res.json(successResponse(updatedRows[0], "Withdrawal approved"));
+    } catch (error: any) {
+      console.error("Approve teacher withdrawal error:", error);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to approve withdrawal"));
+    }
+  });
+
+  // Reject teacher withdrawal
+  app.put("/api/admin/teacher-withdrawals/:id/reject", adminMiddleware, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const { note } = req.body || {};
+
+      const rows = await db.select().from(teacherWithdrawalRequests).where(eq(teacherWithdrawalRequests.id, id)).limit(1);
+      const request = rows[0];
+      if (!request) {
+        return res.status(404).json(errorResponse(ErrorCode.NOT_FOUND, "Withdrawal request not found"));
+      }
+      if (request.status !== "pending") {
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Withdrawal request already processed"));
+      }
+
+      await db.transaction(async (tx: any) => {
+        await tx.update(teacherWithdrawalRequests).set({
+          status: "rejected",
+          adminNote: note ? String(note) : null,
+          processedAt: new Date(),
+        }).where(eq(teacherWithdrawalRequests.id, id));
+
+        const existingBalance = await tx.select().from(teacherBalances).where(eq(teacherBalances.teacherId, request.teacherId)).limit(1);
+        if (!existingBalance[0]) {
+          await tx.insert(teacherBalances).values({
+            teacherId: request.teacherId,
+            availableBalance: request.amount,
+          });
+        } else {
+          await tx.update(teacherBalances).set({
+            availableBalance: sql`${teacherBalances.availableBalance} + ${request.amount}`,
+            updatedAt: new Date(),
+          }).where(eq(teacherBalances.teacherId, request.teacherId));
+        }
+      });
+
+      const updatedRows = await db.select().from(teacherWithdrawalRequests).where(eq(teacherWithdrawalRequests.id, id)).limit(1);
+      res.json(successResponse(updatedRows[0], "Withdrawal rejected and amount returned"));
+    } catch (error: any) {
+      console.error("Reject teacher withdrawal error:", error);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to reject withdrawal"));
     }
   });
 

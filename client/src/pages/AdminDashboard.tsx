@@ -25,6 +25,7 @@ import { AdsTab } from "@/components/admin/AdsTab";
 import { ParentsTab } from "@/components/admin/ParentsTab";
 import { ProfitSystemTab } from "@/components/admin/ProfitSystemTab";
 import LibrariesTab from "@/components/admin/LibrariesTab";
+import SchoolsTab from "@/components/admin/SchoolsTab";
 import { SocialLoginTab } from "@/components/admin/SocialLoginTab";
 import { OTPProvidersTab } from "@/components/admin/OTPProvidersTab";
 import { SeoSettingsTab } from "@/components/admin/SeoSettingsTab";
@@ -37,7 +38,7 @@ import { TaskNotificationLevelsTab } from "@/components/admin/TaskNotificationLe
 import { LegalTab } from "@/components/admin/LegalTab";
 import { MobileAppSettingsTab } from "@/components/admin/MobileAppSettingsTab";
 
-type TabType = "dashboard" | "products" | "categories" | "symbols" | "users" | "settings" | "wallets" | "orders" | "deposits" | "activity" | "analytics" | "payment-methods" | "subjects" | "notifications" | "notification-settings" | "task-notification-levels" | "gifts" | "referrals" | "ads" | "parents" | "profits" | "libraries" | "games" | "tasks" | "social-login" | "otp-providers" | "seo" | "support" | "legal" | "mobile-app";
+type TabType = "dashboard" | "products" | "categories" | "symbols" | "users" | "settings" | "wallets" | "orders" | "deposits" | "activity" | "analytics" | "payment-methods" | "subjects" | "notifications" | "notification-settings" | "task-notification-levels" | "gifts" | "referrals" | "ads" | "parents" | "profits" | "libraries" | "schools" | "games" | "tasks" | "social-login" | "otp-providers" | "seo" | "support" | "legal" | "mobile-app";
 
 export const AdminDashboard = (): JSX.Element => {
   const { t, i18n } = useTranslation();
@@ -84,6 +85,7 @@ export const AdminDashboard = (): JSX.Element => {
     { id: "referrals", labelKey: "admin.referrals", icon: "🤝" },
     { id: "ads", labelKey: "admin.ads", icon: "📢" },
     { id: "libraries", labelKey: "admin.libraries", icon: "📖" },
+    { id: "schools", labelKey: "admin.schools", icon: "🏫" },
     { id: "social-login", labelKey: "admin.socialLogin", icon: "🔐" },
     { id: "otp-providers", labelKey: "admin.otpProviders", icon: "📱" },
     { id: "seo", labelKey: "admin.seoSettings", icon: "🔍" },
@@ -176,6 +178,7 @@ export const AdminDashboard = (): JSX.Element => {
           {activeTab === "parents" && <ParentsTab token={token} />}
           {activeTab === "profits" && <ProfitSystemTab token={token} />}
           {activeTab === "libraries" && <LibrariesTab />}
+          {activeTab === "schools" && <SchoolsTab />}
           {activeTab === "games" && <GamesTab token={token} />}
           {activeTab === "tasks" && <TasksTab token={token} />}
           {activeTab === "social-login" && <SocialLoginTab />}

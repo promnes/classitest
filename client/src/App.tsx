@@ -48,6 +48,11 @@ const ParentTasks = lazy(() => import("@/pages/ParentTasks"));
 const LibraryLogin = lazy(() => import("@/pages/LibraryLogin"));
 const LibraryDashboard = lazy(() => import("@/pages/LibraryDashboard"));
 const LibraryStore = lazy(() => import("@/pages/LibraryStore"));
+const SchoolLogin = lazy(() => import("@/pages/SchoolLogin"));
+const SchoolDashboard = lazy(() => import("@/pages/SchoolDashboard"));
+const TeacherLogin = lazy(() => import("@/pages/TeacherLogin"));
+const TeacherDashboard = lazy(() => import("@/pages/TeacherDashboard"));
+const SchoolProfile = lazy(() => import("@/pages/SchoolProfile"));
 const ChildProfile = lazy(() => import("@/pages/ChildProfile"));
 const ChildSettings = lazy(() => import("@/pages/ChildSettings"));
 const DownloadApp = lazy(() => import("@/pages/DownloadApp"));
@@ -259,6 +264,17 @@ function Router() {
         <Route path="/store/libraries" component={LegacyLibraryStoreRedirect} />
         <Route path="/library-store">
           <ErrorBoundary><LibraryStore /></ErrorBoundary>
+        </Route>
+        <Route path="/school/login" component={SchoolLogin} />
+        <Route path="/school/dashboard">
+          <ErrorBoundary><SchoolDashboard /></ErrorBoundary>
+        </Route>
+        <Route path="/teacher/login" component={TeacherLogin} />
+        <Route path="/teacher/dashboard">
+          <ErrorBoundary><TeacherDashboard /></ErrorBoundary>
+        </Route>
+        <Route path="/school/:id">
+          <ErrorBoundary><SchoolProfile /></ErrorBoundary>
         </Route>
         <Route component={NotFound} />
       </Switch>

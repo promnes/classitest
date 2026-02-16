@@ -21,6 +21,8 @@ import { registerPaymentRoutes } from "./payments";
 import { registerStoreRoutes } from "./store";
 import { registerReferralRoutes } from "./referrals";
 import { registerLibraryRoutes } from "./library";
+import { registerSchoolRoutes } from "./school";
+import { registerTeacherRoutes } from "./teacher";
 import { registerObjectStorageRoutes } from "../replit_integrations/object_storage";
 import { registerMediaUploadRoutes } from "./media-uploads";
 import { ensureOtpProviders } from "../providers/otp/bootstrap";
@@ -80,6 +82,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   registerStoreRoutes(app);
   registerReferralRoutes(app);
   registerLibraryRoutes(app);
+  registerSchoolRoutes(app);
+  registerTeacherRoutes(app);
   registerObjectStorageRoutes(app);
   registerMediaUploadRoutes(app);
   

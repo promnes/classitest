@@ -1697,6 +1697,225 @@ export const childProfileUpdateSchema = z.object({
   schoolName: z.string().max(200).optional().nullable(),
   academicGrade: z.string().max(50).optional().nullable(),
   hobbies: z.string().max(500).optional().nullable(),
+  schoolId: z.string().optional().nullable(),
 });
 
 export type ChildProfileUpdate = z.infer<typeof childProfileUpdateSchema>;
+
+// ===== Schools & Teachers System =====
+
+export const schools = pgTable("schools", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  nameAr: text("name_ar"),
+  description: text("description"),
+  address: text("address"),
+  city: text("city"),
+  governorate: text("governorate"),
+  imageUrl: text("image_url"),
+  coverImageUrl: text("cover_image_url"),
+  username: varchar("username", { length: 50 }).notNull().unique(),
+  password: text("password").notNull(),
+  referralCode: varchar("referral_code", { length: 20 }).notNull().unique(),
+  phoneNumber: text("phone_number"),
+  email: text("email"),
+  socialLinks: json("social_links").$type<{ facebook?: string; twitter?: string; instagram?: string; youtube?: string; tiktok?: string; website?: string }>(),
+  activityScore: integer("activity_score").default(0).notNull(),
+  totalTeachers: integer("total_teachers").default(0).notNull(),
+  totalStudents: integer("total_students").default(0).notNull(),
+  commissionRatePct: decimal("commission_rate_pct", { precision: 5, scale: 2 }).default("10.00").notNull(),
+  withdrawalCommissionPct: decimal("withdrawal_commission_pct", { precision: 5, scale: 2 }).default("0.00").notNull(),
+  isActive: boolean("is_active").default(true).notNull(),
+  isVerified: boolean("is_verified").default(false).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const schoolTeachers = pgTable("school_teachers", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  schoolId: varchar("school_id").notNull().references(() => schools.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  avatarUrl: text("avatar_url"),
+  birthday: text("birthday"),
+  bio: text("bio"),
+  subject: text("subject"),
+  yearsExperience: integer("years_experience").default(0),
+  username: varchar("username", { length: 50 }).notNull().unique(),
+  password: text("password").notNull(),
+  monthlyRate: decimal("monthly_rate", { precision: 10, scale: 2 }),
+  perTaskRate: decimal("per_task_rate", { precision: 10, scale: 2 }),
+  pricingModel: varchar("pricing_model", { length: 20 }).default("per_task"),
+  commissionRatePct: decimal("commission_rate_pct", { precision: 5, scale: 2 }).default("10.00").notNull(),
+  socialLinks: json("social_links").$type<{ facebook?: string; twitter?: string; instagram?: string; youtube?: string; tiktok?: string; website?: string }>(),
+  isActive: boolean("is_active").default(true).notNull(),
+  totalTasksSold: integer("total_tasks_sold").default(0).notNull(),
+  totalStudents: integer("total_students").default(0).notNull(),
+  activityScore: integer("activity_score").default(0).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const schoolPosts = pgTable("school_posts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  schoolId: varchar("school_id").references(() => schools.id, { onDelete: "cascade" }),
+  teacherId: varchar("teacher_id").references(() => schoolTeachers.id, { onDelete: "cascade" }),
+  authorType: varchar("author_type", { length: 10 }).notNull(), // "school" | "teacher"
+  content: text("content").notNull(),
+  mediaUrls: json("media_urls").$type<string[]>().default(sql`'[]'::jsonb`),
+  mediaTypes: json("media_types").$type<string[]>().default(sql`'[]'::jsonb`),
+  likesCount: integer("likes_count").default(0).notNull(),
+  commentsCount: integer("comments_count").default(0).notNull(),
+  isPinned: boolean("is_pinned").default(false).notNull(),
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const schoolPostComments = pgTable("school_post_comments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  postId: varchar("post_id").notNull().references(() => schoolPosts.id, { onDelete: "cascade" }),
+  parentId: varchar("parent_id").references(() => parents.id, { onDelete: "set null" }),
+  childId: varchar("child_id").references(() => children.id, { onDelete: "set null" }),
+  authorName: text("author_name").notNull(),
+  content: text("content").notNull(),
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const schoolPostLikes = pgTable("school_post_likes", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  postId: varchar("post_id").notNull().references(() => schoolPosts.id, { onDelete: "cascade" }),
+  parentId: varchar("parent_id").references(() => parents.id, { onDelete: "set null" }),
+  childId: varchar("child_id").references(() => children.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const schoolReviews = pgTable("school_reviews", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  schoolId: varchar("school_id").notNull().references(() => schools.id, { onDelete: "cascade" }),
+  parentId: varchar("parent_id").notNull().references(() => parents.id, { onDelete: "cascade" }),
+  rating: integer("rating").notNull(),
+  comment: text("comment"),
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const teacherReviews = pgTable("teacher_reviews", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  teacherId: varchar("teacher_id").notNull().references(() => schoolTeachers.id, { onDelete: "cascade" }),
+  parentId: varchar("parent_id").notNull().references(() => parents.id, { onDelete: "cascade" }),
+  rating: integer("rating").notNull(),
+  comment: text("comment"),
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const teacherTasks = pgTable("teacher_tasks", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  teacherId: varchar("teacher_id").notNull().references(() => schoolTeachers.id, { onDelete: "cascade" }),
+  title: text("title").notNull(),
+  question: text("question").notNull(),
+  answers: json("answers").$type<{ id: string; text: string; isCorrect: boolean; imageUrl?: string }[]>().notNull(),
+  imageUrl: text("image_url"),
+  gifUrl: text("gif_url"),
+  subjectLabel: text("subject_label"),
+  pointsReward: integer("points_reward").default(10).notNull(),
+  price: decimal("price", { precision: 10, scale: 2 }).notNull(),
+  purchaseCount: integer("purchase_count").default(0).notNull(),
+  isActive: boolean("is_active").default(true).notNull(),
+  isPublic: boolean("is_public").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const teacherTaskOrders = pgTable("teacher_task_orders", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  teacherTaskId: varchar("teacher_task_id").notNull().references(() => teacherTasks.id, { onDelete: "restrict" }),
+  teacherId: varchar("teacher_id").notNull().references(() => schoolTeachers.id, { onDelete: "cascade" }),
+  buyerParentId: varchar("buyer_parent_id").notNull().references(() => parents.id, { onDelete: "cascade" }),
+  childId: varchar("child_id").references(() => children.id, { onDelete: "set null" }),
+  price: decimal("price", { precision: 10, scale: 2 }).notNull(),
+  commissionRatePct: decimal("commission_rate_pct", { precision: 5, scale: 2 }).default("10.00").notNull(),
+  commissionAmount: decimal("commission_amount", { precision: 12, scale: 2 }).default("0.00").notNull(),
+  teacherEarningAmount: decimal("teacher_earning_amount", { precision: 12, scale: 2 }).default("0.00").notNull(),
+  status: varchar("status", { length: 30 }).default("completed").notNull(),
+  holdDays: integer("hold_days").default(7).notNull(),
+  isSettled: boolean("is_settled").default(false).notNull(),
+  settledAt: timestamp("settled_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const teacherBalances = pgTable("teacher_balances", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  teacherId: varchar("teacher_id").notNull().references(() => schoolTeachers.id, { onDelete: "cascade" }).unique(),
+  pendingBalance: decimal("pending_balance", { precision: 12, scale: 2 }).default("0.00").notNull(),
+  availableBalance: decimal("available_balance", { precision: 12, scale: 2 }).default("0.00").notNull(),
+  totalSalesAmount: decimal("total_sales_amount", { precision: 12, scale: 2 }).default("0.00").notNull(),
+  totalCommissionAmount: decimal("total_commission_amount", { precision: 12, scale: 2 }).default("0.00").notNull(),
+  totalWithdrawnAmount: decimal("total_withdrawn_amount", { precision: 12, scale: 2 }).default("0.00").notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const teacherWithdrawalRequests = pgTable("teacher_withdrawal_requests", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  teacherId: varchar("teacher_id").notNull().references(() => schoolTeachers.id, { onDelete: "cascade" }),
+  amount: decimal("amount", { precision: 12, scale: 2 }).notNull(),
+  paymentMethod: varchar("payment_method", { length: 40 }).notNull(),
+  paymentDetails: json("payment_details").$type<Record<string, any>>(),
+  withdrawalCommissionPct: decimal("withdrawal_commission_pct", { precision: 5, scale: 2 }).default("0.00").notNull(),
+  withdrawalCommissionAmount: decimal("withdrawal_commission_amount", { precision: 12, scale: 2 }).default("0.00").notNull(),
+  netAmount: decimal("net_amount", { precision: 12, scale: 2 }).notNull(),
+  status: varchar("status", { length: 30 }).default("pending").notNull(),
+  adminNote: text("admin_note"),
+  requestedAt: timestamp("requested_at").defaultNow().notNull(),
+  processedAt: timestamp("processed_at"),
+});
+
+export const childSchoolAssignment = pgTable("child_school_assignment", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  childId: varchar("child_id").notNull().references(() => children.id, { onDelete: "cascade" }).unique(),
+  schoolId: varchar("school_id").notNull().references(() => schools.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const childTeacherAssignment = pgTable("child_teacher_assignment", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  childId: varchar("child_id").notNull().references(() => children.id, { onDelete: "cascade" }),
+  teacherId: varchar("teacher_id").notNull().references(() => schoolTeachers.id, { onDelete: "cascade" }),
+  subjectLabel: text("subject_label"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const teacherHiring = pgTable("teacher_hiring", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  parentId: varchar("parent_id").notNull().references(() => parents.id, { onDelete: "cascade" }),
+  teacherId: varchar("teacher_id").notNull().references(() => schoolTeachers.id, { onDelete: "cascade" }),
+  childId: varchar("child_id").notNull().references(() => children.id, { onDelete: "cascade" }),
+  pricingModel: varchar("pricing_model", { length: 20 }).notNull(),
+  agreedRate: decimal("agreed_rate", { precision: 10, scale: 2 }).notNull(),
+  status: varchar("status", { length: 20 }).default("active").notNull(),
+  startDate: timestamp("start_date").defaultNow().notNull(),
+  endDate: timestamp("end_date"),
+  lastPaymentDate: timestamp("last_payment_date"),
+  nextPaymentDate: timestamp("next_payment_date"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const schoolReferralSettings = pgTable("school_referral_settings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  pointsPerReferral: integer("points_per_referral").default(50).notNull(),
+  pointsPerTeacherAdd: integer("points_per_teacher_add").default(20).notNull(),
+  pointsPerStudentJoin: integer("points_per_student_join").default(10).notNull(),
+  isActive: boolean("is_active").default(true).notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const schoolActivityLogs = pgTable("school_activity_logs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  schoolId: varchar("school_id").notNull().references(() => schools.id, { onDelete: "cascade" }),
+  teacherId: varchar("teacher_id").references(() => schoolTeachers.id, { onDelete: "set null" }),
+  action: varchar("action", { length: 50 }).notNull(),
+  points: integer("points").default(0).notNull(),
+  metadata: json("metadata").$type<Record<string, any>>(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});

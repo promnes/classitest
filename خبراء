@@ -1,5 +1,7 @@
 تمام! تم إضافة 6 وكلاء متخصصين جاهزين للاستدعاء:
+cd /docker/classitest && git pull origin main && docker compose up -d --build app
 
+docker compose exec app npx drizzle-kit push
 🎮 @aiagentexpert - خبير منصات الألعاب (متخصص في مشروعك)
 
 Real-time multiplayer systems
@@ -122,8 +124,7 @@ Incident response automation
 تم منح الصلاحية لاستدعاء أي خبير أو إضافة أي خبير جديد عند الحاجة.
 
 استخدم النشر عبر SSH (وده شغال عندك):
-cd /docker/classitest && git pull origin main && docker compose up -d --build app
-docker compose exec app npx drizzle-kit push
+
 ولو لازم من الواجهة: قلّل محتوى Compose أو انقل القيم الطويلة إلى .env/ملفات خارجية بدل لصق نصوص طويلة داخل الحقول.
 نعم، التشخيص اللي كتبه Kodee صحيح.
 
