@@ -109,7 +109,8 @@ export const ChildStore = (): JSX.Element => {
       const res = await fetch("/api/child/info", {
         headers: { Authorization: `Bearer ${token}` },
       });
-      return res.json();
+      const json = await res.json();
+      return json?.data || json;
     },
     enabled: !!token,
     refetchInterval: token ? 15000 : false,

@@ -70,7 +70,8 @@ export const ChildGames = (): JSX.Element => {
       if (!res.ok) {
         throw new Error("Failed to load child info");
       }
-      return res.json();
+      const json = await res.json();
+      return json?.data || json;
     },
     enabled: !!token,
     refetchInterval: token ? 30000 : false,

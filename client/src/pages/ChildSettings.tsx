@@ -61,7 +61,8 @@ export default function ChildSettings() {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) throw new Error("Failed to fetch info");
-      return res.json();
+      const json = await res.json();
+      return json?.data || json;
     },
     enabled: !!token,
   });

@@ -340,11 +340,7 @@ export async function registerChildRoutes(app: Express) {
       if (!child[0]) {
         return res.status(404).json(errorResponse(ErrorCode.NOT_FOUND, "Child not found"));
       }
-      const childData = child[0];
-      res.json({
-        ...childData,
-        ...successResponse(childData, "Child info retrieved"),
-      });
+      res.json(successResponse(child[0], "Child info retrieved"));
     } catch (error: any) {
       console.error("Fetch child info error:", error);
       res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to fetch child info"));
