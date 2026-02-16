@@ -21,12 +21,13 @@ interface Task {
   id: string;
   title?: string;
   question: string;
-  answers: { id: string; text: string; isCorrect: boolean; imageUrl?: string }[];
+  answers: { id: string; text: string; isCorrect: boolean; imageUrl?: string; videoUrl?: string }[];
   explanation: string | null;
   imageUrl?: string | null;
   gifUrl?: string | null;
   videoUrl?: string | null;
   coverImageUrl?: string | null;
+  questionImages?: string[];
   subjectLabel?: string | null;
   price: string;
   purchaseCount: number;
@@ -114,6 +115,13 @@ export default function TeacherDashboard() {
   const [taskVideoPreview, setTaskVideoPreview] = useState<string | null>(null);
   const [taskCoverPreview, setTaskCoverPreview] = useState<string | null>(null);
   const [taskUploading, setTaskUploading] = useState(false);
+  // Answer media: per-answer image/video files
+  const [answerMediaFiles, setAnswerMediaFiles] = useState<Record<string, { imageFile?: File; videoFile?: File }>>({}); 
+  const [answerMediaPreviews, setAnswerMediaPreviews] = useState<Record<string, { imageUrl?: string; videoUrl?: string }>>({}); 
+  // Question images (multiple)
+  const [questionImageFiles, setQuestionImageFiles] = useState<File[]>([]);
+  const [questionImagePreviews, setQuestionImagePreviews] = useState<string[]>([]);
+  const questionImagesInputRef = useRef<HTMLInputElement>(null);
   // Profile editing
   const [profileEditMode, setProfileEditMode] = useState(false);
   const [profileForm, setProfileForm] = useState({ name: "", bio: "", subject: "", yearsExperience: 0, socialLinks: {} as Record<string, string> });
@@ -130,10 +138,10 @@ export default function TeacherDashboard() {
     subjectLabel: "",
     price: "",
     answers: [
-      { id: "a1", text: "", isCorrect: true },
-      { id: "a2", text: "", isCorrect: false },
-      { id: "a3", text: "", isCorrect: false },
-      { id: "a4", text: "", isCorrect: false },
+      { id: "a1", text: "", isCorrect: true, imageUrl: undefined as string | undefined, videoUrl: undefined as string | undefined },
+      { id: "a2", text: "", isCorrect: false, imageUrl: undefined as string | undefined, videoUrl: undefined as string | undefined },
+      { id: "a3", text: "", isCorrect: false, imageUrl: undefined as string | undefined, videoUrl: undefined as string | undefined },
+      { id: "a4", text: "", isCorrect: false, imageUrl: undefined as string | undefined, videoUrl: undefined as string | undefined },
     ],
   });
 
@@ -408,10 +416,10 @@ export default function TeacherDashboard() {
     setTaskForm({
       title: "", question: "", explanation: "", subjectLabel: "", price: "",
       answers: [
-        { id: "a1", text: "", isCorrect: true },
-        { id: "a2", text: "", isCorrect: false },
-        { id: "a3", text: "", isCorrect: false },
-        { id: "a4", text: "", isCorrect: false },
+        { id: "a1", text: "", isCorrect: true, imageUrl: undefined, videoUrl: undefined },
+        { id: "a2", text: "", isCorrect: false, imageUrl: undefined, videoUrl: undefined },
+        { id: "a3", text: "", isCorrect: false, imageUrl: undefined, videoUrl: undefined },
+        { id: "a4", text: "", isCorrect: false, imageUrl: undefined, videoUrl: undefined },
       ],
     });
     setTaskImageFile(null);
@@ -420,6 +428,10 @@ export default function TeacherDashboard() {
     setTaskImagePreview(null);
     setTaskVideoPreview(null);
     setTaskCoverPreview(null);
+    setAnswerMediaFiles({});
+    setAnswerMediaPreviews({});
+    setQuestionImageFiles([]);
+    setQuestionImagePreviews([]);
   }
 
   function openEditTask(task: Task) {
@@ -430,11 +442,15 @@ export default function TeacherDashboard() {
       explanation: task.explanation || "",
       subjectLabel: task.subjectLabel || "",
       price: task.price,
-      answers: task.answers.length > 0 ? task.answers : [
-        { id: "a1", text: "", isCorrect: true },
-        { id: "a2", text: "", isCorrect: false },
-        { id: "a3", text: "", isCorrect: false },
-        { id: "a4", text: "", isCorrect: false },
+      answers: task.answers.length > 0 ? task.answers.map(a => ({
+        ...a,
+        imageUrl: a.imageUrl || undefined,
+        videoUrl: a.videoUrl || undefined,
+      })) : [
+        { id: "a1", text: "", isCorrect: true, imageUrl: undefined, videoUrl: undefined },
+        { id: "a2", text: "", isCorrect: false, imageUrl: undefined, videoUrl: undefined },
+        { id: "a3", text: "", isCorrect: false, imageUrl: undefined, videoUrl: undefined },
+        { id: "a4", text: "", isCorrect: false, imageUrl: undefined, videoUrl: undefined },
       ],
     });
     setTaskImagePreview(task.imageUrl || null);
@@ -443,6 +459,18 @@ export default function TeacherDashboard() {
     setTaskImageFile(null);
     setTaskVideoFile(null);
     setTaskCoverFile(null);
+    // Load answer media previews from existing data
+    const previews: Record<string, { imageUrl?: string; videoUrl?: string }> = {};
+    task.answers.forEach(a => {
+      if (a.imageUrl || a.videoUrl) {
+        previews[a.id] = { imageUrl: a.imageUrl, videoUrl: a.videoUrl };
+      }
+    });
+    setAnswerMediaPreviews(previews);
+    setAnswerMediaFiles({});
+    // Load question images
+    setQuestionImagePreviews(task.questionImages || []);
+    setQuestionImageFiles([]);
     setShowTaskModal(true);
   }
 
@@ -473,16 +501,48 @@ export default function TeacherDashboard() {
         coverImageUrl = await uploadFileForTeacher(taskCoverFile, token, "task-cover");
       }
 
+      // Upload answer media files
+      const processedAnswers = await Promise.all(filteredAnswers.map(async (answer) => {
+        const files = answerMediaFiles[answer.id];
+        let answerImageUrl = answer.imageUrl || undefined;
+        let answerVideoUrl = answer.videoUrl || undefined;
+        
+        if (files?.imageFile && token) {
+          answerImageUrl = await uploadFileForTeacher(files.imageFile, token, `answer-img-${answer.id}`);
+        }
+        if (files?.videoFile && token) {
+          answerVideoUrl = await uploadFileForTeacher(files.videoFile, token, `answer-vid-${answer.id}`);
+        }
+        
+        return {
+          id: answer.id,
+          text: answer.text,
+          isCorrect: answer.isCorrect,
+          imageUrl: answerImageUrl,
+          videoUrl: answerVideoUrl,
+        };
+      }));
+
+      // Upload question images
+      let questionImages: string[] = [...questionImagePreviews.filter(p => p.startsWith("http") || p.startsWith("/"))];
+      if (questionImageFiles.length > 0 && token) {
+        const uploaded = await Promise.all(
+          questionImageFiles.map((f, i) => uploadFileForTeacher(f, token!, `question-img-${i}`))
+        );
+        questionImages = [...questionImages, ...uploaded];
+      }
+
       const data: any = {
         title: taskForm.title || taskForm.question.substring(0, 60),
         question: taskForm.question,
         explanation: taskForm.explanation || null,
         subjectLabel: taskForm.subjectLabel || null,
         price: taskForm.price,
-        answers: filteredAnswers,
+        answers: processedAnswers,
         imageUrl,
         videoUrl,
         coverImageUrl,
+        questionImages,
       };
 
       if (editingTask) {
@@ -1075,31 +1135,83 @@ export default function TeacherDashboard() {
             </div>
             <div>
               <Label>الإجابات (حدد الصحيحة)</Label>
-              <div className="space-y-2 mt-1">
+              <div className="space-y-3 mt-1">
                 {taskForm.answers.map((answer, index) => (
-                  <div key={answer.id} className="flex items-center gap-2">
-                    <input
-                      type="radio"
-                      name="correctAnswer"
-                      checked={answer.isCorrect}
-                      onChange={() => {
-                        setTaskForm(f => ({
-                          ...f,
-                          answers: f.answers.map((a, i) => ({ ...a, isCorrect: i === index })),
-                        }));
-                      }}
-                      className="accent-green-600"
-                    />
-                    <Input
-                      placeholder={`إجابة ${index + 1}`}
-                      value={answer.text}
-                      onChange={e => {
-                        setTaskForm(f => ({
-                          ...f,
-                          answers: f.answers.map((a, i) => i === index ? { ...a, text: e.target.value } : a),
-                        }));
-                      }}
-                    />
+                  <div key={answer.id} className="border rounded-lg p-3 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="radio"
+                        name="correctAnswer"
+                        checked={answer.isCorrect}
+                        onChange={() => {
+                          setTaskForm(f => ({
+                            ...f,
+                            answers: f.answers.map((a, i) => ({ ...a, isCorrect: i === index })),
+                          }));
+                        }}
+                        className="accent-green-600"
+                      />
+                      <Input
+                        placeholder={`إجابة ${index + 1}`}
+                        value={answer.text}
+                        onChange={e => {
+                          setTaskForm(f => ({
+                            ...f,
+                            answers: f.answers.map((a, i) => i === index ? { ...a, text: e.target.value } : a),
+                          }));
+                        }}
+                        className="flex-1"
+                      />
+                    </div>
+                    {/* Answer media row */}
+                    <div className="flex items-center gap-2 mr-6">
+                      {/* Answer Image */}
+                      {(answerMediaPreviews[answer.id]?.imageUrl || answer.imageUrl) ? (
+                        <div className="relative">
+                          <img src={answerMediaPreviews[answer.id]?.imageUrl || answer.imageUrl} alt="" className="w-14 h-14 rounded object-cover" />
+                          <button onClick={() => {
+                            setAnswerMediaPreviews(p => { const n = { ...p }; if (n[answer.id]) { delete n[answer.id].imageUrl; } return n; });
+                            setAnswerMediaFiles(f => { const n = { ...f }; if (n[answer.id]) { delete n[answer.id].imageFile; } return n; });
+                            setTaskForm(f => ({ ...f, answers: f.answers.map((a, i) => i === index ? { ...a, imageUrl: undefined } : a) }));
+                          }} className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5"><X className="h-2 w-2" /></button>
+                        </div>
+                      ) : (
+                        <label className="flex items-center gap-1 px-2 py-1 border border-dashed rounded cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 text-xs text-muted-foreground">
+                          <Image className="h-3 w-3" />
+                          صورة
+                          <input type="file" accept="image/*" className="hidden" onChange={e => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              setAnswerMediaFiles(prev => ({ ...prev, [answer.id]: { ...prev[answer.id], imageFile: file } }));
+                              setAnswerMediaPreviews(prev => ({ ...prev, [answer.id]: { ...prev[answer.id], imageUrl: URL.createObjectURL(file) } }));
+                            }
+                          }} />
+                        </label>
+                      )}
+                      {/* Answer Video */}
+                      {(answerMediaPreviews[answer.id]?.videoUrl || answer.videoUrl) ? (
+                        <div className="relative">
+                          <video src={answerMediaPreviews[answer.id]?.videoUrl || answer.videoUrl} className="w-14 h-14 rounded object-cover" />
+                          <button onClick={() => {
+                            setAnswerMediaPreviews(p => { const n = { ...p }; if (n[answer.id]) { delete n[answer.id].videoUrl; } return n; });
+                            setAnswerMediaFiles(f => { const n = { ...f }; if (n[answer.id]) { delete n[answer.id].videoFile; } return n; });
+                            setTaskForm(f => ({ ...f, answers: f.answers.map((a, i) => i === index ? { ...a, videoUrl: undefined } : a) }));
+                          }} className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5"><X className="h-2 w-2" /></button>
+                        </div>
+                      ) : (
+                        <label className="flex items-center gap-1 px-2 py-1 border border-dashed rounded cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 text-xs text-muted-foreground">
+                          <Video className="h-3 w-3" />
+                          فيديو
+                          <input type="file" accept="video/*" className="hidden" onChange={e => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              setAnswerMediaFiles(prev => ({ ...prev, [answer.id]: { ...prev[answer.id], videoFile: file } }));
+                              setAnswerMediaPreviews(prev => ({ ...prev, [answer.id]: { ...prev[answer.id], videoUrl: URL.createObjectURL(file) } }));
+                            }
+                          }} />
+                        </label>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -1107,6 +1219,41 @@ export default function TeacherDashboard() {
             <div>
               <Label>شرح الإجابة (اختياري)</Label>
               <Textarea value={taskForm.explanation} onChange={e => setTaskForm(f => ({ ...f, explanation: e.target.value }))} />
+            </div>
+
+            {/* Question Images */}
+            <div className="border-t pt-3">
+              <Label className="text-sm font-bold">صور مع السؤال</Label>
+              <p className="text-xs text-muted-foreground">أضف صور توضيحية أو صور فقط مع السؤال</p>
+              <div className="flex gap-2 flex-wrap mt-2">
+                {questionImagePreviews.map((url, i) => (
+                  <div key={i} className="relative">
+                    <img src={url} alt="" className="w-20 h-20 rounded object-cover" />
+                    <button onClick={() => {
+                      setQuestionImagePreviews(p => p.filter((_, idx) => idx !== i));
+                      // If it's a local file preview, also remove from files
+                      if (url.startsWith("blob:")) {
+                        const localIndex = i - questionImagePreviews.filter((u, idx) => idx < i && !u.startsWith("blob:")).length;
+                        setQuestionImageFiles(f => f.filter((_, idx) => idx !== localIndex));
+                        URL.revokeObjectURL(url);
+                      }
+                    }} className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5">
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
+                <label className="flex flex-col items-center justify-center w-20 h-20 border-2 border-dashed rounded cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800">
+                  <Plus className="h-5 w-5 text-muted-foreground" />
+                  <span className="text-xs text-muted-foreground">إضافة</span>
+                  <input ref={questionImagesInputRef} type="file" accept="image/*" multiple className="hidden" onChange={e => {
+                    const files = Array.from(e.target.files || []);
+                    if (files.length > 0) {
+                      setQuestionImageFiles(prev => [...prev, ...files]);
+                      setQuestionImagePreviews(prev => [...prev, ...files.map(f => URL.createObjectURL(f))]);
+                    }
+                  }} />
+                </label>
+              </div>
             </div>
 
             {/* Media Uploads */}

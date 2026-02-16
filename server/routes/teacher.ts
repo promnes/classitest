@@ -495,7 +495,7 @@ export async function registerTeacherRoutes(app: Express) {
   app.post("/api/teacher/tasks", teacherMiddleware, async (req: TeacherRequest, res) => {
     try {
       const teacherId = req.teacher!.teacherId;
-      const { title, question, answers, imageUrl, gifUrl, videoUrl, coverImageUrl, subjectLabel, pointsReward, price } = req.body;
+      const { title, question, answers, imageUrl, gifUrl, videoUrl, coverImageUrl, questionImages, subjectLabel, pointsReward, price } = req.body;
 
       if (!title || !question || !answers || !price) {
         return res.status(400).json({ message: "العنوان والسؤال والإجابات والسعر مطلوبة" });
@@ -519,6 +519,7 @@ export async function registerTeacherRoutes(app: Express) {
         gifUrl: gifUrl || null,
         videoUrl: videoUrl || null,
         coverImageUrl: coverImageUrl || null,
+        questionImages: questionImages || [],
         subjectLabel: subjectLabel || null,
         pointsReward: pointsReward || 10,
         price: String(price),
@@ -541,7 +542,7 @@ export async function registerTeacherRoutes(app: Express) {
     try {
       const teacherId = req.teacher!.teacherId;
       const { id } = req.params;
-      const { title, question, answers, imageUrl, gifUrl, videoUrl, coverImageUrl, subjectLabel, pointsReward, price, isActive, isPublic } = req.body;
+      const { title, question, answers, imageUrl, gifUrl, videoUrl, coverImageUrl, questionImages, subjectLabel, pointsReward, price, isActive, isPublic } = req.body;
 
       const task = await db.select().from(teacherTasks)
         .where(and(eq(teacherTasks.id, id), eq(teacherTasks.teacherId, teacherId)));
@@ -558,6 +559,7 @@ export async function registerTeacherRoutes(app: Express) {
       if (gifUrl !== undefined) updates.gifUrl = gifUrl;
       if (videoUrl !== undefined) updates.videoUrl = videoUrl;
       if (coverImageUrl !== undefined) updates.coverImageUrl = coverImageUrl;
+      if (questionImages !== undefined) updates.questionImages = questionImages;
       if (subjectLabel !== undefined) updates.subjectLabel = subjectLabel;
       if (pointsReward !== undefined) updates.pointsReward = pointsReward;
       if (price !== undefined) updates.price = String(price);
