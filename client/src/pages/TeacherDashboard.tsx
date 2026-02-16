@@ -1134,7 +1134,10 @@ export default function TeacherDashboard() {
               </div>
             </div>
             <div>
-              <Label>الإجابات (حدد الصحيحة)</Label>
+              <div className="flex items-center justify-between">
+                <Label>الإجابات (حدد الصحيحة)</Label>
+                <span className="text-xs text-muted-foreground">{taskForm.answers.length} إجابات</span>
+              </div>
               <div className="space-y-3 mt-1">
                 {taskForm.answers.map((answer, index) => (
                   <div key={answer.id} className="border rounded-lg p-3 space-y-2">
@@ -1162,6 +1165,27 @@ export default function TeacherDashboard() {
                         }}
                         className="flex-1"
                       />
+                      {taskForm.answers.length > 2 && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const removedId = answer.id;
+                            setTaskForm(f => ({
+                              ...f,
+                              answers: f.answers.filter((_, i) => i !== index).map((a, i) => ({
+                                ...a,
+                                isCorrect: f.answers.filter((_, j) => j !== index).some(x => x.isCorrect) ? a.isCorrect : i === 0,
+                              })),
+                            }));
+                            setAnswerMediaFiles(prev => { const n = { ...prev }; delete n[removedId]; return n; });
+                            setAnswerMediaPreviews(prev => { const n = { ...prev }; delete n[removedId]; return n; });
+                          }}
+                          className="text-red-400 hover:text-red-600 p-1 rounded hover:bg-red-50 dark:hover:bg-red-950"
+                          title="حذف الإجابة"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      )}
                     </div>
                     {/* Answer media row */}
                     <div className="flex items-center gap-2 mr-6">
@@ -1215,6 +1239,24 @@ export default function TeacherDashboard() {
                   </div>
                 ))}
               </div>
+              {taskForm.answers.length < 8 && (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="mt-2 w-full gap-1 text-green-600 border-green-300 hover:bg-green-50 dark:hover:bg-green-950"
+                  onClick={() => {
+                    const newId = `a${Date.now()}`;
+                    setTaskForm(f => ({
+                      ...f,
+                      answers: [...f.answers, { id: newId, text: "", isCorrect: false, imageUrl: undefined, videoUrl: undefined }],
+                    }));
+                  }}
+                >
+                  <Plus className="h-3 w-3" />
+                  إضافة إجابة
+                </Button>
+              )}
             </div>
             <div>
               <Label>شرح الإجابة (اختياري)</Label>
