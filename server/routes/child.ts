@@ -2076,9 +2076,14 @@ export async function registerChildRoutes(app: Express) {
     try {
       const { id } = req.params;
       const providedKey = (req.query.key || req.headers["x-login-key"] || "").toString();
+      const providedDeviceId = (req.query.deviceId || req.headers["x-device-id"] || "").toString();
 
       if (!providedKey) {
         return res.status(401).json(errorResponse(ErrorCode.UNAUTHORIZED, "Missing request key"));
+      }
+
+      if (!providedDeviceId) {
+        return res.status(401).json(errorResponse(ErrorCode.UNAUTHORIZED, "Missing device id"));
       }
 
       if (!isValidRequestKey(id, providedKey)) {
@@ -2092,6 +2097,10 @@ export async function registerChildRoutes(app: Express) {
       }
 
       const loginRequest = request[0];
+
+      if (loginRequest.deviceId !== providedDeviceId) {
+        return res.status(401).json(errorResponse(ErrorCode.UNAUTHORIZED, "Device mismatch"));
+      }
 
       // Check if expired
       if (loginRequest.expiresAt < new Date() && loginRequest.status === "pending") {

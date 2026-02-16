@@ -51,6 +51,16 @@ const AVATAR_COLORS = [
   "from-indigo-500 to-violet-500",
 ];
 
+function getOrCreateChildDeviceId(): string {
+  const storageKey = "childDeviceId";
+  let value = localStorage.getItem(storageKey);
+  if (!value) {
+    value = `child_device_${crypto.randomUUID()}`;
+    localStorage.setItem(storageKey, value);
+  }
+  return value;
+}
+
 export const ChildLink = (): JSX.Element => {
   const { t } = useTranslation();
   const [, navigate] = useLocation();
@@ -73,6 +83,7 @@ export const ChildLink = (): JSX.Element => {
   const [loginRequestKey, setLoginRequestKey] = useState<string | null>(null);
   const [loginStatus, setLoginStatus] = useState<"pending" | "approved" | "rejected" | "expired">("pending");
   const [pollingInterval, setPollingIntervalId] = useState<NodeJS.Timeout | null>(null);
+  const [childDeviceId] = useState<string>(() => getOrCreateChildDeviceId());
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -170,6 +181,7 @@ export const ChildLink = (): JSX.Element => {
         body: JSON.stringify({
           childName: childName.trim(),
           parentCode: loginParentCode.trim().toUpperCase(),
+          deviceId: childDeviceId,
         }),
       });
       if (!res.ok) {
@@ -203,7 +215,7 @@ export const ChildLink = (): JSX.Element => {
 
     const interval = setInterval(async () => {
       try {
-        const res = await fetch(`/api/child/login-request/${requestId}/status?key=${encodeURIComponent(requestKey)}`);
+        const res = await fetch(`/api/child/login-request/${requestId}/status?key=${encodeURIComponent(requestKey)}&deviceId=${encodeURIComponent(childDeviceId)}`);
         if (!res.ok) {
           clearInterval(interval);
           setLoginStatus("expired");
