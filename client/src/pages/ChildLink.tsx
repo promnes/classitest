@@ -138,7 +138,14 @@ export const ChildLink = (): JSX.Element => {
         localStorage.setItem("savedChildren", JSON.stringify(updatedChildren));
         throw new Error("SESSION_EXPIRED");
       }
-      await res.json();
+      const json = await res.json();
+      const payload = json?.data || json;
+      if (!payload?.valid) {
+        const updatedChildren = savedChildren.filter(c => c.childId !== child.childId);
+        setSavedChildren(updatedChildren);
+        localStorage.setItem("savedChildren", JSON.stringify(updatedChildren));
+        throw new Error("SESSION_EXPIRED");
+      }
       return child;
     },
     onSuccess: (child) => {
