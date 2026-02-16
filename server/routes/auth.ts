@@ -26,6 +26,7 @@ import {
   OTP_COOLDOWN_SECONDS,
 } from "../services/otpService";
 import { getProviderOrFallback } from "../providers/otp/providerFactory";
+import { NOTIFICATION_TYPES, NOTIFICATION_STYLES, NOTIFICATION_PRIORITIES } from "../../shared/notificationTypes";
 
 const MAX_FAILED_LOGIN_ATTEMPTS = 5;
 const LOCKOUT_MINUTES = 15;
@@ -279,7 +280,7 @@ export async function registerAuthRoutes(app: Express) {
                   const { createNotification } = await import("../notifications");
                   await createNotification({
                     parentId: codeRecord[0].parentId,
-                    type: "referral_reward",
+                    type: NOTIFICATION_TYPES.REFERRAL_REWARD,
                     title: "مكافأة الإحالة! 🎉",
                     message: `تهانينا! حصلت على ${rewardPoints} نقطة لأن شخصاً سجّل من خلال رابط الإحالة الخاص بك!`,
                     relatedId: result[0].id,
@@ -302,11 +303,11 @@ export async function registerAuthRoutes(app: Express) {
         const { createNotification } = await import("../notifications");
         await createNotification({
           parentId: result[0].id,
-          type: "info",
+          type: NOTIFICATION_TYPES.INFO,
           title: "كود ربط الأطفال الخاص بك",
           message: `كود الربط الخاص بك هو: ${uniqueCode}. شاركه مع أطفالك للربط بحسابك. حافظ على سرية هذا الكود!`,
-          style: "banner",
-          priority: "urgent",
+          style: NOTIFICATION_STYLES.BANNER,
+          priority: NOTIFICATION_PRIORITIES.URGENT,
           metadata: { code: uniqueCode },
         });
       } catch (err) {
@@ -1321,11 +1322,11 @@ export async function registerAuthRoutes(app: Express) {
         const { createNotification } = await import("../notifications");
         await createNotification({
           parentId: result[0].id,
-          type: "info",
+          type: NOTIFICATION_TYPES.INFO,
           title: "كود ربط الأطفال الخاص بك",
           message: `كود الربط الخاص بك هو: ${uniqueCode}. شاركه مع أطفالك للربط بحسابك. حافظ على سرية هذا الكود!`,
-          style: "banner",
-          priority: "urgent",
+          style: NOTIFICATION_STYLES.BANNER,
+          priority: NOTIFICATION_PRIORITIES.URGENT,
           metadata: { code: uniqueCode },
         });
       } catch (err) {
@@ -2930,7 +2931,7 @@ export async function registerAuthRoutes(app: Express) {
       const { createNotification } = await import("../notifications");
       await createNotification({
         parentId,
-        type: "child_linked",
+        type: NOTIFICATION_TYPES.CHILD_LINKED,
         title: "تم إضافة طفل جديد!",
         message: `تم إضافة ${trimmedName} بنجاح وتعيين رمز PIN خاص به`,
         metadata: { childId: childResult[0].id, childName: trimmedName },

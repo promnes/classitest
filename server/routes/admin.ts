@@ -66,6 +66,7 @@ import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import { JWT_SECRET, adminMiddleware } from "./middleware";
 import { applyPointsDelta } from "../services/pointsService";
+import { NOTIFICATION_TYPES, NOTIFICATION_STYLES, NOTIFICATION_PRIORITIES, type NotificationType } from "../../shared/notificationTypes";
 
 const db = storage.db;
 
@@ -798,7 +799,7 @@ export async function registerAdminRoutes(app: Express) {
         await db.update(parentPurchases).set({ paymentStatus: "paid" }).where(eq(parentPurchases.id, id));
 
         // Notify parent
-        await createNotification({ parentId: purchase[0].parentId, type: "purchase_approved", title: "✅ تمت الموافقة على طلبك", message: `تمت الموافقة على طلب الشراء الخاص بك وتم تفعيل المنتجات`, relatedId: id });
+        await createNotification({ parentId: purchase[0].parentId, type: NOTIFICATION_TYPES.PURCHASE_APPROVED, title: "✅ تمت الموافقة على طلبك", message: `تمت الموافقة على طلب الشراء الخاص بك وتم تفعيل المنتجات`, relatedId: id });
 
         return res.json(successResponse({ activated }));
       }
@@ -806,7 +807,7 @@ export async function registerAdminRoutes(app: Express) {
       // If rejected
       if (status === "rejected") {
         await db.update(parentPurchases).set({ paymentStatus: "rejected" }).where(eq(parentPurchases.id, id));
-        await createNotification({ parentId: purchase[0].parentId, type: "purchase_rejected", title: "❌ تم رفض طلب الشراء", message: rejectionReason ? `تم رفض طلب الشراء. السبب: ${rejectionReason}` : `تم رفض طلب الشراء. يرجى التواصل مع الدعم`, relatedId: id });
+        await createNotification({ parentId: purchase[0].parentId, type: NOTIFICATION_TYPES.PURCHASE_REJECTED, title: "❌ تم رفض طلب الشراء", message: rejectionReason ? `تم رفض طلب الشراء. السبب: ${rejectionReason}` : `تم رفض طلب الشراء. يرجى التواصل مع الدعم`, relatedId: id });
         return res.json(successResponse());
       }
     } catch (error: any) {
@@ -866,7 +867,7 @@ export async function registerAdminRoutes(app: Express) {
       const shippingChild = await db.select({ name: children.name }).from(children).where(eq(children.id, reqRow[0].childId));
       const shippingChildName = shippingChild[0]?.name || "طفلك";
       const statusAr: Record<string, string> = { requested: "مطلوب", approved: "تمت الموافقة", shipped: "تم الشحن", delivered: "تم التوصيل", cancelled: "ملغي" };
-      await createNotification({ parentId: reqRow[0].parentId, childId: reqRow[0].childId, type: "shipping_update", title: `تحديث شحن لـ ${shippingChildName}`, message: `تم تحديث حالة شحن طلب ${shippingChildName} إلى: ${statusAr[status] || status}`, relatedId: id, metadata: { childName: shippingChildName, status } });
+      await createNotification({ parentId: reqRow[0].parentId, childId: reqRow[0].childId, type: NOTIFICATION_TYPES.SHIPPING_UPDATE, title: `تحديث شحن لـ ${shippingChildName}`, message: `تم تحديث حالة شحن طلب ${shippingChildName} إلى: ${statusAr[status] || status}`, relatedId: id, metadata: { childName: shippingChildName, status } });
 
       res.json(successResponse());
     } catch (error: any) {
@@ -1053,7 +1054,7 @@ export async function registerAdminRoutes(app: Express) {
           await createNotification({
             parentId: parentLink[0].parentId,
             childId: targetId,
-            type: "points_adjustment",
+            type: NOTIFICATION_TYPES.POINTS_ADJUSTMENT,
             title: delta > 0 ? "تم إضافة نقاط" : "تم خصم نقاط",
             message: `${delta > 0 ? "تم إضافة" : "تم خصم"} ${Math.abs(delta)} نقطة ${delta > 0 ? "إلى" : "من"} حساب ${child[0].name}. السبب: ${reason}`,
             metadata: { delta, reason, childName: child[0].name },
@@ -1089,7 +1090,7 @@ export async function registerAdminRoutes(app: Express) {
         // Send notification to parent
         await createNotification({
           parentId: targetId,
-          type: "points_adjustment",
+          type: NOTIFICATION_TYPES.POINTS_ADJUSTMENT,
           title: delta > 0 ? "تم إضافة رصيد" : "تم خصم رصيد",
           message: `${delta > 0 ? "تم إضافة" : "تم خصم"} ${Math.abs(delta)} ر.س ${delta > 0 ? "إلى" : "من"} حسابك. السبب: ${reason}`,
           metadata: { delta, reason },
@@ -1288,11 +1289,11 @@ export async function registerAdminRoutes(app: Express) {
         // Notify parent — deposit approved
         await createNotification({
           parentId: deposit.parentId,
-          type: "deposit_approved",
+          type: NOTIFICATION_TYPES.DEPOSIT_APPROVED,
           title: "✅ تم قبول الإيداع",
           message: `تم قبول طلب الإيداع الخاص بك بمبلغ ${depositAmount.toFixed(2)} وتم إضافته لرصيدك`,
-          style: "modal",
-          priority: "normal",
+          style: NOTIFICATION_STYLES.MODAL,
+          priority: NOTIFICATION_PRIORITIES.NORMAL,
           soundAlert: true,
           metadata: { depositId: deposit.id, amount: depositAmount },
         });
@@ -1303,13 +1304,13 @@ export async function registerAdminRoutes(app: Express) {
         const depositAmount = parseFloat(deposit.amount as string);
         await createNotification({
           parentId: deposit.parentId,
-          type: "deposit_rejected",
+          type: NOTIFICATION_TYPES.DEPOSIT_REJECTED,
           title: "❌ تم رفض الإيداع",
           message: adminNotes 
             ? `تم رفض طلب الإيداع بمبلغ ${depositAmount.toFixed(2)}. السبب: ${adminNotes}`
             : `تم رفض طلب الإيداع بمبلغ ${depositAmount.toFixed(2)}. يرجى التواصل مع الدعم`,
-          style: "modal",
-          priority: "warning",
+          style: NOTIFICATION_STYLES.MODAL,
+          priority: NOTIFICATION_PRIORITIES.WARNING,
           soundAlert: true,
           metadata: { depositId: deposit.id, amount: depositAmount },
         });
@@ -1830,11 +1831,11 @@ export async function registerAdminRoutes(app: Express) {
       // Create notification
       await createNotification({
         parentId,
-        type: "security_alert",
+        type: NOTIFICATION_TYPES.SECURITY_ALERT,
         title: "🔒 تنبيه أمني",
         message: "تم تسجيل الخروج من جميع أجهزتك. يرجى تسجيل الدخول مرة أخرى.",
-        style: "modal",
-        priority: "urgent",
+        style: NOTIFICATION_STYLES.MODAL,
+        priority: NOTIFICATION_PRIORITIES.URGENT,
         relatedId: parentId,
       });
 
@@ -2435,7 +2436,7 @@ export async function registerAdminRoutes(app: Express) {
         action: "BULK_DELETE_GAMES",
         entity: "game",
         entityId: ids[0],
-        meta: { count: ids.length, titles: games.map(g => g.title) },
+        meta: { count: ids.length, titles: games.map((g: any) => g.title) },
       });
 
       res.json(successResponse({ deleted: ids.length }, `${ids.length} games deleted`));
@@ -3153,14 +3154,19 @@ export async function registerAdminRoutes(app: Express) {
       }
 
       const notificationResults = [];
+      const allowedNotificationTypes = new Set<string>(Object.values(NOTIFICATION_TYPES));
+      const resolvedType: NotificationType =
+        typeof type === "string" && allowedNotificationTypes.has(type)
+          ? (type as NotificationType)
+          : NOTIFICATION_TYPES.BROADCAST;
+
       for (const parent of targetParents) {
-        const [notif] = await db.insert(notifications).values({
+        const notif = await createNotification({
           parentId: parent.id,
-          type: type || "announcement",
+          type: resolvedType,
           title,
           message,
-          isRead: false,
-        }).returning();
+        });
         notificationResults.push(notif);
       }
 
@@ -3169,7 +3175,7 @@ export async function registerAdminRoutes(app: Express) {
         action: "SEND_NOTIFICATION",
         entity: "notification",
         entityId: notificationResults[0]?.id || "",
-        meta: { type, title, targetType, count: targetParents.length },
+        meta: { type: resolvedType, title, targetType, count: targetParents.length },
       });
 
       res.json(successResponse(

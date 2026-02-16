@@ -6,6 +6,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { LanguageSelector } from "@/components/LanguageSelector";
 import { AnnualReportChart } from "@/components/AnnualReportChart";
 import { QRCodeSVG } from "qrcode.react";
+import { authenticatedFetch } from "@/lib/queryClient";
 
 export const ParentDashboard = (): JSX.Element => {
   const { t, i18n } = useTranslation();
@@ -30,8 +31,9 @@ export const ParentDashboard = (): JSX.Element => {
     enabled: !!token,
   });
 
-  const { data: notificationsRaw } = useQuery({
-    queryKey: ["/api/parent/notifications"],
+  const { data: unreadNotificationsData } = useQuery<{ count: number }>({
+    queryKey: ["/api/parent/notifications/unread-count"],
+    queryFn: () => authenticatedFetch<{ count: number }>("/api/parent/notifications/unread-count"),
     enabled: !!token,
     refetchInterval: token ? 5000 : false, // Stop polling when no token
   });
@@ -39,7 +41,6 @@ export const ParentDashboard = (): JSX.Element => {
   const parentInfo = parentInfoRaw as any || {};
   const children = Array.isArray(childrenRaw) ? childrenRaw : [];
   const wallet = walletRaw as any || {};
-  const notifications = Array.isArray(notificationsRaw) ? notificationsRaw : [];
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -47,7 +48,7 @@ export const ParentDashboard = (): JSX.Element => {
     navigate("/");
   };
 
-  const unreadNotifications = notifications.filter((n: any) => !n.isRead).length;
+  const unreadNotifications = unreadNotificationsData?.count || 0;
   
   const isRTL = i18n.language === 'ar';
 

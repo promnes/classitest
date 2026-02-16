@@ -11,6 +11,7 @@ import {
 import { createNotification } from "../notifications";
 import { isWebPushReady, sendWebPushNotification } from "./webPushService";
 import { isMobilePushReady, sendMobilePushNotification } from "./mobilePushService";
+import { NOTIFICATION_PRIORITIES, NOTIFICATION_STYLES, NOTIFICATION_TYPES } from "../../shared/notificationTypes";
 
 const db = storage.db;
 
@@ -38,10 +39,10 @@ async function releaseLock() {
 }
 
 function mapLevelToStylePriority(level: number) {
-  if (level >= 4) return { style: "fullscreen" as const, priority: "blocking" as const };
-  if (level === 3) return { style: "modal" as const, priority: "urgent" as const };
-  if (level === 2) return { style: "banner" as const, priority: "warning" as const };
-  return { style: "toast" as const, priority: "normal" as const };
+  if (level >= 4) return { style: NOTIFICATION_STYLES.FULLSCREEN, priority: NOTIFICATION_PRIORITIES.BLOCKING };
+  if (level === 3) return { style: NOTIFICATION_STYLES.MODAL, priority: NOTIFICATION_PRIORITIES.URGENT };
+  if (level === 2) return { style: NOTIFICATION_STYLES.BANNER, priority: NOTIFICATION_PRIORITIES.WARNING };
+  return { style: NOTIFICATION_STYLES.TOAST, priority: NOTIFICATION_PRIORITIES.NORMAL };
 }
 
 async function resolveEffectivePolicy(childId: string) {
@@ -105,7 +106,7 @@ async function sendParentEscalation(childId: string, taskId: string | null, titl
   for (const link of links) {
     await createNotification({
       parentId: link.parentId,
-      type: "task_notification_escalation",
+      type: NOTIFICATION_TYPES.TASK_NOTIFICATION_ESCALATION,
       title: "تصعيد إشعار مهمة",
       message: `تم تصعيد إشعار مهمة للطفل${title ? `: ${title}` : ""}`,
       relatedId: taskId,
@@ -132,7 +133,7 @@ async function handleTaskAssignedNotify(eventRow: typeof outboxEvents.$inferSele
   if (channels.inApp) {
     await createNotification({
       childId,
-      type: "task",
+      type: NOTIFICATION_TYPES.TASK_ASSIGNED,
       title: "مهمة جديدة!",
       message: `لديك مهمة جديدة${payload.title ? `: ${payload.title}` : ""}`,
       style,

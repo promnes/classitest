@@ -1,20 +1,27 @@
 import { storage } from "./storage";
-import { notifications, children, products } from "../shared/schema";
+import { children, products } from "../shared/schema";
 import { eq } from "drizzle-orm";
+import { notificationOrchestrator } from "./services/notificationOrchestrator";
+import {
+  NOTIFICATION_PRIORITIES,
+  NOTIFICATION_STYLES,
+  NOTIFICATION_TYPES,
+  type NotificationPriority,
+  type NotificationStyle,
+  type NotificationType,
+} from "../shared/notificationTypes";
 
 const db = storage.db;
-
-export type NotificationStyle = "toast" | "modal" | "banner" | "fullscreen";
-export type NotificationPriority = "normal" | "warning" | "urgent" | "blocking";
 
 interface NotificationParams {
   parentId?: string | null;
   childId?: string | null;
-  type: string;
+  type: NotificationType;
   title?: string | null;
   message: string;
   style?: NotificationStyle;
   priority?: NotificationPriority;
+  channels?: ("in_app" | "email")[];
   soundAlert?: boolean;
   vibration?: boolean;
   relatedId?: string | null;
@@ -32,6 +39,7 @@ export async function createNotification(params: NotificationParams) {
     message,
     style = "toast",
     priority = "normal",
+    channels = ["in_app"],
     soundAlert = false,
     vibration = false,
     relatedId = null,
@@ -41,22 +49,29 @@ export async function createNotification(params: NotificationParams) {
   } = params;
 
   try {
-    const result = await db.insert(notifications).values({
-      parentId,
-      childId,
+    if (!parentId && !childId) {
+      throw new Error("NOTIFICATION_RECIPIENT_REQUIRED");
+    }
+
+    const recipientType = childId ? "child" : "parent";
+    const recipientId = childId || (parentId as string);
+
+    return await notificationOrchestrator.send({
+      recipientType,
+      recipientId,
       type,
       title,
       message,
       style,
       priority,
+      channels,
       soundAlert,
       vibration,
       relatedId,
       ctaAction,
       ctaTarget,
       metadata,
-    }).returning();
-    return result[0];
+    });
   } catch (err) {
     console.error('createNotification error:', err);
     throw err;
@@ -70,11 +85,11 @@ export async function notifyChildPointsEarned(childId: string, pointsEarned: num
 
   return createNotification({
     childId,
-    type: "points_earned",
+    type: NOTIFICATION_TYPES.POINTS_EARNED,
     title: "نقاط جديدة!",
     message: `أحسنت! لقد ربحت ${pointsEarned} نقطة من ${reason}`,
-    style: "toast",
-    priority: "normal",
+    style: NOTIFICATION_STYLES.TOAST,
+    priority: NOTIFICATION_PRIORITIES.NORMAL,
     soundAlert: true,
     relatedId: relatedId ?? null,
     metadata: { pointsEarned, newTotal: child.points + pointsEarned },
@@ -84,11 +99,11 @@ export async function notifyChildPointsEarned(childId: string, pointsEarned: num
 export async function notifyChildRewardUnlocked(childId: string, rewardName: string, rewardId: string) {
   return createNotification({
     childId,
-    type: "reward_unlocked",
+    type: NOTIFICATION_TYPES.REWARD_UNLOCKED,
     title: "مكافأة جديدة!",
     message: `تهانينا! لقد فتحت مكافأة "${rewardName}"`,
-    style: "modal",
-    priority: "urgent",
+    style: NOTIFICATION_STYLES.MODAL,
+    priority: NOTIFICATION_PRIORITIES.URGENT,
     soundAlert: true,
     vibration: true,
     relatedId: rewardId,
@@ -105,11 +120,11 @@ export async function notifyChildProductAssigned(childId: string, productId: str
 
   return createNotification({
     childId,
-    type: "product_assigned",
+    type: NOTIFICATION_TYPES.PRODUCT_ASSIGNED,
     title: "هدية جديدة في انتظارك!",
     message: `أضاف والداك "${product.nameAr || product.name}" كهدية! اجمع ${requiredPoints} نقطة للحصول عليها`,
-    style: "fullscreen",
-    priority: "urgent",
+    style: NOTIFICATION_STYLES.FULLSCREEN,
+    priority: NOTIFICATION_PRIORITIES.URGENT,
     soundAlert: true,
     vibration: true,
     relatedId: productId,
@@ -122,11 +137,11 @@ export async function notifyChildProductAssigned(childId: string, productId: str
 export async function notifyChildTaskReminder(childId: string, taskId: string, taskTitle: string) {
   return createNotification({
     childId,
-    type: "task_reminder",
+    type: NOTIFICATION_TYPES.TASK_REMINDER,
     title: "تذكير بالمهمة",
     message: `لا تنسى إتمام مهمة: ${taskTitle}`,
-    style: "banner",
-    priority: "normal",
+    style: NOTIFICATION_STYLES.BANNER,
+    priority: NOTIFICATION_PRIORITIES.NORMAL,
     relatedId: taskId,
     ctaAction: "view_task",
     ctaTarget: `/tasks/${taskId}`,
@@ -136,11 +151,11 @@ export async function notifyChildTaskReminder(childId: string, taskId: string, t
 export async function notifyChildAchievement(childId: string, achievementName: string, description: string) {
   return createNotification({
     childId,
-    type: "achievement",
+    type: NOTIFICATION_TYPES.ACHIEVEMENT,
     title: "إنجاز جديد!",
     message: description,
-    style: "fullscreen",
-    priority: "urgent",
+    style: NOTIFICATION_STYLES.FULLSCREEN,
+    priority: NOTIFICATION_PRIORITIES.URGENT,
     soundAlert: true,
     vibration: true,
     metadata: { achievementName },
@@ -150,11 +165,11 @@ export async function notifyChildAchievement(childId: string, achievementName: s
 export async function notifyChildDailyChallenge(childId: string, challengeId: string, challengeTitle: string, pointsReward: number) {
   return createNotification({
     childId,
-    type: "daily_challenge",
+    type: NOTIFICATION_TYPES.DAILY_CHALLENGE,
     title: "تحدي اليوم!",
     message: `تحدي جديد: ${challengeTitle} - اربح ${pointsReward} نقطة!`,
-    style: "modal",
-    priority: "normal",
+    style: NOTIFICATION_STYLES.MODAL,
+    priority: NOTIFICATION_PRIORITIES.NORMAL,
     soundAlert: true,
     relatedId: challengeId,
     ctaAction: "start_challenge",
@@ -181,11 +196,11 @@ export async function notifyChildGoalProgress(childId: string, productId: string
 
   return createNotification({
     childId,
-    type: "goal_progress",
+    type: NOTIFICATION_TYPES.GOAL_PROGRESS,
     title: `تقدم رائع! ${milestone}%`,
     message: `أنت على بعد ${requiredPoints - currentPoints} نقطة فقط من الحصول على "${product?.nameAr || product?.name}"!`,
-    style: "toast",
-    priority: "normal",
+    style: NOTIFICATION_STYLES.TOAST,
+    priority: NOTIFICATION_PRIORITIES.NORMAL,
     soundAlert: true,
     relatedId: productId,
     metadata: { percentage, milestone, remaining: requiredPoints - currentPoints },
@@ -199,11 +214,11 @@ export async function notifyParentChildActivity(parentId: string, childId: strin
   })());
   return createNotification({
     parentId,
-    type: "child_activity",
+    type: NOTIFICATION_TYPES.CHILD_ACTIVITY,
     title: `نشاط ${resolvedName}`,
     message: details,
-    style: "toast",
-    priority: "normal",
+    style: NOTIFICATION_STYLES.TOAST,
+    priority: NOTIFICATION_PRIORITIES.NORMAL,
     relatedId: childId,
     metadata: { activityType, childId, childName: resolvedName },
   });
@@ -212,11 +227,11 @@ export async function notifyParentChildActivity(parentId: string, childId: strin
 export async function notifyParentLowPoints(parentId: string, childId: string, childName: string, currentPoints: number) {
   return createNotification({
     parentId,
-    type: "low_points_warning",
+    type: NOTIFICATION_TYPES.LOW_POINTS_WARNING,
     title: "تنبيه النقاط",
     message: `${childName} لديه ${currentPoints} نقطة فقط. قد يحتاج للتشجيع!`,
-    style: "banner",
-    priority: "warning",
+    style: NOTIFICATION_STYLES.BANNER,
+    priority: NOTIFICATION_PRIORITIES.WARNING,
     relatedId: childId,
     metadata: { childName, currentPoints },
   });

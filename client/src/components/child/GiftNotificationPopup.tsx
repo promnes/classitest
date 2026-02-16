@@ -33,9 +33,19 @@ export const GiftNotificationPopup: React.FC<GiftNotificationPopupProps> = ({
   const [visibleGifts, setVisibleGifts] = useState<Gift[]>(gifts.filter((g) => g.status === "pending"));
   const [currentGiftIndex, setCurrentGiftIndex] = useState(0);
   const [isVisible, setIsVisible] = useState(true);
-  const [dismissedGifts, setDismissedGifts] = useState<Set<string>>(new Set());
+  const [bubbleOpen, setBubbleOpen] = useState(false);
 
   const currentGift = visibleGifts[currentGiftIndex];
+
+  useEffect(() => {
+    const pending = gifts.filter((g) => g.status === "pending");
+    setVisibleGifts(pending);
+    setCurrentGiftIndex(0);
+    setIsVisible(pending.length > 0);
+    if (pending.length === 0) {
+      setBubbleOpen(false);
+    }
+  }, [gifts]);
 
   // Popup Strict Mode: لا يمكن الإغلاق بدون الاعتراف
   const handleStrictAcknowledge = (giftId: string) => {
@@ -53,16 +63,10 @@ export const GiftNotificationPopup: React.FC<GiftNotificationPopupProps> = ({
 
   // Popup Soft Mode: يمكن الإغلاق، لكن يعود بعد الفاصل الزمني
   const handleSoftDismiss = (giftId: string) => {
-    setDismissedGifts((prev) => new Set(prev).add(giftId));
     setIsVisible(false);
 
     setTimeout(() => {
       setIsVisible(true);
-      setDismissedGifts((prev) => {
-        const newSet = new Set(prev);
-        newSet.delete(giftId);
-        return newSet;
-      });
     }, (repeatDelayMinutes || 5) * 60 * 1000); // تحويل الدقائق إلى ميلي ثانية
   };
 
@@ -170,14 +174,12 @@ export const GiftNotificationPopup: React.FC<GiftNotificationPopupProps> = ({
 
   // Floating Bubble Mode - Always Visible
   if (mode === "floating_bubble") {
-    const [bubbleOpen, setBubbleOpen] = useState(false);
-
     return (
       <>
         {/* Floating Bubble */}
         <div
           className="fixed bottom-4 right-4 w-16 h-16 bg-gradient-to-br from-amber-400 to-orange-500 hover:from-amber-500 hover:to-orange-600 rounded-full shadow-lg cursor-pointer flex items-center justify-center text-3xl transform transition-all hover:scale-110 z-40 animate-bounce"
-          onClick={() => setBubbleOpen(!bubbleOpen)}
+          onClick={() => setBubbleOpen((prev) => !prev)}
         >
           🎁
           {visibleGifts.length > 0 && (
@@ -291,9 +293,13 @@ const styles = `
 
 // Inject styles
 if (typeof document !== "undefined") {
-  const styleSheet = document.createElement("style");
-  styleSheet.textContent = styles;
-  document.head.appendChild(styleSheet);
+  const styleId = "gift-notification-popup-styles";
+  if (!document.getElementById(styleId)) {
+    const styleSheet = document.createElement("style");
+    styleSheet.id = styleId;
+    styleSheet.textContent = styles;
+    document.head.appendChild(styleSheet);
+  }
 }
 
 export default GiftNotificationPopup;

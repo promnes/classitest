@@ -12,6 +12,7 @@ import {
 import { eq, sql, and, or, isNull } from "drizzle-orm";
 import { authMiddleware } from "./middleware";
 import { createNotification } from "../notifications";
+import { NOTIFICATION_TYPES } from "../../shared/notificationTypes";
 
 const db = storage.db;
 
@@ -136,7 +137,7 @@ export async function registerReferralRoutes(app: Express) {
 
       await createNotification({
         parentId: referrerId,
-        type: "new_referral",
+        type: NOTIFICATION_TYPES.NEW_REFERRAL,
         title: "إحالة جديدة!",
         message: "لديك إحالة جديدة في انتظار التفعيل!",
         relatedId: referral.id,
@@ -206,7 +207,7 @@ export async function registerReferralRoutes(app: Express) {
 
       await createNotification({
         parentId: referral.referrerId,
-        type: "referral_reward",
+        type: NOTIFICATION_TYPES.REFERRAL_REWARD,
         title: "مكافأة الإحالة!",
         message: `تهانينا! حصلت على ${rewardPoints} نقطة كمكافأة للإحالة الناجحة!`,
         relatedId: referral.id,

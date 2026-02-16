@@ -59,7 +59,7 @@ export function NotificationModal({
             onClick={() => onConfirm(id)}
             className="w-full py-3 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition-colors"
           >
-            Awesome! 🎉
+            فهمت 🎉
           </button>
         </div>
       </div>

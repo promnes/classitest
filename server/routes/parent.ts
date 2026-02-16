@@ -72,6 +72,7 @@ import {
   MAX_ATTEMPTS,
   markVerifiedAtomic,
 } from "../services/otpService";
+import { NOTIFICATION_TYPES, NOTIFICATION_STYLES, NOTIFICATION_PRIORITIES } from "../../shared/notificationTypes";
 
 const db = storage.db;
 const stripeSecret = process.env.STRIPE_SECRET_KEY;
@@ -697,7 +698,7 @@ export async function registerParentRoutes(app: Express) {
 
       await createNotification({
         childId,
-        type: "task_assigned",
+        type: NOTIFICATION_TYPES.TASK_ASSIGNED_ALT,
         title: "مهمة جديدة!",
         message: `لديك مهمة جديدة: ${question.substring(0, 50)}...`,
         relatedId: result[0].id,
@@ -902,11 +903,11 @@ export async function registerParentRoutes(app: Express) {
       // Notify admin (parentId: null = admin notification)
       await createNotification({
         parentId: null,
-        type: "deposit_request",
+        type: NOTIFICATION_TYPES.DEPOSIT_REQUEST,
         title: "طلب إيداع جديد",
         message: `${parentName} طلب إيداع ₪${amount} عبر ${method[0].type} (Ref: ${normalizedTransactionId})${notes ? ` — "${notes}"` : ""}`,
-        style: "toast",
-        priority: "urgent",
+        style: NOTIFICATION_STYLES.TOAST,
+        priority: NOTIFICATION_PRIORITIES.URGENT,
         soundAlert: true,
         relatedId: result[0].id,
         metadata: { depositId: result[0].id, parentId: req.user.userId, amount, transactionId: normalizedTransactionId },
@@ -955,28 +956,94 @@ export async function registerParentRoutes(app: Express) {
   // Get Notifications (ordered: unread first, then newest)
   app.get("/api/parent/notifications", authMiddleware, async (req: any, res) => {
     try {
-      const result = await db.select()
+      const parentId = req.user.userId;
+      const includeMeta = String(req.query.includeMeta || "").toLowerCase() === "1" || String(req.query.includeMeta || "").toLowerCase() === "true";
+
+      const hasLimit = req.query.limit !== undefined;
+      const hasOffset = req.query.offset !== undefined;
+
+      const parsedLimit = Number(req.query.limit);
+      const parsedOffset = Number(req.query.offset);
+
+      const limit = hasLimit
+        ? Math.min(200, Math.max(1, Number.isFinite(parsedLimit) ? Math.trunc(parsedLimit) : 50))
+        : 50;
+      const offset = hasOffset
+        ? Math.max(0, Number.isFinite(parsedOffset) ? Math.trunc(parsedOffset) : 0)
+        : 0;
+
+      const shouldPaginate = includeMeta || hasLimit || hasOffset;
+
+      if (!shouldPaginate) {
+        const result = await db.select()
+          .from(notifications)
+          .where(eq(notifications.parentId, parentId))
+          .orderBy(sql`${notifications.isRead} ASC, ${notifications.createdAt} DESC`);
+
+        return res.json(successResponse(result, "Notifications retrieved"));
+      }
+
+      const items = await db.select()
         .from(notifications)
-        .where(eq(notifications.parentId, req.user.userId))
-        .orderBy(sql`${notifications.isRead} ASC, ${notifications.createdAt} DESC`);
-      res.json(successResponse(result, "Notifications retrieved"));
+        .where(eq(notifications.parentId, parentId))
+        .orderBy(sql`${notifications.isRead} ASC, ${notifications.createdAt} DESC`)
+        .limit(limit)
+        .offset(offset);
+
+      if (!includeMeta) {
+        return res.json(successResponse(items, "Notifications retrieved"));
+      }
+
+      const [{ total }] = await db
+        .select({ total: count() })
+        .from(notifications)
+        .where(eq(notifications.parentId, parentId));
+
+      const totalCount = Number(total || 0);
+      return res.json(successResponse({
+        items,
+        total: totalCount,
+        limit,
+        offset,
+        hasMore: offset + items.length < totalCount,
+      }, "Notifications retrieved"));
     } catch (error: any) {
       console.error("Fetch notifications error:", error);
       res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to fetch notifications"));
     }
   });
 
-  // Get Notifications (alias)
-  app.get("/api/notifications", authMiddleware, async (req: any, res) => {
+  // Get unread notifications count (lightweight)
+  app.get("/api/parent/notifications/unread-count", authMiddleware, async (req: any, res) => {
     try {
-      const result = await db.select()
+      const parentId = req.user.userId;
+      const [row] = await db
+        .select({ count: count() })
         .from(notifications)
-        .where(eq(notifications.parentId, req.user.userId))
-        .orderBy(sql`${notifications.isRead} ASC, ${notifications.createdAt} DESC`);
-      res.json(successResponse(result, "Notifications retrieved"));
+        .where(and(eq(notifications.parentId, parentId), eq(notifications.isRead, false)));
+
+      res.json(successResponse({ count: Number(row?.count || 0) }, "Unread notifications count retrieved"));
     } catch (error: any) {
-      console.error("Fetch notifications error:", error);
-      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to fetch notifications"));
+      console.error("Fetch unread notifications count error:", error);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to fetch unread notifications count"));
+    }
+  });
+
+  // Mark all parent notifications as read
+  app.post("/api/parent/notifications/read-all", authMiddleware, async (req: any, res) => {
+    try {
+      const parentId = req.user.userId;
+
+      const updated = await db
+        .update(notifications)
+        .set({ isRead: true })
+        .where(and(eq(notifications.parentId, parentId), eq(notifications.isRead, false)))
+        .returning({ id: notifications.id });
+
+      res.json(successResponse({ updated: updated.length }, "All notifications marked as read"));
+    } catch (error: any) {
+      console.error("Mark all notifications error:", error);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to mark all notifications"));
     }
   });
 
@@ -1004,29 +1071,8 @@ export async function registerParentRoutes(app: Express) {
     }
   });
 
-  // Mark Notification as Read (alias)
-  app.put("/api/notifications/:id", authMiddleware, async (req: any, res) => {
-    try {
-      const { id } = req.params;
-      const updated = await db
-        .update(notifications)
-        .set({ isRead: true })
-        .where(and(eq(notifications.id, id), eq(notifications.parentId, req.user.userId)))
-        .returning();
-
-      if (!updated[0]) {
-        return res.status(404).json(errorResponse(ErrorCode.NOT_FOUND, "Notification not found"));
-      }
-
-      res.json(successResponse({ marked: true }, "Notification marked as read"));
-    } catch (error: any) {
-      console.error("Mark notification error:", error);
-      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to mark notification"));
-    }
-  });
-
-  // Delete Notification (alias)
-  app.delete("/api/notifications/:id", authMiddleware, async (req: any, res) => {
+  // Delete Notification
+  app.delete("/api/parent/notifications/:id", authMiddleware, async (req: any, res) => {
     try {
       const { id } = req.params;
       const deleted = await db
@@ -1125,11 +1171,11 @@ export async function registerParentRoutes(app: Express) {
         if (childId) {
           await createNotification({
             childId,
-            type: "login_rejected",
+            type: NOTIFICATION_TYPES.LOGIN_REJECTED,
             title: "تم رفض طلب الدخول",
             message: `${childName}، تم رفض طلب دخولك من قبل والديك.`,
-            style: "toast",
-            priority: "warning",
+            style: NOTIFICATION_STYLES.TOAST,
+            priority: NOTIFICATION_PRIORITIES.WARNING,
           });
         }
 
@@ -1375,7 +1421,7 @@ export async function registerParentRoutes(app: Express) {
         await createNotification({
           parentId: req.user.userId,
           childId: request[0].childId,
-          type: "purchase_approved",
+          type: NOTIFICATION_TYPES.PURCHASE_APPROVED,
           title: "تم قبول طلبك!",
           message: `تمت الموافقة على طلب شراء ${product[0].nameAr || product[0].name}`,
           metadata: { 
@@ -1407,7 +1453,7 @@ export async function registerParentRoutes(app: Express) {
         await createNotification({
           parentId: req.user.userId,
           childId: request[0].childId,
-          type: "purchase_rejected",
+          type: NOTIFICATION_TYPES.PURCHASE_REJECTED,
           title: "تم رفض طلبك",
           message: rejectionReason || `تم رفض طلب شراء ${product[0].nameAr || product[0].name}`,
           metadata: { 
@@ -1613,7 +1659,7 @@ export async function registerParentRoutes(app: Express) {
       // Notify admins (create notification for admins via notifications table with no parentId)
       const buyerParent = await db.select({ name: parents.name }).from(parents).where(eq(parents.id, req.user.userId));
       const buyerName = buyerParent[0]?.name || "مستخدم";
-      await createNotification({ type: 'purchase_paid', title: "💳 طلب شراء جديد", message: `${buyerName} قام بالدفع لطلب الشراء وينتظر الموافقة`, relatedId: purchaseId, metadata: { parentName: buyerName, purchaseId } });
+      await createNotification({ type: NOTIFICATION_TYPES.PURCHASE_PAID, title: "💳 طلب شراء جديد", message: `${buyerName} قام بالدفع لطلب الشراء وينتظر الموافقة`, relatedId: purchaseId, metadata: { parentName: buyerName, purchaseId } });
 
       res.status(201).json({ success: true, data: { purchaseId, message: 'Purchase recorded and pending admin approval' } });
     } catch (error: any) {
@@ -1676,7 +1722,7 @@ export async function registerParentRoutes(app: Express) {
       // create notification for child (with product name)
       const assignedProduct = await db.select({ name: products.name, nameAr: products.nameAr }).from(products).where(eq(products.id, owned[0].productId));
       const assignedProductName = assignedProduct[0]?.nameAr || assignedProduct[0]?.name || "منتج";
-      await createNotification({ childId, type: 'product_assigned', title: "🎁 هدية جديدة في انتظارك!", message: `أضاف والداك "${assignedProductName}" كهدية! اجمع ${requiredPoints} نقطة للحصول عليها`, relatedId: assigned[0].id, metadata: { productName: assignedProductName, requiredPoints } });
+      await createNotification({ childId, type: NOTIFICATION_TYPES.PRODUCT_ASSIGNED, title: "🎁 هدية جديدة في انتظارك!", message: `أضاف والداك "${assignedProductName}" كهدية! اجمع ${requiredPoints} نقطة للحصول عليها`, relatedId: assigned[0].id, metadata: { productName: assignedProductName, requiredPoints } });
 
       res.json({ success: true, data: assigned[0] });
     } catch (error: any) {
@@ -1726,7 +1772,7 @@ export async function registerParentRoutes(app: Express) {
       // notify admin (with child name + product info)
       const shippedChild = await db.select({ name: children.name }).from(children).where(eq(children.id, assigned[0].childId));
       const shippedChildName = shippedChild[0]?.name || "طفل";
-      await createNotification({ type: 'shipment_requested', title: "📦 طلب شحن جديد", message: `طلب شحن جديد لـ ${shippedChildName} — المنتج: ${id}`, relatedId: sr[0].id, metadata: { childName: shippedChildName, assignedProductId: id } });
+      await createNotification({ type: NOTIFICATION_TYPES.SHIPMENT_REQUESTED, title: "📦 طلب شحن جديد", message: `طلب شحن جديد لـ ${shippedChildName} — المنتج: ${id}`, relatedId: sr[0].id, metadata: { childName: shippedChildName, assignedProductId: id } });
 
       res.json({ success: true, data: sr[0] });
     } catch (error: any) {
@@ -2098,7 +2144,7 @@ export async function registerParentRoutes(app: Express) {
       // Send notification to child
       await createNotification({
         childId,
-        type: "task_assigned",
+        type: NOTIFICATION_TYPES.TASK_ASSIGNED_ALT,
         title: "مهمة جديدة!",
         message: `لديك مهمة جديدة: ${template[0].question.substring(0, 50)}...`,
         relatedId: result[0].id,
@@ -2589,7 +2635,7 @@ export async function registerParentRoutes(app: Express) {
       // Send notification to child
       await createNotification({
         childId,
-        type: "task",
+        type: NOTIFICATION_TYPES.TASK_ASSIGNED,
         title: "مهمة جديدة!",
         message: `لديك مهمة جديدة${title ? `: ${title}` : ""}`,
         relatedId: newTask[0].id,
@@ -2737,7 +2783,7 @@ export async function registerParentRoutes(app: Express) {
         if (sellerChildren.length > 0 && sellerChildren[0].childId) {
           await createNotification({
             childId: sellerChildren[0].childId,
-            type: "reward",
+            type: NOTIFICATION_TYPES.REWARD,
             title: "مكافأة!",
             message: `حصلت على ${sellerReceives} نقطة من مشاركة مهمة!`,
             metadata: { points: sellerReceives, taskId: template[0].id },
@@ -2786,7 +2832,7 @@ export async function registerParentRoutes(app: Express) {
       // Send notification to child
       await createNotification({
         childId,
-        type: "task",
+        type: NOTIFICATION_TYPES.TASK_ASSIGNED,
         title: "مهمة جديدة!",
         message: `لديك مهمة جديدة: ${template[0].title}`,
         relatedId: newTask[0].id,

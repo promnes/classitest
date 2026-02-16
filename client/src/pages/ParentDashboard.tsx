@@ -2,7 +2,7 @@ import { useEffect, useState, lazy, Suspense } from "react";
 import { useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { queryClient, apiRequest } from "@/lib/queryClient";
+import { queryClient, apiRequest, authenticatedFetch } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useTheme } from "@/contexts/ThemeContext";
 import { LanguageSelector } from "@/components/LanguageSelector";
@@ -248,7 +248,15 @@ export const ParentDashboard = (): JSX.Element => {
   });
 
   const { data: notifications } = useQuery({
-    queryKey: ["/api/parent/notifications"],
+    queryKey: ["/api/parent/notifications", "dashboard", 3],
+    queryFn: () => authenticatedFetch("/api/parent/notifications?includeMeta=1&limit=3&offset=0"),
+    enabled: !!token,
+    refetchInterval: token ? 30000 : false,
+  });
+
+  const { data: unreadNotificationsData } = useQuery<{ count: number }>({
+    queryKey: ["/api/parent/notifications/unread-count"],
+    queryFn: () => authenticatedFetch<{ count: number }>("/api/parent/notifications/unread-count"),
     enabled: !!token,
     refetchInterval: token ? 30000 : false,
   });
@@ -333,6 +341,7 @@ export const ParentDashboard = (): JSX.Element => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/parent/purchase-requests"] });
       queryClient.invalidateQueries({ queryKey: ["/api/parent/notifications"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/parent/notifications/unread-count"] });
       queryClient.invalidateQueries({ queryKey: ["/api/parent/children"] });
       toast({
         title: t("parentDashboard.purchaseRequestUpdated"),
@@ -422,7 +431,11 @@ export const ParentDashboard = (): JSX.Element => {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const notificationsList = Array.isArray(notifications) ? notifications : [];
+  const notificationsList = Array.isArray((notifications as any)?.items)
+    ? (notifications as any).items
+    : Array.isArray(notifications)
+    ? notifications
+    : [];
   const childrenList = Array.isArray(children) ? children : [];
   const tasksList = Array.isArray(tasks) ? tasks : [];
   const subjectsList = Array.isArray(subjects) ? subjects : [];
@@ -440,7 +453,9 @@ export const ParentDashboard = (): JSX.Element => {
   const statusData = childrenStatus as any || {};
   const pinData = (familyPinStatus as any)?.data || familyPinStatus as any || {};
 
-  const unreadNotifications = notificationsList.filter((n: any) => !n.isRead).length || 0;
+  const unreadNotifications = typeof unreadNotificationsData?.count === "number"
+    ? unreadNotificationsData.count
+    : notificationsList.filter((n: any) => !n.isRead).length || 0;
   const totalChildrenPoints = childrenList.reduce((sum: number, c: any) => sum + (c.totalPoints || 0), 0) || 0;
   const pendingTasks = tasksList.filter((t: any) => t.status === "pending").length || 0;
   const completedTasks = tasksList.filter((t: any) => t.status === "completed").length || 0;
@@ -819,19 +834,19 @@ export const ParentDashboard = (): JSX.Element => {
                         data-testid={`notification-item-${notif.id}`}
                       >
                         <div className={`h-10 w-10 rounded-full flex items-center justify-center ${
-                          notif.type === "task_completed" ? "bg-green-100 text-green-600" :
-                          notif.type === "gift_claimed" ? "bg-purple-100 text-purple-600" :
-                          notif.type === "points_earned" ? "bg-yellow-100 text-yellow-600" :
+                          ["task_completed", "task", "task_assigned", "task_reminder"].includes(notif.type) ? "bg-green-100 text-green-600" :
+                          ["gift_activated", "gift_unlocked", "reward", "reward_unlocked", "product_assigned"].includes(notif.type) ? "bg-purple-100 text-purple-600" :
+                          ["points_earned", "points_adjustment", "referral_reward"].includes(notif.type) ? "bg-yellow-100 text-yellow-600" :
                           "bg-blue-100 text-blue-600"
                         }`}>
-                          {notif.type === "task_completed" ? <Trophy className="h-5 w-5" /> :
-                           notif.type === "gift_claimed" ? <Gift className="h-5 w-5" /> :
-                           notif.type === "points_earned" ? <Star className="h-5 w-5" /> :
+                          {["task_completed", "task", "task_assigned", "task_reminder"].includes(notif.type) ? <Trophy className="h-5 w-5" /> :
+                           ["gift_activated", "gift_unlocked", "reward", "reward_unlocked", "product_assigned"].includes(notif.type) ? <Gift className="h-5 w-5" /> :
+                           ["points_earned", "points_adjustment", "referral_reward"].includes(notif.type) ? <Star className="h-5 w-5" /> :
                            <Bell className="h-5 w-5" />}
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className={`text-sm font-medium ${isDark ? "text-white" : "text-gray-900"}`}>{notif.title}</p>
-                          <p className={`text-xs ${isDark ? "text-gray-400" : "text-gray-500"} truncate`}>{notif.body}</p>
+                          <p className={`text-xs ${isDark ? "text-gray-400" : "text-gray-500"} truncate`}>{notif.message || notif.body}</p>
                         </div>
                         {!notif.isRead && <Badge variant="secondary" className="bg-blue-500 text-white text-xs">{t('parentDashboard.new')}</Badge>}
                       </div>

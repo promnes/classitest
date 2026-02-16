@@ -1,12 +1,10 @@
 // Phase 1.4: Gift Event → In-App Notification Handlers
 // Consumes events from server/giftEvents.ts and creates in-app notifications
 
-import { storage } from "./storage";
-import { notifications } from "../shared/schema";
 import { giftEventEmitter, type GiftEvent } from "./giftEvents";
-import { sql } from "drizzle-orm";
+import { createNotification } from "./notifications";
+import { NOTIFICATION_STYLES, NOTIFICATION_TYPES } from "../shared/notificationTypes";
 
-const db = storage.db;
 
 /**
  * Initialize all gift event listeners (Phase 1.4)
@@ -44,16 +42,15 @@ export async function initializeGiftNotificationHandlers(): Promise<void> {
  */
 async function handleGiftUnlocked(event: GiftEvent): Promise<void> {
   try {
-    const notification = await db.insert(notifications).values({
+    await createNotification({
       childId: event.childId,
-      type: "gift_unlocked",
+      type: NOTIFICATION_TYPES.GIFT_UNLOCKED,
       title: "🎁 تم فتح الهدية!",
       message: "أحسنت! لقد جمعت نقاطاً كافية للحصول على هديتك!",
-      style: "modal",
+      style: NOTIFICATION_STYLES.MODAL,
       priority: "normal",
       soundAlert: true,
       vibration: false,
-      isRead: false,
     });
 
     console.log(
@@ -70,16 +67,15 @@ async function handleGiftUnlocked(event: GiftEvent): Promise<void> {
  */
 async function handleGiftActivated(event: GiftEvent): Promise<void> {
   try {
-    const notification = await db.insert(notifications).values({
+    await createNotification({
       childId: event.childId,
-      type: "gift_activated",
+      type: NOTIFICATION_TYPES.GIFT_ACTIVATED,
       title: "✨ تم استلام الهدية!",
       message: "تهانينا! لقد حصلت على هديتك بنجاح!",
-      style: "toast",
+      style: NOTIFICATION_STYLES.TOAST,
       priority: "normal",
       soundAlert: false,
       vibration: false,
-      isRead: false,
     });
 
     console.log(

@@ -27,7 +27,7 @@ export function NotificationCenter() {
 
   const childToken = localStorage.getItem("childToken");
   
-  // Fetch notifications every 5 seconds (polling) - only when token exists
+  // Initial fetch only (real-time updates arrive through SSE)
   const { data, isLoading } = useQuery({
     queryKey: ["childNotifications"],
     queryFn: async () => {
@@ -44,8 +44,8 @@ export function NotificationCenter() {
       return response.json();
     },
     enabled: !!childToken, // Only poll when token exists
-    refetchInterval: childToken ? 5000 : false, // Stop polling when no token
-    staleTime: 0,
+    refetchInterval: false,
+    staleTime: 30 * 1000,
     retry: false,
   });
 
@@ -53,6 +53,54 @@ export function NotificationCenter() {
   const [shownNotificationIds, setShownNotificationIds] = useState<Set<string>>(
     new Set()
   );
+
+  useEffect(() => {
+    if (!childToken) return;
+
+    const streamUrl = `/api/child/notifications/stream?token=${encodeURIComponent(childToken)}`;
+    let eventSource: EventSource | null = new EventSource(streamUrl);
+
+    const onNotification = (event: MessageEvent) => {
+      try {
+        const notification = JSON.parse(event.data) as Notification;
+        if (!notification?.id) return;
+
+        setDisplayedNotifications((prev) => {
+          if (prev.some((item) => item.id === notification.id)) {
+            return prev;
+          }
+          return [...prev, notification];
+        });
+
+        setShownNotificationIds((prev) => {
+          const next = new Set(prev);
+          next.add(notification.id);
+          return next;
+        });
+
+        queryClient.setQueryData(["childNotifications"], (old: any) => {
+          const current = Array.isArray(old?.data) ? old.data : [];
+          if (current.some((item: Notification) => item.id === notification.id)) {
+            return old;
+          }
+          return { success: true, data: [notification, ...current] };
+        });
+      } catch {
+        // ignore malformed stream payload
+      }
+    };
+
+    eventSource.addEventListener("notification", onNotification);
+
+    eventSource.onerror = () => {
+      // browser EventSource handles reconnection automatically
+    };
+
+    return () => {
+      eventSource?.removeEventListener("notification", onNotification);
+      eventSource?.close();
+    };
+  }, [childToken, queryClient]);
 
   // When new unread notifications arrive, add them to display queue
   useEffect(() => {

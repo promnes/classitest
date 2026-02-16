@@ -4,9 +4,27 @@ import { useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTheme } from "@/contexts/ThemeContext";
 import { getDateLocale } from "@/i18n/config";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, authenticatedFetch } from "@/lib/queryClient";
 import { Check, X, Copy, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+
+type NotificationItem = {
+  id: string;
+  type: string;
+  title?: string | null;
+  message: string;
+  isRead: boolean;
+  createdAt: string;
+  metadata?: Record<string, any> | null;
+};
+
+type NotificationPage = {
+  items: NotificationItem[];
+  total: number;
+  limit: number;
+  offset: number;
+  hasMore: boolean;
+};
 
 export const Notifications = (): JSX.Element => {
   const { t } = useTranslation();
@@ -16,14 +34,36 @@ export const Notifications = (): JSX.Element => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const pageSize = 20;
+  const offset = (page - 1) * pageSize;
 
-  const { data: notificationsRaw, refetch } = useQuery({
-    queryKey: ["/api/parent/notifications"],
+  const { data: notificationsPage } = useQuery<NotificationPage>({
+    queryKey: ["/api/parent/notifications", page, pageSize],
+    queryFn: () =>
+      authenticatedFetch<NotificationPage>(
+        `/api/parent/notifications?includeMeta=1&limit=${pageSize}&offset=${offset}`
+      ),
     enabled: !!token,
     refetchInterval: token ? 5000 : false,
   });
 
-  const notifications = Array.isArray(notificationsRaw) ? notificationsRaw : [];
+  const { data: unreadCountData } = useQuery<{ count: number }>({
+    queryKey: ["/api/parent/notifications/unread-count"],
+    queryFn: () => authenticatedFetch<{ count: number }>("/api/parent/notifications/unread-count"),
+    enabled: !!token,
+    refetchInterval: token ? 5000 : false,
+  });
+
+  const notifications = Array.isArray(notificationsPage?.items) ? notificationsPage!.items : [];
+  const total = notificationsPage?.total || 0;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+
+  useEffect(() => {
+    if (page > totalPages) {
+      setPage(totalPages);
+    }
+  }, [page, totalPages]);
 
   const markReadMutation = useMutation({
     mutationFn: async (notificationId: string) => {
@@ -31,6 +71,7 @@ export const Notifications = (): JSX.Element => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/parent/notifications"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/parent/notifications/unread-count"] });
     },
   });
 
@@ -40,11 +81,26 @@ export const Notifications = (): JSX.Element => {
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["/api/parent/notifications"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/parent/notifications/unread-count"] });
       toast({
         title: variables.action === "approve" ? "تم القبول" : "تم الرفض",
         description: variables.action === "approve" 
           ? "تم إرسال الكود للطفل. أخبره برمز PIN الخاص به."
           : "تم رفض طلب تسجيل الدخول.",
+      });
+    },
+  });
+
+  const markAllReadMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest("POST", "/api/parent/notifications/read-all");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/parent/notifications"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/parent/notifications/unread-count"] });
+      toast({
+        title: "تم التعليم",
+        description: "تم تعليم جميع الإشعارات كمقروءة",
       });
     },
   });
@@ -59,44 +115,83 @@ export const Notifications = (): JSX.Element => {
 
   const getNotificationIcon = (type: string) => {
     switch (type) {
-      case "deposit":
       case "deposit_approved":
       case "deposit_rejected":
+      case "deposit_request":
         return "💳";
-      case "purchase":
+      case "purchase_request":
+      case "purchase_approved":
+      case "purchase_rejected":
+      case "purchase_paid":
         return "🛍️";
       case "task":
+      case "task_assigned":
+      case "task_completed":
+      case "task_reminder":
         return "📝";
-      case "points":
+      case "points_earned":
+      case "points_adjustment":
+      case "referral_reward":
         return "⭐";
-      case "order":
+      case "order_placed":
+      case "order_confirmed":
+      case "order_shipped":
+      case "order_delivered":
+      case "order_rejected":
+      case "shipment_requested":
+      case "shipping_update":
         return "📦";
+      case "security_alert":
       case "login_code_request":
-      case "pin_request":
+      case "login_rejected":
         return "🔐";
+      case "gift_unlocked":
+      case "gift_activated":
+      case "product_assigned":
+      case "reward":
+      case "reward_unlocked":
+        return "🎁";
+      case "child_linked":
+      case "child_activity":
+      case "child_logout":
+        return "👨‍👩‍👧";
       default:
         return "🔔";
     }
   };
 
-  const isLoginRequest = (type: string) => type === "login_code_request" || type === "pin_request";
+  const isLoginRequest = (type: string) => type === "login_code_request";
 
   const handleNotificationClick = (notification: any) => {
     markReadMutation.mutate(notification.id);
     switch (notification.type) {
-      case "deposit":
       case "deposit_approved":
       case "deposit_rejected":
+      case "deposit_request":
         navigate("/wallet");
         break;
-      case "purchase":
-      case "order":
+      case "purchase_request":
+      case "purchase_approved":
+      case "purchase_rejected":
+      case "purchase_paid":
+      case "order_placed":
+      case "order_confirmed":
+      case "order_shipped":
+      case "order_delivered":
+      case "order_rejected":
+      case "shipment_requested":
+      case "shipping_update":
         navigate("/parent-store");
         break;
       case "task":
+      case "task_assigned":
+      case "task_completed":
+      case "task_reminder":
         navigate("/parent-tasks");
         break;
-      case "points":
+      case "points_earned":
+      case "points_adjustment":
+      case "referral_reward":
         navigate("/parent-dashboard");
         break;
       default:
@@ -104,7 +199,9 @@ export const Notifications = (): JSX.Element => {
     }
   };
 
-  const unreadCount = notifications.filter((n: any) => !n.isRead).length;
+  const unreadCount = typeof unreadCountData?.count === "number"
+    ? unreadCountData.count
+    : notifications.filter((n: any) => !n.isRead).length;
 
   return (
     <div className={`min-h-screen p-6 ${isDark ? "bg-gray-900" : "bg-gray-50"}`}>
@@ -122,6 +219,15 @@ export const Notifications = (): JSX.Element => {
             )}
           </div>
           <div className="flex gap-2">
+            {unreadCount > 0 && (
+              <button
+                onClick={() => markAllReadMutation.mutate()}
+                disabled={markAllReadMutation.isPending}
+                className="px-4 py-2 bg-emerald-600 text-white rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {markAllReadMutation.isPending ? "جارٍ التعليم..." : "تعليم الكل كمقروء"}
+              </button>
+            )}
             <button
               onClick={toggleTheme}
               className="px-4 py-2 bg-blue-500 text-white rounded-lg font-bold"
@@ -267,6 +373,30 @@ export const Notifications = (): JSX.Element => {
             </div>
           )}
         </div>
+
+        {total > pageSize && (
+          <div className="mt-6 flex items-center justify-between">
+            <button
+              onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+              disabled={page <= 1}
+              className="px-4 py-2 bg-gray-500 text-white rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              السابق
+            </button>
+
+            <p className={`${isDark ? "text-gray-300" : "text-gray-700"} font-medium`}>
+              صفحة {page} من {totalPages}
+            </p>
+
+            <button
+              onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
+              disabled={page >= totalPages}
+              className="px-4 py-2 bg-blue-500 text-white rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              التالي
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

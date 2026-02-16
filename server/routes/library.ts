@@ -12,13 +12,14 @@ import {
   libraryWithdrawalRequests,
   libraryDailyInvoices,
   parents,
-  notifications,
 } from "../../shared/schema";
 import { eq, desc, and, sql, like, or, lte } from "drizzle-orm";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import { createPresignedUpload, finalizeUpload } from "../services/uploadService";
 import { finalizeUploadSchema } from "../../shared/media";
+import { createNotification } from "../notifications";
+import { NOTIFICATION_TYPES } from "../../shared/notificationTypes";
 
 const db = storage.db;
 const JWT_SECRET = process.env["JWT_SECRET"] ?? "";
@@ -534,9 +535,9 @@ export async function registerLibraryRoutes(app: Express) {
         .where(eq(libraryOrders.id, id))
         .returning();
 
-      await db.insert(notifications).values({
+      await createNotification({
         parentId: order.buyerParentId,
-        type: "library_order_shipped",
+        type: NOTIFICATION_TYPES.ORDER_SHIPPED,
         title: "تم شحن طلبك من المكتبة",
         message: `كود التسليم الخاص بطلبك هو: ${deliveryCode}`,
         relatedId: order.id,

@@ -47,6 +47,8 @@ import { unlockEligibleGifts } from "../giftUnlock";
 import { createNotification } from "../notifications";
 import { applyPointsDelta } from "../services/pointsService";
 import { getVapidPublicKey } from "../services/webPushService";
+import { notificationBus } from "../services/notificationBus";
+import { NOTIFICATION_TYPES, NOTIFICATION_STYLES, NOTIFICATION_PRIORITIES } from "../../shared/notificationTypes";
 
 const db = storage.db;
 
@@ -140,7 +142,7 @@ async function logTaskCompletion(childId: string, task: typeof tasks.$inferSelec
 
   await createNotification({
     parentId: task.parentId,
-    type: "task_completed",
+    type: NOTIFICATION_TYPES.TASK_COMPLETED,
     title: "تم حل مهمة",
     message: `${childName} حل المهمة بنجاح وحصل على ${task.pointsReward} نقطة. عدد الإخفاقات: ${failedAttempts}.`,
     relatedId: task.id,
@@ -245,7 +247,7 @@ export async function registerChildRoutes(app: Express) {
       // Send notification to parent about new child linking
       await createNotification({
         parentId: parentList[0].id,
-        type: "child_linked",
+        type: NOTIFICATION_TYPES.CHILD_LINKED,
         title: "تم ربط طفل جديد!",
         message: `تم ربط ${trimmedName} بحسابك بنجاح`,
         metadata: { childId: childResult[0].id, childName: trimmedName }
@@ -1163,7 +1165,7 @@ export async function registerChildRoutes(app: Express) {
       // Send notification to parent
       await createNotification({
         parentId: link[0].parentId,
-        type: "purchase_request",
+        type: NOTIFICATION_TYPES.PURCHASE_REQUEST,
         title: "طلب شراء جديد!",
         message: `${child[0].name} يريد شراء ${effectiveProductName} بـ ${totalPointsNeeded} نقطة`,
         metadata: { 
@@ -1320,6 +1322,46 @@ export async function registerChildRoutes(app: Express) {
     } catch (error: any) {
       console.error("Fetch child notifications error:", error);
       res.status(500).json({ message: "Failed to fetch child notifications" });
+    }
+  });
+
+  app.get("/api/child/notifications/stream", async (req: any, res) => {
+    try {
+      const token = typeof req.query.token === "string" ? req.query.token : "";
+      if (!token) {
+        return res.status(401).json(errorResponse(ErrorCode.UNAUTHORIZED, "Missing token"));
+      }
+
+      const payload = jwt.verify(token, JWT_SECRET) as { childId?: string; type?: string };
+      if (!payload?.childId || payload?.type !== "child") {
+        return res.status(401).json(errorResponse(ErrorCode.UNAUTHORIZED, "Invalid child token"));
+      }
+
+      const childId = payload.childId;
+
+      res.writeHead(200, {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache, no-transform",
+        Connection: "keep-alive",
+      });
+
+      res.write(`event: ready\ndata: ${JSON.stringify({ success: true })}\n\n`);
+
+      const heartbeat = setInterval(() => {
+        res.write(`event: heartbeat\ndata: ${JSON.stringify({ ts: Date.now() })}\n\n`);
+      }, 25000);
+
+      const unsubscribe = notificationBus.subscribeChild(childId, (notification) => {
+        res.write(`event: notification\ndata: ${JSON.stringify(notification)}\n\n`);
+      });
+
+      req.on("close", () => {
+        clearInterval(heartbeat);
+        unsubscribe();
+        res.end();
+      });
+    } catch {
+      return res.status(401).json(errorResponse(ErrorCode.UNAUTHORIZED, "Invalid token"));
     }
   });
 
@@ -2063,11 +2105,11 @@ export async function registerChildRoutes(app: Express) {
       // Notify parent
       await createNotification({
         parentId: parent[0].id,
-        type: "login_code_request",
+        type: NOTIFICATION_TYPES.LOGIN_CODE_REQUEST,
         title: `طلب دخول من ${matchedChild.child.name}`,
         message: `${matchedChild.child.name} يطلب الدخول للتطبيق. هل توافق؟`,
-        style: "modal",
-        priority: "urgent",
+        style: NOTIFICATION_STYLES.MODAL,
+        priority: NOTIFICATION_PRIORITIES.URGENT,
         soundAlert: true,
         metadata: {
           childId: matchedChild.child.id,
@@ -2277,11 +2319,11 @@ export async function registerChildRoutes(app: Express) {
       // Notify parent with approve/reject buttons
       await createNotification({
         parentId: parent[0].id,
-        type: "login_code_request",
+        type: NOTIFICATION_TYPES.LOGIN_CODE_REQUEST,
         title: `${matchedChild.child.name} يطلب الدخول`,
         message: `${matchedChild.child.name} يريد تسجيل الدخول للتطبيق. هل توافق؟`,
-        style: "modal",
-        priority: "urgent",
+        style: NOTIFICATION_STYLES.MODAL,
+        priority: NOTIFICATION_PRIORITIES.URGENT,
         soundAlert: true,
         metadata: {
           childId: matchedChild.child.id,
@@ -2341,10 +2383,10 @@ export async function registerChildRoutes(app: Express) {
       for (const link of parentLinks) {
         await createNotification({
           parentId: link.parent.id,
-          type: "child_logout",
+          type: NOTIFICATION_TYPES.CHILD_LOGOUT,
           title: "تسجيل خروج الطفل 👋",
           message: `${child[0].name} قام بتسجيل الخروج من التطبيق.`,
-          style: "toast",
+          style: NOTIFICATION_STYLES.TOAST,
           metadata: { 
             childId: child[0].id, 
             childName: child[0].name,

@@ -68,11 +68,14 @@ export function useWallet() {
  * Hook: Get notifications
  */
 export function useNotifications() {
-  const token = localStorage.getItem("token") || localStorage.getItem("childToken");
+  const parentToken = localStorage.getItem("token");
+  const childToken = localStorage.getItem("childToken");
+  const token = parentToken || childToken;
+  const endpoint = childToken && !parentToken ? "/api/child/notifications" : "/api/parent/notifications";
 
   return useQuery({
     queryKey: ["notifications"],
-    queryFn: () => apiClient.get("/api/notifications"),
+    queryFn: () => apiClient.get(endpoint),
     enabled: !!token,
     retry: 1,
     staleTime: 30 * 1000, // 30 seconds

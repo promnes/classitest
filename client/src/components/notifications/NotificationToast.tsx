@@ -25,9 +25,10 @@ export function NotificationToast({
     if (soundAlert) {
       try {
         const audio = new Audio("/sounds/notification.mp3");
-        audio.play().catch((err) => console.log("Audio play failed:", err));
-      } catch (error) {
-        console.log("Sound alert unavailable");
+        audio.volume = 0.7;
+        audio.play().catch(() => undefined);
+      } catch {
+        // no-op: keep notifications functional even if audio asset is missing
       }
     }
 
@@ -53,7 +54,7 @@ export function NotificationToast({
       <h3 className="font-bold text-lg mb-1">{title}</h3>
       <p className="text-sm">{message}</p>
       <div className="mt-2 flex justify-between items-center">
-        <span className="text-xs opacity-75">Auto-closing in 5s...</span>
+        <span className="text-xs opacity-75">يُغلق تلقائياً خلال 5 ثوانٍ...</span>
         <button
           onClick={() => onDismiss(id)}
           className="text-lg opacity-75 hover:opacity-100"

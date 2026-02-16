@@ -55,7 +55,7 @@ export function useMarkNotificationRead() {
   
   return useMutation({
     mutationFn: async (notificationId: string) => {
-      const res = await apiRequest("PATCH", `/api/parent/notifications/${notificationId}/read`);
+      const res = await apiRequest("POST", `/api/parent/notifications/${notificationId}/read`);
       return res.json();
     },
     onSuccess: () => {
