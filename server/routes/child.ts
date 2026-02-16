@@ -198,20 +198,20 @@ export async function registerChildRoutes(app: Express) {
       const { childName, code } = req.body;
 
       if (!childName || !code) {
-        return res.status(400).json({ message: "Child name and parent code are required" });
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Child name and parent code are required"));
       }
 
       // Validate child name
       const trimmedName = childName.trim();
       if (trimmedName.length < 2 || trimmedName.length > 100) {
-        return res.status(400).json({ message: "Child name must be between 2 and 100 characters" });
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Child name must be between 2 and 100 characters"));
       }
 
       // Import parents table at top
       // Find parent by unique code (NOT parentChild.parentId)
       const parentList = await db.select().from(parents).where(eq(parents.uniqueCode, code.toUpperCase()));
       if (!parentList[0]) {
-        return res.status(400).json({ message: "Invalid parent code" });
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Invalid parent code"));
       }
 
       // Create child
@@ -226,7 +226,7 @@ export async function registerChildRoutes(app: Express) {
       );
 
       if (existingLink[0]) {
-        return res.status(409).json({ message: "This child is already linked to this parent" });
+        return res.status(409).json(errorResponse(ErrorCode.CONFLICT, "This child is already linked to this parent"));
       }
 
       // Link parent and child
@@ -304,18 +304,14 @@ export async function registerChildRoutes(app: Express) {
       }
 
       const token = jwt.sign({ childId: childResult[0].id, type: "child" }, JWT_SECRET, { expiresIn: "30d" });
-      res.status(201).json({ 
-        success: true,
-        data: { 
-          token, 
-          childId: childResult[0].id,
-          childName: childResult[0].name
-        },
-        message: "Child linked successfully"
-      });
+      res.status(201).json(successResponse({
+        token,
+        childId: childResult[0].id,
+        childName: childResult[0].name,
+      }, "Child linked successfully"));
     } catch (error: any) {
       console.error("Child link error:", error);
-      res.status(500).json({ message: "Linking failed", error: error.message });
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Linking failed"));
     }
   });
 
@@ -324,12 +320,16 @@ export async function registerChildRoutes(app: Express) {
     try {
       const child = await db.select().from(children).where(eq(children.id, req.user.childId));
       if (!child[0]) {
-        return res.status(404).json({ success: false, message: "Child not found" });
+        return res.status(404).json(errorResponse(ErrorCode.NOT_FOUND, "Child not found"));
       }
-      res.json({ success: true, valid: true, childId: child[0].id, displayName: child[0].displayName || child[0].name });
+      res.json(successResponse({
+        valid: true,
+        childId: child[0].id,
+        displayName: child[0].displayName || child[0].name,
+      }, "Token verified"));
     } catch (error: any) {
       console.error("Token verification error:", error);
-      res.status(500).json({ success: false, message: "Verification failed" });
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Verification failed"));
     }
   });
 
@@ -338,12 +338,16 @@ export async function registerChildRoutes(app: Express) {
     try {
       const child = await db.select().from(children).where(eq(children.id, req.user.childId));
       if (!child[0]) {
-        return res.status(404).json({ message: "Child not found" });
+        return res.status(404).json(errorResponse(ErrorCode.NOT_FOUND, "Child not found"));
       }
-      res.json(child[0]);
+      const childData = child[0];
+      res.json({
+        ...childData,
+        ...successResponse(childData, "Child info retrieved"),
+      });
     } catch (error: any) {
       console.error("Fetch child info error:", error);
-      res.status(500).json({ message: "Failed to fetch child info" });
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to fetch child info"));
     }
   });
 
