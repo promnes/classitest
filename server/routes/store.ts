@@ -13,6 +13,7 @@ import {
   paymentMethods,
   libraryProducts,
   libraries,
+  libraryOrders,
   libraryDailySales,
   libraryReferrals,
   libraryActivityLogs,
@@ -483,6 +484,24 @@ export async function registerStoreRoutes(app: Express) {
 
             const commissionRate = parseFloat(item.libraryProduct.commissionRatePct || "10.00");
             const commissionAmount = item.subtotal * (commissionRate / 100);
+            const libraryNetAmount = item.subtotal - commissionAmount;
+
+            await tx.insert(libraryOrders).values({
+              parentPurchaseId: createdPurchase[0].id,
+              buyerParentId: parentId,
+              libraryId: item.libraryProduct.libraryId,
+              libraryProductId: item.libraryProduct.id,
+              quantity: item.quantity,
+              unitPrice: item.unitPrice.toFixed(2),
+              subtotal: item.subtotal.toFixed(2),
+              shippingAddress: shippingAddress || null,
+              status: "pending_admin",
+              commissionRatePct: commissionRate.toFixed(2),
+              commissionAmount: commissionAmount.toFixed(2),
+              libraryEarningAmount: libraryNetAmount.toFixed(2),
+              holdDays: 15,
+            });
+
             const dayStart = new Date();
             dayStart.setHours(0, 0, 0, 0);
 

@@ -46,6 +46,10 @@ import {
   libraryReferrals,
   libraryActivityLogs,
   libraryReferralSettings,
+  libraryOrders,
+  libraryBalances,
+  libraryWithdrawalRequests,
+  libraryDailyInvoices,
   pointAdjustments,
   socialLoginProviders,
   parentSocialIdentities,
@@ -4277,17 +4281,27 @@ export async function registerAdminRoutes(app: Express) {
       const products = await db.select().from(libraryProducts).where(eq(libraryProducts.libraryId, id));
       const referrals = await db.select().from(libraryReferrals).where(eq(libraryReferrals.libraryId, id));
       const activityLogs = await db.select().from(libraryActivityLogs).where(eq(libraryActivityLogs.libraryId, id)).orderBy(desc(libraryActivityLogs.createdAt)).limit(50);
+      const orders = await db.select().from(libraryOrders).where(eq(libraryOrders.libraryId, id)).orderBy(desc(libraryOrders.createdAt)).limit(100);
+      const withdrawals = await db.select().from(libraryWithdrawalRequests).where(eq(libraryWithdrawalRequests.libraryId, id)).orderBy(desc(libraryWithdrawalRequests.createdAt)).limit(100);
+      const balanceRows = await db.select().from(libraryBalances).where(eq(libraryBalances.libraryId, id)).limit(1);
+      const balance = balanceRows[0] || null;
       
       res.json(successResponse({
         ...library[0],
         products,
         referrals,
         activityLogs,
+        orders,
+        withdrawals,
+        balance,
         stats: {
           totalProducts: products.length,
           activeProducts: products.filter((p: typeof libraryProducts.$inferSelect) => p.isActive).length,
           totalReferrals: referrals.length,
           convertedReferrals: referrals.filter((r: typeof libraryReferrals.$inferSelect) => r.status === "purchased").length,
+          totalOrders: orders.length,
+          pendingOrders: orders.filter((o: typeof libraryOrders.$inferSelect) => o.status === "pending_admin" || o.status === "admin_confirmed" || o.status === "shipped").length,
+          pendingWithdrawals: withdrawals.filter((w: typeof libraryWithdrawalRequests.$inferSelect) => w.status === "pending").length,
         },
       }));
     } catch (error: any) {
@@ -4332,6 +4346,10 @@ export async function registerAdminRoutes(app: Express) {
           ? Number(commissionRatePct).toFixed(2)
           : "10.00",
       }).returning();
+
+      await db.insert(libraryBalances).values({
+        libraryId: newLibrary[0].id,
+      });
       
       res.json(successResponse(newLibrary[0]));
     } catch (error: any) {
@@ -4445,6 +4463,236 @@ export async function registerAdminRoutes(app: Express) {
       res
         .status(500)
         .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to update settings"));
+    }
+  });
+
+  app.get("/api/admin/library-orders", adminMiddleware, async (req: any, res) => {
+    try {
+      const ordersList = await db
+        .select({
+          order: libraryOrders,
+          libraryName: libraries.name,
+          parentName: parents.name,
+          parentEmail: parents.email,
+          productTitle: libraryProducts.title,
+        })
+        .from(libraryOrders)
+        .leftJoin(libraries, eq(libraryOrders.libraryId, libraries.id))
+        .leftJoin(parents, eq(libraryOrders.buyerParentId, parents.id))
+        .leftJoin(libraryProducts, eq(libraryOrders.libraryProductId, libraryProducts.id))
+        .orderBy(desc(libraryOrders.createdAt));
+
+      const data = ordersList.map((row: any) => ({
+        ...row.order,
+        libraryName: row.libraryName,
+        parentName: row.parentName,
+        parentEmail: row.parentEmail,
+        productTitle: row.productTitle,
+      }));
+
+      res.json(successResponse(data));
+    } catch (error: any) {
+      console.error("Get admin library orders error:", error);
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to fetch library orders"));
+    }
+  });
+
+  app.put("/api/admin/library-orders/:id/confirm", adminMiddleware, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const rows = await db.select().from(libraryOrders).where(eq(libraryOrders.id, id)).limit(1);
+      const order = rows[0];
+      if (!order) {
+        return res.status(404).json(errorResponse(ErrorCode.NOT_FOUND, "Order not found"));
+      }
+      if (order.status !== "pending_admin") {
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Order is not pending admin confirmation"));
+      }
+
+      const updated = await db
+        .update(libraryOrders)
+        .set({
+          status: "admin_confirmed",
+          adminConfirmedAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .where(eq(libraryOrders.id, id))
+        .returning();
+
+      res.json(successResponse(updated[0], "Order confirmed and sent to library"));
+    } catch (error: any) {
+      console.error("Confirm library order error:", error);
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to confirm order"));
+    }
+  });
+
+  app.put("/api/admin/library-orders/:id/reject", adminMiddleware, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const { note } = req.body || {};
+      const rows = await db.select().from(libraryOrders).where(eq(libraryOrders.id, id)).limit(1);
+      const order = rows[0];
+      if (!order) {
+        return res.status(404).json(errorResponse(ErrorCode.NOT_FOUND, "Order not found"));
+      }
+      if (order.status !== "pending_admin") {
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Only pending admin orders can be rejected"));
+      }
+
+      const updated = await db
+        .update(libraryOrders)
+        .set({
+          status: "cancelled",
+          updatedAt: new Date(),
+        })
+        .where(eq(libraryOrders.id, id))
+        .returning();
+
+      if (note) {
+        await db.insert(libraryActivityLogs).values({
+          libraryId: order.libraryId,
+          action: "order_rejected_by_admin",
+          points: 0,
+          metadata: { orderId: order.id, note: String(note) },
+        });
+      }
+
+      res.json(successResponse(updated[0], "Order rejected"));
+    } catch (error: any) {
+      console.error("Reject library order error:", error);
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to reject order"));
+    }
+  });
+
+  app.get("/api/admin/library-withdrawals", adminMiddleware, async (req: any, res) => {
+    try {
+      const rows = await db
+        .select({
+          request: libraryWithdrawalRequests,
+          libraryName: libraries.name,
+          availableBalance: libraryBalances.availableBalance,
+          pendingBalance: libraryBalances.pendingBalance,
+        })
+        .from(libraryWithdrawalRequests)
+        .leftJoin(libraries, eq(libraryWithdrawalRequests.libraryId, libraries.id))
+        .leftJoin(libraryBalances, eq(libraryWithdrawalRequests.libraryId, libraryBalances.libraryId))
+        .orderBy(desc(libraryWithdrawalRequests.createdAt));
+
+      const data = rows.map((row: any) => ({
+        ...row.request,
+        libraryName: row.libraryName,
+        availableBalance: row.availableBalance,
+        pendingBalance: row.pendingBalance,
+      }));
+
+      res.json(successResponse(data));
+    } catch (error: any) {
+      console.error("Get admin library withdrawals error:", error);
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to fetch withdrawals"));
+    }
+  });
+
+  app.put("/api/admin/library-withdrawals/:id/approve", adminMiddleware, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const rows = await db.select().from(libraryWithdrawalRequests).where(eq(libraryWithdrawalRequests.id, id)).limit(1);
+      const request = rows[0];
+      if (!request) {
+        return res.status(404).json(errorResponse(ErrorCode.NOT_FOUND, "Withdrawal request not found"));
+      }
+      if (request.status !== "pending") {
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Withdrawal request already processed"));
+      }
+
+      await db.transaction(async (tx: any) => {
+        await tx
+          .update(libraryWithdrawalRequests)
+          .set({
+            status: "approved",
+            processedAt: new Date(),
+            updatedAt: new Date(),
+          })
+          .where(eq(libraryWithdrawalRequests.id, id));
+
+        const existingBalance = await tx.select().from(libraryBalances).where(eq(libraryBalances.libraryId, request.libraryId)).limit(1);
+        if (existingBalance[0]) {
+          await tx
+            .update(libraryBalances)
+            .set({
+              totalWithdrawnAmount: sql`${libraryBalances.totalWithdrawnAmount} + ${request.amount}`,
+              updatedAt: new Date(),
+            })
+            .where(eq(libraryBalances.libraryId, request.libraryId));
+        }
+      });
+
+      const updatedRows = await db.select().from(libraryWithdrawalRequests).where(eq(libraryWithdrawalRequests.id, id)).limit(1);
+      res.json(successResponse(updatedRows[0], "Withdrawal approved"));
+    } catch (error: any) {
+      console.error("Approve library withdrawal error:", error);
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to approve withdrawal"));
+    }
+  });
+
+  app.put("/api/admin/library-withdrawals/:id/reject", adminMiddleware, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const { note } = req.body || {};
+
+      const rows = await db.select().from(libraryWithdrawalRequests).where(eq(libraryWithdrawalRequests.id, id)).limit(1);
+      const request = rows[0];
+      if (!request) {
+        return res.status(404).json(errorResponse(ErrorCode.NOT_FOUND, "Withdrawal request not found"));
+      }
+      if (request.status !== "pending") {
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Withdrawal request already processed"));
+      }
+
+      await db.transaction(async (tx: any) => {
+        await tx
+          .update(libraryWithdrawalRequests)
+          .set({
+            status: "rejected",
+            adminNote: note ? String(note) : null,
+            processedAt: new Date(),
+            updatedAt: new Date(),
+          })
+          .where(eq(libraryWithdrawalRequests.id, id));
+
+        const existingBalance = await tx.select().from(libraryBalances).where(eq(libraryBalances.libraryId, request.libraryId)).limit(1);
+        if (!existingBalance[0]) {
+          await tx.insert(libraryBalances).values({
+            libraryId: request.libraryId,
+            availableBalance: request.amount,
+          });
+        } else {
+          await tx
+            .update(libraryBalances)
+            .set({
+              availableBalance: sql`${libraryBalances.availableBalance} + ${request.amount}`,
+              updatedAt: new Date(),
+            })
+            .where(eq(libraryBalances.libraryId, request.libraryId));
+        }
+      });
+
+      const updatedRows = await db.select().from(libraryWithdrawalRequests).where(eq(libraryWithdrawalRequests.id, id)).limit(1);
+      res.json(successResponse(updatedRows[0], "Withdrawal rejected and amount returned"));
+    } catch (error: any) {
+      console.error("Reject library withdrawal error:", error);
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to reject withdrawal"));
     }
   });
 

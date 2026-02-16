@@ -43,6 +43,7 @@ classiv3/
 │   ├─ Gift system walkthrough
 │   ├─ Payment flow explanation
 │   ├─ Library merchant operations
+│   ├─ Library order lifecycle (admin confirm → ship → delivery code → hold → withdrawal)
 │   ├─ Admin controls
 │   ├─ Debugging common issues
 │   ├─ Database query examples
@@ -198,7 +199,7 @@ classiv3/
 - Task operations
 - Gift sending
 - Payment processing
-- Library operations
+- Library operations (including order lifecycle + withdrawals)
 - Admin controls
 - Debugging tips
 - Database queries

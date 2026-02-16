@@ -205,47 +205,86 @@ curl -X POST http://localhost:5000/api/store/orders \
 
 ---
 
-### 6. 🏪 Library Merchant Login
+### 6. 🏪 Library Commerce Lifecycle (End-to-End)
 
-**Scenario:** Library owner wants to manage products
+**Scenario:** Parent buys from library → Admin confirms → Library ships → Delivery code verification → 15-day hold → Withdrawal request.
 
 ```bash
-# Login
-curl -X POST http://localhost:5000/api/libraries/login \
+# 1) Library login
+curl -X POST http://localhost:5000/api/library/login \
   -H "Content-Type: application/json" \
   -d '{
     "username": "alnoor_library",
     "password": "secure123"
   }'
 
-# Response:
-{
-  "success": true,
-  "data": {
-    "libraryId": "library-uuid",
-    "token": "jwt-token",
-    "library": {
-      "name": "مكتبة النور",
-      "commissionRate": 10
+# 2) Parent checkout from store (library product included)
+curl -X POST http://localhost:5000/api/store/checkout \
+  -H "Authorization: Bearer <parentToken>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "items": [{ "productId": "library-product-id", "quantity": 1 }],
+    "paymentMethodId": "wallet",
+    "shippingAddress": {
+      "name": "Parent Name",
+      "line1": "Street 1",
+      "city": "Cairo",
+      "state": "Nasr City",
+      "postalCode": "11765",
+      "country": "EG"
     }
-  }
-}
+  }'
 
-# Access library dashboard
-curl http://localhost:5000/api/libraries/dashboard \
+# 3) Admin sees and confirms library order
+curl http://localhost:5000/api/admin/library-orders \
+  -H "Authorization: Bearer <adminToken>"
+
+curl -X PUT http://localhost:5000/api/admin/library-orders/<orderId>/confirm \
+  -H "Authorization: Bearer <adminToken>"
+
+# 4) Library ships order (generates delivery code)
+curl -X PUT http://localhost:5000/api/library/orders/<orderId>/ship \
   -H "Authorization: Bearer <libraryToken>"
 
-# Response:
-{
-  "success": true,
-  "data": {
-    "totalSales": 50000,
-    "totalOrders": 1200,
-    "activeReferrals": 450,
-    "totalPointsEarned": 25000
-  }
-}
+# 5) Library verifies delivery using buyer code
+curl -X POST http://localhost:5000/api/library/orders/<orderId>/verify-delivery \
+  -H "Authorization: Bearer <libraryToken>" \
+  -H "Content-Type: application/json" \
+  -d '{ "code": "123456" }'
+
+# 6) Balance after hold period settlement
+curl http://localhost:5000/api/library/balance \
+  -H "Authorization: Bearer <libraryToken>"
+
+# 7) Library creates withdrawal request
+curl -X POST http://localhost:5000/api/library/withdrawals \
+  -H "Authorization: Bearer <libraryToken>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "amount": "100.00",
+    "paymentMethod": "bank_transfer",
+    "paymentDetails": { "iban": "EG00XXXX" }
+  }'
+
+# 8) Admin reviews withdrawals
+curl http://localhost:5000/api/admin/library-withdrawals \
+  -H "Authorization: Bearer <adminToken>"
+
+curl -X PUT http://localhost:5000/api/admin/library-withdrawals/<withdrawalId>/approve \
+  -H "Authorization: Bearer <adminToken>"
 ```
+
+**Order Status Flow:**
+- `pending_admin` → `admin_confirmed` → `shipped` → `delivered` → `completed`
+
+**Financial Notes:**
+- Commission is deducted at order level (`commissionAmount`).
+- Library net earnings go to pending balance after delivery verification.
+- Release to available balance happens after consumer-protection hold (`holdDays`, default 15).
+
+**Operational Endpoints:**
+- Library: `/api/library/orders`, `/api/library/balance`, `/api/library/withdrawals`, `/api/library/invoices/daily`
+- Admin: `/api/admin/library-orders`, `/api/admin/library-withdrawals`
 
 ---
 

@@ -7,8 +7,14 @@ import {
   libraryReferrals, 
   libraryActivityLogs,
   libraryReferralSettings,
+  libraryOrders,
+  libraryBalances,
+  libraryWithdrawalRequests,
+  libraryDailyInvoices,
+  parents,
+  notifications,
 } from "../../shared/schema";
-import { eq, desc, and, sql, like, or } from "drizzle-orm";
+import { eq, desc, and, sql, like, or, lte } from "drizzle-orm";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import { createPresignedUpload, finalizeUpload } from "../services/uploadService";
@@ -73,6 +79,75 @@ async function logActivity(libraryId: string, action: string, points: number, me
       updatedAt: new Date(),
     })
     .where(eq(libraries.id, libraryId));
+}
+
+function generateDeliveryCode() {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+}
+
+async function ensureLibraryBalance(libraryId: string) {
+  const rows = await db.select().from(libraryBalances).where(eq(libraryBalances.libraryId, libraryId)).limit(1);
+  if (rows[0]) return rows[0];
+  const created = await db.insert(libraryBalances).values({ libraryId }).returning();
+  return created[0];
+}
+
+async function settleMaturedLibraryOrders(libraryId: string) {
+  const now = new Date();
+  const maturedOrders = await db.select().from(libraryOrders).where(
+    and(
+      eq(libraryOrders.libraryId, libraryId),
+      eq(libraryOrders.status, "delivered"),
+      eq(libraryOrders.isSettled, false),
+      lte(libraryOrders.protectionExpiresAt, now),
+    )
+  );
+
+  if (!maturedOrders.length) {
+    return { maturedCount: 0, releasedAmount: 0 };
+  }
+
+  const releasedAmount = maturedOrders.reduce((sum: number, row: any) => sum + (parseFloat(String(row.libraryEarningAmount || "0")) || 0), 0);
+
+  await db.transaction(async (tx: any) => {
+    await tx
+      .update(libraryOrders)
+      .set({
+        status: "completed",
+        completedAt: now,
+        isSettled: true,
+        settledAt: now,
+        updatedAt: now,
+      })
+      .where(
+        and(
+          eq(libraryOrders.libraryId, libraryId),
+          eq(libraryOrders.status, "delivered"),
+          eq(libraryOrders.isSettled, false),
+          lte(libraryOrders.protectionExpiresAt, now),
+        )
+      );
+
+    const existingBalance = await tx.select().from(libraryBalances).where(eq(libraryBalances.libraryId, libraryId)).limit(1);
+    if (!existingBalance[0]) {
+      await tx.insert(libraryBalances).values({
+        libraryId,
+        pendingBalance: "0.00",
+        availableBalance: releasedAmount.toFixed(2),
+      });
+    } else {
+      await tx
+        .update(libraryBalances)
+        .set({
+          pendingBalance: sql`GREATEST(0, ${libraryBalances.pendingBalance} - ${releasedAmount.toFixed(2)})`,
+          availableBalance: sql`${libraryBalances.availableBalance} + ${releasedAmount.toFixed(2)}`,
+          updatedAt: now,
+        })
+        .where(eq(libraryBalances.libraryId, libraryId));
+    }
+  });
+
+  return { maturedCount: maturedOrders.length, releasedAmount };
 }
 
 export async function registerLibraryRoutes(app: Express) {
@@ -396,6 +471,283 @@ export async function registerLibraryRoutes(app: Express) {
     } catch (error: any) {
       console.error("Get library activity error:", error);
       res.status(500).json({ message: "Failed to fetch activity" });
+    }
+  });
+
+  app.get("/api/library/orders", libraryMiddleware, async (req: LibraryRequest, res) => {
+    try {
+      const libraryId = req.library!.libraryId;
+      const rows = await db
+        .select({
+          order: libraryOrders,
+          productTitle: libraryProducts.title,
+          buyerName: parents.name,
+          buyerEmail: parents.email,
+        })
+        .from(libraryOrders)
+        .leftJoin(libraryProducts, eq(libraryOrders.libraryProductId, libraryProducts.id))
+        .leftJoin(parents, eq(libraryOrders.buyerParentId, parents.id))
+        .where(eq(libraryOrders.libraryId, libraryId))
+        .orderBy(desc(libraryOrders.createdAt));
+
+      res.json({
+        success: true,
+        data: rows.map((row: any) => ({
+          ...row.order,
+          productTitle: row.productTitle,
+          buyerName: row.buyerName,
+          buyerEmail: row.buyerEmail,
+        })),
+      });
+    } catch (error: any) {
+      console.error("Get library orders error:", error);
+      res.status(500).json({ success: false, message: "Failed to fetch orders" });
+    }
+  });
+
+  app.put("/api/library/orders/:id/ship", libraryMiddleware, async (req: LibraryRequest, res) => {
+    try {
+      const libraryId = req.library!.libraryId;
+      const { id } = req.params;
+
+      const rows = await db.select().from(libraryOrders).where(and(eq(libraryOrders.id, id), eq(libraryOrders.libraryId, libraryId))).limit(1);
+      const order = rows[0];
+      if (!order) {
+        return res.status(404).json({ success: false, message: "Order not found" });
+      }
+
+      if (order.status !== "admin_confirmed") {
+        return res.status(400).json({ success: false, message: "Order must be admin confirmed first" });
+      }
+
+      const deliveryCode = generateDeliveryCode();
+      const now = new Date();
+      const updated = await db
+        .update(libraryOrders)
+        .set({
+          status: "shipped",
+          shippedAt: now,
+          deliveryCode,
+          deliveryCodeSentAt: now,
+          updatedAt: now,
+        })
+        .where(eq(libraryOrders.id, id))
+        .returning();
+
+      await db.insert(notifications).values({
+        parentId: order.buyerParentId,
+        type: "library_order_shipped",
+        title: "تم شحن طلبك من المكتبة",
+        message: `كود التسليم الخاص بطلبك هو: ${deliveryCode}`,
+        relatedId: order.id,
+        metadata: {
+          orderId: order.id,
+          deliveryCode,
+        },
+      });
+
+      await logActivity(libraryId, "order_shipped", 0, { orderId: order.id });
+      res.json({ success: true, data: updated[0], message: "Order marked as shipped and delivery code sent" });
+    } catch (error: any) {
+      console.error("Ship library order error:", error);
+      res.status(500).json({ success: false, message: "Failed to mark order as shipped" });
+    }
+  });
+
+  app.post("/api/library/orders/:id/verify-delivery", libraryMiddleware, async (req: LibraryRequest, res) => {
+    try {
+      const libraryId = req.library!.libraryId;
+      const { id } = req.params;
+      const { code } = req.body || {};
+
+      if (!code || String(code).trim().length < 4) {
+        return res.status(400).json({ success: false, message: "Delivery code is required" });
+      }
+
+      const rows = await db.select().from(libraryOrders).where(and(eq(libraryOrders.id, id), eq(libraryOrders.libraryId, libraryId))).limit(1);
+      const order = rows[0];
+      if (!order) {
+        return res.status(404).json({ success: false, message: "Order not found" });
+      }
+      if (order.status !== "shipped") {
+        return res.status(400).json({ success: false, message: "Order is not in shipped status" });
+      }
+      if (!order.deliveryCode || String(order.deliveryCode) !== String(code).trim()) {
+        return res.status(400).json({ success: false, message: "Invalid delivery code" });
+      }
+
+      const deliveredAt = new Date();
+      const protectionExpiresAt = new Date(deliveredAt.getTime() + (Number(order.holdDays || 15) * 24 * 60 * 60 * 1000));
+
+      const updated = await db
+        .update(libraryOrders)
+        .set({
+          status: "delivered",
+          deliveredAt,
+          deliveryCodeVerifiedAt: deliveredAt,
+          protectionExpiresAt,
+          updatedAt: deliveredAt,
+        })
+        .where(eq(libraryOrders.id, id))
+        .returning();
+
+      await ensureLibraryBalance(libraryId);
+      await db
+        .update(libraryBalances)
+        .set({
+          pendingBalance: sql`${libraryBalances.pendingBalance} + ${order.libraryEarningAmount}`,
+          totalSalesAmount: sql`${libraryBalances.totalSalesAmount} + ${order.subtotal}`,
+          totalCommissionAmount: sql`${libraryBalances.totalCommissionAmount} + ${order.commissionAmount}`,
+          updatedAt: deliveredAt,
+        })
+        .where(eq(libraryBalances.libraryId, libraryId));
+
+      const dayStart = new Date(deliveredAt);
+      dayStart.setHours(0, 0, 0, 0);
+
+      const invoices = await db
+        .select()
+        .from(libraryDailyInvoices)
+        .where(and(eq(libraryDailyInvoices.libraryId, libraryId), eq(libraryDailyInvoices.invoiceDate, dayStart)))
+        .limit(1);
+
+      if (!invoices[0]) {
+        await db.insert(libraryDailyInvoices).values({
+          libraryId,
+          invoiceDate: dayStart,
+          totalOrders: 1,
+          grossSalesAmount: String(order.subtotal || "0.00"),
+          totalCommissionAmount: String(order.commissionAmount || "0.00"),
+          netAmount: String(order.libraryEarningAmount || "0.00"),
+          status: "pending",
+        });
+      } else {
+        await db
+          .update(libraryDailyInvoices)
+          .set({
+            totalOrders: sql`${libraryDailyInvoices.totalOrders} + 1`,
+            grossSalesAmount: sql`${libraryDailyInvoices.grossSalesAmount} + ${order.subtotal}`,
+            totalCommissionAmount: sql`${libraryDailyInvoices.totalCommissionAmount} + ${order.commissionAmount}`,
+            netAmount: sql`${libraryDailyInvoices.netAmount} + ${order.libraryEarningAmount}`,
+            updatedAt: deliveredAt,
+          })
+          .where(eq(libraryDailyInvoices.id, invoices[0].id));
+      }
+
+      await logActivity(libraryId, "order_delivered", 0, {
+        orderId: order.id,
+        holdDays: order.holdDays || 15,
+      });
+
+      res.json({ success: true, data: updated[0], message: "Delivery verified successfully" });
+    } catch (error: any) {
+      console.error("Verify library delivery code error:", error);
+      res.status(500).json({ success: false, message: "Failed to verify delivery" });
+    }
+  });
+
+  app.get("/api/library/balance", libraryMiddleware, async (req: LibraryRequest, res) => {
+    try {
+      const libraryId = req.library!.libraryId;
+      await settleMaturedLibraryOrders(libraryId);
+
+      const balance = await ensureLibraryBalance(libraryId);
+      const pendingWithdrawals = await db
+        .select()
+        .from(libraryWithdrawalRequests)
+        .where(and(eq(libraryWithdrawalRequests.libraryId, libraryId), eq(libraryWithdrawalRequests.status, "pending")))
+        .orderBy(desc(libraryWithdrawalRequests.createdAt));
+
+      res.json({
+        success: true,
+        data: {
+          ...balance,
+          pendingWithdrawals,
+        },
+      });
+    } catch (error: any) {
+      console.error("Get library balance error:", error);
+      res.status(500).json({ success: false, message: "Failed to fetch balance" });
+    }
+  });
+
+  app.post("/api/library/withdrawals", libraryMiddleware, async (req: LibraryRequest, res) => {
+    try {
+      const libraryId = req.library!.libraryId;
+      const { amount, paymentMethod, paymentDetails } = req.body || {};
+
+      const requestedAmount = parseFloat(String(amount || 0));
+      if (!requestedAmount || requestedAmount <= 0) {
+        return res.status(400).json({ success: false, message: "Invalid withdrawal amount" });
+      }
+      if (!paymentMethod) {
+        return res.status(400).json({ success: false, message: "Payment method is required" });
+      }
+
+      await settleMaturedLibraryOrders(libraryId);
+      const balance = await ensureLibraryBalance(libraryId);
+      const available = parseFloat(String(balance.availableBalance || "0")) || 0;
+      if (requestedAmount > available) {
+        return res.status(400).json({ success: false, message: "Insufficient available balance" });
+      }
+
+      const now = new Date();
+      const created = await db.transaction(async (tx: any) => {
+        await tx
+          .update(libraryBalances)
+          .set({
+            availableBalance: sql`${libraryBalances.availableBalance} - ${requestedAmount.toFixed(2)}`,
+            updatedAt: now,
+          })
+          .where(eq(libraryBalances.libraryId, libraryId));
+
+        const inserted = await tx.insert(libraryWithdrawalRequests).values({
+          libraryId,
+          amount: requestedAmount.toFixed(2),
+          paymentMethod: String(paymentMethod),
+          paymentDetails: paymentDetails || null,
+          status: "pending",
+          requestedAt: now,
+        }).returning();
+
+        return inserted[0];
+      });
+
+      res.json({ success: true, data: created, message: "Withdrawal request submitted" });
+    } catch (error: any) {
+      console.error("Create library withdrawal error:", error);
+      res.status(500).json({ success: false, message: "Failed to create withdrawal request" });
+    }
+  });
+
+  app.get("/api/library/withdrawals", libraryMiddleware, async (req: LibraryRequest, res) => {
+    try {
+      const libraryId = req.library!.libraryId;
+      const rows = await db
+        .select()
+        .from(libraryWithdrawalRequests)
+        .where(eq(libraryWithdrawalRequests.libraryId, libraryId))
+        .orderBy(desc(libraryWithdrawalRequests.createdAt));
+      res.json({ success: true, data: rows });
+    } catch (error: any) {
+      console.error("Get library withdrawals error:", error);
+      res.status(500).json({ success: false, message: "Failed to fetch withdrawals" });
+    }
+  });
+
+  app.get("/api/library/invoices/daily", libraryMiddleware, async (req: LibraryRequest, res) => {
+    try {
+      const libraryId = req.library!.libraryId;
+      const rows = await db
+        .select()
+        .from(libraryDailyInvoices)
+        .where(eq(libraryDailyInvoices.libraryId, libraryId))
+        .orderBy(desc(libraryDailyInvoices.invoiceDate))
+        .limit(60);
+      res.json({ success: true, data: rows });
+    } catch (error: any) {
+      console.error("Get library daily invoices error:", error);
+      res.status(500).json({ success: false, message: "Failed to fetch invoices" });
     }
   });
 

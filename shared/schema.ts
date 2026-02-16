@@ -1282,11 +1282,122 @@ export const libraryDailySales = pgTable("library_daily_sales", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+export const libraryOrders = pgTable("library_orders", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  parentPurchaseId: varchar("parent_purchase_id").references(() => parentPurchases.id, { onDelete: "set null" }),
+  buyerParentId: varchar("buyer_parent_id").notNull().references(() => parents.id, { onDelete: "cascade" }),
+  libraryId: varchar("library_id").notNull().references(() => libraries.id, { onDelete: "cascade" }),
+  libraryProductId: varchar("library_product_id").notNull().references(() => libraryProducts.id, { onDelete: "restrict" }),
+  quantity: integer("quantity").default(1).notNull(),
+  unitPrice: decimal("unit_price", { precision: 12, scale: 2 }).notNull(),
+  subtotal: decimal("subtotal", { precision: 12, scale: 2 }).notNull(),
+  shippingAddress: text("shipping_address"),
+  status: varchar("status", { length: 30 }).default("pending_admin").notNull(),
+  adminConfirmedAt: timestamp("admin_confirmed_at"),
+  shippedAt: timestamp("shipped_at"),
+  deliveredAt: timestamp("delivered_at"),
+  completedAt: timestamp("completed_at"),
+  deliveryCode: varchar("delivery_code", { length: 10 }),
+  deliveryCodeSentAt: timestamp("delivery_code_sent_at"),
+  deliveryCodeVerifiedAt: timestamp("delivery_code_verified_at"),
+  commissionRatePct: decimal("commission_rate_pct", { precision: 5, scale: 2 }).default("10.00").notNull(),
+  commissionAmount: decimal("commission_amount", { precision: 12, scale: 2 }).default("0.00").notNull(),
+  libraryEarningAmount: decimal("library_earning_amount", { precision: 12, scale: 2 }).default("0.00").notNull(),
+  holdDays: integer("hold_days").default(15).notNull(),
+  protectionExpiresAt: timestamp("protection_expires_at"),
+  isSettled: boolean("is_settled").default(false).notNull(),
+  settledAt: timestamp("settled_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const libraryBalances = pgTable("library_balances", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  libraryId: varchar("library_id").notNull().unique().references(() => libraries.id, { onDelete: "cascade" }),
+  pendingBalance: decimal("pending_balance", { precision: 12, scale: 2 }).default("0.00").notNull(),
+  availableBalance: decimal("available_balance", { precision: 12, scale: 2 }).default("0.00").notNull(),
+  totalSalesAmount: decimal("total_sales_amount", { precision: 12, scale: 2 }).default("0.00").notNull(),
+  totalCommissionAmount: decimal("total_commission_amount", { precision: 12, scale: 2 }).default("0.00").notNull(),
+  totalWithdrawnAmount: decimal("total_withdrawn_amount", { precision: 12, scale: 2 }).default("0.00").notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const libraryWithdrawalRequests = pgTable("library_withdrawal_requests", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  libraryId: varchar("library_id").notNull().references(() => libraries.id, { onDelete: "cascade" }),
+  amount: decimal("amount", { precision: 12, scale: 2 }).notNull(),
+  paymentMethod: varchar("payment_method", { length: 40 }).notNull(),
+  paymentDetails: json("payment_details").$type<Record<string, any>>(),
+  status: varchar("status", { length: 30 }).default("pending").notNull(),
+  adminNote: text("admin_note"),
+  requestedAt: timestamp("requested_at").defaultNow().notNull(),
+  processedAt: timestamp("processed_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const libraryDailyInvoices = pgTable("library_daily_invoices", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  libraryId: varchar("library_id").notNull().references(() => libraries.id, { onDelete: "cascade" }),
+  invoiceDate: timestamp("invoice_date").notNull(),
+  totalOrders: integer("total_orders").default(0).notNull(),
+  grossSalesAmount: decimal("gross_sales_amount", { precision: 12, scale: 2 }).default("0.00").notNull(),
+  totalCommissionAmount: decimal("total_commission_amount", { precision: 12, scale: 2 }).default("0.00").notNull(),
+  netAmount: decimal("net_amount", { precision: 12, scale: 2 }).default("0.00").notNull(),
+  status: varchar("status", { length: 30 }).default("pending").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 export const insertLibraryDailySalesSchema = createInsertSchema(libraryDailySales).omit({
   id: true, createdAt: true, updatedAt: true
 });
 export type LibraryDailySales = typeof libraryDailySales.$inferSelect;
 export type InsertLibraryDailySales = z.infer<typeof insertLibraryDailySalesSchema>;
+
+export const insertLibraryOrderSchema = createInsertSchema(libraryOrders).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  adminConfirmedAt: true,
+  shippedAt: true,
+  deliveredAt: true,
+  completedAt: true,
+  deliveryCode: true,
+  deliveryCodeSentAt: true,
+  deliveryCodeVerifiedAt: true,
+  protectionExpiresAt: true,
+  isSettled: true,
+  settledAt: true,
+});
+export type LibraryOrder = typeof libraryOrders.$inferSelect;
+export type InsertLibraryOrder = z.infer<typeof insertLibraryOrderSchema>;
+
+export const insertLibraryBalanceSchema = createInsertSchema(libraryBalances).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type LibraryBalance = typeof libraryBalances.$inferSelect;
+export type InsertLibraryBalance = z.infer<typeof insertLibraryBalanceSchema>;
+
+export const insertLibraryWithdrawalRequestSchema = createInsertSchema(libraryWithdrawalRequests).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  processedAt: true,
+});
+export type LibraryWithdrawalRequest = typeof libraryWithdrawalRequests.$inferSelect;
+export type InsertLibraryWithdrawalRequest = z.infer<typeof insertLibraryWithdrawalRequestSchema>;
+
+export const insertLibraryDailyInvoiceSchema = createInsertSchema(libraryDailyInvoices).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type LibraryDailyInvoice = typeof libraryDailyInvoices.$inferSelect;
+export type InsertLibraryDailyInvoice = z.infer<typeof insertLibraryDailyInvoiceSchema>;
 
 // ===== Child Purchase Requests (for parent approval flow) =====
 export const childPurchaseRequests = pgTable("child_purchase_requests", {

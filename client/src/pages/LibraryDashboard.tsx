@@ -15,7 +15,7 @@ import { getDateLocale } from "@/i18n/config";
 import { queryClient } from "@/lib/queryClient";
 import { 
   Store, Package, Users, TrendingUp, Plus, Edit, Trash2, 
-  Copy, LogOut, Link, Share2, Activity 
+  Copy, LogOut, Link, Share2, Activity, Truck, ShieldCheck, Wallet
 } from "lucide-react";
 
 interface Product {
@@ -30,6 +30,46 @@ interface Product {
   isActive: boolean;
 }
 
+interface LibraryOrder {
+  id: string;
+  status: string;
+  quantity: number;
+  subtotal: string;
+  shippingAddress: string | null;
+  holdDays: number;
+  protectionExpiresAt: string | null;
+  deliveryCode: string | null;
+  productTitle?: string;
+  buyerName?: string;
+  buyerEmail?: string;
+  createdAt: string;
+}
+
+interface LibraryBalance {
+  availableBalance: string;
+  pendingBalance: string;
+  totalSalesAmount: string;
+  totalCommissionAmount: string;
+}
+
+interface LibraryWithdrawal {
+  id: string;
+  amount: string;
+  paymentMethod: string;
+  status: string;
+  requestedAt: string;
+}
+
+interface LibraryInvoice {
+  id: string;
+  invoiceDate: string;
+  totalOrders: number;
+  grossSalesAmount: string;
+  totalCommissionAmount: string;
+  netAmount: string;
+  status: string;
+}
+
 export default function LibraryDashboard() {
   const { t } = useTranslation();
   const [, setLocation] = useLocation();
@@ -40,6 +80,10 @@ export default function LibraryDashboard() {
   const [showProductModal, setShowProductModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [deliveryCodes, setDeliveryCodes] = useState<Record<string, string>>({});
+  const [withdrawAmount, setWithdrawAmount] = useState("");
+  const [withdrawMethod, setWithdrawMethod] = useState("");
+  const [withdrawDetails, setWithdrawDetails] = useState("");
   const [productForm, setProductForm] = useState({
     title: "",
     description: "",
@@ -104,6 +148,58 @@ export default function LibraryDashboard() {
       if (!res.ok) throw new Error("Failed");
       const data = await res.json();
       return data.data || [];
+    },
+    enabled: !!token,
+  });
+
+  const { data: orders } = useQuery({
+    queryKey: ["library-orders"],
+    queryFn: async () => {
+      const res = await fetch("/api/library/orders", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error("Failed");
+      const data = await res.json();
+      return (data.data || []) as LibraryOrder[];
+    },
+    enabled: !!token,
+  });
+
+  const { data: balanceData } = useQuery({
+    queryKey: ["library-balance"],
+    queryFn: async () => {
+      const res = await fetch("/api/library/balance", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error("Failed");
+      const data = await res.json();
+      return data.data as LibraryBalance;
+    },
+    enabled: !!token,
+  });
+
+  const { data: withdrawals } = useQuery({
+    queryKey: ["library-withdrawals"],
+    queryFn: async () => {
+      const res = await fetch("/api/library/withdrawals", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error("Failed");
+      const data = await res.json();
+      return (data.data || []) as LibraryWithdrawal[];
+    },
+    enabled: !!token,
+  });
+
+  const { data: invoices } = useQuery({
+    queryKey: ["library-daily-invoices"],
+    queryFn: async () => {
+      const res = await fetch("/api/library/invoices/daily", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error("Failed");
+      const data = await res.json();
+      return (data.data || []) as LibraryInvoice[];
     },
     enabled: !!token,
   });
@@ -180,6 +276,83 @@ export default function LibraryDashboard() {
     },
     onError: () => {
       toast({ title: "فشل حذف المنتج", variant: "destructive" });
+    },
+  });
+
+  const shipOrderMutation = useMutation({
+    mutationFn: async (orderId: string) => {
+      const res = await fetch(`/api/library/orders/${orderId}/ship`, {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body.message || "Failed to ship order");
+      return body;
+    },
+    onSuccess: () => {
+      toast({ title: "تم تحديث الطلب إلى: تم الشحن" });
+      queryClient.invalidateQueries({ queryKey: ["library-orders"] });
+    },
+    onError: (err: any) => {
+      toast({ title: err?.message || "فشل تحديث حالة الشحن", variant: "destructive" });
+    },
+  });
+
+  const verifyDeliveryMutation = useMutation({
+    mutationFn: async ({ orderId, code }: { orderId: string; code: string }) => {
+      const res = await fetch(`/api/library/orders/${orderId}/verify-delivery`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ code }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body.message || "Failed to verify delivery");
+      return body;
+    },
+    onSuccess: (_, variables) => {
+      toast({ title: "تم تأكيد التسليم بنجاح" });
+      setDeliveryCodes((prev) => ({ ...prev, [variables.orderId]: "" }));
+      queryClient.invalidateQueries({ queryKey: ["library-orders"] });
+      queryClient.invalidateQueries({ queryKey: ["library-balance"] });
+      queryClient.invalidateQueries({ queryKey: ["library-daily-invoices"] });
+    },
+    onError: (err: any) => {
+      toast({ title: err?.message || "فشل التحقق من كود التسليم", variant: "destructive" });
+    },
+  });
+
+  const createWithdrawalMutation = useMutation({
+    mutationFn: async () => {
+      const payload = {
+        amount: withdrawAmount,
+        paymentMethod: withdrawMethod,
+        paymentDetails: { details: withdrawDetails },
+      };
+      const res = await fetch("/api/library/withdrawals", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body.message || "Failed to request withdrawal");
+      return body;
+    },
+    onSuccess: () => {
+      toast({ title: "تم إرسال طلب السحب بنجاح" });
+      setWithdrawAmount("");
+      setWithdrawMethod("");
+      setWithdrawDetails("");
+      queryClient.invalidateQueries({ queryKey: ["library-withdrawals"] });
+      queryClient.invalidateQueries({ queryKey: ["library-balance"] });
+    },
+    onError: (err: any) => {
+      toast({ title: err?.message || "فشل إنشاء طلب السحب", variant: "destructive" });
     },
   });
 
@@ -440,8 +613,10 @@ export default function LibraryDashboard() {
         <Tabs defaultValue="products">
           <TabsList>
             <TabsTrigger value="products">المنتجات</TabsTrigger>
+            <TabsTrigger value="orders">الطلبات</TabsTrigger>
             <TabsTrigger value="referrals">الإحالات</TabsTrigger>
             <TabsTrigger value="activity">سجل النشاط</TabsTrigger>
+            <TabsTrigger value="finance">الأرباح والسحب</TabsTrigger>
           </TabsList>
 
           <TabsContent value="products" className="space-y-4">
@@ -544,6 +719,72 @@ export default function LibraryDashboard() {
             )}
           </TabsContent>
 
+          <TabsContent value="orders" className="space-y-4">
+            {(orders || []).length > 0 ? (
+              <div className="space-y-3">
+                {(orders || []).map((order) => (
+                  <Card key={order.id}>
+                    <CardContent className="pt-4 space-y-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="font-semibold">{order.productTitle || "منتج مكتبة"}</p>
+                          <p className="text-sm text-muted-foreground">المشتري: {order.buyerName || "-"} ({order.buyerEmail || "-"})</p>
+                          <p className="text-sm text-muted-foreground">الكمية: {order.quantity} • الإجمالي: {order.subtotal}</p>
+                          {order.shippingAddress && <p className="text-sm text-muted-foreground">العنوان: {order.shippingAddress}</p>}
+                        </div>
+                        <Badge variant={order.status === "pending_admin" ? "secondary" : "outline"}>{order.status}</Badge>
+                      </div>
+
+                      {order.status === "pending_admin" && (
+                        <div className="text-sm text-muted-foreground p-3 rounded-md bg-muted">
+                          الطلب بانتظار تأكيد الأدمن.
+                        </div>
+                      )}
+
+                      {order.status === "admin_confirmed" && (
+                        <Button onClick={() => shipOrderMutation.mutate(order.id)} data-testid={`button-ship-${order.id}`}>
+                          <Truck className="h-4 w-4 ml-2" /> تم الشحن
+                        </Button>
+                      )}
+
+                      {order.status === "shipped" && (
+                        <div className="space-y-2">
+                          <p className="text-sm">أدخل كود التسليم الذي أعطاه المشتري لرجل التوصيل:</p>
+                          <div className="flex gap-2">
+                            <Input
+                              value={deliveryCodes[order.id] || ""}
+                              onChange={(e) => setDeliveryCodes((prev) => ({ ...prev, [order.id]: e.target.value }))}
+                              placeholder="كود التسليم"
+                            />
+                            <Button
+                              onClick={() => verifyDeliveryMutation.mutate({ orderId: order.id, code: deliveryCodes[order.id] || "" })}
+                              data-testid={`button-deliver-${order.id}`}
+                            >
+                              <ShieldCheck className="h-4 w-4 ml-2" /> تم التسليم
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+
+                      {order.status === "delivered" && (
+                        <div className="text-sm text-amber-700 bg-amber-50 rounded-md p-3">
+                          تم التسليم، والأرباح معلّقة لمدة {order.holdDays || 15} يوم لحماية المستهلك.
+                          {order.protectionExpiresAt && (
+                            <span className="block mt-1">تاريخ الإتاحة: {new Date(order.protectionExpiresAt).toLocaleDateString(getDateLocale())}</span>
+                          )}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <Card>
+                <CardContent className="py-10 text-center text-muted-foreground">لا توجد طلبات حالياً</CardContent>
+              </Card>
+            )}
+          </TabsContent>
+
           <TabsContent value="activity">
             {activityLogs?.length > 0 ? (
               <div className="space-y-2">
@@ -570,6 +811,106 @@ export default function LibraryDashboard() {
                 </CardContent>
               </Card>
             )}
+          </TabsContent>
+
+          <TabsContent value="finance" className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-4">
+              <Card>
+                <CardContent className="pt-6">
+                  <p className="text-sm text-muted-foreground">الرصيد المتاح</p>
+                  <p className="text-2xl font-bold">{balanceData?.availableBalance || "0.00"}</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="pt-6">
+                  <p className="text-sm text-muted-foreground">الرصيد المعلّق</p>
+                  <p className="text-2xl font-bold">{balanceData?.pendingBalance || "0.00"}</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="pt-6">
+                  <p className="text-sm text-muted-foreground">إجمالي المبيعات</p>
+                  <p className="text-2xl font-bold">{balanceData?.totalSalesAmount || "0.00"}</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="pt-6">
+                  <p className="text-sm text-muted-foreground">إجمالي العمولة</p>
+                  <p className="text-2xl font-bold">{balanceData?.totalCommissionAmount || "0.00"}</p>
+                </CardContent>
+              </Card>
+            </div>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2"><Wallet className="h-5 w-5" /> طلب سحب أموال</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="grid md:grid-cols-3 gap-3">
+                  <Input
+                    placeholder="المبلغ"
+                    type="number"
+                    value={withdrawAmount}
+                    onChange={(e) => setWithdrawAmount(e.target.value)}
+                  />
+                  <Input
+                    placeholder="وسيلة الدفع (bank_transfer / vodafone_cash ...)"
+                    value={withdrawMethod}
+                    onChange={(e) => setWithdrawMethod(e.target.value)}
+                  />
+                  <Input
+                    placeholder="تفاصيل الدفع (رقم الحساب/الهاتف...)"
+                    value={withdrawDetails}
+                    onChange={(e) => setWithdrawDetails(e.target.value)}
+                  />
+                </div>
+                <Button onClick={() => createWithdrawalMutation.mutate()} disabled={createWithdrawalMutation.isPending}>
+                  {createWithdrawalMutation.isPending ? "جاري الإرسال..." : "تأكيد طلب السحب"}
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>سجل طلبات السحب</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {(withdrawals || []).length > 0 ? (
+                  (withdrawals || []).map((w) => (
+                    <div key={w.id} className="flex items-center justify-between p-3 border rounded-lg">
+                      <div>
+                        <p className="font-medium">{w.amount} • {w.paymentMethod}</p>
+                        <p className="text-xs text-muted-foreground">{new Date(w.requestedAt).toLocaleString(getDateLocale())}</p>
+                      </div>
+                      <Badge variant={w.status === "pending" ? "secondary" : "outline"}>{w.status}</Badge>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-muted-foreground text-center py-4">لا توجد طلبات سحب بعد</p>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>فواتير المبيعات اليومية</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {(invoices || []).length > 0 ? (
+                  (invoices || []).map((invoice) => (
+                    <div key={invoice.id} className="flex items-center justify-between p-3 border rounded-lg">
+                      <div>
+                        <p className="font-medium">{new Date(invoice.invoiceDate).toLocaleDateString(getDateLocale())}</p>
+                        <p className="text-sm text-muted-foreground">طلبات: {invoice.totalOrders} • إجمالي: {invoice.grossSalesAmount} • صافي: {invoice.netAmount}</p>
+                      </div>
+                      <Badge variant={invoice.status === "pending" ? "secondary" : "outline"}>{invoice.status}</Badge>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-muted-foreground text-center py-4">لا توجد فواتير يومية بعد</p>
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </main>

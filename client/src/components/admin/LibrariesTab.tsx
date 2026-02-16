@@ -11,7 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
-import { Plus, Edit, Trash2, Store, MapPin, Link, Settings, Copy, Eye, Package, Users } from "lucide-react";
+import { Plus, Edit, Trash2, Store, MapPin, Link, Settings, Copy, Eye, Package, Users, CheckCircle2, XCircle, Wallet } from "lucide-react";
 
 interface Library {
   id: string;
@@ -27,6 +27,28 @@ interface Library {
   isActive: boolean;
   createdAt: string;
   commissionRatePct: number;
+}
+
+interface LibraryOrder {
+  id: string;
+  libraryId: string;
+  status: string;
+  quantity: number;
+  subtotal: string;
+  productTitle?: string;
+  parentName?: string;
+  libraryName?: string;
+  createdAt: string;
+}
+
+interface LibraryWithdrawal {
+  id: string;
+  libraryId: string;
+  libraryName?: string;
+  amount: string;
+  paymentMethod: string;
+  status: string;
+  requestedAt: string;
 }
 
 export default function LibrariesTab() {
@@ -72,6 +94,30 @@ export default function LibrariesTab() {
       if (!res.ok) throw new Error("Failed to fetch");
       const data = await res.json();
       return data.data;
+    },
+  });
+
+  const { data: libraryOrders } = useQuery({
+    queryKey: ["admin-library-orders"],
+    queryFn: async () => {
+      const res = await fetch("/api/admin/library-orders", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error("Failed to fetch library orders");
+      const data = await res.json();
+      return (data.data || []) as LibraryOrder[];
+    },
+  });
+
+  const { data: libraryWithdrawals } = useQuery({
+    queryKey: ["admin-library-withdrawals"],
+    queryFn: async () => {
+      const res = await fetch("/api/admin/library-withdrawals", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error("Failed to fetch library withdrawals");
+      const data = await res.json();
+      return (data.data || []) as LibraryWithdrawal[];
     },
   });
 
@@ -166,6 +212,94 @@ export default function LibrariesTab() {
     },
     onError: () => {
       toast({ title: "فشل تحديث الإعدادات", variant: "destructive" });
+    },
+  });
+
+  const confirmOrderMutation = useMutation({
+    mutationFn: async (orderId: string) => {
+      const res = await fetch(`/api/admin/library-orders/${orderId}/confirm`, {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body.message || "Failed to confirm order");
+      return body;
+    },
+    onSuccess: () => {
+      toast({ title: "تم تأكيد الطلب وإرساله للمكتبة" });
+      queryClient.invalidateQueries({ queryKey: ["admin-library-orders"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-libraries"] });
+    },
+    onError: (err: any) => {
+      toast({ title: err?.message || "فشل تأكيد الطلب", variant: "destructive" });
+    },
+  });
+
+  const rejectOrderMutation = useMutation({
+    mutationFn: async (orderId: string) => {
+      const res = await fetch(`/api/admin/library-orders/${orderId}/reject`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ note: "تم رفض الطلب من الأدمن" }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body.message || "Failed to reject order");
+      return body;
+    },
+    onSuccess: () => {
+      toast({ title: "تم رفض الطلب" });
+      queryClient.invalidateQueries({ queryKey: ["admin-library-orders"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-libraries"] });
+    },
+    onError: (err: any) => {
+      toast({ title: err?.message || "فشل رفض الطلب", variant: "destructive" });
+    },
+  });
+
+  const approveWithdrawalMutation = useMutation({
+    mutationFn: async (withdrawalId: string) => {
+      const res = await fetch(`/api/admin/library-withdrawals/${withdrawalId}/approve`, {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body.message || "Failed to approve withdrawal");
+      return body;
+    },
+    onSuccess: () => {
+      toast({ title: "تمت الموافقة على طلب السحب" });
+      queryClient.invalidateQueries({ queryKey: ["admin-library-withdrawals"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-libraries"] });
+    },
+    onError: (err: any) => {
+      toast({ title: err?.message || "فشل الموافقة على السحب", variant: "destructive" });
+    },
+  });
+
+  const rejectWithdrawalMutation = useMutation({
+    mutationFn: async (withdrawalId: string) => {
+      const res = await fetch(`/api/admin/library-withdrawals/${withdrawalId}/reject`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ note: "تم رفض طلب السحب" }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body.message || "Failed to reject withdrawal");
+      return body;
+    },
+    onSuccess: () => {
+      toast({ title: "تم رفض طلب السحب وإرجاع الرصيد" });
+      queryClient.invalidateQueries({ queryKey: ["admin-library-withdrawals"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-libraries"] });
+    },
+    onError: (err: any) => {
+      toast({ title: err?.message || "فشل رفض السحب", variant: "destructive" });
     },
   });
 
@@ -315,6 +449,82 @@ export default function LibrariesTab() {
           </Card>
         ))}
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center justify-between">
+            <span>طلبات المكتبات</span>
+            <Badge variant="secondary">
+              {(libraryOrders || []).filter((o) => o.status === "pending_admin").length} بانتظار التأكيد
+            </Badge>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2 max-h-80 overflow-y-auto">
+          {(libraryOrders || []).slice(0, 30).map((order) => (
+            <div key={order.id} className="flex items-center justify-between p-3 border rounded-lg gap-3">
+              <div className="min-w-0">
+                <p className="font-medium truncate">{order.productTitle || "منتج"} - {order.libraryName || "مكتبة"}</p>
+                <p className="text-sm text-muted-foreground truncate">المشتري: {order.parentName || "-"} • الكمية: {order.quantity}</p>
+                <p className="text-xs text-muted-foreground">{new Date(order.createdAt).toLocaleString("ar")}</p>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <Badge variant={order.status === "pending_admin" ? "secondary" : "outline"}>{order.status}</Badge>
+                {order.status === "pending_admin" && (
+                  <>
+                    <Button size="sm" onClick={() => confirmOrderMutation.mutate(order.id)}>
+                      <CheckCircle2 className="h-4 w-4 ml-1" /> تأكيد
+                    </Button>
+                    <Button size="sm" variant="destructive" onClick={() => rejectOrderMutation.mutate(order.id)}>
+                      <XCircle className="h-4 w-4 ml-1" /> رفض
+                    </Button>
+                  </>
+                )}
+              </div>
+            </div>
+          ))}
+          {(!libraryOrders || libraryOrders.length === 0) && (
+            <p className="text-sm text-muted-foreground text-center py-6">لا توجد طلبات مكتبات حالياً</p>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center justify-between">
+            <span className="flex items-center gap-2"><Wallet className="h-4 w-4" /> طلبات سحب الأموال</span>
+            <Badge variant="secondary">
+              {(libraryWithdrawals || []).filter((w) => w.status === "pending").length} بانتظار المراجعة
+            </Badge>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2 max-h-80 overflow-y-auto">
+          {(libraryWithdrawals || []).slice(0, 30).map((request) => (
+            <div key={request.id} className="flex items-center justify-between p-3 border rounded-lg gap-3">
+              <div className="min-w-0">
+                <p className="font-medium truncate">{request.libraryName || "مكتبة"}</p>
+                <p className="text-sm text-muted-foreground truncate">المبلغ: {request.amount} • الطريقة: {request.paymentMethod}</p>
+                <p className="text-xs text-muted-foreground">{new Date(request.requestedAt).toLocaleString("ar")}</p>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <Badge variant={request.status === "pending" ? "secondary" : "outline"}>{request.status}</Badge>
+                {request.status === "pending" && (
+                  <>
+                    <Button size="sm" onClick={() => approveWithdrawalMutation.mutate(request.id)}>
+                      <CheckCircle2 className="h-4 w-4 ml-1" /> موافقة
+                    </Button>
+                    <Button size="sm" variant="destructive" onClick={() => rejectWithdrawalMutation.mutate(request.id)}>
+                      <XCircle className="h-4 w-4 ml-1" /> رفض
+                    </Button>
+                  </>
+                )}
+              </div>
+            </div>
+          ))}
+          {(!libraryWithdrawals || libraryWithdrawals.length === 0) && (
+            <p className="text-sm text-muted-foreground text-center py-6">لا توجد طلبات سحب حالياً</p>
+          )}
+        </CardContent>
+      </Card>
 
       <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
         <DialogContent className="max-w-md">

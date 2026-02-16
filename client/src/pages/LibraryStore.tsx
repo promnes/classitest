@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "wouter";
-import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, Store, Star, Package, Search, Filter, ShoppingCart, BookOpen } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { ArrowLeft, Store, Star, Package, Search, Filter, ShoppingCart, BookOpen, Plus, Minus, X, CreditCard, MapPin, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -25,21 +25,28 @@ interface Library {
 interface LibraryProduct {
   id: string;
   libraryId: string;
-  name: string;
-  nameAr?: string;
+  title: string;
   description?: string;
   price: string;
-  originalPrice?: string;
-  image?: string;
+  imageUrl?: string;
   stock: number;
-  discountPercentage?: number;
-  minQuantityForDiscount?: number;
+  discountPercent?: number;
+  discountMinQuantity?: number;
   library?: Library;
 }
 
+interface CartItem {
+  product: LibraryProduct;
+  quantity: number;
+}
+
+const CART_STORAGE_KEY = "library-store-cart";
+
 export default function LibraryStore() {
   const [, navigate] = useLocation();
+  const queryClient = useQueryClient();
   const { isDark } = useTheme();
+  const token = localStorage.getItem("token");
   const referralCode = useMemo(() => {
     const ref = new URLSearchParams(window.location.search).get("ref")?.trim();
     return ref ? ref.toUpperCase() : "";
@@ -49,6 +56,18 @@ export default function LibraryStore() {
   const [selectedLibrary, setSelectedLibrary] = useState<string | null>(null);
   const [showProductDetail, setShowProductDetail] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<LibraryProduct | null>(null);
+  const [showCart, setShowCart] = useState(false);
+  const [showCheckout, setShowCheckout] = useState(false);
+  const [cart, setCart] = useState<CartItem[]>([]);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("");
+  const [shippingAddress, setShippingAddress] = useState({
+    name: "",
+    line1: "",
+    city: "",
+    state: "",
+    postalCode: "",
+    country: "EG",
+  });
 
   const { data: referralLibraryData } = useQuery({
     queryKey: ["library-by-referral", referralCode],
@@ -99,14 +118,35 @@ export default function LibraryStore() {
       if (selectedLibrary) {
         const res = await fetch(`/api/store/libraries/${selectedLibrary}`);
         const json = await res.json();
-        return json?.data?.products || [];
+        return (json?.data?.products || []).map((p: any) => ({
+          id: p.id,
+          libraryId: p.libraryId,
+          title: p.title,
+          description: p.description,
+          imageUrl: p.imageUrl,
+          price: p.price,
+          stock: p.stock,
+          discountPercent: p.discountPercent || 0,
+          discountMinQuantity: p.discountMinQuantity || 1,
+        }));
       }
       const allProducts: any[] = [];
       for (const lib of libraries.slice(0, 5)) {
         const res = await fetch(`/api/store/libraries/${lib.id}`);
         const json = await res.json();
         if (json?.data?.products) {
-          allProducts.push(...json.data.products.map((p: any) => ({ ...p, library: lib })));
+          allProducts.push(...json.data.products.map((p: any) => ({
+            id: p.id,
+            libraryId: p.libraryId,
+            title: p.title,
+            description: p.description,
+            imageUrl: p.imageUrl,
+            price: p.price,
+            stock: p.stock,
+            discountPercent: p.discountPercent || 0,
+            discountMinQuantity: p.discountMinQuantity || 1,
+            library: lib,
+          })));
         }
       }
       return allProducts;
@@ -116,6 +156,162 @@ export default function LibraryStore() {
 
   const products: LibraryProduct[] = productsData || [];
 
+  const { data: paymentMethodsData } = useQuery({
+    queryKey: ["library-store-payment-methods"],
+    queryFn: async () => {
+      const res = await fetch("/api/store/payment-methods", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const json = await res.json();
+      return json?.data || [];
+    },
+    enabled: !!token,
+  });
+
+  const { data: walletData } = useQuery({
+    queryKey: ["library-store-wallet"],
+    queryFn: async () => {
+      const res = await fetch("/api/parent/wallet", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const json = await res.json();
+      return json?.data || json;
+    },
+    enabled: !!token,
+  });
+
+  const paymentMethods: any[] = paymentMethodsData || [];
+  const wallet: any = walletData || {};
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(CART_STORAGE_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        setCart(parsed);
+      }
+    } catch {
+      localStorage.removeItem(CART_STORAGE_KEY);
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart));
+  }, [cart]);
+
+  const cartItemsCount = useMemo(
+    () => cart.reduce((sum, item) => sum + item.quantity, 0),
+    [cart]
+  );
+
+  const cartTotal = useMemo(
+    () => cart.reduce((sum, item) => sum + parseFloat(item.product.price) * item.quantity, 0),
+    [cart]
+  );
+
+  const isShippingAddressComplete = useMemo(() => {
+    return !!(
+      shippingAddress.name.trim() &&
+      shippingAddress.city.trim() &&
+      shippingAddress.line1.trim() &&
+      shippingAddress.state.trim() &&
+      shippingAddress.postalCode.trim()
+    );
+  }, [shippingAddress]);
+
+  const checkoutMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch("/api/store/checkout", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          items: cart.map((item) => ({ productId: item.product.id, quantity: item.quantity })),
+          paymentMethodId: selectedPaymentMethod,
+          shippingAddress,
+          totalAmount: cartTotal,
+          referralCode,
+        }),
+      });
+
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(body?.message || "Checkout failed");
+      }
+      return body;
+    },
+    onSuccess: () => {
+      setCart([]);
+      setShowCheckout(false);
+      setShowCart(false);
+      setSelectedPaymentMethod("");
+      setShippingAddress({ name: "", line1: "", city: "", state: "", postalCode: "", country: "EG" });
+      queryClient.invalidateQueries({ queryKey: ["library-store-wallet"] });
+      alert("تم إنشاء الطلب بنجاح وهو الآن بانتظار موافقة الأدمن");
+    },
+    onError: (error: any) => {
+      alert(error?.message || "فشل إتمام الشراء");
+    },
+  });
+
+  const requireParentAuth = () => {
+    if (token) return true;
+    alert("يرجى تسجيل دخول ولي الأمر أولاً لإتمام الشراء");
+    navigate("/parent-auth");
+    return false;
+  };
+
+  const addToCart = (product: LibraryProduct) => {
+    if (!requireParentAuth()) return;
+    if (Number(product.stock || 0) <= 0) {
+      alert("هذا المنتج غير متوفر حالياً");
+      return;
+    }
+    setCart((prev) => {
+      const existing = prev.find((item) => item.product.id === product.id);
+      if (existing) {
+        if (existing.quantity >= Number(product.stock || 0)) {
+          return prev;
+        }
+        return prev.map((item) =>
+          item.product.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
+        );
+      }
+      return [...prev, { product, quantity: 1 }];
+    });
+  };
+
+  const updateQuantity = (productId: string, quantity: number) => {
+    if (quantity <= 0) {
+      setCart((prev) => prev.filter((item) => item.product.id !== productId));
+      return;
+    }
+    setCart((prev) => prev.map((item) => (item.product.id === productId ? { ...item, quantity } : item)));
+  };
+
+  const removeFromCart = (productId: string) => {
+    setCart((prev) => prev.filter((item) => item.product.id !== productId));
+  };
+
+  const handleCheckout = () => {
+    if (!cart.length) {
+      alert("السلة فارغة");
+      return;
+    }
+    if (!selectedPaymentMethod) {
+      alert("يرجى اختيار طريقة الدفع");
+      return;
+    }
+    if (!isShippingAddressComplete) {
+      alert("يرجى استكمال بيانات عنوان الشحن");
+      return;
+    }
+    checkoutMutation.mutate();
+  };
+
   const openProductDetail = (product: LibraryProduct) => {
     setSelectedProduct(product);
     setShowProductDetail(true);
@@ -123,8 +319,8 @@ export default function LibraryStore() {
 
   const calculateDiscountedPrice = (product: LibraryProduct, quantity: number = 1) => {
     const basePrice = parseFloat(product.price);
-    if (product.discountPercentage && product.minQuantityForDiscount && quantity >= product.minQuantityForDiscount) {
-      return basePrice * (1 - product.discountPercentage / 100);
+    if (product.discountPercent && product.discountMinQuantity && quantity >= product.discountMinQuantity) {
+      return basePrice * (1 - product.discountPercent / 100);
     }
     return basePrice;
   };
@@ -146,6 +342,18 @@ export default function LibraryStore() {
               <BookOpen className="h-6 w-6 text-blue-600" />
               <h1 className="text-xl font-bold">متجر المكتبات</h1>
             </div>
+            <Button
+              variant="outline"
+              className="mr-3"
+              onClick={() => {
+                if (!requireParentAuth()) return;
+                setShowCart(true);
+              }}
+              data-testid="button-library-cart"
+            >
+              <ShoppingCart className="h-4 w-4 ml-2" />
+              السلة ({cartItemsCount})
+            </Button>
           </div>
           
           <div className="mt-3 flex gap-2">
@@ -228,10 +436,10 @@ export default function LibraryStore() {
                 data-testid={`card-product-${product.id}`}
               >
                 <CardContent className="p-4">
-                  {product.image ? (
+                  {product.imageUrl ? (
                     <img 
-                      src={product.image} 
-                      alt={product.name}
+                      src={product.imageUrl} 
+                      alt={product.title}
                       className="w-full h-32 object-cover rounded-lg mb-3"
                     />
                   ) : (
@@ -241,7 +449,7 @@ export default function LibraryStore() {
                   )}
                   
                   <h3 className="font-semibold text-sm mb-1 line-clamp-2">
-                    {product.nameAr || product.name}
+                    {product.title}
                   </h3>
                   
                   {product.library && (
@@ -250,9 +458,9 @@ export default function LibraryStore() {
                   
                   <div className="flex items-center justify-between">
                     <span className="font-bold text-blue-600">{product.price} ج.م</span>
-                    {product.discountPercentage && product.discountPercentage > 0 && (
+                    {product.discountPercent && product.discountPercent > 0 && (
                       <Badge variant="destructive" className="text-xs">
-                        خصم {product.discountPercentage}%
+                        خصم {product.discountPercent}%
                       </Badge>
                     )}
                   </div>
@@ -271,15 +479,15 @@ export default function LibraryStore() {
       <Dialog open={showProductDetail} onOpenChange={setShowProductDetail}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>{selectedProduct?.nameAr || selectedProduct?.name}</DialogTitle>
+            <DialogTitle>{selectedProduct?.title}</DialogTitle>
           </DialogHeader>
           
           {selectedProduct && (
             <div className="space-y-4">
-              {selectedProduct.image ? (
+              {selectedProduct.imageUrl ? (
                 <img 
-                  src={selectedProduct.image} 
-                  alt={selectedProduct.name}
+                  src={selectedProduct.imageUrl} 
+                  alt={selectedProduct.title}
                   className="w-full h-48 object-cover rounded-lg"
                 />
               ) : (
@@ -295,17 +503,14 @@ export default function LibraryStore() {
               <div className="flex items-center justify-between p-3 bg-gray-100 dark:bg-gray-800 rounded-lg">
                 <div>
                   <span className="text-2xl font-bold text-blue-600">{selectedProduct.price} ج.م</span>
-                  {selectedProduct.originalPrice && (
-                    <span className="text-sm text-gray-400 line-through mr-2">{selectedProduct.originalPrice} ج.م</span>
-                  )}
                 </div>
                 <Badge variant="outline">متوفر: {selectedProduct.stock}</Badge>
               </div>
               
-              {selectedProduct.discountPercentage && selectedProduct.discountPercentage > 0 && (
+              {selectedProduct.discountPercent && selectedProduct.discountPercent > 0 && (
                 <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
                   <p className="text-sm text-green-700 dark:text-green-400">
-                    خصم {selectedProduct.discountPercentage}% عند شراء {selectedProduct.minQuantityForDiscount} قطع أو أكثر
+                    خصم {selectedProduct.discountPercent}% عند شراء {selectedProduct.discountMinQuantity || 1} قطع أو أكثر
                   </p>
                 </div>
               )}
@@ -322,12 +527,190 @@ export default function LibraryStore() {
                 </div>
               )}
               
-              <Button className="w-full" size="lg" data-testid="button-add-to-cart">
+              <Button
+                className="w-full"
+                size="lg"
+                data-testid="button-add-to-cart"
+                onClick={() => {
+                  if (!selectedProduct) return;
+                  addToCart(selectedProduct);
+                  setShowProductDetail(false);
+                }}
+                disabled={Number(selectedProduct.stock || 0) <= 0}
+              >
                 <ShoppingCart className="h-5 w-5 ml-2" />
-                إضافة للسلة
+                {Number(selectedProduct.stock || 0) <= 0 ? "غير متوفر" : "إضافة للسلة"}
               </Button>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showCart} onOpenChange={setShowCart}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ShoppingCart className="w-5 h-5" />
+              سلة المكتبات ({cartItemsCount} منتج)
+            </DialogTitle>
+          </DialogHeader>
+
+          {cart.length === 0 ? (
+            <div className="text-center py-8">
+              <ShoppingCart className="w-16 h-16 mx-auto text-gray-300 mb-4" />
+              <p className="text-gray-500">السلة فارغة</p>
+            </div>
+          ) : (
+            <>
+              <div className="space-y-4">
+                {cart.map((item) => (
+                  <div key={item.product.id} className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg">
+                    <div className="w-16 h-16 bg-gray-200 rounded-lg flex-shrink-0 overflow-hidden">
+                      {item.product.imageUrl ? (
+                        <img src={item.product.imageUrl} alt={item.product.title} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <Package className="w-6 h-6 text-gray-400" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-medium text-sm truncate">{item.product.title}</h4>
+                      <p className="text-orange-600 font-bold">{item.product.price} ج.م</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button size="sm" variant="outline" className="h-8 w-8 p-0" onClick={() => updateQuantity(item.product.id, item.quantity - 1)}>
+                        <Minus className="w-3 h-3" />
+                      </Button>
+                      <span className="w-8 text-center font-medium">{item.quantity}</span>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-8 w-8 p-0"
+                        onClick={() => updateQuantity(item.product.id, item.quantity + 1)}
+                        disabled={item.quantity >= Number(item.product.stock || 0)}
+                      >
+                        <Plus className="w-3 h-3" />
+                      </Button>
+                    </div>
+                    <Button size="sm" variant="ghost" className="text-red-500 h-8 w-8 p-0" onClick={() => removeFromCart(item.product.id)}>
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+
+              <div className="border-t pt-4 mt-4 space-y-3">
+                <div className="flex justify-between text-lg font-bold">
+                  <span>المجموع:</span>
+                  <span className="text-orange-600">{cartTotal.toFixed(2)} ج.م</span>
+                </div>
+                <Button
+                  className="w-full bg-orange-500 hover:bg-orange-600"
+                  onClick={() => {
+                    setShowCart(false);
+                    setShowCheckout(true);
+                  }}
+                  disabled={cart.length === 0}
+                >
+                  <CreditCard className="w-4 h-4 ml-2" />
+                  إتمام الشراء
+                </Button>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showCheckout} onOpenChange={setShowCheckout}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CreditCard className="w-5 h-5" />
+              إتمام الشراء من المكتبات
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-6">
+            <div>
+              <h3 className="font-bold mb-3 flex items-center gap-2">
+                <MapPin className="w-4 h-4" /> عنوان الشحن
+              </h3>
+              <div className="grid grid-cols-2 gap-4">
+                <Input placeholder="الاسم الكامل" value={shippingAddress.name} onChange={(e) => setShippingAddress((prev) => ({ ...prev, name: e.target.value }))} />
+                <Input placeholder="المدينة" value={shippingAddress.city} onChange={(e) => setShippingAddress((prev) => ({ ...prev, city: e.target.value }))} />
+                <Input placeholder="العنوان التفصيلي" value={shippingAddress.line1} onChange={(e) => setShippingAddress((prev) => ({ ...prev, line1: e.target.value }))} className="col-span-2" />
+                <Input placeholder="المنطقة/الحي" value={shippingAddress.state} onChange={(e) => setShippingAddress((prev) => ({ ...prev, state: e.target.value }))} />
+                <Input placeholder="الرمز البريدي" value={shippingAddress.postalCode} onChange={(e) => setShippingAddress((prev) => ({ ...prev, postalCode: e.target.value }))} />
+              </div>
+            </div>
+
+            <div>
+              <h3 className="font-bold mb-3 flex items-center gap-2">
+                <CreditCard className="w-4 h-4" /> طريقة الدفع
+              </h3>
+              <div className="space-y-2">
+                {paymentMethods.length === 0 ? (
+                  <p className="text-gray-500 text-sm">لا توجد طرق دفع متاحة</p>
+                ) : (
+                  paymentMethods.map((method: any) => (
+                    <button
+                      key={method.id}
+                      onClick={() => setSelectedPaymentMethod(method.id)}
+                      className={`w-full p-3 border rounded-lg text-right flex items-center gap-3 transition-colors ${selectedPaymentMethod === method.id ? "border-orange-500 bg-orange-50" : "hover:bg-gray-50"}`}
+                    >
+                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${selectedPaymentMethod === method.id ? "border-orange-500" : "border-gray-300"}`}>
+                        {selectedPaymentMethod === method.id && <div className="w-3 h-3 bg-orange-500 rounded-full" />}
+                      </div>
+                      <span>{method.name || method.type}</span>
+                    </button>
+                  ))
+                )}
+                <button
+                  onClick={() => setSelectedPaymentMethod("wallet")}
+                  className={`w-full p-3 border rounded-lg text-right flex items-center gap-3 transition-colors ${selectedPaymentMethod === "wallet" ? "border-orange-500 bg-orange-50" : "hover:bg-gray-50"}`}
+                >
+                  <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${selectedPaymentMethod === "wallet" ? "border-orange-500" : "border-gray-300"}`}>
+                    {selectedPaymentMethod === "wallet" && <div className="w-3 h-3 bg-orange-500 rounded-full" />}
+                  </div>
+                  <span>الدفع من المحفظة (الرصيد: {wallet?.balance || 0} ج.م)</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <h3 className="font-bold mb-3">ملخص الطلب</h3>
+              <div className="space-y-2 text-sm">
+                {cart.map((item) => (
+                  <div key={item.product.id} className="flex justify-between">
+                    <span>{item.product.title} x{item.quantity}</span>
+                    <span>{(parseFloat(item.product.price) * item.quantity).toFixed(2)} ج.م</span>
+                  </div>
+                ))}
+                <div className="border-t pt-2 mt-2 flex justify-between font-bold text-lg">
+                  <span>المجموع:</span>
+                  <span className="text-orange-600">{cartTotal.toFixed(2)} ج.م</span>
+                </div>
+              </div>
+            </div>
+
+            <Button
+              className="w-full bg-orange-500 hover:bg-orange-600 py-6 text-lg"
+              onClick={handleCheckout}
+              disabled={checkoutMutation.isPending || !selectedPaymentMethod || !isShippingAddressComplete || cart.length === 0}
+            >
+              {checkoutMutation.isPending ? (
+                <span className="flex items-center gap-2">
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  جاري المعالجة...
+                </span>
+              ) : (
+                <span className="flex items-center gap-2">
+                  <Check className="w-5 h-5" /> تأكيد الشراء
+                </span>
+              )}
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
