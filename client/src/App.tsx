@@ -58,6 +58,7 @@ const LibraryProfile = lazy(() => import("@/pages/LibraryProfile"));
 const ChildProfile = lazy(() => import("@/pages/ChildProfile"));
 const ChildSettings = lazy(() => import("@/pages/ChildSettings"));
 const DownloadApp = lazy(() => import("@/pages/DownloadApp"));
+const ParentProfile = lazy(() => import("@/pages/ParentProfile"));
 
 type PublicMobileAppSettings = {
   appName?: string;
@@ -283,6 +284,9 @@ function Router() {
         </Route>
         <Route path="/library/:id">
           <ErrorBoundary><LibraryProfile /></ErrorBoundary>
+        </Route>
+        <Route path="/parent-profile">
+          <ErrorBoundary><ParentProfile /></ErrorBoundary>
         </Route>
         <Route component={NotFound} />
       </Switch>

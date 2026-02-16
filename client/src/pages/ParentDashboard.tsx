@@ -62,7 +62,13 @@ import {
   Megaphone,
   ExternalLink,
   MousePointer,
-  KeyRound
+  KeyRound,
+  Search,
+  User,
+  X,
+  School,
+  GraduationCap,
+  Heart
 } from "lucide-react";
 
 function ChildReportCard({ child, token, isDark, t }: { child: any; token: string | null; isDark: boolean; t: (key: string, options?: any) => string }) {
@@ -226,11 +232,44 @@ export const ParentDashboard = (): JSX.Element => {
   const [newChildGovernorate, setNewChildGovernorate] = useState("");
   const [newChildGrade, setNewChildGrade] = useState("");
   const [addChildStep, setAddChildStep] = useState(1);
+  const [newChildSchoolSearch, setNewChildSchoolSearch] = useState("");
+  const [newChildSchoolId, setNewChildSchoolId] = useState("");
+  const [newChildSchoolName, setNewChildSchoolName] = useState("");
   const [showSetPinModal, setShowSetPinModal] = useState(false);
   const [pinTargetChild, setPinTargetChild] = useState<any>(null);
   const [childPinValue, setChildPinValue] = useState("");
   const [showSetMyPin, setShowSetMyPin] = useState(false);
   const [myPinValue, setMyPinValue] = useState("");
+  const [dashboardSearch, setDashboardSearch] = useState("");
+  const [showSearchResults, setShowSearchResults] = useState(false);
+
+  // School search for child creation
+  const { data: schoolSuggestions } = useQuery({
+    queryKey: ["/api/public/schools", newChildGovernorate, newChildSchoolSearch],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (newChildGovernorate) params.set("governorate", newChildGovernorate);
+      if (newChildSchoolSearch) params.set("search", newChildSchoolSearch);
+      params.set("limit", "10");
+      const res = await fetch(`/api/public/schools?${params}`);
+      const json = await res.json();
+      return json.data?.schools || [];
+    },
+    enabled: addChildStep === 2 && (!!newChildGovernorate || newChildSchoolSearch.length >= 2),
+    staleTime: 30000,
+  });
+
+  // Dashboard search
+  const { data: searchResults, isLoading: searchLoading } = useQuery({
+    queryKey: ["/api/search", dashboardSearch],
+    queryFn: async () => {
+      const res = await apiRequest("GET", `/api/search?q=${encodeURIComponent(dashboardSearch)}&type=all&limit=8`);
+      const json = await res.json();
+      return json.data || { schools: [], teachers: [], tasks: [] };
+    },
+    enabled: dashboardSearch.length >= 2,
+    staleTime: 15000,
+  });
 
   // Optimized polling: reduced frequencies to minimize network load
   // Critical data: 30s | Secondary data: 60s | Rarely changing: 5min
@@ -372,6 +411,8 @@ export const ParentDashboard = (): JSX.Element => {
         birthday: newChildBirthday || undefined,
         governorate: newChildGovernorate || undefined,
         academicGrade: newChildGrade || undefined,
+        schoolId: newChildSchoolId || undefined,
+        schoolName: newChildSchoolName || undefined,
       });
       return res.json();
     },
@@ -384,6 +425,9 @@ export const ParentDashboard = (): JSX.Element => {
       setNewChildBirthday("");
       setNewChildGovernorate("");
       setNewChildGrade("");
+      setNewChildSchoolSearch("");
+      setNewChildSchoolId("");
+      setNewChildSchoolName("");
       setAddChildStep(1);
       toast({ title: "تم إضافة الطفل بنجاح ✅", description: "يمكنه الآن الدخول برمز PIN" });
     },
@@ -543,6 +587,9 @@ export const ParentDashboard = (): JSX.Element => {
             <Button variant="ghost" size="icon" onClick={() => navigate("/settings")} data-testid="button-settings">
               <Settings className="h-5 w-5" />
             </Button>
+            <Button variant="ghost" size="icon" onClick={() => navigate("/parent-profile")} data-testid="button-profile">
+              <User className="h-5 w-5" />
+            </Button>
             <Button variant="ghost" size="icon" onClick={() => setShowLogoutConfirm(true)} className="text-red-500 hover:text-red-600" data-testid="button-logout">
               <LogOut className="h-5 w-5" />
             </Button>
@@ -566,6 +613,103 @@ export const ParentDashboard = (): JSX.Element => {
           </div>
         </div>
       </header>
+
+      {/* Search Box */}
+      <div className="max-w-7xl mx-auto px-4 pt-4">
+        <div className="relative">
+          <Search className={`absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 ${isDark ? "text-gray-400" : "text-gray-400"}`} />
+          <input
+            type="text"
+            value={dashboardSearch}
+            onChange={(e) => {
+              setDashboardSearch(e.target.value);
+              setShowSearchResults(e.target.value.length >= 2);
+            }}
+            onFocus={() => dashboardSearch.length >= 2 && setShowSearchResults(true)}
+            placeholder="ابحث عن مدارس، معلمين، مهام..."
+            className={`w-full pr-10 pl-10 py-2.5 rounded-xl border-2 text-sm focus:outline-none focus:border-blue-400 transition-colors ${isDark ? "bg-gray-800 border-gray-700 text-white placeholder-gray-500" : "bg-white border-gray-200 text-gray-900 placeholder-gray-400"}`}
+          />
+          {dashboardSearch && (
+            <button onClick={() => { setDashboardSearch(""); setShowSearchResults(false); }} className="absolute left-3 top-1/2 -translate-y-1/2">
+              <X className={`h-4 w-4 ${isDark ? "text-gray-400" : "text-gray-400"}`} />
+            </button>
+          )}
+        </div>
+
+        {/* Search Results Dropdown */}
+        {showSearchResults && dashboardSearch.length >= 2 && (
+          <div className={`mt-1 rounded-xl border shadow-2xl max-h-80 overflow-y-auto z-50 relative ${isDark ? "bg-gray-900 border-gray-700" : "bg-white border-gray-200"}`}>
+            {searchLoading && (
+              <p className={`text-center py-4 text-sm ${isDark ? "text-gray-400" : "text-gray-500"}`}>جارٍ البحث...</p>
+            )}
+
+            {/* Schools */}
+            {searchResults?.schools?.length > 0 && (
+              <div>
+                <p className={`px-3 pt-2 pb-1 text-xs font-bold ${isDark ? "text-gray-500" : "text-gray-400"}`}>🏫 مدارس</p>
+                {searchResults.schools.map((s: any) => (
+                  <button
+                    key={s.id}
+                    onClick={() => { navigate(`/school/${s.id}`); setShowSearchResults(false); setDashboardSearch(""); }}
+                    className={`w-full text-right px-3 py-2.5 flex items-center gap-3 hover:bg-blue-500 hover:text-white transition-colors ${isDark ? "text-gray-200" : "text-gray-700"}`}
+                  >
+                    <School className="h-4 w-4 text-blue-500 flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{s.name}</p>
+                      <p className="text-xs opacity-70">{s.governorate || ""}</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Teachers */}
+            {searchResults?.teachers?.length > 0 && (
+              <div>
+                <p className={`px-3 pt-2 pb-1 text-xs font-bold ${isDark ? "text-gray-500" : "text-gray-400"}`}>👨‍🏫 معلمون</p>
+                {searchResults.teachers.map((t: any) => (
+                  <button
+                    key={t.id}
+                    onClick={() => { navigate(`/teacher/${t.id}`); setShowSearchResults(false); setDashboardSearch(""); }}
+                    className={`w-full text-right px-3 py-2.5 flex items-center gap-3 hover:bg-blue-500 hover:text-white transition-colors ${isDark ? "text-gray-200" : "text-gray-700"}`}
+                  >
+                    <GraduationCap className="h-4 w-4 text-purple-500 flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{t.name}</p>
+                      <p className="text-xs opacity-70">{t.subject || ""}</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Tasks */}
+            {searchResults?.tasks?.length > 0 && (
+              <div>
+                <p className={`px-3 pt-2 pb-1 text-xs font-bold ${isDark ? "text-gray-500" : "text-gray-400"}`}>📝 مهام</p>
+                {searchResults.tasks.map((t: any) => (
+                  <button
+                    key={t.id}
+                    onClick={() => { navigate(`/teacher/${t.teacherId}`); setShowSearchResults(false); setDashboardSearch(""); }}
+                    className={`w-full text-right px-3 py-2.5 flex items-center gap-3 hover:bg-blue-500 hover:text-white transition-colors ${isDark ? "text-gray-200" : "text-gray-700"}`}
+                  >
+                    <BookOpen className="h-4 w-4 text-amber-500 flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{t.title}</p>
+                      <p className="text-xs opacity-70">{t.subjectLabel || ""} • {t.price} ر.س</p>
+                    </div>
+                    <Heart className="h-3 w-3 opacity-50 flex-shrink-0" />
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {!searchLoading && searchResults && !searchResults.schools?.length && !searchResults.teachers?.length && !searchResults.tasks?.length && (
+              <p className={`text-center py-4 text-sm ${isDark ? "text-gray-400" : "text-gray-500"}`}>لا توجد نتائج لـ "{dashboardSearch}"</p>
+            )}
+          </div>
+        )}
+      </div>
 
       <main className="max-w-7xl mx-auto px-4 py-6 space-y-6">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -1774,6 +1918,49 @@ export const ParentDashboard = (): JSX.Element => {
                       <option key={g.value} value={g.value}>{g.label}</option>
                     ))}
                   </select>
+                </div>
+                <div>
+                  <label className={`block text-sm font-medium mb-1 ${isDark ? "text-gray-300" : "text-gray-700"}`}>
+                    🏫 المدرسة
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={newChildSchoolName || newChildSchoolSearch}
+                      onChange={(e) => {
+                        setNewChildSchoolSearch(e.target.value);
+                        setNewChildSchoolId("");
+                        setNewChildSchoolName("");
+                      }}
+                      placeholder={newChildGovernorate ? "ابحث عن المدرسة..." : "اختر المحافظة أولاً أو اكتب اسم المدرسة"}
+                      className={`w-full px-4 py-3 rounded-lg border-2 focus:outline-none focus:border-blue-400 ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-white border-gray-300 text-gray-900"}`}
+                    />
+                    {newChildSchoolId && (
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-green-500 text-sm">✓</span>
+                    )}
+                  </div>
+                  {/* School suggestions dropdown */}
+                  {newChildSchoolSearch && !newChildSchoolId && schoolSuggestions && schoolSuggestions.length > 0 && (
+                    <div className={`mt-1 rounded-lg border shadow-lg max-h-32 overflow-y-auto ${isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"}`}>
+                      {schoolSuggestions.map((s: any) => (
+                        <button
+                          key={s.id}
+                          type="button"
+                          onClick={() => {
+                            setNewChildSchoolId(s.id);
+                            setNewChildSchoolName(s.name);
+                            setNewChildSchoolSearch("");
+                          }}
+                          className={`w-full text-right px-3 py-2 text-sm hover:bg-blue-500 hover:text-white transition-colors ${isDark ? "text-gray-200" : "text-gray-800"}`}
+                        >
+                          {s.name} {s.governorate ? `(${s.governorate})` : ""}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  <p className={`text-xs mt-1 ${isDark ? "text-gray-500" : "text-gray-400"}`}>
+                    اكتب اسم المدرسة أو اختر من القائمة
+                  </p>
                 </div>
                 <div className="flex gap-2 pt-2">
                   <Button

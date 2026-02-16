@@ -2007,3 +2007,45 @@ export type LibraryPostLike = typeof libraryPostLikes.$inferSelect;
 export type LibraryReview = typeof libraryReviews.$inferSelect;
 export const insertLibraryReviewSchema = createInsertSchema(libraryReviews).omit({ id: true, createdAt: true });
 export type InsertLibraryReview = z.infer<typeof insertLibraryReviewSchema>;
+
+// ===== Parent Task Library (مكتبة مهام الأهل) =====
+export const parentTaskLibrary = pgTable("parent_task_library", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  parentId: varchar("parent_id").notNull().references(() => parents.id, { onDelete: "cascade" }),
+  sourceType: varchar("source_type", { length: 20 }).notNull(), // "teacher_task" | "template_task"
+  sourceTaskId: varchar("source_task_id").notNull(),
+  title: text("title").notNull(),
+  question: text("question").notNull(),
+  answers: json("answers").$type<{ id: string; text: string; isCorrect: boolean; imageUrl?: string }[]>().notNull(),
+  imageUrl: text("image_url"),
+  gifUrl: text("gif_url"),
+  subjectLabel: text("subject_label"),
+  pointsReward: integer("points_reward").default(10).notNull(),
+  purchaseType: varchar("purchase_type", { length: 20 }).default("permanent").notNull(), // "one_time" | "permanent"
+  usageCount: integer("usage_count").default(0).notNull(),
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  parentIdx: index("ptl_parent_idx").on(table.parentId),
+  sourceIdx: index("ptl_source_idx").on(table.sourceType, table.sourceTaskId),
+}));
+
+export const insertParentTaskLibrarySchema = createInsertSchema(parentTaskLibrary).omit({ id: true, createdAt: true, usageCount: true });
+export type ParentTaskLibrary = typeof parentTaskLibrary.$inferSelect;
+export type InsertParentTaskLibrary = z.infer<typeof insertParentTaskLibrarySchema>;
+
+// ===== Task Favorites (المهام المفضلة) =====
+export const taskFavorites = pgTable("task_favorites", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  parentId: varchar("parent_id").notNull().references(() => parents.id, { onDelete: "cascade" }),
+  taskType: varchar("task_type", { length: 20 }).notNull(), // "teacher_task" | "template_task"
+  taskId: varchar("task_id").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  uniqueFav: uniqueIndex("unique_task_fav_idx").on(table.parentId, table.taskType, table.taskId),
+  parentFavIdx: index("tf_parent_idx").on(table.parentId),
+}));
+
+export const insertTaskFavoriteSchema = createInsertSchema(taskFavorites).omit({ id: true, createdAt: true });
+export type TaskFavorite = typeof taskFavorites.$inferSelect;
+export type InsertTaskFavorite = z.infer<typeof insertTaskFavoriteSchema>;
