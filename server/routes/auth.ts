@@ -1,6 +1,6 @@
 import type { Express } from "express";
 import { storage } from "../storage";
-import { parents, otpCodes, otpRequestLogs, sessions, loginHistory, trustedDevices, socialLoginProviders, otpProviders, libraries, libraryReferrals, parentReferralCodes, referrals, parentWallet, referralSettings } from "../../shared/schema";
+import { parents, children, parentChild, otpCodes, otpRequestLogs, sessions, loginHistory, trustedDevices, socialLoginProviders, otpProviders, libraries, libraryReferrals, parentReferralCodes, referrals, parentWallet, referralSettings } from "../../shared/schema";
 import { eq, and, gt, isNull, desc, or, sql } from "drizzle-orm";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
@@ -370,6 +370,8 @@ export async function registerAuthRoutes(app: Express) {
         return res.json(successResponse({ 
           token, 
           userId: result[0].id,
+          uniqueCode: result[0].uniqueCode,
+          hasPin: !!result[0].pin,
           isAdmin: true,
         }, "تسجيل دخول المسؤول بنجاح"));
       }
