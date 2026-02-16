@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useRoute } from "wouter";
+import { useRoute, Link } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,7 @@ import {
   School, GraduationCap, Star, MessageSquare, BookOpen, Heart,
   MapPin, Globe, Phone, Mail, Send, Users
 } from "lucide-react";
+import { FollowButton } from "@/components/ui/FollowButton";
 
 export default function SchoolProfile() {
   const [, params] = useRoute("/school/:id");
@@ -120,7 +121,7 @@ export default function SchoolProfile() {
                 <School className="h-12 w-12 text-blue-600" />
               </div>
             )}
-            <div className="pb-2">
+            <div className="pb-2 flex-1">
               <h1 className="text-2xl font-bold">{school.name}</h1>
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 {school.isVerified && <Badge className="bg-blue-600">موثقة</Badge>}
@@ -130,6 +131,7 @@ export default function SchoolProfile() {
                 </span>
               </div>
             </div>
+            <FollowButton entityType="school" entityId={schoolId!} />
           </div>
         </div>
       </div>
@@ -174,7 +176,8 @@ export default function SchoolProfile() {
             ) : (
               <div className="grid md:grid-cols-2 gap-4">
                 {school.teachers.map((teacher: any) => (
-                  <Card key={teacher.id} className="hover:shadow-md transition-shadow">
+                  <Card key={teacher.id} className="hover:shadow-md transition-shadow cursor-pointer">
+                    <Link href={`/teacher/${teacher.id}`}>
                     <CardContent className="p-4">
                       <div className="flex items-center gap-3">
                         {teacher.avatarUrl ? (
@@ -200,6 +203,7 @@ export default function SchoolProfile() {
                         )}
                       </div>
                     </CardContent>
+                    </Link>
                   </Card>
                 ))}
               </div>

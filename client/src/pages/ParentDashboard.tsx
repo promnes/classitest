@@ -8,6 +8,8 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { LanguageSelector } from "@/components/LanguageSelector";
 import { PWAInstallButton } from "@/components/PWAInstallButton";
 import { ChildGamesControl } from "@/components/parent/ChildGamesControl";
+import { GovernorateSelect } from "@/components/ui/GovernorateSelect";
+import { ACADEMIC_GRADES } from "@shared/constants";
 
 // Lazy-load heavy chart library (recharts ~200KB + framer-motion ~30KB)
 const AnnualReportChart = lazy(() => import("@/components/AnnualReportChart").then(m => ({ default: m.AnnualReportChart })));
@@ -220,6 +222,10 @@ export const ParentDashboard = (): JSX.Element => {
   const [showAddChildPin, setShowAddChildPin] = useState(false);
   const [newChildName, setNewChildName] = useState("");
   const [newChildPin, setNewChildPin] = useState("");
+  const [newChildBirthday, setNewChildBirthday] = useState("");
+  const [newChildGovernorate, setNewChildGovernorate] = useState("");
+  const [newChildGrade, setNewChildGrade] = useState("");
+  const [addChildStep, setAddChildStep] = useState(1);
   const [showSetPinModal, setShowSetPinModal] = useState(false);
   const [pinTargetChild, setPinTargetChild] = useState<any>(null);
   const [childPinValue, setChildPinValue] = useState("");
@@ -360,7 +366,13 @@ export const ParentDashboard = (): JSX.Element => {
   // PIN mutations
   const addChildWithPinMutation = useMutation({
     mutationFn: async ({ childName, pin }: { childName: string; pin: string }) => {
-      const res = await apiRequest("POST", "/api/auth/add-child-with-pin", { childName, pin });
+      const res = await apiRequest("POST", "/api/auth/add-child-with-pin", {
+        childName,
+        pin,
+        birthday: newChildBirthday || undefined,
+        governorate: newChildGovernorate || undefined,
+        academicGrade: newChildGrade || undefined,
+      });
       return res.json();
     },
     onSuccess: () => {
@@ -369,6 +381,10 @@ export const ParentDashboard = (): JSX.Element => {
       setShowAddChildPin(false);
       setNewChildName("");
       setNewChildPin("");
+      setNewChildBirthday("");
+      setNewChildGovernorate("");
+      setNewChildGrade("");
+      setAddChildStep(1);
       toast({ title: "تم إضافة الطفل بنجاح ✅", description: "يمكنه الآن الدخول برمز PIN" });
     },
     onError: (err: any) => {
@@ -1654,56 +1670,125 @@ export const ParentDashboard = (): JSX.Element => {
         />
       )}
 
-      {/* Add Child with PIN Modal */}
+      {/* Add Child with PIN Modal - Multi-Step */}
       {showAddChildPin && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
           <div className={`w-full max-w-sm rounded-2xl p-6 shadow-2xl ${isDark ? "bg-gray-900" : "bg-white"}`}>
             <h3 className={`text-lg font-bold mb-4 flex items-center gap-2 ${isDark ? "text-white" : "text-gray-900"}`}>
               <Plus className="h-5 w-5 text-blue-500" /> إضافة طفل جديد
             </h3>
-            <div className="space-y-4">
-              <div>
-                <label className={`block text-sm font-medium mb-1 ${isDark ? "text-gray-300" : "text-gray-700"}`}>
-                  اسم الطفل
-                </label>
-                <input
-                  type="text"
-                  value={newChildName}
-                  onChange={(e) => setNewChildName(e.target.value)}
-                  placeholder="مثال: أحمد"
-                  className={`w-full px-4 py-3 rounded-lg border-2 focus:outline-none focus:border-blue-400 ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-white border-gray-300 text-gray-900"}`}
-                />
-              </div>
-              <div>
-                <label className={`block text-sm font-medium mb-1 ${isDark ? "text-gray-300" : "text-gray-700"}`}>
-                  🔑 رمز PIN (4 أرقام)
-                </label>
-                <input
-                  type="tel"
-                  inputMode="numeric"
-                  value={newChildPin}
-                  onChange={(e) => setNewChildPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                  placeholder="1234"
-                  maxLength={4}
-                  className={`w-full px-4 py-3 rounded-lg border-2 focus:outline-none focus:border-blue-400 text-center text-xl tracking-widest font-mono ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-white border-gray-300 text-gray-900"}`}
-                />
-                <p className={`text-xs mt-1 ${isDark ? "text-gray-500" : "text-gray-400"}`}>
-                  سيستخدم الطفل هذا الرمز لدخول حسابه
-                </p>
-              </div>
-              <div className="flex gap-2 pt-2">
-                <Button
-                        onClick={() => addChildWithPinMutation.mutate({ childName: newChildName, pin: newChildPin })}
-                  disabled={!newChildName.trim() || newChildPin.length < 4 || addChildWithPinMutation.isPending}
-                  className="flex-1"
-                >
-                  {addChildWithPinMutation.isPending ? "جاري الإضافة..." : "إضافة ✅"}
-                </Button>
-                <Button variant="outline" onClick={() => { setShowAddChildPin(false); setNewChildName(""); setNewChildPin(""); }}>
-                  إلغاء
-                </Button>
-              </div>
+
+            {/* Step indicators */}
+            <div className="flex gap-2 mb-4">
+              {[1, 2].map(step => (
+                <div key={step} className={`flex-1 h-1.5 rounded-full transition-colors ${
+                  step <= addChildStep ? "bg-blue-500" : isDark ? "bg-gray-700" : "bg-gray-200"
+                }`} />
+              ))}
             </div>
+
+            {/* Step 1: Basic Info */}
+            {addChildStep === 1 && (
+              <div className="space-y-4">
+                <p className={`text-sm font-medium ${isDark ? "text-gray-400" : "text-gray-500"}`}>الخطوة 1: البيانات الأساسية</p>
+                <div>
+                  <label className={`block text-sm font-medium mb-1 ${isDark ? "text-gray-300" : "text-gray-700"}`}>
+                    اسم الطفل *
+                  </label>
+                  <input
+                    type="text"
+                    value={newChildName}
+                    onChange={(e) => setNewChildName(e.target.value)}
+                    placeholder="مثال: أحمد"
+                    className={`w-full px-4 py-3 rounded-lg border-2 focus:outline-none focus:border-blue-400 ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-white border-gray-300 text-gray-900"}`}
+                  />
+                </div>
+                <div>
+                  <label className={`block text-sm font-medium mb-1 ${isDark ? "text-gray-300" : "text-gray-700"}`}>
+                    🔑 رمز PIN (4 أرقام) *
+                  </label>
+                  <input
+                    type="tel"
+                    inputMode="numeric"
+                    value={newChildPin}
+                    onChange={(e) => setNewChildPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                    placeholder="1234"
+                    maxLength={4}
+                    className={`w-full px-4 py-3 rounded-lg border-2 focus:outline-none focus:border-blue-400 text-center text-xl tracking-widest font-mono ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-white border-gray-300 text-gray-900"}`}
+                  />
+                  <p className={`text-xs mt-1 ${isDark ? "text-gray-500" : "text-gray-400"}`}>
+                    سيستخدم الطفل هذا الرمز لدخول حسابه
+                  </p>
+                </div>
+                <div className="flex gap-2 pt-2">
+                  <Button
+                    onClick={() => setAddChildStep(2)}
+                    disabled={!newChildName.trim() || newChildPin.length < 4}
+                    className="flex-1"
+                  >
+                    التالي →
+                  </Button>
+                  <Button variant="outline" onClick={() => { setShowAddChildPin(false); setNewChildName(""); setNewChildPin(""); setAddChildStep(1); }}>
+                    إلغاء
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Step 2: Academic Info (Optional) */}
+            {addChildStep === 2 && (
+              <div className="space-y-4">
+                <p className={`text-sm font-medium ${isDark ? "text-gray-400" : "text-gray-500"}`}>الخطوة 2: معلومات إضافية (اختياري)</p>
+                <div>
+                  <label className={`block text-sm font-medium mb-1 ${isDark ? "text-gray-300" : "text-gray-700"}`}>
+                    🎂 تاريخ الميلاد
+                  </label>
+                  <input
+                    type="date"
+                    value={newChildBirthday}
+                    onChange={(e) => setNewChildBirthday(e.target.value)}
+                    className={`w-full px-4 py-3 rounded-lg border-2 focus:outline-none focus:border-blue-400 ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-white border-gray-300 text-gray-900"}`}
+                  />
+                </div>
+                <div>
+                  <label className={`block text-sm font-medium mb-1 ${isDark ? "text-gray-300" : "text-gray-700"}`}>
+                    🏢 المحافظة
+                  </label>
+                  <GovernorateSelect
+                    value={newChildGovernorate}
+                    onChange={setNewChildGovernorate}
+                    className={`w-full px-4 py-3 rounded-lg border-2 focus:outline-none focus:border-blue-400 ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-white border-gray-300 text-gray-900"}`}
+                  />
+                </div>
+                <div>
+                  <label className={`block text-sm font-medium mb-1 ${isDark ? "text-gray-300" : "text-gray-700"}`}>
+                    🎓 السنة الدراسية
+                  </label>
+                  <select
+                    value={newChildGrade}
+                    onChange={(e) => setNewChildGrade(e.target.value)}
+                    className={`w-full px-4 py-3 rounded-lg border-2 focus:outline-none focus:border-blue-400 ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-white border-gray-300 text-gray-900"}`}
+                  >
+                    <option value="">اختر السنة الدراسية</option>
+                    {ACADEMIC_GRADES.map(g => (
+                      <option key={g.value} value={g.value}>{g.label}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex gap-2 pt-2">
+                  <Button
+                    onClick={() => addChildWithPinMutation.mutate({ childName: newChildName, pin: newChildPin })}
+                    disabled={addChildWithPinMutation.isPending}
+                    className="flex-1"
+                  >
+                    {addChildWithPinMutation.isPending ? "جاري الإضافة..." : "إضافة ✅"}
+                  </Button>
+                  <Button variant="outline" onClick={() => setAddChildStep(1)}>
+                    ← رجوع
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

@@ -115,7 +115,7 @@ export async function registerAuthRoutes(app: Express) {
   // Parent Register (with rate limiting)
   app.post("/api/auth/register", registerLimiter, async (req, res) => {
     try {
-      const { email, password, name, phoneNumber, libraryReferralCode, referralCode, pin } = req.body;
+      const { email, password, name, phoneNumber, libraryReferralCode, referralCode, pin, governorate } = req.body;
       const normalizedEmail = normalizeEmail(email);
 
       // Validation
@@ -157,6 +157,7 @@ export async function registerAuthRoutes(app: Express) {
           phoneNumber: phoneNumber || null,
           uniqueCode,
           pin: hashedPin,
+          governorate: governorate || null,
         })
         .returning();
 
@@ -2863,7 +2864,7 @@ export async function registerAuthRoutes(app: Express) {
   // ===== Add Child with PIN (from parent dashboard) =====
   app.post("/api/auth/add-child-with-pin", authMiddleware, async (req: any, res) => {
     try {
-      const { childName, pin } = req.body;
+      const { childName, pin, birthday, governorate, academicGrade, schoolId, schoolName, teacherIds } = req.body;
       const parentId = req.user.userId;
 
       if (!childName || !pin) {
@@ -2907,25 +2908,60 @@ export async function registerAuthRoutes(app: Express) {
 
       const hashedPin = await bcrypt.hash(pinStr, 10);
 
-      // Create child
-      const childResult = await db.insert(children).values({
+      // Build child data with optional enhanced fields
+      const childData: any = {
         name: trimmedName,
         pin: hashedPin,
-      }).returning();
+      };
+
+      if (birthday) childData.birthday = new Date(birthday);
+      if (governorate) childData.governorate = governorate;
+      if (academicGrade) childData.academicGrade = academicGrade;
+      if (schoolName) childData.schoolName = schoolName;
+
+      // Create child
+      const childResult = await db.insert(children).values(childData).returning();
+      const newChildId = childResult[0].id;
 
       // Link to parent
       await db.insert(parentChild).values({
         parentId,
-        childId: childResult[0].id,
+        childId: newChildId,
       });
 
       // Initialize growth tree
-      const { childGrowthTrees } = await import("../../shared/schema");
+      const { childGrowthTrees, childSchoolAssignment, childTeacherAssignment } = await import("../../shared/schema");
       await db.insert(childGrowthTrees).values({
-        childId: childResult[0].id,
+        childId: newChildId,
         currentStage: 1,
         totalGrowthPoints: 0,
       }).onConflictDoNothing();
+
+      // Assign school if provided
+      if (schoolId) {
+        try {
+          await db.insert(childSchoolAssignment).values({
+            childId: newChildId,
+            schoolId: schoolId,
+          }).onConflictDoNothing();
+        } catch (e) {
+          console.warn("Could not assign school:", e);
+        }
+      }
+
+      // Assign teachers if provided
+      if (teacherIds && Array.isArray(teacherIds) && teacherIds.length > 0) {
+        try {
+          for (const teacherId of teacherIds) {
+            await db.insert(childTeacherAssignment).values({
+              childId: newChildId,
+              teacherId: teacherId,
+            }).onConflictDoNothing();
+          }
+        } catch (e) {
+          console.warn("Could not assign teachers:", e);
+        }
+      }
 
       // Notify parent
       const { createNotification } = await import("../notifications");
@@ -2934,11 +2970,11 @@ export async function registerAuthRoutes(app: Express) {
         type: NOTIFICATION_TYPES.CHILD_LINKED,
         title: "تم إضافة طفل جديد!",
         message: `تم إضافة ${trimmedName} بنجاح وتعيين رمز PIN خاص به`,
-        metadata: { childId: childResult[0].id, childName: trimmedName },
+        metadata: { childId: newChildId, childName: trimmedName },
       });
 
       res.json(successResponse({
-        child: { id: childResult[0].id, name: trimmedName },
+        child: { id: newChildId, name: trimmedName },
         familyCode: parent[0]?.uniqueCode,
       }, "Child added successfully"));
     } catch (error: any) {

@@ -10,6 +10,7 @@ import { useAutoLogin } from "@/hooks/useAutoLogin";
 import { Loader2 } from "lucide-react";
 import { SocialLoginButtons } from "@/components/SocialLoginButtons";
 import { PhoneInput } from "@/components/PhoneInput";
+import { GovernorateSelect } from "@/components/ui/GovernorateSelect";
 
 export const ParentAuth = (): JSX.Element => {
   const { t } = useTranslation();
@@ -24,6 +25,7 @@ export const ParentAuth = (): JSX.Element => {
   const [name, setName] = useState("");
   const [error, setError] = useState("");
   const [pinCode, setPinCode] = useState("");
+  const [governorate, setGovernorate] = useState("");
   const [showSMSVerification, setShowSMSVerification] = useState(false);
   const [otpMethod, setOtpMethod] = useState<"email" | "sms">("email");
   const [availableMethods, setAvailableMethods] = useState<("email" | "sms")[]>(["email"]);
@@ -49,7 +51,7 @@ export const ParentAuth = (): JSX.Element => {
           body: JSON.stringify(
             isLogin
               ? { phoneNumber: `${countryCode}${phone}`, password }
-              : { email, password, name, phoneNumber: `${countryCode}${phone}`, libraryReferralCode, referralCode, pin: pinCode || undefined }
+              : { email, password, name, phoneNumber: `${countryCode}${phone}`, libraryReferralCode, referralCode, pin: pinCode || undefined, governorate: governorate || undefined }
           ),
         });
         if (!res.ok) {
@@ -63,7 +65,7 @@ export const ParentAuth = (): JSX.Element => {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(
-            isLogin ? { email, password } : { email, password, name, libraryReferralCode, referralCode, pin: pinCode || undefined }
+            isLogin ? { email, password } : { email, password, name, libraryReferralCode, referralCode, pin: pinCode || undefined, governorate: governorate || undefined }
           ),
         });
         if (!res.ok) {
@@ -351,6 +353,23 @@ export const ParentAuth = (): JSX.Element => {
                     />
                     <p className="text-xs text-gray-500 mt-1">
                       رمز سري لدخول حسابك بسرعة من نفس الجهاز (اختياري)
+                    </p>
+                  </div>
+                )}
+
+                {/* Governorate - Registration only */}
+                {!isLogin && (
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-2">
+                      🏙️ المحافظة
+                    </label>
+                    <GovernorateSelect
+                      value={governorate}
+                      onChange={setGovernorate}
+                      className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-400 text-gray-900 bg-white"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      اختر محافظتك لتسهيل البحث عن المدارس والمدرسين (اختياري)
                     </p>
                   </div>
                 )}

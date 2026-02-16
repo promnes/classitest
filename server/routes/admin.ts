@@ -4422,6 +4422,21 @@ export async function registerAdminRoutes(app: Express) {
       await db.insert(libraryBalances).values({
         libraryId: newLibrary[0].id,
       });
+
+      // Notify all parents about new library
+      try {
+        const allParents = await db.select({ id: parents.id }).from(parents);
+        for (const p of allParents) {
+          await db.insert(parentNotifications).values({
+            parentId: p.id,
+            adminId: req.admin.adminId,
+            title: `📚 مكتبة جديدة: ${name}`,
+            message: `تم إضافة مكتبة "${name}" للمنصة. تصفح منتجاتها الآن!`,
+          });
+        }
+      } catch (notifErr) {
+        console.error("Failed to send new library notifications:", notifErr);
+      }
       
       res.json(successResponse(newLibrary[0]));
     } catch (error: any) {
@@ -4853,6 +4868,21 @@ export async function registerAdminRoutes(app: Express) {
         commissionRatePct: commissionRatePct !== undefined ? Number(commissionRatePct).toFixed(2) : "10.00",
         withdrawalCommissionPct: withdrawalCommissionPct !== undefined ? Number(withdrawalCommissionPct).toFixed(2) : "0.00",
       }).returning();
+
+      // Notify all parents about new school
+      try {
+        const allParents = await db.select({ id: parents.id }).from(parents);
+        for (const p of allParents) {
+          await db.insert(parentNotifications).values({
+            parentId: p.id,
+            adminId: req.admin.adminId,
+            title: `🏫 مدرسة جديدة: ${name}`,
+            message: `تم إضافة مدرسة "${name}" للمنصة. يمكنك الآن متابعتها وتسجيل أطفالك بها.`,
+          });
+        }
+      } catch (notifErr) {
+        console.error("Failed to send new school notifications:", notifErr);
+      }
 
       res.json(successResponse(newSchool[0]));
     } catch (error: any) {

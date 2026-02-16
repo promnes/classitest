@@ -89,3 +89,70 @@ export const HTTP_STATUS = {
   TOO_MANY_REQUESTS: 429,
   INTERNAL_ERROR: 500,
 } as const;
+
+// ===== قائمة المحافظات المصرية =====
+export const EGYPT_GOVERNORATES = [
+  "القاهرة",
+  "الجيزة",
+  "الإسكندرية",
+  "الدقهلية",
+  "البحر الأحمر",
+  "البحيرة",
+  "الفيوم",
+  "الغربية",
+  "الإسماعيلية",
+  "المنوفية",
+  "المنيا",
+  "القليوبية",
+  "الوادي الجديد",
+  "السويس",
+  "أسوان",
+  "أسيوط",
+  "بني سويف",
+  "بورسعيد",
+  "دمياط",
+  "الشرقية",
+  "جنوب سيناء",
+  "كفر الشيخ",
+  "مطروح",
+  "الأقصر",
+  "قنا",
+  "شمال سيناء",
+  "سوهاج",
+] as const;
+
+export type Governorate = (typeof EGYPT_GOVERNORATES)[number];
+
+// ===== السنوات الدراسية =====
+export const ACADEMIC_GRADES = [
+  { value: "kg1", label: "روضة 1 (KG1)" },
+  { value: "kg2", label: "روضة 2 (KG2)" },
+  { value: "grade1", label: "الصف الأول الابتدائي" },
+  { value: "grade2", label: "الصف الثاني الابتدائي" },
+  { value: "grade3", label: "الصف الثالث الابتدائي" },
+  { value: "grade4", label: "الصف الرابع الابتدائي" },
+  { value: "grade5", label: "الصف الخامس الابتدائي" },
+  { value: "grade6", label: "الصف السادس الابتدائي" },
+  { value: "grade7", label: "الصف الأول الإعدادي" },
+  { value: "grade8", label: "الصف الثاني الإعدادي" },
+  { value: "grade9", label: "الصف الثالث الإعدادي" },
+  { value: "grade10", label: "الصف الأول الثانوي" },
+  { value: "grade11", label: "الصف الثاني الثانوي" },
+  { value: "grade12", label: "الصف الثالث الثانوي" },
+] as const;
+
+export type AcademicGrade = (typeof ACADEMIC_GRADES)[number]["value"];
+
+// ===== أنواع الكيانات القابلة للمتابعة =====
+export const FOLLOWABLE_ENTITY_TYPES = ["school", "teacher", "library"] as const;
+export type FollowableEntityType = (typeof FOLLOWABLE_ENTITY_TYPES)[number];
+
+// ===== روابط التواصل الاجتماعي =====
+export interface SocialLinks {
+  facebook?: string;
+  twitter?: string;
+  instagram?: string;
+  youtube?: string;
+  tiktok?: string;
+  website?: string;
+}

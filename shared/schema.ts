@@ -116,6 +116,13 @@ export const parents = pgTable("parents", {
   pin: varchar("pin", { length: 255 }),
   failedLoginAttempts: integer("failed_login_attempts").default(0).notNull(),
   lockedUntil: timestamp("locked_until"),
+  // Social profile fields
+  governorate: text("governorate"),
+  city: text("city"),
+  avatarUrl: text("avatar_url"),
+  coverImageUrl: text("cover_image_url"),
+  bio: text("bio"),
+  socialLinks: json("social_links").$type<{ facebook?: string; twitter?: string; instagram?: string; youtube?: string; tiktok?: string; website?: string }>(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (table) => ({
   emailLowerUnique: uniqueIndex("parents_email_unique_lower")
@@ -154,6 +161,7 @@ export const children = pgTable("children", {
   schoolName: text("school_name"),
   academicGrade: text("academic_grade"),
   hobbies: text("hobbies"),
+  governorate: text("governorate"),
   pin: varchar("pin", { length: 255 }),
   privacyAccepted: boolean("privacy_accepted").default(false).notNull(),
   privacyAcceptedAt: timestamp("privacy_accepted_at"),
@@ -1218,6 +1226,14 @@ export const libraries = pgTable("libraries", {
   totalSales: integer("total_sales").default(0).notNull(),
   commissionRatePct: decimal("commission_rate_pct", { precision: 5, scale: 2 }).default("10.00").notNull(),
   isActive: boolean("is_active").default(true).notNull(),
+  // Social profile fields
+  bio: text("bio"),
+  coverImageUrl: text("cover_image_url"),
+  governorate: text("governorate"),
+  city: text("city"),
+  phoneNumber: text("phone_number"),
+  email: text("email"),
+  socialLinks: json("social_links").$type<{ facebook?: string; twitter?: string; instagram?: string; youtube?: string; tiktok?: string; website?: string }>(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -1698,6 +1714,7 @@ export const childProfileUpdateSchema = z.object({
   academicGrade: z.string().max(50).optional().nullable(),
   hobbies: z.string().max(500).optional().nullable(),
   schoolId: z.string().optional().nullable(),
+  governorate: z.string().max(100).optional().nullable(),
 });
 
 export type ChildProfileUpdate = z.infer<typeof childProfileUpdateSchema>;
@@ -1919,3 +1936,74 @@ export const schoolActivityLogs = pgTable("school_activity_logs", {
   metadata: json("metadata").$type<Record<string, any>>(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
+
+// ===== Follow System (نظام المتابعة) =====
+export const follows = pgTable("follows", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  followerParentId: varchar("follower_parent_id").notNull().references(() => parents.id, { onDelete: "cascade" }),
+  entityType: varchar("entity_type", { length: 20 }).notNull(), // "school" | "teacher" | "library"
+  entityId: varchar("entity_id").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  uniqueFollow: uniqueIndex("unique_follow_idx").on(table.followerParentId, table.entityType, table.entityId),
+  entityIdx: index("follows_entity_idx").on(table.entityType, table.entityId),
+}));
+
+export const insertFollowSchema = createInsertSchema(follows).omit({ id: true, createdAt: true });
+export type Follow = typeof follows.$inferSelect;
+export type InsertFollow = z.infer<typeof insertFollowSchema>;
+
+// ===== Library Posts System (منشورات المكتبات) =====
+export const libraryPosts = pgTable("library_posts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  libraryId: varchar("library_id").notNull().references(() => libraries.id, { onDelete: "cascade" }),
+  content: text("content").notNull(),
+  mediaUrls: json("media_urls").$type<string[]>().default(sql`'[]'::jsonb`),
+  mediaTypes: json("media_types").$type<string[]>().default(sql`'[]'::jsonb`),
+  likesCount: integer("likes_count").default(0).notNull(),
+  commentsCount: integer("comments_count").default(0).notNull(),
+  isPinned: boolean("is_pinned").default(false).notNull(),
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const libraryPostComments = pgTable("library_post_comments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  postId: varchar("post_id").notNull().references(() => libraryPosts.id, { onDelete: "cascade" }),
+  parentId: varchar("parent_id").references(() => parents.id, { onDelete: "set null" }),
+  authorName: text("author_name").notNull(),
+  content: text("content").notNull(),
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const libraryPostLikes = pgTable("library_post_likes", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  postId: varchar("post_id").notNull().references(() => libraryPosts.id, { onDelete: "cascade" }),
+  parentId: varchar("parent_id").references(() => parents.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const libraryReviews = pgTable("library_reviews", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  libraryId: varchar("library_id").notNull().references(() => libraries.id, { onDelete: "cascade" }),
+  parentId: varchar("parent_id").notNull().references(() => parents.id, { onDelete: "cascade" }),
+  rating: integer("rating").notNull(),
+  comment: text("comment"),
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertLibraryPostSchema = createInsertSchema(libraryPosts).omit({ id: true, createdAt: true, updatedAt: true, likesCount: true, commentsCount: true });
+export type LibraryPost = typeof libraryPosts.$inferSelect;
+export type InsertLibraryPost = z.infer<typeof insertLibraryPostSchema>;
+
+export const insertLibraryPostCommentSchema = createInsertSchema(libraryPostComments).omit({ id: true, createdAt: true });
+export type LibraryPostComment = typeof libraryPostComments.$inferSelect;
+export type InsertLibraryPostComment = z.infer<typeof insertLibraryPostCommentSchema>;
+
+export type LibraryPostLike = typeof libraryPostLikes.$inferSelect;
+export type LibraryReview = typeof libraryReviews.$inferSelect;
+export const insertLibraryReviewSchema = createInsertSchema(libraryReviews).omit({ id: true, createdAt: true });
+export type InsertLibraryReview = z.infer<typeof insertLibraryReviewSchema>;

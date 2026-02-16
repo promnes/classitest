@@ -885,4 +885,261 @@ export async function registerLibraryRoutes(app: Express) {
       res.status(500).json({ message: "Failed to record click" });
     }
   });
+
+  // ===== Library Profile Update (social profile fields) =====
+  app.put("/api/library/profile", libraryMiddleware, async (req: LibraryRequest, res) => {
+    try {
+      const libraryId = req.library!.libraryId;
+      const { name, description, bio, location, imageUrl, coverImageUrl, governorate, city, phoneNumber, email, socialLinks } = req.body;
+
+      const updates: any = {};
+      if (name !== undefined) updates.name = name;
+      if (description !== undefined) updates.description = description;
+      if (bio !== undefined) updates.bio = bio;
+      if (location !== undefined) updates.location = location;
+      if (imageUrl !== undefined) updates.imageUrl = imageUrl;
+      if (coverImageUrl !== undefined) updates.coverImageUrl = coverImageUrl;
+      if (governorate !== undefined) updates.governorate = governorate;
+      if (city !== undefined) updates.city = city;
+      if (phoneNumber !== undefined) updates.phoneNumber = phoneNumber;
+      if (email !== undefined) updates.email = email;
+      if (socialLinks !== undefined) updates.socialLinks = socialLinks;
+      updates.updatedAt = new Date();
+
+      if (Object.keys(updates).length <= 1) {
+        return res.status(400).json({ success: false, error: "BAD_REQUEST", message: "لا توجد بيانات للتحديث" });
+      }
+
+      await db.update(libraries).set(updates).where(eq(libraries.id, libraryId));
+      const [updated] = await db.select().from(libraries).where(eq(libraries.id, libraryId));
+      const { password, ...safeLibrary } = updated;
+
+      res.json({ success: true, data: safeLibrary, message: "تم تحديث البروفايل بنجاح" });
+    } catch (error: any) {
+      console.error("Library profile update error:", error);
+      res.status(500).json({ success: false, error: "INTERNAL_SERVER_ERROR", message: "فشل تحديث البروفايل" });
+    }
+  });
+
+  // ===== Library Posts CRUD =====
+  app.get("/api/library/posts", libraryMiddleware, async (req: LibraryRequest, res) => {
+    try {
+      const libraryId = req.library!.libraryId;
+      const { libraryPosts: lp } = await import("../../shared/schema");
+      const posts = await db.select().from(lp)
+        .where(eq(lp.libraryId, libraryId))
+        .orderBy(desc(lp.createdAt));
+
+      res.json({ success: true, data: { posts } });
+    } catch (error: any) {
+      console.error("Get library posts error:", error);
+      res.status(500).json({ success: false, error: "INTERNAL_SERVER_ERROR", message: "فشل جلب المنشورات" });
+    }
+  });
+
+  app.post("/api/library/posts", libraryMiddleware, async (req: LibraryRequest, res) => {
+    try {
+      const libraryId = req.library!.libraryId;
+      const { content, mediaUrls, mediaTypes } = req.body;
+
+      if (!content || !content.trim()) {
+        return res.status(400).json({ success: false, error: "BAD_REQUEST", message: "محتوى المنشور مطلوب" });
+      }
+
+      const { libraryPosts: lp } = await import("../../shared/schema");
+      const [post] = await db.insert(lp).values({
+        libraryId,
+        content: content.trim(),
+        mediaUrls: mediaUrls || [],
+        mediaTypes: mediaTypes || [],
+      }).returning();
+
+      res.json({ success: true, data: post, message: "تم نشر المنشور بنجاح" });
+    } catch (error: any) {
+      console.error("Create library post error:", error);
+      res.status(500).json({ success: false, error: "INTERNAL_SERVER_ERROR", message: "فشل نشر المنشور" });
+    }
+  });
+
+  app.delete("/api/library/posts/:postId", libraryMiddleware, async (req: LibraryRequest, res) => {
+    try {
+      const libraryId = req.library!.libraryId;
+      const { postId } = req.params;
+
+      const { libraryPosts: lp } = await import("../../shared/schema");
+      const deleted = await db.delete(lp)
+        .where(and(eq(lp.id, postId), eq(lp.libraryId, libraryId)))
+        .returning();
+
+      if (!deleted.length) {
+        return res.status(404).json({ success: false, error: "NOT_FOUND", message: "المنشور غير موجود" });
+      }
+
+      res.json({ success: true, message: "تم حذف المنشور بنجاح" });
+    } catch (error: any) {
+      console.error("Delete library post error:", error);
+      res.status(500).json({ success: false, error: "INTERNAL_SERVER_ERROR", message: "فشل حذف المنشور" });
+    }
+  });
+
+  app.put("/api/library/posts/:postId/pin", libraryMiddleware, async (req: LibraryRequest, res) => {
+    try {
+      const libraryId = req.library!.libraryId;
+      const { postId } = req.params;
+
+      const { libraryPosts: lp } = await import("../../shared/schema");
+
+      // Unpin all first
+      await db.update(lp).set({ isPinned: false }).where(eq(lp.libraryId, libraryId));
+
+      // Pin the selected post
+      const [pinned] = await db.update(lp)
+        .set({ isPinned: true, updatedAt: new Date() })
+        .where(and(eq(lp.id, postId), eq(lp.libraryId, libraryId)))
+        .returning();
+
+      if (!pinned) {
+        return res.status(404).json({ success: false, error: "NOT_FOUND", message: "المنشور غير موجود" });
+      }
+
+      res.json({ success: true, data: pinned, message: "تم تثبيت المنشور" });
+    } catch (error: any) {
+      console.error("Pin library post error:", error);
+      res.status(500).json({ success: false, error: "INTERNAL_SERVER_ERROR", message: "فشل تثبيت المنشور" });
+    }
+  });
+
+  // ===== Library Post Likes (for parents) =====
+  app.post("/api/library/posts/:postId/like", async (req: any, res) => {
+    try {
+      const { postId } = req.params;
+      const token = req.headers.authorization?.replace("Bearer ", "");
+      if (!token) return res.status(401).json({ success: false, error: "UNAUTHORIZED", message: "غير مصرح" });
+
+      let decoded: any;
+      try { decoded = jwt.verify(token, JWT_SECRET); } catch { return res.status(401).json({ success: false, error: "UNAUTHORIZED" }); }
+      const parentId = decoded.userId;
+
+      const { libraryPosts: lp, libraryPostLikes: lpl } = await import("../../shared/schema");
+
+      // Check if already liked
+      const existing = await db.select({ id: lpl.id }).from(lpl)
+        .where(and(eq(lpl.postId, postId), eq(lpl.parentId, parentId))).limit(1);
+
+      if (existing.length) {
+        // Unlike
+        await db.delete(lpl).where(eq(lpl.id, existing[0].id));
+        await db.update(lp).set({ likesCount: sql`${lp.likesCount} - 1` }).where(eq(lp.id, postId));
+        return res.json({ success: true, data: { liked: false }, message: "تم إزالة الإعجاب" });
+      }
+
+      // Like
+      await db.insert(lpl).values({ postId, parentId });
+      await db.update(lp).set({ likesCount: sql`${lp.likesCount} + 1` }).where(eq(lp.id, postId));
+
+      res.json({ success: true, data: { liked: true }, message: "تم الإعجاب" });
+    } catch (error: any) {
+      console.error("Like library post error:", error);
+      res.status(500).json({ success: false, error: "INTERNAL_SERVER_ERROR" });
+    }
+  });
+
+  // ===== Library Post Comments =====
+  app.post("/api/library/posts/:postId/comment", async (req: any, res) => {
+    try {
+      const { postId } = req.params;
+      const { content, authorName } = req.body;
+      const token = req.headers.authorization?.replace("Bearer ", "");
+      if (!token) return res.status(401).json({ success: false, error: "UNAUTHORIZED" });
+
+      let decoded: any;
+      try { decoded = jwt.verify(token, JWT_SECRET); } catch { return res.status(401).json({ success: false, error: "UNAUTHORIZED" }); }
+      const parentId = decoded.userId;
+
+      if (!content || !content.trim()) {
+        return res.status(400).json({ success: false, error: "BAD_REQUEST", message: "محتوى التعليق مطلوب" });
+      }
+
+      // Get parent name if authorName not provided
+      let nameToUse = authorName;
+      if (!nameToUse) {
+        const [p] = await db.select({ name: parents.name }).from(parents).where(eq(parents.id, parentId)).limit(1);
+        nameToUse = p?.name || "مجهول";
+      }
+
+      const { libraryPostComments: lpc, libraryPosts: lp } = await import("../../shared/schema");
+
+      const [comment] = await db.insert(lpc).values({
+        postId,
+        parentId,
+        authorName: nameToUse,
+        content: content.trim(),
+      }).returning();
+
+      await db.update(lp).set({ commentsCount: sql`${lp.commentsCount} + 1` }).where(eq(lp.id, postId));
+
+      res.json({ success: true, data: comment, message: "تم إضافة التعليق" });
+    } catch (error: any) {
+      console.error("Comment on library post error:", error);
+      res.status(500).json({ success: false, error: "INTERNAL_SERVER_ERROR" });
+    }
+  });
+
+  app.get("/api/library/posts/:postId/comments", async (req, res) => {
+    try {
+      const { postId } = req.params;
+      const { libraryPostComments: lpc } = await import("../../shared/schema");
+
+      const comments = await db.select().from(lpc)
+        .where(and(eq(lpc.postId, postId), eq(lpc.isActive, true)))
+        .orderBy(desc(lpc.createdAt));
+
+      res.json({ success: true, data: { comments } });
+    } catch (error: any) {
+      console.error("Get library post comments error:", error);
+      res.status(500).json({ success: false, error: "INTERNAL_SERVER_ERROR" });
+    }
+  });
+
+  // ===== Library Reviews =====
+  app.post("/api/library/:libraryId/review", async (req: any, res) => {
+    try {
+      const { libraryId } = req.params;
+      const { rating, comment } = req.body;
+      const token = req.headers.authorization?.replace("Bearer ", "");
+      if (!token) return res.status(401).json({ success: false, error: "UNAUTHORIZED" });
+
+      let decoded: any;
+      try { decoded = jwt.verify(token, JWT_SECRET); } catch { return res.status(401).json({ success: false, error: "UNAUTHORIZED" }); }
+      const parentId = decoded.userId;
+
+      if (!rating || rating < 1 || rating > 5) {
+        return res.status(400).json({ success: false, error: "BAD_REQUEST", message: "التقييم يجب أن يكون بين 1 و 5" });
+      }
+
+      const { libraryReviews: lr } = await import("../../shared/schema");
+
+      // Check if already reviewed
+      const existing = await db.select({ id: lr.id }).from(lr)
+        .where(and(eq(lr.libraryId, libraryId), eq(lr.parentId, parentId))).limit(1);
+
+      if (existing.length) {
+        // Update existing review
+        await db.update(lr).set({ rating, comment: comment || null }).where(eq(lr.id, existing[0].id));
+        return res.json({ success: true, message: "تم تحديث التقييم بنجاح" });
+      }
+
+      const [review] = await db.insert(lr).values({
+        libraryId,
+        parentId,
+        rating,
+        comment: comment || null,
+      }).returning();
+
+      res.json({ success: true, data: review, message: "تم إضافة التقييم بنجاح" });
+    } catch (error: any) {
+      console.error("Library review error:", error);
+      res.status(500).json({ success: false, error: "INTERNAL_SERVER_ERROR" });
+    }
+  });
 }

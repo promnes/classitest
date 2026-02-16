@@ -14,6 +14,7 @@ import {
   parentChild,
   parents,
   children,
+  parentNotifications,
 } from "../../shared/schema";
 import { eq, desc, and, sql, like, or } from "drizzle-orm";
 import jwt from "jsonwebtoken";
@@ -370,6 +371,27 @@ export async function registerSchoolRoutes(app: Express) {
       const settings = await db.select().from(schoolReferralSettings);
       const pointsToAdd = settings[0]?.pointsPerTeacherAdd || 20;
       await logSchoolActivity(schoolId, "teacher_added", pointsToAdd, { teacherId: teacher[0].id });
+
+      // Notify school followers about new teacher
+      try {
+        const { follows } = await import("../../shared/schema");
+        const schoolFollowers = await db.select({ followerId: follows.followerParentId })
+          .from(follows)
+          .where(and(eq(follows.entityType, "school"), eq(follows.entityId, schoolId)));
+        
+        const schoolData = await db.select({ name: schools.name }).from(schools).where(eq(schools.id, schoolId));
+        const schoolName = schoolData[0]?.name || "";
+        
+        for (const follower of schoolFollowers) {
+          await db.insert(parentNotifications).values({
+            parentId: follower.followerId,
+            title: `👨‍🏫 مدرس جديد في ${schoolName}`,
+            message: `انضم المدرس "${name}" إلى مدرسة ${schoolName}. تصفح ملفه الشخصي الآن!`,
+          });
+        }
+      } catch (notifErr) {
+        console.error("Failed to send new teacher notifications:", notifErr);
+      }
 
       const { password: _, ...safe } = teacher[0];
       res.json({ success: true, data: safe });

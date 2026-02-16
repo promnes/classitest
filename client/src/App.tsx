@@ -53,6 +53,8 @@ const SchoolDashboard = lazy(() => import("@/pages/SchoolDashboard"));
 const TeacherLogin = lazy(() => import("@/pages/TeacherLogin"));
 const TeacherDashboard = lazy(() => import("@/pages/TeacherDashboard"));
 const SchoolProfile = lazy(() => import("@/pages/SchoolProfile"));
+const TeacherProfile = lazy(() => import("@/pages/TeacherProfile"));
+const LibraryProfile = lazy(() => import("@/pages/LibraryProfile"));
 const ChildProfile = lazy(() => import("@/pages/ChildProfile"));
 const ChildSettings = lazy(() => import("@/pages/ChildSettings"));
 const DownloadApp = lazy(() => import("@/pages/DownloadApp"));
@@ -275,6 +277,12 @@ function Router() {
         </Route>
         <Route path="/school/:id">
           <ErrorBoundary><SchoolProfile /></ErrorBoundary>
+        </Route>
+        <Route path="/teacher/:id">
+          <ErrorBoundary><TeacherProfile /></ErrorBoundary>
+        </Route>
+        <Route path="/library/:id">
+          <ErrorBoundary><LibraryProfile /></ErrorBoundary>
         </Route>
         <Route component={NotFound} />
       </Switch>

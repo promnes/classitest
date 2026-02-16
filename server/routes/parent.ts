@@ -291,14 +291,17 @@ export async function registerParentRoutes(app: Express) {
   // Update Parent Profile
   app.post("/api/parent/profile/update", authMiddleware, async (req: any, res) => {
     try {
-      const { name, phoneNumber } = req.body;
-      if (!name && !phoneNumber) {
+      const { name, phoneNumber, governorate, bio, city } = req.body;
+      if (!name && !phoneNumber && !governorate && bio === undefined && !city) {
         return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "At least one field is required"));
       }
 
       const updates: any = {};
       if (name) updates.name = name;
       if (phoneNumber) updates.phoneNumber = phoneNumber;
+      if (governorate !== undefined) updates.governorate = governorate || null;
+      if (bio !== undefined) updates.bio = bio || null;
+      if (city !== undefined) updates.city = city || null;
 
       await db.update(parents).set(updates).where(eq(parents.id, req.user.userId));
 

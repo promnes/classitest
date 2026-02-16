@@ -13,6 +13,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { GovernorateSelect } from "@/components/ui/GovernorateSelect";
 
 export const Settings = (): JSX.Element => {
   const { t } = useTranslation();
@@ -21,7 +22,7 @@ export const Settings = (): JSX.Element => {
   const token = localStorage.getItem("token");
 
   const [tab, setTab] = useState<"profile" | "security" | "appearance" | "contact">("profile");
-  const [profileData, setProfileData] = useState({ name: "", email: "", phoneNumber: "" });
+  const [profileData, setProfileData] = useState({ name: "", email: "", phoneNumber: "", governorate: "", bio: "", city: "" });
   const [passwordData, setPasswordData] = useState({ oldPassword: "", newPassword: "", confirmPassword: "" });
   const [deletePassword, setDeletePassword] = useState("");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -50,7 +51,7 @@ export const Settings = (): JSX.Element => {
 
   useEffect(() => {
     if (parentInfo) {
-      setProfileData({ name: parentInfo.name, email: parentInfo.email, phoneNumber: parentInfo.phoneNumber || "" });
+      setProfileData({ name: parentInfo.name, email: parentInfo.email, phoneNumber: parentInfo.phoneNumber || "", governorate: parentInfo.governorate || "", bio: parentInfo.bio || "", city: parentInfo.city || "" });
     }
   }, [parentInfo]);
 
@@ -327,6 +328,41 @@ export const Settings = (): JSX.Element => {
                     isDark ? "bg-gray-700 border-gray-600 text-white" : "border-gray-300"
                   }`}
                   placeholder="01xxxxxxxxx"
+                />
+              </div>
+              <div>
+                <label className={`block font-bold mb-2 ${isDark ? "text-gray-300" : "text-gray-700"}`}>
+                  🏢 المحافظة
+                </label>
+                <GovernorateSelect
+                  value={profileData.governorate}
+                  onChange={(val) => setProfileData({ ...profileData, governorate: val })}
+                  className={`w-full px-4 py-2 border-2 rounded-lg focus:outline-none focus:border-blue-500 ${isDark ? "bg-gray-700 border-gray-600 text-white" : "border-gray-300"}`}
+                />
+              </div>
+              <div>
+                <label className={`block font-bold mb-2 ${isDark ? "text-gray-300" : "text-gray-700"}`}>
+                  🏙️ المدينة
+                </label>
+                <input
+                  type="text"
+                  value={profileData.city}
+                  onChange={(e) => setProfileData({ ...profileData, city: e.target.value })}
+                  className={`w-full px-4 py-2 border-2 rounded-lg focus:outline-none focus:border-blue-500 ${isDark ? "bg-gray-700 border-gray-600 text-white" : "border-gray-300"}`}
+                  placeholder="مثال: المعادي"
+                />
+              </div>
+              <div>
+                <label className={`block font-bold mb-2 ${isDark ? "text-gray-300" : "text-gray-700"}`}>
+                  📝 نبذة عنك
+                </label>
+                <textarea
+                  value={profileData.bio}
+                  onChange={(e) => setProfileData({ ...profileData, bio: e.target.value })}
+                  rows={3}
+                  maxLength={500}
+                  className={`w-full px-4 py-2 border-2 rounded-lg focus:outline-none focus:border-blue-500 ${isDark ? "bg-gray-700 border-gray-600 text-white" : "border-gray-300"}`}
+                  placeholder="اكتب نبذة قصيرة عنك..."
                 />
               </div>
               <button
