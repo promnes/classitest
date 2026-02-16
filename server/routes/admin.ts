@@ -577,6 +577,32 @@ export async function registerAdminRoutes(app: Express) {
 
   // ===== APP SETTINGS MANAGEMENT =====
 
+  // Public mobile app settings (icon + PWA branding)
+  app.get("/api/public/mobile-app-settings", async (_req, res) => {
+    try {
+      const settings = await db
+        .select()
+        .from(appSettings)
+        .where(eq(appSettings.key, "mobileApp"));
+
+      let mobileApp: Record<string, any> = {};
+      if (settings[0]?.value) {
+        try {
+          mobileApp = JSON.parse(settings[0].value);
+        } catch {
+          mobileApp = {};
+        }
+      }
+
+      res.json(successResponse({ mobileApp }));
+    } catch (error: any) {
+      console.error("Fetch public mobile app settings error:", error);
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to fetch mobile app settings"));
+    }
+  });
+
   // Get app settings
   app.get("/api/admin/app-settings", adminMiddleware, async (req: any, res) => {
     try {

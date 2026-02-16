@@ -52,6 +52,17 @@ const ChildProfile = lazy(() => import("@/pages/ChildProfile"));
 const ChildSettings = lazy(() => import("@/pages/ChildSettings"));
 const DownloadApp = lazy(() => import("@/pages/DownloadApp"));
 
+type PublicMobileAppSettings = {
+  appName?: string;
+  appIconUrl?: string;
+  pwaName?: string;
+  pwaShortName?: string;
+  pwaThemeColor?: string;
+  pwaBackgroundColor?: string;
+  pwaDisplayMode?: "standalone" | "fullscreen" | "minimal-ui" | "browser";
+  pwaStartUrl?: string;
+};
+
 function PageLoader() {
   const { t } = useTranslation();
   return (
@@ -309,8 +320,112 @@ function useSwipeBackGesture() {
   }, []);
 }
 
+function useMobileAppBranding() {
+  useEffect(() => {
+    let isMounted = true;
+    let manifestObjectUrl: string | null = null;
+
+    const ensureMeta = (name: string, content: string) => {
+      if (!content) return;
+      let meta = document.querySelector(`meta[name='${name}']`) as HTMLMetaElement | null;
+      if (!meta) {
+        meta = document.createElement("meta");
+        meta.setAttribute("name", name);
+        document.head.appendChild(meta);
+      }
+      meta.setAttribute("content", content);
+    };
+
+    const ensureLink = (
+      rel: string,
+      href: string,
+      id: string,
+      sizes?: string
+    ) => {
+      if (!href) return;
+      let link = document.getElementById(id) as HTMLLinkElement | null;
+      if (!link) {
+        link = document.createElement("link");
+        link.id = id;
+        link.rel = rel;
+        document.head.appendChild(link);
+      }
+      link.href = href;
+      if (sizes) {
+        link.setAttribute("sizes", sizes);
+      }
+    };
+
+    const applyBranding = (settings: PublicMobileAppSettings) => {
+      const appName = settings.pwaName || settings.appName || "Classify";
+      const shortName = settings.pwaShortName || appName;
+      const iconUrl = settings.appIconUrl || "/icons/icon-192.png";
+      const themeColor = settings.pwaThemeColor || "#6B4D9D";
+      const backgroundColor = settings.pwaBackgroundColor || "#ffffff";
+      const startUrl = settings.pwaStartUrl || "/";
+      const displayMode = settings.pwaDisplayMode || "standalone";
+
+      document.title = appName;
+      ensureMeta("theme-color", themeColor);
+      ensureMeta("apple-mobile-web-app-title", appName);
+      ensureMeta("application-name", appName);
+      ensureMeta("msapplication-TileColor", themeColor);
+      ensureMeta("msapplication-TileImage", iconUrl);
+
+      ensureLink("icon", iconUrl, "dynamic-favicon");
+      ensureLink("shortcut icon", iconUrl, "dynamic-shortcut-icon");
+      ensureLink("apple-touch-icon", iconUrl, "dynamic-apple-touch-icon", "180x180");
+
+      const manifestData = {
+        name: appName,
+        short_name: shortName,
+        start_url: startUrl,
+        display: displayMode,
+        theme_color: themeColor,
+        background_color: backgroundColor,
+        icons: [
+          { src: iconUrl, sizes: "192x192", type: "image/png", purpose: "any" },
+          { src: iconUrl, sizes: "512x512", type: "image/png", purpose: "any maskable" },
+        ],
+      };
+
+      const manifestBlob = new Blob([JSON.stringify(manifestData)], {
+        type: "application/manifest+json",
+      });
+
+      manifestObjectUrl = URL.createObjectURL(manifestBlob);
+      const manifestLink = document.querySelector("link[rel='manifest']") as HTMLLinkElement | null;
+      if (manifestLink) {
+        manifestLink.href = manifestObjectUrl;
+      }
+    };
+
+    const loadBranding = async () => {
+      try {
+        const response = await fetch("/api/public/mobile-app-settings");
+        if (!response.ok) return;
+        const json = await response.json();
+        const mobileApp = (json?.data?.mobileApp || {}) as PublicMobileAppSettings;
+        if (!isMounted) return;
+        applyBranding(mobileApp);
+      } catch {
+      }
+    };
+
+    loadBranding();
+
+    return () => {
+      isMounted = false;
+      if (manifestObjectUrl) {
+        URL.revokeObjectURL(manifestObjectUrl);
+      }
+    };
+  }, []);
+}
+
 function App() {
   useSwipeBackGesture();
+  useMobileAppBranding();
 
   return (
     <QueryClientProvider client={queryClient}>
