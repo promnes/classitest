@@ -1,4 +1,4 @@
-import { useState, lazy, Suspense } from "react";
+import { useEffect, useState, lazy, Suspense } from "react";
 import { Switch, Route, Redirect } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -255,7 +255,63 @@ function Router() {
   );
 }
 
+function useSwipeBackGesture() {
+  useEffect(() => {
+    let startX = 0;
+    let startY = 0;
+    let isTracking = false;
+
+    const isInteractiveElement = (target: EventTarget | null): boolean => {
+      if (!(target instanceof Element)) return false;
+      return Boolean(
+        target.closest(
+          "input, textarea, select, button, a, [contenteditable='true'], [data-swipe-ignore='true']"
+        )
+      );
+    };
+
+    const onTouchStart = (event: TouchEvent) => {
+      if (event.touches.length !== 1) return;
+      if (isInteractiveElement(event.target)) return;
+
+      const touch = event.touches[0];
+      startX = touch.clientX;
+      startY = touch.clientY;
+      isTracking = true;
+    };
+
+    const onTouchEnd = (event: TouchEvent) => {
+      if (!isTracking) return;
+      if (event.changedTouches.length !== 1) {
+        isTracking = false;
+        return;
+      }
+
+      const touch = event.changedTouches[0];
+      const deltaX = touch.clientX - startX;
+      const deltaY = touch.clientY - startY;
+
+      const isHorizontalSwipe = Math.abs(deltaX) > 70 && Math.abs(deltaX) > Math.abs(deltaY);
+      if (isHorizontalSwipe) {
+        window.history.back();
+      }
+
+      isTracking = false;
+    };
+
+    window.addEventListener("touchstart", onTouchStart, { passive: true });
+    window.addEventListener("touchend", onTouchEnd, { passive: true });
+
+    return () => {
+      window.removeEventListener("touchstart", onTouchStart);
+      window.removeEventListener("touchend", onTouchEnd);
+    };
+  }, []);
+}
+
 function App() {
+  useSwipeBackGesture();
+
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>

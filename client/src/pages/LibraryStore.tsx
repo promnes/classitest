@@ -25,9 +25,12 @@ interface Library {
 interface LibraryProduct {
   id: string;
   libraryId: string;
-  title: string;
+  title?: string;
+  name?: string;
+  nameAr?: string;
   description?: string;
   price: string;
+  image?: string;
   imageUrl?: string;
   stock: number;
   discountPercent?: number;
@@ -40,7 +43,23 @@ interface CartItem {
   quantity: number;
 }
 
-const CART_STORAGE_KEY = "library-store-cart";
+const CART_STORAGE_KEY = "parent-store-cart";
+
+const normalizeSharedCartProduct = (product: LibraryProduct): LibraryProduct => {
+  const resolvedName = product.title || product.nameAr || product.name || "منتج";
+  const resolvedImage = product.imageUrl || product.image;
+
+  return {
+    ...product,
+    title: resolvedName,
+    name: product.name || resolvedName,
+    nameAr: product.nameAr || resolvedName,
+    imageUrl: resolvedImage,
+    image: resolvedImage,
+    stock: typeof product.stock === "number" ? product.stock : 999,
+    price: String(product.price ?? "0"),
+  };
+};
 
 export default function LibraryStore() {
   const [, navigate] = useLocation();
@@ -58,6 +77,7 @@ export default function LibraryStore() {
   const [selectedProduct, setSelectedProduct] = useState<LibraryProduct | null>(null);
   const [showCart, setShowCart] = useState(false);
   const [showCheckout, setShowCheckout] = useState(false);
+  const [buyNowProduct, setBuyNowProduct] = useState<LibraryProduct | null>(null);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("");
   const [shippingAddress, setShippingAddress] = useState({
@@ -196,18 +216,33 @@ export default function LibraryStore() {
     }
   }, []);
 
-  useEffect(() => {
-    localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart));
-  }, [cart]);
-
   const cartItemsCount = useMemo(
     () => cart.reduce((sum, item) => sum + item.quantity, 0),
     [cart]
   );
 
+  useEffect(() => {
+    localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart));
+    window.dispatchEvent(
+      new CustomEvent("parent-store-cart-updated", { detail: { count: cartItemsCount } })
+    );
+  }, [cart, cartItemsCount]);
+
   const cartTotal = useMemo(
     () => cart.reduce((sum, item) => sum + parseFloat(item.product.price) * item.quantity, 0),
     [cart]
+  );
+
+  const checkoutItems = useMemo(() => {
+    if (buyNowProduct) {
+      return [{ product: normalizeSharedCartProduct(buyNowProduct), quantity: 1 }];
+    }
+    return cart;
+  }, [buyNowProduct, cart]);
+
+  const checkoutTotal = useMemo(
+    () => checkoutItems.reduce((sum, item) => sum + parseFloat(item.product.price) * item.quantity, 0),
+    [checkoutItems]
   );
 
   const isShippingAddressComplete = useMemo(() => {
@@ -221,7 +256,7 @@ export default function LibraryStore() {
   }, [shippingAddress]);
 
   const checkoutMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (variables: { isBuyNow: boolean }) => {
       const response = await fetch("/api/store/checkout", {
         method: "POST",
         headers: {
@@ -229,11 +264,12 @@ export default function LibraryStore() {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          items: cart.map((item) => ({ productId: item.product.id, quantity: item.quantity })),
+          items: checkoutItems.map((item) => ({ productId: item.product.id, quantity: item.quantity })),
           paymentMethodId: selectedPaymentMethod,
           shippingAddress,
-          totalAmount: cartTotal,
+          totalAmount: checkoutTotal,
           referralCode,
+          isBuyNow: variables.isBuyNow,
         }),
       });
 
@@ -243,10 +279,13 @@ export default function LibraryStore() {
       }
       return body;
     },
-    onSuccess: () => {
-      setCart([]);
+    onSuccess: (_data, variables) => {
+      if (!variables?.isBuyNow) {
+        setCart([]);
+      }
       setShowCheckout(false);
       setShowCart(false);
+      setBuyNowProduct(null);
       setSelectedPaymentMethod("");
       setShippingAddress({ name: "", line1: "", city: "", state: "", postalCode: "", country: "EG" });
       queryClient.invalidateQueries({ queryKey: ["library-store-wallet"] });
@@ -270,18 +309,32 @@ export default function LibraryStore() {
       alert("هذا المنتج غير متوفر حالياً");
       return;
     }
+    const normalizedProduct = normalizeSharedCartProduct(product);
     setCart((prev) => {
-      const existing = prev.find((item) => item.product.id === product.id);
+      const existing = prev.find((item) => item.product.id === normalizedProduct.id);
       if (existing) {
-        if (existing.quantity >= Number(product.stock || 0)) {
+        if (existing.quantity >= Number(normalizedProduct.stock || 0)) {
           return prev;
         }
         return prev.map((item) =>
-          item.product.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
+          item.product.id === normalizedProduct.id ? { ...item, quantity: item.quantity + 1 } : item
         );
       }
-      return [...prev, { product, quantity: 1 }];
+      return [...prev, { product: normalizedProduct, quantity: 1 }];
     });
+  };
+
+  const handleBuyNow = (product: LibraryProduct) => {
+    setBuyNowProduct(normalizeSharedCartProduct(product));
+    setShowCheckout(true);
+  };
+
+  const getProductTitle = (product: LibraryProduct) => {
+    return product.title || product.nameAr || product.name || "منتج";
+  };
+
+  const getProductImage = (product: LibraryProduct) => {
+    return product.imageUrl || product.image || "";
   };
 
   const updateQuantity = (productId: string, quantity: number) => {
@@ -297,7 +350,7 @@ export default function LibraryStore() {
   };
 
   const handleCheckout = () => {
-    if (!cart.length) {
+    if (!checkoutItems.length) {
       alert("السلة فارغة");
       return;
     }
@@ -309,7 +362,7 @@ export default function LibraryStore() {
       alert("يرجى استكمال بيانات عنوان الشحن");
       return;
     }
-    checkoutMutation.mutate();
+    checkoutMutation.mutate({ isBuyNow: !!buyNowProduct });
   };
 
   const openProductDetail = (product: LibraryProduct) => {
@@ -436,10 +489,10 @@ export default function LibraryStore() {
                 data-testid={`card-product-${product.id}`}
               >
                 <CardContent className="p-4">
-                  {product.imageUrl ? (
+                    {getProductImage(product) ? (
                     <img 
-                      src={product.imageUrl} 
-                      alt={product.title}
+                        src={getProductImage(product)} 
+                        alt={getProductTitle(product)}
                       className="w-full h-32 object-cover rounded-lg mb-3"
                     />
                   ) : (
@@ -449,7 +502,7 @@ export default function LibraryStore() {
                   )}
                   
                   <h3 className="font-semibold text-sm mb-1 line-clamp-2">
-                    {product.title}
+                    {getProductTitle(product)}
                   </h3>
                   
                   {product.library && (
@@ -469,6 +522,28 @@ export default function LibraryStore() {
                     <Package className="h-3 w-3" />
                     <span>متوفر: {product.stock}</span>
                   </div>
+
+                  <div className="mt-3 flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                    <Button
+                      className="flex-1"
+                      size="sm"
+                      data-testid={`button-add-cart-${product.id}`}
+                      onClick={() => addToCart(product)}
+                      disabled={Number(product.stock || 0) <= 0}
+                    >
+                      <ShoppingCart className="h-4 w-4 ml-1" />
+                      أضف للسلة
+                    </Button>
+                    <Button
+                      className="flex-1 bg-emerald-600 hover:bg-emerald-700"
+                      size="sm"
+                      data-testid={`button-buy-now-${product.id}`}
+                      onClick={() => handleBuyNow(product)}
+                      disabled={Number(product.stock || 0) <= 0}
+                    >
+                      شراء الآن
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             ))}
@@ -479,15 +554,15 @@ export default function LibraryStore() {
       <Dialog open={showProductDetail} onOpenChange={setShowProductDetail}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>{selectedProduct?.title}</DialogTitle>
+            <DialogTitle>{selectedProduct ? getProductTitle(selectedProduct) : ""}</DialogTitle>
           </DialogHeader>
           
           {selectedProduct && (
             <div className="space-y-4">
-              {selectedProduct.imageUrl ? (
+              {getProductImage(selectedProduct) ? (
                 <img 
-                  src={selectedProduct.imageUrl} 
-                  alt={selectedProduct.title}
+                  src={getProductImage(selectedProduct)} 
+                  alt={getProductTitle(selectedProduct)}
                   className="w-full h-48 object-cover rounded-lg"
                 />
               ) : (
@@ -527,20 +602,35 @@ export default function LibraryStore() {
                 </div>
               )}
               
-              <Button
-                className="w-full"
-                size="lg"
-                data-testid="button-add-to-cart"
-                onClick={() => {
-                  if (!selectedProduct) return;
-                  addToCart(selectedProduct);
-                  setShowProductDetail(false);
-                }}
-                disabled={Number(selectedProduct.stock || 0) <= 0}
-              >
-                <ShoppingCart className="h-5 w-5 ml-2" />
-                {Number(selectedProduct.stock || 0) <= 0 ? "غير متوفر" : "إضافة للسلة"}
-              </Button>
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  className="w-full"
+                  size="lg"
+                  data-testid="button-add-to-cart"
+                  onClick={() => {
+                    if (!selectedProduct) return;
+                    addToCart(selectedProduct);
+                    setShowProductDetail(false);
+                  }}
+                  disabled={Number(selectedProduct.stock || 0) <= 0}
+                >
+                  <ShoppingCart className="h-5 w-5 ml-2" />
+                  {Number(selectedProduct.stock || 0) <= 0 ? "غير متوفر" : "إضافة للسلة"}
+                </Button>
+                <Button
+                  className="w-full bg-emerald-600 hover:bg-emerald-700"
+                  size="lg"
+                  data-testid="button-buy-now"
+                  onClick={() => {
+                    if (!selectedProduct) return;
+                    handleBuyNow(selectedProduct);
+                    setShowProductDetail(false);
+                  }}
+                  disabled={Number(selectedProduct.stock || 0) <= 0}
+                >
+                  شراء الآن
+                </Button>
+              </div>
             </div>
           )}
         </DialogContent>
@@ -566,8 +656,8 @@ export default function LibraryStore() {
                 {cart.map((item) => (
                   <div key={item.product.id} className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg">
                     <div className="w-16 h-16 bg-gray-200 rounded-lg flex-shrink-0 overflow-hidden">
-                      {item.product.imageUrl ? (
-                        <img src={item.product.imageUrl} alt={item.product.title} className="w-full h-full object-cover" />
+                      {getProductImage(item.product) ? (
+                        <img src={getProductImage(item.product)} alt={getProductTitle(item.product)} className="w-full h-full object-cover" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center">
                           <Package className="w-6 h-6 text-gray-400" />
@@ -575,7 +665,7 @@ export default function LibraryStore() {
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h4 className="font-medium text-sm truncate">{item.product.title}</h4>
+                      <h4 className="font-medium text-sm truncate">{getProductTitle(item.product)}</h4>
                       <p className="text-orange-600 font-bold">{item.product.price} ج.م</p>
                     </div>
                     <div className="flex items-center gap-2">
@@ -588,7 +678,7 @@ export default function LibraryStore() {
                         variant="outline"
                         className="h-8 w-8 p-0"
                         onClick={() => updateQuantity(item.product.id, item.quantity + 1)}
-                        disabled={item.quantity >= Number(item.product.stock || 0)}
+                        disabled={Number(item.product.stock || 0) > 0 && item.quantity >= Number(item.product.stock || 0)}
                       >
                         <Plus className="w-3 h-3" />
                       </Button>
@@ -609,6 +699,7 @@ export default function LibraryStore() {
                   className="w-full bg-orange-500 hover:bg-orange-600"
                   onClick={() => {
                     setShowCart(false);
+                    setBuyNowProduct(null);
                     setShowCheckout(true);
                   }}
                   disabled={cart.length === 0}
@@ -622,12 +713,20 @@ export default function LibraryStore() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={showCheckout} onOpenChange={setShowCheckout}>
+      <Dialog
+        open={showCheckout}
+        onOpenChange={(open) => {
+          setShowCheckout(open);
+          if (!open) {
+            setBuyNowProduct(null);
+          }
+        }}
+      >
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <CreditCard className="w-5 h-5" />
-              إتمام الشراء من المكتبات
+              {buyNowProduct ? "شراء مباشر من المكتبات" : "إتمام الشراء من المكتبات"}
             </DialogTitle>
           </DialogHeader>
 
@@ -681,15 +780,15 @@ export default function LibraryStore() {
             <div className="bg-gray-50 p-4 rounded-lg">
               <h3 className="font-bold mb-3">ملخص الطلب</h3>
               <div className="space-y-2 text-sm">
-                {cart.map((item) => (
+                {checkoutItems.map((item) => (
                   <div key={item.product.id} className="flex justify-between">
-                    <span>{item.product.title} x{item.quantity}</span>
+                    <span>{getProductTitle(item.product)} x{item.quantity}</span>
                     <span>{(parseFloat(item.product.price) * item.quantity).toFixed(2)} ج.م</span>
                   </div>
                 ))}
                 <div className="border-t pt-2 mt-2 flex justify-between font-bold text-lg">
                   <span>المجموع:</span>
-                  <span className="text-orange-600">{cartTotal.toFixed(2)} ج.م</span>
+                  <span className="text-orange-600">{checkoutTotal.toFixed(2)} ج.م</span>
                 </div>
               </div>
             </div>
@@ -697,7 +796,7 @@ export default function LibraryStore() {
             <Button
               className="w-full bg-orange-500 hover:bg-orange-600 py-6 text-lg"
               onClick={handleCheckout}
-              disabled={checkoutMutation.isPending || !selectedPaymentMethod || !isShippingAddressComplete || cart.length === 0}
+              disabled={checkoutMutation.isPending || !selectedPaymentMethod || !isShippingAddressComplete || checkoutItems.length === 0}
             >
               {checkoutMutation.isPending ? (
                 <span className="flex items-center gap-2">

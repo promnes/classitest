@@ -55,6 +55,18 @@ interface CartItem {
   quantity: number;
 }
 
+const normalizeCartProduct = (raw: any): Product => {
+  return {
+    ...raw,
+    name: raw?.name || raw?.nameAr || raw?.title || "منتج",
+    nameAr: raw?.nameAr || raw?.name || raw?.title || "منتج",
+    image: raw?.image || raw?.imageUrl || undefined,
+    stock: typeof raw?.stock === "number" ? raw.stock : 999,
+    pointsPrice: typeof raw?.pointsPrice === "number" ? raw.pointsPrice : 0,
+    price: String(raw?.price ?? "0"),
+  };
+};
+
 const CART_STORAGE_KEY = "parent-store-cart";
 
 export const ParentStore = (): JSX.Element => {
@@ -75,6 +87,7 @@ export const ParentStore = (): JSX.Element => {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [showCart, setShowCart] = useState(false);
   const [showCheckout, setShowCheckout] = useState(false);
+  const [buyNowProduct, setBuyNowProduct] = useState<Product | null>(null);
   const [showAssign, setShowAssign] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [selectedChild, setSelectedChild] = useState("");
@@ -161,9 +174,12 @@ export const ParentStore = (): JSX.Element => {
       if (!res.ok) throw new Error("Checkout failed");
       return res.json();
     },
-    onSuccess: () => {
-      setCart([]);
+    onSuccess: (_data, variables: any) => {
+      if (!variables?.isBuyNow) {
+        setCart([]);
+      }
       setShowCheckout(false);
+      setBuyNowProduct(null);
       queryClient.invalidateQueries({ queryKey: ["parent-wallet"] });
       queryClient.invalidateQueries({ queryKey: ["parent-owned-products"] });
     },
@@ -210,13 +226,31 @@ export const ParentStore = (): JSX.Element => {
     cart.reduce((sum, item) => sum + parseFloat(item.product.price) * item.quantity, 0), [cart]
   );
 
+  const checkoutItems = useMemo(() => {
+    if (buyNowProduct) {
+      return [{ product: buyNowProduct, quantity: 1 }];
+    }
+    return cart;
+  }, [buyNowProduct, cart]);
+
+  const checkoutTotal = useMemo(
+    () => checkoutItems.reduce((sum, item) => sum + parseFloat(item.product.price) * item.quantity, 0),
+    [checkoutItems]
+  );
+
   useEffect(() => {
     try {
       const storedCart = localStorage.getItem(CART_STORAGE_KEY);
       if (!storedCart) return;
       const parsed = JSON.parse(storedCart);
       if (Array.isArray(parsed)) {
-        setCart(parsed);
+        const normalized = parsed
+          .filter((item: any) => item?.product)
+          .map((item: any) => ({
+            product: normalizeCartProduct(item.product),
+            quantity: Math.max(1, Number(item.quantity || 1)),
+          }));
+        setCart(normalized);
       }
     } catch {
       localStorage.removeItem(CART_STORAGE_KEY);
@@ -244,6 +278,11 @@ export const ParentStore = (): JSX.Element => {
     });
   };
 
+  const handleBuyNow = (product: Product) => {
+    setBuyNowProduct(product);
+    setShowCheckout(true);
+  };
+
   const removeFromCart = (productId: string) => {
     setCart(prev => prev.filter(item => item.product.id !== productId));
   };
@@ -260,11 +299,12 @@ export const ParentStore = (): JSX.Element => {
 
   const handleCheckout = () => {
     checkoutMutation.mutate({
-      items: cart.map(item => ({ productId: item.product.id, quantity: item.quantity })),
+      items: checkoutItems.map(item => ({ productId: item.product.id, quantity: item.quantity })),
       paymentMethodId: selectedPaymentMethod,
       shippingAddress,
-      totalAmount: cartTotal,
+      totalAmount: checkoutTotal,
       referralCode,
+      isBuyNow: !!buyNowProduct,
     });
   };
 
@@ -571,7 +611,10 @@ export const ParentStore = (): JSX.Element => {
                   </div>
                   <Button
                     className="w-full bg-orange-500 hover:bg-orange-600"
-                    onClick={() => setShowCheckout(true)}
+                    onClick={() => {
+                      setBuyNowProduct(null);
+                      setShowCheckout(true);
+                    }}
                     disabled={cart.length === 0}
                   >
                     <CreditCard className="w-4 h-4 ml-2" />
@@ -696,14 +739,24 @@ export const ParentStore = (): JSX.Element => {
                           <p className="text-xs text-gray-400 line-through">{product.originalPrice} ج.م</p>
                         )}
                       </div>
-                      <Button 
-                        size="sm" 
-                        className="bg-orange-500 hover:bg-orange-600 h-8 w-8 p-0"
-                        onClick={(e) => { e.stopPropagation(); addToCart(product); }}
-                        data-testid={`button-add-cart-${product.id}`}
-                      >
-                        <Plus className="w-4 h-4" />
-                      </Button>
+                      <div className="flex items-center gap-1">
+                        <Button 
+                          size="sm" 
+                          className="bg-orange-500 hover:bg-orange-600 h-8 w-8 p-0"
+                          onClick={(e) => { e.stopPropagation(); addToCart(product); }}
+                          data-testid={`button-add-cart-${product.id}`}
+                        >
+                          <Plus className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          className="bg-emerald-600 hover:bg-emerald-700 h-8 px-2 text-xs"
+                          onClick={(e) => { e.stopPropagation(); handleBuyNow(product); }}
+                          data-testid={`button-buy-now-${product.id}`}
+                        >
+                          شراء الآن
+                        </Button>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
@@ -797,22 +850,32 @@ export const ParentStore = (): JSX.Element => {
                         {renderStars(product.rating)}
                         <span className="text-xs text-gray-400">({product.reviewCount || 0})</span>
                       </div>
-                      <div className="flex items-center justify-between">
+                      <div className="flex items-center justify-between gap-2">
                         <div>
                           <p className={`font-bold text-lg ${isDark ? "text-orange-400" : "text-orange-600"}`}>{product.price} ج.م</p>
                           {product.originalPrice && (
                             <p className="text-xs text-gray-400 line-through">{product.originalPrice} ج.م</p>
                           )}
                         </div>
-                        <Button 
-                          size="sm" 
-                          className="bg-orange-500 hover:bg-orange-600"
-                          onClick={(e) => { e.stopPropagation(); addToCart(product); }}
-                          data-testid={`button-add-cart-${product.id}`}
-                        >
-                          <ShoppingCart className="w-4 h-4 ml-1" />
-                          أضف
-                        </Button>
+                        <div className="flex items-center gap-1">
+                          <Button 
+                            size="sm" 
+                            className="bg-orange-500 hover:bg-orange-600"
+                            onClick={(e) => { e.stopPropagation(); addToCart(product); }}
+                            data-testid={`button-add-cart-${product.id}`}
+                          >
+                            <ShoppingCart className="w-4 h-4 ml-1" />
+                            أضف
+                          </Button>
+                          <Button
+                            size="sm"
+                            className="bg-emerald-600 hover:bg-emerald-700"
+                            onClick={(e) => { e.stopPropagation(); handleBuyNow(product); }}
+                            data-testid={`button-buy-now-${product.id}`}
+                          >
+                            شراء الآن
+                          </Button>
+                        </div>
                       </div>
                       <div className={`mt-2 pt-2 border-t ${isDark ? "border-gray-700" : ""}`}>
                         <p className={`text-xs flex items-center gap-1 ${isDark ? "text-gray-400" : "text-gray-500"}`}>
@@ -866,18 +929,28 @@ export const ParentStore = (): JSX.Element => {
                           <span className="text-xs text-gray-400">({product.reviewCount || 0} تقييم)</span>
                         </div>
                       </div>
-                      <div className="flex items-center justify-between mt-4">
+                      <div className="flex items-center justify-between mt-4 gap-2">
                         <div>
                           <p className={`text-xl font-bold ${isDark ? "text-orange-400" : "text-orange-600"}`}>{product.price} ج.م</p>
                           <p className={`text-xs ${isDark ? "text-gray-400" : "text-gray-500"}`}>النقاط المطلوبة: {product.pointsPrice}</p>
                         </div>
-                        <Button 
-                          className="bg-orange-500 hover:bg-orange-600"
-                          onClick={(e) => { e.stopPropagation(); addToCart(product); }}
-                        >
-                          <ShoppingCart className="w-4 h-4 ml-2" />
-                          أضف للسلة
-                        </Button>
+                        <div className="flex items-center gap-2">
+                          <Button 
+                            className="bg-orange-500 hover:bg-orange-600"
+                            onClick={(e) => { e.stopPropagation(); addToCart(product); }}
+                            data-testid={`button-add-cart-list-${product.id}`}
+                          >
+                            <ShoppingCart className="w-4 h-4 ml-2" />
+                            أضف للسلة
+                          </Button>
+                          <Button
+                            className="bg-emerald-600 hover:bg-emerald-700"
+                            onClick={(e) => { e.stopPropagation(); handleBuyNow(product); }}
+                            data-testid={`button-buy-now-list-${product.id}`}
+                          >
+                            شراء الآن
+                          </Button>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
@@ -960,7 +1033,11 @@ export const ParentStore = (): JSX.Element => {
                 </div>
                 <Button 
                   className="w-full bg-orange-500 hover:bg-orange-600"
-                  onClick={() => { setShowCart(false); setShowCheckout(true); }}
+                  onClick={() => {
+                    setShowCart(false);
+                    setBuyNowProduct(null);
+                    setShowCheckout(true);
+                  }}
                   data-testid="button-proceed-checkout"
                 >
                   <CreditCard className="w-4 h-4 ml-2" />
@@ -972,12 +1049,20 @@ export const ParentStore = (): JSX.Element => {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={showCheckout} onOpenChange={setShowCheckout}>
+      <Dialog
+        open={showCheckout}
+        onOpenChange={(open) => {
+          setShowCheckout(open);
+          if (!open) {
+            setBuyNowProduct(null);
+          }
+        }}
+      >
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <CreditCard className="w-5 h-5" />
-              إتمام الشراء
+              {buyNowProduct ? "شراء مباشر" : "إتمام الشراء"}
             </DialogTitle>
           </DialogHeader>
 
@@ -1070,7 +1155,7 @@ export const ParentStore = (): JSX.Element => {
             <div className="bg-gray-50 p-4 rounded-lg">
               <h3 className="font-bold mb-3">ملخص الطلب</h3>
               <div className="space-y-2 text-sm">
-                {cart.map(item => (
+                {checkoutItems.map(item => (
                   <div key={item.product.id} className="flex justify-between">
                     <span>{item.product.nameAr || item.product.name} x{item.quantity}</span>
                     <span>{(parseFloat(item.product.price) * item.quantity).toFixed(2)} ج.م</span>
@@ -1078,7 +1163,7 @@ export const ParentStore = (): JSX.Element => {
                 ))}
                 <div className="border-t pt-2 mt-2 flex justify-between font-bold text-lg">
                   <span>المجموع:</span>
-                  <span className="text-orange-600">{cartTotal.toFixed(2)} ج.م</span>
+                  <span className="text-orange-600">{checkoutTotal.toFixed(2)} ج.م</span>
                 </div>
               </div>
             </div>
