@@ -11,7 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
-import { Plus, Edit, Trash2, Store, MapPin, Link, Settings, Copy, Eye, Package, Users, CheckCircle2, XCircle, Wallet } from "lucide-react";
+import { Plus, Edit, Trash2, Store, MapPin, Link, Settings, Copy, Eye, Package, Users, CheckCircle2, XCircle, Wallet, Bell, Moon } from "lucide-react";
 
 interface Library {
   id: string;
@@ -94,6 +94,18 @@ export default function LibrariesTab() {
       if (!res.ok) throw new Error("Failed to fetch");
       const data = await res.json();
       return data.data;
+    },
+  });
+
+  const { data: libraryStoreSettings } = useQuery({
+    queryKey: ["admin-library-store-settings"],
+    queryFn: async () => {
+      const res = await fetch("/api/admin/app-settings", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error("Failed to fetch");
+      const data = await res.json();
+      return data.data?.libraryStore || { showThemeToggle: true, showNotifications: true };
     },
   });
 
@@ -212,6 +224,30 @@ export default function LibrariesTab() {
     },
     onError: () => {
       toast({ title: "فشل تحديث الإعدادات", variant: "destructive" });
+    },
+  });
+
+  const updateLibraryStoreSettingsMutation = useMutation({
+    mutationFn: async (data: Record<string, any>) => {
+      const currentSettings = libraryStoreSettings || { showThemeToggle: true, showNotifications: true };
+      const merged = { ...currentSettings, ...data };
+      const res = await fetch("/api/admin/app-settings", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ libraryStore: merged }),
+      });
+      if (!res.ok) throw new Error("Failed");
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({ title: "تم تحديث إعدادات المتجر" });
+      queryClient.invalidateQueries({ queryKey: ["admin-library-store-settings"] });
+    },
+    onError: () => {
+      toast({ title: "فشل تحديث إعدادات المتجر", variant: "destructive" });
     },
   });
 
@@ -822,12 +858,46 @@ export default function LibrariesTab() {
       </Dialog>
 
       <Dialog open={showSettingsModal} onOpenChange={setShowSettingsModal}>
-        <DialogContent>
+        <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>إعدادات إحالات المكتبات</DialogTitle>
+            <DialogTitle>إعدادات المكتبات</DialogTitle>
           </DialogHeader>
-          {referralSettings && (
+          <div className="space-y-6">
+            {/* Library Store UI Settings */}
             <div className="space-y-4">
+              <h4 className="font-bold text-sm flex items-center gap-2">
+                <Store className="h-4 w-4" />
+                إعدادات واجهة متجر المكتبات
+              </h4>
+              <div className="flex items-center justify-between p-3 rounded-lg border">
+                <div className="flex items-center gap-2">
+                  <Moon className="h-4 w-4 text-purple-500" />
+                  <Label>إظهار زر تبديل الثيم</Label>
+                </div>
+                <Switch
+                  checked={libraryStoreSettings?.showThemeToggle !== false}
+                  onCheckedChange={(checked) => updateLibraryStoreSettingsMutation.mutate({ showThemeToggle: checked })}
+                />
+              </div>
+              <div className="flex items-center justify-between p-3 rounded-lg border">
+                <div className="flex items-center gap-2">
+                  <Bell className="h-4 w-4 text-orange-500" />
+                  <Label>إظهار أيقونة الإشعارات</Label>
+                </div>
+                <Switch
+                  checked={libraryStoreSettings?.showNotifications !== false}
+                  onCheckedChange={(checked) => updateLibraryStoreSettingsMutation.mutate({ showNotifications: checked })}
+                />
+              </div>
+            </div>
+
+            {/* Referral Settings */}
+            {referralSettings && (
+              <div className="space-y-4 border-t pt-4">
+                <h4 className="font-bold text-sm flex items-center gap-2">
+                  <Link className="h-4 w-4" />
+                  إعدادات الإحالات
+                </h4>
               <div>
                 <Label>نقاط لكل إحالة</Label>
                 <Input
@@ -859,8 +929,9 @@ export default function LibrariesTab() {
                 />
                 <Label>تفعيل نظام الإحالات</Label>
               </div>
-            </div>
-          )}
+              </div>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
     </div>

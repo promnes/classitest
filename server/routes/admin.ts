@@ -603,6 +603,32 @@ export async function registerAdminRoutes(app: Express) {
     }
   });
 
+  // Public library store settings (theme toggle, notifications visibility)
+  app.get("/api/public/library-store-settings", async (_req, res) => {
+    try {
+      const settings = await db
+        .select()
+        .from(appSettings)
+        .where(eq(appSettings.key, "libraryStore"));
+
+      let libraryStore: Record<string, any> = { showThemeToggle: true, showNotifications: true };
+      if (settings[0]?.value) {
+        try {
+          libraryStore = JSON.parse(settings[0].value);
+        } catch {
+          // keep defaults
+        }
+      }
+
+      res.json(successResponse(libraryStore));
+    } catch (error: any) {
+      console.error("Fetch public library store settings error:", error);
+      res
+        .status(500)
+        .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to fetch library store settings"));
+    }
+  });
+
   // Get app settings
   app.get("/api/admin/app-settings", adminMiddleware, async (req: any, res) => {
     try {

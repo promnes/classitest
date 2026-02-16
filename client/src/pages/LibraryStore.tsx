@@ -1,13 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "wouter";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Store, Star, Package, Search, Filter, ShoppingCart, BookOpen, Plus, Minus, X, CreditCard, MapPin, Check } from "lucide-react";
+import { ArrowLeft, Store, Star, Package, Search, Filter, ShoppingCart, BookOpen, Plus, Minus, X, CreditCard, MapPin, Check, Bell, Moon, Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useTheme } from "@/contexts/ThemeContext";
+import { authenticatedFetch } from "@/lib/queryClient";
 
 interface Library {
   id: string;
@@ -64,7 +65,7 @@ const normalizeSharedCartProduct = (product: LibraryProduct): LibraryProduct => 
 export default function LibraryStore() {
   const [, navigate] = useLocation();
   const queryClient = useQueryClient();
-  const { isDark } = useTheme();
+  const { isDark, toggleTheme } = useTheme();
   const token = localStorage.getItem("token");
   const referralCode = useMemo(() => {
     const ref = new URLSearchParams(window.location.search).get("ref")?.trim();
@@ -88,6 +89,26 @@ export default function LibraryStore() {
     postalCode: "",
     country: "EG",
   });
+
+  const { data: libraryStoreSettings } = useQuery({
+    queryKey: ["library-store-settings"],
+    queryFn: async () => {
+      const res = await fetch("/api/public/library-store-settings");
+      if (!res.ok) return { showThemeToggle: true, showNotifications: true };
+      const json = await res.json();
+      return json?.data || { showThemeToggle: true, showNotifications: true };
+    },
+  });
+
+  const { data: unreadNotificationsData } = useQuery<{ count: number }>({
+    queryKey: ["/api/parent/notifications/unread-count"],
+    queryFn: () => authenticatedFetch<{ count: number }>("/api/parent/notifications/unread-count"),
+    enabled: !!token,
+  });
+
+  const unreadNotifications = typeof unreadNotificationsData?.count === "number"
+    ? unreadNotificationsData.count
+    : 0;
 
   const { data: referralLibraryData } = useQuery({
     queryKey: ["library-by-referral", referralCode],
@@ -394,6 +415,29 @@ export default function LibraryStore() {
             <div className="flex items-center gap-2">
               <BookOpen className="h-6 w-6 text-blue-600" />
               <h1 className="text-xl font-bold">متجر المكتبات</h1>
+            </div>
+            <div className="flex items-center gap-1 mr-auto">
+              {libraryStoreSettings?.showNotifications !== false && token && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => navigate("/notifications")}
+                  className="relative"
+                  data-testid="button-notifications"
+                >
+                  <Bell className="h-5 w-5" />
+                  {unreadNotifications > 0 && (
+                    <span className="absolute -top-1 -right-1 h-5 w-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
+                      {unreadNotifications > 9 ? "9+" : unreadNotifications}
+                    </span>
+                  )}
+                </Button>
+              )}
+              {libraryStoreSettings?.showThemeToggle !== false && (
+                <Button variant="ghost" size="icon" onClick={toggleTheme} data-testid="button-theme-toggle">
+                  {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+                </Button>
+              )}
             </div>
             <Button
               variant="outline"
