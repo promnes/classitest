@@ -18,6 +18,8 @@ import {
   schoolActivityLogs,
   parents,
   children,
+  templateTasks,
+  subjects,
 } from "../../shared/schema";
 import { eq, desc, and, sql, lte } from "drizzle-orm";
 import jwt from "jsonwebtoken";
@@ -241,11 +243,12 @@ export async function registerTeacherRoutes(app: Express) {
   app.put("/api/teacher/profile", teacherMiddleware, async (req: TeacherRequest, res) => {
     try {
       const teacherId = req.teacher!.teacherId;
-      const { name, avatarUrl, birthday, bio, subject, yearsExperience, socialLinks } = req.body;
+      const { name, avatarUrl, coverImageUrl, birthday, bio, subject, yearsExperience, socialLinks } = req.body;
 
       const updates: any = { updatedAt: new Date() };
       if (name) updates.name = name;
       if (avatarUrl !== undefined) updates.avatarUrl = avatarUrl;
+      if (coverImageUrl !== undefined) updates.coverImageUrl = coverImageUrl;
       if (birthday !== undefined) updates.birthday = birthday;
       if (bio !== undefined) updates.bio = bio;
       if (subject !== undefined) updates.subject = subject;
@@ -492,7 +495,7 @@ export async function registerTeacherRoutes(app: Express) {
   app.post("/api/teacher/tasks", teacherMiddleware, async (req: TeacherRequest, res) => {
     try {
       const teacherId = req.teacher!.teacherId;
-      const { title, question, answers, imageUrl, gifUrl, subjectLabel, pointsReward, price } = req.body;
+      const { title, question, answers, imageUrl, gifUrl, videoUrl, coverImageUrl, subjectLabel, pointsReward, price } = req.body;
 
       if (!title || !question || !answers || !price) {
         return res.status(400).json({ message: "العنوان والسؤال والإجابات والسعر مطلوبة" });
@@ -514,6 +517,8 @@ export async function registerTeacherRoutes(app: Express) {
         answers,
         imageUrl: imageUrl || null,
         gifUrl: gifUrl || null,
+        videoUrl: videoUrl || null,
+        coverImageUrl: coverImageUrl || null,
         subjectLabel: subjectLabel || null,
         pointsReward: pointsReward || 10,
         price: String(price),
@@ -536,7 +541,7 @@ export async function registerTeacherRoutes(app: Express) {
     try {
       const teacherId = req.teacher!.teacherId;
       const { id } = req.params;
-      const { title, question, answers, imageUrl, gifUrl, subjectLabel, pointsReward, price, isActive, isPublic } = req.body;
+      const { title, question, answers, imageUrl, gifUrl, videoUrl, coverImageUrl, subjectLabel, pointsReward, price, isActive, isPublic } = req.body;
 
       const task = await db.select().from(teacherTasks)
         .where(and(eq(teacherTasks.id, id), eq(teacherTasks.teacherId, teacherId)));
@@ -551,6 +556,8 @@ export async function registerTeacherRoutes(app: Express) {
       if (answers) updates.answers = answers;
       if (imageUrl !== undefined) updates.imageUrl = imageUrl;
       if (gifUrl !== undefined) updates.gifUrl = gifUrl;
+      if (videoUrl !== undefined) updates.videoUrl = videoUrl;
+      if (coverImageUrl !== undefined) updates.coverImageUrl = coverImageUrl;
       if (subjectLabel !== undefined) updates.subjectLabel = subjectLabel;
       if (pointsReward !== undefined) updates.pointsReward = pointsReward;
       if (price !== undefined) updates.price = String(price);
@@ -1114,6 +1121,84 @@ export async function registerTeacherRoutes(app: Express) {
     } catch (error: any) {
       console.error("Hire teacher error:", error);
       res.status(500).json({ message: "Failed to hire teacher" });
+    }
+  });
+
+  // ===== Template Tasks for Teachers =====
+
+  // Get all active subjects
+  app.get("/api/teacher/subjects", teacherMiddleware, async (req: TeacherRequest, res) => {
+    try {
+      const result = await db.select().from(subjects).where(eq(subjects.isActive, true)).orderBy(subjects.name);
+      res.json({ success: true, data: result });
+    } catch (error: any) {
+      console.error("Fetch subjects error:", error);
+      res.status(500).json({ message: "Failed to fetch subjects" });
+    }
+  });
+
+  // Get template tasks for a subject (admin-created templates for teachers to use)
+  app.get("/api/teacher/subjects/:subjectId/templates", teacherMiddleware, async (req: TeacherRequest, res) => {
+    try {
+      const { subjectId } = req.params;
+      const result = await db.select().from(templateTasks)
+        .where(and(
+          eq(templateTasks.subjectId, subjectId),
+          eq(templateTasks.isActive, true),
+          eq(templateTasks.createdByParent, false),
+        ))
+        .orderBy(desc(templateTasks.createdAt));
+      res.json({ success: true, data: result });
+    } catch (error: any) {
+      console.error("Fetch teacher template tasks error:", error);
+      res.status(500).json({ message: "Failed to fetch template tasks" });
+    }
+  });
+
+  // Create task from template (teacher version)
+  app.post("/api/teacher/create-task-from-template", teacherMiddleware, async (req: TeacherRequest, res) => {
+    try {
+      const teacherId = req.teacher!.teacherId;
+      const { templateId, price, title, pointsReward } = req.body;
+
+      if (!templateId || !price) {
+        return res.status(400).json({ message: "القالب والسعر مطلوبان" });
+      }
+
+      // Get template
+      const template = await db.select().from(templateTasks).where(eq(templateTasks.id, templateId));
+      if (!template[0]) {
+        return res.status(404).json({ message: "القالب غير موجود" });
+      }
+
+      // Get subject info for label
+      const subjectInfo = await db.select().from(subjects).where(eq(subjects.id, template[0].subjectId));
+
+      const task = await db.insert(teacherTasks).values({
+        teacherId,
+        title: title || template[0].title || template[0].question.substring(0, 60),
+        question: template[0].question,
+        answers: template[0].answers,
+        subjectLabel: subjectInfo[0]?.name || null,
+        pointsReward: pointsReward || template[0].pointsReward,
+        price: String(price),
+      }).returning();
+
+      // Update teacher activity score
+      await db.update(schoolTeachers).set({
+        activityScore: sql`${schoolTeachers.activityScore} + 3`,
+        updatedAt: new Date(),
+      }).where(eq(schoolTeachers.id, teacherId));
+
+      // Increment template usage count
+      await db.update(templateTasks).set({
+        usageCount: sql`${templateTasks.usageCount} + 1`,
+      }).where(eq(templateTasks.id, templateId));
+
+      res.json({ success: true, data: task[0] });
+    } catch (error: any) {
+      console.error("Create teacher task from template error:", error);
+      res.status(500).json({ message: "Failed to create task from template" });
     }
   });
 }
