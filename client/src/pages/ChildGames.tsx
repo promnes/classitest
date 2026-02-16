@@ -7,7 +7,7 @@ import { LanguageSelector } from "@/components/LanguageSelector";
 import { GrowthTree } from "@/components/GrowthTree";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useChildAuth } from "@/hooks/useChildAuth";
-import { Gamepad2, Star, Gift, Bell, ShoppingBag, X, Trophy, Play, BookOpen, TrendingUp, LogOut, TreePine, Settings, User } from "lucide-react";
+import { Gamepad2, Star, Gift, Bell, ShoppingBag, X, Trophy, Play, BookOpen, TrendingUp, LogOut, TreePine, Settings, User, Loader2 } from "lucide-react";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -26,7 +26,7 @@ export const ChildGames = (): JSX.Element => {
   const { t, i18n } = useTranslation();
   const [, navigate] = useLocation();
   const { isDark } = useTheme();
-  const { logout, isLoggingOut } = useChildAuth();
+  const { logout, isLoggingOut, handleAuthError } = useChildAuth();
   const token = localStorage.getItem("childToken");
   const queryClient = useQueryClient();
   const [selectedGame, setSelectedGame] = useState<Game | null>(null);
@@ -57,17 +57,35 @@ export const ChildGames = (): JSX.Element => {
     refetchInterval: token ? 15000 : false,
   });
 
-  const { data: childInfo } = useQuery({
+  const { data: childInfo, isLoading: isChildInfoLoading } = useQuery({
     queryKey: ["child-info"],
     queryFn: async () => {
       const res = await fetch("/api/child/info", {
         headers: { Authorization: `Bearer ${token}` },
       });
+      if (res.status === 401) {
+        handleAuthError();
+        throw new Error("Unauthorized");
+      }
+      if (!res.ok) {
+        throw new Error("Failed to load child info");
+      }
       return res.json();
     },
     enabled: !!token,
     refetchInterval: token ? 30000 : false,
   });
+
+  if (!token || isChildInfoLoading) {
+    return (
+      <div className={`min-h-screen flex items-center justify-center ${isDark ? "bg-gray-900" : "bg-gray-100"}`}>
+        <div className="text-center">
+          <Loader2 className={`w-10 h-10 animate-spin mx-auto mb-3 ${isDark ? "text-purple-300" : "text-purple-600"}`} />
+          <p className={isDark ? "text-gray-300" : "text-gray-600"}>{t("loading") || "جاري التحقق..."}</p>
+        </div>
+      </div>
+    );
+  }
 
   // Listen for game completion messages from iframe
   useEffect(() => {

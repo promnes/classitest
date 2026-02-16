@@ -70,6 +70,7 @@ export const ChildLink = (): JSX.Element => {
   
   // Login request state
   const [loginRequestId, setLoginRequestId] = useState<string | null>(null);
+  const [loginRequestKey, setLoginRequestKey] = useState<string | null>(null);
   const [loginStatus, setLoginStatus] = useState<"pending" | "approved" | "rejected" | "expired">("pending");
   const [pollingInterval, setPollingIntervalId] = useState<NodeJS.Timeout | null>(null);
   
@@ -172,11 +173,13 @@ export const ChildLink = (): JSX.Element => {
     },
     onSuccess: (response) => {
       const requestId = response.data?.requestId;
-      if (requestId) {
+      const requestKey = response.data?.requestKey;
+      if (requestId && requestKey) {
         setLoginRequestId(requestId);
+        setLoginRequestKey(requestKey);
         setLoginStatus("pending");
         setStep("waiting_approval");
-        startPolling(requestId);
+        startPolling(requestId, requestKey);
       }
     },
     onError: (error: any) => {
@@ -185,7 +188,7 @@ export const ChildLink = (): JSX.Element => {
   });
 
   // Start polling for login request status
-  const startPolling = (requestId: string) => {
+  const startPolling = (requestId: string, requestKey: string) => {
     // Clear any existing interval
     if (pollingInterval) {
       clearInterval(pollingInterval);
@@ -193,7 +196,7 @@ export const ChildLink = (): JSX.Element => {
 
     const interval = setInterval(async () => {
       try {
-        const res = await fetch(`/api/child/login-request/${requestId}/status`);
+        const res = await fetch(`/api/child/login-request/${requestId}/status?key=${encodeURIComponent(requestKey)}`);
         if (!res.ok) {
           clearInterval(interval);
           setLoginStatus("expired");
@@ -273,6 +276,7 @@ export const ChildLink = (): JSX.Element => {
       clearInterval(pollingInterval);
     }
     setLoginRequestId(null);
+    setLoginRequestKey(null);
     setLoginStatus("pending");
     setStep("name_entry");
   };

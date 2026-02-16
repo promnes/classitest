@@ -41,6 +41,7 @@ import crypto from "crypto";
 import { eq, and, or, desc, sql } from "drizzle-orm";
 import jwt from "jsonwebtoken";
 import { authMiddleware, JWT_SECRET } from "./middleware";
+import { childLinkLimiter, childLoginRequestLimiter, childLoginStatusLimiter } from "../utils/rateLimiters";
 import { emitGiftEvent } from "../giftEvents";
 import { unlockEligibleGifts } from "../giftUnlock";
 import { createNotification } from "../notifications";
@@ -48,6 +49,21 @@ import { applyPointsDelta } from "../services/pointsService";
 import { getVapidPublicKey } from "../services/webPushService";
 
 const db = storage.db;
+
+function buildChildLoginRequestKey(requestId: string): string {
+  return crypto
+    .createHmac("sha256", JWT_SECRET)
+    .update(`child-login:${requestId}`)
+    .digest("hex");
+}
+
+function isValidRequestKey(requestId: string, providedKey: string): boolean {
+  const expected = buildChildLoginRequestKey(requestId);
+  if (!providedKey || providedKey.length !== expected.length) {
+    return false;
+  }
+  return crypto.timingSafeEqual(Buffer.from(providedKey), Buffer.from(expected));
+}
 
 // Helper function to normalize answers - ensures each answer has a DETERMINISTIC id
 // Uses hash of answer text + index to generate consistent IDs across calls
@@ -177,7 +193,7 @@ interface GoalProgress {
 
 export async function registerChildRoutes(app: Express) {
   // Link Child (from QR Code)
-  app.post("/api/child/link", async (req, res) => {
+  app.post("/api/child/link", childLinkLimiter, async (req, res) => {
     try {
       const { childName, code } = req.body;
 
@@ -1976,7 +1992,7 @@ export async function registerChildRoutes(app: Express) {
   // ===== Child Login Request Flow (طلب تسجيل دخول الطفل مع موافقة الوالد) =====
 
   // Step 1: Child requests login - creates request and notifies parent
-  app.post("/api/child/login-request", async (req, res) => {
+  app.post("/api/child/login-request", childLoginRequestLimiter, async (req, res) => {
     try {
       const { childName, parentCode, deviceId } = req.body;
 
@@ -2021,6 +2037,8 @@ export async function registerChildRoutes(app: Express) {
         expiresAt,
       }).returning();
 
+      const requestKey = buildChildLoginRequestKey(loginRequest[0].id);
+
       // Notify parent
       await createNotification({
         parentId: parent[0].id,
@@ -2041,6 +2059,7 @@ export async function registerChildRoutes(app: Express) {
 
       res.json(successResponse({
         requestId: loginRequest[0].id,
+        requestKey,
         status: "pending",
         expiresAt,
         message: "تم إرسال طلب الدخول للوالد. انتظر الموافقة.",
@@ -2053,9 +2072,18 @@ export async function registerChildRoutes(app: Express) {
   });
 
   // Step 2: Child polls for login request status
-  app.get("/api/child/login-request/:id/status", async (req, res) => {
+  app.get("/api/child/login-request/:id/status", childLoginStatusLimiter, async (req, res) => {
     try {
       const { id } = req.params;
+      const providedKey = (req.query.key || req.headers["x-login-key"] || "").toString();
+
+      if (!providedKey) {
+        return res.status(401).json(errorResponse(ErrorCode.UNAUTHORIZED, "Missing request key"));
+      }
+
+      if (!isValidRequestKey(id, providedKey)) {
+        return res.status(401).json(errorResponse(ErrorCode.UNAUTHORIZED, "Invalid request key"));
+      }
 
       const request = await db.select().from(childLoginRequests).where(eq(childLoginRequests.id, id));
       
