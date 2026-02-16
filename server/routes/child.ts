@@ -2026,6 +2026,27 @@ export async function registerChildRoutes(app: Express) {
       const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
       const generatedDeviceId = deviceId || crypto.randomUUID();
 
+      // Reuse an existing pending request for same child/device to avoid notification spam
+      const existingPending = await db.select().from(childLoginRequests).where(
+        and(
+          eq(childLoginRequests.childId, matchedChild.child.id),
+          eq(childLoginRequests.parentId, parent[0].id),
+          eq(childLoginRequests.deviceId, generatedDeviceId),
+          eq(childLoginRequests.status, "pending")
+        )
+      ).orderBy(desc(childLoginRequests.createdAt)).limit(1);
+
+      if (existingPending[0] && existingPending[0].expiresAt > new Date()) {
+        const requestKey = buildChildLoginRequestKey(existingPending[0].id);
+        return res.json(successResponse({
+          requestId: existingPending[0].id,
+          requestKey,
+          status: "pending",
+          expiresAt: existingPending[0].expiresAt,
+          message: "يوجد طلب دخول معلق بالفعل. انتظر موافقة الوالد.",
+        }, "Existing login request reused"));
+      }
+
       const loginRequest = await db.insert(childLoginRequests).values({
         childId: matchedChild.child.id,
         parentId: parent[0].id,
@@ -2116,9 +2137,19 @@ export async function registerChildRoutes(app: Express) {
 
       // If approved, return the token
       if (loginRequest.status === "approved" && loginRequest.sessionToken) {
+        const token = loginRequest.sessionToken;
+
+        // One-time token delivery: consume request after first successful read
+        await db.update(childLoginRequests)
+          .set({
+            status: "expired",
+            sessionToken: null,
+          })
+          .where(eq(childLoginRequests.id, id));
+
         return res.json(successResponse({
           status: "approved",
-          token: loginRequest.sessionToken,
+          token,
           message: "تمت الموافقة! جاري تسجيل الدخول...",
         }, "Login approved"));
       }
