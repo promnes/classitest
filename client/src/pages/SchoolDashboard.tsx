@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { useLocation } from "wouter";
 import { useMutation, useQuery } from "@tanstack/react-query";
+import ImageCropper from "@/components/ImageCropper";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -155,6 +156,9 @@ export default function SchoolDashboard() {
   const [editingPost, setEditingPost] = useState<Post | null>(null);
   const [uploadingProfileImage, setUploadingProfileImage] = useState(false);
   const [uploadingProfileCover, setUploadingProfileCover] = useState(false);
+  const [cropperOpen, setCropperOpen] = useState(false);
+  const [cropperImage, setCropperImage] = useState("");
+  const [cropperMode, setCropperMode] = useState<"avatar" | "cover">("avatar");
   const [pendingPostFiles, setPendingPostFiles] = useState<File[]>([]);
   const [pendingPostPreviews, setPendingPostPreviews] = useState<{ url: string; type: string }[]>([]);
   const [publishingPost, setPublishingPost] = useState(false);
@@ -679,12 +683,21 @@ export default function SchoolDashboard() {
     return url;
   }
 
-  async function handleUploadSchoolProfileImage(file: File | undefined, type: "avatar" | "cover") {
+  function handleSelectSchoolProfileImage(file: File | undefined, type: "avatar" | "cover") {
     if (!file) return;
     if (!file.type.startsWith("image/")) {
       toast({ title: "يرجى اختيار صورة فقط", variant: "destructive" });
       return;
     }
+    const url = URL.createObjectURL(file);
+    setCropperImage(url);
+    setCropperMode(type);
+    setCropperOpen(true);
+  }
+
+  async function handleCroppedImageUpload(blob: Blob) {
+    const type = cropperMode;
+    const file = new File([blob], `profile-${type}.jpg`, { type: "image/jpeg" });
 
     if (type === "avatar") setUploadingProfileImage(true);
     if (type === "cover") setUploadingProfileCover(true);
@@ -1648,7 +1661,7 @@ export default function SchoolDashboard() {
                     type="file"
                     accept="image/*"
                     className="hidden"
-                    onChange={(e) => handleUploadSchoolProfileImage(e.target.files?.[0], "avatar")}
+                    onChange={(e) => { handleSelectSchoolProfileImage(e.target.files?.[0], "avatar"); e.target.value = ""; }}
                     disabled={uploadingProfileImage}
                   />
                 </Label>
@@ -1669,7 +1682,7 @@ export default function SchoolDashboard() {
                     type="file"
                     accept="image/*"
                     className="hidden"
-                    onChange={(e) => handleUploadSchoolProfileImage(e.target.files?.[0], "cover")}
+                    onChange={(e) => { handleSelectSchoolProfileImage(e.target.files?.[0], "cover"); e.target.value = ""; }}
                     disabled={uploadingProfileCover}
                   />
                 </Label>
@@ -1732,6 +1745,15 @@ export default function SchoolDashboard() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Image Cropper */}
+      <ImageCropper
+        open={cropperOpen}
+        onClose={() => { setCropperOpen(false); setCropperImage(""); }}
+        imageSrc={cropperImage}
+        onCropComplete={handleCroppedImageUpload}
+        mode={cropperMode}
+      />
     </div>
   );
 }

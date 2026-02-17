@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest, authenticatedFetch } from "@/lib/queryClient";
@@ -9,6 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import ImageCropper from "@/components/ImageCropper";
 import {
   ArrowRight,
   Heart,
@@ -23,6 +24,8 @@ import {
   Send,
   Search,
   ChevronRight,
+  Camera,
+  Loader2,
 } from "lucide-react";
 
 export default function ParentProfile() {
@@ -32,6 +35,13 @@ export default function ParentProfile() {
   const token = localStorage.getItem("token");
   const [activeTab, setActiveTab] = useState("library");
   const [selectedChild, setSelectedChild] = useState("");
+  const [cropperOpen, setCropperOpen] = useState(false);
+  const [cropperImage, setCropperImage] = useState("");
+  const [cropperMode, setCropperMode] = useState<"avatar" | "cover">("avatar");
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const [coverUploading, setCoverUploading] = useState(false);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+  const coverInputRef = useRef<HTMLInputElement>(null);
 
   // Profile data
   const { data: profileData } = useQuery<any>({
@@ -110,6 +120,103 @@ export default function ParentProfile() {
   const followList = following?.following || [];
   const recs = recommendations || {};
 
+  // Upload helpers for parent profile images
+  async function uploadFileForParent(file: File): Promise<string> {
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    };
+
+    // Step 1: Presign
+    const presignRes = await fetch("/api/parent/uploads/presign", {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        contentType: file.type,
+        size: file.size,
+        purpose: "profile_image",
+        originalName: file.name,
+      }),
+    });
+    if (!presignRes.ok) throw new Error("فشل رفع الملف");
+    const { data: presign } = await presignRes.json();
+
+    // Step 2: Upload
+    const isLocalUrl = presign.uploadURL.startsWith("/api/");
+    if (isLocalUrl) {
+      const directRes = await fetch(presign.uploadURL, {
+        method: "PUT",
+        headers: { "Content-Type": file.type || "application/octet-stream" },
+        body: file,
+      });
+      if (!directRes.ok) throw new Error("فشل رفع الملف إلى التخزين");
+    } else {
+      const proxyRes = await fetch("/api/parent/uploads/proxy", {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": file.type,
+          "x-upload-url": presign.uploadURL,
+        },
+        body: file,
+      });
+      if (!proxyRes.ok) throw new Error("فشل رفع الملف إلى التخزين");
+    }
+
+    // Step 3: Finalize
+    const finalizeRes = await fetch("/api/parent/uploads/finalize", {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        objectPath: presign.objectPath,
+        mimeType: file.type,
+        size: file.size,
+        originalName: file.name,
+        purpose: "profile_image",
+      }),
+    });
+    if (!finalizeRes.ok) throw new Error("فشل تأكيد رفع الملف");
+    const { data: media } = await finalizeRes.json();
+    return media.url;
+  }
+
+  function handleSelectParentImage(e: React.ChangeEvent<HTMLInputElement>, type: "avatar" | "cover") {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast({ title: "يرجى اختيار صورة فقط", variant: "destructive" });
+      return;
+    }
+    const url = URL.createObjectURL(file);
+    setCropperImage(url);
+    setCropperMode(type);
+    setCropperOpen(true);
+    e.target.value = "";
+  }
+
+  async function handleCroppedParentImage(blob: Blob) {
+    const type = cropperMode;
+    const file = new File([blob], `parent-${type}.jpg`, { type: "image/jpeg" });
+
+    if (type === "avatar") setAvatarUploading(true);
+    else setCoverUploading(true);
+
+    try {
+      const url = await uploadFileForParent(file);
+      // Update parent profile with the new image URL
+      await apiRequest("POST", "/api/parent/profile/update", {
+        [type === "avatar" ? "avatarUrl" : "coverImageUrl"]: url,
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/parent/profile-data"] });
+      toast({ title: type === "avatar" ? "تم رفع الصورة الشخصية" : "تم رفع صورة الغلاف" });
+    } catch (error: any) {
+      toast({ title: error.message || "فشل رفع الصورة", variant: "destructive" });
+    } finally {
+      if (type === "avatar") setAvatarUploading(false);
+      else setCoverUploading(false);
+    }
+  }
+
   if (!token) {
     navigate("/parent-auth");
     return null;
@@ -130,14 +237,23 @@ export default function ParentProfile() {
       {/* Profile Header */}
       {parent && (
         <div className="relative">
-          <div className={`h-32 ${isDark ? "bg-gradient-to-r from-blue-900 to-purple-900" : "bg-gradient-to-r from-blue-400 to-purple-500"}`}>
+          <div className={`h-32 relative ${isDark ? "bg-gradient-to-r from-blue-900 to-purple-900" : "bg-gradient-to-r from-blue-400 to-purple-500"}`}>
             {parent.coverImageUrl && (
               <img src={parent.coverImageUrl} alt="" className="w-full h-full object-cover" />
             )}
+            <button
+              onClick={() => coverInputRef.current?.click()}
+              disabled={coverUploading}
+              className="absolute bottom-2 left-2 bg-black/50 hover:bg-black/70 text-white rounded-full px-3 py-1 text-xs flex items-center gap-1 transition-all"
+            >
+              {coverUploading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Camera className="h-3 w-3" />}
+              {coverUploading ? "جاري الرفع..." : "تغيير الغلاف"}
+            </button>
+            <input ref={coverInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => handleSelectParentImage(e, "cover")} />
           </div>
           <div className="px-4 -mt-12 relative z-10">
             <div className="flex items-end gap-3">
-              <div className={`h-20 w-20 rounded-full border-4 flex items-center justify-center text-2xl font-bold ${
+              <div className={`relative h-20 w-20 rounded-full border-4 flex items-center justify-center text-2xl font-bold ${
                 isDark ? "bg-gray-800 border-gray-900 text-blue-400" : "bg-white border-white text-blue-600"
               }`}>
                 {parent.avatarUrl ? (
@@ -145,6 +261,14 @@ export default function ParentProfile() {
                 ) : (
                   parent.name?.charAt(0) || "👤"
                 )}
+                <button
+                  onClick={() => avatarInputRef.current?.click()}
+                  disabled={avatarUploading}
+                  className="absolute -bottom-1 -right-1 w-7 h-7 bg-blue-600 hover:bg-blue-700 text-white rounded-full flex items-center justify-center shadow-lg transition-all"
+                >
+                  {avatarUploading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Camera className="h-3 w-3" />}
+                </button>
+                <input ref={avatarInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => handleSelectParentImage(e, "avatar")} />
               </div>
               <div className="pb-1">
                 <h2 className="text-xl font-bold">{parent.name}</h2>
@@ -431,6 +555,15 @@ export default function ParentProfile() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Image Cropper */}
+      <ImageCropper
+        open={cropperOpen}
+        onClose={() => { setCropperOpen(false); setCropperImage(""); }}
+        imageSrc={cropperImage}
+        onCropComplete={handleCroppedParentImage}
+        mode={cropperMode}
+      />
     </div>
   );
 }

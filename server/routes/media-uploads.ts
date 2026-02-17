@@ -161,6 +161,56 @@ export function registerMediaUploadRoutes(app: Express) {
     }
   });
 
+  // Parent upload proxy (for remote storage like MinIO)
+  app.put("/api/parent/uploads/proxy", authMiddleware, async (req: any, res) => {
+    try {
+      if (req.user?.type !== "parent") {
+        return res.status(403).json(errorResponse(ErrorCode.UNAUTHORIZED, "Only parents can upload"));
+      }
+      const uploadURL = String(req.headers["x-upload-url"] || "").trim();
+      if (!uploadURL) {
+        return res.status(400).json({ success: false, message: "رابط الرفع مطلوب" });
+      }
+
+      let parsed: URL;
+      try {
+        parsed = new URL(uploadURL);
+      } catch {
+        return res.status(400).json({ success: false, message: "رابط رفع غير صالح" });
+      }
+
+      const allowedHosts = new Set<string>([
+        "127.0.0.1",
+        "localhost",
+        "minio",
+        String(process.env["MINIO_ENDPOINT"] || "").trim(),
+      ].filter(Boolean));
+
+      if (!allowedHosts.has(parsed.hostname)) {
+        return res.status(400).json({ success: false, message: "نطاق رابط الرفع غير مسموح" });
+      }
+
+      const upstreamRes = await fetch(uploadURL, {
+        method: "PUT",
+        headers: {
+          "Content-Type": String(req.headers["content-type"] || "application/octet-stream"),
+          ...(req.headers["content-length"] ? { "Content-Length": String(req.headers["content-length"]) } : {}),
+        },
+        body: req as any,
+        duplex: "half",
+      } as any);
+
+      if (!upstreamRes.ok) {
+        return res.status(502).json({ success: false, message: "فشل رفع الملف إلى التخزين" });
+      }
+
+      res.json({ success: true, message: "File uploaded" });
+    } catch (err) {
+      console.error("Parent upload proxy error:", err);
+      res.status(500).json({ success: false, message: "خطأ في الخادم" });
+    }
+  });
+
   // Attach media (admin)
   app.post("/api/admin/media/attach", adminMiddleware, attachLimiter, async (req: any, res) => {
     try {

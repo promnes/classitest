@@ -16,6 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useTheme } from "@/contexts/ThemeContext";
 import { apiRequest } from "@/lib/queryClient";
 import { motion } from "framer-motion";
+import ImageCropper from "@/components/ImageCropper";
 
 interface ChildProfile {
   id: string;
@@ -39,6 +40,8 @@ export default function ChildProfile() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [cropperOpen, setCropperOpen] = useState(false);
+  const [cropperImage, setCropperImage] = useState("");
 
   const [formData, setFormData] = useState({
     name: "",
@@ -94,7 +97,20 @@ export default function ChildProfile() {
     },
   });
 
-  const handleAvatarUpload = async (file: File) => {
+  // Open cropper when a file is selected
+  const handleSelectAvatar = (file: File) => {
+    if (!file.type.startsWith("image/")) {
+      toast({ title: "يرجى اختيار صورة فقط", variant: "destructive" });
+      return;
+    }
+    const url = URL.createObjectURL(file);
+    setCropperImage(url);
+    setCropperOpen(true);
+  };
+
+  // Upload the cropped avatar
+  const handleCroppedAvatar = async (blob: Blob) => {
+    const file = new File([blob], "avatar.jpg", { type: "image/jpeg" });
     if (file.size > 3 * 1024 * 1024) {
       toast({
         title: t("childProfile.fileTooLarge"),
@@ -243,7 +259,7 @@ export default function ChildProfile() {
                     className="hidden"
                     onChange={(e) => {
                       const file = e.target.files?.[0];
-                      if (file) handleAvatarUpload(file);
+                      if (file) handleSelectAvatar(file);
                       e.target.value = "";
                     }}
                   />
@@ -431,6 +447,15 @@ export default function ChildProfile() {
           </motion.div>
         </form>
       </main>
+
+      {/* Image Cropper */}
+      <ImageCropper
+        open={cropperOpen}
+        onClose={() => { setCropperOpen(false); setCropperImage(""); }}
+        imageSrc={cropperImage}
+        onCropComplete={handleCroppedAvatar}
+        mode="avatar"
+      />
     </div>
   );
 }

@@ -1,7 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import ImageCropper from "@/components/ImageCropper";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,7 +16,7 @@ import { getDateLocale } from "@/i18n/config";
 import { queryClient } from "@/lib/queryClient";
 import { 
   Store, Package, Users, TrendingUp, Plus, Edit, Trash2, 
-  Copy, LogOut, Link, Share2, Activity, Truck, ShieldCheck, Wallet
+  Copy, LogOut, Link, Share2, Activity, Truck, ShieldCheck, Wallet, Camera, Loader2, Upload
 } from "lucide-react";
 
 interface Product {
@@ -80,6 +81,13 @@ export default function LibraryDashboard() {
   const [showProductModal, setShowProductModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [cropperOpen, setCropperOpen] = useState(false);
+  const [cropperImage, setCropperImage] = useState("");
+  const [cropperMode, setCropperMode] = useState<"avatar" | "cover">("avatar");
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const [coverUploading, setCoverUploading] = useState(false);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+  const coverInputRef = useRef<HTMLInputElement>(null);
   const [deliveryCodes, setDeliveryCodes] = useState<Record<string, string>>({});
   const [withdrawAmount, setWithdrawAmount] = useState("");
   const [withdrawMethod, setWithdrawMethod] = useState("");
@@ -491,6 +499,101 @@ export default function LibraryDashboard() {
     }
   };
 
+  // Library profile image upload with cropper
+  async function uploadLibraryProfileImage(file: File): Promise<string> {
+    const presignRes = await fetch("/api/library/uploads/presign", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({
+        contentType: file.type,
+        size: file.size,
+        purpose: "library_profile_image",
+        originalName: file.name,
+      }),
+    });
+    if (!presignRes.ok) throw new Error("فشل رفع الصورة");
+    const presignJson = await presignRes.json();
+
+    const uploadURL = presignJson.data.uploadURL;
+    const isLocalUrl = uploadURL.startsWith("/api/");
+    if (isLocalUrl) {
+      const directRes = await fetch(uploadURL, {
+        method: "PUT",
+        headers: { "Content-Type": file.type || "application/octet-stream" },
+        body: file,
+      });
+      if (!directRes.ok) throw new Error("فشل رفع الصورة إلى التخزين");
+    } else {
+      const proxyRes = await fetch("/api/library/uploads/proxy", {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": file.type,
+          "x-upload-url": uploadURL,
+        },
+        body: file,
+      });
+      if (!proxyRes.ok) throw new Error("فشل رفع الصورة إلى التخزين");
+    }
+
+    const finalizeRes = await fetch("/api/library/uploads/finalize", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({
+        objectPath: presignJson.data.objectPath,
+        mimeType: file.type,
+        size: file.size,
+        originalName: file.name,
+        purpose: "library_profile_image",
+      }),
+    });
+    const finalizeJson = await finalizeRes.json();
+    if (!finalizeRes.ok) throw new Error("فشل تأكيد رفع الصورة");
+    return finalizeJson.data.url;
+  }
+
+  function handleSelectLibraryImage(e: React.ChangeEvent<HTMLInputElement>, type: "avatar" | "cover") {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast({ title: "يرجى اختيار صورة فقط", variant: "destructive" });
+      return;
+    }
+    const url = URL.createObjectURL(file);
+    setCropperImage(url);
+    setCropperMode(type);
+    setCropperOpen(true);
+    e.target.value = "";
+  }
+
+  async function handleCroppedLibraryImage(blob: Blob) {
+    const type = cropperMode;
+    const file = new File([blob], `library-${type}.jpg`, { type: "image/jpeg" });
+
+    if (type === "avatar") setAvatarUploading(true);
+    else setCoverUploading(true);
+
+    try {
+      const url = await uploadLibraryProfileImage(file);
+      // Update library profile
+      const updateRes = await fetch("/api/library/profile/update", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          [type === "avatar" ? "imageUrl" : "coverImageUrl"]: url,
+        }),
+      });
+      if (!updateRes.ok) throw new Error("فشل تحديث الملف الشخصي");
+      queryClient.invalidateQueries({ queryKey: ["library-profile"] });
+      toast({ title: type === "avatar" ? "تم رفع صورة المكتبة" : "تم رفع صورة الغلاف" });
+    } catch (error: any) {
+      toast({ title: error.message || "فشل رفع الصورة", variant: "destructive" });
+    } finally {
+      if (type === "avatar") setAvatarUploading(false);
+      else setCoverUploading(false);
+    }
+  }
+
   const referralLink = `${window.location.origin}/?libraryRef=${profile?.referralCode || libraryData.referralCode}`;
 
   if (!token) return null;
@@ -617,6 +720,7 @@ export default function LibraryDashboard() {
             <TabsTrigger value="referrals">الإحالات</TabsTrigger>
             <TabsTrigger value="activity">سجل النشاط</TabsTrigger>
             <TabsTrigger value="finance">الأرباح والسحب</TabsTrigger>
+            <TabsTrigger value="profile">الملف الشخصي</TabsTrigger>
           </TabsList>
 
           <TabsContent value="products" className="space-y-4">
@@ -912,6 +1016,58 @@ export default function LibraryDashboard() {
               </CardContent>
             </Card>
           </TabsContent>
+
+          {/* Profile Tab */}
+          <TabsContent value="profile" className="space-y-4">
+            <Card className="overflow-hidden">
+              {/* Cover Image */}
+              <div className="relative h-40 sm:h-48 md:h-56 bg-gradient-to-l from-emerald-500 to-teal-700">
+                {profile?.coverImageUrl && (
+                  <img src={profile.coverImageUrl} alt="" className="w-full h-full object-cover" />
+                )}
+                <button
+                  onClick={() => coverInputRef.current?.click()}
+                  disabled={coverUploading}
+                  className="absolute bottom-2 left-2 bg-black/50 hover:bg-black/70 text-white rounded-full px-3 py-1.5 text-xs flex items-center gap-1 transition-all"
+                >
+                  {coverUploading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Camera className="h-3 w-3" />}
+                  {coverUploading ? "جاري الرفع..." : "تغيير الغلاف"}
+                </button>
+                <input ref={coverInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => handleSelectLibraryImage(e, "cover")} />
+              </div>
+              <CardContent className="p-4 sm:p-6">
+                <div className="flex items-start gap-4">
+                  <div className="relative -mt-14">
+                    {profile?.imageUrl ? (
+                      <img src={profile.imageUrl} alt="" className="w-20 h-20 sm:w-24 sm:h-24 rounded-full border-4 border-white object-cover shadow-lg bg-white" />
+                    ) : (
+                      <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full border-4 border-white bg-emerald-100 flex items-center justify-center shadow-lg">
+                        <Store className="h-8 w-8 sm:h-10 sm:w-10 text-emerald-600" />
+                      </div>
+                    )}
+                    <button
+                      onClick={() => avatarInputRef.current?.click()}
+                      disabled={avatarUploading}
+                      className="absolute -bottom-1 -right-1 w-7 h-7 bg-emerald-600 hover:bg-emerald-700 text-white rounded-full flex items-center justify-center shadow-lg transition-all"
+                    >
+                      {avatarUploading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Camera className="h-3 w-3" />}
+                    </button>
+                    <input ref={avatarInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => handleSelectLibraryImage(e, "avatar")} />
+                  </div>
+                  <div className="flex-1 pt-2">
+                    <h2 className="text-xl font-bold">{profile?.name || libraryData.name}</h2>
+                    {profile?.description && <p className="text-sm text-muted-foreground mt-1">{profile.description}</p>}
+                    {profile?.bio && <p className="text-sm text-muted-foreground mt-1">{profile.bio}</p>}
+                    <div className="flex flex-wrap gap-3 text-xs text-muted-foreground mt-2">
+                      {profile?.location && <span>📍 {profile.location}</span>}
+                      {profile?.email && <span>✉️ {profile.email}</span>}
+                      {profile?.phoneNumber && <span>📱 {profile.phoneNumber}</span>}
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
         </Tabs>
       </main>
 
@@ -1029,6 +1185,15 @@ export default function LibraryDashboard() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Image Cropper */}
+      <ImageCropper
+        open={cropperOpen}
+        onClose={() => { setCropperOpen(false); setCropperImage(""); }}
+        imageSrc={cropperImage}
+        onCropComplete={handleCroppedLibraryImage}
+        mode={cropperMode}
+      />
     </div>
   );
 }

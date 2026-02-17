@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import ImageCropper from "@/components/ImageCropper";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -140,6 +141,9 @@ export default function TeacherDashboard() {
   const [profileForm, setProfileForm] = useState({ name: "", bio: "", subject: "", yearsExperience: 0, socialLinks: {} as Record<string, string> });
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [coverUploading, setCoverUploading] = useState(false);
+  const [cropperOpen, setCropperOpen] = useState(false);
+  const [cropperImage, setCropperImage] = useState("");
+  const [cropperMode, setCropperMode] = useState<"avatar" | "cover">("avatar");
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
   const postMediaInputRef = useRef<HTMLInputElement>(null);
@@ -624,31 +628,40 @@ export default function TeacherDashboard() {
     });
   }
 
-  async function handleAvatarUpload(e: React.ChangeEvent<HTMLInputElement>) {
+  function handleSelectTeacherImage(e: React.ChangeEvent<HTMLInputElement>, type: "avatar" | "cover") {
     const file = e.target.files?.[0];
-    if (!file || !token) return;
-    setAvatarUploading(true);
-    try {
-      const url = await uploadFileForTeacher(file, token, "avatar");
-      await updateProfile.mutateAsync({ avatarUrl: url });
-    } catch {
-      toast({ title: "فشل رفع الصورة", variant: "destructive" });
-    } finally {
-      setAvatarUploading(false);
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast({ title: "يرجى اختيار صورة فقط", variant: "destructive" });
+      return;
     }
+    const url = URL.createObjectURL(file);
+    setCropperImage(url);
+    setCropperMode(type);
+    setCropperOpen(true);
+    e.target.value = "";
   }
 
-  async function handleCoverUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file || !token) return;
-    setCoverUploading(true);
+  async function handleCroppedTeacherImage(blob: Blob) {
+    if (!token) return;
+    const type = cropperMode;
+    const file = new File([blob], `teacher-${type}.jpg`, { type: "image/jpeg" });
+
+    if (type === "avatar") setAvatarUploading(true);
+    else setCoverUploading(true);
+
     try {
-      const url = await uploadFileForTeacher(file, token, "cover");
-      await updateProfile.mutateAsync({ coverImageUrl: url });
+      const url = await uploadFileForTeacher(file, token, type);
+      if (type === "avatar") {
+        await updateProfile.mutateAsync({ avatarUrl: url });
+      } else {
+        await updateProfile.mutateAsync({ coverImageUrl: url });
+      }
     } catch {
-      toast({ title: "فشل رفع صورة الغلاف", variant: "destructive" });
+      toast({ title: type === "avatar" ? "فشل رفع الصورة" : "فشل رفع صورة الغلاف", variant: "destructive" });
     } finally {
-      setCoverUploading(false);
+      if (type === "avatar") setAvatarUploading(false);
+      else setCoverUploading(false);
     }
   }
 
@@ -991,7 +1004,7 @@ export default function TeacherDashboard() {
                   <Camera className="h-3 w-3" />
                   {coverUploading ? "جاري الرفع..." : "تغيير الغلاف"}
                 </Button>
-                <input ref={coverInputRef} type="file" accept="image/*" className="hidden" onChange={handleCoverUpload} />
+                <input ref={coverInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => handleSelectTeacherImage(e, "cover")} />
               </div>
               <CardContent className="p-4 sm:p-6">
                 <div className="flex items-start gap-4">
@@ -1012,7 +1025,7 @@ export default function TeacherDashboard() {
                     >
                       <Camera className="h-3 w-3" />
                     </Button>
-                    <input ref={avatarInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
+                    <input ref={avatarInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => handleSelectTeacherImage(e, "avatar")} />
                   </div>
                   <div className="flex-1 pt-2">
                     <h2 className="text-xl font-bold">{profile?.name}</h2>
@@ -1498,6 +1511,15 @@ export default function TeacherDashboard() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Image Cropper */}
+      <ImageCropper
+        open={cropperOpen}
+        onClose={() => { setCropperOpen(false); setCropperImage(""); }}
+        imageSrc={cropperImage}
+        onCropComplete={handleCroppedTeacherImage}
+        mode={cropperMode}
+      />
     </div>
   );
 }
