@@ -758,16 +758,16 @@ export default function SchoolProfile() {
                               <BarChart3 className="h-5 w-5 text-blue-600 mt-0.5 shrink-0" />
                               <p className="font-semibold text-base">{poll.question}</p>
                             </div>
-                            {poll.allowMultiple && (
-                              <p className="text-xs text-muted-foreground mt-1 mr-7">يمكن اختيار أكثر من إجابة</p>
-                            )}
+                            <p className="text-xs text-muted-foreground mt-1 mr-7">
+                              {poll.allowMultiple ? "يمكن اختيار أكثر من إجابة" : "اختر إجابة واحدة فقط"}
+                            </p>
                           </div>
 
                           {/* Poll Options */}
                           <div className="px-4 pb-3 space-y-2">
                             {poll.options?.map((opt: any) => {
-                              const totalVotes = poll.totalVotes || 0;
-                              const optVotes = poll.optionVotes?.[opt.id] || 0;
+                              const totalVotes = poll.votersCount || poll.totalVotes || 0;
+                              const optVotes = poll.optionCounts?.[opt.id] || poll.optionVotes?.[opt.id] || 0;
                               const pct = totalVotes > 0 ? Math.round((optVotes / totalVotes) * 100) : 0;
                               const isSelected = currentSelections.includes(opt.id);
                               const wasMyVote = myVotes.includes(opt.id);
@@ -799,9 +799,11 @@ export default function SchoolProfile() {
                                     if (isClosed) return;
                                     setSelectedPollOptions(prev => {
                                       const curr = prev[poll.id] || [];
-                                      if (poll.allowMultiple) {
+                                      if (poll.allowMultiple === true) {
+                                        // Multi-select: toggle option in/out
                                         return { ...prev, [poll.id]: curr.includes(opt.id) ? curr.filter((x: string) => x !== opt.id) : [...curr, opt.id] };
                                       }
+                                      // Single-select: replace with only this option
                                       return { ...prev, [poll.id]: [opt.id] };
                                     });
                                   }}
@@ -813,7 +815,7 @@ export default function SchoolProfile() {
                                   disabled={isClosed}
                                 >
                                   <div className="flex items-center gap-2">
-                                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${
+                                    <div className={`w-5 h-5 ${poll.allowMultiple ? "rounded" : "rounded-full"} border-2 flex items-center justify-center shrink-0 ${
                                       isSelected ? "border-blue-500 bg-blue-500" : "border-gray-300 dark:border-gray-600"
                                     }`}>
                                       {isSelected && <Check className="h-3 w-3 text-white" />}
@@ -834,7 +836,11 @@ export default function SchoolProfile() {
                                     toast({ title: "اختر إجابة واحدة على الأقل", variant: "destructive" });
                                     return;
                                   }
-                                  votePoll.mutate({ pollId: poll.id, selectedOptions: currentSelections });
+                                  // Enforce single-select: take only the last selected option
+                                  const finalSelections = !poll.allowMultiple && currentSelections.length > 1
+                                    ? [currentSelections[currentSelections.length - 1]]
+                                    : currentSelections;
+                                  votePoll.mutate({ pollId: poll.id, selectedOptions: finalSelections });
                                 }}
                                 className="w-full bg-blue-600 hover:bg-blue-700"
                                 disabled={votePoll.isPending || !currentSelections.length}
@@ -843,7 +849,7 @@ export default function SchoolProfile() {
                               </Button>
                             )}
                             <div className="flex items-center justify-between mt-2 text-xs text-muted-foreground">
-                              <span>{poll.totalVotes || 0} صوت</span>
+                              <span>{poll.votersCount || poll.totalVotes || 0} صوت</span>
                               {poll.expiresAt && (
                                 <span>
                                   {isExpired ? "انتهى التصويت" : `ينتهي ${new Date(poll.expiresAt).toLocaleDateString("ar-EG", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}`}
