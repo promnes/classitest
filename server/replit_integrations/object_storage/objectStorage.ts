@@ -94,6 +94,40 @@ type S3ObjectRef = { bucketName: string; objectName: string };
 export class ObjectStorageService {
   constructor() {}
 
+  private getS3PrivatePrefix(): string {
+    if (!isS3Provider) return "";
+    try {
+      const marker = "__marker__";
+      const { objectName } = parseObjectPath(`${this.getPrivateObjectDir()}/${marker}`);
+      return objectName.endsWith(`/${marker}`)
+        ? objectName.slice(0, -(`/${marker}`.length))
+        : objectName;
+    } catch {
+      return MINIO_PREFIX || "";
+    }
+  }
+
+  private stripS3PrivatePrefix(objectName: string): string {
+    const normalized = objectName.replace(/^\/+/, "");
+    const prefix = this.getS3PrivatePrefix().replace(/^\/+|\/+$/g, "");
+    if (!prefix) return normalized;
+    if (normalized === prefix) return "";
+    if (normalized.startsWith(`${prefix}/`)) {
+      return normalized.slice(prefix.length + 1);
+    }
+    return normalized;
+  }
+
+  private withS3PrivatePrefix(entityId: string): string {
+    const normalized = entityId.replace(/^\/+/, "");
+    const prefix = this.getS3PrivatePrefix().replace(/^\/+|\/+$/g, "");
+    if (!prefix) return normalized;
+    if (normalized === prefix || normalized.startsWith(`${prefix}/`)) {
+      return normalized;
+    }
+    return `${prefix}/${normalized}`;
+  }
+
   // Gets the public object search paths.
   getPublicObjectSearchPaths(): Array<string> {
     if (isS3Provider) {
@@ -312,21 +346,33 @@ export class ObjectStorageService {
       throw new ObjectNotFoundError();
     }
 
+    if (isS3Provider && minioClient) {
+      const { bucketName } = parseObjectPath(`${this.getPrivateObjectDir()}/__lookup__`);
+      const candidateObjectNames = Array.from(new Set([
+        this.withS3PrivatePrefix(entityId),
+        entityId.replace(/^\/+/, ""),
+      ])).filter(Boolean);
+
+      try {
+        for (const objectName of candidateObjectNames) {
+          try {
+            await minioClient.statObject(bucketName, objectName);
+            return { bucket: () => ({ name: bucketName } as any), name: objectName } as any;
+          } catch {
+          }
+        }
+        throw new ObjectNotFoundError();
+      } catch (_err) {
+        throw new ObjectNotFoundError();
+      }
+    }
+
     let entityDir = this.getPrivateObjectDir();
     if (!entityDir.endsWith("/")) {
       entityDir = `${entityDir}/`;
     }
     const objectEntityPath = `${entityDir}${entityId}`;
     const { bucketName, objectName } = parseObjectPath(objectEntityPath);
-
-    if (isS3Provider && minioClient) {
-      try {
-        await minioClient.statObject(bucketName, objectName);
-        return { bucket: () => ({ name: bucketName } as any), name: objectName } as any;
-      } catch (_err) {
-        throw new ObjectNotFoundError();
-      }
-    }
 
     const bucket = objectStorageClient.bucket(bucketName);
     const objectFile = bucket.file(objectName);
@@ -360,14 +406,14 @@ export class ObjectStorageService {
         const bucketName = pathParts.shift();
         const objectName = pathParts.join("/");
         if (bucketName && objectName) {
-          return `/objects/${objectName}`;
+          return `/objects/${this.stripS3PrivatePrefix(objectName)}`;
         }
       } catch (_err) {
         // fall through
       }
       const trimmed = rawPath.replace(/^https?:\/\//, "");
       const objectName = trimmed.split("/").slice(1).join("/");
-      return `/objects/${objectName}`;
+      return `/objects/${this.stripS3PrivatePrefix(objectName)}`;
     }
     if (!rawPath.startsWith("https://storage.googleapis.com/")) {
       return rawPath;

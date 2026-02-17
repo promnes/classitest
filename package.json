@@ -18,6 +18,8 @@
     "cap:build": "npm run build && npx cap sync android",
     "prestart": "npm run check-env",
     "check": "tsc",
+    "media:repair-urls:dry": "node scripts/repair-object-urls.js",
+    "media:repair-urls": "node scripts/repair-object-urls.js --apply",
     "db:push": "drizzle-kit push",
     "admin:setup": "node scripts/manage-admin.js",
     "admin:reset": "node scripts/manage-admin.js",

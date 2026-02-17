@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import {
-  Share2, Facebook, Instagram, Copy, Mail, MessageCircle,
+  Share2, Facebook, Copy, Mail, MessageCircle,
   Send, Link2, X
 } from "lucide-react";
 
@@ -115,11 +115,6 @@ export function ShareMenu({
   }
 
   function handleClick() {
-    // On mobile, try native share first
-    if (typeof navigator.share !== "undefined") {
-      handleNativeShare();
-      return;
-    }
     setOpen(!open);
   }
 
@@ -161,7 +156,18 @@ export function ShareMenu({
           </div>
 
           {/* Copy Link */}
-          <div className="px-3 pb-3">
+          <div className="px-3 pb-3 space-y-2">
+            {typeof navigator.share !== "undefined" && (
+              <button
+                onClick={handleNativeShare}
+                className="w-full flex items-center gap-3 px-4 py-2.5 bg-blue-50 dark:bg-blue-950/40 hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded-xl transition-colors text-sm font-medium"
+              >
+                <div className="p-1.5 bg-white dark:bg-gray-700 rounded-lg shadow-sm">
+                  <Share2 className="h-4 w-4 text-blue-600" />
+                </div>
+                <span>مشاركة عبر تطبيقات الجهاز</span>
+              </button>
+            )}
             <button
               onClick={handleCopyLink}
               className="w-full flex items-center gap-3 px-4 py-2.5 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-xl transition-colors text-sm font-medium"
