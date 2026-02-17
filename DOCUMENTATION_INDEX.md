@@ -228,7 +228,7 @@ classiv3/
 
 ---
 
-### 📓 [ADMIN_CREDENTIALS.md](ADMIN_CREDENTIALS.md)
+### 📓 [ADMIN_CREDENTIALS.md](docs/ADMIN_CREDENTIALS.md)
 **Purpose:** Admin account management  
 **Length:** 15 minutes read  
 **Contains:**

@@ -11,7 +11,7 @@
 | **[QUICK_REFERENCE.md](QUICK_REFERENCE.md)** | Common tasks & API examples | ⚡ Quickly implementing features |
 | **[ARCHITECTURE.md](ARCHITECTURE.md)** | System diagrams & flows | 🏗️ Understanding data flows |
 | **[DEPLOYMENT_CHECKLIST.md](DEPLOYMENT_CHECKLIST.md)** | Dev & deployment procedures | 🚀 Deploying to production |
-| **[ADMIN_CREDENTIALS.md](ADMIN_CREDENTIALS.md)** | Admin account management | 🔑 Managing admin access |
+| **[ADMIN_CREDENTIALS.md](docs/ADMIN_CREDENTIALS.md)** | Admin account management | 🔑 Managing admin access |
 | **[README.md](README.md)** | Project basics & setup | 🚀 Getting started |
 
 ---
@@ -446,7 +446,7 @@ docker-compose logs -f --tail 100
 - **API Questions?** → Check [QUICK_REFERENCE.md](QUICK_REFERENCE.md)
 - **Architecture Questions?** → Check [ARCHITECTURE.md](ARCHITECTURE.md)
 - **Deployment Issues?** → Check [DEPLOYMENT_CHECKLIST.md](DEPLOYMENT_CHECKLIST.md)
-- **Admin Setup?** → Check [ADMIN_CREDENTIALS.md](ADMIN_CREDENTIALS.md)
+- **Admin Setup?** → Check [ADMIN_CREDENTIALS.md](docs/ADMIN_CREDENTIALS.md)
 
 ### 🤝 Team Support
 ```
