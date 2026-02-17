@@ -262,6 +262,9 @@ export async function registerSchoolRoutes(app: Express) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ success: false, message: error.message });
       }
+      if (error?.message === "OBJECT_NOT_FOUND") {
+        return res.status(400).json({ success: false, message: "الملف غير موجود في التخزين" });
+      }
       console.error("School upload finalize error:", error);
       res.status(500).json({ success: false, message: "فشل تأكيد رفع الملف" });
     }

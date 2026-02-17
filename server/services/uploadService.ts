@@ -1,7 +1,7 @@
 import { and, eq, isNull, isNotNull } from "drizzle-orm";
 import { storage } from "../storage";
 import { media, mediaEvents, mediaReferences } from "../../shared/schema";
-import { ObjectStorageService } from "../replit_integrations/object_storage/objectStorage";
+import { ObjectNotFoundError, ObjectStorageService } from "../replit_integrations/object_storage/objectStorage";
 import type { ObjectAclPolicy } from "../replit_integrations/object_storage/objectAcl";
 import type { Media, FinalizeUploadInput } from "../../shared/media";
 
@@ -137,6 +137,15 @@ export async function finalizeUpload({
     input.objectPath,
     { visibility: policy.visibility, owner: actor.id }
   );
+
+  try {
+    await objectStorageService.getObjectEntityFile(normalizedPath);
+  } catch (error) {
+    if (error instanceof ObjectNotFoundError) {
+      throw new Error("OBJECT_NOT_FOUND");
+    }
+    throw error;
+  }
 
   const objectKey = normalizedPath.startsWith("/objects/")
     ? normalizedPath.slice("/objects/".length)
