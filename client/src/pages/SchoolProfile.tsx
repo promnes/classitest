@@ -154,7 +154,7 @@ export default function SchoolProfile() {
         <div className="max-w-5xl mx-auto">
           <div className="relative h-52 sm:h-72 md:h-80 rounded-b-xl overflow-hidden">
             {school.coverImageUrl ? (
-              <img src={school.coverImageUrl} alt="" className="w-full h-full object-cover" />
+              <img src={school.coverImageUrl} alt="" className="w-full h-full object-cover" onError={(e) => { e.currentTarget.style.display = 'none' }} />
             ) : (
               <div className="w-full h-full bg-gradient-to-l from-blue-500 via-blue-600 to-indigo-700" />
             )}
@@ -166,17 +166,17 @@ export default function SchoolProfile() {
         <div className="max-w-5xl mx-auto px-4 sm:px-6">
           <div className="flex flex-col sm:flex-row items-start sm:items-end gap-4 -mt-8 sm:-mt-10 relative z-10 pb-4">
             <div className="relative">
-              {school.imageUrl ? (
-                <img
-                  src={school.imageUrl}
-                  alt={school.name}
-                  className="w-28 h-28 sm:w-36 sm:h-36 rounded-full border-4 border-white dark:border-gray-900 object-cover shadow-xl"
-                />
-              ) : (
-                <div className="w-28 h-28 sm:w-36 sm:h-36 rounded-full border-4 border-white dark:border-gray-900 bg-blue-100 dark:bg-blue-900 flex items-center justify-center shadow-xl">
-                  <School className="h-14 w-14 sm:h-16 sm:w-16 text-blue-600 dark:text-blue-400" />
-                </div>
-              )}
+              <div className="w-28 h-28 sm:w-36 sm:h-36 rounded-full border-4 border-white dark:border-gray-900 bg-blue-100 dark:bg-blue-900 flex items-center justify-center shadow-xl overflow-hidden relative">
+                <School className="h-14 w-14 sm:h-16 sm:w-16 text-blue-600 dark:text-blue-400" />
+                {school.imageUrl && (
+                  <img
+                    src={school.imageUrl}
+                    alt={school.name}
+                    className="absolute inset-0 w-full h-full object-cover"
+                    onError={(e) => { e.currentTarget.style.display = 'none' }}
+                  />
+                )}
+              </div>
               {school.isVerified && (
                 <div className="absolute bottom-1 left-1 bg-blue-600 text-white rounded-full p-1 shadow-md">
                   <CheckCircle className="h-5 w-5" />
@@ -364,7 +364,7 @@ export default function SchoolProfile() {
                       <Link key={teacher.id} href={`/teacher/${teacher.id}`}>
                         <div className="text-center group cursor-pointer">
                           {teacher.avatarUrl ? (
-                            <img src={teacher.avatarUrl} alt="" className="w-14 h-14 mx-auto rounded-lg object-cover group-hover:ring-2 ring-blue-400 transition-all" />
+                            <img src={teacher.avatarUrl} alt="" className="w-14 h-14 mx-auto rounded-lg object-cover group-hover:ring-2 ring-blue-400 transition-all" onError={(e) => { e.currentTarget.style.display = 'none' }} />
                           ) : (
                             <div className="w-14 h-14 mx-auto rounded-lg bg-green-100 dark:bg-green-900 flex items-center justify-center group-hover:ring-2 ring-blue-400 transition-all">
                               <GraduationCap className="h-7 w-7 text-green-600" />
@@ -402,7 +402,7 @@ export default function SchoolProfile() {
                           <div className="flex items-center gap-3 p-4 pb-2">
                             {post.authorType === "school" ? (
                               school.imageUrl ? (
-                                <img src={school.imageUrl} alt="" className="w-10 h-10 rounded-full object-cover" />
+                                <img src={school.imageUrl} alt="" className="w-10 h-10 rounded-full object-cover" onError={(e) => { e.currentTarget.style.display = 'none' }} />
                               ) : (
                                 <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
                                   <School className="h-5 w-5 text-blue-600" />
@@ -410,7 +410,7 @@ export default function SchoolProfile() {
                               )
                             ) : (
                               post.teacherAvatar ? (
-                                <img src={post.teacherAvatar} alt="" className="w-10 h-10 rounded-full object-cover" />
+                                <img src={post.teacherAvatar} alt="" className="w-10 h-10 rounded-full object-cover" onError={(e) => { e.currentTarget.style.display = 'none' }} />
                               ) : (
                                 <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
                                   <GraduationCap className="h-5 w-5 text-green-600" />
@@ -456,6 +456,7 @@ export default function SchoolProfile() {
                                     src={url}
                                     alt=""
                                     className={`w-full object-cover ${post.mediaUrls.length === 1 ? "max-h-[500px]" : "h-48 sm:h-64"}`}
+                                    onError={(e) => { e.currentTarget.style.display = 'none' }}
                                   />
                                 );
                               })}
@@ -669,7 +670,7 @@ export default function SchoolProfile() {
                       return (
                         <Card key={teacher.id} className="shadow-sm overflow-hidden hover:shadow-md transition-shadow">
                           {teacher.coverImageUrl && (
-                            <img src={teacher.coverImageUrl} alt="" className="w-full h-32 object-cover" />
+                            <img src={teacher.coverImageUrl} alt="" className="w-full h-32 object-cover" onError={(e) => { e.currentTarget.style.display = 'none' }} />
                           )}
                           <CardContent className="p-4">
                             <div className="flex items-start gap-4">
@@ -679,6 +680,7 @@ export default function SchoolProfile() {
                                     src={teacher.avatarUrl}
                                     alt=""
                                     className={`w-16 h-16 rounded-full object-cover border-2 border-white shadow-md ${teacher.coverImageUrl ? "-mt-12" : ""}`}
+                                    onError={(e) => { e.currentTarget.style.display = 'none' }}
                                   />
                                 ) : (
                                   <div className={`w-16 h-16 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center border-2 border-white shadow-md ${teacher.coverImageUrl ? "-mt-12" : ""}`}>

@@ -59,17 +59,17 @@ export function ProfileHeader({
             src={coverImageUrl}
             alt="Cover"
             className="w-full h-full object-cover"
+            onError={(e) => { e.currentTarget.style.display = 'none' }}
           />
         )}
         {/* Avatar overlay */}
         <div className="absolute -bottom-16 right-6 rtl:left-6 rtl:right-auto">
           <div className="w-32 h-32 rounded-full border-4 border-white dark:border-gray-900 bg-white dark:bg-gray-800 overflow-hidden shadow-lg">
-            {avatarUrl ? (
-              <img src={avatarUrl} alt={name} className="w-full h-full object-cover" />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-400 to-purple-500 text-white text-4xl font-bold">
-                {name.charAt(0)}
-              </div>
+            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-400 to-purple-500 text-white text-4xl font-bold">
+              {name.charAt(0)}
+            </div>
+            {avatarUrl && (
+              <img src={avatarUrl} alt={name} className="absolute inset-0 w-full h-full object-cover" onError={(e) => { e.currentTarget.style.display = 'none' }} />
             )}
           </div>
         </div>

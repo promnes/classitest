@@ -897,11 +897,12 @@ export default function SchoolDashboard() {
       <div className="bg-blue-600 text-white p-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            {profile?.imageUrl ? (
-              <img src={profile.imageUrl} alt="" className="w-10 h-10 rounded-full object-cover" />
-            ) : (
-              <School className="h-8 w-8" />
-            )}
+            <div className="w-10 h-10 rounded-full relative overflow-hidden flex items-center justify-center bg-blue-700 flex-shrink-0">
+              <School className="h-6 w-6" />
+              {profile?.imageUrl && (
+                <img src={profile.imageUrl} alt="" className="absolute inset-0 w-full h-full object-cover" onError={(e) => { e.currentTarget.style.display = 'none' }} />
+              )}
+            </div>
             <div>
               <h1 className="font-bold text-lg">{profile?.name || schoolData.name}</h1>
               <p className="text-blue-100 text-xs">لوحة تحكم المدرسة</p>
@@ -1022,13 +1023,12 @@ export default function SchoolDashboard() {
                     <CardContent className="p-4 space-y-3">
                       <div className="flex items-start justify-between">
                         <div className="flex items-center gap-3">
-                          {teacher.avatarUrl ? (
-                            <img src={teacher.avatarUrl} alt="" className="w-12 h-12 rounded-full object-cover" />
-                          ) : (
-                            <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
-                              <GraduationCap className="h-6 w-6 text-blue-600" />
-                            </div>
-                          )}
+                          <div className="w-12 h-12 rounded-full relative overflow-hidden bg-blue-100 flex items-center justify-center flex-shrink-0">
+                            <GraduationCap className="h-6 w-6 text-blue-600" />
+                            {teacher.avatarUrl && (
+                              <img src={teacher.avatarUrl} alt="" className="absolute inset-0 w-full h-full object-cover" onError={(e) => { e.currentTarget.style.display = 'none' }} />
+                            )}
+                          </div>
                           <div>
                             <h3 className="font-bold">{teacher.name}</h3>
                             <p className="text-sm text-muted-foreground">{teacher.subject || "بدون تخصص"}</p>
@@ -1133,7 +1133,7 @@ export default function SchoolDashboard() {
                             post.mediaTypes?.[i] === "video" ? (
                               <video key={i} src={url} controls className="w-full h-36 rounded object-cover bg-black" />
                             ) : (
-                              <img key={i} src={url} alt="" className="w-full h-36 rounded object-cover" />
+                              <img key={i} src={url} alt="" className="w-full h-36 rounded object-cover bg-gray-100" onError={(e) => { e.currentTarget.style.display = 'none' }} />
                             )
                           ))}
                         </div>
@@ -1191,13 +1191,12 @@ export default function SchoolDashboard() {
                   <Card key={student.id}>
                     <CardContent className="p-4">
                       <div className="flex items-center gap-3">
-                        {student.childAvatar ? (
-                          <img src={student.childAvatar} alt="" className="w-10 h-10 rounded-full object-cover" />
-                        ) : (
-                          <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
-                            <Users className="h-5 w-5 text-green-600" />
-                          </div>
-                        )}
+                        <div className="w-10 h-10 rounded-full relative overflow-hidden bg-green-100 flex items-center justify-center flex-shrink-0">
+                          <Users className="h-5 w-5 text-green-600" />
+                          {student.childAvatar && (
+                            <img src={student.childAvatar} alt="" className="absolute inset-0 w-full h-full object-cover" onError={(e) => { e.currentTarget.style.display = 'none' }} />
+                          )}
+                        </div>
                         <div>
                           <h3 className="font-bold">{student.childName || "طالب"}</h3>
                           <p className="text-sm text-muted-foreground">ولي الأمر: {student.parentName || "—"}</p>
@@ -1307,18 +1306,17 @@ export default function SchoolDashboard() {
             <Card className="overflow-hidden">
               <div className="h-40 sm:h-48 md:h-56 bg-gradient-to-l from-blue-600 to-indigo-700 relative">
                 {profile?.coverImageUrl && (
-                  <img src={profile.coverImageUrl} alt="" className="w-full h-full object-cover" />
+                  <img src={profile.coverImageUrl} alt="" className="w-full h-full object-cover" onError={(e) => { e.currentTarget.style.display = 'none' }} />
                 )}
               </div>
               <CardContent className="p-4 sm:p-6">
                 <div className="flex flex-col sm:flex-row sm:items-end gap-4 -mt-14 sm:-mt-16">
-                  {profile?.imageUrl ? (
-                    <img src={profile.imageUrl} alt="" className="w-20 h-20 sm:w-24 sm:h-24 rounded-full object-cover border-4 border-white shadow-lg relative z-10 bg-white" />
-                  ) : (
-                    <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-white border-4 border-white flex items-center justify-center shadow-lg relative z-10">
-                      <School className="h-8 w-8 sm:h-10 sm:w-10 text-blue-600" />
-                    </div>
-                  )}
+                  <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-white border-4 border-white flex items-center justify-center shadow-lg relative z-10 overflow-hidden">
+                    <School className="h-8 w-8 sm:h-10 sm:w-10 text-blue-600" />
+                    {profile?.imageUrl && (
+                      <img src={profile.imageUrl} alt="" className="absolute inset-0 w-full h-full object-cover" onError={(e) => { e.currentTarget.style.display = 'none' }} />
+                    )}
+                  </div>
                   <div className="flex-1">
                     <h2 className="text-xl sm:text-2xl font-bold">{profile?.name || "المدرسة"}</h2>
                     {profile?.nameAr && <p className="text-muted-foreground text-sm">{profile.nameAr}</p>}
@@ -1388,7 +1386,7 @@ export default function SchoolDashboard() {
                             post.mediaTypes?.[i] === "video" ? (
                               <video key={i} src={url} controls className="w-full h-36 rounded object-cover bg-black" />
                             ) : (
-                              <img key={i} src={url} alt="" className="w-full h-36 rounded object-cover" />
+                              <img key={i} src={url} alt="" className="w-full h-36 rounded object-cover bg-gray-100" onError={(e) => { e.currentTarget.style.display = 'none' }} />
                             )
                           ))}
                         </div>
@@ -1575,7 +1573,7 @@ export default function SchoolDashboard() {
                     {postForm.mediaTypes[i] === "video" ? (
                       <video src={url} controls className="w-full h-28 object-cover bg-black" />
                     ) : (
-                      <img src={url} alt="" className="w-full h-28 object-cover" />
+                      <img src={url} alt="" className="w-full h-28 object-cover" onError={(e) => { e.currentTarget.style.display = 'none' }} />
                     )}
                     <Button
                       type="button"
@@ -1594,7 +1592,7 @@ export default function SchoolDashboard() {
                     {preview.type === "video" ? (
                       <video src={preview.url} controls className="w-full h-28 object-cover bg-black" />
                     ) : (
-                      <img src={preview.url} alt="" className="w-full h-28 object-cover" />
+                      <img src={preview.url} alt="" className="w-full h-28 object-cover" onError={(e) => { e.currentTarget.style.display = 'none' }} />
                     )}
                     <Button
                       type="button"
@@ -1647,13 +1645,12 @@ export default function SchoolDashboard() {
             <div>
               <Label>صورة المدرسة</Label>
               <div className="space-y-2">
-                {profileForm.imageUrl ? (
-                  <img src={profileForm.imageUrl} alt="" className="w-16 h-16 rounded-full object-cover border" />
-                ) : (
-                  <div className="w-16 h-16 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center border">
-                    <School className="h-7 w-7 text-blue-600" />
-                  </div>
-                )}
+                <div className="w-16 h-16 rounded-full relative overflow-hidden bg-gray-100 dark:bg-gray-800 flex items-center justify-center border">
+                  <School className="h-7 w-7 text-blue-600" />
+                  {profileForm.imageUrl && (
+                    <img src={profileForm.imageUrl} alt="" className="absolute inset-0 w-full h-full object-cover" onError={(e) => { e.currentTarget.style.display = 'none' }} />
+                  )}
+                </div>
                 <Label className="cursor-pointer inline-flex items-center gap-2 border rounded-md px-3 py-2 text-sm">
                   <Upload className="h-4 w-4" />
                   {uploadingProfileImage ? "جاري الرفع..." : "رفع من الجهاز"}
@@ -1670,11 +1667,11 @@ export default function SchoolDashboard() {
             <div>
               <Label>صورة الغلاف</Label>
               <div className="space-y-2">
-                {profileForm.coverImageUrl ? (
-                  <img src={profileForm.coverImageUrl} alt="" className="w-full h-16 rounded object-cover border" />
-                ) : (
-                  <div className="w-full h-16 rounded bg-gray-100 dark:bg-gray-800 border" />
-                )}
+                <div className="w-full h-16 rounded relative overflow-hidden bg-gray-100 dark:bg-gray-800 border">
+                  {profileForm.coverImageUrl && (
+                    <img src={profileForm.coverImageUrl} alt="" className="absolute inset-0 w-full h-full object-cover" onError={(e) => { e.currentTarget.style.display = 'none' }} />
+                  )}
+                </div>
                 <Label className="cursor-pointer inline-flex items-center gap-2 border rounded-md px-3 py-2 text-sm">
                   <Upload className="h-4 w-4" />
                   {uploadingProfileCover ? "جاري الرفع..." : "رفع من الجهاز"}
