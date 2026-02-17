@@ -82,6 +82,7 @@ deployment
 nginx
 scripts
 !scripts/docker-entrypoint.sh
+!scripts/repair-object-urls.js
 server-production
 attached_assets
 
