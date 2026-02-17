@@ -12,8 +12,9 @@ import { queryClient } from "@/lib/queryClient";
 import { ProfileHeader } from "@/components/ui/ProfileHeader";
 import {
   GraduationCap, Star, MessageSquare, BookOpen, Heart,
-  Send, Users, Briefcase, Clock
+  Users, Briefcase, Clock
 } from "lucide-react";
+import { ShareMenu } from "@/components/ui/ShareMenu";
 
 export default function TeacherProfile() {
   const [, params] = useRoute("/teacher/:id");
@@ -126,6 +127,8 @@ export default function TeacherProfile() {
           entityId={teacherId!}
           avgRating={avgRating}
           totalReviews={reviews.length}
+          shareTitle={`${teacher.name} — معلم على Classify`}
+          shareDescription={teacher.bio || `تعرّف على المعلم ${teacher.name} على منصة Classify`}
           extraBadges={
             <>
               {teacher.subject && (
@@ -180,22 +183,40 @@ export default function TeacherProfile() {
           {/* Tasks Tab */}
           <TabsContent value="tasks" className="space-y-4 mt-4">
             {tasks.length === 0 ? (
-              <Card><CardContent className="p-8 text-center text-muted-foreground">لا توجد مهام متاحة حالياً</CardContent></Card>
+              <Card><CardContent className="p-8 text-center text-muted-foreground">
+                <BookOpen className="h-12 w-12 mx-auto text-gray-300 mb-3" />
+                <p>لا توجد مهام متاحة حالياً</p>
+              </CardContent></Card>
             ) : (
               tasks.map((task: any) => (
-                <Card key={task.id} className="overflow-hidden">
+                <Card key={task.id} className="overflow-hidden hover:shadow-md transition-shadow">
+                  {task.coverImageUrl && (
+                    <img src={task.coverImageUrl} alt="" className="w-full h-36 object-cover" onError={(e) => { e.currentTarget.style.display = 'none' }} />
+                  )}
                   <CardContent className="p-4">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <h3 className="font-semibold">{task.title || task.question}</h3>
-                        <p className="text-sm text-muted-foreground mt-1">{task.question}</p>
-                        {task.subjectLabel && (
-                          <Badge variant="outline" className="mt-2">{task.subjectLabel}</Badge>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold text-base">{task.title || task.question}</h3>
+                        {task.title && task.question !== task.title && (
+                          <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{task.question}</p>
                         )}
+                        <div className="flex flex-wrap items-center gap-2 mt-2">
+                          {task.subjectLabel && (
+                            <Badge variant="outline" className="text-xs">{task.subjectLabel}</Badge>
+                          )}
+                          {task.pointsReward > 0 && (
+                            <Badge variant="secondary" className="text-xs gap-1">
+                              <Star className="h-3 w-3" />
+                              {task.pointsReward} نقطة
+                            </Badge>
+                          )}
+                        </div>
                       </div>
-                      <div className="text-left">
-                        <span className="text-lg font-bold text-green-600">{task.price} ج.م</span>
-                        <p className="text-xs text-muted-foreground">{task.pointsReward} نقطة</p>
+                      <div className="text-left shrink-0">
+                        <div className="bg-green-50 dark:bg-green-950 px-3 py-2 rounded-xl text-center">
+                          <span className="text-lg font-bold text-green-600">{task.price}</span>
+                          <span className="text-xs text-green-600 block">ج.م</span>
+                        </div>
                       </div>
                     </div>
                   </CardContent>
@@ -207,22 +228,42 @@ export default function TeacherProfile() {
           {/* Posts Tab */}
           <TabsContent value="posts" className="space-y-4 mt-4">
             {posts.length === 0 ? (
-              <Card><CardContent className="p-8 text-center text-muted-foreground">لا توجد منشورات</CardContent></Card>
+              <Card><CardContent className="p-8 text-center text-muted-foreground">
+                <MessageSquare className="h-12 w-12 mx-auto text-gray-300 mb-3" />
+                <p>لا توجد منشورات</p>
+              </CardContent></Card>
             ) : (
               posts.map((post: any) => (
-                <Card key={post.id}>
+                <Card key={post.id} className="hover:shadow-md transition-shadow">
                   <CardContent className="p-4">
-                    <p className="whitespace-pre-wrap">{post.content}</p>
+                    <p className="whitespace-pre-wrap leading-relaxed">{post.content}</p>
                     {post.mediaUrls?.length > 0 && (
-                      <div className="flex gap-2 mt-3 overflow-x-auto">
-                        {post.mediaUrls.map((url: string, i: number) => (
-                          <img key={i} src={url} alt="" className="h-48 rounded-lg object-cover" />
-                        ))}
+                      <div className={`mt-3 ${post.mediaUrls.length === 1 ? "" : "grid grid-cols-2 gap-1"} rounded-lg overflow-hidden`}>
+                        {post.mediaUrls.map((url: string, i: number) => {
+                          const mediaType = post.mediaTypes?.[i];
+                          if (mediaType === "video") {
+                            return <video key={i} src={url} controls className="w-full max-h-96 object-contain bg-black" />;
+                          }
+                          return (
+                            <img key={i} src={url} alt="" className={`w-full object-cover ${post.mediaUrls.length === 1 ? "max-h-[400px] rounded-lg" : "h-48"}`} onError={(e) => { e.currentTarget.style.display = 'none' }} />
+                          );
+                        })}
                       </div>
                     )}
-                    <div className="flex items-center gap-4 mt-3 pt-3 border-t text-sm text-muted-foreground">
-                      <span className="flex items-center gap-1"><Heart className="h-4 w-4" /> {post.likesCount || 0}</span>
-                      <span className="flex items-center gap-1"><MessageSquare className="h-4 w-4" /> {post.commentsCount || 0}</span>
+                    <div className="flex items-center justify-between mt-3 pt-3 border-t text-sm text-muted-foreground">
+                      <div className="flex items-center gap-4">
+                        <span className="flex items-center gap-1"><Heart className="h-4 w-4" /> {post.likesCount || 0}</span>
+                        <span className="flex items-center gap-1"><MessageSquare className="h-4 w-4" /> {post.commentsCount || 0}</span>
+                      </div>
+                      <ShareMenu
+                        url={typeof window !== "undefined" ? window.location.href : ""}
+                        title={post.content?.substring(0, 60) || "منشور"}
+                        description={post.content?.substring(0, 120) || ""}
+                        variant="ghost"
+                        size="sm"
+                        buttonLabel="مشاركة"
+                        className="text-xs"
+                      />
                     </div>
                   </CardContent>
                 </Card>
@@ -232,60 +273,105 @@ export default function TeacherProfile() {
 
           {/* Reviews Tab */}
           <TabsContent value="reviews" className="space-y-4 mt-4">
+            {/* Rating Summary Card */}
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center gap-6">
+                  <div className="text-center">
+                    <div className="text-5xl font-extrabold text-foreground">{avgRating}</div>
+                    <div className="flex gap-0.5 mt-1 justify-center">
+                      {[1, 2, 3, 4, 5].map(n => (
+                        <Star key={n} className={`h-4 w-4 ${n <= Math.round(parseFloat(avgRating)) ? "text-yellow-400 fill-yellow-400" : "text-gray-300"}`} />
+                      ))}
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">{reviews.length} تقييم</p>
+                  </div>
+                  <div className="flex-1 space-y-1.5">
+                    {[5, 4, 3, 2, 1].map(n => {
+                      const count = reviews.filter((r: any) => r.rating === n).length;
+                      const pct = reviews.length ? (count / reviews.length) * 100 : 0;
+                      return (
+                        <div key={n} className="flex items-center gap-2 text-sm">
+                          <span className="w-3">{n}</span>
+                          <Star className="h-3 w-3 text-yellow-400 fill-yellow-400" />
+                          <div className="flex-1 h-2 bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden">
+                            <div className="h-full bg-yellow-400 rounded-full transition-all" style={{ width: `${pct}%` }} />
+                          </div>
+                          <span className="w-6 text-xs text-muted-foreground text-left">{count}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
             {/* Submit Review Form */}
             <Card>
-              <CardContent className="p-4">
-                <h3 className="font-semibold mb-3">أضف تقييمك</h3>
-                <div className="flex gap-1 mb-3">
+              <CardContent className="p-6 space-y-3">
+                <h3 className="font-bold text-lg">أضف تقييمك</h3>
+                <div className="flex gap-1">
                   {[1, 2, 3, 4, 5].map(star => (
                     <button
                       key={star}
                       onClick={() => setReviewRating(star)}
-                      className={`text-2xl transition-colors ${star <= reviewRating ? "text-yellow-400" : "text-gray-300"}`}
+                      className="transition-transform hover:scale-110"
                     >
-                      ★
+                      <Star className={`h-8 w-8 ${star <= reviewRating ? "text-yellow-400 fill-yellow-400" : "text-gray-300"}`} />
                     </button>
                   ))}
                 </div>
                 <Textarea
                   value={reviewComment}
                   onChange={(e) => setReviewComment(e.target.value)}
-                  placeholder="اكتب تعليقك (اختياري)..."
-                  className="mb-3"
+                  placeholder="شاركنا رأيك عن المعلم..."
+                  className="min-h-[80px]"
                 />
                 <Button
                   onClick={() => submitReview.mutate()}
                   disabled={submitReview.isPending}
-                  className="gap-2"
+                  className="bg-blue-600 hover:bg-blue-700 gap-2"
                 >
-                  <Send className="h-4 w-4" />
-                  إرسال التقييم
+                  {submitReview.isPending ? "جاري الإرسال..." : "إرسال التقييم"}
                 </Button>
               </CardContent>
             </Card>
 
             {reviews.length === 0 ? (
-              <Card><CardContent className="p-8 text-center text-muted-foreground">لا توجد تقييمات بعد</CardContent></Card>
+              <Card><CardContent className="p-8 text-center text-muted-foreground">
+                <Star className="h-12 w-12 mx-auto text-gray-300 mb-3" />
+                <p>لا توجد تقييمات بعد</p>
+              </CardContent></Card>
             ) : (
-              reviews.map((review: any) => (
-                <Card key={review.id}>
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="text-yellow-400">{"★".repeat(review.rating)}</span>
-                      <span className="text-gray-300">{"★".repeat(5 - review.rating)}</span>
-                      <span className="text-sm text-muted-foreground mr-2">
-                        {review.parentName || "مستخدم"}
-                      </span>
-                    </div>
-                    {review.comment && (
-                      <p className="text-sm text-gray-600 dark:text-gray-300">{review.comment}</p>
-                    )}
-                    <p className="text-xs text-muted-foreground mt-2">
-                      {new Date(review.createdAt).toLocaleDateString("ar-EG")}
-                    </p>
-                  </CardContent>
-                </Card>
-              ))
+              <div className="space-y-3">
+                {reviews.map((review: any) => (
+                  <Card key={review.id}>
+                    <CardContent className="p-4">
+                      <div className="flex items-start gap-3">
+                        <div className="w-10 h-10 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center shrink-0">
+                          <Users className="h-5 w-5 text-green-600" />
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center justify-between">
+                            <span className="font-bold text-sm">{review.parentName || "ولي أمر"}</span>
+                            <span className="text-xs text-muted-foreground">
+                              {new Date(review.createdAt).toLocaleDateString("ar-EG", { year: "numeric", month: "long", day: "numeric" })}
+                            </span>
+                          </div>
+                          <div className="flex gap-0.5 mt-0.5">
+                            {[1, 2, 3, 4, 5].map(n => (
+                              <Star key={n} className={`h-3.5 w-3.5 ${n <= review.rating ? "text-yellow-400 fill-yellow-400" : "text-gray-300"}`} />
+                            ))}
+                          </div>
+                          {review.comment && (
+                            <p className="text-sm mt-2 text-muted-foreground">{review.comment}</p>
+                          )}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
             )}
           </TabsContent>
         </Tabs>

@@ -15,6 +15,7 @@ import {
   CheckCircle, Share2, BookOpenCheck, TrendingUp
 } from "lucide-react";
 import { FollowButton } from "@/components/ui/FollowButton";
+import { ShareMenu } from "@/components/ui/ShareMenu";
 
 function SocialIcon({ platform }: { platform: string }) {
   switch (platform) {
@@ -212,10 +213,11 @@ export default function SchoolProfile() {
 
             <div className="flex gap-2 sm:pb-2">
               <FollowButton entityType="school" entityId={schoolId!} />
-              <Button variant="outline" size="sm" className="gap-1">
-                <Share2 className="h-4 w-4" />
-                مشاركة
-              </Button>
+              <ShareMenu
+                url={typeof window !== "undefined" ? window.location.href : ""}
+                title={`${school.nameAr || school.name} — Classify`}
+                description={school.description || `تعرّف على ${school.nameAr || school.name} على منصة Classify`}
+              />
             </div>
           </div>
 
@@ -488,6 +490,16 @@ export default function SchoolProfile() {
                               <MessageSquare className="h-5 w-5" />
                               تعليق
                             </button>
+                            <div className="flex-1 flex items-center justify-center">
+                              <ShareMenu
+                                url={typeof window !== "undefined" ? `${window.location.origin}/school/${schoolId}` : ""}
+                                title={post.content?.substring(0, 60) || "منشور"}
+                                description={post.content?.substring(0, 120) || ""}
+                                variant="ghost"
+                                buttonLabel="مشاركة"
+                                className="text-sm font-medium text-muted-foreground hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg w-full justify-center"
+                              />
+                            </div>
                           </div>
 
                           {showComments[post.id] !== false && (

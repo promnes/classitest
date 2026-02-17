@@ -1,6 +1,7 @@
 import { MapPin, Globe, Phone, Mail, Facebook, Instagram, Youtube } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { FollowButton } from "@/components/ui/FollowButton";
+import { ShareMenu } from "@/components/ui/ShareMenu";
 
 interface SocialLinks {
   facebook?: string;
@@ -29,6 +30,8 @@ interface ProfileHeaderProps {
   showFollow?: boolean;
   extraBadges?: React.ReactNode;
   children?: React.ReactNode;
+  shareTitle?: string;
+  shareDescription?: string;
 }
 
 export function ProfileHeader({
@@ -49,6 +52,8 @@ export function ProfileHeader({
   showFollow = true,
   extraBadges,
   children,
+  shareTitle,
+  shareDescription,
 }: ProfileHeaderProps) {
   return (
     <div className="overflow-hidden rounded-2xl bg-white dark:bg-gray-900 shadow-lg mb-6">
@@ -152,10 +157,17 @@ export function ProfileHeader({
             </div>
           </div>
 
-          {/* Follow Button */}
-          {showFollow && entityType && entityId && (
-            <FollowButton entityType={entityType} entityId={entityId} />
-          )}
+          {/* Follow & Share Buttons */}
+          <div className="flex items-center gap-2">
+            {showFollow && entityType && entityId && (
+              <FollowButton entityType={entityType} entityId={entityId} />
+            )}
+            <ShareMenu
+              url={typeof window !== "undefined" ? window.location.href : ""}
+              title={shareTitle || `${name} — Classify`}
+              description={shareDescription || `تعرّف على ${name} على منصة Classify`}
+            />
+          </div>
         </div>
 
         {children}

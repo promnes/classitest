@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
+import { ShareMenu } from "@/components/ui/ShareMenu";
 import {
   GraduationCap, BookOpen, Users, Star, LogOut, Plus, Edit, Trash2,
   DollarSign, TrendingUp, ArrowDownToLine, CheckCircle, Clock, MessageSquare,
@@ -690,6 +691,14 @@ export default function TeacherDashboard() {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <ShareMenu
+              url={typeof window !== "undefined" ? `${window.location.origin}/teacher/${profile?.id || ""}` : ""}
+              title={`${profile?.name || "المعلم"} — Classify`}
+              description={profile?.bio || `تعرّف على المعلم على منصة Classify`}
+              variant="ghost"
+              className="text-white hover:bg-green-700"
+              buttonLabel="مشاركة"
+            />
             <Button variant="ghost" size="icon" className="text-white hover:bg-green-700" onClick={handleLogout}>
               <LogOut className="h-5 w-5" />
             </Button>
@@ -1032,26 +1041,42 @@ export default function TeacherDashboard() {
                     <p className="text-sm text-muted-foreground">{profile?.subject || "لم يتم تحديد المادة"}</p>
                     <p className="text-sm text-muted-foreground">{profile?.schoolName}</p>
                   </div>
-                  <Button
-                    size="sm"
-                    variant={profileEditMode ? "default" : "outline"}
-                    onClick={() => {
-                      if (!profileEditMode && profile) {
-                        setProfileForm({
-                          name: profile.name || "",
-                          bio: profile.bio || "",
-                          subject: profile.subject || "",
-                          yearsExperience: profile.yearsExperience || 0,
-                          socialLinks: profile.socialLinks || {},
-                        });
-                      }
-                      setProfileEditMode(!profileEditMode);
-                    }}
-                    className="gap-1"
-                  >
-                    <Settings className="h-3 w-3" />
-                    {profileEditMode ? "إلغاء" : "تعديل"}
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => window.open(`/teacher/${profile?.id}`, "_blank")}
+                      className="gap-1"
+                    >
+                      <User className="h-3 w-3" />
+                      عرض الصفحة العامة
+                    </Button>
+                    <ShareMenu
+                      url={typeof window !== "undefined" ? `${window.location.origin}/teacher/${profile?.id || ""}` : ""}
+                      title={`${profile?.name || "المعلم"} — Classify`}
+                      description={profile?.bio || ""}
+                    />
+                    <Button
+                      size="sm"
+                      variant={profileEditMode ? "default" : "outline"}
+                      onClick={() => {
+                        if (!profileEditMode && profile) {
+                          setProfileForm({
+                            name: profile.name || "",
+                            bio: profile.bio || "",
+                            subject: profile.subject || "",
+                            yearsExperience: profile.yearsExperience || 0,
+                            socialLinks: profile.socialLinks || {},
+                          });
+                        }
+                        setProfileEditMode(!profileEditMode);
+                      }}
+                      className="gap-1"
+                    >
+                      <Settings className="h-3 w-3" />
+                      {profileEditMode ? "إلغاء" : "تعديل"}
+                    </Button>
+                  </div>
                 </div>
 
                 {profile?.bio && !profileEditMode && (
@@ -1501,6 +1526,14 @@ export default function TeacherDashboard() {
             <p className="text-sm text-muted-foreground">الرصيد المتاح: <strong className="text-green-600">{balance?.availableBalance || "0.00"} ج.م</strong></p>
             <div>
               <Label>المبلغ (ج.م)</Label>
+              <Input
+                type="number"
+                step="0.01"
+                min="1"
+                value={withdrawAmount}
+                onChange={(e) => setWithdrawAmount(e.target.value)}
+                placeholder="أدخل المبلغ المراد سحبه"
+              />
             </div>
           </div>
           <DialogFooter>

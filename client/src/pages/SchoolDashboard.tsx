@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
+import { ShareMenu } from "@/components/ui/ShareMenu";
 import {
   Copy,
   Edit,
@@ -925,6 +926,14 @@ export default function SchoolDashboard() {
               <Copy className="h-4 w-4 ml-1" />
               {profile?.referralCode}
             </Button>
+            <ShareMenu
+              url={typeof window !== "undefined" ? `${window.location.origin}/school/${profile?.id || ""}` : ""}
+              title={`${profile?.nameAr || profile?.name || "المدرسة"} — Classify`}
+              description={profile?.description || `تعرّف على المدرسة على منصة Classify`}
+              variant="ghost"
+              className="text-white hover:bg-blue-700"
+              buttonLabel="مشاركة"
+            />
             <Button variant="ghost" size="icon" className="text-white hover:bg-blue-700" onClick={handleLogout}>
               <LogOut className="h-5 w-5" />
             </Button>
@@ -1337,6 +1346,15 @@ export default function SchoolDashboard() {
                       <Edit className="h-4 w-4 ml-1" />
                       تعديل البيانات
                     </Button>
+                    <Button variant="outline" onClick={() => window.open(`/school/${profile?.id}`, "_blank")}>
+                      <Eye className="h-4 w-4 ml-1" />
+                      عرض الصفحة العامة
+                    </Button>
+                    <ShareMenu
+                      url={typeof window !== "undefined" ? `${window.location.origin}/school/${profile?.id || ""}` : ""}
+                      title={`${profile?.nameAr || profile?.name || "المدرسة"} — Classify`}
+                      description={profile?.description || ""}
+                    />
                     <Button className="bg-blue-600" onClick={() => { setEditingPost(null); resetPostForm(); setShowPostModal(true); }}>
                       <Plus className="h-4 w-4 ml-1" />
                       إنشاء منشور
