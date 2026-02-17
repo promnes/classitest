@@ -422,7 +422,7 @@ docker-compose logs -f nginx
 
 | Tool | URL | Purpose | Credentials |
 |------|-----|---------|-----------|
-| **Portainer** | `http://localhost:9000` | إدارة Docker | [First login] |
+| **Portainer** | `http://localhost:9000` | إدارة Docker | Use default login |
 | **pgAdmin** | `http://localhost:5050` | إدارة قاعدة البيانات | `admin@classiv3.com` / `admin123` |
 | **Redis Commander** | `http://localhost:8081` | مراقبة Redis | - |
 
