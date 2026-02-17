@@ -1495,14 +1495,23 @@ export default function SchoolDashboard() {
                         <div className="flex items-start justify-between">
                           <div className="flex items-center gap-2">
                             <BarChart3 className="h-5 w-5 text-blue-600" />
-                            <h3 className="font-bold text-base">{poll.question}</h3>
+                            <div>
+                              <h3 className="font-bold text-base">{poll.question}</h3>
+                              <p className="text-xs text-muted-foreground">
+                                {poll.authorType === "teacher"
+                                  ? `👨‍🏫 ${(poll as any).teacherName || "معلم"}`
+                                  : "🏫 المدرسة"}
+                              </p>
+                            </div>
                           </div>
                           <div className="flex items-center gap-1">
+                            {poll.authorType === "teacher" && <Badge variant="secondary" className="text-xs">معلم</Badge>}
                             {poll.isPinned && <Badge variant="secondary">📌 مثبت</Badge>}
                             {poll.isClosed && <Badge variant="destructive">مغلق</Badge>}
                             {isExpired && !poll.isClosed && <Badge variant="outline">منتهي</Badge>}
                             {poll.isAnonymous && <Badge variant="outline">مجهول</Badge>}
                             {poll.allowMultiple && <Badge variant="outline">متعدد</Badge>}
+                            {!poll.allowMultiple && <Badge variant="outline">واحد فقط</Badge>}
                           </div>
                         </div>
 

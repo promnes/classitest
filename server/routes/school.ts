@@ -1268,6 +1268,16 @@ export async function registerSchoolRoutes(app: Express) {
         .where(eq(schoolPolls.schoolId, schoolId))
         .orderBy(desc(schoolPolls.isPinned), desc(schoolPolls.createdAt));
 
+      // Get teacher names for teacher-created polls
+      const teacherIds = polls.filter((p: any) => p.teacherId).map((p: any) => p.teacherId!);
+      let teacherMap: Record<string, string> = {};
+      if (teacherIds.length > 0) {
+        const teachers = await db.select({ id: schoolTeachers.id, name: schoolTeachers.name })
+          .from(schoolTeachers)
+          .where(sql`${schoolTeachers.id} = ANY(${teacherIds})`);
+        teachers.forEach((t: any) => { teacherMap[t.id] = t.name; });
+      }
+
       // Get vote counts per option
       const pollsWithStats = await Promise.all(polls.map(async (poll: any) => {
         const votes = await db.select().from(schoolPollVotes)
@@ -1286,6 +1296,7 @@ export async function registerSchoolRoutes(app: Express) {
           optionCounts,
           votersCount: votes.length,
           voters: poll.isAnonymous ? [] : votes.map((v: any) => v.parentId),
+          teacherName: poll.teacherId ? (teacherMap[poll.teacherId] || "معلم") : null,
         };
       }));
 
@@ -1372,11 +1383,22 @@ export async function registerSchoolRoutes(app: Express) {
         // Check if expired
         const isExpired = poll.expiresAt && new Date(poll.expiresAt) < new Date();
 
+        // Get teacher name for teacher-created polls
+        let teacherName = null;
+        if (poll.teacherId) {
+          const teacher = await db.select({ name: schoolTeachers.name })
+            .from(schoolTeachers)
+            .where(eq(schoolTeachers.id, poll.teacherId))
+            .limit(1);
+          teacherName = teacher[0]?.name || "معلم";
+        }
+
         return {
           ...poll,
           optionCounts,
           votersCount: votes.length,
           isExpired,
+          teacherName,
         };
       }));
 
@@ -1459,7 +1481,10 @@ export async function registerSchoolRoutes(app: Express) {
         .where(and(eq(schoolPollVotes.pollId, pollId), eq(schoolPollVotes.parentId, parentId)));
 
       if (existingVote[0]) {
-        // Update vote
+        // Update vote — still enforce allowMultiple
+        if (!poll[0].allowMultiple && selectedOptions.length > 1) {
+          return res.status(400).json({ message: "يمكنك اختيار خيار واحد فقط" });
+        }
         const updated = await db.update(schoolPollVotes)
           .set({ selectedOptions })
           .where(eq(schoolPollVotes.id, existingVote[0].id))
