@@ -1964,7 +1964,7 @@ export const schoolPolls = pgTable("school_polls", {
   teacherId: varchar("teacher_id").references(() => schoolTeachers.id, { onDelete: "set null" }),
   authorType: varchar("author_type", { length: 10 }).notNull(), // "school" | "teacher"
   question: text("question").notNull(),
-  options: json("options").$type<{ id: string; text: string }[]>().notNull(),
+  options: json("options").$type<{ id: string; text: string; imageUrl?: string }[]>().notNull(),
   allowMultiple: boolean("allow_multiple").default(false).notNull(),
   isAnonymous: boolean("is_anonymous").default(false).notNull(),
   isPinned: boolean("is_pinned").default(false).notNull(),

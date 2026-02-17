@@ -775,6 +775,9 @@ export default function SchoolProfile() {
                               if (showResults) {
                                 return (
                                   <div key={opt.id} className="relative">
+                                    {opt.imageUrl && (
+                                      <img src={opt.imageUrl} alt={opt.text} className="w-full h-36 object-cover rounded-lg mb-1" onError={(e) => { e.currentTarget.style.display = 'none' }} />
+                                    )}
                                     <div className="relative overflow-hidden rounded-lg border dark:border-gray-700 p-3">
                                       <div
                                         className={`absolute inset-0 ${wasMyVote ? "bg-blue-100 dark:bg-blue-900/30" : "bg-gray-100 dark:bg-gray-800"}`}
@@ -814,6 +817,9 @@ export default function SchoolProfile() {
                                   }`}
                                   disabled={isClosed}
                                 >
+                                  {opt.imageUrl && (
+                                    <img src={opt.imageUrl} alt={opt.text} className="w-full h-36 object-cover rounded-lg mb-2" onError={(e) => { e.currentTarget.style.display = 'none' }} />
+                                  )}
                                   <div className="flex items-center gap-2">
                                     <div className={`w-5 h-5 ${poll.allowMultiple ? "rounded" : "rounded-full"} border-2 flex items-center justify-center shrink-0 ${
                                       isSelected ? "border-blue-500 bg-blue-500" : "border-gray-300 dark:border-gray-600"

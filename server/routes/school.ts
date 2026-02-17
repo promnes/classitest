@@ -1233,6 +1233,7 @@ export async function registerSchoolRoutes(app: Express) {
       const formattedOptions = options.map((opt: any, i: number) => ({
         id: String(i + 1),
         text: String(opt.text || opt).trim(),
+        ...(opt.imageUrl ? { imageUrl: String(opt.imageUrl) } : {}),
       })).filter((o: any) => o.text);
 
       if (formattedOptions.length < 2) {

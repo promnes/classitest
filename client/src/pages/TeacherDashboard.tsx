@@ -154,12 +154,13 @@ export default function TeacherDashboard() {
   const [showPollModal, setShowPollModal] = useState(false);
   const [pollForm, setPollForm] = useState({
     question: "",
-    options: [{ text: "" }, { text: "" }],
+    options: [{ text: "", imageUrl: "" }, { text: "", imageUrl: "" }] as { text: string; imageUrl: string }[],
     allowMultiple: false,
     isAnonymous: false,
     isPinned: false,
     expiresAt: "",
   });
+  const [uploadingPollOptionIdx, setUploadingPollOptionIdx] = useState<number | null>(null);
 
   const [taskForm, setTaskForm] = useState({
     title: "",
@@ -507,12 +508,13 @@ export default function TeacherDashboard() {
   function resetPollForm() {
     setPollForm({
       question: "",
-      options: [{ text: "" }, { text: "" }],
+      options: [{ text: "", imageUrl: "" }, { text: "", imageUrl: "" }],
       allowMultiple: false,
       isAnonymous: false,
       isPinned: false,
       expiresAt: "",
     });
+    setUploadingPollOptionIdx(null);
   }
 
   function handleSubmitPoll() {
@@ -527,7 +529,7 @@ export default function TeacherDashboard() {
     }
     createPoll.mutate({
       question: pollForm.question.trim(),
-      options: validOptions.map((o) => ({ text: o.text.trim() })),
+      options: validOptions.map((o) => ({ text: o.text.trim(), ...(o.imageUrl ? { imageUrl: o.imageUrl } : {}) })),
       allowMultiple: pollForm.allowMultiple,
       isAnonymous: pollForm.isAnonymous,
       isPinned: pollForm.isPinned,
@@ -1140,6 +1142,9 @@ export default function TeacherDashboard() {
                             const pct = poll.votersCount > 0 ? Math.round((count / poll.votersCount) * 100) : 0;
                             return (
                               <div key={opt.id} className="relative">
+                                {opt.imageUrl && (
+                                  <img src={opt.imageUrl} alt={opt.text} className="w-full h-32 object-cover rounded-lg mb-1" onError={(e) => { e.currentTarget.style.display = 'none' }} />
+                                )}
                                 <div className="flex items-center justify-between text-sm mb-1">
                                   <span className="font-medium">{opt.text}</span>
                                   <span className="text-muted-foreground">{count} ({pct}%)</span>
@@ -1735,24 +1740,86 @@ export default function TeacherDashboard() {
             <div className="space-y-2">
               <Label>الخيارات * (2-10)</Label>
               {pollForm.options.map((opt, i) => (
-                <div key={i} className="flex gap-2">
-                  <Input
-                    placeholder={`الخيار ${i + 1}`}
-                    value={opt.text}
-                    onChange={(e) => {
-                      const newOpts = [...pollForm.options];
-                      newOpts[i] = { text: e.target.value };
-                      setPollForm((f) => ({ ...f, options: newOpts }));
-                    }}
-                  />
-                  {pollForm.options.length > 2 && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => setPollForm((f) => ({ ...f, options: f.options.filter((_, j) => j !== i) }))}
-                    >
-                      <Trash2 className="h-4 w-4 text-red-500" />
-                    </Button>
+                <div key={i} className="space-y-1">
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder={`الخيار ${i + 1}`}
+                      value={opt.text}
+                      onChange={(e) => {
+                        const newOpts = [...pollForm.options];
+                        newOpts[i] = { ...newOpts[i], text: e.target.value };
+                        setPollForm((f) => ({ ...f, options: newOpts }));
+                      }}
+                    />
+                    <label className="shrink-0">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          if (file.size > 5 * 1024 * 1024) {
+                            toast({ title: "حجم الصورة يجب أن يكون أقل من 5MB", variant: "destructive" });
+                            return;
+                          }
+                          try {
+                            setUploadingPollOptionIdx(i);
+                            const url = await uploadFileForTeacher(file, token!, "poll_option");
+                            const newOpts = [...pollForm.options];
+                            newOpts[i] = { ...newOpts[i], imageUrl: url };
+                            setPollForm((f) => ({ ...f, options: newOpts }));
+                            toast({ title: `تم رفع صورة الخيار ${i + 1}` });
+                          } catch (err: any) {
+                            toast({ title: err.message || "فشل رفع الصورة", variant: "destructive" });
+                          } finally {
+                            setUploadingPollOptionIdx(null);
+                          }
+                          e.target.value = "";
+                        }}
+                      />
+                      <Button
+                        type="button"
+                        variant={opt.imageUrl ? "default" : "outline"}
+                        size="icon"
+                        className={opt.imageUrl ? "bg-green-600 hover:bg-green-700" : ""}
+                        disabled={uploadingPollOptionIdx === i}
+                        asChild
+                      >
+                        <span>
+                          {uploadingPollOptionIdx === i ? (
+                            <Clock className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Upload className="h-4 w-4" />
+                          )}
+                        </span>
+                      </Button>
+                    </label>
+                    {pollForm.options.length > 2 && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setPollForm((f) => ({ ...f, options: f.options.filter((_, j) => j !== i) }))}
+                      >
+                        <Trash2 className="h-4 w-4 text-red-500" />
+                      </Button>
+                    )}
+                  </div>
+                  {opt.imageUrl && (
+                    <div className="relative inline-block mr-2">
+                      <img src={opt.imageUrl} alt="" className="h-16 w-24 object-cover rounded border" />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const newOpts = [...pollForm.options];
+                          newOpts[i] = { ...newOpts[i], imageUrl: "" };
+                          setPollForm((f) => ({ ...f, options: newOpts }));
+                        }}
+                        className="absolute -top-1.5 -left-1.5 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs hover:bg-red-600"
+                      >
+                        ✕
+                      </button>
+                    </div>
                   )}
                 </div>
               ))}
@@ -1760,7 +1827,7 @@ export default function TeacherDashboard() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setPollForm((f) => ({ ...f, options: [...f.options, { text: "" }] }))}
+                  onClick={() => setPollForm((f) => ({ ...f, options: [...f.options, { text: "", imageUrl: "" }] }))}
                 >
                   <Plus className="h-4 w-4 ml-1" />
                   إضافة خيار
