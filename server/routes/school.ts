@@ -29,6 +29,28 @@ if (!JWT_SECRET) {
   throw new Error("CRITICAL: JWT_SECRET environment variable is required. School authentication cannot start without it.");
 }
 
+// ===== Optional Auth Middleware (extracts user from parent/child token without requiring auth) =====
+const optionalAuthMiddleware = (req: any, _res: Response, next: NextFunction) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (authHeader?.startsWith("Bearer ")) {
+      const token = authHeader.split(" ")[1];
+      if (token) {
+        const appSecret = process.env["APP_JWT_SECRET"] || process.env["JWT_SECRET"] || "classify-app-2025-secret";
+        const decoded = jwt.verify(token, appSecret) as any;
+        if (decoded.parentId || decoded.userId) {
+          req.authUser = { parentId: decoded.parentId || decoded.userId, name: decoded.name || "مستخدم", type: "parent" };
+        } else if (decoded.childId) {
+          req.authUser = { childId: decoded.childId, name: decoded.name || "طالب", type: "child" };
+        }
+      }
+    }
+  } catch {
+    // Token invalid - continue as guest
+  }
+  next();
+};
+
 // ===== School Middleware =====
 
 interface SchoolRequest extends Request {
@@ -1019,13 +1041,53 @@ export async function registerSchoolRoutes(app: Express) {
     }
   });
 
-  app.post("/api/store/schools/posts/:postId/like", async (req, res) => {
+  // Check which posts user has liked
+  app.post("/api/store/schools/posts/check-likes", optionalAuthMiddleware, async (req: any, res) => {
     try {
-      const { postId } = req.params;
-      const { parentId, childId } = req.body;
+      const { postIds } = req.body;
+      if (!Array.isArray(postIds) || postIds.length === 0) {
+        return res.json({ success: true, data: {} });
+      }
+
+      const parentId = req.authUser?.parentId;
+      const childId = req.authUser?.childId;
 
       if (!parentId && !childId) {
-        return res.status(400).json({ message: "Parent or child ID required" });
+        return res.json({ success: true, data: {} });
+      }
+
+      const likes = await db.select({ postId: schoolPostLikes.postId }).from(schoolPostLikes).where(
+        and(
+          sql`${schoolPostLikes.postId} = ANY(${postIds})`,
+          parentId ? eq(schoolPostLikes.parentId, parentId) : eq(schoolPostLikes.childId, childId!)
+        )
+      );
+
+      const likedMap: Record<string, boolean> = {};
+      likes.forEach((l: any) => { likedMap[l.postId] = true; });
+
+      res.json({ success: true, data: likedMap });
+    } catch (error: any) {
+      console.error("Check likes error:", error);
+      res.status(500).json({ message: "Failed to check likes" });
+    }
+  });
+
+  app.post("/api/store/schools/posts/:postId/like", optionalAuthMiddleware, async (req: any, res) => {
+    try {
+      const { postId } = req.params;
+      // Get parentId/childId from auth token or from body
+      const parentId = req.authUser?.parentId || req.body?.parentId;
+      const childId = req.authUser?.childId || req.body?.childId;
+
+      if (!parentId && !childId) {
+        return res.status(401).json({ message: "يجب تسجيل الدخول للإعجاب بالمنشور" });
+      }
+
+      // Verify post exists
+      const postCheck = await db.select({ id: schoolPosts.id }).from(schoolPosts).where(eq(schoolPosts.id, postId));
+      if (!postCheck[0]) {
+        return res.status(404).json({ message: "المنشور غير موجود" });
       }
 
       // Check if already liked
@@ -1043,7 +1105,8 @@ export async function registerSchoolRoutes(app: Express) {
           likesCount: sql`GREATEST(0, ${schoolPosts.likesCount} - 1)`,
         }).where(eq(schoolPosts.id, postId));
 
-        return res.json({ success: true, liked: false });
+        const updated = await db.select({ likesCount: schoolPosts.likesCount }).from(schoolPosts).where(eq(schoolPosts.id, postId));
+        return res.json({ success: true, liked: false, likesCount: updated[0]?.likesCount || 0 });
       }
 
       // Like
@@ -1056,24 +1119,35 @@ export async function registerSchoolRoutes(app: Express) {
         likesCount: sql`${schoolPosts.likesCount} + 1`,
       }).where(eq(schoolPosts.id, postId));
 
-      res.json({ success: true, liked: true });
+      const updated = await db.select({ likesCount: schoolPosts.likesCount }).from(schoolPosts).where(eq(schoolPosts.id, postId));
+      res.json({ success: true, liked: true, likesCount: updated[0]?.likesCount || 0 });
     } catch (error: any) {
       console.error("Like/unlike post error:", error);
       res.status(500).json({ message: "Failed to toggle like" });
     }
   });
 
-  app.post("/api/store/schools/posts/:postId/comment", async (req, res) => {
+  app.post("/api/store/schools/posts/:postId/comment", optionalAuthMiddleware, async (req: any, res) => {
     try {
       const { postId } = req.params;
-      const { parentId, childId, authorName, content } = req.body;
+      const { content } = req.body;
+      // Get user info from auth token or from body
+      const parentId = req.authUser?.parentId || req.body?.parentId;
+      const childId = req.authUser?.childId || req.body?.childId;
+      const authorName = req.body?.authorName || req.authUser?.name || "مستخدم";
 
       if (!content || !content.trim()) {
         return res.status(400).json({ message: "محتوى التعليق مطلوب" });
       }
 
-      if (!authorName) {
-        return res.status(400).json({ message: "اسم المعلق مطلوب" });
+      if (!parentId && !childId) {
+        return res.status(401).json({ message: "يجب تسجيل الدخول لإضافة تعليق" });
+      }
+
+      // Verify post exists
+      const postCheck = await db.select({ id: schoolPosts.id }).from(schoolPosts).where(eq(schoolPosts.id, postId));
+      if (!postCheck[0]) {
+        return res.status(404).json({ message: "المنشور غير موجود" });
       }
 
       const comment = await db.insert(schoolPostComments).values({

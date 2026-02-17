@@ -19,6 +19,7 @@ import {
   Eye,
   EyeOff,
   GraduationCap,
+  Heart,
   MapPin,
   LogOut,
   MessageSquare,
@@ -1137,22 +1138,78 @@ export default function SchoolDashboard() {
                       {post.content && <p className="text-sm whitespace-pre-wrap">{post.content}</p>}
 
                       {post.mediaUrls?.length > 0 && (
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                        <div className={`${post.mediaUrls.length === 1 ? "" : "grid grid-cols-2 md:grid-cols-3 gap-2"}`}>
                           {post.mediaUrls.map((url, i) => (
                             post.mediaTypes?.[i] === "video" ? (
-                              <video key={i} src={url} controls className="w-full h-36 rounded object-cover bg-black" />
+                              <video key={i} src={url} controls className={`w-full rounded bg-black ${post.mediaUrls.length === 1 ? "max-h-[500px] object-contain" : "h-48 object-cover"}`} />
                             ) : (
-                              <img key={i} src={url} alt="" className="w-full h-36 rounded object-cover bg-gray-100" onError={(e) => { e.currentTarget.style.display = 'none' }} />
+                              <img key={i} src={url} alt="" className={`w-full rounded bg-gray-100 ${post.mediaUrls.length === 1 ? "max-h-[500px] object-contain" : "h-48 object-cover"}`} onError={(e) => { e.currentTarget.style.display = 'none' }} />
                             )
                           ))}
                         </div>
                       )}
 
-                      <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                        <span>❤️ {post.likesCount}</span>
-                        <span>💬 {post.commentsCount}</span>
+                      <div className="flex items-center justify-between text-xs text-muted-foreground pt-1 border-t">
+                        <span className="flex items-center gap-1">
+                          {post.likesCount > 0 && <><span className="bg-blue-600 text-white rounded-full p-0.5 inline-flex"><Heart className="h-2.5 w-2.5 fill-white" /></span> {post.likesCount}</>}
+                        </span>
+                        <button
+                          onClick={() => togglePostComments(post.id)}
+                          className="hover:underline cursor-pointer"
+                        >
+                          💬 {post.commentsCount} تعليق
+                        </button>
                         <span>{new Date(post.createdAt).toLocaleDateString("ar")}</span>
                       </div>
+
+                      {/* Comments section */}
+                      {showCommentsByPost[post.id] && (
+                        <div className="border-t pt-2 space-y-2">
+                          {commentsLoadingByPost[post.id] ? (
+                            <div className="text-center text-xs text-muted-foreground py-2">جاري التحميل...</div>
+                          ) : commentsByPost[post.id]?.length > 0 ? (
+                            <div className="space-y-2 max-h-48 overflow-y-auto">
+                              {commentsByPost[post.id].map((c) => (
+                                <div key={c.id} className="flex items-start gap-2">
+                                  <div className="w-7 h-7 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center shrink-0">
+                                    <Users className="h-3.5 w-3.5 text-gray-500" />
+                                  </div>
+                                  <div className="bg-gray-100 dark:bg-gray-800 rounded-xl px-3 py-1.5">
+                                    <p className="text-xs font-bold">{c.authorName}</p>
+                                    <p className="text-sm">{c.content}</p>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          ) : null}
+                          <div className="flex items-center gap-2">
+                            <Input
+                              placeholder="اكتب رداً..."
+                              value={commentInputByPost[post.id] || ""}
+                              onChange={(e) => setCommentInputByPost((prev) => ({ ...prev, [post.id]: e.target.value }))}
+                              className="text-sm rounded-full bg-gray-100 dark:bg-gray-800 border-0 h-9"
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter" && commentInputByPost[post.id]?.trim()) {
+                                  addPostComment.mutate({ postId: post.id, content: commentInputByPost[post.id] });
+                                }
+                              }}
+                            />
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="shrink-0 h-9 w-9"
+                              disabled={!commentInputByPost[post.id]?.trim()}
+                              onClick={() => {
+                                if (commentInputByPost[post.id]?.trim()) {
+                                  addPostComment.mutate({ postId: post.id, content: commentInputByPost[post.id] });
+                                }
+                              }}
+                            >
+                              <Send className="h-4 w-4 text-blue-600" />
+                            </Button>
+                          </div>
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 ))}

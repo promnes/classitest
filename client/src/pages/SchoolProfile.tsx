@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRoute, Link } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
@@ -64,6 +64,13 @@ export default function SchoolProfile() {
   const [expandedPosts, setExpandedPosts] = useState<Record<string, boolean>>({});
   const [showComments, setShowComments] = useState<Record<string, boolean>>({});
   const [activeTab, setActiveTab] = useState("posts");
+  const [likedPosts, setLikedPosts] = useState<Record<string, boolean>>({});
+  const [localLikesCount, setLocalLikesCount] = useState<Record<string, number>>({});
+  const [postComments, setPostComments] = useState<Record<string, any[]>>({});
+  const [loadingComments, setLoadingComments] = useState<Record<string, boolean>>({});
+
+  const token = localStorage.getItem("token") || localStorage.getItem("childToken");
+  const authHeaders: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
 
   const { data: school, isLoading } = useQuery({
     queryKey: ["public-school", schoolId],
@@ -77,10 +84,9 @@ export default function SchoolProfile() {
 
   const submitReview = useMutation({
     mutationFn: async () => {
-      const token = localStorage.getItem("token");
       const res = await fetch(`/api/store/schools/${schoolId}/review`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        headers: { "Content-Type": "application/json", ...authHeaders },
         body: JSON.stringify({ rating: reviewRating, comment: reviewComment }),
       });
       if (!res.ok) {
@@ -97,35 +103,88 @@ export default function SchoolProfile() {
     onError: (err: any) => toast({ title: err.message, variant: "destructive" }),
   });
 
+  // Load liked status when school data loads
+  const checkLikedPosts = useCallback(async (posts: any[]) => {
+    if (!token || !posts?.length) return;
+    try {
+      const res = await fetch("/api/store/schools/posts/check-likes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...authHeaders },
+        body: JSON.stringify({ postIds: posts.map((p: any) => p.id) }),
+      });
+      if (res.ok) {
+        const body = await res.json();
+        setLikedPosts(body.data || {});
+      }
+    } catch { /* ignore */ }
+  }, [token]);
+
+  useEffect(() => {
+    if (school?.posts?.length) {
+      checkLikedPosts(school.posts);
+      // Initialize local likes count
+      const counts: Record<string, number> = {};
+      school.posts.forEach((p: any) => { counts[p.id] = p.likesCount; });
+      setLocalLikesCount(counts);
+    }
+  }, [school?.posts]);
+
+  const fetchComments = useCallback(async (postId: string) => {
+    setLoadingComments(prev => ({ ...prev, [postId]: true }));
+    try {
+      const res = await fetch(`/api/store/schools/posts/${postId}/comments`);
+      if (res.ok) {
+        const body = await res.json();
+        setPostComments(prev => ({ ...prev, [postId]: body.data || [] }));
+      }
+    } catch { /* ignore */ }
+    setLoadingComments(prev => ({ ...prev, [postId]: false }));
+  }, []);
+
   const likePost = useMutation({
     mutationFn: async (postId: string) => {
-      const token = localStorage.getItem("token");
+      if (!token) throw new Error("يجب تسجيل الدخول");
       const res = await fetch(`/api/store/schools/posts/${postId}/like`, {
         method: "POST",
-        headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        headers: { "Content-Type": "application/json", ...authHeaders },
       });
-      if (!res.ok) throw new Error("Failed");
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || "Failed");
+      }
+      return await res.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["public-school", schoolId] });
+    onSuccess: (data, postId) => {
+      setLikedPosts(prev => ({ ...prev, [postId]: data.liked }));
+      setLocalLikesCount(prev => ({ ...prev, [postId]: data.likesCount }));
     },
+    onError: (err: any) => toast({ title: err.message || "فشل الإعجاب", variant: "destructive" }),
   });
 
   const addComment = useMutation({
     mutationFn: async ({ postId, content }: { postId: string; content: string }) => {
-      const token = localStorage.getItem("token");
+      if (!token) throw new Error("يجب تسجيل الدخول");
       const res = await fetch(`/api/store/schools/posts/${postId}/comment`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        headers: { "Content-Type": "application/json", ...authHeaders },
         body: JSON.stringify({ content }),
       });
-      if (!res.ok) throw new Error("Failed");
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || "Failed");
+      }
+      return await res.json();
     },
-    onSuccess: (_, { postId }) => {
+    onSuccess: (data, { postId }) => {
       queryClient.invalidateQueries({ queryKey: ["public-school", schoolId] });
       setCommentTexts(prev => ({ ...prev, [postId]: "" }));
+      // Add new comment to local state
+      if (data.data) {
+        setPostComments(prev => ({ ...prev, [postId]: [data.data, ...(prev[postId] || [])] }));
+      }
       toast({ title: "تم إضافة التعليق" });
     },
+    onError: (err: any) => toast({ title: err.message || "فشل إضافة التعليق", variant: "destructive" }),
   });
 
   if (isLoading) {
@@ -450,14 +509,14 @@ export default function SchoolProfile() {
                               {post.mediaUrls.map((url: string, i: number) => {
                                 const mediaType = post.mediaTypes?.[i];
                                 if (mediaType === "video") {
-                                  return <video key={i} src={url} controls className="w-full max-h-96 object-contain bg-black" />;
+                                  return <video key={i} src={url} controls className="w-full max-h-[600px] object-contain bg-black" />;
                                 }
                                 return (
                                   <img
                                     key={i}
                                     src={url}
                                     alt=""
-                                    className={`w-full object-cover ${post.mediaUrls.length === 1 ? "max-h-[500px]" : "h-48 sm:h-64"}`}
+                                    className={`w-full ${post.mediaUrls.length === 1 ? "max-h-[600px] object-contain bg-gray-50 dark:bg-gray-800" : "h-48 sm:h-72 object-cover"}`}
                                     onError={(e) => { e.currentTarget.style.display = 'none' }}
                                   />
                                 );
@@ -467,24 +526,43 @@ export default function SchoolProfile() {
 
                           <div className="px-4 py-2 flex items-center justify-between text-xs text-muted-foreground border-b dark:border-gray-800">
                             <span className="flex items-center gap-1">
-                              <span className="bg-blue-600 text-white rounded-full p-0.5 inline-flex"><Heart className="h-2.5 w-2.5 fill-white" /></span>
-                              {post.likesCount}
+                              {(localLikesCount[post.id] ?? post.likesCount) > 0 && (
+                                <>
+                                  <span className="bg-blue-600 text-white rounded-full p-0.5 inline-flex"><Heart className="h-2.5 w-2.5 fill-white" /></span>
+                                  {localLikesCount[post.id] ?? post.likesCount}
+                                </>
+                              )}
                             </span>
-                            <button onClick={() => setShowComments(p => ({ ...p, [post.id]: !p[post.id] }))} className="hover:underline">
+                            <button onClick={() => {
+                              const next = !showComments[post.id];
+                              setShowComments(p => ({ ...p, [post.id]: next }));
+                              if (next && !postComments[post.id]) fetchComments(post.id);
+                            }} className="hover:underline">
                               {post.commentsCount} تعليق
                             </button>
                           </div>
 
                           <div className="px-4 py-1 flex border-b dark:border-gray-800">
                             <button
-                              onClick={() => likePost.mutate(post.id)}
-                              className="flex-1 flex items-center justify-center gap-1.5 py-2 text-sm font-medium text-muted-foreground hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                              onClick={() => {
+                                if (!token) { toast({ title: "يجب تسجيل الدخول للإعجاب", variant: "destructive" }); return; }
+                                likePost.mutate(post.id);
+                              }}
+                              className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-sm font-medium rounded-lg transition-colors ${
+                                likedPosts[post.id]
+                                  ? "text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950"
+                                  : "text-muted-foreground hover:bg-gray-100 dark:hover:bg-gray-800"
+                              }`}
                             >
-                              <Heart className="h-5 w-5" />
-                              أعجبني
+                              <Heart className={`h-5 w-5 ${likedPosts[post.id] ? "fill-blue-600 text-blue-600" : ""}`} />
+                              {likedPosts[post.id] ? "أعجبني" : "أعجبني"}
                             </button>
                             <button
-                              onClick={() => setShowComments(p => ({ ...p, [post.id]: !p[post.id] }))}
+                              onClick={() => {
+                                const next = !showComments[post.id];
+                                setShowComments(p => ({ ...p, [post.id]: next }));
+                                if (next && !postComments[post.id]) fetchComments(post.id);
+                              }}
                               className="flex-1 flex items-center justify-center gap-1.5 py-2 text-sm font-medium text-muted-foreground hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
                             >
                               <MessageSquare className="h-5 w-5" />
@@ -502,32 +580,57 @@ export default function SchoolProfile() {
                             </div>
                           </div>
 
-                          {showComments[post.id] !== false && (
-                            <div className="p-3 flex items-center gap-2">
-                              <Input
-                                placeholder="اكتب تعليقاً..."
-                                value={commentTexts[post.id] || ""}
-                                onChange={e => setCommentTexts(prev => ({ ...prev, [post.id]: e.target.value }))}
-                                className="text-sm rounded-full bg-gray-100 dark:bg-gray-800 border-0"
-                                onKeyDown={e => {
-                                  if (e.key === "Enter" && commentTexts[post.id]?.trim()) {
-                                    addComment.mutate({ postId: post.id, content: commentTexts[post.id] });
-                                  }
-                                }}
-                              />
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                onClick={() => {
-                                  if (commentTexts[post.id]?.trim()) {
-                                    addComment.mutate({ postId: post.id, content: commentTexts[post.id] });
-                                  }
-                                }}
-                                disabled={!commentTexts[post.id]?.trim()}
-                                className="shrink-0"
-                              >
-                                <Send className="h-4 w-4 text-blue-600" />
-                              </Button>
+                          {showComments[post.id] && (
+                            <div className="border-t dark:border-gray-800">
+                              {/* Existing comments */}
+                              {loadingComments[post.id] ? (
+                                <div className="p-4 text-center text-xs text-muted-foreground">جاري تحميل التعليقات...</div>
+                              ) : postComments[post.id]?.length > 0 ? (
+                                <div className="px-4 pt-2 space-y-3 max-h-64 overflow-y-auto">
+                                  {postComments[post.id].map((c: any) => (
+                                    <div key={c.id} className="flex items-start gap-2">
+                                      <div className="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center shrink-0">
+                                        <Users className="h-4 w-4 text-gray-500" />
+                                      </div>
+                                      <div className="flex-1 bg-gray-100 dark:bg-gray-800 rounded-2xl px-3 py-2">
+                                        <p className="text-xs font-bold">{c.authorName}</p>
+                                        <p className="text-sm">{c.content}</p>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : post.commentsCount > 0 ? (
+                                <div className="p-3 text-center text-xs text-muted-foreground">لا توجد تعليقات</div>
+                              ) : null}
+
+                              {/* Comment input */}
+                              <div className="p-3 flex items-center gap-2">
+                                <Input
+                                  placeholder={token ? "اكتب تعليقاً..." : "سجل دخول لكتابة تعليق"}
+                                  value={commentTexts[post.id] || ""}
+                                  onChange={e => setCommentTexts(prev => ({ ...prev, [post.id]: e.target.value }))}
+                                  className="text-sm rounded-full bg-gray-100 dark:bg-gray-800 border-0"
+                                  disabled={!token}
+                                  onKeyDown={e => {
+                                    if (e.key === "Enter" && commentTexts[post.id]?.trim()) {
+                                      addComment.mutate({ postId: post.id, content: commentTexts[post.id] });
+                                    }
+                                  }}
+                                />
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  onClick={() => {
+                                    if (commentTexts[post.id]?.trim()) {
+                                      addComment.mutate({ postId: post.id, content: commentTexts[post.id] });
+                                    }
+                                  }}
+                                  disabled={!token || !commentTexts[post.id]?.trim()}
+                                  className="shrink-0"
+                                >
+                                  <Send className="h-4 w-4 text-blue-600" />
+                                </Button>
+                              </div>
                             </div>
                           )}
                         </CardContent>

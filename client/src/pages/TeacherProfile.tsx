@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRoute } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
@@ -12,7 +12,7 @@ import { queryClient } from "@/lib/queryClient";
 import { ProfileHeader } from "@/components/ui/ProfileHeader";
 import {
   GraduationCap, Star, MessageSquare, BookOpen, Heart,
-  Users, Briefcase, Clock
+  Users, Briefcase, Clock, Send
 } from "lucide-react";
 import { ShareMenu } from "@/components/ui/ShareMenu";
 
@@ -23,6 +23,15 @@ export default function TeacherProfile() {
 
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewComment, setReviewComment] = useState("");
+  const [likedPosts, setLikedPosts] = useState<Record<string, boolean>>({});
+  const [localLikesCount, setLocalLikesCount] = useState<Record<string, number>>({});
+  const [showComments, setShowComments] = useState<Record<string, boolean>>({});
+  const [postComments, setPostComments] = useState<Record<string, any[]>>({});
+  const [loadingComments, setLoadingComments] = useState<Record<string, boolean>>({});
+  const [commentTexts, setCommentTexts] = useState<Record<string, string>>({});
+
+  const token = localStorage.getItem("token") || localStorage.getItem("childToken");
+  const authHeaders: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
 
   const { data: teacher, isLoading } = useQuery({
     queryKey: ["public-teacher", teacherId],
@@ -91,6 +100,80 @@ export default function TeacherProfile() {
       toast({ title: "تم إرسال تقييمك بنجاح" });
     },
     onError: (err: any) => toast({ title: err.message, variant: "destructive" }),
+  });
+
+  // Check liked posts
+  const checkLikedPosts = useCallback(async (posts: any[]) => {
+    if (!token || !posts?.length) return;
+    try {
+      const res = await fetch("/api/store/schools/posts/check-likes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...authHeaders },
+        body: JSON.stringify({ postIds: posts.map((p: any) => p.id) }),
+      });
+      if (res.ok) {
+        const body = await res.json();
+        setLikedPosts(body.data || {});
+      }
+    } catch { /* ignore */ }
+  }, [token]);
+
+  useEffect(() => {
+    const posts = postsData?.posts || [];
+    if (posts.length) {
+      checkLikedPosts(posts);
+      const counts: Record<string, number> = {};
+      posts.forEach((p: any) => { counts[p.id] = p.likesCount || 0; });
+      setLocalLikesCount(counts);
+    }
+  }, [postsData?.posts]);
+
+  const fetchComments = useCallback(async (postId: string) => {
+    setLoadingComments(prev => ({ ...prev, [postId]: true }));
+    try {
+      const res = await fetch(`/api/store/schools/posts/${postId}/comments`);
+      if (res.ok) {
+        const body = await res.json();
+        setPostComments(prev => ({ ...prev, [postId]: body.data || [] }));
+      }
+    } catch { /* ignore */ }
+    setLoadingComments(prev => ({ ...prev, [postId]: false }));
+  }, []);
+
+  const likePost = useMutation({
+    mutationFn: async (postId: string) => {
+      if (!token) throw new Error("يجب تسجيل الدخول");
+      const res = await fetch(`/api/store/schools/posts/${postId}/like`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...authHeaders },
+      });
+      if (!res.ok) { const err = await res.json(); throw new Error(err.message || "Failed"); }
+      return await res.json();
+    },
+    onSuccess: (data, postId) => {
+      setLikedPosts(prev => ({ ...prev, [postId]: data.liked }));
+      setLocalLikesCount(prev => ({ ...prev, [postId]: data.likesCount }));
+    },
+    onError: (err: any) => toast({ title: err.message || "فشل الإعجاب", variant: "destructive" }),
+  });
+
+  const addComment = useMutation({
+    mutationFn: async ({ postId, content }: { postId: string; content: string }) => {
+      if (!token) throw new Error("يجب تسجيل الدخول");
+      const res = await fetch(`/api/store/schools/posts/${postId}/comment`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...authHeaders },
+        body: JSON.stringify({ content }),
+      });
+      if (!res.ok) { const err = await res.json(); throw new Error(err.message || "Failed"); }
+      return await res.json();
+    },
+    onSuccess: (data, { postId }) => {
+      setCommentTexts(prev => ({ ...prev, [postId]: "" }));
+      if (data.data) setPostComments(prev => ({ ...prev, [postId]: [data.data, ...(prev[postId] || [])] }));
+      toast({ title: "تم إضافة التعليق" });
+    },
+    onError: (err: any) => toast({ title: err.message || "فشل إضافة التعليق", variant: "destructive" }),
   });
 
   if (isLoading) {
@@ -242,29 +325,116 @@ export default function TeacherProfile() {
                         {post.mediaUrls.map((url: string, i: number) => {
                           const mediaType = post.mediaTypes?.[i];
                           if (mediaType === "video") {
-                            return <video key={i} src={url} controls className="w-full max-h-96 object-contain bg-black" />;
+                            return <video key={i} src={url} controls className="w-full max-h-[500px] object-contain bg-black" />;
                           }
                           return (
-                            <img key={i} src={url} alt="" className={`w-full object-cover ${post.mediaUrls.length === 1 ? "max-h-[400px] rounded-lg" : "h-48"}`} onError={(e) => { e.currentTarget.style.display = 'none' }} />
+                            <img key={i} src={url} alt="" className={`w-full ${post.mediaUrls.length === 1 ? "max-h-[500px] object-contain bg-gray-50 dark:bg-gray-800 rounded-lg" : "h-56 object-cover"}`} onError={(e) => { e.currentTarget.style.display = 'none' }} />
                           );
                         })}
                       </div>
                     )}
-                    <div className="flex items-center justify-between mt-3 pt-3 border-t text-sm text-muted-foreground">
-                      <div className="flex items-center gap-4">
-                        <span className="flex items-center gap-1"><Heart className="h-4 w-4" /> {post.likesCount || 0}</span>
-                        <span className="flex items-center gap-1"><MessageSquare className="h-4 w-4" /> {post.commentsCount || 0}</span>
-                      </div>
-                      <ShareMenu
-                        url={typeof window !== "undefined" ? window.location.href : ""}
-                        title={post.content?.substring(0, 60) || "منشور"}
-                        description={post.content?.substring(0, 120) || ""}
-                        variant="ghost"
-                        size="sm"
-                        buttonLabel="مشاركة"
-                        className="text-xs"
-                      />
+
+                    {/* Likes & comments count bar */}
+                    <div className="flex items-center justify-between mt-3 pt-2 border-t text-xs text-muted-foreground">
+                      <span className="flex items-center gap-1">
+                        {(localLikesCount[post.id] ?? post.likesCount ?? 0) > 0 && (
+                          <><span className="bg-blue-600 text-white rounded-full p-0.5 inline-flex"><Heart className="h-2.5 w-2.5 fill-white" /></span> {localLikesCount[post.id] ?? post.likesCount ?? 0}</>
+                        )}
+                      </span>
+                      <button onClick={() => {
+                        const next = !showComments[post.id];
+                        setShowComments(p => ({ ...p, [post.id]: next }));
+                        if (next && !postComments[post.id]) fetchComments(post.id);
+                      }} className="hover:underline">
+                        {post.commentsCount || 0} تعليق
+                      </button>
                     </div>
+
+                    {/* Action buttons */}
+                    <div className="flex border-t border-b dark:border-gray-800 mt-1 py-1">
+                      <button
+                        onClick={() => {
+                          if (!token) { toast({ title: "يجب تسجيل الدخول للإعجاب", variant: "destructive" }); return; }
+                          likePost.mutate(post.id);
+                        }}
+                        className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-sm font-medium rounded-lg transition-colors ${
+                          likedPosts[post.id] ? "text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950" : "text-muted-foreground hover:bg-gray-100 dark:hover:bg-gray-800"
+                        }`}
+                      >
+                        <Heart className={`h-5 w-5 ${likedPosts[post.id] ? "fill-blue-600 text-blue-600" : ""}`} />
+                        أعجبني
+                      </button>
+                      <button
+                        onClick={() => {
+                          const next = !showComments[post.id];
+                          setShowComments(p => ({ ...p, [post.id]: next }));
+                          if (next && !postComments[post.id]) fetchComments(post.id);
+                        }}
+                        className="flex-1 flex items-center justify-center gap-1.5 py-2 text-sm font-medium text-muted-foreground hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                      >
+                        <MessageSquare className="h-5 w-5" />
+                        تعليق
+                      </button>
+                      <div className="flex-1 flex items-center justify-center">
+                        <ShareMenu
+                          url={typeof window !== "undefined" ? window.location.href : ""}
+                          title={post.content?.substring(0, 60) || "منشور"}
+                          description={post.content?.substring(0, 120) || ""}
+                          variant="ghost"
+                          size="sm"
+                          buttonLabel="مشاركة"
+                          className="text-xs w-full justify-center"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Comments section */}
+                    {showComments[post.id] && (
+                      <div className="pt-2 space-y-2">
+                        {loadingComments[post.id] ? (
+                          <div className="text-center text-xs text-muted-foreground py-2">جاري التحميل...</div>
+                        ) : postComments[post.id]?.length > 0 ? (
+                          <div className="space-y-2 max-h-48 overflow-y-auto">
+                            {postComments[post.id].map((c: any) => (
+                              <div key={c.id} className="flex items-start gap-2">
+                                <div className="w-7 h-7 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center shrink-0">
+                                  <Users className="h-3.5 w-3.5 text-gray-500" />
+                                </div>
+                                <div className="bg-gray-100 dark:bg-gray-800 rounded-xl px-3 py-1.5">
+                                  <p className="text-xs font-bold">{c.authorName}</p>
+                                  <p className="text-sm">{c.content}</p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : null}
+                        <div className="flex items-center gap-2">
+                          <Input
+                            placeholder={token ? "اكتب تعليقاً..." : "سجل دخول لكتابة تعليق"}
+                            value={commentTexts[post.id] || ""}
+                            onChange={e => setCommentTexts(prev => ({ ...prev, [post.id]: e.target.value }))}
+                            className="text-sm rounded-full bg-gray-100 dark:bg-gray-800 border-0 h-9"
+                            disabled={!token}
+                            onKeyDown={e => {
+                              if (e.key === "Enter" && commentTexts[post.id]?.trim()) {
+                                addComment.mutate({ postId: post.id, content: commentTexts[post.id] });
+                              }
+                            }}
+                          />
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="shrink-0 h-9 w-9"
+                            disabled={!token || !commentTexts[post.id]?.trim()}
+                            onClick={() => {
+                              if (commentTexts[post.id]?.trim()) addComment.mutate({ postId: post.id, content: commentTexts[post.id] });
+                            }}
+                          >
+                            <Send className="h-4 w-4 text-blue-600" />
+                          </Button>
+                        </div>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               ))
