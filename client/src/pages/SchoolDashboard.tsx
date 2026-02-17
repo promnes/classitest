@@ -17,17 +17,20 @@ import {
   Eye,
   EyeOff,
   GraduationCap,
+  MapPin,
   LogOut,
   MessageSquare,
   Pin,
   PinOff,
   Plus,
   School,
+  Send,
   Star,
   Trash2,
   TrendingUp,
   Upload,
   Users,
+  Loader2,
 } from "lucide-react";
 
 type SocialLinks = {
@@ -115,6 +118,13 @@ interface PagedResult<T> {
   limit: number;
 }
 
+interface PostComment {
+  id: string;
+  authorName: string;
+  content: string;
+  createdAt: string;
+}
+
 const emptySocial = { facebook: "", twitter: "", instagram: "", youtube: "", tiktok: "", website: "" };
 
 const PAGE_SIZE = 10;
@@ -149,9 +159,16 @@ export default function SchoolDashboard() {
   const [teacherSearch, setTeacherSearch] = useState("");
   const [studentsSearch, setStudentsSearch] = useState("");
   const [reviewsSearch, setReviewsSearch] = useState("");
+  const [debouncedTeacherSearch, setDebouncedTeacherSearch] = useState("");
+  const [debouncedStudentsSearch, setDebouncedStudentsSearch] = useState("");
+  const [debouncedReviewsSearch, setDebouncedReviewsSearch] = useState("");
   const [teacherSort, setTeacherSort] = useState<"newest" | "oldest" | "mostActive" | "mostStudents">("newest");
   const [studentsSort, setStudentsSort] = useState<"newest" | "oldest" | "nameAsc" | "nameDesc">("newest");
   const [reviewsSort, setReviewsSort] = useState<"newest" | "oldest" | "highest" | "lowest">("newest");
+  const [commentsByPost, setCommentsByPost] = useState<Record<string, PostComment[]>>({});
+  const [showCommentsByPost, setShowCommentsByPost] = useState<Record<string, boolean>>({});
+  const [commentInputByPost, setCommentInputByPost] = useState<Record<string, string>>({});
+  const [commentsLoadingByPost, setCommentsLoadingByPost] = useState<Record<string, boolean>>({});
 
   const [teacherForm, setTeacherForm] = useState({
     name: "",
@@ -195,6 +212,29 @@ export default function SchoolDashboard() {
     if (!token) setLocation("/school/login");
   }, [token, setLocation]);
 
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedTeacherSearch(teacherSearch.trim()), 300);
+    return () => clearTimeout(timer);
+  }, [teacherSearch]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedStudentsSearch(studentsSearch.trim()), 300);
+    return () => clearTimeout(timer);
+  }, [studentsSearch]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedReviewsSearch(reviewsSearch.trim()), 300);
+    return () => clearTimeout(timer);
+  }, [reviewsSearch]);
+
+  useEffect(() => {
+    setStudentsPage(1);
+  }, [debouncedStudentsSearch]);
+
+  useEffect(() => {
+    setReviewsPage(1);
+  }, [debouncedReviewsSearch]);
+
   const { data: profile } = useQuery<SchoolProfile>({
     queryKey: ["school-profile"],
     queryFn: async () => {
@@ -215,11 +255,11 @@ export default function SchoolDashboard() {
     enabled: !!token,
   });
 
-  const { data: teachers = [] } = useQuery<Teacher[]>({
-    queryKey: ["school-teachers", teacherSearch, teacherSort],
+  const { data: teachers = [], isFetching: isTeachersFetching } = useQuery<Teacher[]>({
+    queryKey: ["school-teachers", debouncedTeacherSearch, teacherSort],
     queryFn: async () => {
       const params = new URLSearchParams({
-        q: teacherSearch,
+        q: debouncedTeacherSearch,
         sort: teacherSort,
       });
       const res = await fetch(`/api/school/teachers?${params.toString()}`, { headers: authHeaders });
@@ -239,11 +279,11 @@ export default function SchoolDashboard() {
     enabled: !!token,
   });
 
-  const { data: studentsRes } = useQuery<PagedResult<any>>({
-    queryKey: ["school-students", studentsSearch, studentsSort, studentsPage],
+  const { data: studentsRes, isFetching: isStudentsFetching } = useQuery<PagedResult<any>>({
+    queryKey: ["school-students", debouncedStudentsSearch, studentsSort, studentsPage],
     queryFn: async () => {
       const params = new URLSearchParams({
-        q: studentsSearch,
+        q: debouncedStudentsSearch,
         sort: studentsSort,
         page: String(studentsPage),
         limit: String(PAGE_SIZE),
@@ -261,11 +301,11 @@ export default function SchoolDashboard() {
     enabled: !!token,
   });
 
-  const { data: reviewsRes } = useQuery<PagedResult<any>>({
-    queryKey: ["school-reviews", reviewsSearch, reviewsSort, reviewsPage],
+  const { data: reviewsRes, isFetching: isReviewsFetching } = useQuery<PagedResult<any>>({
+    queryKey: ["school-reviews", debouncedReviewsSearch, reviewsSort, reviewsPage],
     queryFn: async () => {
       const params = new URLSearchParams({
-        q: reviewsSearch,
+        q: debouncedReviewsSearch,
         sort: reviewsSort,
         page: String(reviewsPage),
         limit: String(PAGE_SIZE),
@@ -434,6 +474,29 @@ export default function SchoolDashboard() {
     onError: (err: any) => toast({ title: err.message || "فشل حذف المنشور", variant: "destructive" }),
   });
 
+  const addPostComment = useMutation({
+    mutationFn: async ({ postId, content }: { postId: string; content: string }) => {
+      const res = await fetch(`/api/store/schools/posts/${postId}/comment`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          authorName: profile?.name || "المدرسة",
+          content,
+        }),
+      });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.message || "Failed");
+      return body.data;
+    },
+    onSuccess: async (_data, vars) => {
+      setCommentInputByPost((prev) => ({ ...prev, [vars.postId]: "" }));
+      await loadPostComments(vars.postId);
+      queryClient.invalidateQueries({ queryKey: ["school-feed"] });
+      toast({ title: "تم إرسال الرد" });
+    },
+    onError: (err: any) => toast({ title: err.message || "فشل إرسال الرد", variant: "destructive" }),
+  });
+
   function cleanSocialLinks(input: any): SocialLinks | null {
     const trimmed = {
       facebook: input.facebook?.trim() || "",
@@ -521,6 +584,28 @@ export default function SchoolDashboard() {
       mediaTypes: post.mediaTypes || [],
     });
     setShowPostModal(true);
+  }
+
+  async function loadPostComments(postId: string) {
+    try {
+      setCommentsLoadingByPost((prev) => ({ ...prev, [postId]: true }));
+      const res = await fetch(`/api/store/schools/posts/${postId}/comments`);
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.message || "Failed");
+      setCommentsByPost((prev) => ({ ...prev, [postId]: body.data || [] }));
+    } catch (error: any) {
+      toast({ title: error.message || "فشل تحميل التعليقات", variant: "destructive" });
+    } finally {
+      setCommentsLoadingByPost((prev) => ({ ...prev, [postId]: false }));
+    }
+  }
+
+  async function togglePostComments(postId: string) {
+    const next = !showCommentsByPost[postId];
+    setShowCommentsByPost((prev) => ({ ...prev, [postId]: next }));
+    if (next && !commentsByPost[postId]) {
+      await loadPostComments(postId);
+    }
   }
 
   async function uploadFileForPost(file: File): Promise<{ url: string; type: string }> {
@@ -764,7 +849,7 @@ export default function SchoolDashboard() {
             <TabsTrigger value="students">الطلاب</TabsTrigger>
             <TabsTrigger value="reviews">التقييمات</TabsTrigger>
             <TabsTrigger value="activity">النشاط</TabsTrigger>
-            <TabsTrigger value="about">المدرسة</TabsTrigger>
+            <TabsTrigger value="profile">الصفحة الشخصية</TabsTrigger>
           </TabsList>
 
           <TabsContent value="teachers" className="space-y-4">
@@ -793,6 +878,12 @@ export default function SchoolDashboard() {
                 <option value="mostStudents">الأكثر طلابًا</option>
               </select>
             </div>
+            {isTeachersFetching && (
+              <div className="text-xs text-muted-foreground flex items-center gap-1">
+                <Loader2 className="h-3 w-3 animate-spin" />
+                جارِ تحديث نتائج المعلمين...
+              </div>
+            )}
 
             {teachers.length === 0 ? (
               <Card><CardContent className="p-8 text-center text-muted-foreground">لم يتم إضافة معلمين بعد</CardContent></Card>
@@ -957,6 +1048,12 @@ export default function SchoolDashboard() {
                 <option value="nameDesc">الاسم (ي-أ)</option>
               </select>
             </div>
+            {isStudentsFetching && (
+              <div className="text-xs text-muted-foreground flex items-center gap-1">
+                <Loader2 className="h-3 w-3 animate-spin" />
+                جارِ تحديث نتائج الطلاب...
+              </div>
+            )}
             {students.length === 0 ? (
               <Card><CardContent className="p-8 text-center text-muted-foreground">لا يوجد طلاب مسجلين بعد</CardContent></Card>
             ) : (
@@ -1017,6 +1114,12 @@ export default function SchoolDashboard() {
                 <option value="lowest">الأقل تقييمًا</option>
               </select>
             </div>
+            {isReviewsFetching && (
+              <div className="text-xs text-muted-foreground flex items-center gap-1">
+                <Loader2 className="h-3 w-3 animate-spin" />
+                جارِ تحديث نتائج التقييمات...
+              </div>
+            )}
             {reviews.length === 0 ? (
               <Card><CardContent className="p-8 text-center text-muted-foreground">لا يوجد تقييمات بعد</CardContent></Card>
             ) : (
@@ -1072,18 +1175,144 @@ export default function SchoolDashboard() {
             )}
           </TabsContent>
 
-          <TabsContent value="about" className="space-y-4">
-            <h2 className="text-lg font-bold">بيانات المدرسة</h2>
-            <Card>
-              <CardContent className="p-4 space-y-2 text-sm">
-                <p><strong>الاسم:</strong> {profile?.name || "—"}</p>
-                <p><strong>الاسم العربي:</strong> {profile?.nameAr || "—"}</p>
-                <p><strong>الوصف:</strong> {profile?.description || "—"}</p>
-                <p><strong>العنوان:</strong> {[profile?.address, profile?.city, profile?.governorate].filter(Boolean).join("، ") || "—"}</p>
-                <p><strong>الهاتف:</strong> {profile?.phoneNumber || "—"}</p>
-                <p><strong>البريد:</strong> {profile?.email || "—"}</p>
+          <TabsContent value="profile" className="space-y-4">
+            <Card className="overflow-hidden">
+              <div className="h-40 bg-gradient-to-l from-blue-600 to-indigo-700 relative">
+                {profile?.coverImageUrl && (
+                  <img src={profile.coverImageUrl} alt="" className="w-full h-full object-cover" />
+                )}
+              </div>
+              <CardContent className="p-4">
+                <div className="flex flex-col md:flex-row md:items-end gap-4 -mt-16">
+                  {profile?.imageUrl ? (
+                    <img src={profile.imageUrl} alt="" className="w-24 h-24 rounded-full object-cover border-4 border-white" />
+                  ) : (
+                    <div className="w-24 h-24 rounded-full bg-white border-4 border-white flex items-center justify-center">
+                      <School className="h-10 w-10 text-blue-600" />
+                    </div>
+                  )}
+                  <div className="flex-1">
+                    <h2 className="text-2xl font-bold">{profile?.name || "المدرسة"}</h2>
+                    {profile?.nameAr && <p className="text-muted-foreground text-sm">{profile.nameAr}</p>}
+                    {profile?.description && <p className="text-sm mt-1 text-muted-foreground">{profile.description}</p>}
+                    <div className="flex flex-wrap gap-3 text-xs text-muted-foreground mt-2">
+                      {(profile?.address || profile?.city || profile?.governorate) && (
+                        <span className="flex items-center gap-1">
+                          <MapPin className="h-3 w-3" />
+                          {[profile?.address, profile?.city, profile?.governorate].filter(Boolean).join("، ")}
+                        </span>
+                      )}
+                      {profile?.email && <span>{profile.email}</span>}
+                      {profile?.phoneNumber && <span>{profile.phoneNumber}</span>}
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button variant="outline" onClick={openEditProfile}>
+                      <Edit className="h-4 w-4 ml-1" />
+                      تعديل البيانات
+                    </Button>
+                    <Button className="bg-blue-600" onClick={() => { setEditingPost(null); resetPostForm(); setShowPostModal(true); }}>
+                      <Plus className="h-4 w-4 ml-1" />
+                      إنشاء منشور
+                    </Button>
+                  </div>
+                </div>
               </CardContent>
             </Card>
+
+            {feed.length === 0 ? (
+              <Card><CardContent className="p-8 text-center text-muted-foreground">لا يوجد منشورات بعد</CardContent></Card>
+            ) : (
+              <div className="space-y-4">
+                {feed.map((post) => (
+                  <Card key={post.id}>
+                    <CardContent className="p-4 space-y-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <Badge variant={post.authorType === "school" ? "default" : "secondary"}>
+                            {post.authorType === "school" ? "المدرسة" : post.teacherName || "معلم"}
+                          </Badge>
+                          {post.isPinned && <Badge variant="outline">مثبت</Badge>}
+                        </div>
+
+                        {post.authorType === "school" && (
+                          <div className="flex items-center gap-1">
+                            <Button size="sm" variant="ghost" onClick={() => openEditPost(post)}>
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button size="sm" variant="ghost" onClick={() => updatePost.mutate({ id: post.id, isPinned: !post.isPinned })}>
+                              {post.isPinned ? <PinOff className="h-4 w-4" /> : <Pin className="h-4 w-4" />}
+                            </Button>
+                            <Button size="sm" variant="ghost" onClick={() => {
+                              if (confirm("هل تريد حذف هذا المنشور؟")) deletePost.mutate(post.id);
+                            }}>
+                              <Trash2 className="h-4 w-4 text-red-500" />
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+
+                      {post.content && <p className="text-sm whitespace-pre-wrap">{post.content}</p>}
+
+                      {post.mediaUrls?.length > 0 && (
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                          {post.mediaUrls.map((url, i) => (
+                            post.mediaTypes?.[i] === "video" ? (
+                              <video key={i} src={url} controls className="w-full h-36 rounded object-cover bg-black" />
+                            ) : (
+                              <img key={i} src={url} alt="" className="w-full h-36 rounded object-cover" />
+                            )
+                          ))}
+                        </div>
+                      )}
+
+                      <div className="flex items-center justify-between text-xs text-muted-foreground">
+                        <div className="flex items-center gap-4">
+                          <span>❤️ {post.likesCount}</span>
+                          <span>💬 {post.commentsCount}</span>
+                          <span>{new Date(post.createdAt).toLocaleDateString("ar")}</span>
+                        </div>
+                        <Button size="sm" variant="ghost" onClick={() => togglePostComments(post.id)}>
+                          <MessageSquare className="h-4 w-4 ml-1" />
+                          {showCommentsByPost[post.id] ? "إخفاء التعليقات" : "عرض التعليقات"}
+                        </Button>
+                      </div>
+
+                      {showCommentsByPost[post.id] && (
+                        <div className="space-y-2 border-t pt-3">
+                          {commentsLoadingByPost[post.id] ? (
+                            <p className="text-xs text-muted-foreground">جاري تحميل التعليقات...</p>
+                          ) : (
+                            (commentsByPost[post.id] || []).map((comment) => (
+                              <div key={comment.id} className="bg-gray-50 dark:bg-gray-800 rounded p-2 text-sm">
+                                <div className="font-medium text-xs">{comment.authorName}</div>
+                                <div>{comment.content}</div>
+                              </div>
+                            ))
+                          )}
+
+                          <div className="flex gap-2">
+                            <Input
+                              placeholder="اكتب ردًا على التعليقات..."
+                              value={commentInputByPost[post.id] || ""}
+                              onChange={(e) => setCommentInputByPost((prev) => ({ ...prev, [post.id]: e.target.value }))}
+                            />
+                            <Button
+                              size="sm"
+                              className="bg-blue-600"
+                              disabled={!commentInputByPost[post.id]?.trim() || addPostComment.isPending}
+                              onClick={() => addPostComment.mutate({ postId: post.id, content: (commentInputByPost[post.id] || "").trim() })}
+                            >
+                              <Send className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
           </TabsContent>
         </Tabs>
       </div>
