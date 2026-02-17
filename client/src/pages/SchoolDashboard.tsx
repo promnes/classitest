@@ -34,6 +34,10 @@ import {
   Upload,
   Users,
   Loader2,
+  BarChart3,
+  Lock,
+  Unlock,
+  CheckCircle,
 } from "lucide-react";
 
 type SocialLinks = {
@@ -128,6 +132,23 @@ interface PostComment {
   createdAt: string;
 }
 
+interface Poll {
+  id: string;
+  authorType: "school" | "teacher";
+  question: string;
+  options: { id: string; text: string }[];
+  allowMultiple: boolean;
+  isAnonymous: boolean;
+  isPinned: boolean;
+  isClosed: boolean;
+  expiresAt: string | null;
+  totalVotes: number;
+  isActive: boolean;
+  optionCounts: Record<string, number>;
+  votersCount: number;
+  createdAt: string;
+}
+
 const emptySocial = { facebook: "", twitter: "", instagram: "", youtube: "", tiktok: "", website: "" };
 
 const PAGE_SIZE = 10;
@@ -179,6 +200,17 @@ export default function SchoolDashboard() {
   const [showCommentsByPost, setShowCommentsByPost] = useState<Record<string, boolean>>({});
   const [commentInputByPost, setCommentInputByPost] = useState<Record<string, string>>({});
   const [commentsLoadingByPost, setCommentsLoadingByPost] = useState<Record<string, boolean>>({});
+
+  // Poll state
+  const [showPollModal, setShowPollModal] = useState(false);
+  const [pollForm, setPollForm] = useState({
+    question: "",
+    options: [{ text: "" }, { text: "" }],
+    allowMultiple: false,
+    isAnonymous: false,
+    isPinned: false,
+    expiresAt: "",
+  });
 
   const [teacherForm, setTeacherForm] = useState({
     name: "",
@@ -352,6 +384,16 @@ export default function SchoolDashboard() {
     enabled: !!token,
   });
 
+  const { data: polls = [] } = useQuery<Poll[]>({
+    queryKey: ["school-polls"],
+    queryFn: async () => {
+      const res = await fetch("/api/school/polls", { headers: authHeaders });
+      if (!res.ok) throw new Error("Failed to fetch polls");
+      return (await res.json()).data;
+    },
+    enabled: !!token,
+  });
+
   const students = studentsRes?.data || [];
   const studentsPagesCount = Math.max(1, Math.ceil((studentsRes?.total || 0) / PAGE_SIZE));
 
@@ -495,6 +537,58 @@ export default function SchoolDashboard() {
     onError: (err: any) => toast({ title: err.message || "فشل إرسال الرد", variant: "destructive" }),
   });
 
+  const createPoll = useMutation({
+    mutationFn: async (payload: any) => {
+      const res = await fetch("/api/school/polls", {
+        method: "POST",
+        headers: { ...authHeaders, "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.message || "Failed");
+      return body.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["school-polls"] });
+      setShowPollModal(false);
+      resetPollForm();
+      toast({ title: "تم إنشاء التصويت" });
+    },
+    onError: (err: any) => toast({ title: err.message || "فشل إنشاء التصويت", variant: "destructive" }),
+  });
+
+  const updatePoll = useMutation({
+    mutationFn: async ({ id, ...payload }: any) => {
+      const res = await fetch(`/api/school/polls/${id}`, {
+        method: "PUT",
+        headers: { ...authHeaders, "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.message || "Failed");
+      return body.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["school-polls"] });
+      toast({ title: "تم تحديث التصويت" });
+    },
+    onError: (err: any) => toast({ title: err.message || "فشل التحديث", variant: "destructive" }),
+  });
+
+  const deletePoll = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/school/polls/${id}`, { method: "DELETE", headers: authHeaders });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.message || "Failed");
+      return body;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["school-polls"] });
+      toast({ title: "تم حذف التصويت" });
+    },
+    onError: (err: any) => toast({ title: err.message || "فشل الحذف", variant: "destructive" }),
+  });
+
   function cleanSocialLinks(input: any): SocialLinks | null {
     const trimmed = {
       facebook: input.facebook?.trim() || "",
@@ -535,6 +629,37 @@ export default function SchoolDashboard() {
     setPostForm({ content: "", isPinned: false, mediaUrls: [], mediaTypes: [] });
     setPendingPostFiles([]);
     setPendingPostPreviews([]);
+  }
+
+  function resetPollForm() {
+    setPollForm({
+      question: "",
+      options: [{ text: "" }, { text: "" }],
+      allowMultiple: false,
+      isAnonymous: false,
+      isPinned: false,
+      expiresAt: "",
+    });
+  }
+
+  function handleSubmitPoll() {
+    if (!pollForm.question.trim()) {
+      toast({ title: "سؤال التصويت مطلوب", variant: "destructive" });
+      return;
+    }
+    const validOptions = pollForm.options.filter((o) => o.text.trim());
+    if (validOptions.length < 2) {
+      toast({ title: "يجب إضافة خيارين على الأقل", variant: "destructive" });
+      return;
+    }
+    createPoll.mutate({
+      question: pollForm.question.trim(),
+      options: validOptions.map((o) => ({ text: o.text.trim() })),
+      allowMultiple: pollForm.allowMultiple,
+      isAnonymous: pollForm.isAnonymous,
+      isPinned: pollForm.isPinned,
+      expiresAt: pollForm.expiresAt || null,
+    });
   }
 
   function openEditTeacher(teacher: Teacher) {
@@ -982,9 +1107,10 @@ export default function SchoolDashboard() {
         </div>
 
         <Tabs defaultValue="teachers" dir="rtl">
-          <TabsList className="grid w-full grid-cols-6">
+          <TabsList className="grid w-full grid-cols-7">
             <TabsTrigger value="teachers">المعلمين</TabsTrigger>
             <TabsTrigger value="posts">المنشورات</TabsTrigger>
+            <TabsTrigger value="polls">التصويتات</TabsTrigger>
             <TabsTrigger value="students">الطلاب</TabsTrigger>
             <TabsTrigger value="reviews">التقييمات</TabsTrigger>
             <TabsTrigger value="activity">النشاط</TabsTrigger>
@@ -1341,6 +1467,101 @@ export default function SchoolDashboard() {
                 <Button variant="outline" size="sm" disabled={reviewsPage >= reviewsPagesCount} onClick={() => setReviewsPage((p) => Math.min(reviewsPagesCount, p + 1))}>التالي</Button>
               </div>
               </>
+            )}
+          </TabsContent>
+
+          {/* Polls Tab */}
+          <TabsContent value="polls" className="space-y-4">
+            <div className="flex justify-between items-center">
+              <h2 className="text-lg font-bold">التصويتات</h2>
+              <Button onClick={() => { resetPollForm(); setShowPollModal(true); }} className="bg-blue-600">
+                <Plus className="h-4 w-4 ml-1" />
+                إنشاء تصويت
+              </Button>
+            </div>
+
+            {polls.length === 0 ? (
+              <Card><CardContent className="p-8 text-center text-muted-foreground">لا يوجد تصويتات بعد</CardContent></Card>
+            ) : (
+              <div className="space-y-4">
+                {polls.map((poll) => {
+                  const isExpired = poll.expiresAt && new Date(poll.expiresAt) < new Date();
+                  const maxVotes = Math.max(1, ...Object.values(poll.optionCounts || {}));
+                  return (
+                    <Card key={poll.id} className={`overflow-hidden ${poll.isPinned ? "border-blue-400 border-2" : ""}`}>
+                      <CardContent className="p-4 space-y-3">
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-center gap-2">
+                            <BarChart3 className="h-5 w-5 text-blue-600" />
+                            <h3 className="font-bold text-base">{poll.question}</h3>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            {poll.isPinned && <Badge variant="secondary">📌 مثبت</Badge>}
+                            {poll.isClosed && <Badge variant="destructive">مغلق</Badge>}
+                            {isExpired && !poll.isClosed && <Badge variant="outline">منتهي</Badge>}
+                            {poll.isAnonymous && <Badge variant="outline">مجهول</Badge>}
+                            {poll.allowMultiple && <Badge variant="outline">متعدد</Badge>}
+                          </div>
+                        </div>
+
+                        <div className="space-y-2">
+                          {(poll.options || []).map((opt) => {
+                            const count = poll.optionCounts?.[opt.id] || 0;
+                            const pct = poll.votersCount > 0 ? Math.round((count / poll.votersCount) * 100) : 0;
+                            return (
+                              <div key={opt.id} className="relative">
+                                <div className="flex items-center justify-between text-sm mb-1">
+                                  <span className="font-medium">{opt.text}</span>
+                                  <span className="text-muted-foreground">{count} ({pct}%)</span>
+                                </div>
+                                <div className="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-3 overflow-hidden">
+                                  <div
+                                    className="h-full bg-blue-500 rounded-full transition-all duration-500"
+                                    style={{ width: `${pct}%` }}
+                                  />
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        <div className="flex items-center justify-between pt-2 border-t">
+                          <div className="text-xs text-muted-foreground flex items-center gap-3">
+                            <span>👥 {poll.votersCount} مصوّت</span>
+                            <span>{new Date(poll.createdAt).toLocaleDateString("ar")}</span>
+                            {poll.expiresAt && <span>⏰ {new Date(poll.expiresAt).toLocaleDateString("ar")}</span>}
+                          </div>
+                          <div className="flex gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => updatePoll.mutate({ id: poll.id, isPinned: !poll.isPinned })}
+                              title={poll.isPinned ? "إلغاء التثبيت" : "تثبيت"}
+                            >
+                              {poll.isPinned ? <PinOff className="h-4 w-4" /> : <Pin className="h-4 w-4" />}
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => updatePoll.mutate({ id: poll.id, isClosed: !poll.isClosed })}
+                              title={poll.isClosed ? "فتح التصويت" : "إغلاق التصويت"}
+                            >
+                              {poll.isClosed ? <Unlock className="h-4 w-4 text-green-600" /> : <Lock className="h-4 w-4 text-orange-600" />}
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => { if (confirm("حذف هذا التصويت؟")) deletePoll.mutate(poll.id); }}
+                            >
+                              <Trash2 className="h-4 w-4 text-red-500" />
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
             )}
           </TabsContent>
 
@@ -1814,6 +2035,105 @@ export default function SchoolDashboard() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowProfileModal(false)}>إلغاء</Button>
             <Button className="bg-blue-600" onClick={handleSubmitProfile}>حفظ</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Poll Creation Modal */}
+      <Dialog open={showPollModal} onOpenChange={setShowPollModal}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>إنشاء تصويت جديد</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>السؤال *</Label>
+              <Input
+                placeholder="ما سؤال التصويت؟"
+                value={pollForm.question}
+                onChange={(e) => setPollForm((f) => ({ ...f, question: e.target.value }))}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>الخيارات * (2-10)</Label>
+              {pollForm.options.map((opt, i) => (
+                <div key={i} className="flex gap-2">
+                  <Input
+                    placeholder={`الخيار ${i + 1}`}
+                    value={opt.text}
+                    onChange={(e) => {
+                      const newOpts = [...pollForm.options];
+                      newOpts[i] = { text: e.target.value };
+                      setPollForm((f) => ({ ...f, options: newOpts }));
+                    }}
+                  />
+                  {pollForm.options.length > 2 && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setPollForm((f) => ({ ...f, options: f.options.filter((_, j) => j !== i) }))}
+                    >
+                      <Trash2 className="h-4 w-4 text-red-500" />
+                    </Button>
+                  )}
+                </div>
+              ))}
+              {pollForm.options.length < 10 && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPollForm((f) => ({ ...f, options: [...f.options, { text: "" }] }))}
+                >
+                  <Plus className="h-4 w-4 ml-1" />
+                  إضافة خيار
+                </Button>
+              )}
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={pollForm.allowMultiple}
+                  onChange={(e) => setPollForm((f) => ({ ...f, allowMultiple: e.target.checked }))}
+                  className="rounded"
+                />
+                <span className="text-sm">السماح باختيار متعدد</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={pollForm.isAnonymous}
+                  onChange={(e) => setPollForm((f) => ({ ...f, isAnonymous: e.target.checked }))}
+                  className="rounded"
+                />
+                <span className="text-sm">تصويت مجهول</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={pollForm.isPinned}
+                  onChange={(e) => setPollForm((f) => ({ ...f, isPinned: e.target.checked }))}
+                  className="rounded"
+                />
+                <span className="text-sm">تثبيت التصويت</span>
+              </label>
+            </div>
+
+            <div>
+              <Label>تاريخ الانتهاء (اختياري)</Label>
+              <Input
+                type="datetime-local"
+                value={pollForm.expiresAt}
+                onChange={(e) => setPollForm((f) => ({ ...f, expiresAt: e.target.value }))}
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowPollModal(false)}>إلغاء</Button>
+            <Button className="bg-blue-600" onClick={handleSubmitPoll} disabled={createPoll.isPending}>
+              {createPoll.isPending ? "جاري الإنشاء..." : "إنشاء التصويت"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

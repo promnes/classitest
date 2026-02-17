@@ -15,6 +15,9 @@ import {
   parents,
   children,
   parentNotifications,
+  schoolPolls,
+  schoolPollVotes,
+  follows,
 } from "../../shared/schema";
 import { eq, desc, and, sql, like, or } from "drizzle-orm";
 import jwt from "jsonwebtoken";
@@ -1209,6 +1212,305 @@ export async function registerSchoolRoutes(app: Express) {
     } catch (error: any) {
       console.error("Submit school review error:", error);
       res.status(500).json({ message: "Failed to submit review" });
+    }
+  });
+
+  // ===== Polls — School Management =====
+
+  // Create poll
+  app.post("/api/school/polls", schoolMiddleware, async (req: SchoolRequest, res) => {
+    try {
+      const schoolId = req.school!.schoolId;
+      const { question, options, allowMultiple, isAnonymous, isPinned, expiresAt } = req.body;
+
+      if (!question || !question.trim()) {
+        return res.status(400).json({ message: "سؤال التصويت مطلوب" });
+      }
+      if (!Array.isArray(options) || options.length < 2 || options.length > 10) {
+        return res.status(400).json({ message: "يجب إضافة 2-10 خيارات" });
+      }
+
+      const formattedOptions = options.map((opt: any, i: number) => ({
+        id: String(i + 1),
+        text: String(opt.text || opt).trim(),
+      })).filter((o: any) => o.text);
+
+      if (formattedOptions.length < 2) {
+        return res.status(400).json({ message: "يجب إضافة خيارين على الأقل" });
+      }
+
+      const poll = await db.insert(schoolPolls).values({
+        schoolId,
+        authorType: "school",
+        question: question.trim(),
+        options: formattedOptions,
+        allowMultiple: allowMultiple || false,
+        isAnonymous: isAnonymous || false,
+        isPinned: isPinned || false,
+        expiresAt: expiresAt ? new Date(expiresAt) : null,
+      }).returning();
+
+      await logSchoolActivity(schoolId, "poll_created", 3, { pollId: poll[0].id });
+
+      res.json({ success: true, data: poll[0] });
+    } catch (error: any) {
+      console.error("Create school poll error:", error);
+      res.status(500).json({ message: "فشل إنشاء التصويت" });
+    }
+  });
+
+  // List polls (school dashboard)
+  app.get("/api/school/polls", schoolMiddleware, async (req: SchoolRequest, res) => {
+    try {
+      const schoolId = req.school!.schoolId;
+      const polls = await db.select().from(schoolPolls)
+        .where(eq(schoolPolls.schoolId, schoolId))
+        .orderBy(desc(schoolPolls.isPinned), desc(schoolPolls.createdAt));
+
+      // Get vote counts per option
+      const pollsWithStats = await Promise.all(polls.map(async (poll: any) => {
+        const votes = await db.select().from(schoolPollVotes)
+          .where(eq(schoolPollVotes.pollId, poll.id));
+
+        const optionCounts: Record<string, number> = {};
+        poll.options.forEach((o: any) => { optionCounts[o.id] = 0; });
+        votes.forEach((v: any) => {
+          (v.selectedOptions as string[]).forEach((optId: string) => {
+            if (optionCounts[optId] !== undefined) optionCounts[optId]++;
+          });
+        });
+
+        return {
+          ...poll,
+          optionCounts,
+          votersCount: votes.length,
+          voters: poll.isAnonymous ? [] : votes.map((v: any) => v.parentId),
+        };
+      }));
+
+      res.json({ success: true, data: pollsWithStats });
+    } catch (error: any) {
+      console.error("Get school polls error:", error);
+      res.status(500).json({ message: "فشل جلب التصويتات" });
+    }
+  });
+
+  // Update poll (pin/close/delete)
+  app.put("/api/school/polls/:id", schoolMiddleware, async (req: SchoolRequest, res) => {
+    try {
+      const schoolId = req.school!.schoolId;
+      const { id } = req.params;
+      const { isPinned, isClosed, isActive } = req.body;
+
+      const poll = await db.select().from(schoolPolls)
+        .where(and(eq(schoolPolls.id, id), eq(schoolPolls.schoolId, schoolId)));
+      if (!poll[0]) {
+        return res.status(404).json({ message: "التصويت غير موجود" });
+      }
+
+      const updates: any = { updatedAt: new Date() };
+      if (typeof isPinned === "boolean") updates.isPinned = isPinned;
+      if (typeof isClosed === "boolean") updates.isClosed = isClosed;
+      if (typeof isActive === "boolean") updates.isActive = isActive;
+
+      const updated = await db.update(schoolPolls).set(updates)
+        .where(eq(schoolPolls.id, id)).returning();
+
+      res.json({ success: true, data: updated[0] });
+    } catch (error: any) {
+      console.error("Update school poll error:", error);
+      res.status(500).json({ message: "فشل تحديث التصويت" });
+    }
+  });
+
+  // Delete poll
+  app.delete("/api/school/polls/:id", schoolMiddleware, async (req: SchoolRequest, res) => {
+    try {
+      const schoolId = req.school!.schoolId;
+      const { id } = req.params;
+
+      const poll = await db.select().from(schoolPolls)
+        .where(and(eq(schoolPolls.id, id), eq(schoolPolls.schoolId, schoolId)));
+      if (!poll[0]) {
+        return res.status(404).json({ message: "التصويت غير موجود" });
+      }
+
+      await db.delete(schoolPolls).where(eq(schoolPolls.id, id));
+      res.json({ success: true, message: "تم حذف التصويت" });
+    } catch (error: any) {
+      console.error("Delete school poll error:", error);
+      res.status(500).json({ message: "فشل حذف التصويت" });
+    }
+  });
+
+  // ===== Public Poll Endpoints =====
+
+  // Get polls for a school (public page)
+  app.get("/api/store/schools/:schoolId/polls", async (req, res) => {
+    try {
+      const { schoolId } = req.params;
+      const polls = await db.select().from(schoolPolls)
+        .where(and(
+          eq(schoolPolls.schoolId, schoolId),
+          eq(schoolPolls.isActive, true),
+        ))
+        .orderBy(desc(schoolPolls.isPinned), desc(schoolPolls.createdAt));
+
+      const pollsWithStats = await Promise.all(polls.map(async (poll: any) => {
+        const votes = await db.select().from(schoolPollVotes)
+          .where(eq(schoolPollVotes.pollId, poll.id));
+
+        const optionCounts: Record<string, number> = {};
+        poll.options.forEach((o: any) => { optionCounts[o.id] = 0; });
+        votes.forEach((v: any) => {
+          (v.selectedOptions as string[]).forEach((optId: string) => {
+            if (optionCounts[optId] !== undefined) optionCounts[optId]++;
+          });
+        });
+
+        // Check if expired
+        const isExpired = poll.expiresAt && new Date(poll.expiresAt) < new Date();
+
+        return {
+          ...poll,
+          optionCounts,
+          votersCount: votes.length,
+          isExpired,
+        };
+      }));
+
+      res.json({ success: true, data: pollsWithStats });
+    } catch (error: any) {
+      console.error("Get public polls error:", error);
+      res.status(500).json({ message: "فشل جلب التصويتات" });
+    }
+  });
+
+  // Vote on a poll (parent only — must follow school + have child assigned)
+  app.post("/api/store/schools/polls/:pollId/vote", optionalAuthMiddleware, async (req: any, res) => {
+    try {
+      const { pollId } = req.params;
+      const parentId = req.authUser?.parentId || req.body?.parentId;
+      const { selectedOptions } = req.body;
+
+      if (!parentId) {
+        return res.status(401).json({ message: "يجب تسجيل الدخول للتصويت" });
+      }
+
+      if (!Array.isArray(selectedOptions) || selectedOptions.length === 0) {
+        return res.status(400).json({ message: "يجب اختيار خيار واحد على الأقل" });
+      }
+
+      // Get poll
+      const poll = await db.select().from(schoolPolls).where(eq(schoolPolls.id, pollId));
+      if (!poll[0] || !poll[0].isActive) {
+        return res.status(404).json({ message: "التصويت غير موجود" });
+      }
+
+      if (poll[0].isClosed) {
+        return res.status(400).json({ message: "التصويت مغلق" });
+      }
+
+      if (poll[0].expiresAt && new Date(poll[0].expiresAt) < new Date()) {
+        return res.status(400).json({ message: "انتهت مدة التصويت" });
+      }
+
+      if (!poll[0].allowMultiple && selectedOptions.length > 1) {
+        return res.status(400).json({ message: "يمكنك اختيار خيار واحد فقط" });
+      }
+
+      // Validate option IDs
+      const validOptionIds = (poll[0].options as any[]).map((o: any) => o.id);
+      const invalidOpts = selectedOptions.filter((id: string) => !validOptionIds.includes(id));
+      if (invalidOpts.length > 0) {
+        return res.status(400).json({ message: "خيار غير صالح" });
+      }
+
+      const schoolId = poll[0].schoolId;
+
+      // Eligibility check: parent must follow the school
+      const followCheck = await db.select().from(follows).where(
+        and(
+          eq(follows.followerParentId, parentId),
+          eq(follows.entityType, "school"),
+          eq(follows.entityId, schoolId),
+        )
+      );
+      if (!followCheck[0]) {
+        return res.status(403).json({ message: "يجب متابعة المدرسة للتصويت" });
+      }
+
+      // Eligibility check: parent must have a child assigned to this school
+      const childCheck = await db.select({ id: childSchoolAssignment.id })
+        .from(childSchoolAssignment)
+        .innerJoin(parentChild, eq(childSchoolAssignment.childId, parentChild.childId))
+        .where(and(
+          eq(parentChild.parentId, parentId),
+          eq(childSchoolAssignment.schoolId, schoolId),
+        ))
+        .limit(1);
+      if (!childCheck[0]) {
+        return res.status(403).json({ message: "يجب أن يكون لديك طفل مسجّل بالمدرسة للتصويت" });
+      }
+
+      // Check if already voted
+      const existingVote = await db.select().from(schoolPollVotes)
+        .where(and(eq(schoolPollVotes.pollId, pollId), eq(schoolPollVotes.parentId, parentId)));
+
+      if (existingVote[0]) {
+        // Update vote
+        const updated = await db.update(schoolPollVotes)
+          .set({ selectedOptions })
+          .where(eq(schoolPollVotes.id, existingVote[0].id))
+          .returning();
+        return res.json({ success: true, data: updated[0], message: "تم تحديث تصويتك" });
+      }
+
+      // New vote
+      const vote = await db.insert(schoolPollVotes).values({
+        pollId,
+        parentId,
+        selectedOptions,
+      }).returning();
+
+      // Increment total votes
+      await db.update(schoolPolls).set({
+        totalVotes: sql`${schoolPolls.totalVotes} + 1`,
+      }).where(eq(schoolPolls.id, pollId));
+
+      res.json({ success: true, data: vote[0] });
+    } catch (error: any) {
+      console.error("Poll vote error:", error);
+      res.status(500).json({ message: "فشل التصويت" });
+    }
+  });
+
+  // Check if parent has voted on polls
+  app.post("/api/store/schools/polls/check-votes", optionalAuthMiddleware, async (req: any, res) => {
+    try {
+      const { pollIds } = req.body;
+      const parentId = req.authUser?.parentId;
+      if (!parentId || !Array.isArray(pollIds) || pollIds.length === 0) {
+        return res.json({ success: true, data: {} });
+      }
+
+      const votes = await db.select({
+        pollId: schoolPollVotes.pollId,
+        selectedOptions: schoolPollVotes.selectedOptions,
+      }).from(schoolPollVotes).where(
+        and(
+          sql`${schoolPollVotes.pollId} = ANY(${pollIds})`,
+          eq(schoolPollVotes.parentId, parentId),
+        )
+      );
+
+      const votesMap: Record<string, string[]> = {};
+      votes.forEach((v: any) => { votesMap[v.pollId] = v.selectedOptions; });
+
+      res.json({ success: true, data: votesMap });
+    } catch (error: any) {
+      console.error("Check votes error:", error);
+      res.status(500).json({ message: "فشل فحص التصويتات" });
     }
   });
 }

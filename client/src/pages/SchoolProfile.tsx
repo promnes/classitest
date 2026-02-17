@@ -12,7 +12,8 @@ import {
   School, GraduationCap, Star, MessageSquare, BookOpen, Heart,
   MapPin, Globe, Phone, Mail, Send, Users, Calendar, Award,
   ExternalLink, Facebook, Instagram, Youtube, Clock,
-  CheckCircle, Share2, BookOpenCheck, TrendingUp
+  CheckCircle, Share2, BookOpenCheck, TrendingUp,
+  BarChart3, Lock, Check, Pin
 } from "lucide-react";
 import { FollowButton } from "@/components/ui/FollowButton";
 import { ShareMenu } from "@/components/ui/ShareMenu";
@@ -68,9 +69,65 @@ export default function SchoolProfile() {
   const [localLikesCount, setLocalLikesCount] = useState<Record<string, number>>({});
   const [postComments, setPostComments] = useState<Record<string, any[]>>({});
   const [loadingComments, setLoadingComments] = useState<Record<string, boolean>>({});
+  const [selectedPollOptions, setSelectedPollOptions] = useState<Record<string, string[]>>({});
+  const [votedPolls, setVotedPolls] = useState<Record<string, string[]>>({});
 
   const token = localStorage.getItem("token") || localStorage.getItem("childToken");
+  const parentToken = localStorage.getItem("token");
+  const parentAuthHeaders: Record<string, string> = parentToken ? { Authorization: `Bearer ${parentToken}` } : {};
   const authHeaders: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
+
+  // Polls query
+  const { data: pollsData } = useQuery({
+    queryKey: ["school-polls-public", schoolId],
+    queryFn: async () => {
+      const res = await fetch(`/api/store/schools/${schoolId}/polls`);
+      if (!res.ok) return [];
+      const body = await res.json();
+      return body.data || [];
+    },
+    enabled: !!schoolId,
+  });
+  const polls: any[] = pollsData || [];
+
+  // Check which polls the parent has voted on
+  useEffect(() => {
+    if (!parentToken || !polls.length) return;
+    const pollIds = polls.map((p: any) => p.id);
+    fetch("/api/store/schools/polls/check-votes", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...parentAuthHeaders },
+      body: JSON.stringify({ pollIds }),
+    })
+      .then(res => res.ok ? res.json() : null)
+      .then(body => {
+        if (body?.data) setVotedPolls(body.data);
+      })
+      .catch(() => {});
+  }, [parentToken, polls.length]);
+
+  // Vote mutation
+  const votePoll = useMutation({
+    mutationFn: async ({ pollId, selectedOptions }: { pollId: string; selectedOptions: string[] }) => {
+      if (!parentToken) throw new Error("يجب تسجيل الدخول كولي أمر للتصويت");
+      const res = await fetch(`/api/store/schools/polls/${pollId}/vote`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...parentAuthHeaders },
+        body: JSON.stringify({ selectedOptions }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || "فشل التصويت");
+      }
+      return await res.json();
+    },
+    onSuccess: (_, { pollId, selectedOptions }) => {
+      setVotedPolls(prev => ({ ...prev, [pollId]: selectedOptions }));
+      queryClient.invalidateQueries({ queryKey: ["school-polls-public", schoolId] });
+      toast({ title: "تم تسجيل تصويتك بنجاح" });
+    },
+    onError: (err: any) => toast({ title: err.message, variant: "destructive" }),
+  });
 
   const { data: school, isLoading } = useQuery({
     queryKey: ["public-school", schoolId],
@@ -285,6 +342,7 @@ export default function SchoolProfile() {
             <div className="flex gap-0 overflow-x-auto scrollbar-hide -mb-px">
               {[
                 { key: "posts", label: "المنشورات", icon: BookOpen },
+                { key: "polls", label: "التصويتات", icon: BarChart3 },
                 { key: "about", label: "حول", icon: School },
                 { key: "teachers", label: "المعلمين", icon: GraduationCap },
                 { key: "reviews", label: "التقييمات", icon: Star },
@@ -633,6 +691,166 @@ export default function SchoolProfile() {
                               </div>
                             </div>
                           )}
+                        </CardContent>
+                      </Card>
+                    );
+                  })
+                )}
+              </>
+            )}
+
+            {/* POLLS TAB */}
+            {activeTab === "polls" && (
+              <>
+                {!polls.length ? (
+                  <Card className="shadow-sm">
+                    <CardContent className="p-12 text-center">
+                      <BarChart3 className="h-12 w-12 mx-auto text-gray-300 mb-3" />
+                      <p className="text-muted-foreground">لا يوجد تصويتات حالياً</p>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  polls.map((poll: any) => {
+                    const hasVoted = !!votedPolls[poll.id];
+                    const myVotes = votedPolls[poll.id] || [];
+                    const isExpired = poll.expiresAt && new Date(poll.expiresAt) < new Date();
+                    const isClosed = poll.isClosed || isExpired;
+                    const showResults = hasVoted || isClosed;
+                    const currentSelections = selectedPollOptions[poll.id] || [];
+
+                    return (
+                      <Card key={poll.id} className="shadow-sm">
+                        <CardContent className="p-0">
+                          {/* Poll Header */}
+                          <div className="flex items-center gap-3 p-4 pb-2">
+                            {poll.authorType === "school" ? (
+                              school.imageUrl ? (
+                                <img src={school.imageUrl} alt="" className="w-10 h-10 rounded-full object-cover" onError={(e) => { e.currentTarget.style.display = 'none' }} />
+                              ) : (
+                                <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+                                  <School className="h-5 w-5 text-blue-600" />
+                                </div>
+                              )
+                            ) : (
+                              <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
+                                <GraduationCap className="h-5 w-5 text-green-600" />
+                              </div>
+                            )}
+                            <div className="flex-1">
+                              <p className="font-bold text-sm">
+                                {poll.authorType === "school" ? (school.nameAr || school.name) : (poll.teacherName || "معلم")}
+                              </p>
+                              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                <Clock className="h-3 w-3" />
+                                {new Date(poll.createdAt).toLocaleDateString("ar-EG", { year: "numeric", month: "long", day: "numeric" })}
+                              </div>
+                            </div>
+                            <div className="flex gap-1">
+                              {poll.isPinned && <Badge variant="outline" className="text-xs py-0 px-1.5 gap-0.5"><Pin className="h-3 w-3" /> مثبت</Badge>}
+                              {poll.isAnonymous && <Badge variant="outline" className="text-xs py-0 px-1.5 gap-0.5"><Lock className="h-3 w-3" /> مجهول</Badge>}
+                              {isClosed && <Badge variant="destructive" className="text-xs py-0 px-1.5">مغلق</Badge>}
+                            </div>
+                          </div>
+
+                          {/* Poll Question */}
+                          <div className="px-4 py-2">
+                            <div className="flex items-start gap-2">
+                              <BarChart3 className="h-5 w-5 text-blue-600 mt-0.5 shrink-0" />
+                              <p className="font-semibold text-base">{poll.question}</p>
+                            </div>
+                            {poll.allowMultiple && (
+                              <p className="text-xs text-muted-foreground mt-1 mr-7">يمكن اختيار أكثر من إجابة</p>
+                            )}
+                          </div>
+
+                          {/* Poll Options */}
+                          <div className="px-4 pb-3 space-y-2">
+                            {poll.options?.map((opt: any) => {
+                              const totalVotes = poll.totalVotes || 0;
+                              const optVotes = poll.optionVotes?.[opt.id] || 0;
+                              const pct = totalVotes > 0 ? Math.round((optVotes / totalVotes) * 100) : 0;
+                              const isSelected = currentSelections.includes(opt.id);
+                              const wasMyVote = myVotes.includes(opt.id);
+
+                              if (showResults) {
+                                return (
+                                  <div key={opt.id} className="relative">
+                                    <div className="relative overflow-hidden rounded-lg border dark:border-gray-700 p-3">
+                                      <div
+                                        className={`absolute inset-0 ${wasMyVote ? "bg-blue-100 dark:bg-blue-900/30" : "bg-gray-100 dark:bg-gray-800"}`}
+                                        style={{ width: `${pct}%` }}
+                                      />
+                                      <div className="relative flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                          {wasMyVote && <Check className="h-4 w-4 text-blue-600" />}
+                                          <span className={`text-sm ${wasMyVote ? "font-bold text-blue-600" : ""}`}>{opt.text}</span>
+                                        </div>
+                                        <span className="text-sm font-bold text-muted-foreground">{pct}%</span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              }
+
+                              return (
+                                <button
+                                  key={opt.id}
+                                  onClick={() => {
+                                    if (isClosed) return;
+                                    setSelectedPollOptions(prev => {
+                                      const curr = prev[poll.id] || [];
+                                      if (poll.allowMultiple) {
+                                        return { ...prev, [poll.id]: curr.includes(opt.id) ? curr.filter((x: string) => x !== opt.id) : [...curr, opt.id] };
+                                      }
+                                      return { ...prev, [poll.id]: [opt.id] };
+                                    });
+                                  }}
+                                  className={`w-full text-right rounded-lg border p-3 text-sm transition-all ${
+                                    isSelected
+                                      ? "border-blue-500 bg-blue-50 dark:bg-blue-950 text-blue-700 font-medium"
+                                      : "border-gray-200 dark:border-gray-700 hover:border-blue-300 hover:bg-blue-50/50 dark:hover:bg-blue-950/30"
+                                  }`}
+                                  disabled={isClosed}
+                                >
+                                  <div className="flex items-center gap-2">
+                                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${
+                                      isSelected ? "border-blue-500 bg-blue-500" : "border-gray-300 dark:border-gray-600"
+                                    }`}>
+                                      {isSelected && <Check className="h-3 w-3 text-white" />}
+                                    </div>
+                                    {opt.text}
+                                  </div>
+                                </button>
+                              );
+                            })}
+                          </div>
+
+                          {/* Vote Button / Stats */}
+                          <div className="px-4 pb-4">
+                            {!showResults && !isClosed && (
+                              <Button
+                                onClick={() => {
+                                  if (!currentSelections.length) {
+                                    toast({ title: "اختر إجابة واحدة على الأقل", variant: "destructive" });
+                                    return;
+                                  }
+                                  votePoll.mutate({ pollId: poll.id, selectedOptions: currentSelections });
+                                }}
+                                className="w-full bg-blue-600 hover:bg-blue-700"
+                                disabled={votePoll.isPending || !currentSelections.length}
+                              >
+                                {votePoll.isPending ? "جاري التصويت..." : "تصويت"}
+                              </Button>
+                            )}
+                            <div className="flex items-center justify-between mt-2 text-xs text-muted-foreground">
+                              <span>{poll.totalVotes || 0} صوت</span>
+                              {poll.expiresAt && (
+                                <span>
+                                  {isExpired ? "انتهى التصويت" : `ينتهي ${new Date(poll.expiresAt).toLocaleDateString("ar-EG", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}`}
+                                </span>
+                              )}
+                            </div>
+                          </div>
                         </CardContent>
                       </Card>
                     );

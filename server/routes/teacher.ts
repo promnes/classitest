@@ -20,6 +20,8 @@ import {
   children,
   templateTasks,
   subjects,
+  schoolPolls,
+  schoolPollVotes,
 } from "../../shared/schema";
 import { eq, desc, and, sql, lte } from "drizzle-orm";
 import jwt from "jsonwebtoken";
@@ -1204,6 +1206,138 @@ export async function registerTeacherRoutes(app: Express) {
     } catch (error: any) {
       console.error("Create teacher task from template error:", error);
       res.status(500).json({ message: "Failed to create task from template" });
+    }
+  });
+
+  // ===== Polls — Teacher Management =====
+
+  // Create poll
+  app.post("/api/teacher/polls", teacherMiddleware, async (req: TeacherRequest, res) => {
+    try {
+      const teacherId = req.teacher!.teacherId;
+      const schoolId = req.teacher!.schoolId;
+      const { question, options, allowMultiple, isAnonymous, isPinned, expiresAt } = req.body;
+
+      if (!question || !question.trim()) {
+        return res.status(400).json({ message: "سؤال التصويت مطلوب" });
+      }
+      if (!Array.isArray(options) || options.length < 2 || options.length > 10) {
+        return res.status(400).json({ message: "يجب إضافة 2-10 خيارات" });
+      }
+
+      const formattedOptions = options.map((opt: any, i: number) => ({
+        id: String(i + 1),
+        text: String(opt.text || opt).trim(),
+      })).filter((o: any) => o.text);
+
+      if (formattedOptions.length < 2) {
+        return res.status(400).json({ message: "يجب إضافة خيارين على الأقل" });
+      }
+
+      const poll = await db.insert(schoolPolls).values({
+        schoolId,
+        teacherId,
+        authorType: "teacher",
+        question: question.trim(),
+        options: formattedOptions,
+        allowMultiple: allowMultiple || false,
+        isAnonymous: isAnonymous || false,
+        isPinned: isPinned || false,
+        expiresAt: expiresAt ? new Date(expiresAt) : null,
+      }).returning();
+
+      // Update teacher activity
+      await db.update(schoolTeachers).set({
+        activityScore: sql`${schoolTeachers.activityScore} + 3`,
+        updatedAt: new Date(),
+      }).where(eq(schoolTeachers.id, teacherId));
+
+      res.json({ success: true, data: poll[0] });
+    } catch (error: any) {
+      console.error("Create teacher poll error:", error);
+      res.status(500).json({ message: "فشل إنشاء التصويت" });
+    }
+  });
+
+  // List polls (teacher’s own)
+  app.get("/api/teacher/polls", teacherMiddleware, async (req: TeacherRequest, res) => {
+    try {
+      const teacherId = req.teacher!.teacherId;
+      const polls = await db.select().from(schoolPolls)
+        .where(and(eq(schoolPolls.teacherId, teacherId), eq(schoolPolls.authorType, "teacher")))
+        .orderBy(desc(schoolPolls.isPinned), desc(schoolPolls.createdAt));
+
+      const pollsWithStats = await Promise.all(polls.map(async (poll: any) => {
+        const votes = await db.select().from(schoolPollVotes)
+          .where(eq(schoolPollVotes.pollId, poll.id));
+
+        const optionCounts: Record<string, number> = {};
+        poll.options.forEach((o: any) => { optionCounts[o.id] = 0; });
+        votes.forEach((v: any) => {
+          (v.selectedOptions as string[]).forEach((optId: string) => {
+            if (optionCounts[optId] !== undefined) optionCounts[optId]++;
+          });
+        });
+
+        return {
+          ...poll,
+          optionCounts,
+          votersCount: votes.length,
+        };
+      }));
+
+      res.json({ success: true, data: pollsWithStats });
+    } catch (error: any) {
+      console.error("Get teacher polls error:", error);
+      res.status(500).json({ message: "فشل جلب التصويتات" });
+    }
+  });
+
+  // Update poll
+  app.put("/api/teacher/polls/:id", teacherMiddleware, async (req: TeacherRequest, res) => {
+    try {
+      const teacherId = req.teacher!.teacherId;
+      const { id } = req.params;
+      const { isPinned, isClosed, isActive } = req.body;
+
+      const poll = await db.select().from(schoolPolls)
+        .where(and(eq(schoolPolls.id, id), eq(schoolPolls.teacherId, teacherId)));
+      if (!poll[0]) {
+        return res.status(404).json({ message: "التصويت غير موجود" });
+      }
+
+      const updates: any = { updatedAt: new Date() };
+      if (typeof isPinned === "boolean") updates.isPinned = isPinned;
+      if (typeof isClosed === "boolean") updates.isClosed = isClosed;
+      if (typeof isActive === "boolean") updates.isActive = isActive;
+
+      const updated = await db.update(schoolPolls).set(updates)
+        .where(eq(schoolPolls.id, id)).returning();
+
+      res.json({ success: true, data: updated[0] });
+    } catch (error: any) {
+      console.error("Update teacher poll error:", error);
+      res.status(500).json({ message: "فشل تحديث التصويت" });
+    }
+  });
+
+  // Delete poll
+  app.delete("/api/teacher/polls/:id", teacherMiddleware, async (req: TeacherRequest, res) => {
+    try {
+      const teacherId = req.teacher!.teacherId;
+      const { id } = req.params;
+
+      const poll = await db.select().from(schoolPolls)
+        .where(and(eq(schoolPolls.id, id), eq(schoolPolls.teacherId, teacherId)));
+      if (!poll[0]) {
+        return res.status(404).json({ message: "التصويت غير موجود" });
+      }
+
+      await db.delete(schoolPolls).where(eq(schoolPolls.id, id));
+      res.json({ success: true, message: "تم حذف التصويت" });
+    } catch (error: any) {
+      console.error("Delete teacher poll error:", error);
+      res.status(500).json({ message: "فشل حذف التصويت" });
     }
   });
 }

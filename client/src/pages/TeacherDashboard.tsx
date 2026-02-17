@@ -16,7 +16,8 @@ import { ShareMenu } from "@/components/ui/ShareMenu";
 import {
   GraduationCap, BookOpen, Users, Star, LogOut, Plus, Edit, Trash2,
   DollarSign, TrendingUp, ArrowDownToLine, CheckCircle, Clock, MessageSquare,
-  Image, Video, Upload, X, FileText, Settings, Camera, Link2, User
+  Image, Video, Upload, X, FileText, Settings, Camera, Link2, User,
+  BarChart3, Lock, Unlock, Pin, PinOff,
 } from "lucide-react";
 
 interface Task {
@@ -149,6 +150,17 @@ export default function TeacherDashboard() {
   const coverInputRef = useRef<HTMLInputElement>(null);
   const postMediaInputRef = useRef<HTMLInputElement>(null);
 
+  // Poll state
+  const [showPollModal, setShowPollModal] = useState(false);
+  const [pollForm, setPollForm] = useState({
+    question: "",
+    options: [{ text: "" }, { text: "" }],
+    allowMultiple: false,
+    isAnonymous: false,
+    isPinned: false,
+    expiresAt: "",
+  });
+
   const [taskForm, setTaskForm] = useState({
     title: "",
     question: "",
@@ -245,6 +257,16 @@ export default function TeacherDashboard() {
     queryKey: ["teacher-reviews"],
     queryFn: async () => {
       const res = await fetch("/api/teacher/reviews", { headers: authHeaders });
+      if (!res.ok) throw new Error("Failed");
+      return (await res.json()).data;
+    },
+    enabled: !!token,
+  });
+
+  const { data: teacherPolls = [] } = useQuery<any[]>({
+    queryKey: ["teacher-polls"],
+    queryFn: async () => {
+      const res = await fetch("/api/teacher/polls", { headers: authHeaders });
       if (!res.ok) throw new Error("Failed");
       return (await res.json()).data;
     },
@@ -429,6 +451,89 @@ export default function TeacherDashboard() {
     },
     onError: (err: any) => toast({ title: err.message, variant: "destructive" }),
   });
+
+  const createPoll = useMutation({
+    mutationFn: async (payload: any) => {
+      const res = await fetch("/api/teacher/polls", {
+        method: "POST",
+        headers: { ...authHeaders, "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.message || "Failed");
+      return body.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["teacher-polls"] });
+      setShowPollModal(false);
+      resetPollForm();
+      toast({ title: "تم إنشاء التصويت" });
+    },
+    onError: (err: any) => toast({ title: err.message || "فشل إنشاء التصويت", variant: "destructive" }),
+  });
+
+  const updatePoll = useMutation({
+    mutationFn: async ({ id, ...payload }: any) => {
+      const res = await fetch(`/api/teacher/polls/${id}`, {
+        method: "PUT",
+        headers: { ...authHeaders, "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.message || "Failed");
+      return body.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["teacher-polls"] });
+      toast({ title: "تم تحديث التصويت" });
+    },
+    onError: (err: any) => toast({ title: err.message || "فشل التحديث", variant: "destructive" }),
+  });
+
+  const deletePoll = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/teacher/polls/${id}`, { method: "DELETE", headers: authHeaders });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.message || "Failed");
+      return body;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["teacher-polls"] });
+      toast({ title: "تم حذف التصويت" });
+    },
+    onError: (err: any) => toast({ title: err.message || "فشل الحذف", variant: "destructive" }),
+  });
+
+  function resetPollForm() {
+    setPollForm({
+      question: "",
+      options: [{ text: "" }, { text: "" }],
+      allowMultiple: false,
+      isAnonymous: false,
+      isPinned: false,
+      expiresAt: "",
+    });
+  }
+
+  function handleSubmitPoll() {
+    if (!pollForm.question.trim()) {
+      toast({ title: "سؤال التصويت مطلوب", variant: "destructive" });
+      return;
+    }
+    const validOptions = pollForm.options.filter((o) => o.text.trim());
+    if (validOptions.length < 2) {
+      toast({ title: "يجب إضافة خيارين على الأقل", variant: "destructive" });
+      return;
+    }
+    createPoll.mutate({
+      question: pollForm.question.trim(),
+      options: validOptions.map((o) => ({ text: o.text.trim() })),
+      allowMultiple: pollForm.allowMultiple,
+      isAnonymous: pollForm.isAnonymous,
+      isPinned: pollForm.isPinned,
+      expiresAt: pollForm.expiresAt || null,
+    });
+  }
 
   function resetTaskForm() {
     setTaskForm({
@@ -741,12 +846,13 @@ export default function TeacherDashboard() {
 
         {/* Tabs */}
         <Tabs defaultValue="tasks" dir="rtl">
-          <TabsList className="grid w-full grid-cols-6">
+          <TabsList className="grid w-full grid-cols-7">
             <TabsTrigger value="tasks">المهام</TabsTrigger>
             <TabsTrigger value="templates">القوالب</TabsTrigger>
             <TabsTrigger value="orders">الطلبات</TabsTrigger>
             <TabsTrigger value="balance">المحفظة</TabsTrigger>
             <TabsTrigger value="posts">المنشورات</TabsTrigger>
+            <TabsTrigger value="polls">التصويتات</TabsTrigger>
             <TabsTrigger value="profile">الملف الشخصي</TabsTrigger>
           </TabsList>
 
@@ -991,6 +1097,100 @@ export default function TeacherDashboard() {
                     </CardContent>
                   </Card>
                 ))}
+              </div>
+            )}
+          </TabsContent>
+
+          {/* Polls Tab */}
+          <TabsContent value="polls" className="space-y-4">
+            <div className="flex justify-between items-center">
+              <h2 className="text-lg font-bold">التصويتات</h2>
+              <Button onClick={() => { resetPollForm(); setShowPollModal(true); }} className="bg-green-600">
+                <Plus className="h-4 w-4 ml-1" />
+                إنشاء تصويت
+              </Button>
+            </div>
+
+            {teacherPolls.length === 0 ? (
+              <Card><CardContent className="p-8 text-center text-muted-foreground">لا يوجد تصويتات بعد</CardContent></Card>
+            ) : (
+              <div className="space-y-4">
+                {teacherPolls.map((poll: any) => {
+                  const isExpired = poll.expiresAt && new Date(poll.expiresAt) < new Date();
+                  return (
+                    <Card key={poll.id} className={`overflow-hidden ${poll.isPinned ? "border-green-400 border-2" : ""}`}>
+                      <CardContent className="p-4 space-y-3">
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-center gap-2">
+                            <BarChart3 className="h-5 w-5 text-green-600" />
+                            <h3 className="font-bold text-base">{poll.question}</h3>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            {poll.isPinned && <Badge variant="secondary">📌 مثبت</Badge>}
+                            {poll.isClosed && <Badge variant="destructive">مغلق</Badge>}
+                            {isExpired && !poll.isClosed && <Badge variant="outline">منتهي</Badge>}
+                            {poll.isAnonymous && <Badge variant="outline">مجهول</Badge>}
+                            {poll.allowMultiple && <Badge variant="outline">متعدد</Badge>}
+                          </div>
+                        </div>
+
+                        <div className="space-y-2">
+                          {(poll.options || []).map((opt: any) => {
+                            const count = poll.optionCounts?.[opt.id] || 0;
+                            const pct = poll.votersCount > 0 ? Math.round((count / poll.votersCount) * 100) : 0;
+                            return (
+                              <div key={opt.id} className="relative">
+                                <div className="flex items-center justify-between text-sm mb-1">
+                                  <span className="font-medium">{opt.text}</span>
+                                  <span className="text-muted-foreground">{count} ({pct}%)</span>
+                                </div>
+                                <div className="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-3 overflow-hidden">
+                                  <div
+                                    className="h-full bg-green-500 rounded-full transition-all duration-500"
+                                    style={{ width: `${pct}%` }}
+                                  />
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        <div className="flex items-center justify-between pt-2 border-t">
+                          <div className="text-xs text-muted-foreground flex items-center gap-3">
+                            <span>👥 {poll.votersCount} مصوّت</span>
+                            <span>{new Date(poll.createdAt).toLocaleDateString("ar")}</span>
+                            {poll.expiresAt && <span>⏰ {new Date(poll.expiresAt).toLocaleDateString("ar")}</span>}
+                          </div>
+                          <div className="flex gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => updatePoll.mutate({ id: poll.id, isPinned: !poll.isPinned })}
+                              title={poll.isPinned ? "إلغاء التثبيت" : "تثبيت"}
+                            >
+                              {poll.isPinned ? <PinOff className="h-4 w-4" /> : <Pin className="h-4 w-4" />}
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => updatePoll.mutate({ id: poll.id, isClosed: !poll.isClosed })}
+                              title={poll.isClosed ? "فتح التصويت" : "إغلاق التصويت"}
+                            >
+                              {poll.isClosed ? <Unlock className="h-4 w-4 text-green-600" /> : <Lock className="h-4 w-4 text-orange-600" />}
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => { if (confirm("حذف هذا التصويت؟")) deletePoll.mutate(poll.id); }}
+                            >
+                              <Trash2 className="h-4 w-4 text-red-500" />
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
               </div>
             )}
           </TabsContent>
@@ -1513,6 +1713,105 @@ export default function TeacherDashboard() {
             <Button variant="outline" onClick={() => setShowPostModal(false)}>إلغاء</Button>
             <Button className="bg-green-600" onClick={handleSubmitPost} disabled={!postContent.trim() || postUploading || createPost.isPending}>
               {postUploading ? "جاري الرفع..." : "نشر"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Poll Creation Modal */}
+      <Dialog open={showPollModal} onOpenChange={setShowPollModal}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>إنشاء تصويت جديد</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>السؤال *</Label>
+              <Input
+                placeholder="ما سؤال التصويت؟"
+                value={pollForm.question}
+                onChange={(e) => setPollForm((f) => ({ ...f, question: e.target.value }))}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>الخيارات * (2-10)</Label>
+              {pollForm.options.map((opt, i) => (
+                <div key={i} className="flex gap-2">
+                  <Input
+                    placeholder={`الخيار ${i + 1}`}
+                    value={opt.text}
+                    onChange={(e) => {
+                      const newOpts = [...pollForm.options];
+                      newOpts[i] = { text: e.target.value };
+                      setPollForm((f) => ({ ...f, options: newOpts }));
+                    }}
+                  />
+                  {pollForm.options.length > 2 && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setPollForm((f) => ({ ...f, options: f.options.filter((_, j) => j !== i) }))}
+                    >
+                      <Trash2 className="h-4 w-4 text-red-500" />
+                    </Button>
+                  )}
+                </div>
+              ))}
+              {pollForm.options.length < 10 && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPollForm((f) => ({ ...f, options: [...f.options, { text: "" }] }))}
+                >
+                  <Plus className="h-4 w-4 ml-1" />
+                  إضافة خيار
+                </Button>
+              )}
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={pollForm.allowMultiple}
+                  onChange={(e) => setPollForm((f) => ({ ...f, allowMultiple: e.target.checked }))}
+                  className="rounded"
+                />
+                <span className="text-sm">السماح باختيار متعدد</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={pollForm.isAnonymous}
+                  onChange={(e) => setPollForm((f) => ({ ...f, isAnonymous: e.target.checked }))}
+                  className="rounded"
+                />
+                <span className="text-sm">تصويت مجهول</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={pollForm.isPinned}
+                  onChange={(e) => setPollForm((f) => ({ ...f, isPinned: e.target.checked }))}
+                  className="rounded"
+                />
+                <span className="text-sm">تثبيت التصويت</span>
+              </label>
+            </div>
+
+            <div>
+              <Label>تاريخ الانتهاء (اختياري)</Label>
+              <Input
+                type="datetime-local"
+                value={pollForm.expiresAt}
+                onChange={(e) => setPollForm((f) => ({ ...f, expiresAt: e.target.value }))}
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowPollModal(false)}>إلغاء</Button>
+            <Button className="bg-green-600" onClick={handleSubmitPoll} disabled={createPoll.isPending}>
+              {createPoll.isPending ? "جاري الإنشاء..." : "إنشاء التصويت"}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -1957,6 +1957,35 @@ export const insertFollowSchema = createInsertSchema(follows).omit({ id: true, c
 export type Follow = typeof follows.$inferSelect;
 export type InsertFollow = z.infer<typeof insertFollowSchema>;
 
+// ===== Poll / Voting System (نظام التصويتات) =====
+export const schoolPolls = pgTable("school_polls", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  schoolId: varchar("school_id").notNull().references(() => schools.id, { onDelete: "cascade" }),
+  teacherId: varchar("teacher_id").references(() => schoolTeachers.id, { onDelete: "set null" }),
+  authorType: varchar("author_type", { length: 10 }).notNull(), // "school" | "teacher"
+  question: text("question").notNull(),
+  options: json("options").$type<{ id: string; text: string }[]>().notNull(),
+  allowMultiple: boolean("allow_multiple").default(false).notNull(),
+  isAnonymous: boolean("is_anonymous").default(false).notNull(),
+  isPinned: boolean("is_pinned").default(false).notNull(),
+  isClosed: boolean("is_closed").default(false).notNull(),
+  expiresAt: timestamp("expires_at"),
+  totalVotes: integer("total_votes").default(0).notNull(),
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const schoolPollVotes = pgTable("school_poll_votes", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  pollId: varchar("poll_id").notNull().references(() => schoolPolls.id, { onDelete: "cascade" }),
+  parentId: varchar("parent_id").notNull().references(() => parents.id, { onDelete: "cascade" }),
+  selectedOptions: json("selected_options").$type<string[]>().notNull(), // array of option IDs
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  uniqueVote: uniqueIndex("unique_poll_vote_idx").on(table.pollId, table.parentId),
+}));
+
 // ===== Library Posts System (منشورات المكتبات) =====
 export const libraryPosts = pgTable("library_posts", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
