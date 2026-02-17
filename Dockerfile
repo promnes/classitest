@@ -81,8 +81,8 @@ COPY --from=builder /app/migrations ./migrations
 COPY --from=builder /app/drizzle.config.ts ./
 COPY --from=builder /app/tsconfig.json ./
 
-# Copy entrypoint script
-COPY --from=builder /app/scripts/docker-entrypoint.sh ./scripts/
+# Copy scripts (entrypoint + maintenance tools)
+COPY --from=builder /app/scripts ./scripts
 RUN chmod +x ./scripts/docker-entrypoint.sh
 
 # Create persistent directories
