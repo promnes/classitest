@@ -154,6 +154,8 @@ export default function SchoolDashboard() {
   const [editingTeacher, setEditingTeacher] = useState<Teacher | null>(null);
   const [editingPost, setEditingPost] = useState<Post | null>(null);
   const [uploadingMedia, setUploadingMedia] = useState(false);
+  const [uploadingProfileImage, setUploadingProfileImage] = useState(false);
+  const [uploadingProfileCover, setUploadingProfileCover] = useState(false);
   const [studentsPage, setStudentsPage] = useState(1);
   const [reviewsPage, setReviewsPage] = useState(1);
   const [teacherSearch, setTeacherSearch] = useState("");
@@ -654,6 +656,77 @@ export default function SchoolDashboard() {
       url: finalizeBody.data.url,
       type: file.type.startsWith("video/") ? "video" : "image",
     };
+  }
+
+  async function uploadSchoolImage(file: File): Promise<string> {
+    const presignRes = await fetch("/api/school/uploads/presign", {
+      method: "POST",
+      headers: { ...authHeaders, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contentType: file.type,
+        size: file.size,
+        purpose: "task_media",
+        originalName: file.name,
+      }),
+    });
+    const presignBody = await presignRes.json();
+    if (!presignRes.ok) throw new Error(presignBody.message || "فشل إنشاء رابط الرفع");
+
+    const { uploadURL, objectPath } = presignBody.data;
+
+    const proxyRes = await fetch("/api/school/uploads/proxy", {
+      method: "PUT",
+      headers: {
+        ...authHeaders,
+        "x-upload-url": uploadURL,
+        "Content-Type": file.type || "application/octet-stream",
+      },
+      body: file,
+    });
+    const proxyBody = await proxyRes.json();
+    if (!proxyRes.ok) throw new Error(proxyBody.message || "فشل رفع الملف");
+
+    const finalizeRes = await fetch("/api/school/uploads/finalize", {
+      method: "POST",
+      headers: { ...authHeaders, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        objectPath,
+        mimeType: file.type,
+        size: file.size,
+        originalName: file.name,
+        purpose: "task_media",
+      }),
+    });
+    const finalizeBody = await finalizeRes.json();
+    if (!finalizeRes.ok) throw new Error(finalizeBody.message || "فشل تأكيد رفع الملف");
+
+    return finalizeBody.data.url;
+  }
+
+  async function handleUploadSchoolProfileImage(file: File | undefined, type: "avatar" | "cover") {
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast({ title: "يرجى اختيار صورة فقط", variant: "destructive" });
+      return;
+    }
+
+    if (type === "avatar") setUploadingProfileImage(true);
+    if (type === "cover") setUploadingProfileCover(true);
+
+    try {
+      const url = await uploadSchoolImage(file);
+      setProfileForm((prev) => ({
+        ...prev,
+        imageUrl: type === "avatar" ? url : prev.imageUrl,
+        coverImageUrl: type === "cover" ? url : prev.coverImageUrl,
+      }));
+      toast({ title: type === "avatar" ? "تم رفع صورة المدرسة" : "تم رفع صورة الغلاف" });
+    } catch (error: any) {
+      toast({ title: error.message || "فشل رفع الصورة", variant: "destructive" });
+    } finally {
+      if (type === "avatar") setUploadingProfileImage(false);
+      if (type === "cover") setUploadingProfileCover(false);
+    }
   }
 
   async function handlePostMediaSelected(files: FileList | null) {
@@ -1498,12 +1571,48 @@ export default function SchoolDashboard() {
               <Input value={profileForm.nameAr} onChange={(e) => setProfileForm((f) => ({ ...f, nameAr: e.target.value }))} />
             </div>
             <div>
-              <Label>رابط صورة المدرسة</Label>
-              <Input value={profileForm.imageUrl} onChange={(e) => setProfileForm((f) => ({ ...f, imageUrl: e.target.value }))} />
+              <Label>صورة المدرسة</Label>
+              <div className="space-y-2">
+                {profileForm.imageUrl ? (
+                  <img src={profileForm.imageUrl} alt="" className="w-16 h-16 rounded-full object-cover border" />
+                ) : (
+                  <div className="w-16 h-16 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center border">
+                    <School className="h-7 w-7 text-blue-600" />
+                  </div>
+                )}
+                <Label className="cursor-pointer inline-flex items-center gap-2 border rounded-md px-3 py-2 text-sm">
+                  <Upload className="h-4 w-4" />
+                  {uploadingProfileImage ? "جاري الرفع..." : "رفع من الجهاز"}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => handleUploadSchoolProfileImage(e.target.files?.[0], "avatar")}
+                    disabled={uploadingProfileImage}
+                  />
+                </Label>
+              </div>
             </div>
             <div>
-              <Label>رابط صورة الغلاف</Label>
-              <Input value={profileForm.coverImageUrl} onChange={(e) => setProfileForm((f) => ({ ...f, coverImageUrl: e.target.value }))} />
+              <Label>صورة الغلاف</Label>
+              <div className="space-y-2">
+                {profileForm.coverImageUrl ? (
+                  <img src={profileForm.coverImageUrl} alt="" className="w-full h-16 rounded object-cover border" />
+                ) : (
+                  <div className="w-full h-16 rounded bg-gray-100 dark:bg-gray-800 border" />
+                )}
+                <Label className="cursor-pointer inline-flex items-center gap-2 border rounded-md px-3 py-2 text-sm">
+                  <Upload className="h-4 w-4" />
+                  {uploadingProfileCover ? "جاري الرفع..." : "رفع من الجهاز"}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => handleUploadSchoolProfileImage(e.target.files?.[0], "cover")}
+                    disabled={uploadingProfileCover}
+                  />
+                </Label>
+              </div>
             </div>
             <div>
               <Label>الهاتف</Label>
