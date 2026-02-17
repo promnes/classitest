@@ -795,13 +795,18 @@ export async function registerSchoolRoutes(app: Express) {
         id: schoolTeachers.id,
         name: schoolTeachers.name,
         avatarUrl: schoolTeachers.avatarUrl,
+        coverImageUrl: schoolTeachers.coverImageUrl,
+        bio: schoolTeachers.bio,
         subject: schoolTeachers.subject,
         yearsExperience: schoolTeachers.yearsExperience,
         pricingModel: schoolTeachers.pricingModel,
         monthlyRate: schoolTeachers.monthlyRate,
         perTaskRate: schoolTeachers.perTaskRate,
+        socialLinks: schoolTeachers.socialLinks,
         activityScore: schoolTeachers.activityScore,
         totalTasksSold: schoolTeachers.totalTasksSold,
+        totalStudents: schoolTeachers.totalStudents,
+        createdAt: schoolTeachers.createdAt,
       }).from(schoolTeachers)
         .where(and(eq(schoolTeachers.schoolId, id), eq(schoolTeachers.isActive, true)))
         .orderBy(desc(schoolTeachers.activityScore));
