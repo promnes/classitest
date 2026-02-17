@@ -63,27 +63,40 @@ async function uploadFileForTeacher(file: File, token: string, purpose: string):
   if (!presignRes.ok) throw new Error("فشل رفع الملف");
   const { data: presign } = await presignRes.json();
 
-  // Step 2: Upload file via proxy
-  const proxyRes = await fetch("/api/teacher/uploads/proxy", {
-    method: "PUT",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": file.type,
-      "x-upload-url": presign.uploadUrl,
-    },
-    body: file,
-  });
-  if (!proxyRes.ok) throw new Error("فشل رفع الملف إلى التخزين");
+  // Step 2: Upload file — handle local vs remote URLs
+  const isLocalUrl = presign.uploadURL.startsWith("/api/");
+  if (isLocalUrl) {
+    // Local storage: PUT directly to server endpoint
+    const directRes = await fetch(presign.uploadURL, {
+      method: "PUT",
+      headers: { "Content-Type": file.type || "application/octet-stream" },
+      body: file,
+    });
+    if (!directRes.ok) throw new Error("فشل رفع الملف إلى التخزين");
+  } else {
+    // Remote storage: Upload via proxy
+    const proxyRes = await fetch("/api/teacher/uploads/proxy", {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": file.type,
+        "x-upload-url": presign.uploadURL,
+      },
+      body: file,
+    });
+    if (!proxyRes.ok) throw new Error("فشل رفع الملف إلى التخزين");
+  }
 
   // Step 3: Finalize
   const finalizeRes = await fetch("/api/teacher/uploads/finalize", {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
     body: JSON.stringify({
-      key: presign.key,
-      contentType: file.type,
+      objectPath: presign.objectPath,
+      mimeType: file.type,
       size: file.size,
       originalName: file.name,
+      purpose,
     }),
   });
   if (!finalizeRes.ok) throw new Error("فشل تأكيد رفع الملف");
@@ -964,7 +977,7 @@ export default function TeacherDashboard() {
           <TabsContent value="profile" className="space-y-4">
             {/* Cover Image */}
             <Card className="overflow-hidden">
-              <div className="relative h-40 bg-gradient-to-l from-green-500 to-green-700">
+              <div className="relative h-40 sm:h-48 md:h-56 bg-gradient-to-l from-green-500 to-green-700">
                 {profile?.coverImageUrl && (
                   <img src={profile.coverImageUrl} alt="" className="w-full h-full object-cover" />
                 )}
@@ -980,14 +993,14 @@ export default function TeacherDashboard() {
                 </Button>
                 <input ref={coverInputRef} type="file" accept="image/*" className="hidden" onChange={handleCoverUpload} />
               </div>
-              <CardContent className="p-4">
+              <CardContent className="p-4 sm:p-6">
                 <div className="flex items-start gap-4">
-                  <div className="relative -mt-12">
+                  <div className="relative -mt-12 sm:-mt-14">
                     {profile?.avatarUrl ? (
-                      <img src={profile.avatarUrl} alt="" className="w-20 h-20 rounded-full border-4 border-white object-cover shadow-lg" />
+                      <img src={profile.avatarUrl} alt="" className="w-20 h-20 sm:w-24 sm:h-24 rounded-full border-4 border-white object-cover shadow-lg bg-white" />
                     ) : (
-                      <div className="w-20 h-20 rounded-full border-4 border-white bg-green-100 flex items-center justify-center shadow-lg">
-                        <User className="h-10 w-10 text-green-600" />
+                      <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full border-4 border-white bg-green-100 flex items-center justify-center shadow-lg">
+                        <User className="h-8 w-8 sm:h-10 sm:w-10 text-green-600" />
                       </div>
                     )}
                     <Button

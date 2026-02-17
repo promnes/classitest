@@ -1292,22 +1292,22 @@ export default function SchoolDashboard() {
 
           <TabsContent value="profile" className="space-y-4">
             <Card className="overflow-hidden">
-              <div className="h-40 bg-gradient-to-l from-blue-600 to-indigo-700 relative">
+              <div className="h-40 sm:h-48 md:h-56 bg-gradient-to-l from-blue-600 to-indigo-700 relative">
                 {profile?.coverImageUrl && (
                   <img src={profile.coverImageUrl} alt="" className="w-full h-full object-cover" />
                 )}
               </div>
-              <CardContent className="p-4">
-                <div className="flex flex-col md:flex-row md:items-end gap-4 -mt-16">
+              <CardContent className="p-4 sm:p-6">
+                <div className="flex flex-col sm:flex-row sm:items-end gap-4 -mt-14 sm:-mt-16">
                   {profile?.imageUrl ? (
-                    <img src={profile.imageUrl} alt="" className="w-24 h-24 rounded-full object-cover border-4 border-white" />
+                    <img src={profile.imageUrl} alt="" className="w-20 h-20 sm:w-24 sm:h-24 rounded-full object-cover border-4 border-white shadow-lg relative z-10 bg-white" />
                   ) : (
-                    <div className="w-24 h-24 rounded-full bg-white border-4 border-white flex items-center justify-center">
-                      <School className="h-10 w-10 text-blue-600" />
+                    <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-white border-4 border-white flex items-center justify-center shadow-lg relative z-10">
+                      <School className="h-8 w-8 sm:h-10 sm:w-10 text-blue-600" />
                     </div>
                   )}
                   <div className="flex-1">
-                    <h2 className="text-2xl font-bold">{profile?.name || "المدرسة"}</h2>
+                    <h2 className="text-xl sm:text-2xl font-bold">{profile?.name || "المدرسة"}</h2>
                     {profile?.nameAr && <p className="text-muted-foreground text-sm">{profile.nameAr}</p>}
                     {profile?.description && <p className="text-sm mt-1 text-muted-foreground">{profile.description}</p>}
                     <div className="flex flex-wrap gap-3 text-xs text-muted-foreground mt-2">
