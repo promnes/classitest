@@ -526,14 +526,17 @@ export async function registerSchoolRoutes(app: Express) {
       const schoolId = req.school!.schoolId;
       const { content, mediaUrls, mediaTypes, isPinned } = req.body;
 
-      if (!content || !content.trim()) {
-        return res.status(400).json({ message: "محتوى المنشور مطلوب" });
+      const hasContent = content && content.trim();
+      const hasMedia = Array.isArray(mediaUrls) && mediaUrls.length > 0;
+
+      if (!hasContent && !hasMedia) {
+        return res.status(400).json({ message: "محتوى المنشور أو وسائط مطلوبة" });
       }
 
       const post = await db.insert(schoolPosts).values({
         schoolId,
         authorType: "school",
-        content: content.trim(),
+        content: hasContent ? content.trim() : "",
         mediaUrls: mediaUrls || [],
         mediaTypes: mediaTypes || [],
         isPinned: isPinned || false,

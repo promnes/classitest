@@ -153,9 +153,11 @@ export default function SchoolDashboard() {
   const [showPassword, setShowPassword] = useState(false);
   const [editingTeacher, setEditingTeacher] = useState<Teacher | null>(null);
   const [editingPost, setEditingPost] = useState<Post | null>(null);
-  const [uploadingMedia, setUploadingMedia] = useState(false);
   const [uploadingProfileImage, setUploadingProfileImage] = useState(false);
   const [uploadingProfileCover, setUploadingProfileCover] = useState(false);
+  const [pendingPostFiles, setPendingPostFiles] = useState<File[]>([]);
+  const [pendingPostPreviews, setPendingPostPreviews] = useState<{ url: string; type: string }[]>([]);
+  const [publishingPost, setPublishingPost] = useState(false);
   const [studentsPage, setStudentsPage] = useState(1);
   const [reviewsPage, setReviewsPage] = useState(1);
   const [teacherSearch, setTeacherSearch] = useState("");
@@ -209,6 +211,15 @@ export default function SchoolDashboard() {
     mediaUrls: [] as string[],
     mediaTypes: [] as string[],
   });
+
+  // Cleanup blob URLs on unmount
+  useEffect(() => {
+    return () => {
+      pendingPostPreviews.forEach((p) => {
+        if (p.url.startsWith("blob:")) URL.revokeObjectURL(p.url);
+      });
+    };
+  }, []);
 
   useEffect(() => {
     if (!token) setLocation("/school/login");
@@ -419,27 +430,6 @@ export default function SchoolDashboard() {
     onError: (err: any) => toast({ title: err.message || "فشل حذف المعلم", variant: "destructive" }),
   });
 
-  const createPost = useMutation({
-    mutationFn: async (payload: any) => {
-      const res = await fetch("/api/school/posts", {
-        method: "POST",
-        headers: { ...authHeaders, "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      const body = await res.json();
-      if (!res.ok) throw new Error(body.message || "Failed");
-      return body.data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["school-feed"] });
-      queryClient.invalidateQueries({ queryKey: ["school-stats"] });
-      resetPostForm();
-      setShowPostModal(false);
-      toast({ title: "تم نشر المنشور" });
-    },
-    onError: (err: any) => toast({ title: err.message || "فشل نشر المنشور", variant: "destructive" }),
-  });
-
   const updatePost = useMutation({
     mutationFn: async ({ id, ...payload }: any) => {
       const res = await fetch(`/api/school/posts/${id}`, {
@@ -532,7 +522,13 @@ export default function SchoolDashboard() {
   }
 
   function resetPostForm() {
+    // Revoke blob URLs before clearing
+    pendingPostPreviews.forEach((p) => {
+      if (p.url.startsWith("blob:")) URL.revokeObjectURL(p.url);
+    });
     setPostForm({ content: "", isPinned: false, mediaUrls: [], mediaTypes: [] });
+    setPendingPostFiles([]);
+    setPendingPostPreviews([]);
   }
 
   function openEditTeacher(teacher: Teacher) {
@@ -610,7 +606,7 @@ export default function SchoolDashboard() {
     }
   }
 
-  async function uploadFileForPost(file: File): Promise<{ url: string; type: string }> {
+  async function uploadFileToStorage(file: File): Promise<{ url: string; objectPath: string }> {
     const presignRes = await fetch("/api/school/uploads/presign", {
       method: "POST",
       headers: { ...authHeaders, "Content-Type": "application/json" },
@@ -626,17 +622,29 @@ export default function SchoolDashboard() {
 
     const { uploadURL, objectPath } = presignBody.data;
 
-    const proxyRes = await fetch("/api/school/uploads/proxy", {
-      method: "PUT",
-      headers: {
-        ...authHeaders,
-        "x-upload-url": uploadURL,
-        "Content-Type": file.type || "application/octet-stream",
-      },
-      body: file,
-    });
-    const proxyBody = await proxyRes.json();
-    if (!proxyRes.ok) throw new Error(proxyBody.message || "فشل رفع الملف");
+    // If uploadURL is a local relative path, PUT directly; otherwise use proxy
+    const isLocalUrl = uploadURL.startsWith("/api/");
+    if (isLocalUrl) {
+      const directRes = await fetch(uploadURL, {
+        method: "PUT",
+        headers: { "Content-Type": file.type || "application/octet-stream" },
+        body: file,
+      });
+      const directBody = await directRes.json();
+      if (!directRes.ok) throw new Error(directBody.message || "فشل رفع الملف");
+    } else {
+      const proxyRes = await fetch("/api/school/uploads/proxy", {
+        method: "PUT",
+        headers: {
+          ...authHeaders,
+          "x-upload-url": uploadURL,
+          "Content-Type": file.type || "application/octet-stream",
+        },
+        body: file,
+      });
+      const proxyBody = await proxyRes.json();
+      if (!proxyRes.ok) throw new Error(proxyBody.message || "فشل رفع الملف");
+    }
 
     const finalizeRes = await fetch("/api/school/uploads/finalize", {
       method: "POST",
@@ -654,53 +662,21 @@ export default function SchoolDashboard() {
 
     return {
       url: finalizeBody.data.url,
+      objectPath,
+    };
+  }
+
+  async function uploadFileForPost(file: File): Promise<{ url: string; type: string }> {
+    const { url } = await uploadFileToStorage(file);
+    return {
+      url,
       type: file.type.startsWith("video/") ? "video" : "image",
     };
   }
 
   async function uploadSchoolImage(file: File): Promise<string> {
-    const presignRes = await fetch("/api/school/uploads/presign", {
-      method: "POST",
-      headers: { ...authHeaders, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contentType: file.type,
-        size: file.size,
-        purpose: "task_media",
-        originalName: file.name,
-      }),
-    });
-    const presignBody = await presignRes.json();
-    if (!presignRes.ok) throw new Error(presignBody.message || "فشل إنشاء رابط الرفع");
-
-    const { uploadURL, objectPath } = presignBody.data;
-
-    const proxyRes = await fetch("/api/school/uploads/proxy", {
-      method: "PUT",
-      headers: {
-        ...authHeaders,
-        "x-upload-url": uploadURL,
-        "Content-Type": file.type || "application/octet-stream",
-      },
-      body: file,
-    });
-    const proxyBody = await proxyRes.json();
-    if (!proxyRes.ok) throw new Error(proxyBody.message || "فشل رفع الملف");
-
-    const finalizeRes = await fetch("/api/school/uploads/finalize", {
-      method: "POST",
-      headers: { ...authHeaders, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        objectPath,
-        mimeType: file.type,
-        size: file.size,
-        originalName: file.name,
-        purpose: "task_media",
-      }),
-    });
-    const finalizeBody = await finalizeRes.json();
-    if (!finalizeRes.ok) throw new Error(finalizeBody.message || "فشل تأكيد رفع الملف");
-
-    return finalizeBody.data.url;
+    const { url } = await uploadFileToStorage(file);
+    return url;
   }
 
   async function handleUploadSchoolProfileImage(file: File | undefined, type: "avatar" | "cover") {
@@ -729,30 +705,35 @@ export default function SchoolDashboard() {
     }
   }
 
-  async function handlePostMediaSelected(files: FileList | null) {
+  function handlePostMediaSelected(files: FileList | null) {
     if (!files || files.length === 0) return;
-    setUploadingMedia(true);
-    try {
-      const uploaded = await Promise.all(Array.from(files).map(uploadFileForPost));
-      setPostForm((prev) => ({
-        ...prev,
-        mediaUrls: [...prev.mediaUrls, ...uploaded.map((u) => u.url)],
-        mediaTypes: [...prev.mediaTypes, ...uploaded.map((u) => u.type)],
-      }));
-      toast({ title: "تم رفع الوسائط" });
-    } catch (error: any) {
-      toast({ title: error.message || "فشل رفع الوسائط", variant: "destructive" });
-    } finally {
-      setUploadingMedia(false);
-    }
+    const newFiles = Array.from(files);
+    const newPreviews = newFiles.map((f) => ({
+      url: URL.createObjectURL(f),
+      type: f.type.startsWith("video/") ? "video" : "image",
+    }));
+    setPendingPostFiles((prev) => [...prev, ...newFiles]);
+    setPendingPostPreviews((prev) => [...prev, ...newPreviews]);
   }
 
   function removePostMedia(index: number) {
-    setPostForm((prev) => ({
-      ...prev,
-      mediaUrls: prev.mediaUrls.filter((_, i) => i !== index),
-      mediaTypes: prev.mediaTypes.filter((_, i) => i !== index),
-    }));
+    // Check if it's a pending file (not yet uploaded) or already uploaded URL
+    const totalUploaded = postForm.mediaUrls.length;
+    if (index < totalUploaded) {
+      // Remove from already uploaded
+      setPostForm((prev) => ({
+        ...prev,
+        mediaUrls: prev.mediaUrls.filter((_, i) => i !== index),
+        mediaTypes: prev.mediaTypes.filter((_, i) => i !== index),
+      }));
+    } else {
+      // Remove from pending files
+      const pendingIndex = index - totalUploaded;
+      const preview = pendingPostPreviews[pendingIndex];
+      if (preview?.url.startsWith("blob:")) URL.revokeObjectURL(preview.url);
+      setPendingPostFiles((prev) => prev.filter((_, i) => i !== pendingIndex));
+      setPendingPostPreviews((prev) => prev.filter((_, i) => i !== pendingIndex));
+    }
   }
 
   function handleSubmitTeacher() {
@@ -787,24 +768,78 @@ export default function SchoolDashboard() {
   }
 
   function handleSubmitPost() {
-    if (!postForm.content.trim() && postForm.mediaUrls.length === 0) {
+    const hasContent = postForm.content.trim().length > 0;
+    const hasExistingMedia = postForm.mediaUrls.length > 0;
+    const hasPendingFiles = pendingPostFiles.length > 0;
+
+    if (!hasContent && !hasExistingMedia && !hasPendingFiles) {
       toast({ title: "أضف محتوى أو وسائط", variant: "destructive" });
       return;
     }
 
-    const payload = {
-      content: postForm.content,
-      mediaUrls: postForm.mediaUrls,
-      mediaTypes: postForm.mediaTypes,
-      isPinned: postForm.isPinned,
-    };
+    // Capture form state before closing
+    const capturedContent = postForm.content;
+    const capturedIsPinned = postForm.isPinned;
+    const capturedExistingUrls = [...postForm.mediaUrls];
+    const capturedExistingTypes = [...postForm.mediaTypes];
+    const capturedFiles = [...pendingPostFiles];
+    const capturedEditingPost = editingPost;
 
-    if (editingPost) {
-      updatePost.mutate({ id: editingPost.id, ...payload });
-      return;
-    }
+    // Close modal immediately so user can browse
+    setShowPostModal(false);
+    setEditingPost(null);
+    resetPostForm();
+    setPublishingPost(true);
 
-    createPost.mutate(payload);
+    toast({ title: "جاري نشر المنشور في الخلفية..." });
+
+    // Background upload + publish
+    (async () => {
+      try {
+        // Upload pending files
+        let uploadedUrls = capturedExistingUrls;
+        let uploadedTypes = capturedExistingTypes;
+
+        if (capturedFiles.length > 0) {
+          const results = await Promise.all(capturedFiles.map(uploadFileForPost));
+          uploadedUrls = [...capturedExistingUrls, ...results.map((r) => r.url)];
+          uploadedTypes = [...capturedExistingTypes, ...results.map((r) => r.type)];
+        }
+
+        const payload = {
+          content: capturedContent,
+          mediaUrls: uploadedUrls,
+          mediaTypes: uploadedTypes,
+          isPinned: capturedIsPinned,
+        };
+
+        let res: Response;
+        if (capturedEditingPost) {
+          res = await fetch(`/api/school/posts/${capturedEditingPost.id}`, {
+            method: "PUT",
+            headers: { ...authHeaders, "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+        } else {
+          res = await fetch("/api/school/posts", {
+            method: "POST",
+            headers: { ...authHeaders, "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+        }
+
+        const body = await res.json();
+        if (!res.ok) throw new Error(body.message || "فشل نشر المنشور");
+
+        queryClient.invalidateQueries({ queryKey: ["school-feed"] });
+        queryClient.invalidateQueries({ queryKey: ["school-stats"] });
+        toast({ title: capturedEditingPost ? "✅ تم تحديث المنشور بنجاح" : "✅ تم نشر المنشور بنجاح" });
+      } catch (error: any) {
+        toast({ title: error.message || "فشل نشر المنشور", variant: "destructive" });
+      } finally {
+        setPublishingPost(false);
+      }
+    })();
   }
 
   function handleSubmitProfile() {
@@ -839,6 +874,13 @@ export default function SchoolDashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900" dir="rtl">
+      {/* Background publishing indicator */}
+      {publishingPost && (
+        <div className="fixed bottom-4 left-4 z-50 bg-blue-600 text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-2 animate-pulse">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          <span className="text-sm font-medium">جاري نشر المنشور...</span>
+        </div>
+      )}
       <div className="bg-blue-600 text-white p-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
@@ -1504,19 +1546,19 @@ export default function SchoolDashboard() {
               <Label className="cursor-pointer inline-flex items-center gap-2 border rounded-md px-3 py-2">
                 <Upload className="h-4 w-4" />
                 رفع صورة/فيديو
-                <input type="file" accept="image/*,video/*" multiple className="hidden" onChange={(e) => handlePostMediaSelected(e.target.files)} />
+                <input type="file" accept="image/*,video/*" multiple className="hidden" onChange={(e) => { handlePostMediaSelected(e.target.files); e.target.value = ""; }} />
               </Label>
-              {uploadingMedia && <span className="text-sm text-muted-foreground">جاري الرفع...</span>}
               <Button type="button" variant={postForm.isPinned ? "default" : "outline"} onClick={() => setPostForm((p) => ({ ...p, isPinned: !p.isPinned }))}>
                 {postForm.isPinned ? <Pin className="h-4 w-4 ml-1" /> : <PinOff className="h-4 w-4 ml-1" />}
                 {postForm.isPinned ? "مثبت" : "غير مثبت"}
               </Button>
             </div>
 
-            {postForm.mediaUrls.length > 0 && (
+            {(postForm.mediaUrls.length > 0 || pendingPostPreviews.length > 0) && (
               <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                {/* Already uploaded media (for editing) */}
                 {postForm.mediaUrls.map((url, i) => (
-                  <div key={i} className="relative rounded overflow-hidden border">
+                  <div key={`uploaded-${i}`} className="relative rounded overflow-hidden border">
                     {postForm.mediaTypes[i] === "video" ? (
                       <video src={url} controls className="w-full h-28 object-cover bg-black" />
                     ) : (
@@ -1528,6 +1570,25 @@ export default function SchoolDashboard() {
                       variant="destructive"
                       className="absolute top-1 left-1 h-6 w-6"
                       onClick={() => removePostMedia(i)}
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  </div>
+                ))}
+                {/* Pending file previews (not yet uploaded) */}
+                {pendingPostPreviews.map((preview, i) => (
+                  <div key={`pending-${i}`} className="relative rounded overflow-hidden border">
+                    {preview.type === "video" ? (
+                      <video src={preview.url} controls className="w-full h-28 object-cover bg-black" />
+                    ) : (
+                      <img src={preview.url} alt="" className="w-full h-28 object-cover" />
+                    )}
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="destructive"
+                      className="absolute top-1 left-1 h-6 w-6"
+                      onClick={() => removePostMedia(postForm.mediaUrls.length + i)}
                     >
                       <Trash2 className="h-3 w-3" />
                     </Button>
@@ -1548,7 +1609,7 @@ export default function SchoolDashboard() {
             >
               إلغاء
             </Button>
-            <Button className="bg-blue-600" onClick={handleSubmitPost}>
+            <Button className="bg-blue-600" onClick={handleSubmitPost} disabled={publishingPost}>
               {editingPost ? "تحديث" : "نشر"}
             </Button>
           </DialogFooter>
