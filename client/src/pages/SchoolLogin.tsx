@@ -37,10 +37,10 @@ export default function SchoolLogin() {
         throw new Error(data.message || "فشل تسجيل الدخول");
       }
 
-      localStorage.setItem("schoolToken", data.token);
-      localStorage.setItem("schoolData", JSON.stringify(data.school));
+      localStorage.setItem("schoolToken", data.data.token);
+      localStorage.setItem("schoolData", JSON.stringify(data.data.school));
 
-      toast({ title: `مرحباً ${data.school.name}` });
+      toast({ title: `مرحباً ${data.data.school.name}` });
       setLocation("/school/dashboard");
     } catch (error: any) {
       toast({ title: error.message || "فشل تسجيل الدخول", variant: "destructive" });

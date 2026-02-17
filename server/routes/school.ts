@@ -123,12 +123,14 @@ export async function registerSchoolRoutes(app: Express) {
 
       res.json({
         success: true,
-        token,
-        school: {
-          id: school[0].id,
-          name: school[0].name,
-          imageUrl: school[0].imageUrl,
-          referralCode: school[0].referralCode,
+        data: {
+          token,
+          school: {
+            id: school[0].id,
+            name: school[0].name,
+            imageUrl: school[0].imageUrl,
+            referralCode: school[0].referralCode,
+          }
         }
       });
     } catch (error: any) {
@@ -150,9 +152,15 @@ export async function registerSchoolRoutes(app: Express) {
 
       const { password, ...safeSchool } = school[0];
 
-      const teachersCount = await db.select().from(schoolTeachers).where(eq(schoolTeachers.schoolId, schoolId));
-      const studentsCount = await db.select().from(childSchoolAssignment).where(eq(childSchoolAssignment.schoolId, schoolId));
-      const postsCount = await db.select().from(schoolPosts).where(and(eq(schoolPosts.schoolId, schoolId), eq(schoolPosts.authorType, "school")));
+      const teachersCount = await db.select({ count: sql<number>`count(*)` })
+        .from(schoolTeachers)
+        .where(eq(schoolTeachers.schoolId, schoolId));
+      const studentsCount = await db.select({ count: sql<number>`count(*)` })
+        .from(childSchoolAssignment)
+        .where(eq(childSchoolAssignment.schoolId, schoolId));
+      const postsCount = await db.select({ count: sql<number>`count(*)` })
+        .from(schoolPosts)
+        .where(and(eq(schoolPosts.schoolId, schoolId), eq(schoolPosts.authorType, "school")));
       const reviewsData = await db.select().from(schoolReviews).where(eq(schoolReviews.schoolId, schoolId));
 
       const avgRating = reviewsData.length > 0
@@ -164,9 +172,9 @@ export async function registerSchoolRoutes(app: Express) {
         data: {
           ...safeSchool,
           stats: {
-            teachersCount: teachersCount.length,
-            studentsCount: studentsCount.length,
-            postsCount: postsCount.length,
+            teachersCount: Number(teachersCount[0]?.count || 0),
+            studentsCount: Number(studentsCount[0]?.count || 0),
+            postsCount: Number(postsCount[0]?.count || 0),
             reviewsCount: reviewsData.length,
             avgRating: Math.round(avgRating * 10) / 10,
           }
@@ -317,12 +325,32 @@ export async function registerSchoolRoutes(app: Express) {
   app.get("/api/school/teachers", schoolMiddleware, async (req: SchoolRequest, res) => {
     try {
       const schoolId = req.school!.schoolId;
+      const search = String(req.query.q || "").trim();
+      const sort = String(req.query.sort || "newest").trim();
+
+      let whereClause = eq(schoolTeachers.schoolId, schoolId);
+      if (search) {
+        whereClause = and(
+          whereClause,
+          or(
+            like(schoolTeachers.name, `%${search}%`),
+            like(schoolTeachers.username, `%${search}%`),
+            like(schoolTeachers.subject, `%${search}%`)
+          )
+        ) as any;
+      }
+
+      let orderByClause: any = desc(schoolTeachers.createdAt);
+      if (sort === "oldest") orderByClause = schoolTeachers.createdAt;
+      if (sort === "mostActive") orderByClause = desc(schoolTeachers.activityScore);
+      if (sort === "mostStudents") orderByClause = desc(schoolTeachers.totalStudents);
+
       const teachers = await db.select().from(schoolTeachers)
-        .where(eq(schoolTeachers.schoolId, schoolId))
-        .orderBy(desc(schoolTeachers.createdAt));
+        .where(whereClause)
+        .orderBy(orderByClause);
 
       const safeTeachers = teachers.map(({ password: _pw, ...t }: any) => t);
-      res.json({ success: true, data: safeTeachers });
+      res.json({ success: true, data: safeTeachers, total: safeTeachers.length });
     } catch (error: any) {
       console.error("Get school teachers error:", error);
       res.status(500).json({ message: "Failed to fetch teachers" });
@@ -611,6 +639,10 @@ export async function registerSchoolRoutes(app: Express) {
   app.get("/api/school/students", schoolMiddleware, async (req: SchoolRequest, res) => {
     try {
       const schoolId = req.school!.schoolId;
+      const search = String(req.query.q || "").trim().toLowerCase();
+      const sort = String(req.query.sort || "newest").trim();
+      const page = Math.max(1, parseInt(req.query.page as string) || 1);
+      const limit = Math.min(50, Math.max(1, parseInt(req.query.limit as string) || 10));
       const assignments = await db.select({
         assignment: childSchoolAssignment,
         childName: children.name,
@@ -631,7 +663,30 @@ export async function registerSchoolRoutes(app: Express) {
         parentName: row.parentName,
       }));
 
-      res.json({ success: true, data });
+      const dedupedData = Array.from(
+        new Map(data.map((item: any) => [item.id, item])).values()
+      );
+
+      let filtered = dedupedData;
+      if (search) {
+        filtered = dedupedData.filter((item: any) =>
+          String(item.childName || "").toLowerCase().includes(search) ||
+          String(item.parentName || "").toLowerCase().includes(search)
+        );
+      }
+
+      const sorted = [...filtered].sort((a: any, b: any) => {
+        if (sort === "oldest") return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+        if (sort === "nameAsc") return String(a.childName || "").localeCompare(String(b.childName || ""), "ar");
+        if (sort === "nameDesc") return String(b.childName || "").localeCompare(String(a.childName || ""), "ar");
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      });
+
+      const total = sorted.length;
+      const offset = (page - 1) * limit;
+      const paged = sorted.slice(offset, offset + limit);
+
+      res.json({ success: true, data: paged, total, page, limit });
     } catch (error: any) {
       console.error("Get school students error:", error);
       res.status(500).json({ message: "Failed to fetch students" });
@@ -643,6 +698,10 @@ export async function registerSchoolRoutes(app: Express) {
   app.get("/api/school/reviews", schoolMiddleware, async (req: SchoolRequest, res) => {
     try {
       const schoolId = req.school!.schoolId;
+      const search = String(req.query.q || "").trim().toLowerCase();
+      const sort = String(req.query.sort || "newest").trim();
+      const page = Math.max(1, parseInt(req.query.page as string) || 1);
+      const limit = Math.min(50, Math.max(1, parseInt(req.query.limit as string) || 10));
       const reviews = await db.select({
         review: schoolReviews,
         parentName: parents.name,
@@ -657,7 +716,26 @@ export async function registerSchoolRoutes(app: Express) {
         parentName: row.parentName,
       }));
 
-      res.json({ success: true, data });
+      let filtered = data;
+      if (search) {
+        filtered = data.filter((item: any) =>
+          String(item.parentName || "").toLowerCase().includes(search) ||
+          String(item.comment || "").toLowerCase().includes(search)
+        );
+      }
+
+      const sorted = [...filtered].sort((a: any, b: any) => {
+        if (sort === "oldest") return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+        if (sort === "highest") return Number(b.rating || 0) - Number(a.rating || 0);
+        if (sort === "lowest") return Number(a.rating || 0) - Number(b.rating || 0);
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      });
+
+      const total = sorted.length;
+      const offset = (page - 1) * limit;
+      const paged = sorted.slice(offset, offset + limit);
+
+      res.json({ success: true, data: paged, total, page, limit });
     } catch (error: any) {
       console.error("Get school reviews error:", error);
       res.status(500).json({ message: "Failed to fetch reviews" });
@@ -688,25 +766,35 @@ export async function registerSchoolRoutes(app: Express) {
       const schoolId = req.school!.schoolId;
 
       const [schoolData] = await db.select().from(schools).where(eq(schools.id, schoolId));
-      const teachersList = await db.select().from(schoolTeachers).where(eq(schoolTeachers.schoolId, schoolId));
-      const studentsList = await db.select().from(childSchoolAssignment).where(eq(childSchoolAssignment.schoolId, schoolId));
-      const postsList = await db.select().from(schoolPosts).where(eq(schoolPosts.schoolId, schoolId));
-      const reviewsList = await db.select().from(schoolReviews).where(eq(schoolReviews.schoolId, schoolId));
-
-      const avgRating = reviewsList.length > 0
-        ? reviewsList.reduce((sum: number, r: any) => sum + r.rating, 0) / reviewsList.length
-        : 0;
+      const teachersTotal = await db.select({ count: sql<number>`count(*)` })
+        .from(schoolTeachers)
+        .where(eq(schoolTeachers.schoolId, schoolId));
+      const teachersActive = await db.select({ count: sql<number>`count(*)` })
+        .from(schoolTeachers)
+        .where(and(eq(schoolTeachers.schoolId, schoolId), eq(schoolTeachers.isActive, true)));
+      const studentsTotal = await db.select({ count: sql<number>`count(*)` })
+        .from(childSchoolAssignment)
+        .where(eq(childSchoolAssignment.schoolId, schoolId));
+      const postsTotal = await db.select({ count: sql<number>`count(*)` })
+        .from(schoolPosts)
+        .where(eq(schoolPosts.schoolId, schoolId));
+      const reviewsAgg = await db.select({
+        count: sql<number>`count(*)`,
+        avg: sql<number>`coalesce(avg(${schoolReviews.rating}), 0)`,
+      })
+        .from(schoolReviews)
+        .where(eq(schoolReviews.schoolId, schoolId));
 
       res.json({
         success: true,
         data: {
           activityScore: schoolData?.activityScore || 0,
-          totalTeachers: teachersList.length,
-          activeTeachers: teachersList.filter((t: any) => t.isActive).length,
-          totalStudents: studentsList.length,
-          totalPosts: postsList.length,
-          totalReviews: reviewsList.length,
-          avgRating: Math.round(avgRating * 10) / 10,
+          totalTeachers: Number(teachersTotal[0]?.count || 0),
+          activeTeachers: Number(teachersActive[0]?.count || 0),
+          totalStudents: Number(studentsTotal[0]?.count || 0),
+          totalPosts: Number(postsTotal[0]?.count || 0),
+          totalReviews: Number(reviewsAgg[0]?.count || 0),
+          avgRating: Math.round(Number(reviewsAgg[0]?.avg || 0) * 10) / 10,
         }
       });
     } catch (error: any) {
