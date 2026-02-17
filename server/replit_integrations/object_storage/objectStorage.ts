@@ -386,6 +386,11 @@ export class ObjectStorageService {
   normalizeObjectEntityPath(
     rawPath: string,
   ): string {
+    // Already normalized — return as-is (idempotent guard against double-normalization)
+    if (rawPath.startsWith("/objects/")) {
+      return rawPath;
+    }
+
     // Local fallback sentinel: __local__://uuid → /objects/uploads/uuid
     if (rawPath.startsWith("__local__://")) {
       const objectId = rawPath.slice("__local__://".length);
