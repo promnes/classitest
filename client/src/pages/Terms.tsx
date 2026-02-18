@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { useTheme } from "@/contexts/ThemeContext";
+import { LanguageSelector } from "@/components/LanguageSelector";
 
 const STATIC_TERMS = `
 <section class="mb-8">
@@ -72,9 +73,12 @@ export const Terms = (): JSX.Element => {
             }
           }} className="text-2xl">←</button>
           <h1 className="text-2xl font-bold">Terms of Service</h1>
-          <button onClick={toggleTheme} className="text-2xl">
-            {isDark ? "☀️" : "🌙"}
-          </button>
+          <div className="flex items-center gap-2">
+            <LanguageSelector />
+            <button onClick={toggleTheme} className="text-2xl">
+              {isDark ? "☀️" : "🌙"}
+            </button>
+          </div>
         </div>
       </header>
 

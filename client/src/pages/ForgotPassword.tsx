@@ -5,6 +5,7 @@ import { useMutation } from "@tanstack/react-query";
 import { useTheme } from "@/contexts/ThemeContext";
 import { OTPInput } from "@/components/OTPInput";
 import { PhoneInput } from "@/components/PhoneInput";
+import { LanguageSelector } from "@/components/LanguageSelector";
 
 export const ForgotPassword = (): JSX.Element => {
   const { t } = useTranslation();
@@ -154,6 +155,7 @@ export const ForgotPassword = (): JSX.Element => {
           >
             ← {t("back")}
           </button>
+          <LanguageSelector />
         </div>
 
         <div className={`${isDark ? "bg-gray-800" : "bg-white"} rounded-3xl p-8 shadow-2xl`}>

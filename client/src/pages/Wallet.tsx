@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useTheme } from "@/contexts/ThemeContext";
 import { ParentNotificationBell } from "@/components/NotificationBell";
+import { LanguageSelector } from "@/components/LanguageSelector";
 import { useToast } from "@/hooks/use-toast";
 import { getDateLocale } from "@/i18n/config";
 import { SlidingAdsCarousel } from "@/components/SlidingAdsCarousel";
@@ -140,6 +141,7 @@ export const Wallet = (): JSX.Element => {
             <p className={isDark ? "text-gray-400" : "text-gray-600"}>إدارة الرصيد والإيداعات</p>
           </div>
           <div className="flex gap-2">
+            <LanguageSelector />
             <ParentNotificationBell />
             <button
               onClick={toggleTheme}

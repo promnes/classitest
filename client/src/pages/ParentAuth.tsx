@@ -11,6 +11,7 @@ import { Loader2 } from "lucide-react";
 import { SocialLoginButtons } from "@/components/SocialLoginButtons";
 import { PhoneInput } from "@/components/PhoneInput";
 import { GovernorateSelect } from "@/components/ui/GovernorateSelect";
+import { LanguageSelector } from "@/components/LanguageSelector";
 
 export const ParentAuth = (): JSX.Element => {
   const { t } = useTranslation();
@@ -163,12 +164,15 @@ export const ParentAuth = (): JSX.Element => {
           >
             ← {t("back")}
           </button>
-          <PWAInstallButton 
-            variant="default" 
-            size="default"
-            showText={true}
-            className="bg-cyan-500 hover:bg-cyan-600 text-white rounded-full px-4 py-2 font-semibold shadow-md"
-          />
+          <div className="flex items-center gap-2">
+            <LanguageSelector />
+            <PWAInstallButton 
+              variant="default" 
+              size="default"
+              showText={true}
+              className="bg-cyan-500 hover:bg-cyan-600 text-white rounded-full px-4 py-2 font-semibold shadow-md"
+            />
+          </div>
         </div>
 
         <div className="bg-white rounded-3xl p-8 shadow-2xl">

@@ -15,6 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 import { getDateLocale } from "@/i18n/config";
 import { queryClient } from "@/lib/queryClient";
 import { LibraryNotificationBell } from "@/components/AccountNotificationBell";
+import { LanguageSelector } from "@/components/LanguageSelector";
 import { 
   Store, Package, Users, TrendingUp, Plus, Edit, Trash2, 
   Copy, LogOut, Link, Share2, Activity, Truck, ShieldCheck, Wallet, Camera, Loader2, Upload
@@ -621,6 +622,7 @@ export default function LibraryDashboard() {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <LanguageSelector />
             <LibraryNotificationBell />
             <Button variant="ghost" onClick={handleLogout} data-testid="button-logout">
               <LogOut className="h-4 w-4 ml-2" />

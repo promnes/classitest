@@ -1,6 +1,7 @@
 import React from "react";
 import { useLocation } from "wouter";
 import { useTheme } from "@/contexts/ThemeContext";
+import { LanguageSelector } from "@/components/LanguageSelector";
 
 export const PrivacyPolicy = (): JSX.Element => {
   const [, navigate] = useLocation();
@@ -11,18 +12,21 @@ export const PrivacyPolicy = (): JSX.Element => {
       <header className="bg-gradient-to-r from-blue-700 to-blue-800 text-white p-4 md:p-6 shadow-lg">
         <div className="max-w-4xl mx-auto flex justify-between items-center">
           <h1 className="text-3xl font-bold">سياسة الخصوصية</h1>
-          <button
-            onClick={() => {
-              if (window.history.length > 1) {
-                window.history.back();
-              } else {
-                navigate("/settings");
-              }
-            }}
-            className="px-4 py-2 bg-white text-blue-700 font-bold rounded-lg hover:bg-gray-100"
-          >
-            ← العودة
-          </button>
+          <div className="flex items-center gap-2">
+            <LanguageSelector />
+            <button
+              onClick={() => {
+                if (window.history.length > 1) {
+                  window.history.back();
+                } else {
+                  navigate("/settings");
+                }
+              }}
+              className="px-4 py-2 bg-white text-blue-700 font-bold rounded-lg hover:bg-gray-100"
+            >
+              ← العودة
+            </button>
+          </div>
         </div>
       </header>
 

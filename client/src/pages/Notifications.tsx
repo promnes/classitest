@@ -7,6 +7,7 @@ import { getDateLocale } from "@/i18n/config";
 import { apiRequest, authenticatedFetch } from "@/lib/queryClient";
 import { Check, X, Copy, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { LanguageSelector } from "@/components/LanguageSelector";
 
 type NotificationItem = {
   id: string;
@@ -219,6 +220,7 @@ export const Notifications = (): JSX.Element => {
             )}
           </div>
           <div className="flex gap-2">
+            <LanguageSelector />
             {unreadCount > 0 && (
               <button
                 onClick={() => markAllReadMutation.mutate()}

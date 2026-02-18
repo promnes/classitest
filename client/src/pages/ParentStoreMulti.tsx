@@ -4,6 +4,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { ParentNotificationBell } from "@/components/NotificationBell";
+import { LanguageSelector } from "@/components/LanguageSelector";
 
 async function fetchProducts() {
   return fetch("/api/parent/store/products", {
@@ -58,7 +59,10 @@ export default function ParentStoreMulti() {
     <div className="p-4">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-xl font-bold">Store</h2>
-        <ParentNotificationBell />
+        <div className="flex items-center gap-2">
+          <LanguageSelector />
+          <ParentNotificationBell />
+        </div>
       </div>
       <div className="grid grid-cols-3 gap-4">
         {data?.data?.map((p: any) => (

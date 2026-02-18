@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useTheme } from "@/contexts/ThemeContext";
 import { ParentNotificationBell } from "@/components/NotificationBell";
+import { LanguageSelector } from "@/components/LanguageSelector";
 import { authenticatedFetch } from "@/lib/queryClient";
 
 interface Library {
@@ -418,6 +419,7 @@ export default function LibraryStore() {
               <h1 className="text-xl font-bold">متجر المكتبات</h1>
             </div>
             <div className="flex items-center gap-1 mr-auto">
+              <LanguageSelector />
               {libraryStoreSettings?.showNotifications !== false && token && (
                 <ParentNotificationBell />
               )}

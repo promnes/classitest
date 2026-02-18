@@ -14,6 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
 import { ShareMenu } from "@/components/ui/ShareMenu";
 import { SchoolNotificationBell } from "@/components/AccountNotificationBell";
+import { LanguageSelector } from "@/components/LanguageSelector";
 import {
   Copy,
   Edit,
@@ -1101,6 +1102,7 @@ export default function SchoolDashboard() {
               className="text-white hover:bg-blue-700"
               buttonLabel="مشاركة"
             />
+            <LanguageSelector />
             <SchoolNotificationBell />
             <Button variant="ghost" size="icon" className="text-white hover:bg-blue-700" onClick={handleLogout}>
               <LogOut className="h-5 w-5" />

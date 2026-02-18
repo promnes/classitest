@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next";
 import { useLocation } from "wouter";
 import { useTheme } from "@/contexts/ThemeContext";
 import { Download, ArrowRight, Shield, Smartphone, Zap, ChevronRight, CheckCircle, Lock, Eye, ShieldCheck, Star, Users, BadgeCheck } from "lucide-react";
+import { LanguageSelector } from "@/components/LanguageSelector";
 
 export default function DownloadApp() {
   const { t, i18n } = useTranslation();
@@ -32,6 +33,7 @@ export default function DownloadApp() {
             <span className="font-semibold">{isRTL ? "الرئيسية" : "Home"}</span>
           </button>
           <div className="flex items-center gap-3">
+            <LanguageSelector />
             <img src="/logo.jpg" alt="Classify" className="h-10 w-10 rounded-full border-2 border-yellow-400 object-cover" />
             <h1 className="text-xl font-bold text-white">Classify</h1>
           </div>

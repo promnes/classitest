@@ -4,6 +4,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { useTheme } from "@/contexts/ThemeContext";
 import { ParentNotificationBell } from "@/components/NotificationBell";
+import { LanguageSelector } from "@/components/LanguageSelector";
 import { getDateLocale } from "@/i18n/config";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -438,6 +439,7 @@ export default function ParentTasks() {
             <Wallet className="h-4 w-4 ml-1" />
             الرصيد: {walletBalance}
           </Badge>
+          <LanguageSelector />
           <ParentNotificationBell />
         </div>
 

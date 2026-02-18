@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ChildNotificationBell } from "@/components/ChildNotificationBell";
+import { LanguageSelector } from "@/components/LanguageSelector";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { MandatoryTaskModal } from "@/components/MandatoryTaskModal";
@@ -267,6 +268,7 @@ export const ChildStore = (): JSX.Element => {
                 </p>
               </div>
 
+              <LanguageSelector />
               <ChildNotificationBell />
               
               <button

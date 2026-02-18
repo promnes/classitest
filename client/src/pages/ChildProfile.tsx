@@ -15,6 +15,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import { useTheme } from "@/contexts/ThemeContext";
 import { ChildNotificationBell } from "@/components/ChildNotificationBell";
+import { LanguageSelector } from "@/components/LanguageSelector";
 import { apiRequest } from "@/lib/queryClient";
 import { motion } from "framer-motion";
 import ImageCropper from "@/components/ImageCropper";
@@ -218,6 +219,7 @@ export default function ChildProfile() {
               </div>
             </div>
             <div className="flex items-center gap-2">
+              <LanguageSelector />
               <ChildNotificationBell />
               <div className="flex items-center gap-1.5 bg-white/15 px-3 py-1.5 rounded-full">
                 <Star className="w-4 h-4 text-yellow-300" />

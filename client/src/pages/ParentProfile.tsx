@@ -5,6 +5,7 @@ import { queryClient, apiRequest, authenticatedFetch } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useTheme } from "@/contexts/ThemeContext";
 import { ParentNotificationBell } from "@/components/NotificationBell";
+import { LanguageSelector } from "@/components/LanguageSelector";
 import { FollowButton } from "@/components/ui/FollowButton";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -244,6 +245,7 @@ export default function ParentProfile() {
           <ArrowRight className="h-5 w-5" />
         </Button>
         <h1 className="text-lg font-bold flex-1">ملفي الشخصي</h1>
+        <LanguageSelector />
         <ParentNotificationBell />
       </div>
 

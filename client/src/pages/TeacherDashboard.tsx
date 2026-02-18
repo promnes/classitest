@@ -14,6 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
 import { ShareMenu } from "@/components/ui/ShareMenu";
 import { TeacherNotificationBell } from "@/components/AccountNotificationBell";
+import { LanguageSelector } from "@/components/LanguageSelector";
 import {
   GraduationCap, BookOpen, Users, Star, LogOut, Plus, Edit, Trash2,
   DollarSign, TrendingUp, ArrowDownToLine, CheckCircle, Clock, MessageSquare,
@@ -807,6 +808,7 @@ export default function TeacherDashboard() {
               className="text-white hover:bg-green-700"
               buttonLabel="مشاركة"
             />
+            <LanguageSelector />
             <TeacherNotificationBell />
             <Button variant="ghost" size="icon" className="text-white hover:bg-green-700" onClick={handleLogout}>
               <LogOut className="h-5 w-5" />

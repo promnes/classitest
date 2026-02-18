@@ -4,6 +4,7 @@ import { useLocation } from "wouter";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useTheme } from "@/contexts/ThemeContext";
 import { ParentNotificationBell } from "@/components/NotificationBell";
+import { LanguageSelector } from "@/components/LanguageSelector";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -218,6 +219,7 @@ export const Settings = (): JSX.Element => {
         <div className="max-w-6xl mx-auto flex justify-between items-center">
           <h1 className="text-3xl font-bold">⚙️ {t("settings.title")}</h1>
           <div className="flex items-center gap-2">
+            <LanguageSelector />
             <ParentNotificationBell />
             <button
               onClick={() => navigate("/parent-dashboard")}

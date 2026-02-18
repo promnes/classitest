@@ -15,6 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useTheme } from "@/contexts/ThemeContext";
 import { ParentNotificationBell } from "@/components/NotificationBell";
+import { LanguageSelector } from "@/components/LanguageSelector";
 import { getDateLocale } from "@/i18n/config";
 
 const categoryIcons: Record<string, any> = {
@@ -364,6 +365,8 @@ export const ParentStore = (): JSX.Element => {
                 <p className="text-xs opacity-80">رصيد المحفظة</p>
                 <p className="font-bold">{wallet?.balance || 0} ج.م</p>
               </div>
+              
+              <LanguageSelector />
               
               <ParentNotificationBell />
               

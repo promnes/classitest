@@ -4,6 +4,7 @@ import { useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTheme } from "@/contexts/ThemeContext";
 import { ChildNotificationBell } from "@/components/ChildNotificationBell";
+import { LanguageSelector } from "@/components/LanguageSelector";
 import { useToast } from "@/hooks/use-toast";
 import { MandatoryTaskModal } from "@/components/MandatoryTaskModal";
 
@@ -94,6 +95,8 @@ export const ChildGifts = (): JSX.Element => {
                 {currentPoints}
               </p>
             </div>
+            
+            <LanguageSelector />
             
             <ChildNotificationBell />
             

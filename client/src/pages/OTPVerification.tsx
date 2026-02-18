@@ -5,6 +5,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { OTPInput } from "@/components/OTPInput";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { LanguageSelector } from "@/components/LanguageSelector";
 
 function getOrCreateDeviceId(): string {
   let deviceId = localStorage.getItem("deviceId");
@@ -154,7 +155,8 @@ export const OTPVerification = (): JSX.Element => {
   });
 
   return (
-    <div className={`min-h-screen flex items-center justify-center ${isDark ? "bg-gray-900" : "bg-gray-100"}`}>
+    <div className={`min-h-screen flex items-center justify-center relative ${isDark ? "bg-gray-900" : "bg-gray-100"}`}>
+      <div className="absolute top-4 ltr:right-4 rtl:left-4 z-50"><LanguageSelector /></div>
       <div className={`${isDark ? "bg-gray-800" : "bg-white"} rounded-lg shadow-lg p-8 max-w-md w-full`}>
         <h1 className={`text-3xl font-bold text-center mb-2 ${isDark ? "text-white" : "text-gray-800"}`}>
           🔐 التحقق من الهوية

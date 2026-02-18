@@ -4,6 +4,7 @@ import { useLocation } from "wouter";
 import { useMutation } from "@tanstack/react-query";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useToast } from "@/hooks/use-toast";
+import { LanguageSelector } from "@/components/LanguageSelector";
 
 export const AdminAuth = (): JSX.Element => {
   const { t, i18n } = useTranslation();
@@ -129,7 +130,8 @@ export const AdminAuth = (): JSX.Element => {
   }
 
   return (
-    <div className={`min-h-screen flex items-center justify-center ${isDark ? "bg-gray-900" : "bg-gray-100"}`} dir={isRTL ? "rtl" : "ltr"}>
+    <div className={`min-h-screen flex items-center justify-center relative ${isDark ? "bg-gray-900" : "bg-gray-100"}`} dir={isRTL ? "rtl" : "ltr"}>
+      <div className="absolute top-4 ltr:right-4 rtl:left-4 z-50"><LanguageSelector /></div>
       <div className={`${isDark ? "bg-gray-800" : "bg-white"} rounded-lg shadow-lg p-8 max-w-md w-full`}>
         <h1 className={`text-3xl font-bold text-center mb-8 ${isDark ? "text-white" : "text-gray-800"}`}>
           {t("admin.panelTitle")}

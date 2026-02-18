@@ -4,6 +4,7 @@ import { useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useTheme } from "@/contexts/ThemeContext";
 import { queryClient, apiRequest } from "@/lib/queryClient";
+import { LanguageSelector } from "@/components/LanguageSelector";
 
 export const AssignTask = (): JSX.Element => {
   const { t, i18n } = useTranslation();
@@ -102,6 +103,7 @@ export const AssignTask = (): JSX.Element => {
             📝 {t("assignTask.title")}
           </h1>
           <div className="flex gap-2">
+            <LanguageSelector />
             <button
               onClick={toggleTheme}
               className="px-4 py-2 bg-blue-500 text-white rounded-lg font-bold"

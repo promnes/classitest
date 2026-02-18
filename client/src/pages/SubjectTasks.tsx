@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowRight, BookOpen, Plus, Send, Star, Clock, CheckCircle, Sparkles } from "lucide-react";
+import { LanguageSelector } from "@/components/LanguageSelector";
 
 interface Subject {
   id: string;
@@ -177,15 +178,18 @@ export default function SubjectTasks() {
   return (
     <div className={`min-h-screen ${isDark ? "bg-gray-900 text-white" : "bg-gray-50"}`}>
       <div className="max-w-4xl mx-auto p-4">
-        <Button
-          variant="ghost"
-          onClick={() => navigate("/parent-dashboard")}
-          className="mb-4"
-          data-testid="button-back"
-        >
-          <ArrowRight className="h-4 w-4 ml-2" />
-          العودة
-        </Button>
+        <div className="flex items-center justify-between mb-4">
+          <Button
+            variant="ghost"
+            onClick={() => navigate("/parent-dashboard")}
+            className=""
+            data-testid="button-back"
+          >
+            <ArrowRight className="h-4 w-4 ml-2" />
+            العودة
+          </Button>
+          <LanguageSelector />
+        </div>
 
         {subject && (
           <Card className={`mb-6 ${isDark ? "bg-gray-800 border-gray-700" : ""}`} style={{ borderTop: `4px solid ${subject.color}` }}>

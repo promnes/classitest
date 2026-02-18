@@ -5,6 +5,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { getDateLocale } from "@/i18n/config";
 import { MandatoryTaskModal } from "@/components/MandatoryTaskModal";
 import { Bell, Gift, Star, Trophy, Target, CheckCircle, Clock, Gamepad2, ShoppingBag } from "lucide-react";
+import { LanguageSelector } from "@/components/LanguageSelector";
 
 interface Notification {
   id: string;
@@ -181,13 +182,16 @@ export const ChildNotifications = (): JSX.Element => {
               النقاط: {currentPoints}
             </p>
           </div>
-          <button
-            onClick={() => navigate("/child-games")}
-            className={`px-6 py-3 ${isDark ? "bg-gray-700 hover:bg-gray-600" : "bg-white bg-opacity-30 hover:bg-opacity-40"} text-white font-bold rounded-xl transition-all`}
-            data-testid="button-back"
-          >
-            رجوع
-          </button>
+          <div className="flex items-center gap-3">
+            <LanguageSelector />
+            <button
+              onClick={() => navigate("/child-games")}
+              className={`px-6 py-3 ${isDark ? "bg-gray-700 hover:bg-gray-600" : "bg-white bg-opacity-30 hover:bg-opacity-40"} text-white font-bold rounded-xl transition-all`}
+              data-testid="button-back"
+            >
+              رجوع
+            </button>
+          </div>
         </div>
 
         <div className="space-y-4">

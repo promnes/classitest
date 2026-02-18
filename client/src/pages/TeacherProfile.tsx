@@ -15,6 +15,7 @@ import {
   Users, Briefcase, Clock, Send
 } from "lucide-react";
 import { ShareMenu } from "@/components/ui/ShareMenu";
+import { LanguageSelector } from "@/components/LanguageSelector";
 
 export default function TeacherProfile() {
   const [, params] = useRoute("/teacher/:id");
@@ -198,7 +199,8 @@ export default function TeacherProfile() {
   const avgRating = reviewsData?.avgRating || "0";
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950" dir="rtl">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 relative" dir="rtl">
+      <div className="absolute top-4 ltr:right-4 rtl:left-4 z-50"><LanguageSelector /></div>
       <div className="max-w-4xl mx-auto px-4 py-6">
         <ProfileHeader
           name={teacher.name}

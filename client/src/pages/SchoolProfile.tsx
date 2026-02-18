@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { FollowButton } from "@/components/ui/FollowButton";
 import { ShareMenu } from "@/components/ui/ShareMenu";
+import { LanguageSelector } from "@/components/LanguageSelector";
 
 function SocialIcon({ platform }: { platform: string }) {
   switch (platform) {
@@ -265,7 +266,8 @@ export default function SchoolProfile() {
   const joinDate = new Date(school.createdAt).toLocaleDateString("ar-EG", { year: "numeric", month: "long" });
 
   return (
-    <div className="min-h-screen bg-gray-100 dark:bg-gray-950" dir="rtl">
+    <div className="min-h-screen bg-gray-100 dark:bg-gray-950 relative" dir="rtl">
+      <div className="absolute top-4 ltr:right-4 rtl:left-4 z-50"><LanguageSelector /></div>
       {/* ===== FACEBOOK-STYLE COVER SECTION ===== */}
       <div className="bg-white dark:bg-gray-900 shadow-sm">
         <div className="max-w-5xl mx-auto">

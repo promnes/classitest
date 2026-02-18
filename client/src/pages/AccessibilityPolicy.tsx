@@ -1,6 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { useLocation } from "wouter";
 import { useTheme } from "@/contexts/ThemeContext";
+import { LanguageSelector } from "@/components/LanguageSelector";
 
 export const AccessibilityPolicy = (): JSX.Element => {
   const { t, i18n } = useTranslation();
@@ -13,18 +14,21 @@ export const AccessibilityPolicy = (): JSX.Element => {
       <header className="bg-gradient-to-r from-green-700 to-green-800 text-white p-4 md:p-6 shadow-lg">
         <div className="max-w-4xl mx-auto flex justify-between items-center">
           <h1 className="text-3xl font-bold">{t("accessibility.title")}</h1>
-          <button
-            onClick={() => {
-              if (window.history.length > 1) {
-                window.history.back();
-              } else {
-                navigate("/settings");
-              }
-            }}
-            className="px-4 py-2 bg-white text-green-700 font-bold rounded-lg hover:bg-gray-100"
-          >
-            ← {t("accessibility.back")}
-          </button>
+          <div className="flex items-center gap-2">
+            <LanguageSelector />
+            <button
+              onClick={() => {
+                if (window.history.length > 1) {
+                  window.history.back();
+                } else {
+                  navigate("/settings");
+                }
+              }}
+              className="px-4 py-2 bg-white text-green-700 font-bold rounded-lg hover:bg-gray-100"
+            >
+              ← {t("accessibility.back")}
+            </button>
+          </div>
         </div>
       </header>
 

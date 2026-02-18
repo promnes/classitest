@@ -3,6 +3,7 @@ import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { useTheme } from "@/contexts/ThemeContext";
 import { ChildNotificationBell } from "@/components/ChildNotificationBell";
+import { LanguageSelector } from "@/components/LanguageSelector";
 import { 
   Star, 
   Trophy, 
@@ -89,6 +90,7 @@ export const ChildProgress = (): JSX.Element => {
             </p>
           </div>
           <div className="flex items-center gap-3">
+            <LanguageSelector />
             <ChildNotificationBell />
             <button
               onClick={() => navigate("/child-games")}

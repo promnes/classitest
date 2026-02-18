@@ -4,6 +4,7 @@ import { useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useTheme } from "@/contexts/ThemeContext";
 import { ParentNotificationBell } from "@/components/NotificationBell";
+import { LanguageSelector } from "@/components/LanguageSelector";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
@@ -69,6 +70,7 @@ export const Subjects = (): JSX.Element => {
             </p>
           </div>
           <div className="flex gap-2">
+            <LanguageSelector />
             <ParentNotificationBell />
             <button
               onClick={toggleTheme}
