@@ -576,8 +576,8 @@ export default function LibraryDashboard() {
     try {
       const url = await uploadLibraryProfileImage(file);
       // Update library profile
-      const updateRes = await fetch("/api/library/profile/update", {
-        method: "POST",
+      const updateRes = await fetch("/api/library/profile", {
+        method: "PUT",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({
           [type === "avatar" ? "imageUrl" : "coverImageUrl"]: url,

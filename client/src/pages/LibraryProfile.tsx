@@ -154,7 +154,7 @@ export default function LibraryProfile() {
         <ProfileHeader
           name={library.name}
           bio={library.bio}
-          avatarUrl={library.avatarUrl}
+          avatarUrl={library.imageUrl}
           coverImageUrl={library.coverImageUrl}
           governorate={library.governorate}
           city={library.city}
