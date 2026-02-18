@@ -61,6 +61,7 @@ export function ProfileHeader({
       <div className="relative h-48 md:h-64 bg-gradient-to-r from-blue-500 to-purple-600">
         {coverImageUrl && (
           <img
+            key={coverImageUrl}
             src={coverImageUrl}
             alt="Cover"
             className="w-full h-full object-cover"
@@ -74,7 +75,7 @@ export function ProfileHeader({
               {name.charAt(0)}
             </div>
             {avatarUrl && (
-              <img src={avatarUrl} alt={name} className="absolute inset-0 w-full h-full object-cover" onError={(e) => { e.currentTarget.style.display = 'none' }} />
+              <img key={avatarUrl} src={avatarUrl} alt={name} className="absolute inset-0 w-full h-full object-cover" onError={(e) => { e.currentTarget.style.display = 'none' }} />
             )}
           </div>
         </div>

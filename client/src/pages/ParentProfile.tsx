@@ -40,6 +40,9 @@ export default function ParentProfile() {
   const [cropperMode, setCropperMode] = useState<"avatar" | "cover">("avatar");
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [coverUploading, setCoverUploading] = useState(false);
+  const [imageVersion, setImageVersion] = useState(0);
+  const [coverLoadError, setCoverLoadError] = useState(false);
+  const [avatarLoadError, setAvatarLoadError] = useState(false);
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
 
@@ -198,18 +201,26 @@ export default function ParentProfile() {
     const type = cropperMode;
     const file = new File([blob], `parent-${type}.jpg`, { type: "image/jpeg" });
 
-    if (type === "avatar") setAvatarUploading(true);
-    else setCoverUploading(true);
+    if (type === "avatar") {
+      setAvatarUploading(true);
+      setAvatarLoadError(false);
+    } else {
+      setCoverUploading(true);
+      setCoverLoadError(false);
+    }
 
     try {
       const url = await uploadFileForParent(file);
+      console.log(`[ParentProfile] Uploaded ${type} image, URL:`, url);
       // Update parent profile with the new image URL
       await apiRequest("POST", "/api/parent/profile/update", {
         [type === "avatar" ? "avatarUrl" : "coverImageUrl"]: url,
       });
       await queryClient.refetchQueries({ queryKey: ["/api/parent/profile-data"] });
+      setImageVersion((v) => v + 1);
       toast({ title: type === "avatar" ? "تم رفع الصورة الشخصية" : "تم رفع صورة الغلاف" });
     } catch (error: any) {
+      console.error(`[ParentProfile] Upload ${type} error:`, error);
       toast({ title: error.message || "فشل رفع الصورة", variant: "destructive" });
     } finally {
       if (type === "avatar") setAvatarUploading(false);
@@ -238,8 +249,18 @@ export default function ParentProfile() {
       {parent && (
         <div className="relative">
           <div className={`h-32 relative overflow-hidden ${isDark ? "bg-gradient-to-r from-blue-900 to-purple-900" : "bg-gradient-to-r from-blue-400 to-purple-500"}`}>
-            {parent.coverImageUrl && (
-              <img src={parent.coverImageUrl} alt="" className="absolute inset-0 w-full h-full object-cover" onError={(e) => { e.currentTarget.style.display = 'none' }} />
+            {parent.coverImageUrl && !coverLoadError && (
+              <img
+                key={`cover-${imageVersion}-${parent.coverImageUrl}`}
+                src={`${parent.coverImageUrl}${parent.coverImageUrl.includes('?') ? '&' : '?'}v=${imageVersion}`}
+                alt=""
+                className="absolute inset-0 w-full h-full object-cover"
+                onLoad={() => setCoverLoadError(false)}
+                onError={() => {
+                  console.error('[ParentProfile] Cover image failed to load:', parent.coverImageUrl);
+                  setCoverLoadError(true);
+                }}
+              />
             )}
             <button
               onClick={() => coverInputRef.current?.click()}
@@ -256,8 +277,18 @@ export default function ParentProfile() {
               <div className={`relative h-20 w-20 rounded-full border-4 flex items-center justify-center text-2xl font-bold ${
                 isDark ? "bg-gray-800 border-gray-900 text-blue-400" : "bg-white border-white text-blue-600"
               }`}>
-                {parent.avatarUrl ? (
-                  <img src={parent.avatarUrl} alt="" className="w-full h-full rounded-full object-cover" />
+                {parent.avatarUrl && !avatarLoadError ? (
+                  <img
+                    key={`avatar-${imageVersion}-${parent.avatarUrl}`}
+                    src={`${parent.avatarUrl}${parent.avatarUrl.includes('?') ? '&' : '?'}v=${imageVersion}`}
+                    alt=""
+                    className="w-full h-full rounded-full object-cover"
+                    onLoad={() => setAvatarLoadError(false)}
+                    onError={() => {
+                      console.error('[ParentProfile] Avatar image failed to load:', parent.avatarUrl);
+                      setAvatarLoadError(true);
+                    }}
+                  />
                 ) : (
                   parent.name?.charAt(0) || "👤"
                 )}

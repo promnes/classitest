@@ -52,7 +52,7 @@ export async function setupVite(app: Express, server: Server) {
     const url = req.originalUrl;
 
     // Mirror production contract for unknown API routes in development
-    if (req.path.startsWith("/api/")) {
+    if (req.path.startsWith("/api/") || req.path.startsWith("/objects/")) {
       return res.status(404).json({
         success: false,
         error: "NOT_FOUND",
@@ -132,8 +132,8 @@ export function serveStatic(app: Express) {
   // SPA fallback - must come LAST
   // Serve index.html for all unmatched routes (for React Router)
   app.use("*", (req, res) => {
-    // Do not fallback API routes
-    if (req.path.startsWith("/api/")) {
+    // Do not fallback API routes or object storage paths
+    if (req.path.startsWith("/api/") || req.path.startsWith("/objects/")) {
       return res.status(404).json({
         success: false,
         error: "NOT_FOUND",

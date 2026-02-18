@@ -63,7 +63,7 @@ export function serveStatic(app: Express) {
   }));
 
   app.use("*", (req, res) => {
-    if (req.path.startsWith("/api/")) {
+    if (req.path.startsWith("/api/") || req.path.startsWith("/objects/")) {
       return res.status(404).json({
         success: false,
         error: "NOT_FOUND",
