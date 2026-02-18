@@ -157,6 +157,8 @@ function getActivityLabel(action: string) {
   const map: Record<string, string> = {
     teacher_added: "تمت إضافة معلم",
     teacher_updated: "تم تحديث بيانات معلم",
+    teacher_transferred_out: "تم نقل معلم لمدرسة أخرى",
+    teacher_transferred_in: "تم استقبال معلم من مدرسة أخرى",
     post_created: "تم إنشاء منشور",
     profile_updated: "تم تحديث ملف المدرسة",
   };
@@ -198,6 +200,10 @@ export default function SchoolDashboard() {
   const [reviewsSort, setReviewsSort] = useState<"newest" | "oldest" | "highest" | "lowest">("newest");
   const [commentsByPost, setCommentsByPost] = useState<Record<string, PostComment[]>>({});
   const [showCommentsByPost, setShowCommentsByPost] = useState<Record<string, boolean>>({});
+  const [showTransferModal, setShowTransferModal] = useState(false);
+  const [transferTeacherId, setTransferTeacherId] = useState<string | null>(null);
+  const [transferTeacherName, setTransferTeacherName] = useState("");
+  const [transferForm, setTransferForm] = useState({ toSchoolId: "", performanceRating: 0, performanceComment: "", reason: "" });
   const [commentInputByPost, setCommentInputByPost] = useState<Record<string, string>>({});
   const [commentsLoadingByPost, setCommentsLoadingByPost] = useState<Record<string, boolean>>({});
 
@@ -477,6 +483,38 @@ export default function SchoolDashboard() {
       toast({ title: "تم حذف المعلم" });
     },
     onError: (err: any) => toast({ title: err.message || "فشل حذف المعلم", variant: "destructive" }),
+  });
+
+  const { data: availableSchools = [] } = useQuery<{ id: string; name: string; imageUrl: string | null; isActive: boolean; isVerified: boolean }[]>({
+    queryKey: ["available-schools"],
+    queryFn: async () => {
+      const res = await fetch("/api/school/available-schools", { headers: authHeaders });
+      if (!res.ok) throw new Error("Failed");
+      return (await res.json()).data || [];
+    },
+    enabled: showTransferModal,
+  });
+
+  const transferTeacher = useMutation({
+    mutationFn: async ({ id, ...payload }: any) => {
+      const res = await fetch(`/api/school/teachers/${id}/transfer`, {
+        method: "POST",
+        headers: { ...authHeaders, "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.message || "Failed");
+      return body;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["school-teachers"] });
+      queryClient.invalidateQueries({ queryKey: ["school-stats"] });
+      setShowTransferModal(false);
+      setTransferTeacherId(null);
+      setTransferForm({ toSchoolId: "", performanceRating: 0, performanceComment: "", reason: "" });
+      toast({ title: "تم نقل المعلم بنجاح" });
+    },
+    onError: (err: any) => toast({ title: err.message || "فشل نقل المعلم", variant: "destructive" }),
   });
 
   const updatePost = useMutation({
@@ -1195,6 +1233,20 @@ export default function SchoolDashboard() {
                           onClick={() => updateTeacher.mutate({ id: teacher.id, isActive: !teacher.isActive })}
                         >
                           {teacher.isActive ? "تعطيل" : "تفعيل"}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-orange-600 border-orange-300 hover:bg-orange-50"
+                          onClick={() => {
+                            setTransferTeacherId(teacher.id);
+                            setTransferTeacherName(teacher.name);
+                            setTransferForm({ toSchoolId: "", performanceRating: 0, performanceComment: "", reason: "" });
+                            setShowTransferModal(true);
+                          }}
+                        >
+                          <Send className="h-3 w-3 ml-1" />
+                          نقل
                         </Button>
                         <Button
                           size="sm"
@@ -2231,6 +2283,82 @@ export default function SchoolDashboard() {
         onCropComplete={handleCroppedImageUpload}
         mode={cropperMode}
       />
+
+      {/* Transfer Teacher Modal */}
+      <Dialog open={showTransferModal} onOpenChange={setShowTransferModal}>
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>نقل المعلم: {transferTeacherName}</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>المدرسة المستهدفة *</Label>
+              <select
+                className="w-full border rounded-md p-2 mt-1 bg-background"
+                value={transferForm.toSchoolId}
+                onChange={e => setTransferForm(f => ({ ...f, toSchoolId: e.target.value }))}
+              >
+                <option value="">اختر مدرسة...</option>
+                {availableSchools.map((s: any) => (
+                  <option key={s.id} value={s.id}>{s.name}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <Label>تقييم أداء المعلم * (1-5)</Label>
+              <div className="flex gap-1 mt-1">
+                {[1, 2, 3, 4, 5].map(n => (
+                  <button
+                    key={n}
+                    type="button"
+                    onClick={() => setTransferForm(f => ({ ...f, performanceRating: n }))}
+                    className={`p-1 rounded transition-colors ${transferForm.performanceRating >= n ? "text-yellow-500" : "text-gray-300"}`}
+                  >
+                    <Star className="h-6 w-6" fill={transferForm.performanceRating >= n ? "currentColor" : "none"} />
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <Label>تعليق على الأداء *</Label>
+              <Textarea
+                value={transferForm.performanceComment}
+                onChange={e => setTransferForm(f => ({ ...f, performanceComment: e.target.value }))}
+                placeholder="اكتب تقييمك لأداء المعلم..."
+                rows={3}
+              />
+            </div>
+
+            <div>
+              <Label>سبب النقل (اختياري)</Label>
+              <Input
+                value={transferForm.reason}
+                onChange={e => setTransferForm(f => ({ ...f, reason: e.target.value }))}
+                placeholder="سبب النقل..."
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowTransferModal(false)}>إلغاء</Button>
+            <Button
+              className="bg-orange-600 hover:bg-orange-700"
+              disabled={!transferForm.toSchoolId || !transferForm.performanceRating || !transferForm.performanceComment || transferTeacher.isPending}
+              onClick={() => {
+                if (!transferTeacherId) return;
+                transferTeacher.mutate({
+                  id: transferTeacherId,
+                  toSchoolId: transferForm.toSchoolId,
+                  performanceRating: transferForm.performanceRating,
+                  performanceComment: transferForm.performanceComment,
+                  reason: transferForm.reason || undefined,
+                });
+              }}
+            >
+              {transferTeacher.isPending ? "جاري النقل..." : "تأكيد النقل"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

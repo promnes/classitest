@@ -18,6 +18,7 @@ import {
   schoolPolls,
   schoolPollVotes,
   follows,
+  teacherTransfers,
 } from "../../shared/schema";
 import { eq, desc, and, sql, like, or } from "drizzle-orm";
 import jwt from "jsonwebtoken";
@@ -530,6 +531,116 @@ export async function registerSchoolRoutes(app: Express) {
     } catch (error: any) {
       console.error("Delete school teacher error:", error);
       res.status(500).json({ message: "Failed to delete teacher" });
+    }
+  });
+
+  // ===== Get available schools for transfer =====
+  app.get("/api/school/available-schools", schoolMiddleware, async (req: SchoolRequest, res) => {
+    try {
+      const schoolId = req.school!.schoolId;
+      const allSchools = await db.select({
+        id: schools.id,
+        name: schools.name,
+        imageUrl: schools.imageUrl,
+        isActive: schools.isActive,
+        isVerified: schools.isVerified,
+      }).from(schools)
+        .where(and(
+          sql`${schools.id} != ${schoolId}`,
+          eq(schools.isActive, true)
+        ))
+        .orderBy(schools.name);
+
+      res.json({ success: true, data: allSchools });
+    } catch (error: any) {
+      console.error("Get available schools error:", error);
+      res.status(500).json({ message: "Failed to fetch schools" });
+    }
+  });
+
+  // ===== Transfer teacher to another school =====
+  app.post("/api/school/teachers/:id/transfer", schoolMiddleware, async (req: SchoolRequest, res) => {
+    try {
+      const schoolId = req.school!.schoolId;
+      const { id } = req.params;
+      const { toSchoolId, performanceRating, performanceComment, reason } = req.body;
+
+      // Validate required fields
+      if (!toSchoolId || !performanceRating || !performanceComment) {
+        return res.status(400).json({ message: "المدرسة المستهدفة والتقييم والتعليق مطلوبون" });
+      }
+
+      if (performanceRating < 1 || performanceRating > 5) {
+        return res.status(400).json({ message: "التقييم يجب أن يكون بين 1 و 5" });
+      }
+
+      if (toSchoolId === schoolId) {
+        return res.status(400).json({ message: "لا يمكن نقل المعلم لنفس المدرسة" });
+      }
+
+      // Verify teacher belongs to this school
+      const teacher = await db.select().from(schoolTeachers)
+        .where(and(eq(schoolTeachers.id, id), eq(schoolTeachers.schoolId, schoolId)));
+
+      if (!teacher[0]) {
+        return res.status(404).json({ message: "المعلم غير موجود" });
+      }
+
+      // Verify destination school exists and is active
+      const destSchool = await db.select().from(schools)
+        .where(and(eq(schools.id, toSchoolId), eq(schools.isActive, true)));
+
+      if (!destSchool[0]) {
+        return res.status(404).json({ message: "المدرسة المستهدفة غير موجودة أو غير نشطة" });
+      }
+
+      // Transfer: UPDATE schoolId
+      await db.update(schoolTeachers).set({
+        schoolId: toSchoolId,
+        updatedAt: new Date(),
+      }).where(eq(schoolTeachers.id, id));
+
+      // Update totalTeachers for both schools
+      await db.update(schools).set({
+        totalTeachers: sql`GREATEST(0, ${schools.totalTeachers} - 1)`,
+        updatedAt: new Date(),
+      }).where(eq(schools.id, schoolId));
+
+      await db.update(schools).set({
+        totalTeachers: sql`${schools.totalTeachers} + 1`,
+        updatedAt: new Date(),
+      }).where(eq(schools.id, toSchoolId));
+
+      // Record transfer
+      await db.insert(teacherTransfers).values({
+        teacherId: id,
+        fromSchoolId: schoolId,
+        toSchoolId,
+        transferredByType: "school",
+        transferredById: schoolId,
+        performanceRating,
+        performanceComment,
+        reason: reason || null,
+      });
+
+      // Log activity for both schools
+      await logSchoolActivity(schoolId, "teacher_transferred_out", 0, {
+        teacherId: id,
+        teacherName: teacher[0].name,
+        toSchoolId,
+        toSchoolName: destSchool[0].name,
+      });
+
+      await logSchoolActivity(toSchoolId, "teacher_transferred_in", 5, {
+        teacherId: id,
+        teacherName: teacher[0].name,
+        fromSchoolId: schoolId,
+      });
+
+      res.json({ success: true, message: "تم نقل المعلم بنجاح" });
+    } catch (error: any) {
+      console.error("Transfer teacher error:", error);
+      res.status(500).json({ message: "Failed to transfer teacher" });
     }
   });
 

@@ -1941,6 +1941,21 @@ export const schoolActivityLogs = pgTable("school_activity_logs", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// ===== Teacher Transfers (نقل المعلمين) =====
+export const teacherTransfers = pgTable("teacher_transfers", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  teacherId: varchar("teacher_id").notNull().references(() => schoolTeachers.id, { onDelete: "cascade" }),
+  fromSchoolId: varchar("from_school_id").references(() => schools.id, { onDelete: "set null" }),
+  toSchoolId: varchar("to_school_id").references(() => schools.id, { onDelete: "set null" }),
+  transferredByType: varchar("transferred_by_type", { length: 10 }).notNull(), // "school" | "admin"
+  transferredById: varchar("transferred_by_id").notNull(),
+  performanceRating: integer("performance_rating").notNull(), // 1-5
+  performanceComment: text("performance_comment").notNull(),
+  reason: text("reason"),
+  status: varchar("status", { length: 20 }).default("completed").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // ===== Follow System (نظام المتابعة) =====
 export const follows = pgTable("follows", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),

@@ -64,6 +64,7 @@ import {
   childSchoolAssignment,
   childTeacherAssignment,
   teacherHiring,
+  teacherTransfers,
   pointAdjustments,
   socialLoginProviders,
   parentSocialIdentities,
@@ -4944,6 +4945,189 @@ export async function registerAdminRoutes(app: Express) {
     } catch (error: any) {
       console.error("Delete school error:", error);
       res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to delete school"));
+    }
+  });
+
+  // ===== Admin Teacher Management (inside school) =====
+
+  // Get teachers for a specific school
+  app.get("/api/admin/schools/:id/teachers", adminMiddleware, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const school = await db.select().from(schools).where(eq(schools.id, id));
+      if (!school[0]) {
+        return res.status(404).json(errorResponse(ErrorCode.NOT_FOUND, "School not found"));
+      }
+
+      const teachers = await db.select().from(schoolTeachers)
+        .where(eq(schoolTeachers.schoolId, id))
+        .orderBy(desc(schoolTeachers.createdAt));
+
+      const safeTeachers = teachers.map(({ password: _pw, ...t }: any) => t);
+      res.json(successResponse(safeTeachers));
+    } catch (error: any) {
+      console.error("Get school teachers error:", error);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to fetch teachers"));
+    }
+  });
+
+  // Update teacher (admin full permissions)
+  app.put("/api/admin/teachers/:id", adminMiddleware, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const { name, avatarUrl, birthday, bio, subject, yearsExperience, username, password, monthlyRate, perTaskRate, pricingModel, socialLinks, isActive, commissionRatePct } = req.body;
+
+      const teacher = await db.select().from(schoolTeachers).where(eq(schoolTeachers.id, id));
+      if (!teacher[0]) {
+        return res.status(404).json(errorResponse(ErrorCode.NOT_FOUND, "\u0627\u0644\u0645\u0639\u0644\u0645 \u063a\u064a\u0631 \u0645\u0648\u062c\u0648\u062f"));
+      }
+
+      // Check username unique if changed
+      if (username && username !== teacher[0].username) {
+        const existing = await db.select().from(schoolTeachers).where(eq(schoolTeachers.username, username));
+        if (existing[0]) {
+          return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "\u0627\u0633\u0645 \u0627\u0644\u0645\u0633\u062a\u062e\u062f\u0645 \u0645\u0633\u062a\u062e\u062f\u0645 \u0628\u0627\u0644\u0641\u0639\u0644"));
+        }
+      }
+
+      const updates: any = { updatedAt: new Date() };
+      if (name) updates.name = name;
+      if (avatarUrl !== undefined) updates.avatarUrl = avatarUrl;
+      if (birthday !== undefined) updates.birthday = birthday;
+      if (bio !== undefined) updates.bio = bio;
+      if (subject !== undefined) updates.subject = subject;
+      if (yearsExperience !== undefined) updates.yearsExperience = yearsExperience;
+      if (username) updates.username = username;
+      if (password) updates.password = await bcrypt.hash(password, 10);
+      if (monthlyRate !== undefined) updates.monthlyRate = monthlyRate ? String(monthlyRate) : null;
+      if (perTaskRate !== undefined) updates.perTaskRate = perTaskRate ? String(perTaskRate) : null;
+      if (pricingModel !== undefined) updates.pricingModel = pricingModel;
+      if (socialLinks !== undefined) updates.socialLinks = socialLinks;
+      if (typeof isActive === "boolean") updates.isActive = isActive;
+      if (commissionRatePct !== undefined) updates.commissionRatePct = Number(commissionRatePct).toFixed(2);
+
+      const updated = await db.update(schoolTeachers).set(updates)
+        .where(eq(schoolTeachers.id, id))
+        .returning();
+
+      const { password: _, ...safe } = updated[0];
+      res.json(successResponse(safe));
+    } catch (error: any) {
+      console.error("Admin update teacher error:", error);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to update teacher"));
+    }
+  });
+
+  // Delete teacher (admin)
+  app.delete("/api/admin/teachers/:id", adminMiddleware, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+
+      const teacher = await db.select().from(schoolTeachers).where(eq(schoolTeachers.id, id));
+      if (!teacher[0]) {
+        return res.status(404).json(errorResponse(ErrorCode.NOT_FOUND, "\u0627\u0644\u0645\u0639\u0644\u0645 \u063a\u064a\u0631 \u0645\u0648\u062c\u0648\u062f"));
+      }
+
+      const schoolId = teacher[0].schoolId;
+      await db.delete(schoolTeachers).where(eq(schoolTeachers.id, id));
+
+      // Decrement totalTeachers
+      await db.update(schools).set({
+        totalTeachers: sql`GREATEST(0, ${schools.totalTeachers} - 1)`,
+        updatedAt: new Date(),
+      }).where(eq(schools.id, schoolId));
+
+      res.json(successResponse(undefined, "\u062a\u0645 \u062d\u0630\u0641 \u0627\u0644\u0645\u0639\u0644\u0645"));
+    } catch (error: any) {
+      console.error("Admin delete teacher error:", error);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to delete teacher"));
+    }
+  });
+
+  // Transfer teacher (admin)
+  app.post("/api/admin/teachers/:id/transfer", adminMiddleware, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const { toSchoolId, performanceRating, performanceComment, reason } = req.body;
+
+      if (!toSchoolId || !performanceRating || !performanceComment) {
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "\u0627\u0644\u0645\u062f\u0631\u0633\u0629 \u0627\u0644\u0645\u0633\u062a\u0647\u062f\u0641\u0629 \u0648\u0627\u0644\u062a\u0642\u064a\u064a\u0645 \u0648\u0627\u0644\u062a\u0639\u0644\u064a\u0642 \u0645\u0637\u0644\u0648\u0628\u0648\u0646"));
+      }
+
+      if (performanceRating < 1 || performanceRating > 5) {
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "\u0627\u0644\u062a\u0642\u064a\u064a\u0645 \u064a\u062c\u0628 \u0623\u0646 \u064a\u0643\u0648\u0646 \u0628\u064a\u0646 1 \u0648 5"));
+      }
+
+      const teacher = await db.select().from(schoolTeachers).where(eq(schoolTeachers.id, id));
+      if (!teacher[0]) {
+        return res.status(404).json(errorResponse(ErrorCode.NOT_FOUND, "\u0627\u0644\u0645\u0639\u0644\u0645 \u063a\u064a\u0631 \u0645\u0648\u062c\u0648\u062f"));
+      }
+
+      const fromSchoolId = teacher[0].schoolId;
+
+      if (toSchoolId === fromSchoolId) {
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "\u0644\u0627 \u064a\u0645\u0643\u0646 \u0646\u0642\u0644 \u0627\u0644\u0645\u0639\u0644\u0645 \u0644\u0646\u0641\u0633 \u0627\u0644\u0645\u062f\u0631\u0633\u0629"));
+      }
+
+      const destSchool = await db.select().from(schools)
+        .where(and(eq(schools.id, toSchoolId), eq(schools.isActive, true)));
+
+      if (!destSchool[0]) {
+        return res.status(404).json(errorResponse(ErrorCode.NOT_FOUND, "\u0627\u0644\u0645\u062f\u0631\u0633\u0629 \u0627\u0644\u0645\u0633\u062a\u0647\u062f\u0641\u0629 \u063a\u064a\u0631 \u0645\u0648\u062c\u0648\u062f\u0629 \u0623\u0648 \u063a\u064a\u0631 \u0646\u0634\u0637\u0629"));
+      }
+
+      // Transfer
+      await db.update(schoolTeachers).set({
+        schoolId: toSchoolId,
+        updatedAt: new Date(),
+      }).where(eq(schoolTeachers.id, id));
+
+      // Update counters
+      await db.update(schools).set({
+        totalTeachers: sql`GREATEST(0, ${schools.totalTeachers} - 1)`,
+        updatedAt: new Date(),
+      }).where(eq(schools.id, fromSchoolId));
+
+      await db.update(schools).set({
+        totalTeachers: sql`${schools.totalTeachers} + 1`,
+        updatedAt: new Date(),
+      }).where(eq(schools.id, toSchoolId));
+
+      // Record transfer
+      await db.insert(teacherTransfers).values({
+        teacherId: id,
+        fromSchoolId,
+        toSchoolId,
+        transferredByType: "admin",
+        transferredById: req.admin.adminId,
+        performanceRating,
+        performanceComment,
+        reason: reason || null,
+      });
+
+      res.json(successResponse(undefined, "\u062a\u0645 \u0646\u0642\u0644 \u0627\u0644\u0645\u0639\u0644\u0645 \u0628\u0646\u062c\u0627\u062d"));
+    } catch (error: any) {
+      console.error("Admin transfer teacher error:", error);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to transfer teacher"));
+    }
+  });
+
+  // Get all schools (for transfer dropdown)
+  app.get("/api/admin/all-schools-list", adminMiddleware, async (req: any, res) => {
+    try {
+      const allSchools = await db.select({
+        id: schools.id,
+        name: schools.name,
+        imageUrl: schools.imageUrl,
+        isActive: schools.isActive,
+      }).from(schools)
+        .where(eq(schools.isActive, true))
+        .orderBy(schools.name);
+
+      res.json(successResponse(allSchools));
+    } catch (error: any) {
+      console.error("Get all schools list error:", error);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to fetch schools"));
     }
   });
 
