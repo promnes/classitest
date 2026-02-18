@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTheme } from "@/contexts/ThemeContext";
+import { ChildNotificationBell } from "@/components/ChildNotificationBell";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { CheckCircle, XCircle, Clock, ArrowLeft, BookOpen, Star, Award } from "lucide-react";
@@ -105,6 +106,7 @@ export const ChildTasks = (): JSX.Element => {
             <span className={`font-bold ${isDark ? "text-white" : "text-gray-800"}`}>
               {(childInfo as any)?.points || 0} {t("child.point")}
             </span>
+            <ChildNotificationBell />
           </div>
         </div>
 

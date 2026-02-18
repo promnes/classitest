@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useTheme } from "@/contexts/ThemeContext";
+import { ParentNotificationBell } from "@/components/NotificationBell";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
@@ -68,6 +69,7 @@ export const Subjects = (): JSX.Element => {
             </p>
           </div>
           <div className="flex gap-2">
+            <ParentNotificationBell />
             <button
               onClick={toggleTheme}
               className="px-4 py-2 bg-blue-500 text-white rounded-lg font-bold"

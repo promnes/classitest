@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { ChildNotificationBell } from "@/components/ChildNotificationBell";
 
 export default function ChildRewards() {
   const { t } = useTranslation();
@@ -20,7 +21,10 @@ export default function ChildRewards() {
 
   return (
     <div className="p-4">
-      <h2 className="text-xl font-bold mb-4">{t("child.myRewards")}</h2>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-xl font-bold">{t("child.myRewards")}</h2>
+        <ChildNotificationBell />
+      </div>
       {rewards.length === 0 && <div>{t("child.noRewards")}</div>}
       <ul className="space-y-3">
         {rewards.map((r: any) => (

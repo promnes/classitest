@@ -4,6 +4,7 @@ import { useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useTheme } from "@/contexts/ThemeContext";
+import { ParentNotificationBell } from "@/components/NotificationBell";
 import { useToast } from "@/hooks/use-toast";
 import { getDateLocale } from "@/i18n/config";
 import { SlidingAdsCarousel } from "@/components/SlidingAdsCarousel";
@@ -139,6 +140,7 @@ export const Wallet = (): JSX.Element => {
             <p className={isDark ? "text-gray-400" : "text-gray-600"}>إدارة الرصيد والإيداعات</p>
           </div>
           <div className="flex gap-2">
+            <ParentNotificationBell />
             <button
               onClick={toggleTheme}
               className="px-4 py-2 bg-blue-500 text-white rounded-lg font-bold"

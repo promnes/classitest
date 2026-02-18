@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Package, Gift, ArrowRight, Truck, Star, Clock, CheckCircle, ArrowLeft } from "lucide-react";
 import { useLocation } from "wouter";
 import { useTheme } from "@/contexts/ThemeContext";
+import { ParentNotificationBell } from "@/components/NotificationBell";
 
 const statusConfig: Record<string, { label: string; color: string; icon: any }> = {
   pending_admin_approval: { label: "بانتظار موافقة الإدارة", color: "bg-yellow-100 text-yellow-800 border-yellow-200", icon: Clock },
@@ -92,6 +93,7 @@ export default function ParentInventory() {
               <ArrowLeft className="w-4 h-4" />
               رجوع
             </button>
+            <ParentNotificationBell />
           </div>
         </div>
       </header>

@@ -6,6 +6,7 @@ import { PWAInstallButton } from "@/components/PWAInstallButton";
 import { LanguageSelector } from "@/components/LanguageSelector";
 import { GrowthTree } from "@/components/GrowthTree";
 import { useTheme } from "@/contexts/ThemeContext";
+import { ChildNotificationBell } from "@/components/ChildNotificationBell";
 import { useChildAuth } from "@/hooks/useChildAuth";
 import { Gamepad2, Star, Gift, Bell, ShoppingBag, X, Trophy, Play, BookOpen, TrendingUp, LogOut, TreePine, Settings, User, Loader2 } from "lucide-react";
 import { useLocation } from "wouter";
@@ -173,18 +174,7 @@ export const ChildGames = (): JSX.Element => {
             showText={false}
             className="bg-cyan-500 hover:bg-cyan-600 text-white border-cyan-400 rounded-xl px-4 py-3"
           />
-          <button
-            onClick={() => navigate("/child-notifications")}
-            className="relative px-4 py-3 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-xl shadow-lg transition-all"
-            data-testid="button-child-notifications"
-          >
-            <Bell className="w-5 h-5" />
-            {tasks && tasks.length > 0 && (
-              <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full">
-                {tasks.length}
-              </span>
-            )}
-          </button>
+          <ChildNotificationBell />
           <button
             onClick={() => navigate("/child-gifts")}
             className="px-4 py-3 bg-yellow-500 hover:bg-yellow-600 text-white font-bold rounded-xl shadow-lg transition-all"

@@ -14,6 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import { useTheme } from "@/contexts/ThemeContext";
+import { ChildNotificationBell } from "@/components/ChildNotificationBell";
 import { apiRequest } from "@/lib/queryClient";
 import { motion } from "framer-motion";
 import ImageCropper from "@/components/ImageCropper";
@@ -216,9 +217,12 @@ export default function ChildProfile() {
                 <h1 className="text-lg font-bold">{t("childProfile.title")}</h1>
               </div>
             </div>
-            <div className="flex items-center gap-1.5 bg-white/15 px-3 py-1.5 rounded-full">
-              <Star className="w-4 h-4 text-yellow-300" />
-              <span className="text-sm font-bold">{profileData?.totalPoints || 0}</span>
+            <div className="flex items-center gap-2">
+              <ChildNotificationBell />
+              <div className="flex items-center gap-1.5 bg-white/15 px-3 py-1.5 rounded-full">
+                <Star className="w-4 h-4 text-yellow-300" />
+                <span className="text-sm font-bold">{profileData?.totalPoints || 0}</span>
+              </div>
             </div>
           </div>
         </div>

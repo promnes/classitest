@@ -4,6 +4,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest, authenticatedFetch } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useTheme } from "@/contexts/ThemeContext";
+import { ParentNotificationBell } from "@/components/NotificationBell";
 import { FollowButton } from "@/components/ui/FollowButton";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -242,7 +243,8 @@ export default function ParentProfile() {
         <Button variant="ghost" size="icon" onClick={() => navigate("/parent-dashboard")}>
           <ArrowRight className="h-5 w-5" />
         </Button>
-        <h1 className="text-lg font-bold">ملفي الشخصي</h1>
+        <h1 className="text-lg font-bold flex-1">ملفي الشخصي</h1>
+        <ParentNotificationBell />
       </div>
 
       {/* Profile Header */}

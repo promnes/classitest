@@ -38,7 +38,7 @@ import {
 } from "../../shared/schema";
 import bcrypt from "bcrypt";
 import crypto from "crypto";
-import { eq, and, or, desc, sql } from "drizzle-orm";
+import { eq, and, or, desc, sql, count } from "drizzle-orm";
 import jwt from "jsonwebtoken";
 import { authMiddleware, JWT_SECRET } from "./middleware";
 import { childLinkLimiter, childLoginRequestLimiter, childLoginStatusLimiter } from "../utils/rateLimiters";
@@ -1322,6 +1322,22 @@ export async function registerChildRoutes(app: Express) {
     } catch (error: any) {
       console.error("Fetch child notifications error:", error);
       res.status(500).json({ message: "Failed to fetch child notifications" });
+    }
+  });
+
+  // Get Child Unread Notifications Count
+  app.get("/api/child/notifications/unread-count", authMiddleware, async (req: any, res) => {
+    try {
+      const childId = req.user.childId;
+      const [row] = await db
+        .select({ count: count() })
+        .from(notifications)
+        .where(and(eq(notifications.childId, childId), eq(notifications.isRead, false)));
+
+      res.json({ success: true, data: { count: Number(row?.count || 0) } });
+    } catch (error: any) {
+      console.error("Fetch child unread count error:", error);
+      res.status(500).json({ message: "Failed to fetch unread count" });
     }
   });
 

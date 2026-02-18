@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { ParentNotificationBell } from "@/components/NotificationBell";
 
 async function fetchProducts() {
   return fetch("/api/parent/store/products", {
@@ -55,7 +56,10 @@ export default function ParentStoreMulti() {
 
   return (
     <div className="p-4">
-      <h2 className="text-xl font-bold mb-4">Store</h2>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-xl font-bold">Store</h2>
+        <ParentNotificationBell />
+      </div>
       <div className="grid grid-cols-3 gap-4">
         {data?.data?.map((p: any) => (
           <div key={p.id} className="p-3 border rounded">

@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTheme } from "@/contexts/ThemeContext";
+import { ChildNotificationBell } from "@/components/ChildNotificationBell";
 import { useToast } from "@/hooks/use-toast";
 import { MandatoryTaskModal } from "@/components/MandatoryTaskModal";
 
@@ -94,13 +95,7 @@ export const ChildGifts = (): JSX.Element => {
               </p>
             </div>
             
-            <button
-              onClick={() => navigate("/child-notifications")}
-              className="relative px-4 py-3 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-xl shadow-lg transition-all"
-              data-testid="button-child-notifications"
-            >
-              🔔
-            </button>
+            <ChildNotificationBell />
             
             <button
               onClick={() => navigate("/child-games")}

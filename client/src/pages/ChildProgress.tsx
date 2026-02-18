@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next";
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { useTheme } from "@/contexts/ThemeContext";
+import { ChildNotificationBell } from "@/components/ChildNotificationBell";
 import { 
   Star, 
   Trophy, 
@@ -87,14 +88,17 @@ export const ChildProgress = (): JSX.Element => {
               {t("progress.hello")} {childInfo?.name || ""}! {t("progress.seeAchievements")}
             </p>
           </div>
-          <button
-            onClick={() => navigate("/child-games")}
-            className={`px-6 py-3 ${isDark ? "bg-gray-700 hover:bg-gray-600" : "bg-white bg-opacity-30 hover:bg-opacity-40"} text-white font-bold rounded-xl transition-all flex items-center gap-2`}
-            data-testid="button-back"
-          >
-            <ChevronLeft className="w-5 h-5" />
-            رجوع
-          </button>
+          <div className="flex items-center gap-3">
+            <ChildNotificationBell />
+            <button
+              onClick={() => navigate("/child-games")}
+              className={`px-6 py-3 ${isDark ? "bg-gray-700 hover:bg-gray-600" : "bg-white bg-opacity-30 hover:bg-opacity-40"} text-white font-bold rounded-xl transition-all flex items-center gap-2`}
+              data-testid="button-back"
+            >
+              <ChevronLeft className="w-5 h-5" />
+              رجوع
+            </button>
+          </div>
         </div>
 
         {isLoading ? (

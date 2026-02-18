@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useLocation } from "wouter";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useTheme } from "@/contexts/ThemeContext";
+import { ParentNotificationBell } from "@/components/NotificationBell";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -216,12 +217,15 @@ export const Settings = (): JSX.Element => {
       <header className="bg-gradient-to-r from-purple-700 to-purple-800 text-white p-4 md:p-6 shadow-lg">
         <div className="max-w-6xl mx-auto flex justify-between items-center">
           <h1 className="text-3xl font-bold">⚙️ {t("settings.title")}</h1>
-          <button
-            onClick={() => navigate("/parent-dashboard")}
-            className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white font-bold rounded-lg"
-          >
-            ← {t("settings.back")}
-          </button>
+          <div className="flex items-center gap-2">
+            <ParentNotificationBell />
+            <button
+              onClick={() => navigate("/parent-dashboard")}
+              className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white font-bold rounded-lg"
+            >
+              ← {t("settings.back")}
+            </button>
+          </div>
         </div>
       </header>
 

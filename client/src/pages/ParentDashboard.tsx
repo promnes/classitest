@@ -7,6 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useTheme } from "@/contexts/ThemeContext";
 import { LanguageSelector } from "@/components/LanguageSelector";
 import { PWAInstallButton } from "@/components/PWAInstallButton";
+import { ParentNotificationBell } from "@/components/NotificationBell";
 import { ChildGamesControl } from "@/components/parent/ChildGamesControl";
 import { GovernorateSelect } from "@/components/ui/GovernorateSelect";
 import { ACADEMIC_GRADES } from "@shared/constants";
@@ -565,20 +566,7 @@ export const ParentDashboard = (): JSX.Element => {
           </div>
           
           <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => navigate("/notifications")}
-              className="relative"
-              data-testid="button-notifications"
-            >
-              <Bell className="h-5 w-5" />
-              {unreadNotifications > 0 && (
-                <span className="absolute -top-1 -right-1 h-5 w-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
-                  {unreadNotifications > 9 ? "9+" : unreadNotifications}
-                </span>
-              )}
-            </Button>
+            <ParentNotificationBell />
             <Button variant="ghost" size="icon" onClick={toggleTheme} data-testid="button-theme-toggle">
               {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
             </Button>

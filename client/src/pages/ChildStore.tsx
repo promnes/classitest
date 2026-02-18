@@ -13,6 +13,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ChildNotificationBell } from "@/components/ChildNotificationBell";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { MandatoryTaskModal } from "@/components/MandatoryTaskModal";
@@ -266,13 +267,7 @@ export const ChildStore = (): JSX.Element => {
                 </p>
               </div>
 
-              <button
-                onClick={() => navigate("/child-notifications")}
-                className="p-2 sm:p-2.5 hover:bg-white/10 rounded-lg transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
-                data-testid="button-notifications"
-              >
-                <Bell className="w-5 h-5" />
-              </button>
+              <ChildNotificationBell />
               
               <button
                 onClick={() => setShowCart(true)}

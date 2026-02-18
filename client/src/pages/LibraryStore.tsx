@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useTheme } from "@/contexts/ThemeContext";
+import { ParentNotificationBell } from "@/components/NotificationBell";
 import { authenticatedFetch } from "@/lib/queryClient";
 
 interface Library {
@@ -418,20 +419,7 @@ export default function LibraryStore() {
             </div>
             <div className="flex items-center gap-1 mr-auto">
               {libraryStoreSettings?.showNotifications !== false && token && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => navigate("/notifications")}
-                  className="relative"
-                  data-testid="button-notifications"
-                >
-                  <Bell className="h-5 w-5" />
-                  {unreadNotifications > 0 && (
-                    <span className="absolute -top-1 -right-1 h-5 w-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
-                      {unreadNotifications > 9 ? "9+" : unreadNotifications}
-                    </span>
-                  )}
-                </Button>
+                <ParentNotificationBell />
               )}
               {libraryStoreSettings?.showThemeToggle !== false && (
                 <Button variant="ghost" size="icon" onClick={toggleTheme} data-testid="button-theme-toggle">

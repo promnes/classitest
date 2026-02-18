@@ -4,6 +4,7 @@ import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { useTheme } from "@/contexts/ThemeContext";
 import { LanguageSelector } from "@/components/LanguageSelector";
+import { ParentNotificationBell } from "@/components/NotificationBell";
 import { AnnualReportChart } from "@/components/AnnualReportChart";
 import { QRCodeSVG } from "qrcode.react";
 import { authenticatedFetch } from "@/lib/queryClient";
@@ -84,18 +85,7 @@ export const ParentDashboard = (): JSX.Element => {
             >
               📚
             </button>
-            <button
-              onClick={() => navigate("/notifications")}
-              className="relative px-3 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-full font-bold text-lg shadow-md hover:shadow-lg transition-all"
-              title="Notifications"
-            >
-              🔔
-              {unreadNotifications > 0 && (
-                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full">
-                  {unreadNotifications}
-                </span>
-              )}
-            </button>
+            <ParentNotificationBell />
             <button
               onClick={() => navigate("/parent-store")}
               className="px-3 py-2 bg-green-500 hover:bg-green-600 text-white rounded-full font-bold text-lg shadow-md hover:shadow-lg transition-all"
