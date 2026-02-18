@@ -1248,16 +1248,6 @@ export default function SchoolDashboard() {
                           <Send className="h-3 w-3 ml-1" />
                           نقل
                         </Button>
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          onClick={() => {
-                            if (confirm("هل تريد حذف هذا المعلم؟")) deleteTeacher.mutate(teacher.id);
-                          }}
-                        >
-                          <Trash2 className="h-3 w-3 ml-1" />
-                          حذف
-                        </Button>
                       </div>
                     </CardContent>
                   </Card>
