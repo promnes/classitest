@@ -25,16 +25,16 @@ export default function AdminPurchasesTab() {
   if (isLoading) return <div>Loading purchases...</div>;
 
   return (
-    <div className="p-4">
+    <div className="p-4 min-h-screen dark:bg-gray-900 dark:text-gray-100">
       <h2 className="text-xl font-bold mb-4">Purchases</h2>
-      {data?.data?.length === 0 && <div>No purchases found.</div>}
+      {data?.data?.length === 0 && <div className="text-gray-500 dark:text-gray-400">No purchases found.</div>}
       <ul className="space-y-3">
         {data?.data?.map((p: any) => (
-          <li key={p.id} className="p-3 border rounded">
+          <li key={p.id} className="p-3 border rounded border-gray-200 dark:border-gray-700 dark:bg-gray-800">
             <div className="flex justify-between">
               <div>
                 <div className="font-semibold">Order #{p.id}</div>
-                <div className="text-sm text-gray-600">Status: {p.status}</div>
+                <div className="text-sm text-gray-600 dark:text-gray-400">Status: {p.status}</div>
                 <div className="text-sm">Total: {p.totalAmount}</div>
               </div>
               <div className="space-x-2">

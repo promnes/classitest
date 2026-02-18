@@ -227,7 +227,7 @@ export const ChildStore = (): JSX.Element => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {childInfo?.id && <MandatoryTaskModal childId={childInfo.id} />}
       
       <header className="bg-gradient-to-r from-orange-500 via-orange-600 to-red-500 text-white sticky top-0 z-50 shadow-lg">
@@ -252,7 +252,7 @@ export const ChildStore = (): JSX.Element => {
                   placeholder={t('childStore.searchPlaceholder')}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-8 sm:pl-10 pr-3 py-1.5 sm:py-2 rounded-lg bg-white text-gray-800 placeholder-gray-500 border-0 text-sm min-h-[36px]"
+                  className="w-full pl-8 sm:pl-10 pr-3 py-1.5 sm:py-2 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 border-0 text-sm min-h-[36px]"
                   data-testid="input-search"
                 />
                 <Search className="absolute left-2 sm:left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -330,9 +330,9 @@ export const ChildStore = (): JSX.Element => {
         </div>
       </header>
 
-      <div className="bg-white border-b shadow-sm py-1.5 sm:py-2">
+      <div className="bg-white dark:bg-gray-800 border-b dark:border-gray-700 shadow-sm py-1.5 sm:py-2">
         <div className="max-w-7xl mx-auto px-2 sm:px-4">
-          <div className="flex items-center justify-between gap-2 text-xs text-gray-600">
+          <div className="flex items-center justify-between gap-2 text-xs text-gray-600 dark:text-gray-400">
             <div className="hidden sm:flex items-center gap-3 md:gap-6">
               <div className="flex items-center gap-1.5">
                 <Truck className="w-3.5 h-3.5 text-green-500" />
@@ -360,7 +360,7 @@ export const ChildStore = (): JSX.Element => {
                   <SelectItem value="rating">التقييم</SelectItem>
                 </SelectContent>
               </Select>
-              <div className="flex items-center gap-0.5 border rounded-lg p-0.5">
+              <div className="flex items-center gap-0.5 border dark:border-gray-700 rounded-lg p-0.5">
                 <button
                   onClick={() => setViewMode("grid")}
                   className={`p-1.5 sm:p-2 rounded min-h-[32px] min-w-[32px] flex items-center justify-center ${viewMode === "grid" ? "bg-orange-100 text-orange-600" : ""}`}
@@ -385,7 +385,7 @@ export const ChildStore = (): JSX.Element => {
         {!selectedCategory && !searchQuery && featuredProducts.length > 0 && (
           <section className="mb-4 sm:mb-8">
             <div className="flex items-center justify-between mb-3 sm:mb-4">
-              <h2 className="text-base sm:text-xl font-bold text-gray-800 flex items-center gap-1.5 sm:gap-2">
+              <h2 className="text-base sm:text-xl font-bold text-gray-800 dark:text-white flex items-center gap-1.5 sm:gap-2">
                 <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-orange-500" />
                 المنتجات المميزة
               </h2>
@@ -394,11 +394,11 @@ export const ChildStore = (): JSX.Element => {
               {featuredProducts.map((product: Product) => (
                 <Card 
                   key={product.id} 
-                  className="group cursor-pointer hover:shadow-xl transition-all duration-300 overflow-hidden border-0 bg-white"
+                  className="group cursor-pointer hover:shadow-xl transition-all duration-300 overflow-hidden border-0 bg-white dark:bg-gray-800"
                   onClick={() => setSelectedProduct(product)}
                   data-testid={`card-featured-product-${product.id}`}
                 >
-                  <div className="relative aspect-square bg-gray-100 overflow-hidden">
+                  <div className="relative aspect-square bg-gray-100 dark:bg-gray-700 overflow-hidden">
                     {product.image ? (
                       <img src={product.image} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
                     ) : (
@@ -423,8 +423,8 @@ export const ChildStore = (): JSX.Element => {
                     )}
                   </div>
                   <CardContent className="p-3">
-                    <p className="text-xs text-gray-500 mb-1">{product.brand || "Classify"}</p>
-                    <h3 className="font-medium text-sm text-gray-800 line-clamp-2 mb-2">{product.nameAr || product.name}</h3>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">{product.brand || "Classify"}</p>
+                    <h3 className="font-medium text-sm text-gray-800 dark:text-white line-clamp-2 mb-2">{product.nameAr || product.name}</h3>
                     <div className="flex items-center gap-1 mb-2">
                       {renderStars(product.rating)}
                       <span className="text-xs text-gray-400">({product.reviewCount || 0})</span>
@@ -459,24 +459,24 @@ export const ChildStore = (): JSX.Element => {
 
         <section>
           <div className="flex items-center justify-between mb-3 sm:mb-4 gap-2">
-            <h2 className="text-base sm:text-xl font-bold text-gray-800 truncate">
+            <h2 className="text-base sm:text-xl font-bold text-gray-800 dark:text-white truncate">
               {selectedCategory 
                 ? categories.find((c: Category) => c.id === selectedCategory)?.nameAr || t('childStore.products')
                 : searchQuery ? `نتائج: "${searchQuery}"` : t('childStore.allProducts')
               }
             </h2>
-            <p className="text-xs sm:text-sm text-gray-500 shrink-0">{products.length} منتج</p>
+            <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 shrink-0">{products.length} منتج</p>
           </div>
 
           {loadingProducts ? (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 sm:gap-4">
               {[...Array(10)].map((_, i) => (
                 <Card key={i} className="animate-pulse">
-                  <div className="aspect-square bg-gray-200" />
+                  <div className="aspect-square bg-gray-200 dark:bg-gray-700" />
                   <CardContent className="p-3 space-y-2">
-                    <div className="h-4 bg-gray-200 rounded w-1/2" />
-                    <div className="h-4 bg-gray-200 rounded" />
-                    <div className="h-4 bg-gray-200 rounded w-3/4" />
+                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/2" />
+                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded" />
+                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4" />
                   </CardContent>
                 </Card>
               ))}
@@ -484,7 +484,7 @@ export const ChildStore = (): JSX.Element => {
           ) : products.length === 0 ? (
             <div className="text-center py-10 sm:py-16">
               <Package className="w-12 h-12 sm:w-16 sm:h-16 mx-auto text-gray-300 mb-3 sm:mb-4" />
-              <h3 className="text-base sm:text-lg font-medium text-gray-600 mb-2">لا توجد منتجات</h3>
+              <h3 className="text-base sm:text-lg font-medium text-gray-600 dark:text-gray-400 mb-2">لا توجد منتجات</h3>
               <p className="text-sm text-gray-400">جرب البحث بكلمات أخرى</p>
             </div>
           ) : (
@@ -496,11 +496,11 @@ export const ChildStore = (): JSX.Element => {
                 viewMode === "grid" ? (
                   <Card 
                     key={product.id} 
-                    className="group cursor-pointer hover:shadow-xl transition-all duration-300 overflow-hidden border-0 bg-white"
+                    className="group cursor-pointer hover:shadow-xl transition-all duration-300 overflow-hidden border-0 bg-white dark:bg-gray-800"
                     data-testid={`card-product-${product.id}`}
                   >
                     <div 
-                      className="relative aspect-square bg-gray-100 overflow-hidden"
+                      className="relative aspect-square bg-gray-100 dark:bg-gray-700 overflow-hidden"
                       onClick={() => setSelectedProduct(product)}
                     >
                       {product.image ? (
@@ -527,8 +527,8 @@ export const ChildStore = (): JSX.Element => {
                       )}
                     </div>
                     <CardContent className="p-3">
-                      <p className="text-xs text-gray-500 mb-1">{product.brand || "Classify"}</p>
-                      <h3 className="font-medium text-sm text-gray-800 line-clamp-2 mb-2 h-10">{product.nameAr || product.name}</h3>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">{product.brand || "Classify"}</p>
+                      <h3 className="font-medium text-sm text-gray-800 dark:text-white line-clamp-2 mb-2 h-10">{product.nameAr || product.name}</h3>
                       <div className="flex items-center gap-1 mb-2">
                         {renderStars(product.rating)}
                         <span className="text-xs text-gray-400">({product.reviewCount || 0})</span>
@@ -560,11 +560,11 @@ export const ChildStore = (): JSX.Element => {
                 ) : (
                   <Card 
                     key={product.id} 
-                    className="flex overflow-hidden hover:shadow-lg transition-shadow cursor-pointer"
+                    className="flex overflow-hidden hover:shadow-lg transition-shadow cursor-pointer dark:bg-gray-800"
                     onClick={() => setSelectedProduct(product)}
                     data-testid={`card-product-list-${product.id}`}
                   >
-                    <div className="relative w-40 h-40 bg-gray-100 flex-shrink-0">
+                    <div className="relative w-40 h-40 bg-gray-100 dark:bg-gray-700 flex-shrink-0">
                       {product.image ? (
                         <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
                       ) : (
@@ -585,9 +585,9 @@ export const ChildStore = (): JSX.Element => {
                     </div>
                     <CardContent className="flex-1 p-4 flex flex-col justify-between">
                       <div>
-                        <p className="text-xs text-gray-500 mb-1">{product.brand || "Classify"}</p>
-                        <h3 className="font-medium text-gray-800 mb-2">{product.nameAr || product.name}</h3>
-                        <p className="text-sm text-gray-500 line-clamp-2">{product.description}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">{product.brand || "Classify"}</p>
+                        <h3 className="font-medium text-gray-800 dark:text-white mb-2">{product.nameAr || product.name}</h3>
+                        <p className="text-sm text-gray-500 dark:text-gray-400 line-clamp-2">{product.description}</p>
                         <div className="flex items-center gap-2 mt-2">
                           {renderStars(product.rating)}
                           <span className="text-xs text-gray-400">({product.reviewCount || 0} تقييم)</span>
@@ -634,14 +634,14 @@ export const ChildStore = (): JSX.Element => {
           {cart.length === 0 ? (
             <div className="text-center py-8">
               <ShoppingCart className="w-16 h-16 mx-auto text-gray-300 mb-4" />
-              <p className="text-gray-500">السلة فارغة</p>
+              <p className="text-gray-500 dark:text-gray-400">السلة فارغة</p>
             </div>
           ) : (
             <>
               <div className="space-y-4">
                 {cart.map(item => (
-                  <div key={item.product.id} className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg">
-                    <div className="w-16 h-16 bg-gray-200 rounded-lg flex-shrink-0 overflow-hidden">
+                  <div key={item.product.id} className="flex items-center gap-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                    <div className="w-16 h-16 bg-gray-200 dark:bg-gray-700 rounded-lg flex-shrink-0 overflow-hidden">
                       {item.product.image ? (
                         <img src={item.product.image} alt={item.product.name} className="w-full h-full object-cover" />
                       ) : (
@@ -697,16 +697,16 @@ export const ChildStore = (): JSX.Element => {
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <span className="text-sm text-gray-600">رصيدك الحالي:</span>
+                <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                  <span className="text-sm text-gray-600 dark:text-gray-400">رصيدك الحالي:</span>
                   <span className={`font-bold ${canAfford ? "text-green-600" : "text-red-600"}`}>
                     {childInfo?.totalPoints || 0} نقطة
                   </span>
                 </div>
 
                 {!canAfford && (
-                  <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-center">
-                    <p className="text-red-600 font-bold mb-2">نقاطك غير كافية!</p>
+                  <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-center">
+                    <p className="text-red-600 dark:text-red-400 font-bold mb-2">نقاطك غير كافية!</p>
                     <p className="text-red-500 text-sm mb-3">
                       تحتاج {cartTotalPoints - (childInfo?.totalPoints || 0)} نقطة إضافية
                     </p>
@@ -747,14 +747,14 @@ export const ChildStore = (): JSX.Element => {
           </DialogHeader>
 
           <div className="space-y-6">
-            <div className="bg-blue-50 p-4 rounded-xl border border-blue-200">
+            <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl border border-blue-200 dark:border-blue-800">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
                   <Bell className="w-5 h-5 text-blue-500" />
                 </div>
                 <div>
-                  <p className="font-bold text-blue-800">{t("childStore.parentApprovalNeeded")}</p>
-                  <p className="text-sm text-blue-600">{t("childStore.requestWillBeSentToParent")}</p>
+                  <p className="font-bold text-blue-800 dark:text-blue-300">{t("childStore.parentApprovalNeeded")}</p>
+                  <p className="text-sm text-blue-600 dark:text-blue-400">{t("childStore.requestWillBeSentToParent")}</p>
                 </div>
               </div>
             </div>
@@ -764,21 +764,21 @@ export const ChildStore = (): JSX.Element => {
                 <Star className="w-4 h-4 text-yellow-500" />
                 {t("childStore.paymentMethod")}
               </h3>
-              <div className="flex items-center justify-between p-4 bg-white rounded-lg border-2 border-yellow-400">
+              <div className="flex items-center justify-between p-4 bg-white dark:bg-gray-800 rounded-lg border-2 border-yellow-400">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-yellow-100 rounded-full flex items-center justify-center">
                     <Star className="w-5 h-5 text-yellow-500 fill-yellow-500" />
                   </div>
                   <div>
                     <p className="font-bold">{t("childStore.payWithPoints")}</p>
-                    <p className="text-sm text-gray-500">{t("childStore.yourBalance")}: {childInfo?.totalPoints || 0} {t("childStore.points")}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">{t("childStore.yourBalance")}: {childInfo?.totalPoints || 0} {t("childStore.points")}</p>
                   </div>
                 </div>
                 <Check className="w-6 h-6 text-green-500" />
               </div>
             </div>
 
-            <div className="bg-gray-50 p-4 rounded-lg">
+            <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
               <h3 className="font-bold mb-3">{t("childStore.orderSummary")}</h3>
               <div className="space-y-2 text-sm">
                 {cart.map(item => (
@@ -797,7 +797,7 @@ export const ChildStore = (): JSX.Element => {
                     {cartTotalPoints} {t("childStore.points")}
                   </span>
                 </div>
-                <div className="flex justify-between text-sm text-gray-500">
+                <div className="flex justify-between text-sm text-gray-500 dark:text-gray-400">
                   <span>{t("childStore.balanceAfterPurchase")}:</span>
                   <span className="text-green-600 font-bold">
                     {(childInfo?.totalPoints || 0) - cartTotalPoints} {t("childStore.points")}
@@ -839,7 +839,7 @@ export const ChildStore = (): JSX.Element => {
 
           {selectedProduct && (
             <div className="space-y-6">
-              <div className="aspect-square bg-gray-100 rounded-xl overflow-hidden">
+              <div className="aspect-square bg-gray-100 dark:bg-gray-700 rounded-xl overflow-hidden">
                 {selectedProduct.image ? (
                   <img src={selectedProduct.image} alt={selectedProduct.name} className="w-full h-full object-cover" />
                 ) : (
@@ -850,9 +850,9 @@ export const ChildStore = (): JSX.Element => {
               </div>
 
               <div>
-                <p className="text-xs text-gray-500 mb-1">{selectedProduct.brand || "Classify"}</p>
-                <h4 className="font-bold text-xl text-gray-800">{selectedProduct.nameAr || selectedProduct.name}</h4>
-                <p className="text-gray-500 mt-2">{selectedProduct.description}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">{selectedProduct.brand || "Classify"}</p>
+                <h4 className="font-bold text-xl text-gray-800 dark:text-white">{selectedProduct.nameAr || selectedProduct.name}</h4>
+                <p className="text-gray-500 dark:text-gray-400 mt-2">{selectedProduct.description}</p>
                 <div className="flex items-center gap-2 mt-2">
                   {renderStars(selectedProduct.rating)}
                   <span className="text-xs text-gray-400">({selectedProduct.reviewCount || 0} تقييم)</span>
@@ -861,14 +861,14 @@ export const ChildStore = (): JSX.Element => {
 
               <div className="flex items-center justify-between p-4 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-xl">
                 <div>
-                  <p className="text-sm text-gray-500">السعر</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">السعر</p>
                   <div className="flex items-center gap-2 text-2xl font-bold text-yellow-600">
                     <Star className="w-6 h-6 fill-yellow-500" />
                     {selectedProduct.pointsPrice} نقطة
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="text-sm text-gray-500">رصيدك</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">رصيدك</p>
                   <p className={`text-xl font-bold ${(childInfo?.totalPoints || 0) >= selectedProduct.pointsPrice ? "text-green-600" : "text-red-600"}`}>
                     {childInfo?.totalPoints || 0} نقطة
                   </p>
@@ -885,8 +885,8 @@ export const ChildStore = (): JSX.Element => {
                   أضف للسلة
                 </Button>
               ) : (
-                <div className="text-center p-4 bg-red-50 rounded-xl">
-                  <p className="text-red-600 font-bold mb-2">نقاطك غير كافية</p>
+                <div className="text-center p-4 bg-red-50 dark:bg-red-900/20 rounded-xl">
+                  <p className="text-red-600 dark:text-red-400 font-bold mb-2">نقاطك غير كافية</p>
                   <p className="text-sm text-red-500 mb-4">
                     تحتاج {selectedProduct.pointsPrice - (childInfo?.totalPoints || 0)} نقطة إضافية
                   </p>

@@ -42,14 +42,14 @@ export default function ChildSettings() {
   const [, navigate] = useLocation();
   const { t, i18n } = useTranslation();
   const { toast } = useToast();
-  const { isDark } = useTheme();
+  const { isDark, toggleTheme } = useTheme();
   const queryClient = useQueryClient();
   const token = localStorage.getItem("childToken");
   const isRTL = i18n.language === "ar";
 
   const [settings, setSettings] = useState<ChildSettings>({
     language: i18n.language || "ar",
-    theme: localStorage.getItem("theme") || "light",
+    theme: isDark ? "dark" : "light",
     notificationsEnabled: true,
     soundEnabled: true,
     showOnlineStatus: true,
@@ -108,11 +108,10 @@ export default function ChildSettings() {
 
   const handleThemeChange = (theme: string) => {
     setSettings(prev => ({ ...prev, theme }));
-    localStorage.setItem("theme", theme);
-    if (theme === "dark") {
-      document.documentElement.classList.add("dark");
-    } else {
-      document.documentElement.classList.remove("dark");
+    // Use ThemeContext's toggleTheme to stay in sync
+    const wantsDark = theme === "dark";
+    if (wantsDark !== isDark) {
+      toggleTheme();
     }
     toast({
       title: t("childSettings.themeChanged"),

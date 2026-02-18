@@ -152,7 +152,7 @@ export const Wallet = (): JSX.Element => {
             </button>
             <button
               onClick={() => navigate("/parent-dashboard")}
-              className="px-4 py-2 bg-gray-500 text-white rounded-lg font-bold"
+              className={`px-4 py-2 rounded-lg font-bold ${isDark ? "bg-gray-700 text-gray-200 hover:bg-gray-600" : "bg-gray-500 text-white hover:bg-gray-600"}`}
             >
               ← رجوع
             </button>
@@ -314,7 +314,7 @@ export const Wallet = (): JSX.Element => {
                   </button>
                   <button
                     onClick={resetDeposit}
-                    className="flex-1 px-4 py-3 bg-gray-400 hover:bg-gray-500 text-white rounded-lg font-bold"
+                    className={`flex-1 px-4 py-3 rounded-lg font-bold ${isDark ? "bg-gray-600 hover:bg-gray-500 text-gray-200" : "bg-gray-400 hover:bg-gray-500 text-white"}`}
                   >
                     إلغاء
                   </button>
@@ -435,7 +435,7 @@ export const Wallet = (): JSX.Element => {
                   </button>
                   <button
                     onClick={() => setStep("select")}
-                    className="px-4 py-3 bg-gray-300 hover:bg-gray-400 text-gray-800 rounded-lg font-bold"
+                    className={`px-4 py-3 rounded-lg font-bold ${isDark ? "bg-gray-600 hover:bg-gray-500 text-gray-200" : "bg-gray-300 hover:bg-gray-400 text-gray-800"}`}
                   >
                     ← رجوع
                   </button>

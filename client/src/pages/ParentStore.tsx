@@ -702,7 +702,7 @@ export const ParentStore = (): JSX.Element => {
               {featuredProducts.map((product: Product) => (
                 <Card 
                   key={product.id} 
-                  className="group cursor-pointer hover:shadow-xl transition-all duration-300 overflow-hidden border-0 bg-white"
+                  className="group cursor-pointer hover:shadow-xl transition-all duration-300 overflow-hidden border-0 bg-white dark:bg-gray-800"
                   onClick={() => {
                     setSelectedProduct(product);
                     setShowAssign(true);
@@ -845,7 +845,7 @@ export const ParentStore = (): JSX.Element => {
                         </Badge>
                       )}
                       <button 
-                        className="absolute top-2 right-2 p-1.5 bg-white/80 rounded-full hover:bg-white transition-colors opacity-0 group-hover:opacity-100"
+                        className="absolute top-2 right-2 p-1.5 bg-white/80 dark:bg-gray-700/80 rounded-full hover:bg-white dark:hover:bg-gray-700 transition-colors opacity-0 group-hover:opacity-100"
                         onClick={(e) => e.stopPropagation()}
                       >
                         <Heart className="w-4 h-4 text-gray-400 hover:text-red-500" />
@@ -989,7 +989,7 @@ export const ParentStore = (): JSX.Element => {
             <>
               <div className="space-y-4">
                 {cart.map(item => (
-                  <div key={item.product.id} className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg">
+                  <div key={item.product.id} className="flex items-center gap-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
                     <div className="w-16 h-16 bg-gray-200 rounded-lg flex-shrink-0 overflow-hidden">
                       {item.product.image ? (
                         <img src={item.product.image} alt={item.product.name} className="w-full h-full object-cover" />
@@ -1127,7 +1127,7 @@ export const ParentStore = (): JSX.Element => {
                       key={method.id}
                       onClick={() => setSelectedPaymentMethod(method.id)}
                       className={`w-full p-3 border rounded-lg text-right flex items-center gap-3 transition-colors ${
-                        selectedPaymentMethod === method.id ? "border-orange-500 bg-orange-50" : "hover:bg-gray-50"
+                        selectedPaymentMethod === method.id ? "border-orange-500 bg-orange-50 dark:bg-orange-900/20" : "hover:bg-gray-50 dark:hover:bg-gray-800"
                       }`}
                     >
                       <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
@@ -1145,7 +1145,7 @@ export const ParentStore = (): JSX.Element => {
                 <button
                   onClick={() => setSelectedPaymentMethod("wallet")}
                   className={`w-full p-3 border rounded-lg text-right flex items-center gap-3 transition-colors ${
-                    selectedPaymentMethod === "wallet" ? "border-orange-500 bg-orange-50" : "hover:bg-gray-50"
+                    selectedPaymentMethod === "wallet" ? "border-orange-500 bg-orange-50 dark:bg-orange-900/20" : "hover:bg-gray-50 dark:hover:bg-gray-800"
                   }`}
                 >
                   <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
@@ -1160,7 +1160,7 @@ export const ParentStore = (): JSX.Element => {
               </div>
             </div>
 
-            <div className="bg-gray-50 p-4 rounded-lg">
+            <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
               <h3 className="font-bold mb-3">ملخص الطلب</h3>
               <div className="space-y-2 text-sm">
                 {checkoutItems.map(item => (
@@ -1210,7 +1210,7 @@ export const ParentStore = (): JSX.Element => {
           {selectedProduct && (
             <div className="space-y-6">
               <div className="flex items-center gap-4 p-4 bg-gradient-to-r from-orange-50 to-yellow-50 rounded-xl">
-                <div className="w-20 h-20 bg-white rounded-lg overflow-hidden shadow-sm">
+                <div className="w-20 h-20 bg-white dark:bg-gray-800 rounded-lg overflow-hidden shadow-sm">
                   {selectedProduct.image ? (
                     <img src={selectedProduct.image} alt={selectedProduct.name} className="w-full h-full object-cover" />
                   ) : (

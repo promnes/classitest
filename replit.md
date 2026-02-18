@@ -1,226 +1,127 @@
-# Classify - تطبيق الرقابة الأبوية
+# Classify — Kids Educational & Parental Control Platform
 
-## نظرة عامة
-Classify هو تطبيق عربي للرقابة الأبوية يساعد الآباء في إدارة علاقتهم مع أطفالهم من خلال المهام والألعاب والمكافآت.
+## Overview
+Classify is an Arabic-first educational platform that helps parents manage their children through tasks, games, rewards, and a growth tree system. It features a complete multi-role architecture (Parent, Child, Admin, School, Teacher, Library) with a unified store and task marketplace.
 
-## البنية التقنية
-- **Frontend**: React + TypeScript + Vite + Tailwind CSS
-- **Backend**: Express.js + TypeScript
-- **Database**: PostgreSQL مع Drizzle ORM
-- **Mobile**: Capacitor (iOS/Android)
+**Domain:** classi-fy.com | **Repo:** github.com/promnes/classitest.git | **Branch:** main
 
-## هيكل المشروع
+## Tech Stack
+| Layer | Technology |
+|-------|-----------|
+| Frontend | React 18 + TypeScript + Vite 6 + Tailwind CSS + shadcn/ui |
+| Backend | Express.js 4.22 + TypeScript (ESM) |
+| Database | PostgreSQL 15 + Drizzle ORM 0.39 (132 tables, 64 indexes) |
+| Auth | JWT (30d) + bcrypt + OTP 2FA (email/SMS) + trusted devices |
+| State | @tanstack/react-query 5.60 |
+| Routing | wouter 3.3 (client), Express (server) |
+| i18n | i18next 25.6 (Arabic/English/Portuguese, ~3053 keys each) |
+| Mobile | Capacitor v7 (Android + iOS) + PWA |
+| Payments | Stripe |
+| Email | Resend (primary) + SMTP/Nodemailer (fallback) |
+| Storage | MinIO (S3 compat) with local fallback |
+| Deployment | Docker multi-stage, 12 services (Traefik SSL, PostgreSQL, Redis, MinIO, monitoring) |
+
+## Project Structure
 ```
-├── client/                    # واجهة المستخدم (React)
+├── client/                     # React Frontend
 │   ├── src/
-│   │   ├── components/        # المكونات القابلة لإعادة الاستخدام
-│   │   │   ├── dashboard/     # مكونات لوحة تحكم الوالدين
-│   │   │   │   ├── StatsCards.tsx
-│   │   │   │   ├── QuickActions.tsx
-│   │   │   │   ├── ChildrenList.tsx
-│   │   │   │   └── LinkChildCard.tsx
-│   │   │   ├── child/         # مكونات واجهة الطفل
-│   │   │   │   ├── PointsDisplay.tsx
-│   │   │   │   ├── GameCard.tsx
-│   │   │   │   └── TaskCard.tsx
-│   │   │   └── ui/            # مكونات Shadcn UI
-│   │   ├── pages/             # صفحات التطبيق
-│   │   ├── hooks/
-│   │   │   └── api/           # Hooks لجلب البيانات
-│   │   │       ├── useParentData.ts
-│   │   │       ├── useChildData.ts
-│   │   │       └── useNotifications.ts
-│   │   └── lib/               # مكتبات مساعدة
-│   └── public/                # ملفات ثابتة
-├── server/                    # الخادم (Express)
-│   ├── src/modules/           # الوحدات المنظمة حسب المجال
-│   │   └── shared/            # أدوات مشتركة
-│   │       ├── validation.ts  # Zod schemas للتحقق
-│   │       └── helpers.ts     # دوال مساعدة
-│   ├── routes/                # مسارات API
-│   ├── middleware/            # وسطاء Express
-│   └── utils/                 # أدوات مساعدة
-├── shared/                    # الكود المشترك بين Frontend و Backend
-│   ├── schema.ts              # مخطط قاعدة البيانات (Drizzle)
-│   ├── types.ts               # الأنواع المشتركة
-│   └── constants.ts           # الثوابت والإعدادات
-├── migrations/                # ملفات ترحيل قاعدة البيانات
-├── android/                   # مشروع Android (Capacitor)
-└── ios/                       # مشروع iOS (Capacitor)
+│   │   ├── App.tsx             # 50 routes, lazy loading, wouter
+│   │   ├── components/
+│   │   │   ├── admin/          # 32 admin tab components
+│   │   │   ├── child/          # Child-specific components
+│   │   │   ├── dashboard/      # Dashboard widgets
+│   │   │   ├── ui/             # shadcn/ui primitives
+│   │   │   └── ...
+│   │   ├── pages/              # 50 page files
+│   │   ├── hooks/api/          # Data fetching hooks
+│   │   ├── lib/
+│   │   │   ├── apiClient.ts    # Centralized fetch + auto auth tokens
+│   │   │   └── queryClient.ts  # React Query config
+│   │   ├── contexts/           # ThemeContext
+│   │   └── i18n/
+│   │       ├── config.ts       # Lazy-loading backend, ar/en/pt
+│   │       └── locales/        # ar.json, en.json, pt.json
+│   └── public/                 # PWA assets, manifest, sw.js
+├── server/                     # Express Backend
+│   ├── index.ts                # Express setup (352 lines): Helmet, CORS, cluster, cache
+│   ├── routes/
+│   │   ├── index.ts            # Registers all 24 route groups
+│   │   ├── admin.ts            # 5852 lines — Admin CRUD
+│   │   ├── auth.ts             # 3022 lines — Login, OTP, 2FA, social
+│   │   ├── parent.ts           # 3311 lines — Parent features
+│   │   ├── child.ts            # 2706 lines — Child features
+│   │   ├── school.ts           # 1713 lines — School dashboard
+│   │   ├── teacher.ts          # 1405 lines — Teacher tasks/earnings
+│   │   ├── library.ts          # 1209 lines — Library store/earnings
+│   │   ├── marketplace.ts      # 1138 lines — Task marketplace
+│   │   └── ... (24 files, ~25,000 lines total)
+│   ├── services/               # Upload, OTP, Points, Notifications, Push
+│   ├── middleware/              # Admin role check
+│   ├── storage.ts              # DB connection (pg Pool + Drizzle)
+│   ├── vite.ts                 # Dev: Vite middleware | Prod: static serving
+│   └── mailer.ts               # Resend + SMTP fallback, OTP templates
+├── shared/                     # Shared between client & server
+│   ├── schema.ts               # 2131 lines — ALL 132 pgTable definitions
+│   ├── types.ts                # Core type exports
+│   └── constants.ts            # APP_CONFIG, AUTH_CONFIG, PAGINATION, POINTS
+├── scripts/                    # Deploy, admin setup, repair scripts
+├── migrations/                 # Drizzle SQL migrations
+├── android/ & ios/             # Capacitor native projects
+├── Dockerfile                  # Multi-stage (deps → builder → runner)
+└── docker-compose.yml          # 12 services (Traefik, app, db, redis, minio, monitoring)
 ```
 
-## تشغيل المشروع
+## Running the Project
 ```bash
-npm run dev    # تشغيل وضع التطوير (port 5000)
-npm run build  # بناء للإنتاج
-npm run start  # تشغيل وضع الإنتاج
+npm run dev          # Development server (port 5000, hot-reload)
+npm run build        # Production build (vite + esbuild → dist/)
+npm run start        # Production runtime: node dist/index.js
+npm run db:push      # Apply schema changes to PostgreSQL
+npm run admin:setup  # Create/reset admin account
+npm run check        # TypeScript type check (tsc --noEmit)
+npm run test         # Run tests (vitest)
 ```
 
-## الميزات المنجزة
-- ✅ تسجيل/دخول الآباء (بريد إلكتروني + هاتف)
-- ✅ مصادقة OTP (6 أرقام، 5 دقائق) - Resend Integration
-- ✅ تشفير كلمات المرور (bcrypt)
-- ✅ جلسات JWT
-- ✅ حفظ الجهاز الموثوق (Remember Device) - تجاوز OTP للأجهزة المحفوظة
-- ✅ سياسة الخصوصية
-- ✅ حذف الحساب
-- ✅ PWA + Service Worker
-- ✅ Dark/Light Mode
-- ✅ نظام ربط الأطفال (QR + كود فريد)
-- ✅ المتجر الاحترافي (Souq.com-inspired) مع الفئات والبحث والفلاتر
-- ✅ نظام الشراء والسلة وتعيين المنتجات للأطفال
-- ✅ نظام الإشعارات الشامل (10+ أنواع مع styling)
-- ✅ الألعاب التعليمية مع نظام النقاط
-- ✅ نظام المهام مع إعلانات مستمرة (sponsored-ad-like)
-- ✅ نظام الإحالات والمكافآت (100 نقطة لكل إحالة نشطة)
-- ✅ لوحة تقدم الطفل (مستويات السرعة + رسائل تحفيزية)
-- ✅ تقارير الحالة الخلفية للوحة الوالدين (كل 5 دقائق)
-- ✅ إدارة الألعاب للمسؤول (CRUD)
-- ✅ نظام المواد الدراسية (subjects) مع API و UI للمسؤول والوالدين
-- ✅ قوالب المهام الجاهزة (template tasks) حسب المادة
-- ✅ واجهة الأطفال الديناميكية مع رسوم متحركة (framer-motion)
-- ✅ نظام الإعلانات (ads) مع استهداف الجمهور (parents/children/all)
-- ✅ تتبع المشاهدات والنقرات للإعلانات
-- ✅ إدارة الإحالات في لوحة الأدمن مع الإحصائيات
-- ✅ صفحة مهام المواد الدراسية (/subject-tasks)
-- ✅ صفحة قسم المهام الثلاثي (/parent-tasks): مهام كلاسيفاي + مهامي + مهام عامة
-- ✅ نظام المهام العامة مع نقاط وعمولة 10%
-- ✅ إعدادات الإحالة في لوحة الأدمن
-- ✅ عرض المهام المرتبطة عند تعديل المادة (تبويبات في المودال)
-- ✅ Dockerfile و docker-compose.yml للنشر
-- ✅ سكربتات التشغيل (setup.sh, start.sh)
-- ✅ نظام الأرباح والعمولات (profitTransactions) - تتبع 90% للبائع و10% للتطبيق
-- ✅ لوحة إدارة الآباء في الأدمن (عرض التفاصيل، إرسال إشعارات مع صور)
-- ✅ لوحة نظام الأرباح (عمولة التطبيق، أفضل البائعين، سجل المعاملات)
-- ✅ جدولة المهام للآباء (scheduledTasks) - إرسال مؤجل مع إلغاء
-- ✅ نظام المكتبات التجارية (libraries) - إدارة المكتبات كتجار
-- ✅ تسجيل دخول المكتبات منفصل (JWT) مع لوحة تحكم خاصة
-- ✅ إدارة منتجات المكتبات مع نظام الخصومات والمخزون
-- ✅ نظام الإحالات للمكتبات مع تتبع النقرات والتسجيلات والمشتريات
-- ✅ نظام النشاط والترتيب (activityScore) للمكتبات
-- ✅ متجر المكتبات (/library-store) للوالدين
-- ✅ تبويب المكتبات في لوحة الأدمن مع CRUD كامل
-- ✅ التحقق من JWT_SECRET عند بدء التشغيل (يفشل التطبيق إذا لم يُعد)
-- ✅ تحديثات نقاط النشاط الذرية باستخدام Drizzle ORM
-- ✅ Pagination والتحقق من المدخلات في APIs العامة للمكتبات
-- ✅ تعديل المهام المخصصة للوالدين مع Zod validation
-- ✅ نظام تسجيل دخول الأطفال بـ PIN (4-6 أرقام)
-- ✅ نظام الأجهزة الموثوقة للأطفال (childTrustedDevices)
-- ✅ API تعديل معلومات الوالدين والأطفال للمسؤول
-- ✅ API تعديل النقاط/الرصيد للمسؤول مع إشعارات
-- ✅ نظام تبديل اللغة (عربي/إنجليزي) مع حفظ التفضيل
-- ✅ دعم RTL/LTR التلقائي حسب اللغة المختارة
-- ✅ نظام الترجمة المحسّن (i18n):
-  - 200+ مفتاح ترجمة في ar.json و en.json
-  - أقسام منظمة: forgotPassword, errors, validation, parentTasks, parentStore, settingsPro, childNotifications, libraryDashboard, parentDashboard, childStore, childProfile
-  - استخدام t() function في الصفحات الرئيسية (ForgotPassword, ChildLink, SettingsPro, ParentTasks, LibraryDashboard, ChildNotifications, ParentDashboard, ChildStore, ChildProfile)
-- ✅ صفحة الملف الشخصي للطفل (ChildProfile):
-  - تعديل الاسم، تاريخ الميلاد، اسم المدرسة، الصف الدراسي
-  - حقل الهوايات مع حد 500 حرف
-  - عرض الصورة الشخصية مع Avatar
-  - تصميم متجاوب للجوال (mobile-first)
-- ✅ نظام شجرة النمو (Growth Tree) - 8 مراحل من البذرة إلى الشجرة العظيمة
-- ✅ تهيئة شجرة النمو عند إنشاء حساب الطفل
-- ✅ تتبع أحداث النمو (المهام، الألعاب، المكافآت)
-- ✅ مكون واجهة شجرة النمو مع رسوم متحركة
-- ✅ التقرير السنوي للأطفال (خسار سنوي) - رسم بياني شهري
-- ✅ عرض التقرير السنوي للوالدين في لوحة التحكم
-- ✅ نظام SEO شامل (Meta Tags، Open Graph، Twitter Cards، Schema.org)
-- ✅ التحكم في زواحف الذكاء الاصطناعي (GPTBot، Claude، Google AI)
-- ✅ توليد robots.txt ديناميكي من لوحة التحكم
-- ✅ تكامل التحليلات (Google Analytics، GTM، Facebook Pixel)
-- ✅ إدارة إعدادات الدعم (البريد، الهاتف، واتساب، تيليجرام)
-- ✅ صفحات الخطأ الاحترافية مع معلومات التواصل
-- ✅ وضع الصيانة مع رسائل مخصصة
-- ✅ ساعات العمل والمنطقة الزمنية
-- ✅ Rate Limiting للمصادقة (5 محاولات/دقيقة)
-- ✅ ErrorBoundary متقدم مع تحميل إعدادات الدعم
+## Required Environment Variables
+| Variable | Purpose |
+|----------|---------|
+| `DATABASE_URL` | PostgreSQL connection string |
+| `JWT_SECRET` | JWT signing key (64+ chars) |
+| `SESSION_SECRET` | Session signing key (64+ chars) |
+| `ADMIN_EMAIL` | Default admin email |
+| `ADMIN_PASSWORD` | Default admin password |
+| `RESEND_API_KEY` | Resend email service (optional: SMTP fallback) |
 
-- ✅ فهارس قاعدة البيانات المحسّنة (64 فهرس) للأداء العالي
+See `.env.example` for all optional variables (SMTP, Twilio SMS, MinIO, CORS, clustering).
 
-## فهارس قاعدة البيانات (Database Indexes)
-الفهارس التالية مُضافة لتحسين الأداء مع 5000+ مستخدم متزامن:
-
-### المصادقة والجلسات:
-- `idx_parents_email`, `idx_parents_unique_code` - البحث السريع عن الوالدين
-- `idx_sessions_parent_id`, `idx_sessions_expires_at` - إدارة الجلسات
-- `idx_otp_codes_parent_id`, `idx_otp_codes_expires_at` - التحقق من OTP
-- `idx_trusted_devices_*`, `idx_child_trusted_devices_*` - الأجهزة الموثوقة
-
-### المهام والإشعارات:
-- `idx_tasks_child_id`, `idx_tasks_child_status` - مهام الأطفال
-- `idx_task_results_*` - نتائج المهام
-- `idx_scheduled_tasks_*` - المهام المجدولة
-
-### الطلبات والمتجر:
-- `idx_store_orders_*` - طلبات المتجر
-- `idx_order_items_*` - عناصر الطلبات
-- `idx_products_category_id` - فلترة المنتجات
-- `idx_parent_purchases_*`, `idx_child_purchases_*` - سجل المشتريات
-
-### المكتبات والإعلانات:
-- `idx_libraries_*`, `idx_library_products_*` - المكتبات التجارية
-- `idx_ads_*`, `idx_ad_watch_history_*` - الإعلانات
-
-### السجلات:
-- `idx_activity_log_*`, `idx_login_history_*` - تتبع النشاط
-
-## الميزات المعلقة
-- [ ] إشعارات SMS (يحتاج مزود SMS)
-- [ ] تحميل الصور/GIF للمهام (يحتاج خدمة تخزين)
-
-## النشر على Production (Hostinger VPS)
-
-### ملفات Docker
-- `docker-compose.yml` - إعداد كامل مع SSL/HTTPS
-- `docker-compose.http.yml` - إعداد HTTP فقط (للبداية السريعة)
-- `Dockerfile` - بناء متعدد المراحل مع أمان محسّن
-
-### الخطوات السريعة للنشر
+## Deployment (Production VPS — Hostinger)
 ```bash
-# 1. استنساخ المشروع
-git clone <repo> && cd classify
+# Quick deploy
+cd /docker/classitest && git pull origin main && docker compose up -d --build app
 
-# 2. إنشاء ملف البيئة
-cp .env.production.example .env
-
-# 3. توليد المفاتيح الآمنة
-openssl rand -base64 64  # JWT_SECRET
-openssl rand -base64 64  # SESSION_SECRET
-openssl rand -base64 32  # POSTGRES_PASSWORD
-
-# 4. تشغيل التطبيق (HTTP فقط)
-docker compose -f docker-compose.http.yml up -d
-
-# 5. التحقق من الصحة
-curl http://localhost/health
+# Verify
+curl https://classi-fy.com/api/health
+docker compose logs -f app
 ```
 
-### المتغيرات المطلوبة للـ Production
-| المتغير | الوصف |
-|---------|-------|
-| `POSTGRES_USER` | اسم مستخدم قاعدة البيانات |
-| `POSTGRES_PASSWORD` | كلمة مرور قاعدة البيانات (32+ حرف) |
-| `JWT_SECRET` | مفتاح JWT (64+ حرف) |
-| `SESSION_SECRET` | مفتاح الجلسة (64+ حرف) |
-| `ADMIN_EMAIL` | بريد المسؤول |
-| `ADMIN_PASSWORD` | كلمة مرور المسؤول (16+ حرف) |
+### Docker Services (12)
+Traefik (SSL), app (Express), db (PostgreSQL 15.7), Redis 7.2, MinIO, Portainer, pgAdmin, Redis Commander, Prometheus, Grafana, Loki, Mailhog (dev)
 
-راجع `DEPLOYMENT.md` للتعليمات الكاملة.
+## API Response Contract
+```json
+Success: { "success": true, "data": {}, "message": "Optional" }
+Error:   { "success": false, "error": "ERROR_CODE", "message": "Human readable" }
+```
 
-## المتغيرات البيئية المطلوبة (Development)
-- `DATABASE_URL` - اتصال PostgreSQL
-- `JWT_SECRET` - مفتاح توقيع JWT
-- `RESEND_API_KEY` - مفتاح Resend للبريد الإلكتروني
+## Key Features
+- **Multi-role system**: Parent, Child, Admin, School, Teacher, Library — each with separate JWT auth
+- **Task system**: Custom tasks, templates, scheduled, teacher marketplace, subject-based
+- **Gamification**: Educational games, growth tree (8 stages), points/rewards
+- **Commerce**: Store with wallet-based payments, library store, task marketplace (90/10 commission)
+- **Admin panel**: 32 management tabs covering all aspects of the platform
+- **i18n**: Full Arabic (RTL), English (LTR), Portuguese (LTR) — ~3053 leaf keys each
+- **Social features**: School/teacher/library posts, comments, likes, follows, reviews
+- **Security**: bcrypt, JWT, OTP 2FA, trusted devices, rate limiting, Helmet CSP
 
-## ملاحظات
-- البريد الإلكتروني مُعد عبر Resend Integration
-- SMS OTP غير مُعد (يحتاج Twilio أو مزود آخر)
-- حسابات المسؤول: marco0000110@gmail.com / admin123
-- نظام قاعدة البيانات مُحسّن لـ 5000+ مستخدم متزامن
-
-## هيكل وسائل الدفع
-- **وسائل الدفع للمتجر**: يتم إنشاؤها بواسطة المسؤول (isDefault=true, isActive=true)
-- **وسائل الدفع للوالدين**: يتم إنشاؤها بواسطة الوالدين لاستقبال الإيداعات
-- **/api/store/payment-methods**: يعرض وسائل الدفع الآمنة للمتجر (id, type, accountName, bankName فقط)
-- **المصادقة**: queryClient يدعم tokens للوالدين والأطفال والمسؤولين
+## For Complete Documentation
+See `MEMORY_BANK_COMPLETE.md` for the exhaustive memory bank including all 132 database tables, full route map, page inventory, and deployment details.

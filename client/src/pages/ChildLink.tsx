@@ -486,7 +486,7 @@ export const ChildLink = (): JSX.Element => {
         <div className="fixed inset-0 bg-black z-50 flex flex-col">
           <button
             onClick={stopCameraScanning}
-            className="absolute top-4 right-4 z-10 p-2 bg-white rounded-full"
+            className="absolute top-4 right-4 z-10 p-2 bg-white dark:bg-gray-800 rounded-full"
             data-testid="button-stop-camera"
           >
             <X className="w-6 h-6" />
@@ -531,7 +531,7 @@ export const ChildLink = (): JSX.Element => {
 
         {/* ===== WELCOME STEP ===== */}
         {step === "welcome" && (
-          <div className="bg-white rounded-3xl p-8 shadow-2xl">
+          <div className="bg-white dark:bg-gray-800 rounded-3xl p-8 shadow-2xl">
             <div className="text-center mb-6">
               {/* Logo: 5 rapid taps opens hidden parent access */}
               <button
@@ -551,13 +551,13 @@ export const ChildLink = (): JSX.Element => {
               <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
                 {t("welcome") || "مرحباً!"}
               </h1>
-              <p className="text-gray-500 mt-2">{t("letsPlay") || "هيا نلعب ونتعلم"}</p>
+              <p className="text-gray-500 dark:text-gray-400 mt-2">{t("letsPlay") || "هيا نلعب ونتعلم"}</p>
             </div>
             
             {/* Quick login cards for saved children */}
             {savedChildren.length > 0 && (
               <div className="mb-6 space-y-3">
-                <p className="text-sm text-gray-500 font-medium text-center mb-2">
+                <p className="text-sm text-gray-500 dark:text-gray-400 font-medium text-center mb-2">
                   {t("quickLogin") || "دخول سريع"}
                 </p>
                 {savedChildren.map((child, index) => (
@@ -621,13 +621,13 @@ export const ChildLink = (): JSX.Element => {
 
         {/* ===== NAME ENTRY STEP ===== */}
         {step === "name_entry" && (
-          <div className="bg-white rounded-3xl p-8 shadow-2xl">
+          <div className="bg-white dark:bg-gray-800 rounded-3xl p-8 shadow-2xl">
             <div className="text-center mb-6">
               <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-3">
                 <User className="w-8 h-8 text-blue-600" />
               </div>
-              <h2 className="text-2xl font-bold text-gray-800">{t("whatIsYourName") || "ما اسمك؟"}</h2>
-              <p className="text-gray-500 mt-1">{t("enterFullName") || "اكتب اسمك الثنائي"}</p>
+              <h2 className="text-2xl font-bold text-gray-800 dark:text-white">{t("whatIsYourName") || "ما اسمك؟"}</h2>
+              <p className="text-gray-500 dark:text-gray-400 mt-1">{t("enterFullName") || "اكتب اسمك الثنائي"}</p>
             </div>
 
             <div className="space-y-4">
@@ -639,7 +639,7 @@ export const ChildLink = (): JSX.Element => {
                   setErrorMessage("");
                 }}
                 placeholder={t("exampleName") || "مثال: أحمد محمد"}
-                className="w-full px-5 py-4 border-2 border-gray-200 rounded-2xl focus:outline-none focus:border-blue-400 text-xl text-center text-gray-900 bg-gray-50"
+                className="w-full px-5 py-4 border-2 border-gray-200 dark:border-gray-700 rounded-2xl focus:outline-none focus:border-blue-400 text-xl text-center text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-900"
                 data-testid="input-child-name"
               />
 
@@ -651,20 +651,20 @@ export const ChildLink = (): JSX.Element => {
                   setErrorMessage("");
                 }}
                 placeholder={t("parentCode") || "كود الوالد"}
-                className="w-full px-5 py-4 border-2 border-gray-200 rounded-2xl focus:outline-none focus:border-blue-400 text-xl text-center font-mono tracking-wider text-gray-900 bg-gray-50"
+                className="w-full px-5 py-4 border-2 border-gray-200 dark:border-gray-700 rounded-2xl focus:outline-none focus:border-blue-400 text-xl text-center font-mono tracking-wider text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-900"
                 maxLength={10}
                 data-testid="input-login-parent-code"
               />
 
-              <label className="flex items-center gap-3 cursor-pointer p-3 bg-gray-50 rounded-xl">
+              <label className="flex items-center gap-3 cursor-pointer p-3 bg-gray-50 dark:bg-gray-900 rounded-xl">
                 <input
                   type="checkbox"
                   checked={rememberDevice}
                   onChange={(e) => setRememberDevice(e.target.checked)}
-                  className="h-5 w-5 rounded border-gray-300 text-purple-500 focus:ring-purple-400"
+                  className="h-5 w-5 rounded border-gray-300 dark:border-gray-700 text-purple-500 focus:ring-purple-400"
                   data-testid="checkbox-remember"
                 />
-                <span className="text-gray-700 font-medium">{t("rememberMe") || "تذكرني على هذا الجهاز"}</span>
+                <span className="text-gray-700 dark:text-gray-300 font-medium">{t("rememberMe") || "تذكرني على هذا الجهاز"}</span>
               </label>
 
               {errorMessage && (
@@ -692,7 +692,7 @@ export const ChildLink = (): JSX.Element => {
                 )}
               </button>
 
-              <p className="text-center text-gray-500 text-sm">
+              <p className="text-center text-gray-500 dark:text-gray-400 text-sm">
                 {t("parentWillReceiveNotification") || "سيصل إشعار لوالديك للموافقة"}
               </p>
             </div>
@@ -701,17 +701,17 @@ export const ChildLink = (): JSX.Element => {
 
         {/* ===== WAITING FOR APPROVAL STEP ===== */}
         {step === "waiting_approval" && (
-          <div className="bg-white rounded-3xl p-8 shadow-2xl">
+          <div className="bg-white dark:bg-gray-800 rounded-3xl p-8 shadow-2xl">
             <div className="text-center">
               {loginStatus === "pending" && (
                 <>
                   <div className="inline-flex items-center justify-center w-20 h-20 bg-yellow-100 rounded-full mb-4">
                     <Clock className="w-10 h-10 text-yellow-600 animate-pulse" />
                   </div>
-                  <h2 className="text-2xl font-bold text-gray-800 mb-2">
+                  <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-2">
                     {t("waitingForApproval") || "في انتظار موافقة الوالدين"}
                   </h2>
-                  <p className="text-gray-500 mb-6">
+                  <p className="text-gray-500 dark:text-gray-400 mb-6">
                     {t("askParentToApprove") || "اطلب من ماما أو بابا الموافقة من هاتفهم"}
                   </p>
                   
@@ -724,7 +724,7 @@ export const ChildLink = (): JSX.Element => {
 
                   <button
                     onClick={cancelRequest}
-                    className="w-full py-3 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold rounded-2xl transition-all"
+                    className="w-full py-3 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 font-bold rounded-2xl transition-all"
                     data-testid="button-cancel-request"
                   >
                     {t("cancel") || "إلغاء"}
@@ -740,7 +740,7 @@ export const ChildLink = (): JSX.Element => {
                   <h2 className="text-2xl font-bold text-green-600 mb-2">
                     {t("loginApproved") || "تمت الموافقة!"}
                   </h2>
-                  <p className="text-gray-500">
+                  <p className="text-gray-500 dark:text-gray-400">
                     {t("redirectingNow") || "جاري تسجيل الدخول..."}
                   </p>
                   <Loader2 className="w-8 h-8 animate-spin text-green-600 mx-auto mt-4" />
@@ -755,7 +755,7 @@ export const ChildLink = (): JSX.Element => {
                   <h2 className="text-2xl font-bold text-red-600 mb-2">
                     {t("loginRejected") || "تم رفض الطلب"}
                   </h2>
-                  <p className="text-gray-500 mb-6">
+                  <p className="text-gray-500 dark:text-gray-400 mb-6">
                     {t("parentRejectedLogin") || "والديك لم يوافقوا على تسجيل الدخول"}
                   </p>
                   <button
@@ -773,13 +773,13 @@ export const ChildLink = (): JSX.Element => {
 
               {loginStatus === "expired" && (
                 <>
-                  <div className="inline-flex items-center justify-center w-20 h-20 bg-gray-100 rounded-full mb-4">
-                    <Clock className="w-10 h-10 text-gray-600" />
+                  <div className="inline-flex items-center justify-center w-20 h-20 bg-gray-100 dark:bg-gray-700 rounded-full mb-4">
+                    <Clock className="w-10 h-10 text-gray-600 dark:text-gray-400" />
                   </div>
-                  <h2 className="text-2xl font-bold text-gray-600 mb-2">
+                  <h2 className="text-2xl font-bold text-gray-600 dark:text-gray-400 mb-2">
                     {t("requestExpired") || "انتهت صلاحية الطلب"}
                   </h2>
-                  <p className="text-gray-500 mb-6">
+                  <p className="text-gray-500 dark:text-gray-400 mb-6">
                     {t("pleaseRequestAgain") || "يرجى إرسال طلب جديد"}
                   </p>
                   <button
@@ -800,18 +800,18 @@ export const ChildLink = (): JSX.Element => {
 
         {/* ===== NEW LINK STEP (first time) ===== */}
         {step === "new_link" && (
-          <div className="bg-white rounded-3xl p-8 shadow-2xl">
+          <div className="bg-white dark:bg-gray-800 rounded-3xl p-8 shadow-2xl">
             <div className="text-center mb-6">
               <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-3">
                 <UserPlus className="w-8 h-8 text-green-600" />
               </div>
-              <h2 className="text-2xl font-bold text-gray-800">{t("newAccount") || "حساب جديد!"}</h2>
-              <p className="text-gray-500 mt-1">{t("linkWithParents") || "اربط حسابك مع والديك"}</p>
+              <h2 className="text-2xl font-bold text-gray-800 dark:text-white">{t("newAccount") || "حساب جديد!"}</h2>
+              <p className="text-gray-500 dark:text-gray-400 mt-1">{t("linkWithParents") || "اربط حسابك مع والديك"}</p>
             </div>
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2 text-right">
+                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2 text-right">
                   {t("yourName") || "اسمك"}
                 </label>
                 <input
@@ -822,20 +822,20 @@ export const ChildLink = (): JSX.Element => {
                     setErrorMessage("");
                   }}
                   placeholder={t("exampleName2") || "مثال: سارة أحمد"}
-                  className="w-full px-5 py-4 border-2 border-gray-200 rounded-2xl focus:outline-none focus:border-green-400 text-xl text-center text-gray-900 bg-gray-50"
+                  className="w-full px-5 py-4 border-2 border-gray-200 dark:border-gray-700 rounded-2xl focus:outline-none focus:border-green-400 text-xl text-center text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-900"
                   data-testid="input-new-child-name"
                 />
               </div>
 
               {/* Method Tabs */}
-              <div className="flex gap-2 bg-gray-100 rounded-xl p-1">
+              <div className="flex gap-2 bg-gray-100 dark:bg-gray-700 rounded-xl p-1">
                 <button
                   type="button"
                   onClick={() => setMethod("code")}
                   className={`flex-1 py-3 rounded-lg font-bold transition-all flex items-center justify-center gap-2 ${
                     method === "code"
                       ? "bg-green-500 text-white shadow"
-                      : "text-gray-600 hover:bg-gray-200"
+                      : "text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600"
                   }`}
                 >
                   <KeyRound className="w-4 h-4" />
@@ -847,7 +847,7 @@ export const ChildLink = (): JSX.Element => {
                   className={`flex-1 py-3 rounded-lg font-bold transition-all flex items-center justify-center gap-2 ${
                     method === "qr"
                       ? "bg-green-500 text-white shadow"
-                      : "text-gray-600 hover:bg-gray-200"
+                      : "text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600"
                   }`}
                 >
                   <QrCode className="w-4 h-4" />
@@ -857,7 +857,7 @@ export const ChildLink = (): JSX.Element => {
 
               {method === "code" && (
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2 text-right">
+                  <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2 text-right">
                     {t("parentCode") || "كود الوالد"}
                   </label>
                   <input
@@ -868,7 +868,7 @@ export const ChildLink = (): JSX.Element => {
                       setErrorMessage("");
                     }}
                     placeholder={t("exampleCode") || "مثال: AHMED12345"}
-                    className="w-full px-5 py-4 border-2 border-gray-200 rounded-2xl focus:outline-none focus:border-green-400 text-2xl text-center font-mono tracking-widest text-gray-900 bg-gray-50"
+                    className="w-full px-5 py-4 border-2 border-gray-200 dark:border-gray-700 rounded-2xl focus:outline-none focus:border-green-400 text-2xl text-center font-mono tracking-widest text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-900"
                     maxLength={10}
                     data-testid="input-link-code"
                   />

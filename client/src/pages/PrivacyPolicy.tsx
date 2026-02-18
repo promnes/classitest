@@ -24,7 +24,7 @@ export const PrivacyPolicy = (): JSX.Element => {
                   navigate("/settings");
                 }
               }}
-              className="px-4 py-2 bg-white text-blue-700 font-bold rounded-lg hover:bg-gray-100"
+              className={`px-4 py-2 font-bold rounded-lg ${isDark ? "bg-gray-800 text-blue-300 hover:bg-gray-700" : "bg-white text-blue-700 hover:bg-gray-100"}`}
             >
               ← العودة
             </button>

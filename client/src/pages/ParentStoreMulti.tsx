@@ -53,10 +53,10 @@ export default function ParentStoreMulti() {
     toast({ title: "Purchase completed", description: "Awaiting admin approval." });
   }
 
-  if (isLoading) return <div>Loading store...</div>;
+  if (isLoading) return <div className="dark:text-white">Loading store...</div>;
 
   return (
-    <div className="p-4">
+    <div className="p-4 bg-white dark:bg-gray-800 text-gray-900 dark:text-white min-h-screen">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-xl font-bold">Store</h2>
         <div className="flex items-center gap-2">
@@ -66,9 +66,9 @@ export default function ParentStoreMulti() {
       </div>
       <div className="grid grid-cols-3 gap-4">
         {data?.data?.map((p: any) => (
-          <div key={p.id} className="p-3 border rounded">
+          <div key={p.id} className="p-3 border border-gray-200 dark:border-gray-700 rounded bg-white dark:bg-gray-800">
             <div className="font-semibold">{p.name || p.title || p.productName}</div>
-              <div className="text-sm text-gray-600">Price: {p.price}</div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">Price: {p.price}</div>
             <div className="mt-2">
               <Button onClick={() => addToCart(p.id)} className="bg-blue-600">Add</Button>
             </div>
@@ -78,13 +78,13 @@ export default function ParentStoreMulti() {
 
       <div className="mt-6">
         <h3 className="font-bold">Cart</h3>
-        {Object.keys(cart).length === 0 && <div>Cart is empty.</div>}
+        {Object.keys(cart).length === 0 && <div className="text-gray-500 dark:text-gray-400">Cart is empty.</div>}
         <ul className="space-y-2">
           {Object.entries(cart).map(([pid, qty]) => (
             <li key={pid} className="flex items-center justify-between">
               <div>{pid} x {qty}</div>
               <div>
-                <button onClick={() => removeFromCart(pid)} className="px-2 py-1 bg-gray-200 rounded">-</button>
+                <button onClick={() => removeFromCart(pid)} className="px-2 py-1 bg-gray-200 dark:bg-gray-600 rounded text-gray-900 dark:text-white">-</button>
               </div>
             </li>
           ))}
@@ -98,7 +98,7 @@ export default function ParentStoreMulti() {
       </div>
 
       {preview && (
-        <div className="mt-4 p-3 border rounded bg-gray-50">
+        <div className="mt-4 p-3 border border-gray-200 dark:border-gray-700 rounded bg-gray-50 dark:bg-gray-900">
           <h4 className="font-semibold">Preview</h4>
           <div>Total: {preview.totalAmount}</div>
           <div>Items: {preview.items?.length}</div>

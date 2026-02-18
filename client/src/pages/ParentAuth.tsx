@@ -155,7 +155,7 @@ export const ParentAuth = (): JSX.Element => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center px-4">
+    <div className="min-h-screen bg-gradient-to-br from-blue-400 to-blue-600 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center px-4">
       <div className="w-full max-w-md">
         <div className="flex justify-between items-center mb-8">
           <button
@@ -175,8 +175,8 @@ export const ParentAuth = (): JSX.Element => {
           </div>
         </div>
 
-        <div className="bg-white rounded-3xl p-8 shadow-2xl">
-          <h1 className="text-3xl font-bold text-gray-800 mb-2 text-center">
+        <div className="bg-white dark:bg-gray-800 rounded-3xl p-8 shadow-2xl">
+          <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-2 text-center">
             {isLogin ? t("parentLogin") : t("registerNewParent")}
           </h1>
 
@@ -232,7 +232,7 @@ export const ParentAuth = (): JSX.Element => {
           {!showSMSVerification && (
             <>
               {/* Email/Phone Toggle */}
-              <div className="flex gap-2 mb-6 bg-gray-100 p-2 rounded-lg">
+              <div className="flex gap-2 mb-6 bg-gray-100 dark:bg-gray-700 p-2 rounded-lg">
                 <button
                   type="button"
                   onClick={() => {
@@ -240,7 +240,7 @@ export const ParentAuth = (): JSX.Element => {
                     setError("");
                   }}
                   className={`flex-1 py-2 px-4 rounded-md font-bold transition-all ${
-                    !usePhone ? "bg-blue-500 text-white" : "text-gray-700"
+                    !usePhone ? "bg-blue-500 text-white" : "text-gray-700 dark:text-gray-300"
                   }`}
                 >
                   📧 البريد
@@ -252,7 +252,7 @@ export const ParentAuth = (): JSX.Element => {
                     setError("");
                   }}
                   className={`flex-1 py-2 px-4 rounded-md font-bold transition-all ${
-                    usePhone ? "bg-blue-500 text-white" : "text-gray-700"
+                    usePhone ? "bg-blue-500 text-white" : "text-gray-700 dark:text-gray-300"
                   }`}
                 >
                   📱 الهاتف
@@ -262,7 +262,7 @@ export const ParentAuth = (): JSX.Element => {
               <form onSubmit={handleSubmit} className="space-y-4">
                 {!isLogin && (
                   <div>
-                    <label className="block text-sm font-bold text-gray-700 mb-2">
+                    <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
                       الاسم
                     </label>
                     <input
@@ -271,7 +271,7 @@ export const ParentAuth = (): JSX.Element => {
                       onChange={(e) => setName(e.target.value)}
                       placeholder="أدخل اسمك"
                       autoComplete="name"
-                      className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-400 text-gray-900 bg-white"
+                      className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-blue-400 text-gray-900 dark:text-white bg-white dark:bg-gray-700"
                       required
                     />
                   </div>
@@ -281,7 +281,7 @@ export const ParentAuth = (): JSX.Element => {
                   <>
                     {!isLogin && (
                       <div>
-                        <label className="block text-sm font-bold text-gray-700 mb-2">
+                        <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
                           البريد الإلكتروني
                         </label>
                         <input
@@ -290,13 +290,13 @@ export const ParentAuth = (): JSX.Element => {
                           onChange={(e) => setEmail(e.target.value)}
                           placeholder="example@mail.com"
                           autoComplete="email"
-                          className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-400 text-gray-900 bg-white"
+                          className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-blue-400 text-gray-900 dark:text-white bg-white dark:bg-gray-700"
                           required
                         />
                       </div>
                     )}
                     <div>
-                      <label className="block text-sm font-bold text-gray-700 mb-2">
+                      <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
                         رقم الهاتف
                       </label>
                       <PhoneInput
@@ -310,7 +310,7 @@ export const ParentAuth = (): JSX.Element => {
                   </>
                 ) : (
                   <div>
-                    <label className="block text-sm font-bold text-gray-700 mb-2">
+                    <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
                       البريد الإلكتروني
                     </label>
                     <input
@@ -319,14 +319,14 @@ export const ParentAuth = (): JSX.Element => {
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="example@mail.com"
                       autoComplete="email"
-                      className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-400 text-gray-900 bg-white"
+                      className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-blue-400 text-gray-900 dark:text-white bg-white dark:bg-gray-700"
                       required
                     />
                   </div>
                 )}
 
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2">
+                  <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
                     كلمة المرور
                   </label>
                   <input
@@ -335,7 +335,7 @@ export const ParentAuth = (): JSX.Element => {
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
                     autoComplete={isLogin ? "current-password" : "new-password"}
-                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-400 text-gray-900 bg-white"
+                    className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-blue-400 text-gray-900 dark:text-white bg-white dark:bg-gray-700"
                     required
                   />
                 </div>
@@ -343,7 +343,7 @@ export const ParentAuth = (): JSX.Element => {
                 {/* PIN Code - Registration only */}
                 {!isLogin && (
                   <div>
-                    <label className="block text-sm font-bold text-gray-700 mb-2">
+                    <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
                       🔑 رمز PIN (4 أرقام)
                     </label>
                     <input
@@ -353,7 +353,7 @@ export const ParentAuth = (): JSX.Element => {
                       onChange={(e) => setPinCode(e.target.value.replace(/\D/g, "").slice(0, 4))}
                       placeholder="مثال: 1234"
                       maxLength={4}
-                      className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-400 text-gray-900 bg-white text-center text-xl tracking-widest font-mono"
+                      className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-blue-400 text-gray-900 dark:text-white bg-white dark:bg-gray-700 text-center text-xl tracking-widest font-mono"
                     />
                     <p className="text-xs text-gray-500 mt-1">
                       رمز سري لدخول حسابك بسرعة من نفس الجهاز (اختياري)
@@ -364,13 +364,13 @@ export const ParentAuth = (): JSX.Element => {
                 {/* Governorate - Registration only */}
                 {!isLogin && (
                   <div>
-                    <label className="block text-sm font-bold text-gray-700 mb-2">
+                    <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
                       🏙️ المحافظة
                     </label>
                     <GovernorateSelect
                       value={governorate}
                       onChange={setGovernorate}
-                      className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-400 text-gray-900 bg-white"
+                      className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-blue-400 text-gray-900 dark:text-white bg-white dark:bg-gray-700"
                     />
                     <p className="text-xs text-gray-500 mt-1">
                       اختر محافظتك لتسهيل البحث عن المدارس والمدرسين (اختياري)

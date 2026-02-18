@@ -191,7 +191,7 @@ export const ForgotPassword = (): JSX.Element => {
           </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="flex gap-2 mb-2 bg-gray-100 p-2 rounded-lg">
+              <div className={`flex gap-2 mb-2 p-2 rounded-lg ${isDark ? "bg-gray-700" : "bg-gray-100"}`}>
                 <button
                   type="button"
                   onClick={() => {
@@ -201,7 +201,7 @@ export const ForgotPassword = (): JSX.Element => {
                     setSuccess("");
                   }}
                   className={`flex-1 py-2 px-4 rounded-md font-bold transition-all ${
-                    method === "email" ? "bg-blue-500 text-white" : "text-gray-700"
+                    method === "email" ? "bg-blue-500 text-white" : isDark ? "text-gray-300" : "text-gray-700"
                   }`}
                 >
                   📧 البريد
@@ -215,7 +215,7 @@ export const ForgotPassword = (): JSX.Element => {
                     setSuccess("");
                   }}
                   className={`flex-1 py-2 px-4 rounded-md font-bold transition-all ${
-                    method === "sms" ? "bg-green-500 text-white" : "text-gray-700"
+                    method === "sms" ? "bg-green-500 text-white" : isDark ? "text-gray-300" : "text-gray-700"
                   }`}
                 >
                   📱 SMS

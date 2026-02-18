@@ -84,13 +84,13 @@ export const CreateTask = (): JSX.Element => {
 
         {/* Linking Code Card */}
         {parentData?.uniqueCode && (
-          <div className="bg-white/90 backdrop-blur rounded-xl p-4 shadow-lg mb-6">
+          <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur rounded-xl p-4 shadow-lg mb-6">
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 rounded-full bg-orange-100 flex items-center justify-center">
                 <Link2 className="h-5 w-5 text-orange-600" />
               </div>
               <div className="flex-1">
-                <p className="text-xs text-gray-500">كود الربط الخاص بك</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">كود الربط الخاص بك</p>
                 <div className="flex items-center gap-2">
                   <p className="font-mono font-bold text-lg text-orange-600 tracking-widest">
                     {showLinkCode 
@@ -100,18 +100,18 @@ export const CreateTask = (): JSX.Element => {
                   <button
                     type="button"
                     onClick={() => setShowLinkCode(!showLinkCode)}
-                    className="p-1 hover:bg-gray-100 rounded"
+                    className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
                     data-testid="button-toggle-code-task"
                   >
-                    {showLinkCode ? <EyeOff className="h-4 w-4 text-gray-500" /> : <Eye className="h-4 w-4 text-gray-500" />}
+                    {showLinkCode ? <EyeOff className="h-4 w-4 text-gray-500 dark:text-gray-400" /> : <Eye className="h-4 w-4 text-gray-500 dark:text-gray-400" />}
                   </button>
                   <button
                     type="button"
                     onClick={() => copyCode(parentData.uniqueCode)}
-                    className="p-1 hover:bg-gray-100 rounded"
+                    className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
                     data-testid="button-copy-code-task"
                   >
-                    {copied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4 text-gray-500" />}
+                    {copied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4 text-gray-500 dark:text-gray-400" />}
                   </button>
                 </div>
               </div>
@@ -120,7 +120,7 @@ export const CreateTask = (): JSX.Element => {
         )}
 
         {/* Form */}
-        <div className="bg-white rounded-2xl p-8 shadow-2xl">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-2xl">
           <form
             onSubmit={(e) => {
               e.preventDefault();
@@ -130,13 +130,13 @@ export const CreateTask = (): JSX.Element => {
           >
             {/* Child Selection */}
             <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2">
+              <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
                 {t("selectChild")}
               </label>
               <select
                 value={selectedChild}
                 onChange={(e) => setSelectedChild(e.target.value)}
-                className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-orange-400 text-gray-900 bg-white"
+                className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:border-orange-400 text-gray-900 dark:text-white bg-white dark:bg-gray-800"
                 required
               >
                 <option value="">{t("selectChildPlaceholder")}</option>
@@ -150,35 +150,35 @@ export const CreateTask = (): JSX.Element => {
 
             {/* Question */}
             <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2">
+              <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
                 {t("question")}
               </label>
               <textarea
                 value={question}
                 onChange={(e) => setQuestion(e.target.value)}
                 placeholder={t("writeQuestion")}
-                className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-orange-400 min-h-24 text-gray-900 bg-white"
+                className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:border-orange-400 min-h-24 text-gray-900 dark:text-white bg-white dark:bg-gray-800"
                 required
               />
             </div>
 
             {/* Points */}
             <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2">
-                {t("pointsReward")} <span className="text-xs font-normal text-gray-500">(رصيدك: {walletBalance})</span>
+              <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
+                {t("pointsReward")} <span className="text-xs font-normal text-gray-500 dark:text-gray-400">(رصيدك: {walletBalance})</span>
               </label>
               <input
                 type="number"
                 value={pointsReward}
                 onChange={(e) => setPointsReward(parseInt(e.target.value))}
-                className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-orange-400 text-gray-900 bg-white"
+                className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:border-orange-400 text-gray-900 dark:text-white bg-white dark:bg-gray-800"
                 min="1"
               />
             </div>
 
             {/* Answers */}
             <div>
-              <label className="block text-sm font-bold text-gray-700 mb-4">
+              <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-4">
                 {t("answers")}
               </label>
               <div className="space-y-3">
@@ -197,7 +197,7 @@ export const CreateTask = (): JSX.Element => {
                         )
                       }
                       placeholder={`${t("answer")} ${answer.id}`}
-                      className="flex-1 px-4 py-3 border-2 border-gray-300 rounded-lg text-gray-900 bg-white"
+                      className="flex-1 px-4 py-3 border-2 border-gray-300 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white bg-white dark:bg-gray-800"
                     />
                     <button
                       type="button"
@@ -212,7 +212,7 @@ export const CreateTask = (): JSX.Element => {
                       className={`px-4 py-3 rounded-lg font-bold ${
                         answer.isCorrect
                           ? "bg-green-500 text-white"
-                          : "bg-gray-300 text-gray-700"
+                          : "bg-gray-300 text-gray-700 dark:text-gray-300"
                       }`}
                     >
                       ✓
