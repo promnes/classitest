@@ -680,10 +680,12 @@
     "socialLogin": "تسجيل الدخول الاجتماعي",
     "otpProviders": {
       "emailUsesResend": "البريد الإلكتروني يستخدم خدمة Resend",
-      "clickButton": "اضغط الزر"
+      "clickButton": "اضغط الزر",
+      "title": "مزودي OTP"
     },
     "seoSettings": {
-      "defaultTitle": "Classify - تطبيق الرقابة الأبوية"
+      "defaultTitle": "Classify - تطبيق الرقابة الأبوية",
+      "title": "إعدادات SEO"
     },
     "supportSettings": {
       "workingHours": "الأحد - الخميس",
@@ -692,7 +694,8 @@
       "supportPhone": "هاتف الدعم",
       "whatsappNumber": "رقم واتساب",
       "saveBtn": "حفظ",
-      "saved": "تم حفظ الإعدادات"
+      "saved": "تم حفظ الإعدادات",
+      "title": "إعدادات الدعم"
     },
     "legalPages": "الصفحات القانونية",
     "mobileApp": {
@@ -1138,6 +1141,30 @@
     },
     "usersTab": {
       "gameManagement": "إدارة الألعاب"
+    },
+    "dashboardTab": {
+      "title": "لوحة التحكم",
+      "loading": "جاري تحميل الإحصائيات...",
+      "loadFailed": "فشل في تحميل الإحصائيات",
+      "parents": "أولياء الأمور",
+      "children": "الأطفال",
+      "products": "المنتجات",
+      "totalOrders": "إجمالي الطلبات",
+      "walletBalance": "رصيد المحفظة",
+      "totalDeposits": "إجمالي الإيداعات",
+      "totalPoints": "إجمالي النقاط",
+      "weeklyAnalytics": "التحليلات الأسبوعية",
+      "registrations": "التسجيلات",
+      "ordersBtn": "الطلبات",
+      "walletBtn": "المحفظة",
+      "completed": "مكتمل",
+      "depositsAmount": "الإيداعات ($)",
+      "ordersCount": "الطلبات (عدد)",
+      "noData": "لا توجد بيانات متاحة",
+      "summary": "الملخص",
+      "activeDeposits": "الإيداعات النشطة",
+      "avgOrderValue": "متوسط قيمة الطلب",
+      "depositsPerParent": "الإيداعات/ولي الأمر"
     }
   },
   "store": {

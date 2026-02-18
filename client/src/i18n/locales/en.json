@@ -680,10 +680,12 @@
     "socialLogin": "Social Login",
     "otpProviders": {
       "emailUsesResend": "Email uses Resend service",
-      "clickButton": "Click the button"
+      "clickButton": "Click the button",
+      "title": "OTP Providers"
     },
     "seoSettings": {
-      "defaultTitle": "Classify - Parental Control App"
+      "defaultTitle": "Classify - Parental Control App",
+      "title": "SEO Settings"
     },
     "supportSettings": {
       "workingHours": "Sunday - Thursday",
@@ -692,7 +694,8 @@
       "supportPhone": "Support Phone",
       "whatsappNumber": "WhatsApp Number",
       "saveBtn": "Save",
-      "saved": "Settings saved"
+      "saved": "Settings saved",
+      "title": "Support Settings"
     },
     "legalPages": "Legal Pages",
     "mobileApp": {
@@ -1138,6 +1141,30 @@
     },
     "usersTab": {
       "gameManagement": "Game Management"
+    },
+    "dashboardTab": {
+      "title": "Dashboard",
+      "loading": "Loading statistics...",
+      "loadFailed": "Failed to load statistics",
+      "parents": "Parents",
+      "children": "Children",
+      "products": "Products",
+      "totalOrders": "Total Orders",
+      "walletBalance": "Wallet Balance",
+      "totalDeposits": "Total Deposits",
+      "totalPoints": "Total Points",
+      "weeklyAnalytics": "Weekly Analytics",
+      "registrations": "Registrations",
+      "ordersBtn": "Orders",
+      "walletBtn": "Wallet",
+      "completed": "Completed",
+      "depositsAmount": "Deposits ($)",
+      "ordersCount": "Orders (Count)",
+      "noData": "No data available",
+      "summary": "Summary",
+      "activeDeposits": "Active Deposits",
+      "avgOrderValue": "Avg Order Value",
+      "depositsPerParent": "Deposits/Parent"
     }
   },
   "store": {
