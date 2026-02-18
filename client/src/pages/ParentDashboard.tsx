@@ -874,7 +874,7 @@ export const ParentDashboard = (): JSX.Element => {
                     data-testid="button-task-marketplace"
                   >
                     <Sparkles className="h-5 w-5" />
-                    <span className="text-sm font-bold">سوق المهام التعليمية</span>
+                    <span className="text-sm font-bold">{t('parentDashboard.taskMarket')}</span>
                   </Button>
                 </CardContent>
               </Card>

@@ -149,7 +149,6 @@
   "growthPointsEarned": "Pontos de Crescimento Ganhos",
   "yearlyTotal": "Total Anual",
   "noDataForYear": "Sem dados para este ano",
-
   "admin": {
     "title": "Painel do Administrador",
     "dashboard": "Painel",
@@ -292,7 +291,6 @@
     "supportFaqUrl": "URL do FAQ",
     "supportHelpCenterUrl": "URL da Central de Ajuda"
   },
-
   "store": {
     "title": "Loja",
     "products": "Produtos",
@@ -328,7 +326,6 @@
     "discount": "Desconto",
     "libraryStore": "Loja da Biblioteca"
   },
-
   "wallet": {
     "title": "Carteira",
     "balance": "Saldo",
@@ -344,7 +341,6 @@
     "completed": "Concluido",
     "rejected": "Rejeitado"
   },
-
   "notifications": {
     "title": "Notificacoes",
     "noNotifications": "Sem notificacoes",
@@ -355,7 +351,6 @@
     "yesterday": "Ontem",
     "older": "Antigas"
   },
-
   "referrals": {
     "title": "Indicacoes",
     "yourCode": "Seu codigo de indicacao",
@@ -368,7 +363,6 @@
     "pending": "Pendente",
     "active": "Ativa"
   },
-
   "common": {
     "loading": "Carregando...",
     "save": "Salvar",
@@ -419,7 +413,6 @@
     "new": "Novo",
     "old": "Antigo"
   },
-
   "settings": {
     "title": "Configuracoes",
     "back": "Voltar",
@@ -485,7 +478,6 @@
     "deletingAccount": "Excluindo...",
     "privacyPolicy": "Ver Politica de Privacidade"
   },
-
   "permissions": {
     "title": "Configuracao do App",
     "subtitle": "Precisamos de algumas permissoes para que todos os recursos funcionem corretamente",
@@ -502,7 +494,6 @@
     "continue": "Continuar para o App",
     "skipNote": "Voce pode alterar essas configuracoes depois nas configuracoes do navegador"
   },
-
   "parent": {
     "dashboard": "Painel",
     "overview": "Visao Geral",
@@ -550,7 +541,6 @@
     "scanQRToLink": "Escaneie este codigo com o telefone da crianca para vincular instantaneamente",
     "close": "Fechar"
   },
-
   "child": {
     "myTasks": "Minhas Tarefas",
     "back": "Voltar",
@@ -600,7 +590,6 @@
     "confirm": "Confirmar",
     "cancel": "Cancelar"
   },
-
   "assignTask": {
     "title": "Enviar Tarefa para Crianca",
     "back": "Voltar",
@@ -624,7 +613,6 @@
     "sending": "Enviando...",
     "sendTask": "Enviar Tarefa para Crianca"
   },
-
   "progress": {
     "superfast": "Super Rapido",
     "fast": "Rapido",
@@ -644,7 +632,6 @@
     "activeGoals": "Metas Ativas",
     "nextMilestone": "Proxima Meta"
   },
-
   "forgotPassword": {
     "title": "Redefinir Senha",
     "otpSent": "Codigo de verificacao enviado para seu email",
@@ -660,7 +647,6 @@
     "changePassword": "Alterar Senha",
     "processing": "Processando..."
   },
-
   "errors": {
     "failedToReadImage": "Falha ao ler imagem",
     "cameraAccessDenied": "Nao foi possivel acessar a camera",
@@ -675,7 +661,6 @@
     "needHelp": "Precisa de ajuda?",
     "workingHours": "Horario de Funcionamento"
   },
-
   "validation": {
     "nameEmailRequired": "Nome e email sao obrigatorios",
     "allPasswordFieldsRequired": "Todos os campos de senha sao obrigatorios",
@@ -683,7 +668,6 @@
     "passwordsMismatch": "As senhas nao coincidem",
     "passwordMustDiffer": "A nova senha deve ser diferente da atual"
   },
-
   "parentTasks": {
     "selectSubject": "Selecionar Materia",
     "exampleTitle": "Exemplo: Tabuada",
@@ -755,7 +739,6 @@
     "taskCreatedAndSent": "Tarefa criada e enviada para a criança",
     "templateSaved": "Tarefa salva como modelo também"
   },
-
   "parentStore": {
     "searchProducts": "Buscar produtos...",
     "sortBy": "Ordenar por",
@@ -772,7 +755,6 @@
     "buyAndAssign": "Comprar e Atribuir como Presente",
     "processing": "Processando..."
   },
-
   "libraryDashboard": {
     "addProduct": "Adicionar Produto",
     "editProduct": "Editar Produto",
@@ -782,18 +764,15 @@
     "productAdded": "Produto Adicionado",
     "productUpdated": "Produto Atualizado"
   },
-
   "libraryStore": {
     "searchProduct": "Buscar produto..."
   },
-
   "childNotifications": {
     "viewGoal": "Ver Meta",
     "viewReward": "Ver Recompensa",
     "viewTask": "Abrir Tarefa",
     "startChallenge": "Iniciar Desafio"
   },
-
   "settingsPro": {
     "saving": "Salvando...",
     "saveChanges": "Salvar Alteracoes",
@@ -814,7 +793,6 @@
     "depositNotify": "Depositos",
     "depositNotifyDesc": "Atualizacoes da carteira"
   },
-
   "childStore": {
     "title": "Loja de Recompensas",
     "subtitle": "Compre seus presentes com pontos",
@@ -852,7 +830,6 @@
     "parentWillReview": "Seus pais vao analisar e decidir sobre sua solicitacao",
     "error": "Erro"
   },
-
   "childProfile": {
     "title": "Meu Perfil",
     "photo": "Foto de Perfil",
@@ -895,7 +872,6 @@
     "nameMinLength": "O nome deve ter pelo menos 2 caracteres",
     "pts": "pts"
   },
-
   "parentDashboard": {
     "welcomeUser": "Bem-vindo {{name}}",
     "children": "Criancas",
@@ -1003,9 +979,9 @@
     "copyLink": "Copiar Link",
     "viewAd": "Ver Anuncio",
     "sharedTimes": "Compartilhado {{count}} vezes",
-    "pointsEarned": "pontos ganhos"
+    "pointsEarned": "pontos ganhos",
+    "taskMarket": "Mercado de Tarefas Educativas"
   },
-
   "accessibility": {
     "title": "Politica de Acessibilidade",
     "back": "Voltar",
@@ -1109,5 +1085,44 @@
     "enable": "Ativar",
     "deleteConfirm": "Excluir este provedor?",
     "noProviders": "Nenhum provedor de login encontrado. Clique no botao acima para inicializar os provedores padrao."
+  },
+  "taskMarketplace": {
+    "title": "Mercado de Tarefas",
+    "subtitle": "Tarefas educativas dos melhores professores",
+    "searchPlaceholder": "Buscar tarefas, materias...",
+    "all": "Todos",
+    "noTasks": "Nenhuma tarefa disponivel no momento",
+    "tryDifferentCriteria": "Tente mudar os criterios de busca",
+    "purchased": "Comprado",
+    "purchasedBadge": "Comprado",
+    "inCart": "No carrinho",
+    "addBtn": "Adicionar",
+    "currency": "EGP",
+    "sortPopular": "Mais Vendidos",
+    "sortNewest": "Mais Recentes",
+    "sortLikes": "Mais Curtidos",
+    "sortPriceLow": "Menor Preco",
+    "sortPriceHigh": "Maior Preco",
+    "errorOccurred": "Ocorreu um erro",
+    "addedToCart": "Adicionado ao carrinho"
+  },
+  "taskCart": {
+    "title": "Carrinho de Tarefas",
+    "walletBalance": "Saldo da Carteira",
+    "currency": "EGP",
+    "topUp": "Recarregar",
+    "cartEmpty": "Carrinho vazio",
+    "emptyDescription": "Navegue pelo mercado de tarefas e adicione as que melhor se adequam aos seus filhos",
+    "browseTasks": "Explorar Tarefas",
+    "by": "Por:",
+    "taskCount": "Numero de tarefas",
+    "total": "Total",
+    "insufficientBalance": "Saldo insuficiente. Voce precisa de mais {{amount}} EGP",
+    "purchasing": "Comprando...",
+    "buyAll": "Comprar tudo ({{amount}} EGP)",
+    "removedFromCart": "Removido do carrinho",
+    "purchaseSuccess": "Compra realizada com sucesso!",
+    "purchasedCount": "{{count}} tarefas compradas",
+    "purchaseFailed": "Falha na compra"
   }
 }

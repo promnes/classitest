@@ -89,7 +89,7 @@ export default function TaskCart() {
       queryClient.invalidateQueries({ queryKey: ["parent-wallet"] });
       toast({
         title: t('taskCart.purchaseSuccess'),
-        description: `تم شراء ${data.ordersCount} مهمة`,
+        description: t('taskCart.purchasedCount', { count: data.ordersCount }),
       });
     },
     onError: (err: Error) => {
@@ -113,7 +113,7 @@ export default function TaskCart() {
             </button>
             <div className="flex items-center gap-2">
               <ShoppingCart className="h-5 w-5 text-primary" />
-              <h1 className="text-lg font-bold">سلة المهام</h1>
+              <h1 className="text-lg font-bold">{t('taskCart.title')}</h1>
               {items.length > 0 && (
                 <Badge variant="secondary" className="text-xs">{items.length}</Badge>
               )}
@@ -135,12 +135,12 @@ export default function TaskCart() {
                 <Wallet className="h-5 w-5 text-purple-600" />
               </div>
               <div>
-                <span className="text-sm text-muted-foreground">رصيد المحفظة</span>
-                <p className="text-xl font-bold">{walletBalance.toFixed(2)} ج.م</p>
+                <span className="text-sm text-muted-foreground">{t('taskCart.walletBalance')}</span>
+                <p className="text-xl font-bold">{walletBalance.toFixed(2)} {t('taskCart.currency')}</p>
               </div>
             </div>
             <Button variant="outline" size="sm" onClick={() => navigate("/wallet")}>
-              شحن
+              {t('taskCart.topUp')}
             </Button>
           </CardContent>
         </Card>
@@ -157,13 +157,13 @@ export default function TaskCart() {
           <Card>
             <CardContent className="p-12 text-center">
               <ShoppingBag className="h-16 w-16 mx-auto text-gray-300 mb-4" />
-              <h3 className="text-lg font-bold mb-2">السلة فارغة</h3>
+              <h3 className="text-lg font-bold mb-2">{t('taskCart.cartEmpty')}</h3>
               <p className="text-sm text-muted-foreground mb-4">
-                تصفح سوق المهام وأضف المهام التي تناسب أطفالك
+                {t('taskCart.emptyDescription')}
               </p>
               <Button onClick={() => navigate("/task-marketplace")} className="gap-2">
                 <BookOpen className="h-4 w-4" />
-                تصفح المهام
+                {t('taskCart.browseTasks')}
               </Button>
             </CardContent>
           </Card>
@@ -188,7 +188,7 @@ export default function TaskCart() {
                     {item.taskTitle && item.taskQuestion !== item.taskTitle && (
                       <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{item.taskQuestion}</p>
                     )}
-                    <p className="text-xs text-muted-foreground mt-1">بواسطة: {item.teacherName}</p>
+                    <p className="text-xs text-muted-foreground mt-1">{t('taskCart.by')} {item.teacherName}</p>
                     <div className="flex items-center gap-2 mt-1.5">
                       {item.taskSubjectLabel && (
                         <Badge variant="outline" className="text-[10px] py-0">{item.taskSubjectLabel}</Badge>
@@ -202,7 +202,7 @@ export default function TaskCart() {
                     </div>
                   </div>
                   <div className="flex flex-col items-end gap-2 shrink-0">
-                    <span className="text-base font-bold text-green-600">{item.taskPrice} ج.م</span>
+                    <span className="text-base font-bold text-green-600">{item.taskPrice} {t('taskCart.currency')}</span>
                     <Button
                       size="icon"
                       variant="ghost"
@@ -224,18 +224,18 @@ export default function TaskCart() {
           <Card className={`sticky bottom-4 ${isDark ? "bg-gray-900 border-gray-700" : "bg-white border-gray-200"} shadow-lg`}>
             <CardContent className="p-4 space-y-3">
               <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">عدد المهام</span>
+                <span className="text-muted-foreground">{t('taskCart.taskCount')}</span>
                 <span className="font-medium">{items.length}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="font-bold text-lg">المجموع</span>
-                <span className="font-bold text-lg text-green-600">{totalPrice.toFixed(2)} ج.م</span>
+                <span className="font-bold text-lg">{t('taskCart.total')}</span>
+                <span className="font-bold text-lg text-green-600">{totalPrice.toFixed(2)} {t('taskCart.currency')}</span>
               </div>
 
               {!canAfford && (
                 <div className="flex items-center gap-2 p-2 bg-red-50 dark:bg-red-950 rounded-lg text-sm text-red-600">
                   <AlertCircle className="h-4 w-4 shrink-0" />
-                  <span>رصيدك غير كافٍ. تحتاج {(totalPrice - walletBalance).toFixed(2)} ج.م إضافية</span>
+                  <span>{t('taskCart.insufficientBalance', { amount: (totalPrice - walletBalance).toFixed(2) })}</span>
                 </div>
               )}
 
@@ -247,12 +247,12 @@ export default function TaskCart() {
                 {checkout.isPending ? (
                   <>
                     <Loader2 className="h-5 w-5 animate-spin" />
-                    جاري الشراء...
+                    {t('taskCart.purchasing')}
                   </>
                 ) : (
                   <>
                     <CheckCircle className="h-5 w-5" />
-                    شراء الكل ({totalPrice.toFixed(2)} ج.م)
+                    {t('taskCart.buyAll', { amount: totalPrice.toFixed(2) })}
                   </>
                 )}
               </Button>

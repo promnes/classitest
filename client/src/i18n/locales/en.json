@@ -2189,7 +2189,8 @@
     "pinSetFailed": "Failed to set PIN",
     "topUp": "Top Up",
     "balance": "Balance",
-    "rewards": "Rewards"
+    "rewards": "Rewards",
+    "taskMarket": "Educational Task Marketplace"
   },
   "accessibility": {
     "title": "Accessibility Policy",

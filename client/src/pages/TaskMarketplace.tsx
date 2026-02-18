@@ -45,7 +45,7 @@ const SORT_OPTIONS = [
 ];
 
 export default function TaskMarketplace() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [, navigate] = useLocation();
   const { isDark } = useTheme();
   const { toast } = useToast();
@@ -131,7 +131,7 @@ export default function TaskMarketplace() {
   const subjects = [...new Set(tasks.map(t => t.subjectLabel).filter(Boolean))] as string[];
 
   return (
-    <div className={`min-h-screen ${isDark ? "bg-gray-950" : "bg-gray-50"}`} dir="rtl">
+    <div className={`min-h-screen ${isDark ? "bg-gray-950" : "bg-gray-50"}`} dir={i18n.language === 'ar' ? 'rtl' : 'ltr'}>
       {/* Header */}
       <header className={`sticky top-0 z-40 ${isDark ? "bg-gray-900/95 border-gray-800" : "bg-white/95 border-gray-200"} border-b backdrop-blur-sm`}>
         <div className="max-w-5xl mx-auto px-4 py-3">
@@ -143,9 +143,9 @@ export default function TaskMarketplace() {
               <div>
                 <h1 className="text-lg font-bold flex items-center gap-2">
                   <Sparkles className="h-5 w-5 text-purple-500" />
-                  سوق المهام
+                  {t('taskMarketplace.title')}
                 </h1>
-                <p className="text-xs text-muted-foreground">مهام تعليمية من أفضل المعلمين</p>
+                <p className="text-xs text-muted-foreground">{t('taskMarketplace.subtitle')}</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -205,7 +205,7 @@ export default function TaskMarketplace() {
                     : isDark ? "bg-gray-800 text-gray-300" : "bg-gray-100 text-gray-600"
                 }`}
               >
-                الكل
+                {t('taskMarketplace.all')}
               </button>
               {subjects.map(s => (
                 <button
@@ -234,8 +234,8 @@ export default function TaskMarketplace() {
         ) : tasks.length === 0 ? (
           <div className="text-center py-16">
             <BookOpen className="h-16 w-16 mx-auto text-gray-300 mb-4" />
-            <p className="text-lg font-semibold text-muted-foreground">لا توجد مهام حالياً</p>
-            <p className="text-sm text-muted-foreground mt-1">جرّب تغيير معايير البحث</p>
+            <p className="text-lg font-semibold text-muted-foreground">{t('taskMarketplace.noTasks')}</p>
+            <p className="text-sm text-muted-foreground mt-1">{t('taskMarketplace.tryDifferentCriteria')}</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -269,6 +269,7 @@ function TaskCard({
   onTeacherClick: () => void;
   isDark: boolean;
 }) {
+  const { t } = useTranslation();
   return (
     <Card className="overflow-hidden hover:shadow-lg transition-all group">
       {/* Cover image */}
@@ -282,7 +283,7 @@ function TaskCard({
           />
           {task.isPurchased && (
             <div className="absolute top-2 left-2 bg-green-500 text-white text-xs px-2 py-1 rounded-full font-bold">
-              ✓ مُشترى
+              {t('taskMarketplace.purchased')}
             </div>
           )}
         </div>
@@ -340,16 +341,16 @@ function TaskCard({
 
           <div className="flex items-center gap-2">
             {/* Price */}
-            <span className="text-sm font-bold text-green-600">{task.price} ج.م</span>
+            <span className="text-sm font-bold text-green-600">{task.price} {t('taskMarketplace.currency')}</span>
 
             {/* Cart / Purchased button */}
             {task.isPurchased ? (
               <Badge variant="secondary" className="text-xs bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">
-                مُشترى ✓
+                {t('taskMarketplace.purchasedBadge')}
               </Badge>
             ) : task.inCart ? (
               <Badge variant="secondary" className="text-xs bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300">
-                في السلة
+                {t('taskMarketplace.inCart')}
               </Badge>
             ) : (
               <Button
@@ -359,7 +360,7 @@ function TaskCard({
                 onClick={(e) => { e.stopPropagation(); onAddToCart(); }}
               >
                 <ShoppingCart className="h-3 w-3" />
-                أضف
+                {t('taskMarketplace.addBtn')}
               </Button>
             )}
           </div>

@@ -2189,7 +2189,8 @@
     "pinSetFailed": "فشل في تعيين رمز PIN",
     "topUp": "شحن الرصيد",
     "balance": "الرصيد",
-    "rewards": "مكافآت"
+    "rewards": "مكافآت",
+    "taskMarket": "سوق المهام التعليمية"
   },
   "accessibility": {
     "title": "سياسة إمكانية الوصول",
