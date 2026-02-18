@@ -76,7 +76,7 @@ import {
 } from "../../shared/schema";
 import { createNotification } from "../notifications";
 import { emitGiftEvent } from "../giftEvents";
-import { eq, sum, and, isNull, not, or, sql, desc, inArray } from "drizzle-orm";
+import { eq, sum, and, isNull, not, or, sql, desc, inArray, count } from "drizzle-orm";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import { JWT_SECRET, adminMiddleware } from "./middleware";
@@ -5788,6 +5788,65 @@ export async function registerAdminRoutes(app: Express) {
     } catch (error: any) {
       console.error("Fetch legal page error:", error);
       res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to fetch legal page"));
+    }
+  });
+
+  // ===== Admin Own Notifications (incoming) =====
+
+  app.get("/api/admin/own-notifications", adminMiddleware, async (req: any, res) => {
+    try {
+      const adminId = req.admin.adminId;
+      const limit = Math.min(parseInt(req.query.limit as string) || 20, 50);
+      const offset = parseInt(req.query.offset as string) || 0;
+
+      const items = await db.select().from(notifications)
+        .where(eq(notifications.adminId, adminId))
+        .orderBy(desc(notifications.createdAt))
+        .limit(limit).offset(offset);
+
+      const [{ value: total }] = await db.select({ value: count() }).from(notifications)
+        .where(eq(notifications.adminId, adminId));
+
+      res.json({ success: true, data: { items, total: Number(total), limit, offset, hasMore: offset + limit < Number(total) } });
+    } catch (error: any) {
+      console.error("Admin own notifications error:", error);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to fetch notifications"));
+    }
+  });
+
+  app.get("/api/admin/own-notifications/unread-count", adminMiddleware, async (req: any, res) => {
+    try {
+      const adminId = req.admin.adminId;
+      const [{ value: unread }] = await db.select({ value: count() }).from(notifications)
+        .where(and(eq(notifications.adminId, adminId), eq(notifications.isRead, false)));
+      res.json({ success: true, data: { count: Number(unread) } });
+    } catch (error: any) {
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to fetch unread count"));
+    }
+  });
+
+  app.post("/api/admin/own-notifications/read-all", adminMiddleware, async (req: any, res) => {
+    try {
+      const adminId = req.admin.adminId;
+      await db.update(notifications)
+        .set({ isRead: true, readAt: new Date() })
+        .where(and(eq(notifications.adminId, adminId), eq(notifications.isRead, false)));
+      res.json({ success: true, message: "تم تعليم الكل كمقروء" });
+    } catch (error: any) {
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to mark all as read"));
+    }
+  });
+
+  app.post("/api/admin/own-notifications/:id/read", adminMiddleware, async (req: any, res) => {
+    try {
+      const adminId = req.admin.adminId;
+      const { id } = req.params;
+      await db.update(notifications)
+        .set({ isRead: true, readAt: new Date() })
+        .where(and(eq(notifications.id, id), eq(notifications.adminId, adminId)));
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to mark as read"));
     }
   });
 }

@@ -581,17 +581,21 @@ export const notifications = pgTable("notifications", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   parentId: varchar("parent_id").references(() => parents.id, { onDelete: "cascade" }),
   childId: varchar("child_id").references(() => children.id, { onDelete: "cascade" }),
+  libraryId: varchar("library_id").references(() => libraries.id, { onDelete: "cascade" }),
+  schoolId: varchar("school_id").references(() => schools.id, { onDelete: "cascade" }),
+  teacherId: varchar("teacher_id").references(() => schoolTeachers.id, { onDelete: "cascade" }),
+  adminId: varchar("admin_id").references(() => admins.id, { onDelete: "cascade" }),
   type: varchar("type", { length: 30 }).notNull(),
-  title: text("title"), // Phase 1.4: Notification title (e.g., "🎁 Gift Unlocked!")
+  title: text("title"),
   message: text("message").notNull(),
-  style: varchar("style", { length: 20 }).default("toast").notNull(), // Phase 1.4: toast | modal | banner | fullscreen
-  priority: varchar("priority", { length: 20 }).default("normal").notNull(), // Phase 1.4: normal | warning | urgent | blocking
-  soundAlert: boolean("sound_alert").default(false).notNull(), // Phase 1.4: Play sound
-  vibration: boolean("vibration").default(false).notNull(), // Phase 1.4: Vibrate device
+  style: varchar("style", { length: 20 }).default("toast").notNull(),
+  priority: varchar("priority", { length: 20 }).default("normal").notNull(),
+  soundAlert: boolean("sound_alert").default(false).notNull(),
+  vibration: boolean("vibration").default(false).notNull(),
   relatedId: varchar("related_id"),
   isRead: boolean("is_read").default(false).notNull(),
-  readAt: timestamp("read_at"), // Phase 1.4: When child marked as read
-  status: varchar("status", { length: 20 }).default("pending").notNull(), // pending | resolved | read
+  readAt: timestamp("read_at"),
+  status: varchar("status", { length: 20 }).default("pending").notNull(),
   resolvedAt: timestamp("resolved_at"),
   ctaAction: varchar("cta_action", { length: 50 }),
   ctaTarget: text("cta_target"),

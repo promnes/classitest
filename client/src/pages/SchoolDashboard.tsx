@@ -13,6 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
 import { ShareMenu } from "@/components/ui/ShareMenu";
+import { SchoolNotificationBell } from "@/components/AccountNotificationBell";
 import {
   Copy,
   Edit,
@@ -1100,6 +1101,7 @@ export default function SchoolDashboard() {
               className="text-white hover:bg-blue-700"
               buttonLabel="مشاركة"
             />
+            <SchoolNotificationBell />
             <Button variant="ghost" size="icon" className="text-white hover:bg-blue-700" onClick={handleLogout}>
               <LogOut className="h-5 w-5" />
             </Button>

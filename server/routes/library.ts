@@ -12,8 +12,9 @@ import {
   libraryWithdrawalRequests,
   libraryDailyInvoices,
   parents,
+  notifications,
 } from "../../shared/schema";
-import { eq, desc, and, sql, like, or, lte } from "drizzle-orm";
+import { eq, desc, and, sql, like, or, lte, count } from "drizzle-orm";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import { createPresignedUpload, finalizeUpload } from "../services/uploadService";
@@ -1139,6 +1140,69 @@ export async function registerLibraryRoutes(app: Express) {
       res.json({ success: true, data: review, message: "تم إضافة التقييم بنجاح" });
     } catch (error: any) {
       console.error("Library review error:", error);
+      res.status(500).json({ success: false, error: "INTERNAL_SERVER_ERROR" });
+    }
+  });
+
+  // ===== Library Notifications =====
+
+  // GET /api/library/notifications
+  app.get("/api/library/notifications", libraryMiddleware, async (req: any, res) => {
+    try {
+      const libraryId = req.library.libraryId;
+      const limit = Math.min(parseInt(req.query.limit as string) || 20, 50);
+      const offset = parseInt(req.query.offset as string) || 0;
+
+      const items = await db.select().from(notifications)
+        .where(eq(notifications.libraryId, libraryId))
+        .orderBy(desc(notifications.createdAt))
+        .limit(limit).offset(offset);
+
+      const [{ value: total }] = await db.select({ value: count() }).from(notifications)
+        .where(eq(notifications.libraryId, libraryId));
+
+      res.json({ success: true, data: { items, total: Number(total), limit, offset, hasMore: offset + limit < Number(total) } });
+    } catch (error: any) {
+      console.error("Library notifications error:", error);
+      res.status(500).json({ success: false, error: "INTERNAL_SERVER_ERROR" });
+    }
+  });
+
+  // GET /api/library/notifications/unread-count
+  app.get("/api/library/notifications/unread-count", libraryMiddleware, async (req: any, res) => {
+    try {
+      const libraryId = req.library.libraryId;
+      const [{ value: unread }] = await db.select({ value: count() }).from(notifications)
+        .where(and(eq(notifications.libraryId, libraryId), eq(notifications.isRead, false)));
+      res.json({ success: true, data: { count: Number(unread) } });
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: "INTERNAL_SERVER_ERROR" });
+    }
+  });
+
+  // POST /api/library/notifications/read-all
+  app.post("/api/library/notifications/read-all", libraryMiddleware, async (req: any, res) => {
+    try {
+      const libraryId = req.library.libraryId;
+      await db.update(notifications)
+        .set({ isRead: true, readAt: new Date() })
+        .where(and(eq(notifications.libraryId, libraryId), eq(notifications.isRead, false)));
+      res.json({ success: true, message: "تم تعليم الكل كمقروء" });
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: "INTERNAL_SERVER_ERROR" });
+    }
+  });
+
+  // POST /api/library/notifications/:id/read
+  app.post("/api/library/notifications/:id/read", libraryMiddleware, async (req: any, res) => {
+    try {
+      const libraryId = req.library.libraryId;
+      const { id } = req.params;
+      await db.update(notifications)
+        .set({ isRead: true, readAt: new Date() })
+        .where(and(eq(notifications.id, id), eq(notifications.libraryId, libraryId)));
+      res.json({ success: true });
+    } catch (error: any) {
       res.status(500).json({ success: false, error: "INTERNAL_SERVER_ERROR" });
     }
   });

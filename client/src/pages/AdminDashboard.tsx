@@ -20,6 +20,7 @@ import { WalletAnalytics } from "@/components/admin/WalletAnalytics";
 import { PaymentMethodsTab } from "@/components/admin/PaymentMethodsTab";
 import { SubjectsTab } from "@/components/admin/SubjectsTab";
 import { NotificationsTab } from "@/components/admin/NotificationsTab";
+import { AdminNotificationBell } from "@/components/AccountNotificationBell";
 import { ReferralsTab } from "@/components/admin/ReferralsTab";
 import { AdsTab } from "@/components/admin/AdsTab";
 import { ParentsTab } from "@/components/admin/ParentsTab";
@@ -145,6 +146,7 @@ export const AdminDashboard = (): JSX.Element => {
       <div className="flex-1 overflow-auto flex flex-col">
         {/* Header with Language and Theme Toggle */}
         <div className={`flex items-center justify-end gap-2 p-3 border-b ${isDark ? "border-gray-700" : "border-gray-200"}`}>
+          <AdminNotificationBell />
           <LanguageSelector />
           <Button
             size="icon"

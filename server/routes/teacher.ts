@@ -22,8 +22,9 @@ import {
   subjects,
   schoolPolls,
   schoolPollVotes,
+  notifications,
 } from "../../shared/schema";
-import { eq, desc, and, sql, lte } from "drizzle-orm";
+import { eq, desc, and, sql, lte, count } from "drizzle-orm";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import { createPresignedUpload, finalizeUpload } from "../services/uploadService";
@@ -1340,6 +1341,65 @@ export async function registerTeacherRoutes(app: Express) {
     } catch (error: any) {
       console.error("Delete teacher poll error:", error);
       res.status(500).json({ message: "فشل حذف التصويت" });
+    }
+  });
+
+  // ===== Teacher Notifications =====
+
+  app.get("/api/teacher/notifications", teacherMiddleware, async (req: any, res) => {
+    try {
+      const teacherId = req.teacher.teacherId;
+      const limit = Math.min(parseInt(req.query.limit as string) || 20, 50);
+      const offset = parseInt(req.query.offset as string) || 0;
+
+      const items = await db.select().from(notifications)
+        .where(eq(notifications.teacherId, teacherId))
+        .orderBy(desc(notifications.createdAt))
+        .limit(limit).offset(offset);
+
+      const [{ value: total }] = await db.select({ value: count() }).from(notifications)
+        .where(eq(notifications.teacherId, teacherId));
+
+      res.json({ success: true, data: { items, total: Number(total), limit, offset, hasMore: offset + limit < Number(total) } });
+    } catch (error: any) {
+      console.error("Teacher notifications error:", error);
+      res.status(500).json({ success: false, error: "INTERNAL_SERVER_ERROR" });
+    }
+  });
+
+  app.get("/api/teacher/notifications/unread-count", teacherMiddleware, async (req: any, res) => {
+    try {
+      const teacherId = req.teacher.teacherId;
+      const [{ value: unread }] = await db.select({ value: count() }).from(notifications)
+        .where(and(eq(notifications.teacherId, teacherId), eq(notifications.isRead, false)));
+      res.json({ success: true, data: { count: Number(unread) } });
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: "INTERNAL_SERVER_ERROR" });
+    }
+  });
+
+  app.post("/api/teacher/notifications/read-all", teacherMiddleware, async (req: any, res) => {
+    try {
+      const teacherId = req.teacher.teacherId;
+      await db.update(notifications)
+        .set({ isRead: true, readAt: new Date() })
+        .where(and(eq(notifications.teacherId, teacherId), eq(notifications.isRead, false)));
+      res.json({ success: true, message: "تم تعليم الكل كمقروء" });
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: "INTERNAL_SERVER_ERROR" });
+    }
+  });
+
+  app.post("/api/teacher/notifications/:id/read", teacherMiddleware, async (req: any, res) => {
+    try {
+      const teacherId = req.teacher.teacherId;
+      const { id } = req.params;
+      await db.update(notifications)
+        .set({ isRead: true, readAt: new Date() })
+        .where(and(eq(notifications.id, id), eq(notifications.teacherId, teacherId)));
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: "INTERNAL_SERVER_ERROR" });
     }
   });
 }

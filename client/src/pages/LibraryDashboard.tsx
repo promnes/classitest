@@ -14,6 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { getDateLocale } from "@/i18n/config";
 import { queryClient } from "@/lib/queryClient";
+import { LibraryNotificationBell } from "@/components/AccountNotificationBell";
 import { 
   Store, Package, Users, TrendingUp, Plus, Edit, Trash2, 
   Copy, LogOut, Link, Share2, Activity, Truck, ShieldCheck, Wallet, Camera, Loader2, Upload
@@ -619,10 +620,13 @@ export default function LibraryDashboard() {
               <p className="text-sm text-muted-foreground">لوحة تحكم المكتبة</p>
             </div>
           </div>
-          <Button variant="ghost" onClick={handleLogout} data-testid="button-logout">
-            <LogOut className="h-4 w-4 ml-2" />
-            تسجيل الخروج
-          </Button>
+          <div className="flex items-center gap-2">
+            <LibraryNotificationBell />
+            <Button variant="ghost" onClick={handleLogout} data-testid="button-logout">
+              <LogOut className="h-4 w-4 ml-2" />
+              تسجيل الخروج
+            </Button>
+          </div>
         </div>
       </header>
 

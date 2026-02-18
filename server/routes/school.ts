@@ -19,8 +19,9 @@ import {
   schoolPollVotes,
   follows,
   teacherTransfers,
+  notifications,
 } from "../../shared/schema";
-import { eq, desc, and, sql, like, or } from "drizzle-orm";
+import { eq, desc, and, sql, like, or, count } from "drizzle-orm";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import { createPresignedUpload, finalizeUpload } from "../services/uploadService";
@@ -1648,6 +1649,65 @@ export async function registerSchoolRoutes(app: Express) {
     } catch (error: any) {
       console.error("Check votes error:", error);
       res.status(500).json({ message: "فشل فحص التصويتات" });
+    }
+  });
+
+  // ===== School Notifications =====
+
+  app.get("/api/school/notifications", schoolMiddleware, async (req: any, res) => {
+    try {
+      const schoolId = req.school.schoolId;
+      const limit = Math.min(parseInt(req.query.limit as string) || 20, 50);
+      const offset = parseInt(req.query.offset as string) || 0;
+
+      const items = await db.select().from(notifications)
+        .where(eq(notifications.schoolId, schoolId))
+        .orderBy(desc(notifications.createdAt))
+        .limit(limit).offset(offset);
+
+      const [{ value: total }] = await db.select({ value: count() }).from(notifications)
+        .where(eq(notifications.schoolId, schoolId));
+
+      res.json({ success: true, data: { items, total: Number(total), limit, offset, hasMore: offset + limit < Number(total) } });
+    } catch (error: any) {
+      console.error("School notifications error:", error);
+      res.status(500).json({ success: false, error: "INTERNAL_SERVER_ERROR" });
+    }
+  });
+
+  app.get("/api/school/notifications/unread-count", schoolMiddleware, async (req: any, res) => {
+    try {
+      const schoolId = req.school.schoolId;
+      const [{ value: unread }] = await db.select({ value: count() }).from(notifications)
+        .where(and(eq(notifications.schoolId, schoolId), eq(notifications.isRead, false)));
+      res.json({ success: true, data: { count: Number(unread) } });
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: "INTERNAL_SERVER_ERROR" });
+    }
+  });
+
+  app.post("/api/school/notifications/read-all", schoolMiddleware, async (req: any, res) => {
+    try {
+      const schoolId = req.school.schoolId;
+      await db.update(notifications)
+        .set({ isRead: true, readAt: new Date() })
+        .where(and(eq(notifications.schoolId, schoolId), eq(notifications.isRead, false)));
+      res.json({ success: true, message: "تم تعليم الكل كمقروء" });
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: "INTERNAL_SERVER_ERROR" });
+    }
+  });
+
+  app.post("/api/school/notifications/:id/read", schoolMiddleware, async (req: any, res) => {
+    try {
+      const schoolId = req.school.schoolId;
+      const { id } = req.params;
+      await db.update(notifications)
+        .set({ isRead: true, readAt: new Date() })
+        .where(and(eq(notifications.id, id), eq(notifications.schoolId, schoolId)));
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: "INTERNAL_SERVER_ERROR" });
     }
   });
 }
