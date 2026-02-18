@@ -1290,7 +1290,7 @@ export default function SchoolDashboard() {
                         >
                           💬 {post.commentsCount} تعليق
                         </button>
-                        <span>{new Date(post.createdAt).toLocaleDateString("ar")}</span>
+                        <span>{new Date(post.createdAt).toLocaleString("ar-EG", { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</span>
                       </div>
 
                       {/* Comments section */}
@@ -1548,8 +1548,8 @@ export default function SchoolDashboard() {
                         <div className="flex items-center justify-between pt-2 border-t">
                           <div className="text-xs text-muted-foreground flex items-center gap-3">
                             <span>👥 {poll.votersCount} مصوّت</span>
-                            <span>{new Date(poll.createdAt).toLocaleDateString("ar")}</span>
-                            {poll.expiresAt && <span>⏰ {new Date(poll.expiresAt).toLocaleDateString("ar")}</span>}
+                            <span>{new Date(poll.createdAt).toLocaleString("ar-EG", { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</span>
+                            {poll.expiresAt && <span>⏰ {new Date(poll.expiresAt).toLocaleString("ar-EG", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</span>}
                           </div>
                           <div className="flex gap-1">
                             <Button
@@ -1715,7 +1715,7 @@ export default function SchoolDashboard() {
                         <div className="flex items-center gap-4">
                           <span>❤️ {post.likesCount}</span>
                           <span>💬 {post.commentsCount}</span>
-                          <span>{new Date(post.createdAt).toLocaleDateString("ar")}</span>
+                          <span>{new Date(post.createdAt).toLocaleString("ar-EG", { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</span>
                         </div>
                         <Button size="sm" variant="ghost" onClick={() => togglePostComments(post.id)}>
                           <MessageSquare className="h-4 w-4 ml-1" />

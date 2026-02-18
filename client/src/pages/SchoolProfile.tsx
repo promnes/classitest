@@ -545,7 +545,7 @@ export default function SchoolProfile() {
                               </p>
                               <div className="flex items-center gap-1 text-xs text-muted-foreground">
                                 <Clock className="h-3 w-3" />
-                                {new Date(post.createdAt).toLocaleDateString("ar-EG", { year: "numeric", month: "long", day: "numeric" })}
+                                {new Date(post.createdAt).toLocaleString("ar-EG", { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
                                 {post.isPinned && <Badge variant="outline" className="mr-1 text-xs py-0 px-1">مثبت</Badge>}
                               </div>
                             </div>
@@ -748,7 +748,7 @@ export default function SchoolProfile() {
                               </p>
                               <div className="flex items-center gap-1 text-xs text-muted-foreground">
                                 <Clock className="h-3 w-3" />
-                                {new Date(poll.createdAt).toLocaleDateString("ar-EG", { year: "numeric", month: "long", day: "numeric" })}
+                                {new Date(poll.createdAt).toLocaleString("ar-EG", { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
                               </div>
                             </div>
                             <div className="flex gap-1">
