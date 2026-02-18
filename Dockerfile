@@ -60,7 +60,7 @@ RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 appuser
 
 # Copy package files
-COPY package*.json ./
+COPY --chown=appuser:nodejs package*.json ./
 
 # Install ONLY production deps + migration tools
 # (drizzle-kit, tsx needed for db:push at startup)
@@ -72,22 +72,23 @@ RUN if [ -f package-lock.json ]; then \
     npm install --no-save drizzle-kit tsx && \
     npm cache clean --force
 
-# Copy built application from builder
-COPY --from=builder /app/dist ./dist
+# Copy built application from builder (already owned by appuser)
+COPY --chown=appuser:nodejs --from=builder /app/dist ./dist
 
 # Copy database schema and migrations (needed for db:push)
-COPY --from=builder /app/shared ./shared
-COPY --from=builder /app/migrations ./migrations
-COPY --from=builder /app/drizzle.config.ts ./
-COPY --from=builder /app/tsconfig.json ./
+COPY --chown=appuser:nodejs --from=builder /app/shared ./shared
+COPY --chown=appuser:nodejs --from=builder /app/migrations ./migrations
+COPY --chown=appuser:nodejs --from=builder /app/drizzle.config.ts ./
+COPY --chown=appuser:nodejs --from=builder /app/tsconfig.json ./
 
 # Copy scripts (entrypoint + maintenance tools)
-COPY --from=builder /app/scripts ./scripts
+COPY --chown=appuser:nodejs --from=builder /app/scripts ./scripts
 RUN chmod +x ./scripts/docker-entrypoint.sh
 
-# Create persistent directories
+# Create persistent directories and fix ownership for writable dirs only
+# (node_modules ownership stays root — read-only is fine, avoids slow recursive chown)
 RUN mkdir -p /app/uploads /app/logs && \
-    chown -R appuser:nodejs /app
+    chown -R appuser:nodejs /app/uploads /app/logs /app/node_modules
 
 # Switch to non-root user
 USER appuser
