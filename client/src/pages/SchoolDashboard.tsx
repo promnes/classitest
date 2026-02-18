@@ -1666,7 +1666,7 @@ export default function SchoolDashboard() {
                       <img src={profile.imageUrl} alt="" className="absolute inset-0 w-full h-full object-cover" onError={(e) => { e.currentTarget.style.display = 'none' }} />
                     )}
                   </div>
-                  <div className="flex-1">
+                  <div className="flex-1 relative z-10">
                     <h2 className="text-xl sm:text-2xl font-bold">{profile?.name || "المدرسة"}</h2>
                     {profile?.nameAr && <p className="text-muted-foreground text-sm">{profile.nameAr}</p>}
                     {profile?.description && <p className="text-sm mt-1 text-muted-foreground">{profile.description}</p>}
@@ -1681,7 +1681,7 @@ export default function SchoolDashboard() {
                       {profile?.phoneNumber && <span>{profile.phoneNumber}</span>}
                     </div>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 relative z-10">
                     <Button variant="outline" onClick={openEditProfile}>
                       <Edit className="h-4 w-4 ml-1" />
                       تعديل البيانات
