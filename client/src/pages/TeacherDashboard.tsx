@@ -1071,7 +1071,7 @@ export default function TeacherDashboard() {
               <Card><CardContent className="p-8 text-center text-muted-foreground">لا يوجد منشورات بعد</CardContent></Card>
             ) : (
               <div className="space-y-4">
-                {posts.map((post: Post) => (
+                {[...posts].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).map((post: Post) => (
                   <Card key={post.id}>
                     <CardContent className="p-4">
                       <div className="flex justify-between items-start">
@@ -1117,7 +1117,10 @@ export default function TeacherDashboard() {
               <Card><CardContent className="p-8 text-center text-muted-foreground">لا يوجد تصويتات بعد</CardContent></Card>
             ) : (
               <div className="space-y-4">
-                {teacherPolls.map((poll: any) => {
+                {[...teacherPolls].sort((a: any, b: any) => {
+                  if (a.isPinned !== b.isPinned) return a.isPinned ? -1 : 1;
+                  return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+                }).map((poll: any) => {
                   const isExpired = poll.expiresAt && new Date(poll.expiresAt) < new Date();
                   return (
                     <Card key={poll.id} className={`overflow-hidden ${poll.isPinned ? "border-green-400 border-2" : ""}`}>

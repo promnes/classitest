@@ -1227,7 +1227,10 @@ export default function SchoolDashboard() {
               <Card><CardContent className="p-8 text-center text-muted-foreground">لا يوجد منشورات بعد</CardContent></Card>
             ) : (
               <div className="space-y-4">
-                {feed.map((post) => (
+                {[...feed].sort((a, b) => {
+                  if (a.isPinned !== b.isPinned) return a.isPinned ? -1 : 1;
+                  return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+                }).map((post) => (
                   <Card key={post.id}>
                     <CardContent className="p-4 space-y-3">
                       <div className="flex items-start justify-between gap-2">
@@ -1486,7 +1489,10 @@ export default function SchoolDashboard() {
               <Card><CardContent className="p-8 text-center text-muted-foreground">لا يوجد تصويتات بعد</CardContent></Card>
             ) : (
               <div className="space-y-4">
-                {polls.map((poll) => {
+                {[...polls].sort((a, b) => {
+                  if (a.isPinned !== b.isPinned) return a.isPinned ? -1 : 1;
+                  return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+                }).map((poll) => {
                   const isExpired = poll.expiresAt && new Date(poll.expiresAt) < new Date();
                   const maxVotes = Math.max(1, ...Object.values(poll.optionCounts || {}));
                   return (
@@ -1660,7 +1666,10 @@ export default function SchoolDashboard() {
               <Card><CardContent className="p-8 text-center text-muted-foreground">لا يوجد منشورات بعد</CardContent></Card>
             ) : (
               <div className="space-y-4">
-                {feed.map((post) => (
+                {[...feed].sort((a, b) => {
+                  if (a.isPinned !== b.isPinned) return a.isPinned ? -1 : 1;
+                  return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+                }).map((post) => (
                   <Card key={post.id}>
                     <CardContent className="p-4 space-y-3">
                       <div className="flex items-start justify-between gap-2">

@@ -512,7 +512,10 @@ export default function SchoolProfile() {
                     </CardContent>
                   </Card>
                 ) : (
-                  school.posts.map((post: any) => {
+                  [...school.posts].sort((a: any, b: any) => {
+                    if (a.isPinned !== b.isPinned) return a.isPinned ? -1 : 1;
+                    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+                  }).map((post: any) => {
                     const isLong = post.content?.length > 300;
                     const expanded = expandedPosts[post.id];
                     return (
@@ -710,7 +713,10 @@ export default function SchoolProfile() {
                     </CardContent>
                   </Card>
                 ) : (
-                  polls.map((poll: any) => {
+                  [...polls].sort((a: any, b: any) => {
+                    if (a.isPinned !== b.isPinned) return a.isPinned ? -1 : 1;
+                    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+                  }).map((poll: any) => {
                     const hasVoted = !!votedPolls[poll.id];
                     const myVotes = votedPolls[poll.id] || [];
                     const isExpired = poll.expiresAt && new Date(poll.expiresAt) < new Date();
