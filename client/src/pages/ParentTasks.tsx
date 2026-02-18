@@ -1,6 +1,6 @@
 import { useState, type ChangeEvent } from "react";
 import { useTranslation } from "react-i18next";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { useTheme } from "@/contexts/ThemeContext";
 import { ParentNotificationBell } from "@/components/NotificationBell";
@@ -17,7 +17,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { ArrowRight, Plus, Star, Users, BookOpen, Send, Coins, Loader2, Calendar, Clock, X, Pencil, Wallet } from "lucide-react";
+import { ArrowRight, Plus, Star, Users, BookOpen, Send, Coins, Loader2, Calendar, Clock, X, Pencil, Wallet, ShoppingCart, Heart, Sparkles, Search, ShoppingBag } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { TaskForm, type TaskFormValue } from "@/components/forms/TaskForm";
 
@@ -26,6 +26,8 @@ export default function ParentTasks() {
   const [, navigate] = useLocation();
   const { isDark } = useTheme();
   const { toast } = useToast();
+  const qc = useQueryClient();
+  const token = localStorage.getItem("token");
 
   const [activeTab, setActiveTab] = useState("classy");
   const [selectedSubject, setSelectedSubject] = useState<string>("");
@@ -96,6 +98,73 @@ export default function ParentTasks() {
   const { data: walletData } = useQuery<any>({
     queryKey: ["/api/parent/wallet"],
   });
+
+  // Marketplace state & queries
+  const [marketSearch, setMarketSearch] = useState("");
+  const { data: browseData, isLoading: loadingBrowse } = useQuery<any>({
+    queryKey: ["browse-tasks", marketSearch],
+    queryFn: async () => {
+      const params = new URLSearchParams({ sort: "popular", limit: "12" });
+      if (marketSearch.trim().length >= 2) params.set("q", marketSearch.trim());
+      const res = await fetch(`/api/parent/browse-tasks?${params}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error("Failed");
+      const json = await res.json();
+      return json.data;
+    },
+    enabled: activeTab === "marketplace" && !!token,
+  });
+
+  const { data: cartData } = useQuery<any>({
+    queryKey: ["cart-count"],
+    queryFn: async () => {
+      const res = await fetch("/api/parent/cart/count", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) return { count: 0 };
+      const json = await res.json();
+      return json.data;
+    },
+    enabled: !!token,
+  });
+
+  const likeMutation = useMutation({
+    mutationFn: async (taskId: string) => {
+      const res = await fetch(`/api/parent/tasks/${taskId}/like`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error("Failed");
+      return res.json();
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["browse-tasks"] }),
+    onError: () => toast({ title: t("taskMarketplace.errorOccurred"), variant: "destructive" }),
+  });
+
+  const addToCartMutation = useMutation({
+    mutationFn: async (teacherTaskId: string) => {
+      const res = await fetch("/api/parent/cart/add", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ teacherTaskId }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || "Failed");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["cart-count"] });
+      qc.invalidateQueries({ queryKey: ["browse-tasks"] });
+      toast({ title: t("taskMarketplace.addedToCart") });
+    },
+    onError: (err: any) => toast({ title: err.message, variant: "destructive" }),
+  });
+
+  const browseTasks = browseData?.tasks || [];
+  const cartCount = cartData?.count || 0;
 
   const subjects = subjectsData?.data || subjectsData || [];
   const children = childrenData?.data || childrenData || [];
@@ -542,7 +611,7 @@ export default function ParentTasks() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="classy" data-testid="tab-classy">
               <BookOpen className="h-4 w-4 ml-2" />
               {t("parentTasks.tabClassy")}
@@ -554,6 +623,15 @@ export default function ParentTasks() {
             <TabsTrigger value="public" data-testid="tab-public">
               <Users className="h-4 w-4 ml-2" />
               {t("parentTasks.tabPublic")}
+            </TabsTrigger>
+            <TabsTrigger value="marketplace" data-testid="tab-marketplace" className="relative">
+              <Sparkles className="h-4 w-4 ml-2" />
+              {t("parentTasks.tabMarketplace")}
+              {cartCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] rounded-full h-4 w-4 flex items-center justify-center font-bold">
+                  {cartCount}
+                </span>
+              )}
             </TabsTrigger>
           </TabsList>
 
@@ -638,6 +716,147 @@ export default function ParentTasks() {
                   ))
                 )}
               </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="marketplace" className="mt-4">
+            {/* Search + Cart */}
+            <div className="flex items-center gap-3 mb-4">
+              <div className="relative flex-1">
+                <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  value={marketSearch}
+                  onChange={(e) => setMarketSearch(e.target.value)}
+                  placeholder={t("taskMarketplace.searchPlaceholder")}
+                  className="pr-10 rounded-xl"
+                />
+              </div>
+              <Button
+                variant="outline"
+                className="relative shrink-0"
+                onClick={() => navigate("/task-cart")}
+              >
+                <ShoppingCart className="h-4 w-4 ml-2" />
+                {t("parentTasks.cart")}
+                {cartCount > 0 && (
+                  <Badge className="mr-2 bg-red-500 text-white text-xs px-1.5">{cartCount}</Badge>
+                )}
+              </Button>
+            </div>
+
+            {loadingBrowse ? (
+              <div className="flex justify-center p-8">
+                <Loader2 className="h-8 w-8 animate-spin text-purple-500" />
+              </div>
+            ) : browseTasks.length === 0 ? (
+              <Card className={isDark ? "bg-gray-800" : ""}>
+                <CardContent className="p-8 text-center">
+                  <ShoppingBag className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                  <p className="text-muted-foreground">{t("taskMarketplace.noTasks")}</p>
+                  <p className="text-sm text-muted-foreground mt-1">{t("taskMarketplace.tryDifferentCriteria")}</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {browseTasks.map((task: any) => (
+                    <Card key={task.id} className={`overflow-hidden hover:shadow-lg transition-all ${isDark ? "bg-gray-800 border-gray-700" : ""}`}>
+                      {task.coverImageUrl && (
+                        <div className="relative h-32 overflow-hidden">
+                          <img
+                            src={task.coverImageUrl}
+                            alt=""
+                            className="w-full h-full object-cover"
+                            onError={(e) => { e.currentTarget.style.display = "none"; }}
+                          />
+                          {task.isPurchased && (
+                            <div className="absolute top-2 left-2 bg-green-500 text-white text-xs px-2 py-1 rounded-full font-bold">
+                              {t("taskMarketplace.purchased")}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      <CardContent className="p-4">
+                        {/* Teacher */}
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="w-6 h-6 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-[10px] font-bold overflow-hidden">
+                            {task.teacherAvatar ? (
+                              <img src={task.teacherAvatar} alt="" className="w-full h-full object-cover" />
+                            ) : (
+                              task.teacherName?.charAt(0) || "?"
+                            )}
+                          </div>
+                          <span className="text-xs text-muted-foreground">{task.teacherName}</span>
+                        </div>
+
+                        <h3 className="font-bold text-sm line-clamp-2 mb-1">{task.title || task.question}</h3>
+                        {task.title && task.question !== task.title && (
+                          <p className="text-xs text-muted-foreground line-clamp-2 mb-2">{task.question}</p>
+                        )}
+
+                        {/* Badges */}
+                        <div className="flex flex-wrap gap-1.5 mb-3">
+                          {task.subjectLabel && (
+                            <Badge variant="outline" className="text-[10px] py-0">{task.subjectLabel}</Badge>
+                          )}
+                          {task.pointsReward > 0 && (
+                            <Badge variant="secondary" className="text-[10px] py-0 gap-0.5">
+                              <Star className="h-2.5 w-2.5" /> {task.pointsReward}
+                            </Badge>
+                          )}
+                        </div>
+
+                        {/* Actions */}
+                        <div className="flex items-center justify-between gap-2 pt-2 border-t">
+                          <button
+                            onClick={() => likeMutation.mutate(task.id)}
+                            className={`flex items-center gap-1 text-xs transition-colors ${
+                              task.isLiked ? "text-red-500" : "text-muted-foreground hover:text-red-500"
+                            }`}
+                          >
+                            <Heart className={`h-4 w-4 ${task.isLiked ? "fill-red-500" : ""}`} />
+                            <span>{task.likesCount || 0}</span>
+                          </button>
+
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-bold text-green-600">{task.price} {t("taskMarketplace.currency")}</span>
+                            {task.isPurchased ? (
+                              <Badge variant="secondary" className="text-xs bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">
+                                {t("taskMarketplace.purchasedBadge")}
+                              </Badge>
+                            ) : task.inCart ? (
+                              <Badge variant="secondary" className="text-xs bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300">
+                                {t("taskMarketplace.inCart")}
+                              </Badge>
+                            ) : (
+                              <Button
+                                size="sm"
+                                className="h-7 text-xs px-3 bg-purple-600 hover:bg-purple-700 gap-1"
+                                onClick={() => addToCartMutation.mutate(task.id)}
+                              >
+                                <ShoppingCart className="h-3 w-3" />
+                                {t("taskMarketplace.addBtn")}
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+
+                {/* Browse all link */}
+                <div className="text-center mt-6">
+                  <Button
+                    variant="outline"
+                    className="gap-2"
+                    onClick={() => navigate("/task-marketplace")}
+                  >
+                    <Sparkles className="h-4 w-4" />
+                    {t("parentTasks.browseAllMarketplace")}
+                  </Button>
+                </div>
+              </>
             )}
           </TabsContent>
         </Tabs>
