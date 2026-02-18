@@ -3029,6 +3029,17 @@
     "noGames": "Nenhum jogo disponível",
     "play": "Jogar"
   },
+  "memoryGame": {
+    "title": "Jogo da Memória",
+    "moves": "Jogadas",
+    "pairs": "Pares",
+    "time": "Tempo",
+    "hiddenCard": "Carta escondida",
+    "congratulations": "Parabéns! 🎉",
+    "completedIn": "Você completou em {{moves}} jogadas e {{time}}",
+    "playAgain": "Jogar Novamente",
+    "startHint": "Toque em qualquer carta para começar!"
+  },
   "phoneInput": {
     "saudiArabia": "Arábia Saudita",
     "egypt": "Egito",

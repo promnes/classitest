@@ -3107,6 +3107,17 @@
     "noGames": "No games available",
     "play": "Play"
   },
+  "memoryGame": {
+    "title": "Memory Match",
+    "moves": "Moves",
+    "pairs": "Pairs",
+    "time": "Time",
+    "hiddenCard": "Hidden card",
+    "congratulations": "Congratulations! 🎉",
+    "completedIn": "You completed in {{moves}} moves and {{time}}",
+    "playAgain": "Play Again",
+    "startHint": "Tap any card to begin!"
+  },
   "phoneInput": {
     "saudiArabia": "Saudi Arabia",
     "egypt": "Egypt",
