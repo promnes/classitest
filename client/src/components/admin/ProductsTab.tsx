@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
+import { useToast } from "@/hooks/use-toast";
 import {
   Plus, Edit, Trash2, Package, Eye, Search, Star,
   Image, Tag, BarChart3, X, Copy, ShoppingCart,
@@ -49,6 +50,7 @@ const PRODUCT_TYPES = [
 
 export function ProductsTab({ token }: { token: string }) {
   const queryClient = useQueryClient();
+  const { toast } = useToast();
   const [showModal, setShowModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [previewImage, setPreviewImage] = useState(false);
@@ -81,7 +83,7 @@ export function ProductsTab({ token }: { token: string }) {
         headers: { Authorization: `Bearer ${token}` },
       });
       const json = await res.json();
-      if (!res.ok) return [];
+      if (!res.ok) throw new Error(json?.message || "Failed to fetch products");
       return (json?.data || []) as Product[];
     },
   });
@@ -107,7 +109,8 @@ export function ProductsTab({ token }: { token: string }) {
       if (!res.ok) { const j = await res.json(); throw new Error(j?.message || "Failed"); }
       return res.json();
     },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["admin-products"] }); resetForm(); },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["admin-products"] }); resetForm(); toast({ title: "تم إنشاء المنتج بنجاح" }); },
+    onError: (err: Error) => toast({ title: err.message || "فشل في إنشاء المنتج", variant: "destructive" }),
   });
 
   const updateMutation = useMutation({
@@ -117,10 +120,11 @@ export function ProductsTab({ token }: { token: string }) {
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify(data),
       });
-      if (!res.ok) throw new Error("Failed to update");
+      if (!res.ok) { const j = await res.json(); throw new Error(j?.message || "Failed to update"); }
       return res.json();
     },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["admin-products"] }); resetForm(); },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["admin-products"] }); resetForm(); toast({ title: "تم تحديث المنتج بنجاح" }); },
+    onError: (err: Error) => toast({ title: err.message || "فشل في تحديث المنتج", variant: "destructive" }),
   });
 
   const deleteMutation = useMutation({
@@ -129,10 +133,11 @@ export function ProductsTab({ token }: { token: string }) {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (!res.ok) throw new Error("Failed to delete");
+      if (!res.ok) { const j = await res.json(); throw new Error(j?.message || "Failed to delete"); }
       return res.json();
     },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["admin-products"] }); },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["admin-products"] }); toast({ title: "تم حذف المنتج" }); },
+    onError: (err: Error) => toast({ title: err.message || "فشل في حذف المنتج", variant: "destructive" }),
   });
 
   const duplicateMutation = useMutation({
@@ -159,7 +164,8 @@ export function ProductsTab({ token }: { token: string }) {
       });
       return res.json();
     },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["admin-products"] }); },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["admin-products"] }); toast({ title: "تم نسخ المنتج بنجاح" }); },
+    onError: (err: Error) => toast({ title: err.message || "فشل في نسخ المنتج", variant: "destructive" }),
   });
 
   const resetForm = () => {

@@ -402,7 +402,7 @@ export async function registerAdminRoutes(app: Express) {
   // Get Admin Products
   app.get("/api/admin/products", adminMiddleware, async (req: any, res) => {
     try {
-      const result = await db.select().from(products);
+      const result = await db.select().from(products).orderBy(desc(products.createdAt));
       res.json(successResponse(result));
     } catch (error: any) {
       console.error("Fetch products error:", error);
@@ -503,10 +503,20 @@ export async function registerAdminRoutes(app: Express) {
   app.delete("/api/admin/products/:id", adminMiddleware, async (req: any, res) => {
     try {
       const { id } = req.params;
+
+      // Check if product has related orders or purchases
+      const relatedOrders = await db.select({ id: orders.id }).from(orders).where(eq(orders.productId, id)).limit(1);
+      if (relatedOrders.length > 0) {
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "لا يمكن حذف المنتج لوجود طلبات مرتبطة به. يمكنك إيقافه بدلاً من ذلك."));
+      }
+
       await db.delete(products).where(eq(products.id, id));
       res.json(successResponse(undefined, "Product deleted"));
     } catch (error: any) {
       console.error("Delete product error:", error);
+      if (error?.code === "23503") {
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "لا يمكن حذف المنتج لوجود بيانات مرتبطة به"));
+      }
       res
         .status(500)
         .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to delete product"));
@@ -558,8 +568,16 @@ export async function registerAdminRoutes(app: Express) {
     try {
       const { id } = req.params;
       const { name, nameAr, icon, color, sortOrder, isActive } = req.body;
+      const setData: Record<string, any> = {};
+      if (name !== undefined) setData['name'] = name;
+      if (nameAr !== undefined) setData['nameAr'] = nameAr;
+      if (icon !== undefined) setData['icon'] = icon;
+      if (color !== undefined) setData['color'] = color;
+      if (sortOrder !== undefined) setData['sortOrder'] = sortOrder;
+      if (isActive !== undefined) setData['isActive'] = isActive;
+
       const result = await db.update(productCategories)
-        .set({ name, nameAr, icon, color, sortOrder, isActive })
+        .set(setData)
         .where(eq(productCategories.id, id))
         .returning();
       if (!result[0]) {
