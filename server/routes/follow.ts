@@ -248,6 +248,7 @@ export function registerFollowRoutes(app: Express) {
         id: schoolTeachers.id,
         name: schoolTeachers.name,
         avatarUrl: schoolTeachers.avatarUrl,
+        coverImageUrl: schoolTeachers.coverImageUrl,
         bio: schoolTeachers.bio,
         subject: schoolTeachers.subject,
         yearsExperience: schoolTeachers.yearsExperience,

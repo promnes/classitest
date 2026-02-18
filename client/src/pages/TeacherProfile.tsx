@@ -204,6 +204,7 @@ export default function TeacherProfile() {
           name={teacher.name}
           bio={teacher.bio}
           avatarUrl={teacher.avatarUrl}
+          coverImageUrl={teacher.coverImageUrl}
           governorate=""
           socialLinks={teacher.socialLinks}
           entityType="teacher"
