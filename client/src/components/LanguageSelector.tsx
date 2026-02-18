@@ -42,7 +42,7 @@ export const LanguageSelector: React.FC = () => {
 
       {isOpen && (
         <div
-          className={`absolute top-12 right-0 min-w-max rounded-xl shadow-2xl z-50 overflow-hidden border-2 ${
+          className={`absolute top-12 ltr:right-0 rtl:left-0 min-w-max rounded-xl shadow-2xl z-50 overflow-hidden border-2 ${
             isDark
               ? "bg-gray-800 border-gray-600"
               : "bg-white border-purple-300"
