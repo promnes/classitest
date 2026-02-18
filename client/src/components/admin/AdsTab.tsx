@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
+import { useToast } from "@/hooks/use-toast";
 import {
   Plus,
   Edit,
@@ -16,6 +17,7 @@ import {
   Calendar,
   Link2,
   Image,
+  Upload,
   BarChart3,
   ArrowUpDown,
   Globe,
@@ -56,9 +58,12 @@ const PRIORITY_PRESETS = [
 
 export function AdsTab({ token }: { token: string }) {
   const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [showModal, setShowModal] = useState(false);
   const [editingAd, setEditingAd] = useState<Ad | null>(null);
   const [previewImage, setPreviewImage] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [sortBy, setSortBy] = useState<"priority" | "views" | "clicks" | "date">("date");
   const [filterAudience, setFilterAudience] = useState<string>("all-filter");
   const [form, setForm] = useState({
@@ -89,13 +94,25 @@ export function AdsTab({ token }: { token: string }) {
       const res = await fetch("/api/admin/ads", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          ...data,
+          imageUrl: data.imageUrl || null,
+          linkUrl: data.linkUrl || null,
+          startDate: data.startDate || null,
+          endDate: data.endDate || null,
+        }),
       });
-      return res.json();
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.message || "فشل إنشاء الإعلان");
+      return json;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-ads"] });
       resetForm();
+      toast({ title: "تم إنشاء الإعلان بنجاح ✅" });
+    },
+    onError: (err: Error) => {
+      toast({ title: "خطأ في إنشاء الإعلان", description: err.message, variant: "destructive" });
     },
   });
 
@@ -104,13 +121,25 @@ export function AdsTab({ token }: { token: string }) {
       const res = await fetch(`/api/admin/ads/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          ...data,
+          imageUrl: data.imageUrl || null,
+          linkUrl: data.linkUrl || null,
+          startDate: data.startDate || null,
+          endDate: data.endDate || null,
+        }),
       });
-      return res.json();
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.message || "فشل تحديث الإعلان");
+      return json;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-ads"] });
       resetForm();
+      toast({ title: "تم تحديث الإعلان بنجاح ✅" });
+    },
+    onError: (err: Error) => {
+      toast({ title: "خطأ في تحديث الإعلان", description: err.message, variant: "destructive" });
     },
   });
 
@@ -120,10 +149,16 @@ export function AdsTab({ token }: { token: string }) {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       });
-      return res.json();
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.message || "فشل حذف الإعلان");
+      return json;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-ads"] });
+      toast({ title: "تم حذف الإعلان بنجاح 🗑️" });
+    },
+    onError: (err: Error) => {
+      toast({ title: "خطأ في حذف الإعلان", description: err.message, variant: "destructive" });
     },
   });
 
@@ -133,10 +168,16 @@ export function AdsTab({ token }: { token: string }) {
         method: "PATCH",
         headers: { Authorization: `Bearer ${token}` },
       });
-      return res.json();
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.message || "فشل تبديل الحالة");
+      return json;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-ads"] });
+      toast({ title: "تم تبديل حالة الإعلان ✅" });
+    },
+    onError: (err: Error) => {
+      toast({ title: "خطأ في تبديل الحالة", description: err.message, variant: "destructive" });
     },
   });
 
@@ -157,10 +198,16 @@ export function AdsTab({ token }: { token: string }) {
           endDate: ad.endDate,
         }),
       });
-      return res.json();
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.message || "فشل نسخ الإعلان");
+      return json;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-ads"] });
+      toast({ title: "تم نسخ الإعلان بنجاح 📋" });
+    },
+    onError: (err: Error) => {
+      toast({ title: "خطأ في نسخ الإعلان", description: err.message, variant: "destructive" });
     },
   });
 
@@ -168,6 +215,7 @@ export function AdsTab({ token }: { token: string }) {
     setShowModal(false);
     setEditingAd(null);
     setPreviewImage(false);
+    setUploadingImage(false);
     setForm({
       title: "",
       content: "",
@@ -179,6 +227,29 @@ export function AdsTab({ token }: { token: string }) {
       startDate: "",
       endDate: "",
     });
+  };
+
+  const handleImageUpload = async (file: File) => {
+    setUploadingImage(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch("/api/admin/upload-public-image", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.message || "فشل رفع الصورة");
+      const data = json.data || json;
+      setForm((prev) => ({ ...prev, imageUrl: data.fullUrl || data.url }));
+      setPreviewImage(true);
+      toast({ title: "تم رفع الصورة بنجاح ✅" });
+    } catch (err: any) {
+      toast({ title: "فشل رفع الصورة", description: err.message, variant: "destructive" });
+    } finally {
+      setUploadingImage(false);
+    }
   };
 
   const openEdit = (ad: Ad) => {
@@ -386,7 +457,18 @@ export function AdsTab({ token }: { token: string }) {
                     {/* Image thumbnail */}
                     {ad.imageUrl && (
                       <div className="shrink-0">
-                        <img src={ad.imageUrl} alt={ad.title} className="w-24 h-16 sm:w-32 sm:h-20 object-cover rounded-lg ring-1 ring-gray-200 dark:ring-gray-700" />
+                        <img
+                          src={ad.imageUrl}
+                          alt={ad.title}
+                          className="w-24 h-16 sm:w-32 sm:h-20 object-cover rounded-lg ring-1 ring-gray-200 dark:ring-gray-700"
+                          onError={(e) => {
+                            const img = e.target as HTMLImageElement;
+                            img.style.display = "none";
+                            if (img.parentElement) {
+                              img.parentElement.innerHTML = '<div class="w-24 h-16 sm:w-32 sm:h-20 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center"><span class="text-gray-400 text-xs">صورة غير متاحة</span></div>';
+                            }
+                          }}
+                        />
                       </div>
                     )}
 
@@ -523,11 +605,11 @@ export function AdsTab({ token }: { token: string }) {
                 <p className="text-xs text-muted-foreground mt-1">{form.content.length}/500 حرف</p>
               </div>
 
-              {/* Image URL with Preview */}
+              {/* Image URL with Upload & Preview */}
               <div>
                 <label className="flex items-center gap-1.5 text-sm font-semibold mb-2">
                   <Image className="h-3.5 w-3.5 text-blue-500" />
-                  رابط صورة الإعلان
+                  صورة الإعلان
                 </label>
                 <div className="flex gap-2">
                   <input
@@ -539,6 +621,28 @@ export function AdsTab({ token }: { token: string }) {
                     dir="ltr"
                     data-testid="input-ad-image"
                   />
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handleImageUpload(file);
+                      e.target.value = "";
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="shrink-0 gap-1"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploadingImage}
+                  >
+                    <Upload className="h-3.5 w-3.5" />
+                    {uploadingImage ? "جاري الرفع..." : "رفع صورة"}
+                  </Button>
                   {form.imageUrl && (
                     <Button
                       type="button"
@@ -556,7 +660,7 @@ export function AdsTab({ token }: { token: string }) {
                     <img src={form.imageUrl} alt="معاينة" className="w-full h-40 object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
                   </div>
                 )}
-                <p className="text-xs text-muted-foreground mt-1">يُفضل صورة أفقية بأبعاد 1200×400 بكسل</p>
+                <p className="text-xs text-muted-foreground mt-1">يُفضل صورة أفقية بأبعاد 1200×400 بكسل — يمكنك رفع صورة أو لصق رابط مباشر</p>
               </div>
 
               {/* Link URL */}

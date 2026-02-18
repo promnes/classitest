@@ -1608,6 +1608,9 @@ export const ParentDashboard = (): JSX.Element => {
                               src={ad.imageUrl}
                               alt={ad.title}
                               className="w-20 h-20 rounded-lg object-cover flex-shrink-0"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).style.display = "none";
+                              }}
                             />
                           )}
                           <div className="flex-1 min-w-0">

@@ -3643,19 +3643,19 @@ export async function registerAdminRoutes(app: Express) {
       const { id } = req.params;
       const { title, content, imageUrl, linkUrl, targetAudience, priority, isActive, startDate, endDate } = req.body;
 
+      const setData: Record<string, any> = { updatedAt: new Date() };
+      if (title !== undefined) setData['title'] = title;
+      if (content !== undefined) setData['content'] = content;
+      if (imageUrl !== undefined) setData['imageUrl'] = imageUrl || null;
+      if (linkUrl !== undefined) setData['linkUrl'] = linkUrl || null;
+      if (targetAudience !== undefined) setData['targetAudience'] = targetAudience;
+      if (priority !== undefined) setData['priority'] = priority;
+      if (isActive !== undefined) setData['isActive'] = isActive;
+      if (startDate !== undefined) setData['startDate'] = startDate ? new Date(startDate) : null;
+      if (endDate !== undefined) setData['endDate'] = endDate ? new Date(endDate) : null;
+
       const updated = await db.update(ads)
-        .set({
-          title,
-          content,
-          imageUrl,
-          linkUrl,
-          targetAudience,
-          priority,
-          isActive,
-          startDate: startDate ? new Date(startDate) : null,
-          endDate: endDate ? new Date(endDate) : null,
-          updatedAt: new Date(),
-        })
+        .set(setData)
         .where(eq(ads.id, id))
         .returning();
 

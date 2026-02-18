@@ -223,6 +223,10 @@ export function RandomAdPopup() {
                   src={visibleAd.imageUrl}
                   alt={visibleAd.title}
                   className="w-full h-48 object-cover"
+                  onError={(e) => {
+                    const img = e.target as HTMLImageElement;
+                    img.style.display = "none";
+                  }}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
                 <div className="absolute bottom-0 inset-x-0 p-5">

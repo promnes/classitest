@@ -197,6 +197,10 @@ function CarouselBody({
               src={ad.imageUrl}
               alt={ad.title}
               className={`w-full ${imgHeight} object-cover transition-transform duration-500 group-hover:scale-[1.02]`}
+              onError={(e) => {
+                const img = e.target as HTMLImageElement;
+                img.style.display = "none";
+              }}
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
             <div className={`absolute bottom-0 inset-x-0 ${padding}`}>
