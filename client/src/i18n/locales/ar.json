@@ -2193,7 +2193,15 @@
     "topUp": "شحن الرصيد",
     "balance": "الرصيد",
     "rewards": "مكافآت",
-    "taskMarket": "سوق المهام التعليمية"
+    "taskMarket": "سوق المهام التعليمية",
+    "searchPlaceholder": "ابحث عن مدارس، معلمين، مهام...",
+    "mySchools": "مدارسي",
+    "myTeachers": "معلميّ",
+    "myAccount": "حسابي",
+    "followedSchools": "المدارس المتابَعة",
+    "followedTeachers": "المعلمون المتابَعون",
+    "noFollowedSchools": "لا توجد مدارس متابَعة",
+    "noFollowedTeachers": "لا يوجد معلمون متابَعون"
   },
   "accessibility": {
     "title": "سياسة إمكانية الوصول",

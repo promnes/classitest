@@ -2193,7 +2193,15 @@
     "topUp": "Top Up",
     "balance": "Balance",
     "rewards": "Rewards",
-    "taskMarket": "Educational Task Marketplace"
+    "taskMarket": "Educational Task Marketplace",
+    "searchPlaceholder": "Search schools, teachers, tasks...",
+    "mySchools": "My Schools",
+    "myTeachers": "My Teachers",
+    "myAccount": "My Account",
+    "followedSchools": "Followed Schools",
+    "followedTeachers": "Followed Teachers",
+    "noFollowedSchools": "No followed schools",
+    "noFollowedTeachers": "No followed teachers"
   },
   "accessibility": {
     "title": "Accessibility Policy",

@@ -1967,6 +1967,7 @@ export const follows = pgTable("follows", {
   followerParentId: varchar("follower_parent_id").notNull().references(() => parents.id, { onDelete: "cascade" }),
   entityType: varchar("entity_type", { length: 20 }).notNull(), // "school" | "teacher" | "library"
   entityId: varchar("entity_id").notNull(),
+  lastCheckedAt: timestamp("last_checked_at").defaultNow().notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (table) => ({
   uniqueFollow: uniqueIndex("unique_follow_idx").on(table.followerParentId, table.entityType, table.entityId),

@@ -375,6 +375,39 @@ export const ParentDashboard = (): JSX.Element => {
     refetchInterval: token ? 30000 : false,
   });
 
+  // Quick-access: followed entities & new content indicators
+  const { data: myFollows } = useQuery({
+    queryKey: ["/api/follow/my"],
+    queryFn: () => authenticatedFetch("/api/follow/my"),
+    enabled: !!token,
+    staleTime: 60000,
+    refetchInterval: token ? 120000 : false,
+  });
+
+  const { data: newContentCounts } = useQuery({
+    queryKey: ["/api/follow/new-content-counts"],
+    queryFn: () => authenticatedFetch("/api/follow/new-content-counts"),
+    enabled: !!token,
+    staleTime: 30000,
+    refetchInterval: token ? 60000 : false,
+  });
+
+  const [showSchoolDropdown, setShowSchoolDropdown] = useState(false);
+  const [showTeacherDropdown, setShowTeacherDropdown] = useState(false);
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest("[data-quick-access]")) {
+        setShowSchoolDropdown(false);
+        setShowTeacherDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   const { toast } = useToast();
 
   const purchaseDecisionMutation = useMutation({
@@ -478,6 +511,41 @@ export const ParentDashboard = (): JSX.Element => {
   });
 
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+
+  const markSeenMutation = useMutation({
+    mutationFn: async (type: string) => {
+      return apiRequest("POST", `/api/follow/mark-seen/${type}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/follow/new-content-counts"] });
+    },
+  });
+
+  const followsList = (myFollows as any)?.follows || [];
+  const followedSchools = followsList.filter((f: any) => f.entityType === "school");
+  const followedTeachers = followsList.filter((f: any) => f.entityType === "teacher");
+  const newSchoolCount = (newContentCounts as any)?.schools || 0;
+  const newTeacherCount = (newContentCounts as any)?.teachers || 0;
+
+  const handleSchoolIconClick = () => {
+    if (followedSchools.length === 1) {
+      markSeenMutation.mutate("school");
+      navigate(`/school/${followedSchools[0].entityId}`);
+    } else {
+      setShowSchoolDropdown(!showSchoolDropdown);
+      setShowTeacherDropdown(false);
+    }
+  };
+
+  const handleTeacherIconClick = () => {
+    if (followedTeachers.length === 1) {
+      markSeenMutation.mutate("teacher");
+      navigate(`/teacher/${followedTeachers[0].entityId}`);
+    } else {
+      setShowTeacherDropdown(!showTeacherDropdown);
+      setShowSchoolDropdown(false);
+    }
+  };
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -602,26 +670,139 @@ export const ParentDashboard = (): JSX.Element => {
         </div>
       </header>
 
-      {/* Search Box */}
+      {/* Search Box + Quick Access Icons */}
       <div className="max-w-7xl mx-auto px-4 pt-4">
-        <div className="relative">
-          <Search className={`absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 ${isDark ? "text-gray-400" : "text-gray-400"}`} />
-          <input
-            type="text"
-            value={dashboardSearch}
-            onChange={(e) => {
-              setDashboardSearch(e.target.value);
-              setShowSearchResults(e.target.value.length >= 2);
-            }}
-            onFocus={() => dashboardSearch.length >= 2 && setShowSearchResults(true)}
-            placeholder="ابحث عن مدارس، معلمين، مهام..."
-            className={`w-full pr-10 pl-10 py-2.5 rounded-xl border-2 text-sm focus:outline-none focus:border-blue-400 transition-colors ${isDark ? "bg-gray-800 border-gray-700 text-white placeholder-gray-500" : "bg-white border-gray-200 text-gray-900 placeholder-gray-400"}`}
-          />
-          {dashboardSearch && (
-            <button onClick={() => { setDashboardSearch(""); setShowSearchResults(false); }} className="absolute left-3 top-1/2 -translate-y-1/2">
-              <X className={`h-4 w-4 ${isDark ? "text-gray-400" : "text-gray-400"}`} />
+        <div className="flex items-center gap-2">
+          {/* Search Input */}
+          <div className="relative flex-1">
+            <Search className={`absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 ${isDark ? "text-gray-400" : "text-gray-400"}`} />
+            <input
+              type="text"
+              value={dashboardSearch}
+              onChange={(e) => {
+                setDashboardSearch(e.target.value);
+                setShowSearchResults(e.target.value.length >= 2);
+              }}
+              onFocus={() => dashboardSearch.length >= 2 && setShowSearchResults(true)}
+              placeholder={t('parentDashboard.searchPlaceholder', 'ابحث عن مدارس، معلمين، مهام...')}
+              className={`w-full pr-10 pl-10 py-2.5 rounded-xl border-2 text-sm focus:outline-none focus:border-blue-400 transition-colors ${isDark ? "bg-gray-800 border-gray-700 text-white placeholder-gray-500" : "bg-white border-gray-200 text-gray-900 placeholder-gray-400"}`}
+            />
+            {dashboardSearch && (
+              <button onClick={() => { setDashboardSearch(""); setShowSearchResults(false); }} className="absolute left-3 top-1/2 -translate-y-1/2">
+                <X className={`h-4 w-4 ${isDark ? "text-gray-400" : "text-gray-400"}`} />
+              </button>
+            )}
+          </div>
+
+          {/* Quick Access: School */}
+          <div className="relative" data-quick-access>
+            <button
+              onClick={handleSchoolIconClick}
+              className={`relative p-2.5 rounded-xl border-2 transition-all hover:scale-105 ${isDark ? "bg-gray-800 border-gray-700 hover:border-blue-500" : "bg-white border-gray-200 hover:border-blue-400"}`}
+              title={t('parentDashboard.mySchools', 'مدارسي')}
+            >
+              <School className={`h-5 w-5 ${isDark ? "text-blue-400" : "text-blue-600"}`} />
+              {newSchoolCount > 0 && (
+                <span className="absolute -top-1 -right-1 h-4 min-w-[16px] px-1 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center animate-pulse">
+                  {newSchoolCount > 9 ? "9+" : newSchoolCount}
+                </span>
+              )}
             </button>
-          )}
+            {/* School Dropdown */}
+            {showSchoolDropdown && (
+              <div className={`absolute top-full mt-2 ${isRTL ? "right-0" : "left-0"} w-64 rounded-xl border shadow-2xl z-50 overflow-hidden ${isDark ? "bg-gray-900 border-gray-700" : "bg-white border-gray-200"}`}>
+                <div className={`px-3 py-2 border-b ${isDark ? "border-gray-700" : "border-gray-100"}`}>
+                  <p className={`text-xs font-bold ${isDark ? "text-gray-400" : "text-gray-500"}`}>🏫 {t('parentDashboard.followedSchools', 'المدارس المتابَعة')}</p>
+                </div>
+                {followedSchools.length === 0 ? (
+                  <p className={`text-center py-4 text-sm ${isDark ? "text-gray-500" : "text-gray-400"}`}>{t('parentDashboard.noFollowedSchools', 'لا توجد مدارس متابَعة')}</p>
+                ) : (
+                  followedSchools.map((s: any) => (
+                    <button
+                      key={s.id}
+                      onClick={() => {
+                        markSeenMutation.mutate("school");
+                        navigate(`/school/${s.entityId}`);
+                        setShowSchoolDropdown(false);
+                      }}
+                      className={`w-full text-right px-3 py-2.5 flex items-center gap-3 transition-colors ${isDark ? "text-gray-200 hover:bg-gray-800" : "text-gray-700 hover:bg-blue-50"}`}
+                    >
+                      {s.entityImage ? (
+                        <img src={s.entityImage} alt="" className="h-8 w-8 rounded-lg object-cover" />
+                      ) : (
+                        <div className={`h-8 w-8 rounded-lg flex items-center justify-center ${isDark ? "bg-blue-900" : "bg-blue-100"}`}>
+                          <School className="h-4 w-4 text-blue-500" />
+                        </div>
+                      )}
+                      <span className="text-sm font-medium truncate flex-1">{s.entityName}</span>
+                    </button>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Quick Access: Teacher */}
+          <div className="relative" data-quick-access>
+            <button
+              onClick={handleTeacherIconClick}
+              className={`relative p-2.5 rounded-xl border-2 transition-all hover:scale-105 ${isDark ? "bg-gray-800 border-gray-700 hover:border-purple-500" : "bg-white border-gray-200 hover:border-purple-400"}`}
+              title={t('parentDashboard.myTeachers', 'معلميّ')}
+            >
+              <GraduationCap className={`h-5 w-5 ${isDark ? "text-purple-400" : "text-purple-600"}`} />
+              {newTeacherCount > 0 && (
+                <span className="absolute -top-1 -right-1 h-4 min-w-[16px] px-1 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center animate-pulse">
+                  {newTeacherCount > 9 ? "9+" : newTeacherCount}
+                </span>
+              )}
+            </button>
+            {/* Teacher Dropdown */}
+            {showTeacherDropdown && (
+              <div className={`absolute top-full mt-2 ${isRTL ? "right-0" : "left-0"} w-64 rounded-xl border shadow-2xl z-50 overflow-hidden ${isDark ? "bg-gray-900 border-gray-700" : "bg-white border-gray-200"}`}>
+                <div className={`px-3 py-2 border-b ${isDark ? "border-gray-700" : "border-gray-100"}`}>
+                  <p className={`text-xs font-bold ${isDark ? "text-gray-400" : "text-gray-500"}`}>👨‍🏫 {t('parentDashboard.followedTeachers', 'المعلمون المتابَعون')}</p>
+                </div>
+                {followedTeachers.length === 0 ? (
+                  <p className={`text-center py-4 text-sm ${isDark ? "text-gray-500" : "text-gray-400"}`}>{t('parentDashboard.noFollowedTeachers', 'لا يوجد معلمون متابَعون')}</p>
+                ) : (
+                  followedTeachers.map((t: any) => (
+                    <button
+                      key={t.id}
+                      onClick={() => {
+                        markSeenMutation.mutate("teacher");
+                        navigate(`/teacher/${t.entityId}`);
+                        setShowTeacherDropdown(false);
+                      }}
+                      className={`w-full text-right px-3 py-2.5 flex items-center gap-3 transition-colors ${isDark ? "text-gray-200 hover:bg-gray-800" : "text-gray-700 hover:bg-purple-50"}`}
+                    >
+                      {t.entityImage ? (
+                        <img src={t.entityImage} alt="" className="h-8 w-8 rounded-full object-cover" />
+                      ) : (
+                        <div className={`h-8 w-8 rounded-full flex items-center justify-center ${isDark ? "bg-purple-900" : "bg-purple-100"}`}>
+                          <GraduationCap className="h-4 w-4 text-purple-500" />
+                        </div>
+                      )}
+                      <span className="text-sm font-medium truncate flex-1">{t.entityName}</span>
+                    </button>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Quick Access: My Account */}
+          <button
+            onClick={() => navigate("/parent-profile")}
+            className={`relative p-2.5 rounded-xl border-2 transition-all hover:scale-105 ${isDark ? "bg-gray-800 border-gray-700 hover:border-green-500" : "bg-white border-gray-200 hover:border-green-400"}`}
+            title={t('parentDashboard.myAccount', 'حسابي')}
+          >
+            <User className={`h-5 w-5 ${isDark ? "text-green-400" : "text-green-600"}`} />
+            {unreadNotifications > 0 && (
+              <span className="absolute -top-1 -right-1 h-4 min-w-[16px] px-1 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center animate-pulse">
+                {unreadNotifications > 9 ? "9+" : unreadNotifications}
+              </span>
+            )}
+          </button>
         </div>
 
         {/* Search Results Dropdown */}

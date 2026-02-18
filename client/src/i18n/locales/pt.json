@@ -2115,7 +2115,15 @@
     "pinSetFailed": "Falha ao definir PIN",
     "topUp": "Recarregar",
     "balance": "Saldo",
-    "rewards": "Recompensas"
+    "rewards": "Recompensas",
+    "searchPlaceholder": "Pesquisar escolas, professores, tarefas...",
+    "mySchools": "Minhas Escolas",
+    "myTeachers": "Meus Professores",
+    "myAccount": "Minha Conta",
+    "followedSchools": "Escolas Seguidas",
+    "followedTeachers": "Professores Seguidos",
+    "noFollowedSchools": "Nenhuma escola seguida",
+    "noFollowedTeachers": "Nenhum professor seguido"
   },
   "accessibility": {
     "title": "Politica de Acessibilidade",

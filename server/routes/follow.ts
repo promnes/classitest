@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { storage } from "../storage";
-import { follows, schools, schoolTeachers, libraries, parents } from "../../shared/schema";
-import { eq, and, sql, desc, count } from "drizzle-orm";
+import { follows, schools, schoolTeachers, libraries, parents, schoolPosts } from "../../shared/schema";
+import { eq, and, sql, desc, count, gt, inArray } from "drizzle-orm";
 import { authMiddleware } from "./middleware";
 import { successResponse, errorResponse, ErrorCode } from "../utils/apiResponse";
 
@@ -156,6 +156,84 @@ export function registerFollowRoutes(app: Express) {
     } catch (err: any) {
       console.error("Follow status error:", err);
       res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "خطأ في جلب حالة المتابعة"));
+    }
+  });
+
+  // ===== عدد المحتوى الجديد من المتابَعين =====
+  app.get("/api/follow/new-content-counts", authMiddleware, async (req: any, res) => {
+    try {
+      const parentId = req.user.userId;
+
+      const myFollows = await db.select({
+        entityType: follows.entityType,
+        entityId: follows.entityId,
+        lastCheckedAt: follows.lastCheckedAt,
+      }).from(follows)
+        .where(eq(follows.followerParentId, parentId));
+
+      if (!myFollows.length) {
+        return res.json(successResponse({ schools: 0, teachers: 0 }));
+      }
+
+      let schoolNewCount = 0;
+      let teacherNewCount = 0;
+
+      // Get followed school IDs with their lastCheckedAt
+      const schoolFollows = myFollows.filter((f: any) => f.entityType === "school");
+      const teacherFollows = myFollows.filter((f: any) => f.entityType === "teacher");
+
+      // Count new posts from followed schools
+      for (const sf of schoolFollows) {
+        const [result] = await db.select({ count: count() }).from(schoolPosts)
+          .where(and(
+            eq(schoolPosts.schoolId, sf.entityId),
+            eq(schoolPosts.authorType, "school"),
+            eq(schoolPosts.isActive, true),
+            gt(schoolPosts.createdAt, sf.lastCheckedAt),
+          ));
+        schoolNewCount += result?.count || 0;
+      }
+
+      // Count new posts from followed teachers
+      for (const tf of teacherFollows) {
+        const [result] = await db.select({ count: count() }).from(schoolPosts)
+          .where(and(
+            eq(schoolPosts.teacherId, tf.entityId),
+            eq(schoolPosts.authorType, "teacher"),
+            eq(schoolPosts.isActive, true),
+            gt(schoolPosts.createdAt, tf.lastCheckedAt),
+          ));
+        teacherNewCount += result?.count || 0;
+      }
+
+      res.json(successResponse({ schools: schoolNewCount, teachers: teacherNewCount }));
+    } catch (err: any) {
+      console.error("New content counts error:", err);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "خطأ في جلب عدد المحتوى الجديد"));
+    }
+  });
+
+  // ===== تحديث وقت آخر زيارة لنوع كيان =====
+  app.post("/api/follow/mark-seen/:type", authMiddleware, async (req: any, res) => {
+    try {
+      const parentId = req.user.userId;
+      const { type } = req.params;
+
+      if (!["school", "teacher", "library"].includes(type)) {
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "نوع الكيان غير صالح"));
+      }
+
+      await db.update(follows)
+        .set({ lastCheckedAt: new Date() })
+        .where(and(
+          eq(follows.followerParentId, parentId),
+          eq(follows.entityType, type),
+        ));
+
+      res.json(successResponse(null, "تم تحديث وقت الزيارة"));
+    } catch (err: any) {
+      console.error("Mark seen error:", err);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "خطأ في تحديث وقت الزيارة"));
     }
   });
 
