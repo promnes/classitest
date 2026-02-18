@@ -207,7 +207,7 @@ export default function ParentProfile() {
       await apiRequest("POST", "/api/parent/profile/update", {
         [type === "avatar" ? "avatarUrl" : "coverImageUrl"]: url,
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/parent/profile-data"] });
+      await queryClient.refetchQueries({ queryKey: ["/api/parent/profile-data"] });
       toast({ title: type === "avatar" ? "تم رفع الصورة الشخصية" : "تم رفع صورة الغلاف" });
     } catch (error: any) {
       toast({ title: error.message || "فشل رفع الصورة", variant: "destructive" });
@@ -237,9 +237,9 @@ export default function ParentProfile() {
       {/* Profile Header */}
       {parent && (
         <div className="relative">
-          <div className={`h-32 relative ${isDark ? "bg-gradient-to-r from-blue-900 to-purple-900" : "bg-gradient-to-r from-blue-400 to-purple-500"}`}>
+          <div className={`h-32 relative overflow-hidden ${isDark ? "bg-gradient-to-r from-blue-900 to-purple-900" : "bg-gradient-to-r from-blue-400 to-purple-500"}`}>
             {parent.coverImageUrl && (
-              <img src={parent.coverImageUrl} alt="" className="w-full h-full object-cover" />
+              <img src={parent.coverImageUrl} alt="" className="absolute inset-0 w-full h-full object-cover" onError={(e) => { e.currentTarget.style.display = 'none' }} />
             )}
             <button
               onClick={() => coverInputRef.current?.click()}
