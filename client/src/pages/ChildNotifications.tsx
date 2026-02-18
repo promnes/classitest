@@ -185,7 +185,7 @@ export const ChildNotifications = (): JSX.Element => {
           <div className="flex items-center gap-3">
             <LanguageSelector />
             <button
-              onClick={() => navigate("/child-games")}
+              onClick={() => window.history.length > 1 ? window.history.back() : navigate("/child-games")}
               className={`px-6 py-3 ${isDark ? "bg-gray-700 hover:bg-gray-600" : "bg-white bg-opacity-30 hover:bg-opacity-40"} text-white font-bold rounded-xl transition-all`}
               data-testid="button-back"
             >

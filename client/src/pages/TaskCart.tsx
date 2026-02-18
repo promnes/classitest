@@ -108,7 +108,7 @@ export default function TaskCart() {
       <div className={`sticky top-0 z-40 ${isDark ? "bg-gray-900/95 border-gray-800" : "bg-white/95 border-gray-200"} border-b backdrop-blur-sm`}>
         <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <button onClick={() => navigate("/task-marketplace")} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800">
+            <button onClick={() => window.history.length > 1 ? window.history.back() : navigate("/task-marketplace")} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800">
               <ArrowRight className="h-5 w-5" />
             </button>
             <div className="flex items-center gap-2">

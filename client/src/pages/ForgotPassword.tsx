@@ -149,7 +149,7 @@ export const ForgotPassword = (): JSX.Element => {
       <div className="w-full max-w-md">
         <div className="flex justify-between items-center mb-8">
           <button
-            onClick={() => navigate("/parent-auth")}
+            onClick={() => window.history.length > 1 ? window.history.back() : navigate("/parent-auth")}
             className="text-white flex items-center gap-2 hover:opacity-80"
             data-testid="button-back"
           >

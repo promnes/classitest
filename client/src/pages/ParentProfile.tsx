@@ -243,7 +243,7 @@ export default function ParentProfile() {
       <div className={`sticky top-0 z-30 px-4 py-3 flex items-center gap-3 border-b ${
         isDark ? "bg-gray-900/95 border-gray-800" : "bg-white/95 border-gray-200"
       } backdrop-blur-md`}>
-        <Button variant="ghost" size="icon" onClick={() => navigate("/parent-dashboard")}>
+        <Button variant="ghost" size="icon" onClick={() => window.history.length > 1 ? window.history.back() : navigate("/parent-dashboard")}>
           <ArrowRight className="h-5 w-5" />
         </Button>
         <h1 className="text-lg font-bold flex-1">{t("parentProfile.myProfile")}</h1>

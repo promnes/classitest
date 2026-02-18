@@ -183,7 +183,7 @@ export default function SubjectTasks() {
         <div className="flex items-center justify-between mb-4">
           <Button
             variant="ghost"
-            onClick={() => navigate("/parent-dashboard")}
+            onClick={() => window.history.length > 1 ? window.history.back() : navigate("/parent-dashboard")}
             className=""
             data-testid="button-back"
           >

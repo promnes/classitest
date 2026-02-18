@@ -152,7 +152,7 @@ export default function ChildSettings() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <button
-                onClick={() => navigate("/child-games")}
+                onClick={() => window.history.length > 1 ? window.history.back() : navigate("/child-games")}
                 className="p-2 hover:bg-white/15 rounded-xl transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
               >
                 {isRTL ? <ArrowRight className="w-5 h-5" /> : <ArrowLeft className="w-5 h-5" />}

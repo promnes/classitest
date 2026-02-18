@@ -79,7 +79,7 @@ export const Subjects = (): JSX.Element => {
               {isDark ? "☀️" : "🌙"}
             </button>
             <button
-              onClick={() => navigate("/parent-dashboard")}
+              onClick={() => window.history.length > 1 ? window.history.back() : navigate("/parent-dashboard")}
               className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white font-bold rounded-lg"
             >
               ← رجوع

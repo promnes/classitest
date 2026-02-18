@@ -337,7 +337,7 @@ export const ParentStore = (): JSX.Element => {
         <div className="max-w-7xl mx-auto px-4">
           <div className="flex items-center justify-between py-3">
             <button 
-              onClick={() => navigate("/parent-dashboard")}
+              onClick={() => window.history.length > 1 ? window.history.back() : navigate("/parent-dashboard")}
               className="flex items-center gap-2 hover:opacity-80 transition-opacity"
               data-testid="button-back-dashboard"
             >

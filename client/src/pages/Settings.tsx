@@ -222,7 +222,7 @@ export const Settings = (): JSX.Element => {
             <LanguageSelector />
             <ParentNotificationBell />
             <button
-              onClick={() => navigate("/parent-dashboard")}
+              onClick={() => window.history.length > 1 ? window.history.back() : navigate("/parent-dashboard")}
               className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white font-bold rounded-lg"
             >
               ← {t("settings.back")}

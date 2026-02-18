@@ -75,7 +75,7 @@ export const CreateTask = (): JSX.Element => {
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold text-white">{t("createNewTask")}</h1>
           <button
-            onClick={() => navigate("/parent-dashboard")}
+            onClick={() => window.history.length > 1 ? window.history.back() : navigate("/parent-dashboard")}
             className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white font-bold rounded-lg"
           >
             {t("back")}

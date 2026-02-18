@@ -95,7 +95,7 @@ export const ChildTasks = (): JSX.Element => {
         <div className="flex items-center justify-between mb-6">
           <Button
             variant="ghost"
-            onClick={() => navigate("/child-games")}
+            onClick={() => window.history.length > 1 ? window.history.back() : navigate("/child-games")}
             className="flex items-center gap-2"
             data-testid="button-back"
           >
