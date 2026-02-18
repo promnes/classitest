@@ -3597,6 +3597,14 @@ export async function registerAdminRoutes(app: Express) {
     }
   });
 
+  // Normalize URL: ensure it has a protocol prefix
+  const normalizeUrl = (url: string | null | undefined): string | null => {
+    if (!url || !url.trim()) return null;
+    const trimmed = url.trim();
+    if (/^https?:\/\//i.test(trimmed)) return trimmed;
+    return `https://${trimmed}`;
+  };
+
   // Create ad
   app.post("/api/admin/ads", adminMiddleware, async (req: any, res) => {
     try {
@@ -3612,7 +3620,7 @@ export async function registerAdminRoutes(app: Express) {
         title,
         content,
         imageUrl: imageUrl || null,
-        linkUrl: linkUrl || null,
+        linkUrl: normalizeUrl(linkUrl),
         targetAudience: targetAudience || "all",
         priority: priority || 0,
         isActive: isActive !== false,
@@ -3647,7 +3655,7 @@ export async function registerAdminRoutes(app: Express) {
       if (title !== undefined) setData['title'] = title;
       if (content !== undefined) setData['content'] = content;
       if (imageUrl !== undefined) setData['imageUrl'] = imageUrl || null;
-      if (linkUrl !== undefined) setData['linkUrl'] = linkUrl || null;
+      if (linkUrl !== undefined) setData['linkUrl'] = normalizeUrl(linkUrl);
       if (targetAudience !== undefined) setData['targetAudience'] = targetAudience;
       if (priority !== undefined) setData['priority'] = priority;
       if (isActive !== undefined) setData['isActive'] = isActive;

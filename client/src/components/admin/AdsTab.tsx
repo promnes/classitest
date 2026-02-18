@@ -503,7 +503,7 @@ export function AdsTab({ token }: { token: string }) {
                               CTR: {ctr}%
                             </span>
                             {ad.linkUrl && (
-                              <a href={ad.linkUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-blue-500 hover:underline" onClick={(e) => e.stopPropagation()}>
+                              <a href={/^https?:\/\//i.test(ad.linkUrl) ? ad.linkUrl : `https://${ad.linkUrl}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-blue-500 hover:underline" onClick={(e) => e.stopPropagation()}>
                                 <ExternalLink className="h-3 w-3" />
                                 رابط
                               </a>

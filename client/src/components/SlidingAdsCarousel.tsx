@@ -76,7 +76,8 @@ export function SlidingAdsCarousel({ audience, variant, isDark, className = "" }
   const handleClick = useCallback((ad: Ad) => {
     fetch(`/api/ads/${ad.id}/click`, { method: "POST" }).catch(() => {});
     if (ad.linkUrl) {
-      window.open(ad.linkUrl, "_blank", "noopener,noreferrer");
+      const url = /^https?:\/\//i.test(ad.linkUrl) ? ad.linkUrl : `https://${ad.linkUrl}`;
+      window.open(url, "_blank", "noopener,noreferrer");
     }
   }, []);
 

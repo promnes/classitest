@@ -1620,7 +1620,7 @@ export const ParentDashboard = (): JSX.Element => {
                             </p>
                             {ad.linkUrl && (
                               <a
-                                href={ad.linkUrl}
+                                href={/^https?:\/\//i.test(ad.linkUrl) ? ad.linkUrl : `https://${ad.linkUrl}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="text-sm text-blue-500 hover:underline flex items-center gap-1 mb-3"
@@ -1636,12 +1636,15 @@ export const ParentDashboard = (): JSX.Element => {
                             )}
                             {/* Share Buttons */}
                             <div className="flex flex-wrap gap-2">
-                              {[
-                                { platform: "whatsapp", label: "WhatsApp", color: "bg-green-500 hover:bg-green-600", url: `https://wa.me/?text=${encodeURIComponent(ad.title + (ad.linkUrl ? ' ' + ad.linkUrl : ''))}` },
-                                { platform: "facebook", label: "Facebook", color: "bg-blue-600 hover:bg-blue-700", url: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(ad.linkUrl || window.location.origin)}` },
-                                { platform: "twitter", label: "X", color: "bg-gray-800 hover:bg-gray-900", url: `https://twitter.com/intent/tweet?text=${encodeURIComponent(ad.title + (ad.linkUrl ? ' ' + ad.linkUrl : ''))}` },
-                                { platform: "telegram", label: "Telegram", color: "bg-blue-400 hover:bg-blue-500", url: `https://t.me/share/url?url=${encodeURIComponent(ad.linkUrl || window.location.origin)}&text=${encodeURIComponent(ad.title)}` },
-                              ].map(({ platform, label, color, url }) => (
+                              {(() => {
+                                const safeLink = ad.linkUrl ? (/^https?:\/\//i.test(ad.linkUrl) ? ad.linkUrl : `https://${ad.linkUrl}`) : '';
+                                return [
+                                  { platform: "whatsapp", label: "WhatsApp", color: "bg-green-500 hover:bg-green-600", url: `https://wa.me/?text=${encodeURIComponent(ad.title + (safeLink ? ' ' + safeLink : ''))}` },
+                                  { platform: "facebook", label: "Facebook", color: "bg-blue-600 hover:bg-blue-700", url: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(safeLink || window.location.origin)}` },
+                                  { platform: "twitter", label: "X", color: "bg-gray-800 hover:bg-gray-900", url: `https://twitter.com/intent/tweet?text=${encodeURIComponent(ad.title + (safeLink ? ' ' + safeLink : ''))}` },
+                                  { platform: "telegram", label: "Telegram", color: "bg-blue-400 hover:bg-blue-500", url: `https://t.me/share/url?url=${encodeURIComponent(safeLink || window.location.origin)}&text=${encodeURIComponent(ad.title)}` },
+                                ];
+                              })().map(({ platform, label, color, url }) => (
                                 <Button
                                   key={platform}
                                   size="sm"
