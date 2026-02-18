@@ -9,6 +9,8 @@ import {
   templateTasks,
   parentTaskLibrary,
   taskFavorites,
+  teacherTaskLikes,
+  taskCart,
   follows,
   children,
   parentChild,
@@ -19,7 +21,7 @@ import {
   tasks,
   parentWallet,
 } from "../../shared/schema";
-import { eq, and, sql, desc, or, ilike, inArray, count, ne, isNull } from "drizzle-orm";
+import { eq, and, sql, desc, or, ilike, inArray, count, ne, isNull, asc } from "drizzle-orm";
 import { authMiddleware } from "./middleware";
 import { successResponse, errorResponse, ErrorCode } from "../utils/apiResponse";
 
@@ -699,6 +701,438 @@ export function registerMarketplaceRoutes(app: Express) {
     } catch (err: any) {
       console.error("Get following error:", err);
       res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "خطأ"));
+    }
+  });
+
+  // ===== Browse Teacher Tasks (تصفح مهام المعلمين) =====
+  app.get("/api/parent/browse-tasks", authMiddleware, async (req: any, res) => {
+    try {
+      const parentId = req.user.userId;
+      const { subject, sort = "popular", limit = "20", offset = "0", q, teacherId: filterTeacherId } = req.query;
+      const lim = Math.min(parseInt(limit as string) || 20, 50);
+      const off = parseInt(offset as string) || 0;
+
+      let conditions = [eq(teacherTasks.isActive, true), eq(teacherTasks.isPublic, true)];
+      if (filterTeacherId && String(filterTeacherId).trim()) {
+        conditions.push(eq(teacherTasks.teacherId, String(filterTeacherId).trim()));
+      }
+      if (subject && String(subject).trim()) {
+        conditions.push(ilike(teacherTasks.subjectLabel, `%${String(subject).trim()}%`));
+      }
+      if (q && String(q).trim().length >= 2) {
+        const term = String(q).trim();
+        conditions.push(or(
+          ilike(teacherTasks.title, `%${term}%`),
+          ilike(teacherTasks.question, `%${term}%`)
+        )!);
+      }
+
+      let orderBy;
+      switch (sort) {
+        case "newest": orderBy = desc(teacherTasks.createdAt); break;
+        case "price_low": orderBy = asc(teacherTasks.price); break;
+        case "price_high": orderBy = desc(teacherTasks.price); break;
+        case "likes": orderBy = desc(teacherTasks.likesCount); break;
+        default: orderBy = desc(teacherTasks.purchaseCount);
+      }
+
+      const allTasks = await db.select({
+        id: teacherTasks.id,
+        title: teacherTasks.title,
+        question: teacherTasks.question,
+        subjectLabel: teacherTasks.subjectLabel,
+        price: teacherTasks.price,
+        pointsReward: teacherTasks.pointsReward,
+        purchaseCount: teacherTasks.purchaseCount,
+        likesCount: teacherTasks.likesCount,
+        teacherId: teacherTasks.teacherId,
+        imageUrl: teacherTasks.imageUrl,
+        coverImageUrl: teacherTasks.coverImageUrl,
+        createdAt: teacherTasks.createdAt,
+      }).from(teacherTasks)
+        .where(and(...conditions))
+        .orderBy(orderBy)
+        .limit(lim)
+        .offset(off);
+
+      // Get teacher names for tasks
+      const teacherIds = Array.from(new Set(allTasks.map((t: any) => String(t.teacherId)))) as string[];
+      let teacherMap: Record<string, { name: string; avatarUrl: string | null }> = {};
+      if (teacherIds.length > 0) {
+        const teachers = await db.select({
+          id: schoolTeachers.id,
+          name: schoolTeachers.name,
+          avatarUrl: schoolTeachers.avatarUrl,
+        }).from(schoolTeachers).where(inArray(schoolTeachers.id, teacherIds));
+        teachers.forEach((t: any) => { teacherMap[t.id] = { name: t.name, avatarUrl: t.avatarUrl }; });
+      }
+
+      // Check which tasks parent already purchased
+      const purchasedIds = new Set(
+        (await db.select({ taskId: teacherTaskOrders.teacherTaskId })
+          .from(teacherTaskOrders)
+          .where(eq(teacherTaskOrders.buyerParentId, parentId)))
+          .map((o: any) => o.taskId)
+      );
+
+      // Check which tasks parent liked
+      const likedIds = new Set(
+        (await db.select({ taskId: teacherTaskLikes.taskId })
+          .from(teacherTaskLikes)
+          .where(eq(teacherTaskLikes.parentId, parentId)))
+          .map((l: any) => l.taskId)
+      );
+
+      // Check which tasks are in cart
+      const cartIds = new Set(
+        (await db.select({ taskId: taskCart.teacherTaskId })
+          .from(taskCart)
+          .where(eq(taskCart.parentId, parentId)))
+          .map((c: any) => c.taskId)
+      );
+
+      const enriched = allTasks.map((t: any) => ({
+        ...t,
+        teacherName: teacherMap[t.teacherId]?.name || "معلم",
+        teacherAvatar: teacherMap[t.teacherId]?.avatarUrl || null,
+        isPurchased: purchasedIds.has(t.id),
+        isLiked: likedIds.has(t.id),
+        inCart: cartIds.has(t.id),
+      }));
+
+      res.json(successResponse({ tasks: enriched }));
+    } catch (err: any) {
+      console.error("Browse tasks error:", err);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "خطأ في تصفح المهام"));
+    }
+  });
+
+  // ===== Task Likes (إعجاب المهام) =====
+
+  // Toggle like on a teacher task
+  app.post("/api/parent/tasks/:taskId/like", authMiddleware, async (req: any, res) => {
+    try {
+      const parentId = req.user.userId;
+      const { taskId } = req.params;
+
+      // Verify task exists
+      const [task] = await db.select({ id: teacherTasks.id }).from(teacherTasks)
+        .where(and(eq(teacherTasks.id, taskId), eq(teacherTasks.isActive, true))).limit(1);
+      if (!task) {
+        return res.status(404).json(errorResponse(ErrorCode.NOT_FOUND, "المهمة غير موجودة"));
+      }
+
+      // Check existing like
+      const [existing] = await db.select().from(teacherTaskLikes)
+        .where(and(eq(teacherTaskLikes.taskId, taskId), eq(teacherTaskLikes.parentId, parentId))).limit(1);
+
+      if (existing) {
+        // Unlike
+        await db.delete(teacherTaskLikes).where(eq(teacherTaskLikes.id, existing.id));
+        await db.update(teacherTasks).set({
+          likesCount: sql`GREATEST(${teacherTasks.likesCount} - 1, 0)`,
+        }).where(eq(teacherTasks.id, taskId));
+
+        const [updated] = await db.select({ likesCount: teacherTasks.likesCount })
+          .from(teacherTasks).where(eq(teacherTasks.id, taskId)).limit(1);
+
+        return res.json(successResponse({ isLiked: false, likesCount: updated?.likesCount || 0 }));
+      }
+
+      // Like
+      await db.insert(teacherTaskLikes).values({ taskId, parentId });
+      await db.update(teacherTasks).set({
+        likesCount: sql`${teacherTasks.likesCount} + 1`,
+      }).where(eq(teacherTasks.id, taskId));
+
+      const [updated] = await db.select({ likesCount: teacherTasks.likesCount })
+        .from(teacherTasks).where(eq(teacherTasks.id, taskId)).limit(1);
+
+      res.json(successResponse({ isLiked: true, likesCount: updated?.likesCount || 0 }));
+    } catch (err: any) {
+      console.error("Toggle task like error:", err);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "خطأ في الإعجاب"));
+    }
+  });
+
+  // Check likes status for multiple tasks
+  app.post("/api/parent/tasks/check-likes", authMiddleware, async (req: any, res) => {
+    try {
+      const parentId = req.user.userId;
+      const { taskIds } = req.body;
+      if (!Array.isArray(taskIds) || taskIds.length === 0) {
+        return res.json(successResponse({}));
+      }
+
+      const likes = await db.select({ taskId: teacherTaskLikes.taskId })
+        .from(teacherTaskLikes)
+        .where(and(eq(teacherTaskLikes.parentId, parentId), inArray(teacherTaskLikes.taskId, taskIds)));
+
+      const likedMap: Record<string, boolean> = {};
+      likes.forEach((l: any) => { likedMap[l.taskId] = true; });
+
+      res.json(successResponse(likedMap));
+    } catch (err: any) {
+      console.error("Check task likes error:", err);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "خطأ"));
+    }
+  });
+
+  // ===== Task Cart (سلة المهام) =====
+
+  // Get cart items
+  app.get("/api/parent/cart", authMiddleware, async (req: any, res) => {
+    try {
+      const parentId = req.user.userId;
+      
+      const items = await db.select({
+        id: taskCart.id,
+        teacherTaskId: taskCart.teacherTaskId,
+        createdAt: taskCart.createdAt,
+        taskTitle: teacherTasks.title,
+        taskQuestion: teacherTasks.question,
+        taskPrice: teacherTasks.price,
+        taskPointsReward: teacherTasks.pointsReward,
+        taskSubjectLabel: teacherTasks.subjectLabel,
+        taskImageUrl: teacherTasks.imageUrl,
+        taskCoverImageUrl: teacherTasks.coverImageUrl,
+        taskIsActive: teacherTasks.isActive,
+        teacherId: teacherTasks.teacherId,
+      }).from(taskCart)
+        .innerJoin(teacherTasks, eq(taskCart.teacherTaskId, teacherTasks.id))
+        .where(eq(taskCart.parentId, parentId))
+        .orderBy(desc(taskCart.createdAt));
+
+      // Get teacher names
+      const teacherIds = Array.from(new Set(items.map((i: any) => String(i.teacherId)))) as string[];
+      let teacherMap: Record<string, string> = {};
+      if (teacherIds.length > 0) {
+        const teachers = await db.select({ id: schoolTeachers.id, name: schoolTeachers.name })
+          .from(schoolTeachers).where(inArray(schoolTeachers.id, teacherIds));
+        teachers.forEach((t: any) => { teacherMap[t.id] = t.name; });
+      }
+
+      const enriched = items.map((i: any) => ({
+        ...i,
+        teacherName: teacherMap[i.teacherId] || "معلم",
+      }));
+
+      // Get wallet balance
+      const [wallet] = await db.select({ balance: parentWallet.balance })
+        .from(parentWallet).where(eq(parentWallet.parentId, parentId)).limit(1);
+
+      const totalPrice = items.reduce((sum: number, i: any) => sum + parseFloat(String(i.taskPrice)), 0);
+
+      res.json(successResponse({
+        items: enriched,
+        totalPrice: totalPrice.toFixed(2),
+        walletBalance: wallet?.balance || "0.00",
+        itemCount: items.length,
+      }));
+    } catch (err: any) {
+      console.error("Get cart error:", err);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "خطأ في جلب السلة"));
+    }
+  });
+
+  // Add to cart
+  app.post("/api/parent/cart/add", authMiddleware, async (req: any, res) => {
+    try {
+      const parentId = req.user.userId;
+      const { teacherTaskId } = req.body;
+
+      if (!teacherTaskId) {
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "معرّف المهمة مطلوب"));
+      }
+
+      // Verify task exists and is active
+      const [task] = await db.select({ id: teacherTasks.id, price: teacherTasks.price })
+        .from(teacherTasks)
+        .where(and(eq(teacherTasks.id, teacherTaskId), eq(teacherTasks.isActive, true), eq(teacherTasks.isPublic, true)))
+        .limit(1);
+
+      if (!task) {
+        return res.status(404).json(errorResponse(ErrorCode.NOT_FOUND, "المهمة غير موجودة"));
+      }
+
+      // Check if already purchased
+      const [alreadyBought] = await db.select({ id: teacherTaskOrders.id })
+        .from(teacherTaskOrders)
+        .where(and(eq(teacherTaskOrders.teacherTaskId, teacherTaskId), eq(teacherTaskOrders.buyerParentId, parentId)))
+        .limit(1);
+
+      if (alreadyBought) {
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "لقد اشتريت هذه المهمة مسبقاً"));
+      }
+
+      // Add to cart (ignore conflict = already in cart)
+      await db.insert(taskCart).values({ parentId, teacherTaskId }).onConflictDoNothing();
+
+      // Get updated cart count
+      const [cartCount] = await db.select({ count: count() })
+        .from(taskCart).where(eq(taskCart.parentId, parentId));
+
+      res.json(successResponse({ message: "تم إضافة المهمة للسلة", cartCount: cartCount?.count || 0 }));
+    } catch (err: any) {
+      console.error("Add to cart error:", err);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "خطأ في إضافة المهمة للسلة"));
+    }
+  });
+
+  // Remove from cart
+  app.delete("/api/parent/cart/:itemId", authMiddleware, async (req: any, res) => {
+    try {
+      const parentId = req.user.userId;
+      const { itemId } = req.params;
+
+      await db.delete(taskCart).where(and(eq(taskCart.id, itemId), eq(taskCart.parentId, parentId)));
+
+      const [cartCount] = await db.select({ count: count() })
+        .from(taskCart).where(eq(taskCart.parentId, parentId));
+
+      res.json(successResponse({ message: "تم إزالة المهمة من السلة", cartCount: cartCount?.count || 0 }));
+    } catch (err: any) {
+      console.error("Remove from cart error:", err);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "خطأ في إزالة المهمة"));
+    }
+  });
+
+  // Cart count
+  app.get("/api/parent/cart/count", authMiddleware, async (req: any, res) => {
+    try {
+      const parentId = req.user.userId;
+      const [result] = await db.select({ count: count() })
+        .from(taskCart).where(eq(taskCart.parentId, parentId));
+      res.json(successResponse({ count: result?.count || 0 }));
+    } catch (err: any) {
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "خطأ"));
+    }
+  });
+
+  // Checkout cart (buy all items)
+  app.post("/api/parent/cart/checkout", authMiddleware, async (req: any, res) => {
+    try {
+      const parentId = req.user.userId;
+
+      // Get cart items
+      const items = await db.select({
+        id: taskCart.id,
+        teacherTaskId: taskCart.teacherTaskId,
+      }).from(taskCart).where(eq(taskCart.parentId, parentId));
+
+      if (items.length === 0) {
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "السلة فارغة"));
+      }
+
+      // Get tasks details
+      const taskIds: string[] = items.map((i: any) => i.teacherTaskId);
+      const taskDetails = await db.select().from(teacherTasks)
+        .where(and(inArray(teacherTasks.id, taskIds), eq(teacherTasks.isActive, true)));
+
+      if (taskDetails.length === 0) {
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "المهام غير متوفرة"));
+      }
+
+      // Calculate total price
+      const totalPrice = taskDetails.reduce((sum: number, t: any) => sum + parseFloat(String(t.price)), 0);
+
+      // Check wallet balance
+      const [wallet] = await db.select().from(parentWallet)
+        .where(eq(parentWallet.parentId, parentId)).limit(1);
+
+      const balance = Number(wallet?.balance || 0);
+      if (balance < totalPrice) {
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST,
+          `رصيدك غير كافٍ. الرصيد: ${balance.toFixed(2)}, المطلوب: ${totalPrice.toFixed(2)}`));
+      }
+
+      // Deduct total from wallet
+      await db.update(parentWallet).set({
+        balance: sql`${parentWallet.balance} - ${totalPrice.toFixed(2)}`,
+      }).where(eq(parentWallet.parentId, parentId));
+
+      // Process each task
+      const orders = [];
+      const libraryItems = [];
+
+      for (const task of taskDetails) {
+        const price = parseFloat(String(task.price));
+        
+        // Get teacher commission rate
+        const [teacher] = await db.select({ commissionRatePct: schoolTeachers.commissionRatePct })
+          .from(schoolTeachers).where(eq(schoolTeachers.id, task.teacherId)).limit(1);
+
+        const commissionPct = parseFloat(String(teacher?.commissionRatePct || "10"));
+        const commissionAmount = (price * commissionPct) / 100;
+        const teacherEarning = price - commissionAmount;
+
+        // Create order
+        const [order] = await db.insert(teacherTaskOrders).values({
+          teacherTaskId: task.id,
+          teacherId: task.teacherId,
+          buyerParentId: parentId,
+          price: price.toFixed(2),
+          commissionRatePct: commissionPct.toFixed(2),
+          commissionAmount: commissionAmount.toFixed(2),
+          teacherEarningAmount: teacherEarning.toFixed(2),
+          status: "completed",
+          holdDays: 7,
+        }).returning();
+        orders.push(order);
+
+        // Update task purchase count
+        await db.update(teacherTasks).set({
+          purchaseCount: sql`${teacherTasks.purchaseCount} + 1`,
+          updatedAt: new Date(),
+        }).where(eq(teacherTasks.id, task.id));
+
+        // Update teacher stats
+        await db.update(schoolTeachers).set({
+          totalTasksSold: sql`${schoolTeachers.totalTasksSold} + 1`,
+          updatedAt: new Date(),
+        }).where(eq(schoolTeachers.id, task.teacherId));
+
+        // Ensure teacher balance & update
+        const [existingBal] = await db.select().from(teacherBalances)
+          .where(eq(teacherBalances.teacherId, task.teacherId)).limit(1);
+        if (!existingBal) {
+          await db.insert(teacherBalances).values({ teacherId: task.teacherId }).onConflictDoNothing();
+        }
+        await db.update(teacherBalances).set({
+          pendingBalance: sql`${teacherBalances.pendingBalance} + ${teacherEarning.toFixed(2)}`,
+          totalSalesAmount: sql`${teacherBalances.totalSalesAmount} + ${price.toFixed(2)}`,
+          totalCommissionAmount: sql`${teacherBalances.totalCommissionAmount} + ${commissionAmount.toFixed(2)}`,
+          updatedAt: new Date(),
+        }).where(eq(teacherBalances.teacherId, task.teacherId));
+
+        // Add to parent's task library
+        const [libItem] = await db.insert(parentTaskLibrary).values({
+          parentId,
+          sourceType: "teacher_task",
+          sourceTaskId: task.id,
+          title: task.title,
+          question: task.question,
+          answers: task.answers,
+          imageUrl: task.imageUrl,
+          gifUrl: task.gifUrl,
+          subjectLabel: task.subjectLabel,
+          pointsReward: task.pointsReward,
+          purchaseType: "permanent",
+        }).returning();
+        libraryItems.push(libItem);
+      }
+
+      // Clear cart
+      await db.delete(taskCart).where(eq(taskCart.parentId, parentId));
+
+      res.json(successResponse({
+        ordersCount: orders.length,
+        totalPaid: totalPrice.toFixed(2),
+        message: `تم شراء ${orders.length} مهمة بنجاح وإضافتها لمكتبتك`,
+      }));
+    } catch (err: any) {
+      console.error("Cart checkout error:", err);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "خطأ في إتمام الشراء"));
     }
   });
 }

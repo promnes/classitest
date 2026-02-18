@@ -1847,6 +1847,7 @@ export const teacherTasks = pgTable("teacher_tasks", {
   pointsReward: integer("points_reward").default(10).notNull(),
   price: decimal("price", { precision: 10, scale: 2 }).notNull(),
   purchaseCount: integer("purchase_count").default(0).notNull(),
+  likesCount: integer("likes_count").default(0).notNull(),
   isActive: boolean("is_active").default(true).notNull(),
   isPublic: boolean("is_public").default(true).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -2101,3 +2102,29 @@ export const taskFavorites = pgTable("task_favorites", {
 export const insertTaskFavoriteSchema = createInsertSchema(taskFavorites).omit({ id: true, createdAt: true });
 export type TaskFavorite = typeof taskFavorites.$inferSelect;
 export type InsertTaskFavorite = z.infer<typeof insertTaskFavoriteSchema>;
+
+// ===== Teacher Task Likes (إعجاب المهام) =====
+export const teacherTaskLikes = pgTable("teacher_task_likes", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  taskId: varchar("task_id").notNull().references(() => teacherTasks.id, { onDelete: "cascade" }),
+  parentId: varchar("parent_id").notNull().references(() => parents.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  uniqueLike: uniqueIndex("unique_task_like_idx").on(table.taskId, table.parentId),
+  taskIdx: index("ttl_task_idx").on(table.taskId),
+}));
+
+export type TeacherTaskLike = typeof teacherTaskLikes.$inferSelect;
+
+// ===== Task Cart (سلة المهام) =====
+export const taskCart = pgTable("task_cart", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  parentId: varchar("parent_id").notNull().references(() => parents.id, { onDelete: "cascade" }),
+  teacherTaskId: varchar("teacher_task_id").notNull().references(() => teacherTasks.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  uniqueCartItem: uniqueIndex("unique_cart_item_idx").on(table.parentId, table.teacherTaskId),
+  parentCartIdx: index("tc_parent_idx").on(table.parentId),
+}));
+
+export type TaskCartItem = typeof taskCart.$inferSelect;

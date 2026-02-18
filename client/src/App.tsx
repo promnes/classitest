@@ -59,6 +59,8 @@ const ChildProfile = lazy(() => import("@/pages/ChildProfile"));
 const ChildSettings = lazy(() => import("@/pages/ChildSettings"));
 const DownloadApp = lazy(() => import("@/pages/DownloadApp"));
 const ParentProfile = lazy(() => import("@/pages/ParentProfile"));
+const TaskMarketplace = lazy(() => import("@/pages/TaskMarketplace"));
+const TaskCart = lazy(() => import("@/pages/TaskCart"));
 
 type PublicMobileAppSettings = {
   appName?: string;
@@ -251,6 +253,12 @@ function Router() {
         </Route>
         <Route path="/parent-tasks">
           <ErrorBoundary><ParentTasks /></ErrorBoundary>
+        </Route>
+        <Route path="/task-marketplace">
+          <ErrorBoundary><TaskMarketplace /></ErrorBoundary>
+        </Route>
+        <Route path="/task-cart">
+          <ErrorBoundary><TaskCart /></ErrorBoundary>
         </Route>
         <Route path="/privacy" component={Privacy} />
         <Route path="/privacy-policy" component={PrivacyPolicy} />

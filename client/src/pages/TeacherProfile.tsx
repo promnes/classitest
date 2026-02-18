@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRoute } from "wouter";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,11 +8,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { queryClient } from "@/lib/queryClient";
 import { ProfileHeader } from "@/components/ui/ProfileHeader";
 import {
   GraduationCap, Star, MessageSquare, BookOpen, Heart,
-  Users, Briefcase, Clock, Send
+  Users, Briefcase, Clock, Send, ShoppingCart, Loader2
 } from "lucide-react";
 import { ShareMenu } from "@/components/ui/ShareMenu";
 import { LanguageSelector } from "@/components/LanguageSelector";
@@ -21,6 +20,7 @@ export default function TeacherProfile() {
   const [, params] = useRoute("/teacher/:id");
   const teacherId = params?.id;
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewComment, setReviewComment] = useState("");
@@ -30,6 +30,10 @@ export default function TeacherProfile() {
   const [postComments, setPostComments] = useState<Record<string, any[]>>({});
   const [loadingComments, setLoadingComments] = useState<Record<string, boolean>>({});
   const [commentTexts, setCommentTexts] = useState<Record<string, string>>({});
+  const [taskLiked, setTaskLiked] = useState<Record<string, boolean>>({});
+  const [taskLikesLocal, setTaskLikesLocal] = useState<Record<string, number>>({});
+  const [taskInCart, setTaskInCart] = useState<Record<string, boolean>>({});
+  const [taskPurchased, setTaskPurchased] = useState<Record<string, boolean>>({});
 
   const token = localStorage.getItem("token") || localStorage.getItem("childToken");
   const authHeaders: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
@@ -57,16 +61,95 @@ export default function TeacherProfile() {
     enabled: !!teacherId,
   });
 
-  // Teacher tasks for sale
+  // Teacher tasks for sale - use browse-tasks with teacher filter
   const { data: tasksData } = useQuery({
     queryKey: ["teacher-tasks-public", teacherId],
     queryFn: async () => {
+      // Use browse-tasks if parent is logged in (for purchase/like/cart status)
+      const parentToken = localStorage.getItem("token");
+      if (parentToken) {
+        const res = await fetch(`/api/parent/browse-tasks?teacherId=${teacherId}`, {
+          headers: { Authorization: `Bearer ${parentToken}` },
+        });
+        if (res.ok) {
+          const json = await res.json();
+          const tasks = json.data?.tasks || [];
+          // Initialize local state from server data
+          const liked: Record<string, boolean> = {};
+          const likes: Record<string, number> = {};
+          const inCart: Record<string, boolean> = {};
+          const purchased: Record<string, boolean> = {};
+          tasks.forEach((t: any) => {
+            liked[t.id] = t.isLiked;
+            likes[t.id] = t.likesCount;
+            inCart[t.id] = t.inCart;
+            purchased[t.id] = t.isPurchased;
+          });
+          setTaskLiked(liked);
+          setTaskLikesLocal(likes);
+          setTaskInCart(inCart);
+          setTaskPurchased(purchased);
+          return { tasks };
+        }
+      }
+      // Fallback for non-logged-in users
       const res = await fetch(`/api/store/teachers/${teacherId}/tasks`);
       if (!res.ok) return { tasks: [] };
       const json = await res.json();
       return json.data || { tasks: [] };
     },
     enabled: !!teacherId,
+  });
+
+  // Like a teacher task
+  const likeTask = useMutation({
+    mutationFn: async (taskId: string) => {
+      const res = await fetch(`/api/parent/tasks/${taskId}/like`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+      if (!res.ok) throw new Error("Failed to like");
+      return res.json();
+    },
+    onMutate: (taskId) => {
+      const wasLiked = taskLiked[taskId];
+      setTaskLiked(p => ({ ...p, [taskId]: !wasLiked }));
+      setTaskLikesLocal(p => ({ ...p, [taskId]: (p[taskId] || 0) + (wasLiked ? -1 : 1) }));
+    },
+    onSuccess: (json, taskId) => {
+      setTaskLiked(p => ({ ...p, [taskId]: json.data.isLiked }));
+      setTaskLikesLocal(p => ({ ...p, [taskId]: json.data.likesCount }));
+    },
+  });
+
+  // Add to cart
+  const addToCart = useMutation({
+    mutationFn: async (taskId: string) => {
+      const res = await fetch("/api/parent/cart/add", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: JSON.stringify({ teacherTaskId: Number(taskId) }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || "فشل الإضافة");
+      }
+      return res.json();
+    },
+    onSuccess: (_, taskId) => {
+      setTaskInCart(p => ({ ...p, [taskId]: true }));
+      queryClient.invalidateQueries({ queryKey: ["task-cart-count"] });
+      toast({ title: "تمت الإضافة للسلة" });
+    },
+    onError: (err: Error) => {
+      toast({ title: err.message, variant: "destructive" });
+    },
   });
 
   // Teacher reviews
@@ -304,6 +387,42 @@ export default function TeacherProfile() {
                           <span className="text-xs text-green-600 block">ج.م</span>
                         </div>
                       </div>
+                    </div>
+                    {/* Like + Cart actions */}
+                    <div className="flex items-center justify-between mt-3 pt-3 border-t">
+                      <button
+                        onClick={() => {
+                          if (!token) { toast({ title: "يجب تسجيل الدخول", variant: "destructive" }); return; }
+                          likeTask.mutate(String(task.id));
+                        }}
+                        className={`flex items-center gap-1.5 text-sm transition-colors ${
+                          taskLiked[task.id] ? "text-red-500" : "text-muted-foreground hover:text-red-400"
+                        }`}
+                      >
+                        <Heart className={`h-4 w-4 ${taskLiked[task.id] ? "fill-red-500" : ""}`} />
+                        <span>{taskLikesLocal[task.id] ?? task.likesCount ?? 0}</span>
+                      </button>
+                      {taskPurchased[task.id] ? (
+                        <Badge className="bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">
+                          مُشترى
+                        </Badge>
+                      ) : taskInCart[task.id] ? (
+                        <Badge variant="secondary">في السلة</Badge>
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="gap-1.5 text-xs"
+                          onClick={() => {
+                            if (!token) { toast({ title: "يجب تسجيل الدخول", variant: "destructive" }); return; }
+                            addToCart.mutate(String(task.id));
+                          }}
+                          disabled={addToCart.isPending}
+                        >
+                          <ShoppingCart className="h-3.5 w-3.5" />
+                          أضف للسلة
+                        </Button>
+                      )}
                     </div>
                   </CardContent>
                 </Card>

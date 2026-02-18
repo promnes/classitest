@@ -868,6 +868,14 @@ export const ParentDashboard = (): JSX.Element => {
                       <span className="text-xs">{t('parentDashboard.subjects')}</span>
                     </Button>
                   </div>
+                  <Button 
+                    onClick={() => navigate("/task-marketplace")} 
+                    className="w-full mt-3 h-auto py-3 gap-2 bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600"
+                    data-testid="button-task-marketplace"
+                  >
+                    <Sparkles className="h-5 w-5" />
+                    <span className="text-sm font-bold">سوق المهام التعليمية</span>
+                  </Button>
                 </CardContent>
               </Card>
             </div>
