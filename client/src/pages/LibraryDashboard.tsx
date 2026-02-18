@@ -231,14 +231,14 @@ export default function LibraryDashboard() {
       return res.json();
     },
     onSuccess: () => {
-      toast({ title: "تم إضافة المنتج بنجاح" });
+      toast({ title: t('libraryDashboard.productAddedSuccess') });
       setShowProductModal(false);
       resetProductForm();
       queryClient.invalidateQueries({ queryKey: ["library-products"] });
       queryClient.invalidateQueries({ queryKey: ["library-profile"] });
     },
     onError: (err: any) => {
-      toast({ title: err.message || "فشل إضافة المنتج", variant: "destructive" });
+      toast({ title: err.message || t('libraryDashboard.productAddFailed'), variant: "destructive" });
     },
   });
 
@@ -259,14 +259,14 @@ export default function LibraryDashboard() {
       return res.json();
     },
     onSuccess: () => {
-      toast({ title: "تم تحديث المنتج" });
+      toast({ title: t('libraryDashboard.productUpdated') });
       setShowProductModal(false);
       setEditingProduct(null);
       resetProductForm();
       queryClient.invalidateQueries({ queryKey: ["library-products"] });
     },
     onError: (err: any) => {
-      toast({ title: err.message || "فشل تحديث المنتج", variant: "destructive" });
+      toast({ title: err.message || t('libraryDashboard.productUpdateFailed'), variant: "destructive" });
     },
   });
 
@@ -280,12 +280,12 @@ export default function LibraryDashboard() {
       return res.json();
     },
     onSuccess: () => {
-      toast({ title: "تم حذف المنتج" });
+      toast({ title: t('libraryDashboard.productDeleted') });
       queryClient.invalidateQueries({ queryKey: ["library-products"] });
       queryClient.invalidateQueries({ queryKey: ["library-profile"] });
     },
     onError: () => {
-      toast({ title: "فشل حذف المنتج", variant: "destructive" });
+      toast({ title: t('libraryDashboard.productDeleteFailed'), variant: "destructive" });
     },
   });
 
@@ -354,7 +354,7 @@ export default function LibraryDashboard() {
       return body;
     },
     onSuccess: () => {
-      toast({ title: "تم إرسال طلب السحب بنجاح" });
+      toast({ title: t('libraryDashboard.withdrawalRequestSent') });
       setWithdrawAmount("");
       setWithdrawMethod("");
       setWithdrawDetails("");
@@ -400,7 +400,7 @@ export default function LibraryDashboard() {
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
-    toast({ title: "تم النسخ" });
+    toast({ title: t('libraryDashboard.copied') });
   };
 
   const uploadProductImage = async (file: File) => {
@@ -490,10 +490,10 @@ export default function LibraryDashboard() {
       }
 
       setProductForm((prev) => ({ ...prev, imageUrl: finalizeJson.data.url }));
-      toast({ title: "تم رفع الصورة بنجاح" });
+      toast({ title: t('libraryDashboard.imageUploadSuccess') });
     } catch (error: any) {
       toast({
-        title: error?.message || "فشل رفع الصورة",
+        title: error?.message || t('libraryDashboard.imageUploadFailed'),
         variant: "destructive",
       });
     } finally {
@@ -513,7 +513,7 @@ export default function LibraryDashboard() {
         originalName: file.name,
       }),
     });
-    if (!presignRes.ok) throw new Error("فشل رفع الصورة");
+    if (!presignRes.ok) throw new Error(t('libraryDashboard.imageUploadFailed'));
     const presignJson = await presignRes.json();
 
     const uploadURL = presignJson.data.uploadURL;
@@ -587,9 +587,9 @@ export default function LibraryDashboard() {
       });
       if (!updateRes.ok) throw new Error("فشل تحديث الملف الشخصي");
       queryClient.invalidateQueries({ queryKey: ["library-profile"] });
-      toast({ title: type === "avatar" ? "تم رفع صورة المكتبة" : "تم رفع صورة الغلاف" });
+      toast({ title: type === "avatar" ? t('libraryDashboard.avatarUploaded') : t('libraryDashboard.coverUploaded') });
     } catch (error: any) {
-      toast({ title: error.message || "فشل رفع الصورة", variant: "destructive" });
+      toast({ title: error.message || t('libraryDashboard.imageUploadFailed'), variant: "destructive" });
     } finally {
       if (type === "avatar") setAvatarUploading(false);
       else setCoverUploading(false);
@@ -772,7 +772,7 @@ export default function LibraryDashboard() {
                           size="sm" 
                           variant="ghost"
                           onClick={() => {
-                            if (confirm("هل تريد حذف هذا المنتج؟")) {
+                            if (confirm(t('libraryDashboard.confirmDeleteProduct'))) {
                               deleteProductMutation.mutate(product.id);
                             }
                           }}
@@ -806,7 +806,7 @@ export default function LibraryDashboard() {
                   <div key={ref.id} className="flex items-center justify-between p-4 border rounded-lg">
                     <div>
                       <Badge variant={ref.status === "purchased" ? "default" : "secondary"}>
-                        {ref.status === "clicked" ? "زيارة" : ref.status === "registered" ? "تسجيل" : "شراء"}
+                        {ref.status === "clicked" ? t('libraryDashboard.referralClicked') : ref.status === "registered" ? t('libraryDashboard.referralRegistered') : "شراء"}
                       </Badge>
                       <span className="mr-2 text-sm text-muted-foreground">
                         {new Date(ref.createdAt).toLocaleDateString(getDateLocale())}
@@ -837,7 +837,7 @@ export default function LibraryDashboard() {
                     <CardContent className="pt-4 space-y-3">
                       <div className="flex items-start justify-between gap-3">
                         <div>
-                          <p className="font-semibold">{order.productTitle || "منتج مكتبة"}</p>
+                          <p className="font-semibold">{order.productTitle || t('libraryDashboard.libraryProduct')}</p>
                           <p className="text-sm text-muted-foreground">المشتري: {order.buyerName || "-"} ({order.buyerEmail || "-"})</p>
                           <p className="text-sm text-muted-foreground">الكمية: {order.quantity} • الإجمالي: {order.subtotal}</p>
                           {order.shippingAddress && <p className="text-sm text-muted-foreground">العنوان: {order.shippingAddress}</p>}
@@ -864,7 +864,7 @@ export default function LibraryDashboard() {
                             <Input
                               value={deliveryCodes[order.id] || ""}
                               onChange={(e) => setDeliveryCodes((prev) => ({ ...prev, [order.id]: e.target.value }))}
-                              placeholder="كود التسليم"
+                              placeholder={t('libraryDashboard.deliveryCodePlaceholder')}
                             />
                             <Button
                               onClick={() => verifyDeliveryMutation.mutate({ orderId: order.id, code: deliveryCodes[order.id] || "" })}
@@ -902,7 +902,7 @@ export default function LibraryDashboard() {
                   <div key={log.id} className="flex items-center justify-between p-3 border rounded-lg">
                     <div className="flex items-center gap-3">
                       <Activity className="h-4 w-4 text-muted-foreground" />
-                      <span>{log.action === "product_added" ? "إضافة منتج" : log.action === "product_updated" ? "تحديث منتج" : log.action}</span>
+                      <span>{log.action === "product_added" ? t('libraryDashboard.activityProductAdded') : log.action === "product_updated" ? t('libraryDashboard.activityProductUpdated') : log.action}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Badge variant="outline">+{log.points}</Badge>
@@ -958,7 +958,7 @@ export default function LibraryDashboard() {
               <CardContent className="space-y-3">
                 <div className="grid md:grid-cols-3 gap-3">
                   <Input
-                    placeholder="المبلغ"
+                    placeholder={t('libraryDashboard.amount')}
                     type="number"
                     value={withdrawAmount}
                     onChange={(e) => setWithdrawAmount(e.target.value)}
@@ -975,7 +975,7 @@ export default function LibraryDashboard() {
                   />
                 </div>
                 <Button onClick={() => createWithdrawalMutation.mutate()} disabled={createWithdrawalMutation.isPending}>
-                  {createWithdrawalMutation.isPending ? "جاري الإرسال..." : "تأكيد طلب السحب"}
+                  {createWithdrawalMutation.isPending ? "جاري الإرسال..." : t('libraryDashboard.confirmWithdrawal')}
                 </Button>
               </CardContent>
             </Card>
@@ -1037,7 +1037,7 @@ export default function LibraryDashboard() {
                   className="absolute bottom-2 left-2 bg-black/50 hover:bg-black/70 text-white rounded-full px-3 py-1.5 text-xs flex items-center gap-1 transition-all"
                 >
                   {coverUploading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Camera className="h-3 w-3" />}
-                  {coverUploading ? "جاري الرفع..." : "تغيير الغلاف"}
+                  {coverUploading ? t('libraryDashboard.uploading') : t('libraryDashboard.changeCover')}
                 </button>
                 <input ref={coverInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => handleSelectLibraryImage(e, "cover")} />
               </div>
@@ -1122,7 +1122,7 @@ export default function LibraryDashboard() {
                     }}
                   />
                   <span className={`inline-flex items-center rounded-md border px-3 py-2 text-sm cursor-pointer ${isUploadingImage ? "opacity-60 pointer-events-none" : ""}`}>
-                    {isUploadingImage ? "جاري الرفع..." : "اختيار من المعرض / الكاميرا"}
+                    {isUploadingImage ? t('libraryDashboard.uploading') : t('libraryDashboard.chooseFromGallery')}
                   </span>
                 </label>
               </div>
@@ -1186,7 +1186,7 @@ export default function LibraryDashboard() {
               disabled={createProductMutation.isPending || updateProductMutation.isPending}
               data-testid="button-submit-product"
             >
-              {createProductMutation.isPending || updateProductMutation.isPending ? "جاري الحفظ..." : "حفظ"}
+              {createProductMutation.isPending || updateProductMutation.isPending ? t('libraryDashboard.saving') : t('libraryDashboard.save')}
             </Button>
           </DialogFooter>
         </DialogContent>

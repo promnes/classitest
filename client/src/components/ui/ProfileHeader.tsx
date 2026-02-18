@@ -1,4 +1,5 @@
 import { MapPin, Globe, Phone, Mail, Facebook, Instagram, Youtube } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
 import { FollowButton } from "@/components/ui/FollowButton";
 import { ShareMenu } from "@/components/ui/ShareMenu";
@@ -55,6 +56,7 @@ export function ProfileHeader({
   shareTitle,
   shareDescription,
 }: ProfileHeaderProps) {
+  const { t } = useTranslation();
   return (
     <div className="overflow-hidden rounded-2xl bg-white dark:bg-gray-900 shadow-lg mb-6">
       {/* Cover Image */}

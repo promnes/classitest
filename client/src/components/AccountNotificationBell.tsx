@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTheme } from "@/contexts/ThemeContext";
 import { Bell, X, CheckCheck } from "lucide-react";
@@ -47,6 +48,7 @@ interface AccountNotificationBellProps {
 }
 
 function AccountNotificationBell({ tokenKey, apiBase, queryKeyPrefix, bellColorClass }: AccountNotificationBellProps) {
+  const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
   const bellRef = useRef<HTMLButtonElement>(null);

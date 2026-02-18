@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useRoute } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
@@ -20,6 +21,7 @@ export default function LibraryProfile() {
   const [, params] = useRoute("/library/:id");
   const libraryId = params?.id;
   const { toast } = useToast();
+  const { t } = useTranslation();
 
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewComment, setReviewComment] = useState("");
@@ -82,7 +84,7 @@ export default function LibraryProfile() {
         method: "POST",
         headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
       });
-      if (!res.ok) throw new Error("فشل");
+      if (!res.ok) throw new Error(t("libraryProfile.failed"));
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["library-posts", libraryId] }),
   });
@@ -96,7 +98,7 @@ export default function LibraryProfile() {
         headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
         body: JSON.stringify({ content }),
       });
-      if (!res.ok) throw new Error("فشل");
+      if (!res.ok) throw new Error(t("libraryProfile.failed"));
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["library-posts", libraryId] });
@@ -116,14 +118,14 @@ export default function LibraryProfile() {
       });
       if (!res.ok) {
         const err = await res.json();
-        throw new Error(err.message || "فشل إرسال التقييم");
+        throw new Error(err.message || t("libraryProfile.submitReviewFailed"));
       }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["library-reviews", libraryId] });
       setReviewComment("");
       setReviewRating(5);
-      toast({ title: "تم إرسال تقييمك بنجاح" });
+      toast({ title: t("libraryProfile.reviewSubmitted") });
     },
     onError: (err: any) => toast({ title: err.message, variant: "destructive" }),
   });
@@ -139,7 +141,7 @@ export default function LibraryProfile() {
   if (!library) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <p className="text-muted-foreground">المكتبة غير موجودة</p>
+        <p className="text-muted-foreground">{t("libraryProfile.notFound")}</p>
       </div>
     );
   }
@@ -180,22 +182,22 @@ export default function LibraryProfile() {
           <TabsList className="w-full grid grid-cols-3">
             <TabsTrigger value="products" className="gap-1">
               <ShoppingBag className="h-4 w-4" />
-              المنتجات ({products.length})
+              {t("libraryProfile.products", "المنتجات")} ({products.length})
             </TabsTrigger>
             <TabsTrigger value="posts" className="gap-1">
               <MessageSquare className="h-4 w-4" />
-              المنشورات ({posts.length})
+              {t("libraryProfile.posts", "المنشورات")} ({posts.length})
             </TabsTrigger>
             <TabsTrigger value="reviews" className="gap-1">
               <Star className="h-4 w-4" />
-              التقييمات ({reviews.length})
+              {t("libraryProfile.reviews", "التقييمات")} ({reviews.length})
             </TabsTrigger>
           </TabsList>
 
           {/* Products Tab */}
           <TabsContent value="products" className="space-y-4 mt-4">
             {products.length === 0 ? (
-              <Card><CardContent className="p-8 text-center text-muted-foreground">لا توجد منتجات متاحة حالياً</CardContent></Card>
+              <Card><CardContent className="p-8 text-center text-muted-foreground">{t("libraryProfile.noProducts")}</CardContent></Card>
             ) : (
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                 {products.map((product: any) => (
@@ -209,9 +211,9 @@ export default function LibraryProfile() {
                         <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{product.description}</p>
                       )}
                       <div className="flex items-center justify-between mt-2">
-                        <span className="text-sm font-bold text-green-600">{product.price} ج.م</span>
+                        <span className="text-sm font-bold text-green-600">{product.price} {t("libraryProfile.currency", "ج.م")}</span>
                         {product.pointsPrice > 0 && (
-                          <Badge variant="secondary" className="text-xs">{product.pointsPrice} نقطة</Badge>
+                          <Badge variant="secondary" className="text-xs">{product.pointsPrice} {t("libraryProfile.points", "نقطة")}</Badge>
                         )}
                       </div>
                     </CardContent>
@@ -224,7 +226,7 @@ export default function LibraryProfile() {
           {/* Posts Tab */}
           <TabsContent value="posts" className="space-y-4 mt-4">
             {posts.length === 0 ? (
-              <Card><CardContent className="p-8 text-center text-muted-foreground">لا توجد منشورات</CardContent></Card>
+              <Card><CardContent className="p-8 text-center text-muted-foreground">{t("libraryProfile.noPosts")}</CardContent></Card>
             ) : (
               posts.map((post: any) => (
                 <Card key={post.id}>
@@ -240,7 +242,7 @@ export default function LibraryProfile() {
                         </p>
                       </div>
                       {post.isPinned && (
-                        <Badge variant="outline" className="mr-auto text-xs">مثبّت</Badge>
+                        <Badge variant="outline" className="mr-auto text-xs">{t("libraryProfile.pinned")}</Badge>
                       )}
                     </div>
                     <p className="whitespace-pre-wrap">{post.content}</p>
@@ -272,7 +274,7 @@ export default function LibraryProfile() {
                         <Textarea
                           value={commentText}
                           onChange={(e) => setCommentText(e.target.value)}
-                          placeholder="اكتب تعليقاً..."
+                          placeholder={t("libraryProfile.writeComment")}
                           className="flex-1 min-h-[60px]"
                         />
                         <Button
@@ -300,14 +302,14 @@ export default function LibraryProfile() {
                   {"★".repeat(Math.round(parseFloat(avgRating)))}
                   {"☆".repeat(5 - Math.round(parseFloat(avgRating)))}
                 </div>
-                <p className="text-sm text-muted-foreground">{reviews.length} تقييم</p>
+                <p className="text-sm text-muted-foreground">{reviews.length} {t("libraryProfile.reviewCount", "تقييم")}</p>
               </CardContent>
             </Card>
 
             {/* Submit Review Form */}
             <Card>
               <CardContent className="p-4">
-                <h3 className="font-semibold mb-3">أضف تقييمك</h3>
+                <h3 className="font-semibold mb-3">{t("libraryProfile.addYourReview")}</h3>
                 <div className="flex gap-1 mb-3">
                   {[1, 2, 3, 4, 5].map(star => (
                     <button
@@ -322,7 +324,7 @@ export default function LibraryProfile() {
                 <Textarea
                   value={reviewComment}
                   onChange={(e) => setReviewComment(e.target.value)}
-                  placeholder="اكتب تعليقك (اختياري)..."
+                  placeholder={t("libraryProfile.writeReviewOptional")}
                   className="mb-3"
                 />
                 <Button
@@ -331,13 +333,13 @@ export default function LibraryProfile() {
                   className="gap-2"
                 >
                   <Send className="h-4 w-4" />
-                  إرسال التقييم
+                  {t("libraryProfile.submitReview")}
                 </Button>
               </CardContent>
             </Card>
 
             {reviews.length === 0 ? (
-              <Card><CardContent className="p-8 text-center text-muted-foreground">لا توجد تقييمات بعد</CardContent></Card>
+              <Card><CardContent className="p-8 text-center text-muted-foreground">{t("libraryProfile.noReviewsYet")}</CardContent></Card>
             ) : (
               reviews.map((review: any) => (
                 <Card key={review.id}>
@@ -346,7 +348,7 @@ export default function LibraryProfile() {
                       <span className="text-yellow-400">{"★".repeat(review.rating)}</span>
                       <span className="text-gray-300">{"★".repeat(5 - review.rating)}</span>
                       <span className="text-sm text-muted-foreground mr-2">
-                        {review.parentName || "مستخدم"}
+                        {review.parentName || t("libraryProfile.user")}
                       </span>
                     </div>
                     {review.comment && (

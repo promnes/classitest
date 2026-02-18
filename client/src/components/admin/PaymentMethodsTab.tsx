@@ -1,4 +1,6 @@
 import React, { useState } from "react";
+import { useTranslation } from "react-i18next";
+import i18next from "i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Edit2, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -22,9 +24,9 @@ interface PaymentMethodsResponse {
 }
 
 const PAYMENT_TYPES = [
-  { id: "bank_transfer", label: "تحويل بنكي", labelEn: "Bank Transfer", emoji: "🏦" },
-  { id: "vodafone_cash", label: "فودافون كاش", labelEn: "Vodafone Cash", emoji: "📱" },
-  { id: "orange_money", label: "أورنج موني", labelEn: "Orange Money", emoji: "🟠" },
+  { id: "bank_transfer", label: i18next.t("admin.paymentMethods.bankTransfer"), labelEn: "Bank Transfer", emoji: "🏦" },
+  { id: "vodafone_cash", label: i18next.t("admin.paymentMethods.vodafoneCash"), labelEn: "Vodafone Cash", emoji: "📱" },
+  { id: "orange_money", label: i18next.t("admin.paymentMethods.orangeMoney"), labelEn: "Orange Money", emoji: "🟠" },
   { id: "etisalat_cash", label: "اتصالات موني", labelEn: "Etisalat Cash", emoji: "🟣" },
   { id: "we_pay", label: "وي باي", labelEn: "WE Pay", emoji: "💳" },
   { id: "instapay", label: "إنستاباي", labelEn: "InstaPay", emoji: "⚡" },
@@ -34,7 +36,9 @@ const PAYMENT_TYPES = [
   { id: "other", label: "أخرى", labelEn: "Other", emoji: "💰" },
 ];
 
-export function PaymentMethodsTab({ token }: { token: string }) {
+export function PaymentMethodsTab({
+  token }: { token: string }) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [showForm, setShowForm] = useState(false);

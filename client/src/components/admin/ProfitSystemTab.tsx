@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import { TrendingUp, Wallet, Users, ArrowRightLeft, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -46,7 +47,9 @@ interface TransactionDetails {
   task: { id: string; title: string } | null;
 }
 
-export function ProfitSystemTab({ token }: { token: string }) {
+export function ProfitSystemTab({
+  token }: { token: string }) {
+  const { t } = useTranslation();
   const [expandedTransaction, setExpandedTransaction] = useState<string | null>(null);
 
   const { data: summary, isLoading: loadingSummary } = useQuery<ProfitSummary>({
@@ -74,7 +77,7 @@ export function ProfitSystemTab({ token }: { token: string }) {
   });
 
   if (loadingSummary) {
-    return <div className="p-4">جاري التحميل...</div>;
+    return <div className="p-4">{t("admin.profitSystem.loading")}</div>;
   }
 
   return (
@@ -92,7 +95,7 @@ export function ProfitSystemTab({ token }: { token: string }) {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-muted-foreground">عمولة التطبيق</CardTitle>
+            <CardTitle className="text-sm text-muted-foreground">{t("admin.profitSystem.appCommission")}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-primary">{summary?.totalAppCommission || 0}</div>
@@ -201,7 +204,7 @@ export function ProfitSystemTab({ token }: { token: string }) {
             </CardHeader>
             <CardContent>
               {loadingTransactions ? (
-                <div className="text-center py-8 text-muted-foreground">جاري التحميل...</div>
+                <div className="text-center py-8 text-muted-foreground">{t("admin.profitSystem.loading")}</div>
               ) : transactions && transactions.length > 0 ? (
                 <div className="space-y-2">
                   {transactions.map((t) => (

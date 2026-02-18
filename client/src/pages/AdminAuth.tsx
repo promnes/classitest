@@ -71,7 +71,7 @@ export const AdminAuth = (): JSX.Element => {
       <div className={`min-h-screen flex items-center justify-center ${isDark ? "bg-gray-900" : "bg-gray-100"}`} dir={isRTL ? "rtl" : "ltr"}>
         <div className={`${isDark ? "bg-gray-800" : "bg-white"} rounded-lg shadow-lg p-8 max-w-md w-full`}>
           <h1 className={`text-2xl font-bold text-center mb-6 ${isDark ? "text-white" : "text-gray-800"}`}>
-            {isRTL ? "استعادة كلمة المرور" : "Password Recovery"}
+            {isRTL ? t("adminAuth.recoverPassword") : "Password Recovery"}
           </h1>
 
           <div className={`p-4 rounded-lg mb-6 ${isDark ? "bg-gray-700" : "bg-blue-50"}`}>

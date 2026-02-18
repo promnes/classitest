@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -33,6 +34,7 @@ interface SchoolItem {
 }
 
 export default function SchoolsTab() {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const token = localStorage.getItem("adminToken");
 
@@ -105,7 +107,7 @@ export default function SchoolsTab() {
       queryClient.invalidateQueries({ queryKey: ["admin-schools"] });
       setShowAddModal(false);
       resetForm();
-      toast({ title: "تم إنشاء المدرسة بنجاح" });
+      toast({ title: t("admin.schools.schoolCreated") });
     },
     onError: (err: any) => toast({ title: err.message, variant: "destructive" }),
   });
@@ -124,7 +126,7 @@ export default function SchoolsTab() {
       queryClient.invalidateQueries({ queryKey: ["admin-schools"] });
       setShowEditModal(false);
       setSelectedSchool(null);
-      toast({ title: "تم تحديث المدرسة" });
+      toast({ title: t("admin.schools.schoolUpdated") });
     },
     onError: (err: any) => toast({ title: err.message, variant: "destructive" }),
   });
@@ -139,7 +141,7 @@ export default function SchoolsTab() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-schools"] });
-      toast({ title: "تم حذف المدرسة" });
+      toast({ title: t("admin.schools.schoolDeleted") });
     },
   });
 
@@ -156,7 +158,7 @@ export default function SchoolsTab() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-school-referral-settings"] });
       setShowSettingsModal(false);
-      toast({ title: "تم تحديث الإعدادات" });
+      toast({ title: t("admin.schools.settingsUpdated") });
     },
   });
 
@@ -170,7 +172,7 @@ export default function SchoolsTab() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-teacher-withdrawals"] });
-      toast({ title: "تم قبول طلب السحب" });
+      toast({ title: t("admin.schools.withdrawalAccepted") });
     },
   });
 
@@ -184,7 +186,7 @@ export default function SchoolsTab() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-teacher-withdrawals"] });
-      toast({ title: "تم رفض طلب السحب" });
+      toast({ title: t("admin.schools.withdrawalRejected") });
     },
   });
 
@@ -215,7 +217,7 @@ export default function SchoolsTab() {
       setShowTeacherEditModal(false);
       setSelectedTeacher(null);
       if (schoolDetails) openDetails(schoolDetails.id);
-      toast({ title: "تم تحديث بيانات المعلم" });
+      toast({ title: t("admin.schools.teacherUpdated") });
     },
     onError: (err: any) => toast({ title: err.message, variant: "destructive" }),
   });
@@ -231,7 +233,7 @@ export default function SchoolsTab() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-schools"] });
       if (schoolDetails) openDetails(schoolDetails.id);
-      toast({ title: "تم حذف المعلم" });
+      toast({ title: t("admin.schools.teacherDeleted") });
     },
     onError: (err: any) => toast({ title: err.message, variant: "destructive" }),
   });
@@ -252,7 +254,7 @@ export default function SchoolsTab() {
       setSelectedTeacher(null);
       setTransferForm({ toSchoolId: "", performanceRating: 0, performanceComment: "", reason: "" });
       if (schoolDetails) openDetails(schoolDetails.id);
-      toast({ title: "تم نقل المعلم بنجاح" });
+      toast({ title: t("admin.schools.teacherTransferred") });
     },
     onError: (err: any) => toast({ title: err.message, variant: "destructive" }),
   });
@@ -289,7 +291,7 @@ export default function SchoolsTab() {
       setSchoolDetails(data);
       setShowDetailsModal(true);
     } catch {
-      toast({ title: "فشل تحميل التفاصيل", variant: "destructive" });
+      toast({ title: t("admin.schools.detailsLoadFailed"), variant: "destructive" });
     }
   }
 
@@ -309,14 +311,14 @@ export default function SchoolsTab() {
           <TabsTrigger value="withdrawals">
             سحوبات المعلمين {pendingWithdrawals.length > 0 && `(${pendingWithdrawals.length})`}
           </TabsTrigger>
-          <TabsTrigger value="settings">الإعدادات</TabsTrigger>
+          <TabsTrigger value="settings">{t("admin.schools.settingsTab")}</TabsTrigger>
         </TabsList>
 
         {/* Schools List */}
         <TabsContent value="schools" className="space-y-4">
           <div className="flex justify-between items-center">
             <Input
-              placeholder="بحث بالاسم أو اسم المستخدم..."
+              placeholder={t("admin.schools.searchPlaceholder")}
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
               className="max-w-xs"
@@ -328,9 +330,9 @@ export default function SchoolsTab() {
           </div>
 
           {isLoading ? (
-            <div className="text-center py-8 text-muted-foreground">جار التحميل...</div>
+            <div className="text-center py-8 text-muted-foreground">{t("admin.schools.loading")}</div>
           ) : filtered.length === 0 ? (
-            <Card><CardContent className="p-8 text-center text-muted-foreground">لا توجد مدارس</CardContent></Card>
+            <Card><CardContent className="p-8 text-center text-muted-foreground">{t("admin.schools.noSchools")}</CardContent></Card>
           ) : (
             <div className="grid md:grid-cols-2 gap-4">
               {filtered.map((school: SchoolItem) => (
@@ -355,7 +357,7 @@ export default function SchoolsTab() {
                       </div>
                       <div className="flex gap-1">
                         <Badge variant={school.isActive ? "default" : "destructive"}>
-                          {school.isActive ? "نشط" : "معطل"}
+                          {school.isActive ? t("admin.schools.active") : t("admin.schools.inactive")}
                         </Badge>
                       </div>
                     </div>
@@ -381,7 +383,7 @@ export default function SchoolsTab() {
                       <Button
                         size="sm"
                         variant="destructive"
-                        onClick={() => { if (confirm("هل تريد حذف هذه المدرسة؟")) deleteSchool.mutate(school.id); }}
+                        onClick={() => { if (confirm(t("admin.schools.confirmDeleteSchool"))) deleteSchool.mutate(school.id); }}
                       >
                         <Trash2 className="h-3 w-3 ml-1" />
                         حذف
@@ -396,9 +398,9 @@ export default function SchoolsTab() {
 
         {/* Teacher Withdrawals */}
         <TabsContent value="withdrawals" className="space-y-4">
-          <h2 className="text-lg font-bold">طلبات سحب المعلمين</h2>
+          <h2 className="text-lg font-bold">{t("admin.schools.teacherWithdrawTitle")}</h2>
           {teacherWithdrawals.length === 0 ? (
-            <Card><CardContent className="p-8 text-center text-muted-foreground">لا توجد طلبات سحب</CardContent></Card>
+            <Card><CardContent className="p-8 text-center text-muted-foreground">{t("admin.schools.noWithdrawals")}</CardContent></Card>
           ) : (
             <div className="space-y-3">
               {teacherWithdrawals.map((w: any) => (
@@ -406,7 +408,7 @@ export default function SchoolsTab() {
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between">
                       <div>
-                        <h3 className="font-bold text-sm">{w.teacherName || "معلم"}</h3>
+                        <h3 className="font-bold text-sm">{w.teacherName || t("admin.schools.teacher")}</h3>
                         <p className="text-xs text-muted-foreground">المدرسة: {w.schoolName || "—"}</p>
                         <p className="text-sm mt-1">
                           المبلغ: <strong>{w.amount} ر.س</strong> — صافي: <strong className="text-green-600">{w.netAmount} ر.س</strong>
@@ -417,7 +419,7 @@ export default function SchoolsTab() {
                       </div>
                       <div className="flex flex-col items-end gap-2">
                         <Badge variant={w.status === "approved" ? "default" : w.status === "rejected" ? "destructive" : "secondary"}>
-                          {w.status === "approved" ? "مقبول" : w.status === "rejected" ? "مرفوض" : "قيد المراجعة"}
+                          {w.status === "approved" ? t("admin.schools.accepted") : w.status === "rejected" ? t("admin.schools.rejected") : t("admin.schools.pending")}
                         </Badge>
                         {w.status === "pending" && (
                           <div className="flex gap-2">
@@ -453,19 +455,19 @@ export default function SchoolsTab() {
               {referralSettings ? (
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <span>مكافأة الإحالة للمدرسة</span>
+                    <span>{t("admin.schools.schoolReferralReward")}</span>
                     <strong>{referralSettings.schoolReferralReward} ر.س</strong>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span>مكافأة الإحالة لولي الأمر</span>
+                    <span>{t("admin.schools.parentReferralReward")}</span>
                     <strong>{referralSettings.parentReferralReward} ر.س</strong>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span>الحد الأدنى للسحب</span>
+                    <span>{t("admin.schools.minWithdrawal")}</span>
                     <strong>{referralSettings.minWithdrawalAmount} ر.س</strong>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span>فترة الاحتفاظ بالأموال</span>
+                    <span>{t("admin.schools.holdPeriod")}</span>
                     <strong>{referralSettings.holdDays} يوم</strong>
                   </div>
                   <Button onClick={() => setShowSettingsModal(true)} className="mt-4">
@@ -474,7 +476,7 @@ export default function SchoolsTab() {
                   </Button>
                 </div>
               ) : (
-                <p className="text-muted-foreground">لم يتم تعيين إعدادات بعد</p>
+                <p className="text-muted-foreground">{t("admin.schools.noSettingsYet")}</p>
               )}
             </CardContent>
           </Card>
@@ -484,24 +486,24 @@ export default function SchoolsTab() {
       {/* Add School Modal */}
       <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
         <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>إضافة مدرسة جديدة</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{t("admin.schools.addNewSchool")}</DialogTitle></DialogHeader>
           <div className="space-y-3">
-            <div><Label>اسم المدرسة *</Label><Input value={formData.name} onChange={e => setFormData(f => ({ ...f, name: e.target.value }))} /></div>
-            <div><Label>اسم المستخدم *</Label><Input value={formData.username} onChange={e => setFormData(f => ({ ...f, username: e.target.value }))} /></div>
-            <div><Label>كلمة المرور *</Label><Input type="password" value={formData.password} onChange={e => setFormData(f => ({ ...f, password: e.target.value }))} /></div>
-            <div><Label>الوصف</Label><Textarea value={formData.bio} onChange={e => setFormData(f => ({ ...f, bio: e.target.value }))} /></div>
-            <div><Label>العنوان</Label><Input value={formData.address} onChange={e => setFormData(f => ({ ...f, address: e.target.value }))} /></div>
-            <div><Label>الهاتف</Label><Input value={formData.phone} onChange={e => setFormData(f => ({ ...f, phone: e.target.value }))} /></div>
-            <div><Label>البريد</Label><Input value={formData.email} onChange={e => setFormData(f => ({ ...f, email: e.target.value }))} /></div>
-            <div><Label>الموقع</Label><Input value={formData.website} onChange={e => setFormData(f => ({ ...f, website: e.target.value }))} /></div>
+            <div><Label>{t("admin.schools.schoolName")}</Label><Input value={formData.name} onChange={e => setFormData(f => ({ ...f, name: e.target.value }))} /></div>
+            <div><Label>{t("admin.schools.username")}</Label><Input value={formData.username} onChange={e => setFormData(f => ({ ...f, username: e.target.value }))} /></div>
+            <div><Label>{t("admin.schools.password")}</Label><Input type="password" value={formData.password} onChange={e => setFormData(f => ({ ...f, password: e.target.value }))} /></div>
+            <div><Label>{t("admin.schools.descriptionLabel")}</Label><Textarea value={formData.bio} onChange={e => setFormData(f => ({ ...f, bio: e.target.value }))} /></div>
+            <div><Label>{t("admin.schools.address")}</Label><Input value={formData.address} onChange={e => setFormData(f => ({ ...f, address: e.target.value }))} /></div>
+            <div><Label>{t("admin.schools.phone")}</Label><Input value={formData.phone} onChange={e => setFormData(f => ({ ...f, phone: e.target.value }))} /></div>
+            <div><Label>{t("admin.schools.emailLabel")}</Label><Input value={formData.email} onChange={e => setFormData(f => ({ ...f, email: e.target.value }))} /></div>
+            <div><Label>{t("admin.schools.website")}</Label><Input value={formData.website} onChange={e => setFormData(f => ({ ...f, website: e.target.value }))} /></div>
             <div className="grid grid-cols-2 gap-2">
-              <div><Label>عمولة المبيعات %</Label><Input type="number" value={formData.commissionRatePct} onChange={e => setFormData(f => ({ ...f, commissionRatePct: e.target.value }))} /></div>
-              <div><Label>عمولة السحب %</Label><Input type="number" value={formData.withdrawalCommissionPct} onChange={e => setFormData(f => ({ ...f, withdrawalCommissionPct: e.target.value }))} /></div>
+              <div><Label>{t("admin.schools.salesCommission")}</Label><Input type="number" value={formData.commissionRatePct} onChange={e => setFormData(f => ({ ...f, commissionRatePct: e.target.value }))} /></div>
+              <div><Label>{t("admin.schools.withdrawalCommission")}</Label><Input type="number" value={formData.withdrawalCommissionPct} onChange={e => setFormData(f => ({ ...f, withdrawalCommissionPct: e.target.value }))} /></div>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowAddModal(false)}>إلغاء</Button>
-            <Button className="bg-blue-600" onClick={() => createSchool.mutate(formData)}>إنشاء</Button>
+            <Button variant="outline" onClick={() => setShowAddModal(false)}>{t("common.cancel")}</Button>
+            <Button className="bg-blue-600" onClick={() => createSchool.mutate(formData)}>{t("admin.schools.createBtn")}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -509,19 +511,19 @@ export default function SchoolsTab() {
       {/* Edit School Modal */}
       <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
         <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>تعديل المدرسة</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{t("admin.schools.editSchool")}</DialogTitle></DialogHeader>
           <div className="space-y-3">
-            <div><Label>اسم المدرسة</Label><Input value={formData.name} onChange={e => setFormData(f => ({ ...f, name: e.target.value }))} /></div>
-            <div><Label>اسم المستخدم</Label><Input value={formData.username} onChange={e => setFormData(f => ({ ...f, username: e.target.value }))} /></div>
-            <div><Label>كلمة المرور الجديدة (اختياري)</Label><Input type="password" value={formData.password} onChange={e => setFormData(f => ({ ...f, password: e.target.value }))} /></div>
-            <div><Label>الوصف</Label><Textarea value={formData.bio} onChange={e => setFormData(f => ({ ...f, bio: e.target.value }))} /></div>
-            <div><Label>العنوان</Label><Input value={formData.address} onChange={e => setFormData(f => ({ ...f, address: e.target.value }))} /></div>
+            <div><Label>{t("admin.schools.schoolName")}</Label><Input value={formData.name} onChange={e => setFormData(f => ({ ...f, name: e.target.value }))} /></div>
+            <div><Label>{t("admin.schools.username")}</Label><Input value={formData.username} onChange={e => setFormData(f => ({ ...f, username: e.target.value }))} /></div>
+            <div><Label>{t("admin.schools.newPasswordOpt")}</Label><Input type="password" value={formData.password} onChange={e => setFormData(f => ({ ...f, password: e.target.value }))} /></div>
+            <div><Label>{t("admin.schools.descriptionLabel")}</Label><Textarea value={formData.bio} onChange={e => setFormData(f => ({ ...f, bio: e.target.value }))} /></div>
+            <div><Label>{t("admin.schools.address")}</Label><Input value={formData.address} onChange={e => setFormData(f => ({ ...f, address: e.target.value }))} /></div>
             <div className="grid grid-cols-2 gap-2">
-              <div><Label>عمولة المبيعات %</Label><Input type="number" value={formData.commissionRatePct} onChange={e => setFormData(f => ({ ...f, commissionRatePct: e.target.value }))} /></div>
-              <div><Label>عمولة السحب %</Label><Input type="number" value={formData.withdrawalCommissionPct} onChange={e => setFormData(f => ({ ...f, withdrawalCommissionPct: e.target.value }))} /></div>
+              <div><Label>{t("admin.schools.salesCommission")}</Label><Input type="number" value={formData.commissionRatePct} onChange={e => setFormData(f => ({ ...f, commissionRatePct: e.target.value }))} /></div>
+              <div><Label>{t("admin.schools.withdrawalCommission")}</Label><Input type="number" value={formData.withdrawalCommissionPct} onChange={e => setFormData(f => ({ ...f, withdrawalCommissionPct: e.target.value }))} /></div>
             </div>
             <div className="flex items-center gap-2">
-              <Label>موثقة</Label>
+              <Label>{t("admin.schools.verified")}</Label>
               <Switch
                 checked={formData.imageUrl === "verified"}
                 onCheckedChange={checked => setFormData(f => ({ ...f, imageUrl: checked ? "verified" : "" }))}
@@ -529,7 +531,7 @@ export default function SchoolsTab() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowEditModal(false)}>إلغاء</Button>
+            <Button variant="outline" onClick={() => setShowEditModal(false)}>{t("common.cancel")}</Button>
             <Button className="bg-blue-600" onClick={() => {
               if (!selectedSchool) return;
               const payload: any = { ...formData };
@@ -541,7 +543,7 @@ export default function SchoolsTab() {
               }
               if (!payload.password) delete payload.password;
               updateSchool.mutate({ id: selectedSchool.id, ...payload });
-            }}>تحديث</Button>
+            }}>{t("admin.schools.updateBtn")}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -549,7 +551,7 @@ export default function SchoolsTab() {
       {/* Details Modal */}
       <Dialog open={showDetailsModal} onOpenChange={setShowDetailsModal}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>تفاصيل المدرسة</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{t("admin.schools.schoolDetails")}</DialogTitle></DialogHeader>
           {schoolDetails && (
             <div className="space-y-4">
               <div className="flex items-center gap-3">
@@ -564,9 +566,9 @@ export default function SchoolsTab() {
                   <h2 className="text-xl font-bold">{schoolDetails.name}</h2>
                   <p className="text-sm text-muted-foreground">@{schoolDetails.username}</p>
                   <div className="flex gap-2 mt-1">
-                    {schoolDetails.isVerified && <Badge className="bg-blue-600">موثقة</Badge>}
+                    {schoolDetails.isVerified && <Badge className="bg-blue-600">{t("admin.schools.verified")}</Badge>}
                     <Badge variant={schoolDetails.isActive ? "default" : "destructive"}>
-                      {schoolDetails.isActive ? "نشط" : "معطل"}
+                      {schoolDetails.isActive ? t("admin.schools.active") : t("admin.schools.inactive")}
                     </Badge>
                   </div>
                 </div>
@@ -574,19 +576,19 @@ export default function SchoolsTab() {
 
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded">
-                  <div className="text-muted-foreground">المعلمين</div>
+                  <div className="text-muted-foreground">{t("admin.schools.teachers")}</div>
                   <div className="text-xl font-bold text-blue-600">{schoolDetails.teachers?.length || 0}</div>
                 </div>
                 <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded">
-                  <div className="text-muted-foreground">الطلاب</div>
+                  <div className="text-muted-foreground">{t("admin.schools.students")}</div>
                   <div className="text-xl font-bold text-green-600">{schoolDetails.students?.length || 0}</div>
                 </div>
                 <div className="p-3 bg-purple-50 dark:bg-purple-900/20 rounded">
-                  <div className="text-muted-foreground">المنشورات</div>
+                  <div className="text-muted-foreground">{t("admin.schools.posts")}</div>
                   <div className="text-xl font-bold text-purple-600">{schoolDetails.posts?.length || 0}</div>
                 </div>
                 <div className="p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded">
-                  <div className="text-muted-foreground">التقييمات</div>
+                  <div className="text-muted-foreground">{t("admin.schools.ratings")}</div>
                   <div className="text-xl font-bold text-yellow-600">{schoolDetails.reviews?.length || 0}</div>
                 </div>
               </div>
@@ -602,12 +604,12 @@ export default function SchoolsTab() {
                           <div>
                             <span className="text-sm font-medium">{t.name}</span>
                             <span className="text-xs text-muted-foreground mr-2">@{t.username}</span>
-                            <div className="text-xs text-muted-foreground">{t.subject || "بدون تخصص"}</div>
+                            <div className="text-xs text-muted-foreground">{t.subject || t("admin.schools.noSpecialty")}</div>
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
                           <Badge variant={t.isActive ? "default" : "secondary"} className="text-xs">
-                            {t.isActive ? "نشط" : "غير نشط"}
+                            {t.isActive ? t("admin.schools.active") : t("admin.schools.inactiveStatus")}
                           </Badge>
                           <Button size="sm" variant="ghost" className="h-7 px-2" onClick={() => {
                             setSelectedTeacher(t);
@@ -646,7 +648,7 @@ export default function SchoolsTab() {
 
               {schoolDetails.bio && (
                 <div>
-                  <h3 className="font-bold mb-1">الوصف</h3>
+                  <h3 className="font-bold mb-1">{t("admin.schools.descriptionLabel")}</h3>
                   <p className="text-sm text-muted-foreground">{schoolDetails.bio}</p>
                 </div>
               )}
@@ -662,7 +664,7 @@ export default function SchoolsTab() {
       {/* Referral Settings Modal */}
       <Dialog open={showSettingsModal} onOpenChange={setShowSettingsModal}>
         <DialogContent>
-          <DialogHeader><DialogTitle>تعديل إعدادات الإحالة</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{t("admin.schools.editReferralSettings")}</DialogTitle></DialogHeader>
           {referralSettings && (
             <ReferralSettingsForm
               initial={referralSettings}
@@ -676,30 +678,30 @@ export default function SchoolsTab() {
       {/* Teacher Edit Modal (Admin) */}
       <Dialog open={showTeacherEditModal} onOpenChange={setShowTeacherEditModal}>
         <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>تعديل بيانات المعلم</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{t("admin.schools.editTeacher")}</DialogTitle></DialogHeader>
           <div className="space-y-3">
-            <div><Label>الاسم</Label><Input value={teacherFormData.name} onChange={e => setTeacherFormData(f => ({ ...f, name: e.target.value }))} /></div>
-            <div><Label>اسم المستخدم</Label><Input value={teacherFormData.username} onChange={e => setTeacherFormData(f => ({ ...f, username: e.target.value }))} /></div>
-            <div><Label>كلمة المرور الجديدة (اختياري)</Label><Input type="password" value={teacherFormData.password} onChange={e => setTeacherFormData(f => ({ ...f, password: e.target.value }))} /></div>
-            <div><Label>التخصص</Label><Input value={teacherFormData.subject} onChange={e => setTeacherFormData(f => ({ ...f, subject: e.target.value }))} /></div>
-            <div><Label>نبذة</Label><Textarea value={teacherFormData.bio} onChange={e => setTeacherFormData(f => ({ ...f, bio: e.target.value }))} /></div>
+            <div><Label>{t("admin.schools.nameLabel")}</Label><Input value={teacherFormData.name} onChange={e => setTeacherFormData(f => ({ ...f, name: e.target.value }))} /></div>
+            <div><Label>{t("admin.schools.username")}</Label><Input value={teacherFormData.username} onChange={e => setTeacherFormData(f => ({ ...f, username: e.target.value }))} /></div>
+            <div><Label>{t("admin.schools.newPasswordOpt")}</Label><Input type="password" value={teacherFormData.password} onChange={e => setTeacherFormData(f => ({ ...f, password: e.target.value }))} /></div>
+            <div><Label>{t("admin.schools.specialty")}</Label><Input value={teacherFormData.subject} onChange={e => setTeacherFormData(f => ({ ...f, subject: e.target.value }))} /></div>
+            <div><Label>{t("admin.schools.bio")}</Label><Textarea value={teacherFormData.bio} onChange={e => setTeacherFormData(f => ({ ...f, bio: e.target.value }))} /></div>
             <div className="grid grid-cols-2 gap-2">
-              <div><Label>سنوات الخبرة</Label><Input type="number" value={teacherFormData.yearsExperience} onChange={e => setTeacherFormData(f => ({ ...f, yearsExperience: e.target.value }))} /></div>
-              <div><Label>نسبة العمولة %</Label><Input type="number" value={teacherFormData.commissionRatePct} onChange={e => setTeacherFormData(f => ({ ...f, commissionRatePct: e.target.value }))} /></div>
+              <div><Label>{t("admin.schools.yearsExperience")}</Label><Input type="number" value={teacherFormData.yearsExperience} onChange={e => setTeacherFormData(f => ({ ...f, yearsExperience: e.target.value }))} /></div>
+              <div><Label>{t("admin.schools.commissionPercent")}</Label><Input type="number" value={teacherFormData.commissionRatePct} onChange={e => setTeacherFormData(f => ({ ...f, commissionRatePct: e.target.value }))} /></div>
             </div>
             <div className="flex items-center gap-2">
-              <Label>نشط</Label>
+              <Label>{t("admin.schools.activeLabel")}</Label>
               <Switch checked={teacherFormData.isActive} onCheckedChange={checked => setTeacherFormData(f => ({ ...f, isActive: checked }))} />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowTeacherEditModal(false)}>إلغاء</Button>
+            <Button variant="outline" onClick={() => setShowTeacherEditModal(false)}>{t("common.cancel")}</Button>
             <Button className="bg-blue-600" onClick={() => {
               if (!selectedTeacher) return;
               const payload: any = { ...teacherFormData, yearsExperience: parseInt(teacherFormData.yearsExperience) || 0 };
               if (!payload.password) delete payload.password;
               updateTeacherAdmin.mutate({ id: selectedTeacher.id, ...payload });
-            }}>تحديث</Button>
+            }}>{t("admin.schools.updateBtn")}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -710,7 +712,7 @@ export default function SchoolsTab() {
           <DialogHeader><DialogTitle>نقل المعلم: {selectedTeacher?.name}</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label>المدرسة المستهدفة *</Label>
+              <Label>{t("admin.schools.targetSchool")}</Label>
               <select
                 className="w-full border rounded-md p-2 mt-1 bg-background"
                 value={transferForm.toSchoolId}
@@ -724,7 +726,7 @@ export default function SchoolsTab() {
             </div>
 
             <div>
-              <Label>تقييم أداء المعلم * (1-5)</Label>
+              <Label>{t("admin.schools.performanceRating")}</Label>
               <div className="flex gap-1 mt-1">
                 {[1, 2, 3, 4, 5].map(n => (
                   <button
@@ -740,26 +742,26 @@ export default function SchoolsTab() {
             </div>
 
             <div>
-              <Label>تعليق على الأداء *</Label>
+              <Label>{t("admin.schools.performanceComment")}</Label>
               <Textarea
                 value={transferForm.performanceComment}
                 onChange={e => setTransferForm(f => ({ ...f, performanceComment: e.target.value }))}
-                placeholder="اكتب تقييمك لأداء المعلم..."
+                placeholder={t("admin.schools.performanceCommentPlaceholder")}
                 rows={3}
               />
             </div>
 
             <div>
-              <Label>سبب النقل (اختياري)</Label>
+              <Label>{t("admin.schools.transferReason")}</Label>
               <Input
                 value={transferForm.reason}
                 onChange={e => setTransferForm(f => ({ ...f, reason: e.target.value }))}
-                placeholder="سبب النقل..."
+                placeholder={t("admin.schools.transferReasonPlaceholder")}
               />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowTeacherTransferModal(false)}>إلغاء</Button>
+            <Button variant="outline" onClick={() => setShowTeacherTransferModal(false)}>{t("common.cancel")}</Button>
             <Button
               className="bg-orange-600 hover:bg-orange-700"
               disabled={!transferForm.toSchoolId || !transferForm.performanceRating || !transferForm.performanceComment || transferTeacherAdmin.isPending}
@@ -774,7 +776,7 @@ export default function SchoolsTab() {
                 });
               }}
             >
-              {transferTeacherAdmin.isPending ? "جاري النقل..." : "تأكيد النقل"}
+              {transferTeacherAdmin.isPending ? t("admin.schools.transferring") : t("admin.schools.confirmTransfer")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -784,6 +786,7 @@ export default function SchoolsTab() {
 }
 
 function ReferralSettingsForm({ initial, onSave, onCancel }: { initial: any; onSave: (data: any) => void; onCancel: () => void }) {
+  const { t } = useTranslation();
   const [form, setForm] = useState({
     schoolReferralReward: initial.schoolReferralReward || "0",
     parentReferralReward: initial.parentReferralReward || "0",
@@ -793,13 +796,13 @@ function ReferralSettingsForm({ initial, onSave, onCancel }: { initial: any; onS
 
   return (
     <div className="space-y-3">
-      <div><Label>مكافأة إحالة المدرسة</Label><Input type="number" value={form.schoolReferralReward} onChange={e => setForm(f => ({ ...f, schoolReferralReward: e.target.value }))} /></div>
-      <div><Label>مكافأة إحالة ولي الأمر</Label><Input type="number" value={form.parentReferralReward} onChange={e => setForm(f => ({ ...f, parentReferralReward: e.target.value }))} /></div>
-      <div><Label>الحد الأدنى للسحب</Label><Input type="number" value={form.minWithdrawalAmount} onChange={e => setForm(f => ({ ...f, minWithdrawalAmount: e.target.value }))} /></div>
-      <div><Label>فترة الاحتفاظ (أيام)</Label><Input type="number" value={form.holdDays} onChange={e => setForm(f => ({ ...f, holdDays: parseInt(e.target.value) || 7 }))} /></div>
+      <div><Label>{t("admin.schools.referralRewardSchool")}</Label><Input type="number" value={form.schoolReferralReward} onChange={e => setForm(f => ({ ...f, schoolReferralReward: e.target.value }))} /></div>
+      <div><Label>{t("admin.schools.referralRewardParent")}</Label><Input type="number" value={form.parentReferralReward} onChange={e => setForm(f => ({ ...f, parentReferralReward: e.target.value }))} /></div>
+      <div><Label>{t("admin.schools.minWithdrawal")}</Label><Input type="number" value={form.minWithdrawalAmount} onChange={e => setForm(f => ({ ...f, minWithdrawalAmount: e.target.value }))} /></div>
+      <div><Label>{t("admin.schools.holdPeriodLabel")}</Label><Input type="number" value={form.holdDays} onChange={e => setForm(f => ({ ...f, holdDays: parseInt(e.target.value) || 7 }))} /></div>
       <DialogFooter>
-        <Button variant="outline" onClick={onCancel}>إلغاء</Button>
-        <Button className="bg-blue-600" onClick={() => onSave(form)}>حفظ</Button>
+        <Button variant="outline" onClick={onCancel}>{t("common.cancel")}</Button>
+        <Button className="bg-blue-600" onClick={() => onSave(form)}>{t("admin.schools.save")}</Button>
       </DialogFooter>
     </div>
   );

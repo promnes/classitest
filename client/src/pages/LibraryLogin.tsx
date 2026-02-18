@@ -7,10 +7,12 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Store, Eye, EyeOff } from "lucide-react";
 import { LanguageSelector } from "@/components/LanguageSelector";
+import { useTranslation } from "react-i18next";
 
 export default function LibraryLogin() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const { t } = useTranslation();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -20,7 +22,7 @@ export default function LibraryLogin() {
     e.preventDefault();
     
     if (!username || !password) {
-      toast({ title: "يرجى إدخال اسم المستخدم وكلمة المرور", variant: "destructive" });
+      toast({ title: t("libraryLogin.enterCredentialsRequired"), variant: "destructive" });
       return;
     }
 
@@ -35,16 +37,16 @@ export default function LibraryLogin() {
       const data = await res.json();
       
       if (!res.ok) {
-        throw new Error(data.message || "فشل تسجيل الدخول");
+        throw new Error(data.message || t("libraryLogin.loginFailed"));
       }
 
       localStorage.setItem("libraryToken", data.token);
       localStorage.setItem("libraryData", JSON.stringify(data.library));
       
-      toast({ title: `مرحباً ${data.library.name}` });
+      toast({ title: `${t("libraryLogin.welcome")} ${data.library.name}` });
       setLocation("/library/dashboard");
     } catch (error: any) {
-      toast({ title: error.message || "فشل تسجيل الدخول", variant: "destructive" });
+      toast({ title: error.message || t("libraryLogin.loginFailed"), variant: "destructive" });
     } finally {
       setIsLoading(false);
     }
@@ -58,32 +60,32 @@ export default function LibraryLogin() {
           <div className="mx-auto mb-4 w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
             <Store className="h-8 w-8 text-primary" />
           </div>
-          <CardTitle className="text-2xl">تسجيل دخول المكتبة</CardTitle>
+          <CardTitle className="text-2xl">{t("libraryLogin.title")}</CardTitle>
           <CardDescription>
-            أدخل بيانات حسابك للوصول إلى لوحة التحكم
+            {t("libraryLogin.description")}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="username">اسم المستخدم</Label>
+              <Label htmlFor="username">{t("libraryLogin.username")}</Label>
               <Input
                 id="username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                placeholder="أدخل اسم المستخدم"
+                placeholder={t("libraryLogin.enterUsername")}
                 data-testid="input-library-login-username"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">كلمة المرور</Label>
+              <Label htmlFor="password">{t("libraryLogin.password")}</Label>
               <div className="relative">
                 <Input
                   id="password"
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="أدخل كلمة المرور"
+                  placeholder={t("libraryLogin.enterPassword")}
                   data-testid="input-library-login-password"
                 />
                 <Button
@@ -103,19 +105,19 @@ export default function LibraryLogin() {
               disabled={isLoading}
               data-testid="button-library-login"
             >
-              {isLoading ? "جاري تسجيل الدخول..." : "تسجيل الدخول"}
+              {isLoading ? t("libraryLogin.loggingIn") : t("libraryLogin.login")}
             </Button>
           </form>
           
           <div className="mt-6 text-center text-sm text-muted-foreground">
-            <p>ليس لديك حساب؟</p>
+            <p>{t("libraryLogin.noAccount")}</p>
             <a 
               href="https://wa.me/+201XXXXXXXXX?text=أريد%20فتح%20حساب%20مكتبة%20في%20Classify"
               target="_blank"
               rel="noopener noreferrer"
               className="text-primary hover:underline"
             >
-              تواصل مع الدعم لفتح حساب
+              {t("libraryLogin.contactSupport")}
             </a>
           </div>
         </CardContent>

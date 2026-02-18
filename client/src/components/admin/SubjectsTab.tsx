@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Edit, Trash2, BookOpen, Users, ListTodo, Settings, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -38,7 +39,9 @@ interface TemplateTask {
   taskMedia?: any;
 }
 
-export function SubjectsTab({ token }: { token: string }) {
+export function SubjectsTab({
+  token }: { token: string }) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [showSubjectModal, setShowSubjectModal] = useState(false);
   const [showTaskModal, setShowTaskModal] = useState(false);
@@ -173,7 +176,7 @@ export function SubjectsTab({ token }: { token: string }) {
   const createTaskMutation = useMutation({
     mutationFn: async (data: any) => {
       const subjectId = data.subjectId || selectedSubjectId;
-      if (!subjectId) throw new Error("المادة مطلوبة");
+      if (!subjectId) throw new Error(t("admin.subjects.subjectRequired"));
       const res = await fetch("/api/admin/template-tasks", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },

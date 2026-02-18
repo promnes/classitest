@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
+import i18next from "i18next";
 
 interface FloatingBubbleProps {
   pendingCount: number;
@@ -113,7 +115,7 @@ export const FloatingBubble: React.FC<FloatingBubbleProps> = ({
           {/* Header */}
           <div className="bg-gradient-to-r from-purple-500 to-pink-500 text-white p-4">
             <div className="flex items-center justify-between">
-              <h3 className="font-bold text-lg">الهدايا والمهام</h3>
+              <h3 className="font-bold text-lg">{i18next.t("floatingBubble.giftsAndTasks")}</h3>
               <button
                 onClick={toggleBubble}
                 className="text-white hover:bg-white/20 p-1 rounded-lg transition-all"

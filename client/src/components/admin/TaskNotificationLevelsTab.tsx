@@ -1,4 +1,6 @@
 import React, { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
+import i18next from "i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { BellRing, ShieldAlert, Smartphone, Globe, Save, CheckCircle2, XCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -51,7 +53,7 @@ interface StatsResponse {
 }
 
 const LEVELS = [
-  { value: 1, title: "L1", descAr: "داخل التطبيق فقط", descEn: "In-app only" },
+  { value: 1, title: "L1", descAr: i18next.t("admin.taskNotificationLevels.inAppOnly"), descEn: "In-app only" },
   { value: 2, title: "L2", descAr: "داخل التطبيق + تذكير", descEn: "In-app + reminders" },
   { value: 3, title: "L3", descAr: "تصعيد أعلى + إعادة محاولات", descEn: "High urgency + retries" },
   { value: 4, title: "L4", descAr: "أقوى مستوى (Push خارج التطبيق)", descEn: "Strongest (Push outside app)" },
@@ -62,6 +64,7 @@ function defaultChannels(): Channels {
 }
 
 export function TaskNotificationLevelsTab({ token }: { token: string }) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [search, setSearch] = useState("");

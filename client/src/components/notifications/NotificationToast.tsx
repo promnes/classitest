@@ -2,6 +2,7 @@
 // Toast notification (auto-dismiss after 5 seconds)
 
 import { useEffect } from "react";
+import { useTranslation } from "react-i18next";
 
 interface NotificationToastProps {
   id: string;
@@ -20,6 +21,7 @@ export function NotificationToast({
   soundAlert = false,
   type = "gift_activated",
 }: NotificationToastProps) {
+  const { t } = useTranslation();
   useEffect(() => {
     // Play sound if enabled
     if (soundAlert) {
@@ -54,7 +56,7 @@ export function NotificationToast({
       <h3 className="font-bold text-lg mb-1">{title}</h3>
       <p className="text-sm">{message}</p>
       <div className="mt-2 flex justify-between items-center">
-        <span className="text-xs opacity-75">يُغلق تلقائياً خلال 5 ثوانٍ...</span>
+        <span className="text-xs opacity-75">{t("notificationToast.autoClose")}</span>
         <button
           onClick={() => onDismiss(id)}
           className="text-lg opacity-75 hover:opacity-100"

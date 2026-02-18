@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
+import i18next from "i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 
@@ -95,9 +97,9 @@ export const NotificationSettingsTab: React.FC<{ token: string }> = ({ token }) 
   const pagination = settingsData?.data?.pagination || {};
 
   const modeLabels: Record<string, string> = {
-    popup_strict: "نافذة منبثقة صارمة",
-    popup_soft: "إعلان ناعم",
-    floating_bubble: "دائرة عائمة",
+    popup_strict: i18next.t("admin.notificationSettings.strictPopup"),
+    popup_soft: i18next.t("admin.notificationSettings.softAnnouncement"),
+    floating_bubble: i18next.t("admin.notificationSettings.floatingCircle"),
   };
 
   const modeDescriptions: Record<string, string> = {

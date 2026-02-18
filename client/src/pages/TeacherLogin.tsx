@@ -7,10 +7,12 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { GraduationCap, Eye, EyeOff } from "lucide-react";
 import { LanguageSelector } from "@/components/LanguageSelector";
+import { useTranslation } from "react-i18next";
 
 export default function TeacherLogin() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const { t } = useTranslation();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -20,7 +22,7 @@ export default function TeacherLogin() {
     e.preventDefault();
 
     if (!username || !password) {
-      toast({ title: "يرجى إدخال اسم المستخدم وكلمة المرور", variant: "destructive" });
+      toast({ title: t("teacherLogin.enterCredentialsRequired"), variant: "destructive" });
       return;
     }
 
@@ -35,16 +37,16 @@ export default function TeacherLogin() {
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.message || "فشل تسجيل الدخول");
+        throw new Error(data.message || t("teacherLogin.loginFailed"));
       }
 
       localStorage.setItem("teacherToken", data.token);
       localStorage.setItem("teacherData", JSON.stringify(data.teacher));
 
-      toast({ title: `مرحباً ${data.teacher.name}` });
+      toast({ title: `${t("teacherLogin.welcome")} ${data.teacher.name}` });
       setLocation("/teacher/dashboard");
     } catch (error: any) {
-      toast({ title: error.message || "فشل تسجيل الدخول", variant: "destructive" });
+      toast({ title: error.message || t("teacherLogin.loginFailed"), variant: "destructive" });
     } finally {
       setIsLoading(false);
     }
@@ -58,31 +60,31 @@ export default function TeacherLogin() {
           <div className="mx-auto mb-4 w-16 h-16 rounded-full bg-green-500/10 flex items-center justify-center">
             <GraduationCap className="h-8 w-8 text-green-600" />
           </div>
-          <CardTitle className="text-2xl">تسجيل دخول المعلم</CardTitle>
+          <CardTitle className="text-2xl">{t("teacherLogin.title")}</CardTitle>
           <CardDescription>
-            أدخل بيانات حسابك للوصول إلى لوحة التحكم
+            {t("teacherLogin.description")}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="username">اسم المستخدم</Label>
+              <Label htmlFor="username">{t("teacherLogin.username")}</Label>
               <Input
                 id="username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                placeholder="أدخل اسم المستخدم"
+                placeholder={t("teacherLogin.enterUsername")}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">كلمة المرور</Label>
+              <Label htmlFor="password">{t("teacherLogin.password")}</Label>
               <div className="relative">
                 <Input
                   id="password"
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="أدخل كلمة المرور"
+                  placeholder={t("teacherLogin.enterPassword")}
                 />
                 <Button
                   type="button"
@@ -100,13 +102,13 @@ export default function TeacherLogin() {
               className="w-full bg-green-600 hover:bg-green-700"
               disabled={isLoading}
             >
-              {isLoading ? "جاري تسجيل الدخول..." : "تسجيل الدخول"}
+              {isLoading ? t("teacherLogin.loggingIn") : t("teacherLogin.login")}
             </Button>
           </form>
 
           <div className="mt-6 text-center text-sm text-muted-foreground">
-            <p>يتم إنشاء حسابك من قبل المدرسة</p>
-            <p className="text-xs mt-1">تواصل مع إدارة مدرستك للحصول على بيانات الدخول</p>
+            <p>{t("teacherLogin.accountCreatedBySchool")}</p>
+            <p className="text-xs mt-1">{t("teacherLogin.contactSchoolAdmin")}</p>
           </div>
         </CardContent>
       </Card>

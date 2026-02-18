@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import Cropper, { Area } from "react-easy-crop";
 import {
   Dialog,
@@ -83,6 +84,7 @@ export default function ImageCropper({
   mode,
   title,
 }: ImageCropperProps) {
+  const { t } = useTranslation();
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [rotation, setRotation] = useState(0);

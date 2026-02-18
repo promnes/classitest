@@ -102,7 +102,7 @@ export default function ChildProfile() {
   // Open cropper when a file is selected
   const handleSelectAvatar = (file: File) => {
     if (!file.type.startsWith("image/")) {
-      toast({ title: "يرجى اختيار صورة فقط", variant: "destructive" });
+      toast({ title: t("childProfile.pleaseSelectImage"), variant: "destructive" });
       return;
     }
     const url = URL.createObjectURL(file);

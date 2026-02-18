@@ -43,7 +43,7 @@ interface SocialLoginButtonsProps {
 }
 
 export function SocialLoginButtons({ onProviderClick, className = "" }: SocialLoginButtonsProps) {
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
   const isArabic = i18n.language === "ar";
 
   const { data: providers = [], isLoading, isError } = useQuery<SocialProvider[]>({
@@ -78,7 +78,7 @@ export function SocialLoginButtons({ onProviderClick, className = "" }: SocialLo
         </div>
         <div className="relative flex justify-center text-xs uppercase">
           <span className="bg-background px-2 text-muted-foreground">
-            {isArabic ? "أو" : "OR"}
+            {isArabic ? t("socialLogin.or") : "OR"}
           </span>
         </div>
       </div>

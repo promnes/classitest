@@ -12,7 +12,31 @@
   "manageChildTasks": "إدارة مهام الأطفال",
   "gamesAndTasks": "ألعاب ومهام",
   "smartParentalControl": "التطبيق المتخصص للتحكم الأبوي الذكي",
-  "downloadApp": "تحميل التطبيق",
+  "downloadApp": {
+    "0": "D",
+    "1": "o",
+    "2": "w",
+    "3": "n",
+    "4": "l",
+    "5": "o",
+    "6": "a",
+    "7": "d",
+    "8": " ",
+    "9": "A",
+    "10": "p",
+    "11": "p",
+    "smartParentalControl": "الرقابة الأبوية الذكية",
+    "easyToUse": "تطبيق سهل الاستخدام",
+    "educationalPlatform": "منصة تعليمية",
+    "downloadNow": "Download Now",
+    "availableOnPlayStore": "Available on Google Play",
+    "availableOnAppStore": "Available on App Store",
+    "features": "Features",
+    "security": "Security",
+    "education": "تعليم",
+    "games": "Games",
+    "monitoring": "Monitoring"
+  },
   "downloadAppDesc": "حمّل تطبيق Classify على جهازك الأندرويد",
   "parentLogin": "دخول ولي الأمر",
   "registerNewParent": "تسجيل ولي أمر جديد",
@@ -68,7 +92,10 @@
   "pointsReward": "النقاط المكسبة",
   "answers": "الإجابات",
   "answerLabel": "الإجابة",
-  "createTask": "إنشاء المهمة",
+  "createTask": {
+    "linkingCode": "كود الربط الخاص بك",
+    "insufficientBalance": "رصيدك غير كافي"
+  },
   "creatingTask": "جاري الإنشاء...",
   "authError": "خطأ في المصادقة",
   "invalidCredentials": "بيانات الدخول غير صحيحة",
@@ -149,41 +176,593 @@
   "growthPointsEarned": "نقاط النمو",
   "yearlyTotal": "المجموع السنوي",
   "noDataForYear": "لا توجد بيانات لهذه السنة",
-  
   "admin": {
     "title": "لوحة تحكم المسؤول",
     "dashboard": "لوحة التحكم",
-    "profitSystem": "نظام الأرباح",
+    "profitSystem": {
+      "title": "نظام الأرباح والعمولات",
+      "loading": "جاري التحميل...",
+      "appCommission": "عمولة التطبيق",
+      "totalRevenue": "إجمالي الإيرادات",
+      "totalProfit": "إجمالي الأرباح",
+      "commissionRate": "نسبة العمولة",
+      "editRate": "Edit Rate",
+      "saveBtn": "حفظ",
+      "saved": "تم الحفظ"
+    },
     "parentsManagement": "إدارة الآباء",
-    "subjects": "المواد الدراسية",
+    "subjects": {
+      "title": "Subject Management",
+      "subjectRequired": "المادة مطلوبة",
+      "addSubject": "Add Subject",
+      "editSubject": "Edit Subject",
+      "parentTasks": "مهام الآباء",
+      "noSubjects": "No subjects",
+      "confirmDeleteSubject": "Do you want to delete this subject?",
+      "subjectName": "Subject Name *",
+      "subjectNameAr": "Arabic Name",
+      "subjectNameEn": "English Name",
+      "icon": "Icon",
+      "color": "Color",
+      "active": "نشط",
+      "cancelBtn": "إلغاء",
+      "saveBtn": "حفظ",
+      "subjectCreated": "تم إنشاء المادة",
+      "subjectUpdated": "تم تحديث المادة",
+      "subjectDeleted": "تم حذف المادة"
+    },
     "storeCategories": "أقسام المتجر",
     "symbolsLibrary": "مكتبة الرموز",
-    "products": "المنتجات",
+    "products": {
+      "0": "P",
+      "1": "r",
+      "2": "o",
+      "3": "d",
+      "4": "u",
+      "5": "c",
+      "6": "t",
+      "7": "s",
+      "title": "إدارة المنتجات",
+      "subtitle": "إدارة المنتجات المعروضة في متجر الأطفال والآباء",
+      "newProduct": "منتج جديد",
+      "totalProducts": "إجمالي المنتجات",
+      "activeProducts": "منتجات نشطة",
+      "featuredProducts": "منتجات مميزة",
+      "lowStock": "مخزون منخفض",
+      "searchPlaceholder": "بحث عن منتج...",
+      "sortBy": "ترتيب:",
+      "sortNewest": "الأحدث",
+      "sortPrice": "السعر",
+      "sortPoints": "النقاط",
+      "sortStock": "المخزون",
+      "sortName": "الاسم",
+      "typeDigital": "رقمي",
+      "typePhysical": "مادي",
+      "typeSubscription": "اشتراك",
+      "allTypes": "All Types",
+      "allStores": "All Stores",
+      "childStore": "Child Store",
+      "parentStore": "Parent Store",
+      "resetFilters": "Reset Filters",
+      "showingProducts": "Showing {{count}} of {{total}} products",
+      "noProducts": "No products found",
+      "addFirstProduct": "Add the first product to the store",
+      "addProduct": "Add Product",
+      "editProduct": "Edit Product",
+      "duplicateProduct": "Duplicate Product",
+      "deleteProduct": "Delete Product",
+      "confirmDeleteProduct": "Do you want to delete this product?",
+      "productCreated": "تم إنشاء المنتج بنجاح",
+      "productCreateFailed": "فشل في إنشاء المنتج",
+      "productUpdated": "تم تحديث المنتج بنجاح",
+      "productUpdateFailed": "فشل في تحديث المنتج",
+      "productDeleted": "تم حذف المنتج",
+      "productDeleteFailed": "فشل في حذف المنتج",
+      "productDuplicated": "تم نسخ المنتج بنجاح",
+      "productDuplicateFailed": "فشل في نسخ المنتج",
+      "copy": " (نسخة)",
+      "nameAr": "Arabic Name",
+      "nameEn": "English Name",
+      "descAr": "Arabic Description",
+      "descEn": "English Description",
+      "price": "السعر",
+      "pointsCost": "Points Cost",
+      "stock": "المخزون",
+      "imageUrlLabel": "رابط الصورة",
+      "productType": "Product Type",
+      "targetStore": "Target Store",
+      "bothStores": "Both Stores",
+      "featured": "Featured",
+      "cancelBtn": "إلغاء",
+      "saveBtn": "حفظ",
+      "createBtn": "إنشاء",
+      "inStock": "في المخزون",
+      "outOfStock": "Out of Stock",
+      "unlimited": "Unlimited",
+      "priceLabel": "Price:",
+      "pointsLabel": "نقاط:"
+    },
     "children": "الأطفال",
     "wallets": "المحافظ",
     "orders": "الطلبات",
-    "deposits": "الإيداعات",
-    "paymentMethods": "وسائل الدفع",
+    "deposits": {
+      "0": "D",
+      "1": "e",
+      "2": "p",
+      "3": "o",
+      "4": "s",
+      "5": "i",
+      "6": "t",
+      "7": "s",
+      "title": "Deposit Management",
+      "searchPlaceholder": "Search deposits...",
+      "bankTransfer": "تحويل بنكي",
+      "vodafoneCash": "فودافون كاش",
+      "orangeMoney": "أورنج موني",
+      "instapay": "انستاباي",
+      "completed": "Completed",
+      "pending": "قيد المراجعة",
+      "rejected": "مرفوض",
+      "amount": "المبلغ:",
+      "method": "الطريقة:",
+      "date": "التاريخ:",
+      "approve": "موافقة",
+      "reject": "رفض",
+      "noDeposits": "No deposits",
+      "depositApproved": "تم الموافقة على الإيداع",
+      "depositRejected": "تم رفض الإيداع"
+    },
+    "paymentMethods": {
+      "title": "طرق الدفع",
+      "bankTransfer": "تحويل بنكي",
+      "vodafoneCash": "فودافون كاش",
+      "orangeMoney": "أورنج موني",
+      "instapay": "انستاباي",
+      "fawry": "فوري",
+      "addMethod": "Add Payment Method",
+      "editMethod": "Edit Payment Method",
+      "methodName": "Method Name",
+      "methodNameAr": "Arabic Name",
+      "methodNameEn": "English Name",
+      "accountDetails": "تفاصيل الحساب",
+      "instructions": "التعليمات",
+      "active": "نشط",
+      "cancelBtn": "إلغاء",
+      "saveBtn": "حفظ",
+      "noMethods": "لا توجد طرق دفع",
+      "confirmDelete": "Do you want to delete this payment method?",
+      "methodCreated": "تم إنشاء طريقة الدفع",
+      "methodUpdated": "تم تحديث طريقة الدفع",
+      "methodDeleted": "تم حذف طريقة الدفع"
+    },
     "walletAnalytics": "تحليلات المحافظ",
     "activityLog": "سجل النشاط",
-    "notifications": "الإشعارات",
-    "notificationSettings": "إعدادات الإشعارات",
-    "taskNotificationLevels": "مستويات إشعارات المهام",
-    "gifts": "الهدايا",
-    "referrals": "الإحالات",
-    "ads": "الإعلانات",
-    "libraries": "المكتبات",
-    "schools": "المدارس",
+    "notifications": {
+      "title": "Notifications",
+      "announcement": "إعلان",
+      "alert": "تنبيه",
+      "success": "نجاح",
+      "task": "مهمة",
+      "taskCompleted": "مهمة مكتملة",
+      "gift": "هدية",
+      "system": "نظام",
+      "sendNotification": "Send Notification",
+      "notificationTitle": "Title *",
+      "notificationBody": "Body *",
+      "notificationType": "Type",
+      "targetAudience": "Target Audience",
+      "all": "الكل",
+      "parentsOnly": "الآباء فقط",
+      "childrenOnly": "الأطفال فقط",
+      "cancelBtn": "إلغاء",
+      "sendBtn": "Send",
+      "notificationSent": "تم إرسال الإشعار",
+      "noNotifications": "لا توجد إشعارات"
+    },
+    "notificationSettings": {
+      "title": "Notification Display Settings",
+      "strictPopup": "نافذة منبثقة صارمة",
+      "softAnnouncement": "إعلان ناعم",
+      "floatingCircle": "دائرة عائمة",
+      "silent": "صامت",
+      "displayType": "Display Type",
+      "duration": "Duration (seconds)",
+      "sound": "Sound",
+      "saveBtn": "حفظ",
+      "saved": "تم الحفظ بنجاح"
+    },
+    "taskNotificationLevels": {
+      "title": "Task Notification Levels",
+      "inAppOnly": "داخل التطبيق فقط",
+      "higherEscalation": "تصعيد أعلى",
+      "saved": "تم الحفظ بنجاح",
+      "level": "المستوى",
+      "method": "Method",
+      "interval": "Interval",
+      "saveBtn": "حفظ"
+    },
+    "gifts": {
+      "title": "Gifts",
+      "totalGifts": "إجمالي الهدايا",
+      "pendingGifts": "قيد المراجعة",
+      "deliveredGifts": "مسلمة",
+      "filter": "Filter",
+      "all": "الكل",
+      "pending": "قيد المراجعة",
+      "delivered": "مسلمة",
+      "cancelled": "ملغاة",
+      "noGifts": "No gifts",
+      "giftDetails": "Gift Details",
+      "from": "من:",
+      "to": "إلى:",
+      "amount": "المبلغ:",
+      "status": "الحالة:",
+      "date": "التاريخ:",
+      "approve": "موافقة",
+      "reject": "رفض"
+    },
+    "referrals": {
+      "0": "R",
+      "1": "e",
+      "2": "f",
+      "3": "e",
+      "4": "r",
+      "5": "r",
+      "6": "a",
+      "7": "l",
+      "8": "s",
+      "title": "Referral Management",
+      "saved": "تم الحفظ",
+      "active": "نشط",
+      "suspended": "معلق",
+      "rewarded": "تم المكافأة",
+      "code": "الكود",
+      "referrer": "المُحيل",
+      "referee": "المُحال",
+      "reward": "المكافأة",
+      "status": "الحالة",
+      "date": "التاريخ",
+      "noReferrals": "لا توجد إحالات",
+      "settings": "إعدادات الإحالة",
+      "enableReferrals": "تفعيل الإحالات",
+      "rewardAmount": "مبلغ المكافأة",
+      "save": "حفظ"
+    },
+    "ads": {
+      "0": "A",
+      "1": "d",
+      "2": "s",
+      "title": "Ad Management",
+      "addAd": "Add Ad",
+      "totalAds": "Total Ads",
+      "activeAds": "Active Ads",
+      "searchPlaceholder": "Search ads...",
+      "all": "الكل",
+      "parentsOnly": "الآباء فقط",
+      "childrenOnly": "الأطفال فقط",
+      "normal": "عادي",
+      "high": "مرتفع",
+      "urgent": "عاجل",
+      "noAds": "No ads",
+      "addNewAd": "Add New Ad",
+      "editAd": "Edit Ad",
+      "adTitle": "Title *",
+      "adDescription": "Description *",
+      "imageUrl": "رابط الصورة",
+      "linkUrl": "Link URL",
+      "targetAudience": "Target Audience",
+      "priority": "Priority",
+      "active": "نشط",
+      "cancelBtn": "إلغاء",
+      "saveBtn": "حفظ",
+      "createBtn": "إنشاء",
+      "confirmDelete": "Do you want to delete this ad?",
+      "adCreated": "Ad created successfully",
+      "adUpdated": "Ad updated successfully",
+      "adDeleted": "Ad deleted successfully",
+      "image": "Image",
+      "content": "Content",
+      "status": "الحالة",
+      "actions": "إجراءات"
+    },
+    "libraries": {
+      "0": "L",
+      "1": "i",
+      "2": "b",
+      "3": "r",
+      "4": "a",
+      "5": "r",
+      "6": "i",
+      "7": "e",
+      "8": "s",
+      "title": "Libraries",
+      "searchPlaceholder": "بحث بالاسم أو اسم المستخدم...",
+      "libraryCount": "{{count}} مكتبة",
+      "referralSettings": "إعدادات الإحالة",
+      "addLibrary": "إضافة مكتبة",
+      "loading": "جاري التحميل...",
+      "dataLoadFailed": "فشل تحميل البيانات",
+      "inactive": "معطل",
+      "products": "منتج",
+      "sales": "مبيعات",
+      "pointsLabel": "نقاط:",
+      "commissionLabel": "عمولة:",
+      "confirmDeleteLibrary": "هل تريد حذف هذه المكتبة؟",
+      "libraryOrders": "طلبات المكتبات",
+      "awaitingConfirmation": "بانتظار التأكيد",
+      "product": "منتج",
+      "library": "مكتبة",
+      "buyer": "المشتري:",
+      "quantity": "الكمية:",
+      "confirmBtn": "تأكيد",
+      "rejectBtn": "رفض",
+      "noLibraryOrders": "لا توجد طلبات مكتبات حالياً",
+      "withdrawalRequests": "طلبات سحب الأموال",
+      "awaitingReview": "بانتظار المراجعة",
+      "amountLabel": "المبلغ:",
+      "methodLabel": "الطريقة:",
+      "approveBtn": "موافقة",
+      "noWithdrawalRequests": "لا توجد طلبات سحب حالياً",
+      "addNewLibrary": "إضافة مكتبة جديدة",
+      "libraryName": "اسم المكتبة *",
+      "descriptionLabel": "الوصف",
+      "locationLabel": "الموقع",
+      "imageUrl": "رابط الصورة",
+      "username": "اسم المستخدم *",
+      "password": "كلمة المرور *",
+      "dailyCommission": "نسبة العمولة اليومية (%)",
+      "dailyCommissionDesc": "نسبة العمولة المستقطعة من المبيعات اليومية",
+      "cancelBtn": "إلغاء",
+      "adding": "جاري الإضافة...",
+      "addBtn": "إضافة",
+      "editLibrary": "تعديل المكتبة",
+      "newPasswordOpt": "كلمة المرور الجديدة (اتركها فارغة للإبقاء)",
+      "activeLabel": "نشط",
+      "updating": "جاري التحديث...",
+      "saveBtn": "حفظ",
+      "libraryDetails": "تفاصيل المكتبة: {{name}}",
+      "infoTab": "المعلومات",
+      "productsTab": "المنتجات",
+      "activityTab": "Activity",
+      "usernameLabel": "اسم المستخدم",
+      "locationInfo": "الموقع",
+      "activityPoints": "نقاط النشاط",
+      "commissionRate": "نسبة العمولة",
+      "totalSales": "إجمالي المبيعات",
+      "referralCodeLabel": "كود الإحالة:",
+      "loginLink": "رابط تسجيل الدخول:",
+      "totalProducts": "إجمالي المنتجات",
+      "referrals": "الإحالات",
+      "currencyEGP": "ج.م",
+      "inStock": "في المخزون",
+      "noProducts": "لا توجد منتجات",
+      "noActivity": "لا يوجد نشاط",
+      "librarySettings": "إعدادات المكتبات",
+      "storeInterfaceSettings": "إعدادات واجهة متجر المكتبات",
+      "showThemeToggle": "إظهار زر تبديل الثيم",
+      "showNotificationIcon": "إظهار أيقونة الإشعارات",
+      "referralSettingsTitle": "إعدادات الإحالة",
+      "pointsPerReferral": "نقاط لكل إحالة",
+      "pointsPerSale": "نقاط لكل عملية بيع",
+      "pointsPerProduct": "نقاط لكل منتج مضاف",
+      "enableReferrals": "تفعيل نظام الإحالات",
+      "libraryAdded": "تم إضافة المكتبة بنجاح",
+      "libraryAddFailed": "فشل إضافة المكتبة",
+      "libraryUpdated": "تم تحديث المكتبة",
+      "libraryUpdateFailed": "فشل تحديث المكتبة",
+      "libraryDeleted": "تم حذف المكتبة",
+      "libraryDeleteFailed": "فشل حذف المكتبة",
+      "settingsUpdated": "تم تحديث الإعدادات",
+      "settingsUpdateFailed": "فشل تحديث الإعدادات",
+      "storeSettingsUpdated": "تم تحديث إعدادات المتجر",
+      "storeSettingsUpdateFailed": "فشل تحديث إعدادات المتجر",
+      "orderConfirmed": "تم تأكيد الطلب وإرساله للمكتبة",
+      "orderConfirmFailed": "فشل تأكيد الطلب",
+      "orderRejected": "تم رفض الطلب",
+      "orderRejectFailed": "فشل رفض الطلب",
+      "withdrawalApproved": "تمت الموافقة على طلب السحب",
+      "withdrawalApproveFailed": "فشل الموافقة على السحب",
+      "withdrawalRejected": "تم رفض طلب السحب وإرجاع الرصيد",
+      "withdrawalRejectFailed": "فشل رفض السحب",
+      "copied": "تم النسخ"
+    },
+    "schools": {
+      "0": "S",
+      "1": "c",
+      "2": "h",
+      "3": "o",
+      "4": "o",
+      "5": "l",
+      "6": "s",
+      "title": "المدارس",
+      "teacherWithdrawals": "سحوبات المعلمين",
+      "settingsTab": "الإعدادات",
+      "searchPlaceholder": "بحث بالاسم أو اسم المستخدم...",
+      "addSchool": "إضافة مدرسة",
+      "loading": "جاري التحميل...",
+      "noSchools": "لا توجد مدارس",
+      "active": "نشط",
+      "inactive": "معطل",
+      "commission": "عمولة:",
+      "activity": "نشاط:",
+      "details": "تفاصيل",
+      "edit": "تعديل",
+      "confirmDeleteSchool": "هل تريد حذف هذه المدرسة؟",
+      "delete": "حذف",
+      "teacherWithdrawTitle": "طلبات سحب المعلمين",
+      "noWithdrawals": "لا توجد طلبات سحب",
+      "teacher": "معلم",
+      "school": "المدرسة:",
+      "amount": "المبلغ:",
+      "currency": "ر.س",
+      "net": "صافي:",
+      "withdrawCommission": "عمولة السحب:",
+      "availableBalance": "الرصيد المتاح:",
+      "accepted": "مقبول",
+      "rejected": "مرفوض",
+      "pending": "قيد المراجعة",
+      "accept": "قبول",
+      "reject": "رفض",
+      "referralSettings": "إعدادات إحالة المدارس",
+      "schoolReferralReward": "مكافأة الإحالة للمدرسة",
+      "parentReferralReward": "مكافأة الإحالة لولي الأمر",
+      "minWithdrawal": "الحد الأدنى للسحب",
+      "holdPeriod": "فترة الاحتفاظ بالأموال",
+      "day": "يوم",
+      "editSettings": "تعديل الإعدادات",
+      "noSettingsYet": "لم يتم تعيين إعدادات بعد",
+      "addNewSchool": "إضافة مدرسة جديدة",
+      "schoolName": "اسم المدرسة *",
+      "username": "اسم المستخدم *",
+      "password": "كلمة المرور *",
+      "descriptionLabel": "الوصف",
+      "address": "العنوان",
+      "phone": "الهاتف",
+      "emailLabel": "البريد",
+      "website": "الموقع",
+      "salesCommission": "عمولة المبيعات %",
+      "withdrawalCommission": "عمولة السحب %",
+      "cancelBtn": "إلغاء",
+      "createBtn": "إنشاء",
+      "editSchool": "تعديل المدرسة",
+      "newPasswordOpt": "كلمة المرور الجديدة (اختياري)",
+      "verified": "موثقة",
+      "updateBtn": "تحديث",
+      "schoolDetails": "تفاصيل المدرسة",
+      "teachers": "المعلمين",
+      "students": "الطلاب",
+      "posts": "المنشورات",
+      "ratings": "التقييمات",
+      "noSpecialty": "بدون تخصص",
+      "activeStatus": "نشط",
+      "inactiveStatus": "معطل",
+      "confirmDeleteTeacher": "Do you want to delete teacher \"{{name}}\"?",
+      "descriptionSection": "الوصف",
+      "referralCode": "كود الإحالة:",
+      "commissionLabel": "عمولة:",
+      "withdrawalCommLabel": "عمولة السحب:",
+      "editReferralSettings": "تعديل إعدادات الإحالة",
+      "editTeacher": "تعديل بيانات المعلم",
+      "nameLabel": "الاسم",
+      "usernameLabel": "اسم المستخدم",
+      "newPasswordOptLabel": "كلمة المرور الجديدة (اختياري)",
+      "specialty": "التخصص",
+      "bio": "نبذة",
+      "yearsExperience": "سنوات الخبرة",
+      "commissionPercent": "نسبة العمولة %",
+      "activeLabel": "نشط",
+      "transferTeacher": "نقل المعلم:",
+      "targetSchool": "المدرسة المستهدفة *",
+      "selectSchool": "اختر مدرسة...",
+      "performanceRating": "تقييم أداء المعلم * (1-5)",
+      "performanceComment": "تعليق على الأداء *",
+      "performanceCommentPlaceholder": "اكتب تقييمك لأداء المعلم...",
+      "transferReason": "سبب النقل (اختياري)",
+      "transferReasonPlaceholder": "سبب النقل...",
+      "transferring": "جاري النقل...",
+      "confirmTransfer": "تأكيد النقل",
+      "referralRewardSchool": "مكافأة الإحالة للمدرسة",
+      "referralRewardParent": "مكافأة الإحالة لولي الأمر",
+      "minWithdrawalLabel": "الحد الأدنى للسحب",
+      "holdPeriodLabel": "فترة الاحتفاظ (أيام)",
+      "save": "حفظ",
+      "schoolCreated": "تم إنشاء المدرسة بنجاح",
+      "schoolUpdated": "تم تحديث المدرسة",
+      "schoolDeleted": "تم حذف المدرسة",
+      "settingsUpdated": "تم تحديث الإعدادات",
+      "withdrawalAccepted": "تم قبول طلب السحب",
+      "withdrawalRejected": "تم رفض طلب السحب",
+      "teacherUpdated": "تم تحديث بيانات المعلم",
+      "teacherDeleted": "تم حذف المعلم",
+      "teacherTransferred": "تم نقل المعلم بنجاح",
+      "detailsLoadFailed": "فشل تحميل التفاصيل"
+    },
     "socialLogin": "تسجيل الدخول الاجتماعي",
-    "otpProviders": "رمز التحقق (OTP)",
-    "seoSettings": "إعدادات SEO",
-    "supportSettings": "إعدادات الدعم",
+    "otpProviders": {
+      "emailUsesResend": "البريد الإلكتروني يستخدم خدمة Resend",
+      "clickButton": "Click the button"
+    },
+    "seoSettings": {
+      "defaultTitle": "Classify - تطبيق الرقابة الأبوية"
+    },
+    "supportSettings": {
+      "workingHours": "الأحد - الخميس",
+      "maintenanceMessage": "التطبيق تحت الصيانة",
+      "supportEmail": "Support Email",
+      "supportPhone": "Support Phone",
+      "whatsappNumber": "WhatsApp Number",
+      "saveBtn": "حفظ",
+      "saved": "Settings saved"
+    },
     "legalPages": "الصفحات القانونية",
-    "mobileApp": "التطبيق",
+    "mobileApp": {
+      "title": "Mobile App Settings",
+      "appName": "App Name",
+      "appNameDefault": "كلاسيفاي",
+      "appDescription": "App Description",
+      "appDescDefault": "منصة تعليمية ممتعة للأطفال",
+      "appVersion": "App Version",
+      "forceUpdate": "Force Update",
+      "minVersion": "Minimum Required Version",
+      "storeUrls": "Store URLs",
+      "androidUrl": "Google Play URL",
+      "iosUrl": "App Store URL",
+      "splashScreen": "Splash Screen",
+      "splashTitle": "Splash Title",
+      "splashSubtitle": "Splash Subtitle",
+      "saveBtn": "حفظ",
+      "saved": "Settings saved"
+    },
     "tasks": "المهام",
     "settings": "الإعدادات",
     "logout": "تسجيل الخروج",
-    "parents": "الآباء",
+    "parents": {
+      "0": "P",
+      "1": "a",
+      "2": "r",
+      "3": "e",
+      "4": "n",
+      "5": "t",
+      "6": "s",
+      "title": "Parents Management",
+      "searchPlaceholder": "Search by name or email...",
+      "totalParents": "Total Parents",
+      "verifiedParents": "Verified Parents",
+      "totalChildren": "Total Children",
+      "pending": "قيد المراجعة",
+      "filterAll": "الكل",
+      "filterVerified": "موثقة",
+      "filterUnverified": "Unverified",
+      "loading": "جاري التحميل...",
+      "noParents": "No parents found",
+      "verified": "موثقة",
+      "unverified": "Unverified",
+      "children": "children",
+      "points": "points",
+      "joinDate": "Joined:",
+      "details": "تفاصيل",
+      "edit": "تعديل",
+      "ban": "Ban",
+      "unban": "Unban",
+      "parentDetails": "Parent Details",
+      "editParent": "Edit Parent",
+      "name": "الاسم",
+      "email": "البريد",
+      "phone": "الهاتف",
+      "pointsLabel": "النقاط",
+      "verifiedLabel": "موثقة",
+      "cancelBtn": "إلغاء",
+      "saveBtn": "حفظ",
+      "parentUpdated": "Parent updated",
+      "childrenSection": "Children",
+      "noChildren": "No children",
+      "depositStatus": {
+        "pending": "قيد المراجعة",
+        "accepted": "مقبول",
+        "rejected": "مرفوض",
+        "paid": "Paid"
+      }
+    },
     "totalOrders": "إجمالي الطلبات",
     "walletBalance": "رصيد المحفظة",
     "totalDeposits": "إجمالي الإيداعات",
@@ -290,9 +869,277 @@
     "supportPrivacyUrl": "رابط سياسة الخصوصية",
     "supportTermsUrl": "رابط الشروط والأحكام",
     "supportFaqUrl": "رابط الأسئلة الشائعة",
-    "supportHelpCenterUrl": "رابط مركز المساعدة"
+    "supportHelpCenterUrl": "رابط مركز المساعدة",
+    "categories": {
+      "title": "أقسام المتجر",
+      "add": "إضافة قسم",
+      "sortOrder": "الترتيب:",
+      "active": "نشط",
+      "inactive": "غير نشط",
+      "empty": "لا توجد أقسام. اضغط على \"إضافة قسم\" لإنشاء قسم جديد.",
+      "editTitle": "تعديل القسم",
+      "addTitle": "إضافة قسم جديد",
+      "nameEn": "الاسم بالإنجليزية",
+      "nameAr": "الاسم بالعربية",
+      "placeholderAr": "إلكترونيات",
+      "color": "اللون",
+      "order": "الترتيب",
+      "isActive": "نشط",
+      "cancel": "إلغاء",
+      "saving": "جاري الحفظ...",
+      "save": "حفظ",
+      "addCategory": "إضافة قسم",
+      "noCategories": "No categories",
+      "editCategory": "Edit Category",
+      "categoryName": "Category Name *",
+      "categoryNameAr": "Arabic Name",
+      "categoryNameEn": "English Name",
+      "icon": "Icon",
+      "cancelBtn": "إلغاء",
+      "saveBtn": "حفظ",
+      "confirmDeleteCategory": "Do you want to delete this category?",
+      "categoryCreated": "تم إنشاء القسم",
+      "categoryUpdated": "تم تحديث القسم",
+      "categoryDeleted": "تم حذف القسم"
+    },
+    "games": {
+      "catGeneral": "عام",
+      "catEducational": "تعليمي",
+      "catMath": "رياضيات",
+      "catLanguage": "لغات",
+      "catScience": "علوم",
+      "catPuzzle": "ألغاز",
+      "catCreative": "إبداعي",
+      "catSport": "رياضة",
+      "title": "إدارة الألعاب",
+      "addGame": "إضافة لعبة",
+      "guide": "الدليل",
+      "totalGames": "إجمالي الألعاب",
+      "active": "مفعّلة",
+      "disabled": "معطّلة",
+      "local": "محلية",
+      "external": "خارجية",
+      "loading": "جاري التحميل...",
+      "editGame": "تعديل لعبة",
+      "addNewGame": "إضافة لعبة جديدة",
+      "formTitle": "عنوان اللعبة",
+      "formTitlePlaceholder": "مثال: تحدي الرياضيات",
+      "formEmbedUrl": "رابط التضمين (Embed URL)",
+      "preview": "معاينة",
+      "formDescription": "الوصف",
+      "formDescPlaceholder": "وصف مختصر يظهر للأطفال",
+      "formThumbnail": "صورة مصغرة (URL)",
+      "formCategory": "الفئة",
+      "formPoints": "النقاط لكل لعبة",
+      "formMaxPlays": "الحد الأقصى مرات اللعب يومياً",
+      "noLimit": "بلا حدود",
+      "formMinAge": "الحد الأدنى للعمر",
+      "formMaxAge": "الحد الأقصى للعمر",
+      "optional": "اختياري",
+      "cancel": "إلغاء",
+      "previewBtn": "معاينة",
+      "update": "تحديث",
+      "create": "إنشاء اللعبة",
+      "searchPlaceholder": "بحث بالاسم أو الرابط...",
+      "allCategories": "كل الفئات",
+      "allStatuses": "كل الحالات",
+      "activeOnly": "مفعّلة فقط",
+      "disabledOnly": "معطّلة فقط",
+      "bulkActivate": "تفعيل الكل",
+      "bulkDisable": "تعطيل الكل",
+      "bulkDelete": "حذف الكل",
+      "bulkDeselect": "إلغاء التحديد",
+      "enabled": "مفعّلة",
+      "guideTitle": "دليل إضافة الألعاب الشامل",
+      "guideSubtitle": "من الصفر حتى تشغيل اللعبة على المنصة",
+      "howItWorks": "كيف يعمل نظام الألعاب؟",
+      "howItWorksDesc": "الألعاب تعمل عبر",
+      "howItWorksFlow": "الأدمن يضيف اللعبة ← الولي يتحكم بالوصول ← الطفل يلعب ← يحصل نقاط",
+      "addMethods": "طرق إضافة الألعاب",
+      "externalUrl": "رابط خارجي (URL)",
+      "externalUrlDesc": "ألصق رابط اللعبة من أي موقع يدعم iframe",
+      "noServerSpace": "لا يستهلك مساحة السيرفر",
+      "dependsOnExternal": "يعتمد على توفر الموقع الخارجي",
+      "uploadHtml": "رفع ملف HTML",
+      "uploadHtmlDesc": "ارفع ملف .html مباشرة من جهازك",
+      "autoGeneratedUrl": "الرابط يتولّد تلقائياً",
+      "fasterMoreReliable": "أسرع وأكثر موثوقية",
+      "maxFileSize": "حد أقصى: 10MB لكل ملف",
+      "freeGameSources": "مصادر ألعاب مجانية",
+      "largestFreeLibrary": "أكبر مكتبة ألعاب HTML5 مجانية",
+      "openSourceRepos": "مستودعات مفتوحة المصدر",
+      "freeEmbeddableGames": "ألعاب مجانية قابلة للتضمين",
+      "largeCategorizedLibrary": "مكتبة كبيرة مصنفة",
+      "makeGamesNoCoding": "صنع ألعاب بدون برمجة",
+      "smallHtmlGames": "ألعاب صغيرة بـ HTML/CSS/JS",
+      "importantNotes": "تنبيهات مهمة",
+      "noteIframe": "تأكد أن اللعبة الخارجية تسمح بالتضمين (iframe)",
+      "noteMobile": "اختبر اللعبة على الموبايل — أغلب الأطفال يستخدمون الجوال",
+      "noteSafe": "تحقق أن اللعبة آمنة وخالية من إعلانات غير مناسبة",
+      "pointsOnFinish": "النقاط تُمنح عند ضغط الطفل \"أنهيت اللعبة\"",
+      "chooseMethod": "اختر طريقة إضافة اللعبة:",
+      "externalUrlMethod": "رابط خارجي (URL)",
+      "externalUrlMethodDesc": "ألصق رابط لعبة من موقع خارجي مثل itch.io أو CrazyGames أو أي رابط HTML",
+      "uploadHtmlMethod": "رفع ملف HTML",
+      "uploadHtmlMethodDesc": "ارفع ملف .html من جهازك — يتم تخزينه على السيرفر والرابط يتولّد تلقائياً",
+      "uploadGameFile": "رفع ملف اللعبة",
+      "changeMethod": "تغيير الطريقة",
+      "dropHtmlHere": "اسحب ملف HTML هنا أو اضغط للاختيار",
+      "acceptsHtml": "يقبل ملفات .html و .htm — حد أقصى 10MB",
+      "addViaLink": "إضافة عبر رابط",
+      "gameTitle": "عنوان اللعبة *",
+      "gameTitlePlaceholder": "مثال: تحدي الرياضيات",
+      "embedUrl": "رابط التضمين (Embed URL) *",
+      "autoFillAfterUpload": "سيتم ملؤه تلقائياً بعد الرفع",
+      "description": "الوصف",
+      "descPlaceholder": "وصف مختصر يظهر للأطفال",
+      "thumbnailUrl": "صورة مصغرة (URL)",
+      "category": "الفئة",
+      "pointsPerGame": "النقاط لكل لعبة",
+      "maxDailyPlays": "الحد الأقصى مرات اللعب يومياً",
+      "minAge": "الحد الأدنى للعمر",
+      "maxAge": "الحد الأقصى للعمر",
+      "cancelBtn": "إلغاء",
+      "updateBtn": "تحديث",
+      "createGame": "إنشاء اللعبة",
+      "enabledOnly": "مفعّلة فقط",
+      "selectedGames": "تم تحديد {{count}} لعبة",
+      "enableAll": "تفعيل الكل",
+      "disableAll": "تعطيل الكل",
+      "deleteAll": "حذف الكل",
+      "deselectAll": "إلغاء التحديد",
+      "colGame": "اللعبة",
+      "colCategory": "الفئة",
+      "colSource": "المصدر",
+      "colPoints": "النقاط",
+      "colDailyLimit": "حد يومي",
+      "colAge": "العمر",
+      "colStatus": "الحالة",
+      "colActions": "إجراءات",
+      "badgeLocal": "محلية",
+      "badgeExternal": "خارجية",
+      "allAges": "الكل",
+      "disable": "تعطيل",
+      "enable": "تفعيل",
+      "enabledStatus": "مفعّلة",
+      "disabledStatus": "معطّلة",
+      "edit": "تعديل",
+      "delete": "حذف",
+      "noGames": "لا توجد ألعاب",
+      "noGamesDesc": "اضغط \"إضافة لعبة\" لبدء إضافة الألعاب",
+      "totalLabel": "إجمالي:",
+      "enabledLabel": "مفعّل:",
+      "disabledLabel": "معطّل:",
+      "localLabel": "محلية:",
+      "externalLabel": "خارجية:",
+      "filterResults": "نتائج الفلتر:",
+      "confirmDelete": "تأكيد الحذف",
+      "confirmDeleteMsg": "Are you sure you want to delete game \"{{name}}\"?",
+      "cannotUndo": "هذا الإجراء لا يمكن التراجع عنه. سيتم حذف اللعبة وجميع بياناتها نهائياً.",
+      "permanentDelete": "حذف نهائي",
+      "bulkEnable": "تفعيل جماعي",
+      "bulkActionMsg": "{{count}} games will be {{action}}",
+      "bulkDeleteWarning": "هذا الإجراء لا يمكن التراجع عنه. سيتم حذف جميع الألعاب المحددة نهائياً.",
+      "confirm": "تأكيد",
+      "previewGame": "معاينة اللعبة",
+      "previewGameTitle": "معاينة اللعبة",
+      "catLanguages": "لغات",
+      "catPuzzles": "ألغاز",
+      "catSports": "رياضة",
+      "uploadInvalidFormat": "يجب أن يكون الملف بصيغة .html أو .htm",
+      "uploadTooLarge": "حجم الملف يجب أن لا يتجاوز 10MB",
+      "uploadInProgress": "جاري الرفع...",
+      "uploadSuccess": "Uploaded — {{name}}",
+      "uploadFailed": "فشل الرفع: {{message}}",
+      "uploadError": "خطأ في الرفع: {{message}}"
+    },
+    "symbols": {
+      "title": "Symbols",
+      "general": "عام",
+      "education": "تعليم",
+      "rewards": "مكافآت",
+      "tasks": "مهام",
+      "emotions": "مشاعر",
+      "addSymbol": "Add Symbol",
+      "editSymbol": "Edit Symbol",
+      "symbolName": "Symbol Name",
+      "symbolCategory": "الفئة",
+      "symbolImage": "رابط الصورة",
+      "active": "نشط",
+      "cancelBtn": "إلغاء",
+      "saveBtn": "حفظ",
+      "confirmDeleteSymbol": "Do you want to delete this symbol?",
+      "symbolCreated": "تم إنشاء الرمز",
+      "symbolUpdated": "تم تحديث الرمز",
+      "symbolDeleted": "تم حذف الرمز",
+      "noSymbols": "No symbols"
+    },
+    "legalTab": {
+      "title": "Legal Pages",
+      "saved": "تم الحفظ",
+      "contentTooShort": "المحتوى قصير جداً",
+      "delete": "حذف",
+      "privacyPolicy": "سياسة الخصوصية",
+      "termsOfService": "Terms of Service",
+      "editPage": "Edit Page",
+      "pageName": "Page Name",
+      "pageContent": "Page Content",
+      "cancelBtn": "إلغاء",
+      "saveBtn": "حفظ"
+    },
+    "settingsTab": {
+      "title": "الإعدادات",
+      "defaultSound": "الافتراضي",
+      "ringSound": "رنين",
+      "bellSound": "جرس",
+      "bubbleSound": "فقاعة",
+      "dingSound": "دينغ",
+      "notificationSounds": "Notification Sounds",
+      "parentNotifSound": "Parent Notification Sound",
+      "childNotifSound": "Child Notification Sound",
+      "testSound": "Test",
+      "saveBtn": "حفظ",
+      "saved": "Settings saved",
+      "appSettings": "App Settings",
+      "maintenanceMode": "Maintenance Mode",
+      "registrationOpen": "Registration Open",
+      "maxChildrenPerParent": "Max Children per Parent"
+    },
+    "tasksTab": {
+      "title": "Task Management",
+      "easy": "سهل",
+      "medium": "متوسط",
+      "hard": "صعب",
+      "addTask": "Add Task",
+      "editTask": "Edit Task",
+      "noTasks": "No tasks",
+      "taskTitle": "Task Title *",
+      "taskDescription": "الوصف",
+      "difficulty": "Difficulty",
+      "points": "النقاط",
+      "subject": "المادة",
+      "active": "نشط",
+      "cancelBtn": "إلغاء",
+      "saveBtn": "حفظ",
+      "confirmDeleteTask": "Do you want to delete this task?",
+      "taskCreated": "تم إنشاء المهمة",
+      "taskUpdated": "تم تحديث المهمة",
+      "taskDeleted": "تم حذف المهمة"
+    },
+    "childGameManager": {
+      "title": "إدارة ألعاب الطفل",
+      "selectAll": "تحديد الكل",
+      "deselectAll": "إلغاء التحديد",
+      "saveBtn": "حفظ",
+      "saved": "تم الحفظ",
+      "noGames": "No games available",
+      "enabledGames": "ألعاب مفعّلة",
+      "disabledGames": "ألعاب معطّلة"
+    },
+    "usersTab": {
+      "gameManagement": "إدارة الألعاب"
+    }
   },
-  
   "store": {
     "title": "المتجر",
     "products": "المنتجات",
@@ -328,7 +1175,6 @@
     "discount": "خصم",
     "libraryStore": "متجر المكتبات"
   },
-  
   "wallet": {
     "title": "المحفظة",
     "balance": "الرصيد",
@@ -342,9 +1188,57 @@
     "status": "الحالة",
     "pending": "قيد الانتظار",
     "completed": "مكتمل",
-    "rejected": "مرفوض"
+    "rejected": "مرفوض",
+    "pageTitle": "💰 المحفظة",
+    "pageSubtitle": "إدارة الرصيد والإيداعات",
+    "back": "← رجوع",
+    "currentBalance": "الرصيد الحالي",
+    "depositFunds": "💳 إيداع أموال",
+    "totalDeposited": "إجمالي الإيداع:",
+    "totalSpent": "إجمالي المصروف:",
+    "depositHistory": "📋 سجل الإيداعات",
+    "noDeposits": "لا توجد إيداعات سابقة",
+    "transactionId": "رقم العملية:",
+    "viewReceipt": "عرض إثبات التحويل",
+    "adminNotes": "ملاحظات الإدارة:",
+    "selectPaymentMethod": "اختر وسيلة الدفع التي ستستخدمها",
+    "noPaymentMethods": "لا توجد وسائل دفع متاحة",
+    "next": "التالي ←",
+    "confirmDeposit": "تأكيد الإيداع",
+    "confirmInstructions": "قم بالتحويل للحساب التالي ثم أدخل المبلغ",
+    "confirmNote": "⚠️ رقم العملية مطلوب للمراجعة، ورابط الإثبات يساعد على تسريع قبول الطلب.",
+    "bankName": "البنك:",
+    "accountNumber": "رقم الحساب:",
+    "accountName": "باسم:",
+    "phoneNumber": "الهاتف:",
+    "amountLabel": "المبلغ المحول *",
+    "amountPlaceholder": "أدخل المبلغ",
+    "transactionIdLabel": "رقم العملية / المرجع البنكي *",
+    "transactionIdPlaceholder": "مثال: TRX-2026-001234",
+    "receiptUrlLabel": "رابط إثبات التحويل (اختياري)",
+    "notesLabel": "ملاحظات (اختياري)",
+    "notesPlaceholder": "مثال: تم التحويل من حساب رقم ... أو اسم المحول ...",
+    "submitting": "جاري الإرسال...",
+    "submitDeposit": "✅ إرسال الطلب للمراجعة",
+    "depositSuccess": "تم إرسال طلب الإيداع بنجاح!",
+    "depositPending": "سيتم مراجعته من الإدارة",
+    "depositError": "حدث خطأ أثناء إرسال طلب الإيداع",
+    "paymentType": {
+      "bankTransfer": "تحويل بنكي",
+      "vodafoneCash": "فودافون كاش",
+      "orangeMoney": "أورنج موني",
+      "etisalatCash": "اتصالات موني",
+      "wePay": "وي باي",
+      "instapay": "إنستاباي",
+      "fawry": "فوري",
+      "mobileWallet": "محفظة إلكترونية",
+      "creditCard": "بطاقة ائتمان",
+      "other": "أخرى"
+    },
+    "statusPending": "قيد المراجعة",
+    "statusCompleted": "مقبول ✓",
+    "statusCancelled": "مرفوض ✗"
   },
-  
   "notifications": {
     "title": "الإشعارات",
     "noNotifications": "لا توجد إشعارات",
@@ -355,7 +1249,6 @@
     "yesterday": "الأمس",
     "older": "أقدم"
   },
-  
   "referrals": {
     "title": "الإحالات",
     "yourCode": "كود الإحالة الخاص بك",
@@ -368,7 +1261,6 @@
     "pending": "قيد الانتظار",
     "active": "نشط"
   },
-  
   "common": {
     "loading": "جاري التحميل...",
     "save": "حفظ",
@@ -419,7 +1311,6 @@
     "new": "جديد",
     "old": "قديم"
   },
-  
   "settings": {
     "title": "الإعدادات",
     "back": "رجوع",
@@ -483,9 +1374,11 @@
     "deleteFailed": "فشل حذف الحساب",
     "deleteSuccess": "تم حذف الحساب",
     "deletingAccount": "جاري الحذف...",
-    "privacyPolicy": "عرض سياسة الخصوصية"
+    "privacyPolicy": "عرض سياسة الخصوصية",
+    "governorate": "🏢 المحافظة",
+    "city": "🏙️ المدينة",
+    "bio": "📝 نبذة عنك"
   },
-
   "permissions": {
     "title": "إعداد التطبيق",
     "subtitle": "نحتاج بعض الصلاحيات لتعمل جميع المميزات بشكل صحيح",
@@ -502,7 +1395,6 @@
     "continue": "متابعة للتطبيق",
     "skipNote": "يمكنك تغيير هذه الإعدادات لاحقاً من إعدادات المتصفح"
   },
-  
   "parent": {
     "dashboard": "لوحة التحكم",
     "overview": "نظرة عامة",
@@ -550,7 +1442,6 @@
     "scanQRToLink": "امسح هذا الرمز بهاتف الطفل للربط الفوري",
     "close": "إغلاق"
   },
-  
   "child": {
     "myTasks": "مهامي",
     "back": "رجوع",
@@ -600,7 +1491,6 @@
     "confirm": "تأكيد",
     "cancel": "إلغاء"
   },
-  
   "assignTask": {
     "title": "إرسال مهمة للطفل",
     "back": "رجوع",
@@ -622,9 +1512,10 @@
     "answerPlaceholder": "الإجابة",
     "taskPreview": "معاينة المهمة:",
     "sending": "جاري الإرسال...",
-    "sendTask": "إرسال المهمة للطفل"
+    "sendTask": "إرسال المهمة للطفل",
+    "balance": "الرصيد:",
+    "insufficientBalance": "رصيدك غير كافي"
   },
-  
   "progress": {
     "superfast": "سريع جداً",
     "fast": "سريع",
@@ -644,7 +1535,6 @@
     "activeGoals": "أهداف نشطة",
     "nextMilestone": "الهدف التالي"
   },
-  
   "forgotPassword": {
     "title": "استعادة كلمة المرور",
     "otpSent": "تم إرسال رمز التحقق إلى بريدك الإلكتروني",
@@ -658,9 +1548,15 @@
     "sendOtp": "إرسال رمز التحقق",
     "verifyOtp": "تحقق من الرمز",
     "changePassword": "تغيير كلمة المرور",
-    "processing": "جاري المعالجة..."
+    "processing": "جاري المعالجة...",
+    "codeExpired": "انتهت صلاحية الرمز",
+    "emailLabel": "📧 البريد",
+    "newPassword": "New Password",
+    "confirmPassword": "Confirm Password",
+    "sendBtn": "Send",
+    "resetBtn": "Reset Password",
+    "backToLogin": "العودة لتسجيل الدخول"
   },
-
   "errors": {
     "failedToReadImage": "فشل في قراءة الصورة",
     "cameraAccessDenied": "لا يمكن الوصول للكاميرا",
@@ -675,7 +1571,6 @@
     "needHelp": "هل تحتاج مساعدة؟",
     "workingHours": "ساعات العمل"
   },
-
   "validation": {
     "nameEmailRequired": "الاسم والبريد الإلكتروني مطلوبان",
     "allPasswordFieldsRequired": "جميع حقول كلمة المرور مطلوبة",
@@ -683,7 +1578,6 @@
     "passwordsMismatch": "كلمات المرور الجديدة غير متطابقة",
     "passwordMustDiffer": "كلمة المرور الجديدة يجب أن تكون مختلفة عن الحالية"
   },
-
   "parentTasks": {
     "selectSubject": "اختر المادة",
     "exampleTitle": "مثال: جدول الضرب",
@@ -753,9 +1647,10 @@
     "saveAsTemplateDesc": "سيتم حفظ المهمة في قسم 'مهامي' للاستخدام مرة أخرى",
     "createAndSend": "إنشاء وإرسال",
     "taskCreatedAndSent": "تم إنشاء وإرسال المهمة للطفل",
-    "templateSaved": "تم حفظ المهمة كقالب أيضاً"
+    "templateSaved": "تم حفظ المهمة كقالب أيضاً",
+    "balanceLabel": "الرصيد:",
+    "insufficientBalance": "رصيدك غير كافي"
   },
-
   "parentStore": {
     "searchProducts": "ابحث عن منتجات...",
     "sortBy": "ترتيب حسب",
@@ -770,9 +1665,70 @@
     "selectChild": "اختر طفلاً...",
     "examplePoints": "مثال: 100",
     "buyAndAssign": "شراء وتعيين كهدية",
-    "processing": "جاري..."
+    "processing": "جاري...",
+    "storeTitle": "كلاسيفاي ستور",
+    "walletBalance": "رصيد المحفظة",
+    "currency": "ج.م",
+    "allCategories": "الكل",
+    "libraries": "المكتبات",
+    "storeTab": "المتجر",
+    "cartTab": "السلة",
+    "myOrdersTab": "طلباتي",
+    "myInventory": "مخزوني",
+    "myOrdersHeading": "طلباتي",
+    "noOrdersYet": "لا توجد طلبات بعد",
+    "browseAndBuy": "تصفح المتجر واشترِ منتجات",
+    "browseStore": "تصفح المتجر",
+    "orderNumber": "طلب #",
+    "statusCompleted": "✅ مكتمل",
+    "statusPending": "⏳ قيد المعالجة",
+    "statusProcessing": "🔄 جاري التجهيز",
+    "statusShipped": "🚚 تم الشحن",
+    "statusCancelled": "❌ ملغي",
+    "shoppingCart": "سلة التسوق",
+    "cartEmpty": "السلة فارغة",
+    "addProductsFromStore": "أضف منتجات من المتجر",
+    "total": "المجموع",
+    "completePurchase": "إتمام الشراء",
+    "fastDelivery": "توصيل سريع",
+    "qualityGuarantee": "ضمان الجودة",
+    "support247": "دعم 24/7",
+    "sortFeatured": "الأكثر مبيعاً",
+    "sortPriceAsc": "السعر: الأقل",
+    "sortPriceDesc": "السعر: الأعلى",
+    "sortNewest": "الأحدث",
+    "sortRating": "التقييم",
+    "featuredProducts": "المنتجات المميزة",
+    "library": "مكتبة",
+    "buyNow": "شراء الآن",
+    "productCount": "منتج",
+    "noProducts": "لا توجد منتجات",
+    "tryDifferentSearch": "جرب البحث بكلمات أخرى أو اختر فئة مختلفة",
+    "addToCart": "أضف",
+    "needsPoints": "يحتاج",
+    "pointsSuffix": "نقطة",
+    "reviews": "تقييم",
+    "requiredPointsLabel": "النقاط المطلوبة:",
+    "addToCartFull": "أضف للسلة",
+    "cartTitle": "سلة التسوق ({{count}} منتج)",
+    "totalLabel": "المجموع:",
+    "directPurchase": "شراء مباشر",
+    "shippingAddress": "عنوان الشحن",
+    "areaDistrict": "المنطقة/الحي",
+    "paymentMethod": "طريقة الدفع",
+    "noPaymentMethods": "لا توجد طرق دفع متاحة",
+    "payFromWallet": "الدفع من المحفظة (الرصيد: {{balance}} ج.م)",
+    "orderSummary": "ملخص الطلب",
+    "confirmPurchase": "تأكيد الشراء",
+    "assignAsGift": "تعيين المنتج كهدية",
+    "selectChildPlaceholder": "اختر طفلاً...",
+    "requiredPointsForGift": "النقاط المطلوبة للحصول على الهدية",
+    "pointsExample": "مثال: 100",
+    "pointsHint": "سيحتاج الطفل جمع هذا العدد من النقاط للحصول على الهدية",
+    "assigningInProgress": "جاري...",
+    "addToCartOnly": "أضف للسلة فقط",
+    "defaultProductName": "منتج"
   },
-
   "libraryDashboard": {
     "addProduct": "إضافة منتج",
     "editProduct": "تعديل المنتج",
@@ -780,20 +1736,161 @@
     "saving": "جاري الحفظ...",
     "save": "حفظ",
     "productAdded": "إضافة منتج",
-    "productUpdated": "تحديث منتج"
+    "productUpdated": "تحديث منتج",
+    "title": "لوحة تحكم المكتبة",
+    "logout": "تسجيل الخروج",
+    "products": "المنتجات",
+    "sales": "المبيعات",
+    "referrals": "الإحالات",
+    "activityPoints": "نقاط النشاط",
+    "referralLink": "رابط الإحالة",
+    "referralLinkLabel": "رابط الإحالة",
+    "referralCode": "كود الإحالة",
+    "tabProducts": "المنتجات",
+    "tabOrders": "الطلبات",
+    "tabReferrals": "الإحالات",
+    "tabActivity": "سجل النشاط",
+    "tabFinance": "الأرباح والسحب",
+    "tabProfile": "الملف الشخصي",
+    "myProducts": "منتجاتي",
+    "loading": "جاري التحميل...",
+    "currency": "ج.م",
+    "discountBadge": "خصم {{percent}}% على {{min}}+",
+    "stock": "المخزون:",
+    "confirmDeleteProduct": "هل تريد حذف هذا المنتج؟",
+    "noProducts": "لا توجد منتجات بعد",
+    "addFirstProduct": "إضافة أول منتج",
+    "referralClicked": "زيارة",
+    "referralRegistered": "تسجيل",
+    "referralPurchased": "شراء",
+    "point": "نقطة",
+    "noReferrals": "لا توجد إحالات بعد",
+    "shareReferralHint": "شارك رابط الإحالة لكسب النقاط",
+    "libraryProduct": "منتج مكتبة",
+    "buyer": "المشتري:",
+    "quantity": "الكمية:",
+    "total": "الإجمالي:",
+    "address": "العنوان:",
+    "orderPendingAdmin": "الطلب بانتظار تأكيد الأدمن.",
+    "markShipped": "تم الشحن",
+    "enterDeliveryCode": "أدخل كود التسليم الذي أعطاه المشتري لرجل التوصيل:",
+    "deliveryCodePlaceholder": "كود التسليم",
+    "markDelivered": "تم التسليم",
+    "deliveredHoldNotice": "تم التسليم، والأرباح معلّقة لمدة {{days}} يوم لحماية المستهلك.",
+    "availabilityDate": "تاريخ الإتاحة:",
+    "noOrders": "لا توجد طلبات حالياً",
+    "activityProductAdded": "إضافة منتج",
+    "activityProductUpdated": "تحديث منتج",
+    "noActivity": "لا يوجد نشاط بعد",
+    "availableBalance": "الرصيد المتاح",
+    "pendingBalance": "الرصيد المعلّق",
+    "totalSales": "إجمالي المبيعات",
+    "totalCommission": "إجمالي العمولة",
+    "requestWithdrawal": "طلب سحب أموال",
+    "amount": "المبلغ",
+    "paymentMethodPlaceholder": "وسيلة الدفع (bank_transfer / vodafone_cash ...)",
+    "paymentDetailsPlaceholder": "تفاصيل الدفع (رقم الحساب/الهاتف...)",
+    "sending": "جاري الإرسال...",
+    "confirmWithdrawal": "تأكيد طلب السحب",
+    "withdrawalHistory": "سجل طلبات السحب",
+    "noWithdrawals": "لا توجد طلبات سحب بعد",
+    "dailyInvoices": "فواتير المبيعات اليومية",
+    "invoiceOrders": "طلبات:",
+    "invoiceGross": "إجمالي:",
+    "invoiceNet": "صافي:",
+    "noInvoices": "لا توجد فواتير يومية بعد",
+    "uploading": "جاري الرفع...",
+    "changeCover": "تغيير الغلاف",
+    "productTitleLabel": "العنوان *",
+    "productDescriptionLabel": "الوصف",
+    "productImageUrlLabel": "رابط الصورة",
+    "uploadingImage": "جاري الرفع...",
+    "chooseFromGallery": "اختيار من المعرض / الكاميرا",
+    "productPriceLabel": "السعر *",
+    "productStockLabel": "المخزون",
+    "discountPercentLabel": "نسبة الخصم %",
+    "discountMinQuantityLabel": "الحد الأدنى للخصم",
+    "cancel": "إلغاء",
+    "pageLoading": "جاري التحميل...",
+    "productAddedSuccess": "تم إضافة المنتج بنجاح",
+    "productAddFailed": "فشل إضافة المنتج",
+    "productUpdateFailed": "فشل تحديث المنتج",
+    "productDeleted": "تم حذف المنتج",
+    "productDeleteFailed": "فشل حذف المنتج",
+    "orderShipped": "تم تحديث الطلب إلى: تم الشحن",
+    "shipUpdateFailed": "فشل تحديث حالة الشحن",
+    "deliveryConfirmed": "تم تأكيد التسليم بنجاح",
+    "deliveryVerifyFailed": "فشل التحقق من كود التسليم",
+    "withdrawalRequestSent": "تم إرسال طلب السحب بنجاح",
+    "withdrawalRequestFailed": "فشل إنشاء طلب السحب",
+    "copied": "تم النسخ",
+    "imageUploadSuccess": "تم رفع الصورة بنجاح",
+    "imageUploadFailed": "فشل رفع الصورة",
+    "avatarUploaded": "تم رفع صورة المكتبة",
+    "coverUploaded": "تم رفع صورة الغلاف",
+    "imagePresignFailed": "فشل تجهيز رفع الصورة",
+    "imageStorageUploadFailed": "فشل رفع الصورة إلى التخزين",
+    "imageFinalizeFailed": "فشل تأكيد رفع الصورة",
+    "uploadFailed": "فشل رفع الصورة",
+    "selectImageOnly": "يرجى اختيار صورة فقط",
+    "profileUpdateFailed": "فشل تحديث الملف الشخصي"
   },
-
   "libraryStore": {
-    "searchProduct": "ابحث عن منتج..."
+    "searchProduct": "ابحث عن منتج...",
+    "storeTitle": "متجر المكتبات",
+    "product": "منتج",
+    "cartWithCount": "السلة ({{count}})",
+    "searchPlaceholder": "ابحث عن منتج...",
+    "availableLibraries": "المكتبات المتاحة",
+    "all": "الكل",
+    "noProducts": "لا توجد منتجات",
+    "noProductsInLibrary": "لم يتم العثور على منتجات في هذه المكتبة",
+    "currency": "ج.م",
+    "discountBadge": "خصم {{percent}}%",
+    "stockAvailable": "متوفر: {{count}}",
+    "addToCart": "أضف للسلة",
+    "buyNow": "شراء الآن",
+    "outOfStock": "غير متوفر",
+    "addToCartAlt": "إضافة للسلة",
+    "libraryCartTitle": "سلة المكتبات ({{count}} منتج)",
+    "cartEmpty": "السلة فارغة",
+    "totalLabel": "المجموع:",
+    "completePurchase": "إتمام الشراء",
+    "directPurchaseTitle": "شراء مباشر من المكتبات",
+    "checkoutTitle": "إتمام الشراء من المكتبات",
+    "shippingAddress": "عنوان الشحن",
+    "fullName": "الاسم الكامل",
+    "city": "المدينة",
+    "detailedAddress": "العنوان التفصيلي",
+    "district": "المنطقة/الحي",
+    "postalCode": "الرمز البريدي",
+    "paymentMethod": "طريقة الدفع",
+    "noPaymentMethods": "لا توجد طرق دفع متاحة",
+    "payFromWallet": "الدفع من المحفظة (الرصيد: {{balance}} ج.م)",
+    "orderSummary": "ملخص الطلب",
+    "processing": "جاري المعالجة...",
+    "confirmPurchase": "تأكيد الشراء",
+    "orderCreatedSuccess": "تم إنشاء الطلب بنجاح وهو الآن بانتظار موافقة الأدمن",
+    "purchaseFailed": "فشل إتمام الشراء",
+    "loginRequired": "يرجى تسجيل دخول ولي الأمر أولاً لإتمام الشراء",
+    "productUnavailable": "هذا المنتج غير متوفر حالياً",
+    "cartEmptyAlert": "السلة فارغة",
+    "selectPayment": "يرجى اختيار طريقة الدفع",
+    "completeShipping": "يرجى استكمال بيانات عنوان الشحن",
+    "bulkDiscountNote": "خصم {{percent}}% عند شراء {{min}} قطع أو أكثر"
   },
-
   "childNotifications": {
     "viewGoal": "شاهد الهدف",
     "viewReward": "شاهد المكافأة",
     "viewTask": "افتح المهمة",
-    "startChallenge": "ابدأ التحدي"
+    "startChallenge": "ابدأ التحدي",
+    "title": "Notifications",
+    "new": "New",
+    "pointsLabel": "النقاط",
+    "back": "رجوع",
+    "noNotifications": "لا توجد إشعارات",
+    "markRead": "Mark Read"
   },
-
   "settingsPro": {
     "saving": "جاري الحفظ...",
     "saveChanges": "حفظ التغييرات",
@@ -812,9 +1909,30 @@
     "orderStatusNotify": "حالة الطلبات",
     "orderStatusNotifyDesc": "تحديثات الطلبات",
     "depositNotify": "الإيداعات",
-    "depositNotifyDesc": "تحديثات المحفظة"
+    "depositNotifyDesc": "تحديثات المحفظة",
+    "title": "⚙️ الإعدادات",
+    "back": "← رجوع",
+    "personalData": "👤 البيانات الشخصية",
+    "security": "🔒 الأمان",
+    "notifications": "🔔 الإشعارات",
+    "language": "🌐 اللغة",
+    "theme": "🎨 المظهر",
+    "privacy": "🔐 الخصوصية",
+    "about": "ℹ️ حول",
+    "logout": "🚪 تسجيل الخروج",
+    "saved": "تم حفظ الإعدادات ✅",
+    "name": "الاسم",
+    "email": "البريد",
+    "phone": "الهاتف",
+    "currentPassword": "Current Password",
+    "newPassword": "New Password",
+    "confirmPassword": "Confirm Password",
+    "changePassword": "Change Password",
+    "passwordChanged": "تم تغيير كلمة المرور ✅",
+    "deleteAccount": "Delete Account",
+    "deleteConfirm": "Are you sure? This action cannot be undone.",
+    "version": "Version"
   },
-
   "childStore": {
     "title": "متجر المكافآت",
     "subtitle": "اشترِ هداياك بالنقاط",
@@ -850,9 +1968,42 @@
     "sendRequestToParent": "إرسال طلب للوالدين",
     "requestSent": "تم إرسال الطلب",
     "parentWillReview": "سيراجع والديك الطلب ويقررون",
-    "error": "خطأ"
+    "error": "خطأ",
+    "storeName": "كلاسيفاي ستور",
+    "pointsBalance": "رصيد النقاط",
+    "all": "الكل",
+    "libraries": "المكتبات",
+    "fastDelivery": "توصيل سريع",
+    "qualityGuarantee": "ضمان الجودة",
+    "support247": "دعم 24/7",
+    "sortPlaceholder": "ترتيب",
+    "bestSelling": "الأكثر مبيعاً",
+    "pointsLowest": "النقاط: الأقل",
+    "pointsHighest": "النقاط: الأعلى",
+    "newest": "الأحدث",
+    "rating": "التقييم",
+    "featuredProducts": "المنتجات المميزة",
+    "availableToYou": "متاح لك",
+    "library": "مكتبة",
+    "point": "نقطة",
+    "addBtn": "أضف",
+    "products": "المنتجات",
+    "searchResults": "نتائج: \"{{query}}\"",
+    "productUnit": "منتج",
+    "tryDifferentSearch": "جرب البحث بكلمات أخرى",
+    "review": "تقييم",
+    "addToCart": "أضف للسلة",
+    "shoppingCart": "سلة التسوق",
+    "cartEmpty": "السلة فارغة",
+    "totalLabel": "المجموع:",
+    "currentBalance": "رصيدك الحالي:",
+    "insufficientPoints": "نقاطك غير كافية!",
+    "needMorePoints": "تحتاج {{points}} نقطة إضافية",
+    "completePurchasePoints": "إتمام الشراء بالنقاط",
+    "productDetails": "تفاصيل المنتج",
+    "yourBalanceShort": "رصيدك",
+    "insufficientPointsAlt": "نقاطك غير كافية"
   },
-
   "childProfile": {
     "title": "الملف الشخصي",
     "photo": "الصورة الشخصية",
@@ -893,9 +2044,10 @@
     "uploadFailed": "فشل الرفع",
     "invalidName": "اسم غير صالح",
     "nameMinLength": "الاسم يجب أن يكون حرفين على الأقل",
-    "pts": "نقطة"
+    "pts": "نقطة",
+    "pleaseSelectImage": "يرجى اختيار صورة فقط",
+    "questionMark": "؟"
   },
-
   "parentDashboard": {
     "welcomeUser": "مرحباً {{name}}",
     "children": "الأطفال",
@@ -1003,9 +2155,15 @@
     "copyLink": "نسخ الرابط",
     "viewAd": "عرض الإعلان",
     "sharedTimes": "تمت المشاركة {{count}} مرات",
-    "pointsEarned": "نقاط مكتسبة"
+    "pointsEarned": "نقاط مكتسبة",
+    "childAdded": "تم إضافة الطفل بنجاح ✅",
+    "childAddFailed": "فشل إضافة الطفل",
+    "pinSet": "تم تعيين رمز PIN ✅",
+    "pinSetFailed": "Failed to set PIN",
+    "topUp": "Top Up",
+    "balance": "Balance",
+    "rewards": "مكافآت"
   },
-
   "accessibility": {
     "title": "سياسة إمكانية الوصول",
     "back": "العودة",
@@ -1040,7 +2198,9 @@
     "totalPoints": "إجمالي النقاط",
     "recentPlays": "آخر الألعاب",
     "noGamesPlayedYet": "لم يلعب الطفل أي لعبة بعد",
-    "gamesSelected": "لعبة محددة"
+    "gamesSelected": "لعبة محددة",
+    "selectAllowedGames": "حدد الألعاب المسموح بها",
+    "playedToday": "لعب اليوم"
   },
   "adminOtp": {
     "initFailed": "فشلت تهيئة وسائل OTP",
@@ -1089,7 +2249,14 @@
     "trustedDevices": "الأجهزة الموثوقة",
     "unknownDevice": "جهاز غير معروف",
     "currentDevice": "الجهاز الحالي • ",
-    "noTrustedDevices": "لا توجد أجهزة موثوقة"
+    "noTrustedDevices": "لا توجد أجهزة موثوقة",
+    "languageChanged": "تم تغيير اللغة",
+    "arabic": "العربية",
+    "welcome": "مرحباً",
+    "settings": "الإعدادات",
+    "dark": "Dark",
+    "light": "Light",
+    "back": "رجوع"
   },
   "adminSocialLogin": {
     "title": "إعدادات تسجيل الدخول الاجتماعي",
@@ -1109,5 +2276,968 @@
     "enable": "تفعيل",
     "deleteConfirm": "هل تريد حذف هذا الوسيلة؟",
     "noProviders": "لا توجد وسائل تسجيل دخول. اضغط على الزر أعلاه لتهيئة الوسائل الافتراضية."
+  },
+  "teacherDashboard": {
+    "title": "لوحة تحكم المعلم",
+    "uploadFileFailed": "فشل رفع الملف",
+    "uploadToStorageFailed": "فشل رفع الملف إلى التخزين",
+    "uploadFinalizeFailed": "فشل تأكيد رفع الملف",
+    "taskAddedSuccess": "تم إضافة المهمة بنجاح",
+    "taskUpdated": "تم تحديث المهمة",
+    "taskDeleted": "تم حذف المهمة",
+    "postPublished": "تم نشر المنشور",
+    "postDeleted": "تم حذف المنشور",
+    "withdrawalRequestSent": "تم إرسال طلب السحب",
+    "taskFromTemplateSuccess": "تم إنشاء المهمة من القالب بنجاح",
+    "profileUpdated": "تم تحديث الملف الشخصي",
+    "pollCreated": "تم إنشاء التصويت",
+    "pollCreateFailed": "فشل إنشاء التصويت",
+    "pollUpdated": "تم تحديث التصويت",
+    "updateFailed": "فشل التحديث",
+    "pollDeleted": "تم حذف التصويت",
+    "deleteFailed": "فشل الحذف",
+    "pollQuestionRequired": "سؤال التصويت مطلوب",
+    "minTwoOptionsRequired": "يجب إضافة خيارين على الأقل",
+    "taskFormValidation": "السؤال والسعر وإجابتين على الأقل مطلوبة",
+    "correctAnswerRequired": "يجب تحديد إجابة صحيحة واحدة على الأقل",
+    "uploadFilesFailed": "فشل رفع الملفات",
+    "videoMaxDuration": "الفيديو يجب أن يكون أقل من 30 ثانية",
+    "imageOnlyPlease": "يرجى اختيار صورة فقط",
+    "imageUploadFailed": "فشل رفع الصورة",
+    "coverUploadFailed": "فشل رفع صورة الغلاف",
+    "priceRequired": "السعر مطلوب",
+    "imageSizeLimit": "حجم الصورة يجب أن يكون أقل من 5MB",
+    "optionImageUploaded": "تم رفع صورة الخيار {{n}}",
+    "headerTitle": "لوحة تحكم المعلم — ",
+    "teacherFallbackName": "المعلم",
+    "shareDescription": "تعرّف على المعلم على منصة Classify",
+    "share": "مشاركة",
+    "statsTasks": "المهام",
+    "statsAvailableBalance": "الرصيد المتاح",
+    "statsOrders": "الطلبات",
+    "statsRating": "التقييم",
+    "tabTasks": "المهام",
+    "tabTemplates": "القوالب",
+    "tabOrders": "الطلبات",
+    "tabWallet": "المحفظة",
+    "tabPosts": "المنشورات",
+    "tabPolls": "التصويتات",
+    "tabProfile": "الملف الشخصي",
+    "manageTasks": "إدارة المهام",
+    "newTask": "مهمة جديدة",
+    "noTasksYet": "لم يتم إضافة مهام بعد",
+    "active": "نشط",
+    "inactive": "غير نشط",
+    "currency": "ج.م",
+    "purchases": "شراء",
+    "edit": "تعديل",
+    "confirmDeleteTask": "هل تريد حذف هذه المهمة؟",
+    "delete": "حذف",
+    "readyTemplates": "قوالب المهام الجاهزة",
+    "templateInstructions": "اختر مادة ثم اختر قالب لإنشاء مهمة جاهزة بسعرك",
+    "noTemplatesForSubject": "لا توجد قوالب لهذه المادة",
+    "answers": "إجابات",
+    "point": "نقطة",
+    "useTemplate": "استخدام القالب",
+    "ordersHeading": "الطلبات",
+    "noOrdersYet": "لا توجد طلبات بعد",
+    "taskFallback": "مهمة",
+    "buyer": "المشتري:",
+    "studentFallback": "طالب",
+    "settled": "تم التسوية",
+    "pending": "معلق",
+    "availableBalance": "الرصيد المتاح",
+    "pendingBalance": "الرصيد المعلق",
+    "totalWithdrawn": "إجمالي المسحوب",
+    "withdrawalRequests": "طلبات السحب",
+    "requestWithdrawal": "طلب سحب",
+    "noWithdrawals": "لا توجد طلبات سحب",
+    "net": "صافي:",
+    "commission": "عمولة",
+    "approved": "مقبول",
+    "rejected": "مرفوض",
+    "underReview": "قيد المراجعة",
+    "postsHeading": "المنشورات",
+    "newPost": "منشور جديد",
+    "noPostsYet": "لا يوجد منشورات بعد",
+    "confirmDeleteShort": "حذف؟",
+    "pollsHeading": "التصويتات",
+    "createPoll": "إنشاء تصويت",
+    "noPollsYet": "لا يوجد تصويتات بعد",
+    "pinned": "مثبت",
+    "closed": "مغلق",
+    "expired": "منتهي",
+    "anonymous": "مجهول",
+    "multiple": "متعدد",
+    "voters": "مصوّت",
+    "unpin": "إلغاء التثبيت",
+    "pin": "تثبيت",
+    "openPoll": "فتح التصويت",
+    "closePoll": "إغلاق التصويت",
+    "confirmDeletePoll": "حذف هذا التصويت؟",
+    "uploading": "جاري الرفع...",
+    "changeCover": "تغيير الغلاف",
+    "noSubjectSet": "لم يتم تحديد المادة",
+    "viewPublicPage": "عرض الصفحة العامة",
+    "cancel": "إلغاء",
+    "editProfile": "تعديل",
+    "statTask": "مهمة",
+    "statStudent": "طالب",
+    "statPost": "منشور",
+    "statRating": "تقييم",
+    "name": "الاسم",
+    "aboutMe": "نبذة عني",
+    "subject": "المادة",
+    "yearsExperience": "سنوات الخبرة",
+    "socialMedia": "السوشيال ميديا",
+    "linkPlaceholder": "رابط {{platform}}",
+    "saveChanges": "حفظ التغييرات",
+    "editTask": "تعديل المهمة",
+    "newTaskTitle": "مهمة جديدة",
+    "taskTitle": "عنوان المهمة",
+    "taskTitlePlaceholder": "عنوان واضح للمهمة",
+    "questionLabel": "السؤال *",
+    "priceLabel": "السعر (ج.م) *",
+    "subjectCategory": "تصنيف المادة",
+    "subjectPlaceholder": "مثال: رياضيات",
+    "answersLabel": "الإجابات (حدد الصحيحة)",
+    "answersCount": "إجابات",
+    "answerPlaceholder": "إجابة {{n}}",
+    "deleteAnswer": "حذف الإجابة",
+    "image": "صورة",
+    "video": "فيديو",
+    "addAnswer": "إضافة إجابة",
+    "explanationLabel": "شرح الإجابة (اختياري)",
+    "questionImages": "صور مع السؤال",
+    "questionImagesHint": "أضف صور توضيحية أو صور فقط مع السؤال",
+    "add": "إضافة",
+    "media": "الوسائط",
+    "mainImage": "صورة رئيسية",
+    "cover": "غلاف",
+    "imageUpload": "صورة",
+    "videoUpload": "فيديو",
+    "cancelTask": "إلغاء",
+    "taskUploading": "جاري الرفع...",
+    "update": "تحديث",
+    "addTask": "إضافة",
+    "createFromTemplate": "إنشاء مهمة من قالب",
+    "templatePriceLabel": "السعر (ج.م) *",
+    "templatePricePlaceholder": "حدد سعر المهمة",
+    "templateTitleLabel": "العنوان (اختياري)",
+    "cancelTemplate": "إلغاء",
+    "creating": "جاري الإنشاء...",
+    "createTask": "إنشاء المهمة",
+    "newPostTitle": "منشور جديد",
+    "postPlaceholder": "اكتب محتوى المنشور...",
+    "postImage": "صورة",
+    "postVideo": "فيديو (30 ثانية كحد أقصى)",
+    "cancelPost": "إلغاء",
+    "postUploading": "جاري الرفع...",
+    "publish": "نشر",
+    "createNewPoll": "إنشاء تصويت جديد",
+    "pollQuestionLabel": "السؤال *",
+    "pollQuestionPlaceholder": "ما سؤال التصويت؟",
+    "pollOptionsLabel": "الخيارات * (2-10)",
+    "pollOptionPlaceholder": "الخيار {{n}}",
+    "addOption": "إضافة خيار",
+    "allowMultiple": "السماح باختيار متعدد",
+    "anonymousPoll": "تصويت مجهول",
+    "pinPoll": "تثبيت التصويت",
+    "expiryDate": "تاريخ الانتهاء (اختياري)",
+    "cancelPoll": "إلغاء",
+    "pollCreating": "جاري الإنشاء...",
+    "createPollSubmit": "إنشاء التصويت",
+    "withdrawTitle": "طلب سحب",
+    "availableBalanceLabel": "الرصيد المتاح:",
+    "amountLabel": "المبلغ (ج.م)",
+    "withdrawPlaceholder": "أدخل المبلغ المراد سحبه",
+    "cancelWithdraw": "إلغاء",
+    "submitRequest": "إرسال الطلب"
+  },
+  "taskMarketplace": {
+    "title": "سوق المهام",
+    "subtitle": "مهام تعليمية من أفضل المعلمين",
+    "searchPlaceholder": "ابحث عن مهام، مواد...",
+    "all": "الكل",
+    "noTasks": "لا توجد مهام حالياً",
+    "tryDifferentCriteria": "جرّب تغيير معايير البحث",
+    "purchased": "✓ مُشترى",
+    "purchasedBadge": "مُشترى ✓",
+    "inCart": "في السلة",
+    "addBtn": "أضف",
+    "currency": "ج.م",
+    "sortPopular": "الأكثر مبيعاً",
+    "sortNewest": "الأحدث",
+    "sortLikes": "الأكثر إعجاباً",
+    "sortPriceLow": "الأقل سعراً",
+    "sortPriceHigh": "الأعلى سعراً",
+    "errorOccurred": "حدث خطأ",
+    "addedToCart": "تمت الإضافة للسلة ✓"
+  },
+  "taskCart": {
+    "title": "سلة المهام",
+    "walletBalance": "رصيد المحفظة",
+    "currency": "ج.م",
+    "topUp": "شحن",
+    "cartEmpty": "السلة فارغة",
+    "emptyDescription": "تصفح سوق المهام وأضف المهام التي تناسب أطفالك",
+    "browseTasks": "تصفح المهام",
+    "by": "بواسطة:",
+    "taskCount": "عدد المهام",
+    "total": "المجموع",
+    "insufficientBalance": "رصيدك غير كافٍ. تحتاج {{amount}} ج.م إضافية",
+    "purchasing": "جاري الشراء...",
+    "buyAll": "شراء الكل ({{amount}} ج.م)",
+    "removedFromCart": "تم الحذف من السلة",
+    "purchaseSuccess": "تم الشراء بنجاح!",
+    "purchasedCount": "تم شراء {{count}} مهمة",
+    "purchaseFailed": "فشل الشراء"
+  },
+  "schoolDashboard": {
+    "dashboardTitle": "لوحة تحكم المدرسة",
+    "editSchool": "تعديل المدرسة",
+    "referralCodeCopied": "تم نسخ كود الإحالة",
+    "schoolShareDescription": "تعرّف على المدرسة على منصة Classify",
+    "share": "مشاركة",
+    "teachersCount": "المعلمين",
+    "active": "نشط",
+    "students": "الطلاب",
+    "posts": "المنشورات",
+    "rating": "التقييم",
+    "activityPoints": "نقاط النشاط",
+    "teachersTab": "المعلمين",
+    "postsTab": "المنشورات",
+    "pollsTab": "التصويتات",
+    "studentsTab": "الطلاب",
+    "reviewsTab": "التقييمات",
+    "activityTab": "النشاط",
+    "profileTab": "الصفحة الشخصية",
+    "manageTeachers": "إدارة المعلمين",
+    "addTeacher": "إضافة معلم",
+    "teacherSearchPlaceholder": "بحث بالاسم أو اسم المستخدم أو التخصص...",
+    "newest": "الأحدث",
+    "oldest": "الأقدم",
+    "mostActive": "الأكثر نشاطًا",
+    "mostStudents": "الأكثر طلابًا",
+    "updatingTeachers": "جارِ تحديث نتائج المعلمين...",
+    "noTeachersYet": "لم يتم إضافة معلمين بعد",
+    "noSubject": "بدون تخصص",
+    "activeStatus": "نشط",
+    "inactiveStatus": "غير نشط",
+    "tasksSold": "مهمة مباعة",
+    "student": "طالب",
+    "yearsExperience": "سنة خبرة",
+    "edit": "تعديل",
+    "deactivate": "تعطيل",
+    "activate": "تفعيل",
+    "transfer": "نقل",
+    "postsHeader": "المنشورات",
+    "newPost": "منشور جديد",
+    "noPostsYet": "لا يوجد منشورات بعد",
+    "teacher": "معلم",
+    "pinned": "مثبت",
+    "confirmDeletePost": "هل تريد حذف هذا المنشور؟",
+    "comment": "تعليق",
+    "loading": "جاري التحميل...",
+    "writeReply": "اكتب رداً...",
+    "registeredStudents": "الطلاب المسجلين",
+    "studentSearchPlaceholder": "بحث باسم الطالب أو ولي الأمر...",
+    "nameAsc": "الاسم (أ-ي)",
+    "nameDesc": "الاسم (ي-أ)",
+    "updatingStudents": "جارِ تحديث نتائج الطلاب...",
+    "noStudentsYet": "لا يوجد طلاب مسجلين بعد",
+    "studentDefault": "طالب",
+    "parentLabel": "ولي الأمر:",
+    "previous": "السابق",
+    "page": "صفحة",
+    "of": "من",
+    "next": "التالي",
+    "reviewsHeader": "التقييمات",
+    "reviewsSearchPlaceholder": "بحث باسم ولي الأمر أو نص التقييم...",
+    "highestRated": "الأعلى تقييمًا",
+    "lowestRated": "الأقل تقييمًا",
+    "updatingReviews": "جارِ تحديث نتائج التقييمات...",
+    "noReviewsYet": "لا يوجد تقييمات بعد",
+    "parentDefault": "ولي أمر",
+    "pollsHeader": "التصويتات",
+    "createPoll": "إنشاء تصويت",
+    "noPollsYet": "لا يوجد تصويتات بعد",
+    "closed": "مغلق",
+    "expired": "منتهي",
+    "anonymous": "مجهول",
+    "multiple": "متعدد",
+    "singleOnly": "واحد فقط",
+    "voters": "مصوّت",
+    "unpin": "إلغاء التثبيت",
+    "pin": "تثبيت",
+    "openPoll": "فتح التصويت",
+    "closePoll": "إغلاق التصويت",
+    "confirmDeletePoll": "حذف هذا التصويت؟",
+    "activityLog": "سجل النشاط",
+    "noActivityYet": "لا يوجد نشاط بعد",
+    "editData": "تعديل البيانات",
+    "viewPublicPage": "عرض الصفحة العامة",
+    "createPost": "إنشاء منشور",
+    "hideComments": "إخفاء التعليقات",
+    "showComments": "عرض التعليقات",
+    "loadingComments": "جاري تحميل التعليقات...",
+    "writeReplyToComments": "اكتب ردًا على التعليقات...",
+    "editTeacher": "تعديل المعلم",
+    "addNewTeacher": "إضافة معلم جديد",
+    "nameLabel": "الاسم *",
+    "usernameLabel": "اسم المستخدم *",
+    "newPasswordOptional": "كلمة المرور الجديدة (اختياري)",
+    "passwordLabel": "كلمة المرور *",
+    "subjectLabel": "التخصص",
+    "yearsExpLabel": "سنوات الخبرة",
+    "birthdayLabel": "تاريخ الميلاد",
+    "avatarUrlLabel": "رابط الصورة الشخصية",
+    "coverImageUrlLabel": "رابط صورة الغلاف",
+    "monthlyRateLabel": "السعر الشهري",
+    "perTaskRateLabel": "سعر المهمة",
+    "bioLabel": "نبذة",
+    "cancel": "إلغاء",
+    "update": "تحديث",
+    "add": "إضافة",
+    "editPost": "تعديل المنشور",
+    "newPostTitle": "منشور جديد",
+    "postContentPlaceholder": "اكتب محتوى المنشور...",
+    "uploadMedia": "رفع صورة/فيديو",
+    "unpinned": "غير مثبت",
+    "publish": "نشر",
+    "editSchoolData": "تعديل بيانات المدرسة",
+    "arabicNameLabel": "الاسم العربي",
+    "schoolImageLabel": "صورة المدرسة",
+    "uploading": "جاري الرفع...",
+    "uploadFromDevice": "رفع من الجهاز",
+    "coverImageLabel": "صورة الغلاف",
+    "phoneLabel": "الهاتف",
+    "emailLabel": "البريد",
+    "addressLabel": "العنوان",
+    "cityLabel": "المدينة",
+    "governorateLabel": "المحافظة",
+    "descriptionLabel": "الوصف",
+    "save": "حفظ",
+    "createNewPoll": "إنشاء تصويت جديد",
+    "questionLabel": "السؤال *",
+    "pollQuestionPlaceholder": "ما سؤال التصويت؟",
+    "optionsLabel": "الخيارات * (2-10)",
+    "optionPlaceholder": "الخيار",
+    "imageSizeLimit": "حجم الصورة يجب أن يكون أقل من 5MB",
+    "optionImageUploaded": "تم رفع صورة الخيار",
+    "addOption": "إضافة خيار",
+    "allowMultiple": "السماح باختيار متعدد",
+    "anonymousVoting": "تصويت مجهول",
+    "pinPoll": "تثبيت التصويت",
+    "expiryDateOptional": "تاريخ الانتهاء (اختياري)",
+    "creating": "جاري الإنشاء...",
+    "createPollBtn": "إنشاء التصويت",
+    "transferTeacher": "نقل المعلم:",
+    "targetSchoolLabel": "المدرسة المستهدفة *",
+    "selectSchoolPlaceholder": "اختر مدرسة...",
+    "performanceRatingLabel": "تقييم أداء المعلم * (1-5)",
+    "performanceCommentLabel": "تعليق على الأداء *",
+    "performanceCommentPlaceholder": "اكتب تقييمك لأداء المعلم...",
+    "transferReasonLabel": "سبب النقل (اختياري)",
+    "transferReasonPlaceholder": "سبب النقل...",
+    "transferring": "جاري النقل...",
+    "confirmTransfer": "تأكيد النقل",
+    "school": "المدرسة",
+    "profileUpdateSuccess": "تم تحديث بيانات المدرسة",
+    "updateFailed": "فشل التحديث",
+    "teacherAddSuccess": "تم إضافة المعلم",
+    "teacherAddFailed": "فشل إضافة المعلم",
+    "teacherUpdateSuccess": "تم تحديث بيانات المعلم",
+    "teacherUpdateFailed": "فشل تحديث المعلم",
+    "teacherDeleteSuccess": "تم حذف المعلم",
+    "teacherDeleteFailed": "فشل حذف المعلم",
+    "teacherTransferSuccess": "تم نقل المعلم بنجاح",
+    "teacherTransferFailed": "فشل نقل المعلم",
+    "postUpdateSuccess": "تم تحديث المنشور",
+    "postUpdateFailed": "فشل تحديث المنشور",
+    "postDeleteSuccess": "تم حذف المنشور",
+    "postDeleteFailed": "فشل حذف المنشور",
+    "replySuccess": "تم إرسال الرد",
+    "replyFailed": "فشل إرسال الرد",
+    "pollCreateSuccess": "تم إنشاء التصويت",
+    "pollCreateFailed": "فشل إنشاء التصويت",
+    "pollUpdateSuccess": "تم تحديث التصويت",
+    "pollUpdateFailed": "فشل التحديث",
+    "pollDeleteSuccess": "تم حذف التصويت",
+    "deleteFailed": "فشل الحذف",
+    "pollQuestionRequired": "سؤال التصويت مطلوب",
+    "pollMinOptions": "يجب إضافة خيارين على الأقل",
+    "commentsLoadFailed": "فشل تحميل التعليقات",
+    "presignFailed": "فشل إنشاء رابط الرفع",
+    "uploadFailed": "فشل رفع الملف",
+    "uploadFinalizeFailed": "فشل تأكيد رفع الملف",
+    "imageOnlyPlease": "يرجى اختيار صورة فقط",
+    "schoolImageUploaded": "تم رفع صورة المدرسة",
+    "coverImageUploaded": "تم رفع صورة الغلاف",
+    "imageUploadFailed": "فشل رفع الصورة",
+    "teacherFormRequired": "الاسم واسم المستخدم وكلمة المرور مطلوبة",
+    "postContentRequired": "أضف محتوى أو وسائط",
+    "postPublishingInBackground": "جاري نشر المنشور في الخلفية...",
+    "postPublishFailed": "فشل نشر المنشور",
+    "postUpdateSuccessMsg": "✅ تم تحديث المنشور بنجاح",
+    "postPublishSuccessMsg": "✅ تم نشر المنشور بنجاح",
+    "schoolNameRequired": "اسم المدرسة مطلوب",
+    "publishingPost": "جاري نشر المنشور...",
+    "activity": {
+      "teacherAdded": "تمت إضافة معلم",
+      "teacherUpdated": "تم تحديث بيانات معلم",
+      "teacherTransferredOut": "تم نقل معلم لمدرسة أخرى",
+      "teacherTransferredIn": "تم استقبال معلم من مدرسة أخرى",
+      "postCreated": "تم إنشاء منشور",
+      "profileUpdated": "تم تحديث ملف المدرسة"
+    }
+  },
+  "schoolLogin": {
+    "title": "تسجيل دخول المدرسة",
+    "welcome": "مرحباً",
+    "description": "أدخل بيانات حسابك للوصول إلى لوحة التحكم",
+    "username": "اسم المستخدم",
+    "enterUsername": "أدخل اسم المستخدم",
+    "password": "كلمة المرور",
+    "enterPassword": "أدخل كلمة المرور",
+    "loggingIn": "جاري تسجيل الدخول...",
+    "login": "تسجيل الدخول",
+    "noAccount": "ليس لديك حساب؟",
+    "contactSupport": "تواصل مع الدعم لفتح حساب",
+    "enterCredentialsRequired": "يرجى إدخال اسم المستخدم وكلمة المرور",
+    "loginFailed": "فشل تسجيل الدخول"
+  },
+  "teacherLogin": {
+    "title": "تسجيل دخول المعلم",
+    "welcome": "مرحباً",
+    "description": "أدخل بيانات حسابك للوصول إلى لوحة التحكم",
+    "username": "اسم المستخدم",
+    "enterUsername": "أدخل اسم المستخدم",
+    "password": "كلمة المرور",
+    "enterPassword": "أدخل كلمة المرور",
+    "loggingIn": "جاري تسجيل الدخول...",
+    "login": "تسجيل الدخول",
+    "accountCreatedBySchool": "يتم إنشاء حسابك من قبل المدرسة",
+    "contactSchoolAdmin": "تواصل مع إدارة مدرستك للحصول على بيانات الدخول",
+    "enterCredentialsRequired": "يرجى إدخال اسم المستخدم وكلمة المرور",
+    "loginFailed": "فشل تسجيل الدخول"
+  },
+  "libraryLogin": {
+    "title": "تسجيل دخول المكتبة",
+    "welcome": "مرحباً",
+    "description": "أدخل بيانات حسابك للوصول إلى لوحة التحكم",
+    "username": "اسم المستخدم",
+    "enterUsername": "أدخل اسم المستخدم",
+    "password": "كلمة المرور",
+    "enterPassword": "أدخل كلمة المرور",
+    "loggingIn": "جاري تسجيل الدخول...",
+    "login": "تسجيل الدخول",
+    "noAccount": "ليس لديك حساب؟",
+    "contactSupport": "تواصل مع الدعم لفتح حساب",
+    "enterCredentialsRequired": "يرجى إدخال اسم المستخدم وكلمة المرور",
+    "loginFailed": "فشل تسجيل الدخول"
+  },
+  "teacherProfile": {
+    "notFound": "المدرس غير موجود",
+    "teacherOnClassify": "معلم على Classify",
+    "meetTeacher": "تعرّف على المعلم",
+    "onClassifyPlatform": "على منصة Classify",
+    "yearsExperience": "سنة خبرة",
+    "worksAt": "يعمل في:",
+    "student": "طالب",
+    "tasksSold": "مهمة مباعة",
+    "tasks": "المهام",
+    "posts": "المنشورات",
+    "reviews": "التقييمات",
+    "noTasksAvailable": "لا توجد مهام متاحة حالياً",
+    "points": "نقطة",
+    "currency": "ج.م",
+    "purchased": "مُشترى",
+    "inCart": "في السلة",
+    "addToCart": "أضف للسلة",
+    "noPosts": "لا توجد منشورات",
+    "comment": "تعليق",
+    "loginToLike": "يجب تسجيل الدخول للإعجاب",
+    "like": "أعجبني",
+    "commentAction": "تعليق",
+    "post": "منشور",
+    "share": "مشاركة",
+    "loading": "جاري التحميل...",
+    "writeComment": "اكتب تعليقاً...",
+    "loginToComment": "سجل دخول لكتابة تعليق",
+    "reviewCount": "تقييم",
+    "addYourReview": "أضف تقييمك",
+    "shareOpinionTeacher": "شاركنا رأيك عن المعلم...",
+    "submitting": "جاري الإرسال...",
+    "submitReview": "إرسال التقييم",
+    "noReviewsYet": "لا توجد تقييمات بعد",
+    "parent": "ولي أمر",
+    "addToCartFailed": "فشل الإضافة",
+    "addedToCart": "تمت الإضافة للسلة",
+    "submitReviewFailed": "فشل إرسال التقييم",
+    "reviewSubmitted": "تم إرسال تقييمك بنجاح",
+    "loginRequired": "يجب تسجيل الدخول",
+    "likeFailed": "فشل الإعجاب",
+    "commentAdded": "تم إضافة التعليق",
+    "commentFailed": "فشل إضافة التعليق"
+  },
+  "schoolProfile": {
+    "notFound": "المدرسة غير موجودة",
+    "reviewCount": "تقييم",
+    "student": "طالب",
+    "teacherCount": "معلم",
+    "discoverSchool": "تعرّف على",
+    "onClassifyPlatform": "على منصة Classify",
+    "postsTab": "المنشورات",
+    "pollsTab": "التصويتات",
+    "aboutTab": "حول",
+    "teachersTab": "المعلمين",
+    "reviewsTab": "التقييمات",
+    "schoolInfo": "معلومات المدرسة",
+    "joinedIn": "انضمت في",
+    "referralCode": "كود الإحالة:",
+    "socialMedia": "وسائل التواصل",
+    "statistics": "إحصائيات",
+    "postCount": "منشور",
+    "showAll": "عرض الكل",
+    "noPostsYet": "لا يوجد منشورات بعد",
+    "teacher": "معلم",
+    "pinned": "مثبت",
+    "showLess": "عرض أقل",
+    "showMore": "عرض المزيد",
+    "comment": "تعليق",
+    "loginToLike": "يجب تسجيل الدخول للإعجاب",
+    "liked": "أعجبني",
+    "like": "أعجبني",
+    "commentAction": "تعليق",
+    "post": "منشور",
+    "share": "مشاركة",
+    "loadingComments": "جاري تحميل التعليقات...",
+    "noComments": "لا توجد تعليقات",
+    "writeComment": "اكتب تعليقاً...",
+    "loginToComment": "سجل دخول لكتابة تعليق",
+    "noPollsYet": "لا يوجد تصويتات حالياً",
+    "anonymous": "مجهول",
+    "closed": "مغلق",
+    "multipleAnswers": "يمكن اختيار أكثر من إجابة",
+    "singleAnswer": "اختر إجابة واحدة فقط",
+    "selectAtLeastOne": "اختر إجابة واحدة على الأقل",
+    "voting": "جاري التصويت...",
+    "vote": "تصويت",
+    "voteCount": "صوت",
+    "voteEnded": "انتهى التصويت",
+    "voteEndsAt": "ينتهي",
+    "aboutSchool": "حول المدرسة",
+    "noDescriptionYet": "لم يتم إضافة وصف بعد",
+    "contactInfo": "معلومات التواصل",
+    "address": "العنوان",
+    "phoneNumber": "رقم الهاتف",
+    "email": "البريد الإلكتروني",
+    "socialMediaPages": "صفحات التواصل الاجتماعي",
+    "generalInfo": "معلومات عامة",
+    "joinDate": "تاريخ الانضمام",
+    "verificationStatus": "حالة التوثيق",
+    "verified": "موثقة ✓",
+    "notVerified": "غير موثقة",
+    "referralCodeLabel": "كود الإحالة",
+    "activityPoints": "نقاط النشاط",
+    "noTeachersYet": "لا يوجد معلمين بعد",
+    "yearsExperience": "سنة خبرة",
+    "tasksSold": "مهمة مباعة",
+    "currencyPerTask": "ج.م/مهمة",
+    "currencyPerMonth": "ج.م/شهر",
+    "viewProfile": "عرض الملف",
+    "addYourReview": "أضف تقييمك",
+    "shareOpinionSchool": "شاركنا رأيك عن المدرسة...",
+    "submitting": "جاري الإرسال...",
+    "submitReview": "إرسال التقييم",
+    "parent": "ولي أمر",
+    "socialFacebook": "فيسبوك",
+    "socialInstagram": "انستجرام",
+    "socialYoutube": "يوتيوب",
+    "socialTwitter": "تويتر",
+    "socialTiktok": "تيك توك",
+    "socialWebsite": "الموقع الإلكتروني",
+    "loginToVote": "يجب تسجيل الدخول كولي أمر للتصويت",
+    "voteFailed": "فشل التصويت",
+    "voteRecorded": "تم تسجيل تصويتك بنجاح",
+    "reviewSubmitted": "تم إرسال تقييمك بنجاح",
+    "loginRequired": "يجب تسجيل الدخول",
+    "likeFailed": "فشل الإعجاب",
+    "commentAdded": "تم إضافة التعليق",
+    "commentFailed": "فشل إضافة التعليق"
+  },
+  "libraryProfile": {
+    "notFound": "المكتبة غير موجودة",
+    "products": "المنتجات",
+    "posts": "المنشورات",
+    "reviews": "التقييمات",
+    "noProducts": "لا توجد منتجات متاحة حالياً",
+    "currency": "ج.م",
+    "points": "نقطة",
+    "noPosts": "لا توجد منشورات",
+    "pinned": "مثبّت",
+    "writeComment": "اكتب تعليقاً...",
+    "reviewCount": "تقييم",
+    "addYourReview": "أضف تقييمك",
+    "writeReviewOptional": "اكتب تعليقك (اختياري)...",
+    "submitReview": "إرسال التقييم",
+    "noReviewsYet": "لا توجد تقييمات بعد",
+    "user": "مستخدم",
+    "failed": "فشل",
+    "submitReviewFailed": "فشل إرسال التقييم",
+    "reviewSubmitted": "تم إرسال تقييمك بنجاح"
+  },
+  "parentProfile": {
+    "myProfile": "ملفي الشخصي",
+    "uploading": "جاري الرفع...",
+    "changeCover": "تغيير الغلاف",
+    "childrenLabel": "الأطفال",
+    "libraryLabel": "المكتبة",
+    "favoritesLabel": "المفضلة",
+    "followingLabel": "متابَع",
+    "libraryTab": "المكتبة",
+    "favoritesTab": "المفضلة",
+    "followingTab": "المتابعة",
+    "discoverTab": "مقترح",
+    "libraryEmpty": "مكتبتك فارغة",
+    "libraryEmptyHint": "اشترِ مهام من المعلمين لتظهر هنا",
+    "noSubject": "بدون مادة",
+    "points": "نقطة",
+    "permanent": "♾️ دائم",
+    "oneTime": "1️⃣ مرة واحدة",
+    "used": "استُخدمت",
+    "times": "مرة",
+    "selectChild": "اختر طفل",
+    "send": "إرسال",
+    "noFavorites": "لا توجد مهام مفضلة",
+    "teacherTask": "مهمة معلم",
+    "templateTask": "مهمة قالب",
+    "currency": "ر.س",
+    "notFollowingAnyone": "لا تتابع أحداً بعد",
+    "unknown": "غير معروف",
+    "school": "مدرسة",
+    "teacher": "معلم",
+    "suggestedTeachers": "معلمون مقترحون",
+    "general": "عام",
+    "suggestedSchools": "مدارس مقترحة",
+    "teacherCount": "معلم",
+    "popularTasks": "مهام شائعة",
+    "buyers": "مشتري",
+    "buy": "شراء",
+    "noSuggestions": "لا توجد اقتراحات حالياً",
+    "noSuggestionsHint": "تابع مدارس ومعلمين لتحصل على اقتراحات أفضل",
+    "taskSentSuccess": "تم ✅",
+    "taskSentToChild": "تم إرسال المهمة للطفل",
+    "error": "خطأ",
+    "taskSendFailed": "فشل إرسال المهمة",
+    "uploadFailed": "فشل رفع الملف",
+    "uploadToStorageFailed": "فشل رفع الملف إلى التخزين",
+    "uploadConfirmFailed": "فشل تأكيد رفع الملف",
+    "selectImageOnly": "يرجى اختيار صورة فقط",
+    "avatarUploaded": "تم رفع الصورة الشخصية",
+    "coverUploaded": "تم رفع صورة الغلاف",
+    "imageUploadFailed": "فشل رفع الصورة"
+  },
+  "adminAuth": {
+    "title": "لوحة الإدارة",
+    "subtitle": "تسجيل الدخول إلى لوحة التحكم",
+    "username": "اسم المستخدم",
+    "password": "كلمة المرور",
+    "login": "تسجيل الدخول",
+    "loggingIn": "جاري تسجيل الدخول...",
+    "forgotPassword": "نسيت كلمة المرور؟",
+    "invalidCredentials": "بيانات الدخول غير صحيحة",
+    "recoveryLinkSent": "تم إرسال رابط الاستعادة",
+    "recoverPassword": "استعادة كلمة المرور",
+    "adminLogin": "تسجيل دخول الإدارة",
+    "email": "البريد",
+    "loginBtn": "تسجيل الدخول",
+    "sendRecoveryLink": "إرسال رابط الاستعادة",
+    "backToLogin": "العودة لتسجيل الدخول"
+  },
+  "subjectTasks": {
+    "taskSentSuccess": "تم إرسال المهمة للطفل بنجاح!",
+    "back": "رجوع",
+    "classiTasks": "مهام كلاسي",
+    "sendToChild": "إرسال للطفل",
+    "sending": "جاري الإرسال...",
+    "noTasks": "No tasks available",
+    "difficulty": "Difficulty",
+    "points": "النقاط",
+    "easy": "سهل",
+    "medium": "متوسط",
+    "hard": "صعب"
+  },
+  "parentInventory": {
+    "title": "المخزون",
+    "awaitingApproval": "بانتظار موافقة الإدارة",
+    "availableToAssign": "متاح للتعيين",
+    "assignedToChild": "مُعيّن لطفل",
+    "redeemed": "مسترد",
+    "expired": "منتهي",
+    "noItems": "لا توجد عناصر",
+    "assignToChild": "تعيين لطفل",
+    "itemDetails": "تفاصيل العنصر",
+    "status": "الحالة:",
+    "purchasedOn": "تاريخ الشراء:",
+    "assignedTo": "معيّن لـ:",
+    "code": "الكود:"
+  },
+  "privacyPolicy": {
+    "title": "سياسة الخصوصية",
+    "introduction": "مقدمة",
+    "infoWeCollect": "المعلومات التي نجمعها",
+    "howWeUse": "كيف نستخدم المعلومات",
+    "dataSecurity": "أمن البيانات",
+    "childPrivacy": "خصوصية الأطفال",
+    "contactUs": "اتصل بنا",
+    "lastUpdated": "آخر تحديث",
+    "back": "رجوع"
+  },
+  "notificationsPage": {
+    "accepted": "مقبول",
+    "codeSentToChild": "تم إرسال الكود للطفل",
+    "markedAsLearned": "تم التعليم",
+    "approved": "تم القبول",
+    "read": "مقروء",
+    "unread": "غير مقروء",
+    "markAllRead": "تعليم الكل كمقروء",
+    "noNotifications": "لا توجد إشعارات",
+    "delete": "حذف"
+  },
+  "childProgress": {
+    "back": "رجوع",
+    "speedLevel": "مستوى السرعة",
+    "pointsPerDay": "نقطة/يوم",
+    "completedTask": "مهمة منجزة",
+    "totalPoints": "Total Points",
+    "streak": "متتالية",
+    "level": "المستوى",
+    "progress": "التقدم",
+    "weeklyChart": "الرسم الأسبوعي",
+    "monthlyChart": "الرسم الشهري"
+  },
+  "parentAuth": {
+    "checkingSession": "جاري التحقق من الجلسة...",
+    "emailLabel": "📧 البريد",
+    "nameLabel": "الاسم",
+    "passwordLabel": "Password",
+    "confirmPasswordLabel": "Confirm Password",
+    "loginBtn": "تسجيل الدخول",
+    "registerBtn": "Register",
+    "forgotPassword": "نسيت كلمة المرور؟",
+    "noAccount": "Don't have an account?",
+    "haveAccount": "Already have an account?",
+    "processing": "جاري المعالجة..."
+  },
+  "subjects": {
+    "title": "📚 المواد الدراسية",
+    "back": "← رجوع",
+    "subjectsLabel": "المواد الدراسية",
+    "noSubjects": "No subjects available",
+    "tasks": "مهام",
+    "viewTasks": "View Tasks"
+  },
+  "childTasks": {
+    "task": "مهمة",
+    "completedTasks": "Completed Tasks",
+    "sending": "جاري الإرسال...",
+    "wellDone": "أحسنت!",
+    "submitAnswer": "إرسال الإجابة",
+    "noTasks": "No tasks",
+    "pointsEarned": "Points Earned"
+  },
+  "otpVerification": {
+    "title": "🔐 التحقق من الهوية",
+    "wrongCode": "رمز خاطئ",
+    "emailLabel": "📧 البريد",
+    "enterCode": "أدخل الرمز",
+    "verifyBtn": "Verify",
+    "resend": "إعادة إرسال",
+    "resending": "جاري إعادة الإرسال...",
+    "codeSent": "تم إرسال الرمز",
+    "codeExpired": "انتهت صلاحية الرمز",
+    "back": "رجوع"
+  },
+  "childGames": {
+    "questionMark": "؟",
+    "welcome": "مرحباً",
+    "yourScore": "نتيجتك",
+    "finishedGame": "أنهيت اللعبة",
+    "noGames": "No games available",
+    "play": "العب"
+  },
+  "phoneInput": {
+    "saudiArabia": "السعودية",
+    "egypt": "مصر",
+    "uae": "الإمارات",
+    "qatar": "قطر",
+    "kuwait": "الكويت",
+    "bahrain": "البحرين",
+    "oman": "عُمان",
+    "jordan": "الأردن",
+    "iraq": "العراق",
+    "lebanon": "لبنان",
+    "palestine": "فلسطين",
+    "libya": "ليبيا",
+    "tunisia": "تونس",
+    "algeria": "الجزائر",
+    "morocco": "المغرب",
+    "sudan": "السودان",
+    "yemen": "اليمن",
+    "syria": "سوريا",
+    "mauritania": "موريتانيا",
+    "somalia": "الصومال",
+    "djibouti": "جيبوتي",
+    "comoros": "جزر القمر",
+    "turkey": "تركيا",
+    "usa": "أمريكا",
+    "uk": "بريطانيا",
+    "france": "فرنسا",
+    "germany": "ألمانيا",
+    "searchCountry": "بحث عن دولة...",
+    "phoneNumber": "رقم الهاتف"
+  },
+  "shareMenu": {
+    "share": "مشاركة",
+    "whatsapp": "واتساب",
+    "facebook": "فيسبوك",
+    "twitter": "تويتر",
+    "copyLink": "نسخ الرابط",
+    "copied": "تم النسخ!",
+    "telegram": "تلجرام"
+  },
+  "notificationBell": {
+    "allMarkedRead": "تم تعليم الكل كمقروء",
+    "accepted": "مقبول",
+    "code": "الكود:",
+    "approve": "موافقة",
+    "reject": "رفض",
+    "noNotifications": "لا توجد إشعارات",
+    "viewAll": "عرض الكل"
+  },
+  "childNotificationBell": {
+    "title": "🔔 الإشعارات",
+    "readAll": "قراءة الكل",
+    "viewAll": "عرض كل الإشعارات",
+    "noNotifications": "لا توجد إشعارات"
+  },
+  "accountNotificationBell": {
+    "title": "🔔 الإشعارات",
+    "readAll": "قراءة الكل",
+    "noNotifications": "لا توجد إشعارات"
+  },
+  "giftNotification": {
+    "strictPopup": "نافذة منبثقة لا يمكن إغلاقها",
+    "floatingCircle": "دائرة عائمة",
+    "newGift": "هدية جديدة!",
+    "youReceived": "You received a gift!",
+    "accept": "قبول",
+    "viewDetails": "عرض التفاصيل",
+    "close": "إغلاق"
+  },
+  "floatingBubble": {
+    "giftsAndTasks": "الهدايا والمهام",
+    "pendingItems": "عنصرات معلقة"
+  },
+  "followButton": {
+    "mustLogin": "يجب تسجيل الدخول أولاً",
+    "following": "متابَع",
+    "follow": "متابعة"
+  },
+  "errorBoundary": {
+    "unexpectedError": "حدث خطأ غير متوقع",
+    "technicalDetails": "التفاصيل التقنية",
+    "tryAgain": "حاول مجدداً",
+    "goHome": "الصفحة الرئيسية",
+    "errorMessage": "حدث خطأ ما"
+  },
+  "profileHeader": {
+    "verified": "✓ موثّق",
+    "rating": "تقييم",
+    "location": "الموقع",
+    "about": "تعرّف على"
+  },
+  "adsCarousel": {
+    "ads": "إعلانات",
+    "viewDetails": "عرض التفاصيل"
+  },
+  "sponsoredTask": {
+    "writeAnswerHere": "اكتب إجابتك هنا...",
+    "completedTask": "مهمة منجزة",
+    "submitAnswer": "إرسال الإجابة",
+    "newTask": "مهمة جديدة"
+  },
+  "imageCropper": {
+    "cropProfileImage": "قص صورة الملف الشخصي",
+    "reset": "إعادة تعيين",
+    "cancel": "إلغاء",
+    "crop": "قص"
+  },
+  "mandatoryTask": {
+    "wellDone": "أحسنت!",
+    "newTask": "مهمة جديدة!",
+    "tryAgain": "حاول مجدداً",
+    "submit": "إرسال",
+    "skip": "Skip"
+  },
+  "otpInput": {
+    "verify": "✅ التحقق",
+    "resend": "إعادة إرسال",
+    "codeSent": "تم إرسال رمز التحقق",
+    "resendIn": "Resend in {{seconds}}s"
+  },
+  "smsVerification": {
+    "back": "← رجوع",
+    "sending": "جاري الإرسال...",
+    "cancel": "❌ إلغاء",
+    "verify": "Verify"
+  },
+  "taskForm": {
+    "saveTask": "حفظ المهمة",
+    "createTaskFailed": "فشل إنشاء المهمة",
+    "subject": "المادة",
+    "points": "النقاط",
+    "taskTitle": "عنوان المهمة",
+    "taskDescription": "الوصف",
+    "question": "السؤال",
+    "answers": "الإجابات",
+    "correctAnswer": "الإجابة الصحيحة",
+    "addAnswer": "إضافة إجابة",
+    "removeAnswer": "حذف",
+    "difficulty": "Difficulty",
+    "easy": "سهل",
+    "medium": "متوسط",
+    "hard": "صعب",
+    "cancelBtn": "إلغاء",
+    "saveBtn": "حفظ"
+  },
+  "randomAdPopup": {
+    "ad": "إعلان",
+    "viewDetails": "عرض التفاصيل",
+    "close": "إغلاق"
+  },
+  "socialLogin": {
+    "or": "أو",
+    "loginWith": "الدخول بـ",
+    "google": "Google"
+  },
+  "notificationToast": {
+    "autoClose": "يُغلق تلقائياً خلال 5 ثوانٍ..."
+  },
+  "notificationModal": {
+    "understood": "فهمت 🎉"
+  },
+  "splashScreen": {
+    "smartParentalControl": "الرقابة الأبوية الذكية"
+  },
+  "otpMethodSelector": {
+    "emailMethod": "📧 البريد",
+    "smsMethod": "📱 رسالة نصية",
+    "selectMethod": "اختر طريقة التحقق"
+  },
+  "governorateSelect": {
+    "selectGovernorate": "اختر المحافظة"
   }
 }

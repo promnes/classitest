@@ -1,4 +1,6 @@
 import { useState, useRef } from "react";
+import { useTranslation } from "react-i18next";
+import i18next from "i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -45,18 +47,20 @@ interface Ad {
 }
 
 const AUDIENCE_OPTIONS = [
-  { value: "all", label: "الكل", icon: Globe, color: "bg-purple-500", description: "يظهر لجميع المستخدمين" },
-  { value: "parents", label: "الآباء فقط", icon: Users, color: "bg-blue-500", description: "يظهر للآباء فقط" },
-  { value: "children", label: "الأطفال فقط", icon: Baby, color: "bg-pink-500", description: "يظهر للأطفال فقط" },
+  { value: "all", label: i18next.t("admin.ads.all"), icon: Globe, color: "bg-purple-500", description: "يظهر لجميع المستخدمين" },
+  { value: "parents", label: i18next.t("admin.ads.parentsOnly"), icon: Users, color: "bg-blue-500", description: "يظهر للآباء فقط" },
+  { value: "children", label: i18next.t("admin.ads.childrenOnly"), icon: Baby, color: "bg-pink-500", description: "يظهر للأطفال فقط" },
 ];
 
 const PRIORITY_PRESETS = [
-  { value: 0, label: "عادي", color: "text-gray-500" },
-  { value: 5, label: "مرتفع", color: "text-amber-500" },
-  { value: 10, label: "عاجل", color: "text-red-500" },
+  { value: 0, label: i18next.t("admin.ads.normal"), color: "text-gray-500" },
+  { value: 5, label: i18next.t("admin.ads.high"), color: "text-amber-500" },
+  { value: 10, label: i18next.t("admin.ads.urgent"), color: "text-red-500" },
 ];
 
-export function AdsTab({ token }: { token: string }) {
+export function AdsTab({
+  token }: { token: string }) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);

@@ -10,29 +10,31 @@ import { useToast } from "@/hooks/use-toast";
 import { getDateLocale } from "@/i18n/config";
 import { SlidingAdsCarousel } from "@/components/SlidingAdsCarousel";
 
-const PAYMENT_TYPE_LABELS: Record<string, { label: string; emoji: string }> = {
-  bank_transfer: { label: "تحويل بنكي", emoji: "🏦" },
-  vodafone_cash: { label: "فودافون كاش", emoji: "📱" },
-  orange_money: { label: "أورنج موني", emoji: "🟠" },
-  etisalat_cash: { label: "اتصالات موني", emoji: "🟣" },
-  we_pay: { label: "وي باي", emoji: "💳" },
-  instapay: { label: "إنستاباي", emoji: "⚡" },
-  fawry: { label: "فوري", emoji: "🎫" },
-  mobile_wallet: { label: "محفظة إلكترونية", emoji: "📲" },
-  credit_card: { label: "بطاقة ائتمان", emoji: "💳" },
-  other: { label: "أخرى", emoji: "💰" },
+const PAYMENT_TYPE_EMOJIS: Record<string, string> = {
+  bank_transfer: "🏦", vodafone_cash: "📱", orange_money: "🟠", etisalat_cash: "🟣",
+  we_pay: "💳", instapay: "⚡", fawry: "🎫", mobile_wallet: "📲", credit_card: "💳", other: "💰",
 };
 
-const STATUS_LABELS: Record<string, { label: string; color: string; bg: string }> = {
-  pending: { label: "قيد المراجعة", color: "text-yellow-700", bg: "bg-yellow-100" },
-  completed: { label: "مقبول ✓", color: "text-green-700", bg: "bg-green-100" },
-  cancelled: { label: "مرفوض ✗", color: "text-red-700", bg: "bg-red-100" },
+const STATUS_COLORS: Record<string, { color: string; bg: string }> = {
+  pending: { color: "text-yellow-700", bg: "bg-yellow-100" },
+  completed: { color: "text-green-700", bg: "bg-green-100" },
+  cancelled: { color: "text-red-700", bg: "bg-red-100" },
 };
 
-const extractApiErrorMessage = (error: unknown): string => {
-  if (!error || typeof error !== "object") return "حدث خطأ أثناء إرسال طلب الإيداع";
+function getPaymentLabel(type: string, t: (key: string) => string) {
+  const key = `wallet.paymentType.${type.replace(/_([a-z])/g, (_, c) => c.toUpperCase())}`;
+  return { label: t(key), emoji: PAYMENT_TYPE_EMOJIS[type] || "💰" };
+}
+
+function getStatusLabel(status: string, t: (key: string) => string) {
+  const keyMap: Record<string, string> = { pending: 'wallet.statusPending', completed: 'wallet.statusCompleted', cancelled: 'wallet.statusCancelled' };
+  return { label: t(keyMap[status] || keyMap.pending), ...(STATUS_COLORS[status] || STATUS_COLORS.pending) };
+}
+
+const extractApiErrorMessage = (error: unknown, fallback: string): string => {
+  if (!error || typeof error !== "object") return fallback;
   const message = (error as any)?.message;
-  if (typeof message !== "string") return "حدث خطأ أثناء إرسال طلب الإيداع";
+  if (typeof message !== "string") return fallback;
 
   const jsonStart = message.indexOf("{");
   if (jsonStart >= 0) {
@@ -109,15 +111,14 @@ export const Wallet = (): JSX.Element => {
       setDepositReceiptUrl("");
       setDepositNotes("");
       setStep("select");
-      toast({ title: t("wallet.depositSuccess", "تم إرسال طلب الإيداع بنجاح!"), description: t("wallet.depositPending", "سيتم مراجعته من الإدارة") });
+      toast({ title: t("wallet.depositSuccess"), description: t("wallet.depositPending") });
     },
     onError: (error: any) => {
-      toast({ title: t("errors.error", "خطأ"), description: extractApiErrorMessage(error), variant: "destructive" });
+      toast({ title: t("errors.error", "خطأ"), description: extractApiErrorMessage(error, t('wallet.depositError')), variant: "destructive" });
     },
   });
 
-  const getTypeInfo = (type: string) =>
-    PAYMENT_TYPE_LABELS[type] || { label: type, emoji: "💰" };
+  const getTypeInfo = (type: string) => getPaymentLabel(type, t);
 
   const resetDeposit = () => {
     setShowDeposit(false);
@@ -191,7 +192,7 @@ export const Wallet = (): JSX.Element => {
           ) : (
             <div className="space-y-3">
               {depositsList.map((deposit: any) => {
-                const statusInfo = STATUS_LABELS[deposit.status] || { label: deposit.status, color: "text-gray-700", bg: "bg-gray-100" };
+                const statusInfo = getStatusLabel(deposit.status, t);
                 return (
                   <div
                     key={deposit.id}
@@ -366,7 +367,7 @@ export const Wallet = (): JSX.Element => {
                       step="0.01"
                       value={depositAmount}
                       onChange={(e) => setDepositAmount(e.target.value)}
-                      placeholder="أدخل المبلغ"
+                      placeholder={t('wallet.amountPlaceholder')}
                       className={`w-full px-4 py-3 border-2 rounded-lg text-lg font-bold ${
                         isDark ? "bg-gray-700 border-gray-600 text-white" : "border-gray-300"
                       }`}
@@ -381,7 +382,7 @@ export const Wallet = (): JSX.Element => {
                       type="text"
                       value={depositTransactionId}
                       onChange={(e) => setDepositTransactionId(e.target.value)}
-                      placeholder="مثال: TRX-2026-001234"
+                      placeholder={t('wallet.transactionIdPlaceholder')}
                       className={`w-full px-4 py-3 border-2 rounded-lg ${
                         isDark ? "bg-gray-700 border-gray-600 text-white" : "border-gray-300"
                       }`}
@@ -430,7 +431,7 @@ export const Wallet = (): JSX.Element => {
                     }
                     className="flex-1 px-4 py-3 bg-green-500 hover:bg-green-600 text-white rounded-lg font-bold text-lg disabled:opacity-50"
                   >
-                    {depositMutation.isPending ? "جاري الإرسال..." : "✅ إرسال الطلب للمراجعة"}
+                    {depositMutation.isPending ? t('wallet.submitting') : t('wallet.submitDeposit')}
                   </button>
                   <button
                     onClick={() => setStep("select")}

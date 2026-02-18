@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
+import i18next from "i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { CheckCircle, XCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -24,8 +26,8 @@ interface DepositData {
 }
 
 const PAYMENT_TYPES: Record<string, { label: string; emoji: string }> = {
-  bank_transfer: { label: "تحويل بنكي", emoji: "🏦" },
-  vodafone_cash: { label: "فودافون كاش", emoji: "📱" },
+  bank_transfer: { label: i18next.t("admin.deposits.bankTransfer"), emoji: "🏦" },
+  vodafone_cash: { label: i18next.t("admin.deposits.vodafoneCash"), emoji: "📱" },
   orange_money: { label: "أورنج موني", emoji: "🟠" },
   etisalat_cash: { label: "اتصالات موني", emoji: "🟣" },
   we_pay: { label: "وي باي", emoji: "💳" },
@@ -42,7 +44,9 @@ const STATUS_MAP: Record<string, { label: string; color: string }> = {
   cancelled: { label: "مرفوض", color: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300" },
 };
 
-export function DepositsTab({ token }: { token: string }) {
+export function DepositsTab({
+  token }: { token: string }) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [filterStatus, setFilterStatus] = useState<string>("all");

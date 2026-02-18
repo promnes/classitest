@@ -84,7 +84,7 @@ export const Notifications = (): JSX.Element => {
       queryClient.invalidateQueries({ queryKey: ["/api/parent/notifications"] });
       queryClient.invalidateQueries({ queryKey: ["/api/parent/notifications/unread-count"] });
       toast({
-        title: variables.action === "approve" ? "تم القبول" : "تم الرفض",
+        title: variables.action === "approve" ? t("notificationsPage.accepted") : "تم الرفض",
         description: variables.action === "approve" 
           ? "تم إرسال الكود للطفل. أخبره برمز PIN الخاص به."
           : "تم رفض طلب تسجيل الدخول.",
@@ -100,7 +100,7 @@ export const Notifications = (): JSX.Element => {
       queryClient.invalidateQueries({ queryKey: ["/api/parent/notifications"] });
       queryClient.invalidateQueries({ queryKey: ["/api/parent/notifications/unread-count"] });
       toast({
-        title: "تم التعليم",
+        title: t("notificationsPage.markedAsLearned"),
         description: "تم تعليم جميع الإشعارات كمقروءة",
       });
     },

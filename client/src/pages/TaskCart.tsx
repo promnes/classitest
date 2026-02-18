@@ -65,7 +65,7 @@ export default function TaskCart() {
       queryClient.invalidateQueries({ queryKey: ["task-cart"] });
       queryClient.invalidateQueries({ queryKey: ["task-cart-count"] });
       queryClient.invalidateQueries({ queryKey: ["browse-tasks"] });
-      toast({ title: "تم الحذف من السلة" });
+      toast({ title: t('taskCart.removedFromCart') });
     },
   });
 
@@ -88,12 +88,12 @@ export default function TaskCart() {
       queryClient.invalidateQueries({ queryKey: ["browse-tasks"] });
       queryClient.invalidateQueries({ queryKey: ["parent-wallet"] });
       toast({
-        title: "تم الشراء بنجاح!",
+        title: t('taskCart.purchaseSuccess'),
         description: `تم شراء ${data.ordersCount} مهمة`,
       });
     },
     onError: (err: Error) => {
-      toast({ title: "فشل الشراء", description: err.message, variant: "destructive" });
+      toast({ title: t('taskCart.purchaseFailed'), description: err.message, variant: "destructive" });
     },
   });
 

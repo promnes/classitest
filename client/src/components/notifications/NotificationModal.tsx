@@ -1,4 +1,5 @@
 // client/src/components/notifications/NotificationModal.tsx
+import { useTranslation } from "react-i18next";
 // Modal notification (requires user action to dismiss)
 
 interface NotificationModalProps {
@@ -16,6 +17,7 @@ export function NotificationModal({
   onConfirm,
   type = "gift_unlocked",
 }: NotificationModalProps) {
+  const { t } = useTranslation();
   return (
     <>
       {/* Overlay */}

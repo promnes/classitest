@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -67,6 +68,7 @@ const getNavigationTarget = (type: string): string | null => {
 };
 
 export function ParentNotificationBell() {
+  const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -260,7 +262,7 @@ export function ParentNotificationBell() {
                           {isLogin && parentCode && (
                             <div className="mt-2 space-y-2">
                               <div className={`flex items-center gap-2 p-2 rounded-lg text-sm ${isDark ? "bg-gray-700" : "bg-gray-100"}`}>
-                                <span className={isDark ? "text-gray-300" : "text-gray-600"}>الكود:</span>
+                                <span className={isDark ? "text-gray-300" : "text-gray-600"}>{t("notificationBell.code")}</span>
                                 <span className="font-mono font-bold text-orange-500">{parentCode}</span>
                                 <button
                                   onClick={(e) => { e.stopPropagation(); copyCode(parentCode, notification.id); }}

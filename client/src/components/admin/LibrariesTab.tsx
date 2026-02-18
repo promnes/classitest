@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -52,6 +53,7 @@ interface LibraryWithdrawal {
 }
 
 export default function LibrariesTab() {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const token = localStorage.getItem("adminToken");
   
@@ -150,13 +152,13 @@ export default function LibrariesTab() {
       return res.json();
     },
     onSuccess: () => {
-      toast({ title: "تم إضافة المكتبة بنجاح" });
+      toast({ title: t("admin.libraries.libraryAdded") });
       setShowAddModal(false);
       resetForm();
       queryClient.invalidateQueries({ queryKey: ["admin-libraries"] });
     },
     onError: (err: any) => {
-      toast({ title: err.message || "فشل إضافة المكتبة", variant: "destructive" });
+      toast({ title: err.message || t("admin.libraries.libraryAddFailed"), variant: "destructive" });
     },
   });
 
@@ -177,13 +179,13 @@ export default function LibrariesTab() {
       return res.json();
     },
     onSuccess: () => {
-      toast({ title: "تم تحديث المكتبة" });
+      toast({ title: t("admin.libraries.libraryUpdated") });
       setShowEditModal(false);
       setSelectedLibrary(null);
       queryClient.invalidateQueries({ queryKey: ["admin-libraries"] });
     },
     onError: (err: any) => {
-      toast({ title: err.message || "فشل تحديث المكتبة", variant: "destructive" });
+      toast({ title: err.message || t("admin.libraries.libraryUpdateFailed"), variant: "destructive" });
     },
   });
 
@@ -197,11 +199,11 @@ export default function LibrariesTab() {
       return res.json();
     },
     onSuccess: () => {
-      toast({ title: "تم حذف المكتبة" });
+      toast({ title: t("admin.libraries.libraryDeleted") });
       queryClient.invalidateQueries({ queryKey: ["admin-libraries"] });
     },
     onError: () => {
-      toast({ title: "فشل حذف المكتبة", variant: "destructive" });
+      toast({ title: t("admin.libraries.libraryDeleteFailed"), variant: "destructive" });
     },
   });
 
@@ -219,11 +221,11 @@ export default function LibrariesTab() {
       return res.json();
     },
     onSuccess: () => {
-      toast({ title: "تم تحديث الإعدادات" });
+      toast({ title: t("admin.libraries.settingsUpdated") });
       queryClient.invalidateQueries({ queryKey: ["admin-library-referral-settings"] });
     },
     onError: () => {
-      toast({ title: "فشل تحديث الإعدادات", variant: "destructive" });
+      toast({ title: t("admin.libraries.settingsUpdateFailed"), variant: "destructive" });
     },
   });
 
@@ -243,11 +245,11 @@ export default function LibrariesTab() {
       return res.json();
     },
     onSuccess: () => {
-      toast({ title: "تم تحديث إعدادات المتجر" });
+      toast({ title: t("admin.libraries.storeSettingsUpdated") });
       queryClient.invalidateQueries({ queryKey: ["admin-library-store-settings"] });
     },
     onError: () => {
-      toast({ title: "فشل تحديث إعدادات المتجر", variant: "destructive" });
+      toast({ title: t("admin.libraries.storeSettingsUpdateFailed"), variant: "destructive" });
     },
   });
 
@@ -262,12 +264,12 @@ export default function LibrariesTab() {
       return body;
     },
     onSuccess: () => {
-      toast({ title: "تم تأكيد الطلب وإرساله للمكتبة" });
+      toast({ title: t("admin.libraries.orderConfirmed") });
       queryClient.invalidateQueries({ queryKey: ["admin-library-orders"] });
       queryClient.invalidateQueries({ queryKey: ["admin-libraries"] });
     },
     onError: (err: any) => {
-      toast({ title: err?.message || "فشل تأكيد الطلب", variant: "destructive" });
+      toast({ title: err?.message || t("admin.libraries.orderConfirmFailed"), variant: "destructive" });
     },
   });
 
@@ -286,12 +288,12 @@ export default function LibrariesTab() {
       return body;
     },
     onSuccess: () => {
-      toast({ title: "تم رفض الطلب" });
+      toast({ title: t("admin.libraries.orderRejected") });
       queryClient.invalidateQueries({ queryKey: ["admin-library-orders"] });
       queryClient.invalidateQueries({ queryKey: ["admin-libraries"] });
     },
     onError: (err: any) => {
-      toast({ title: err?.message || "فشل رفض الطلب", variant: "destructive" });
+      toast({ title: err?.message || t("admin.libraries.orderRejectFailed"), variant: "destructive" });
     },
   });
 
@@ -306,12 +308,12 @@ export default function LibrariesTab() {
       return body;
     },
     onSuccess: () => {
-      toast({ title: "تمت الموافقة على طلب السحب" });
+      toast({ title: t("admin.libraries.withdrawalApproved") });
       queryClient.invalidateQueries({ queryKey: ["admin-library-withdrawals"] });
       queryClient.invalidateQueries({ queryKey: ["admin-libraries"] });
     },
     onError: (err: any) => {
-      toast({ title: err?.message || "فشل الموافقة على السحب", variant: "destructive" });
+      toast({ title: err?.message || t("admin.libraries.withdrawalApproveFailed"), variant: "destructive" });
     },
   });
 
@@ -330,12 +332,12 @@ export default function LibrariesTab() {
       return body;
     },
     onSuccess: () => {
-      toast({ title: "تم رفض طلب السحب وإرجاع الرصيد" });
+      toast({ title: t("admin.libraries.withdrawalRejected") });
       queryClient.invalidateQueries({ queryKey: ["admin-library-withdrawals"] });
       queryClient.invalidateQueries({ queryKey: ["admin-libraries"] });
     },
     onError: (err: any) => {
-      toast({ title: err?.message || "فشل رفض السحب", variant: "destructive" });
+      toast({ title: err?.message || t("admin.libraries.withdrawalRejectFailed"), variant: "destructive" });
     },
   });
 
@@ -375,7 +377,7 @@ export default function LibrariesTab() {
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
-    toast({ title: "تم النسخ" });
+    toast({ title: t("admin.libraries.copied") });
   };
 
   const filteredLibraries = (libraries || []).filter((lib: Library) =>
@@ -386,11 +388,11 @@ export default function LibrariesTab() {
   const loginUrl = `${window.location.origin}/library/login`;
 
   if (isLoading) {
-    return <div className="flex justify-center p-8">جاري التحميل...</div>;
+    return <div className="flex justify-center p-8">{t("admin.libraries.loading")}</div>;
   }
 
   if (error) {
-    return <div className="text-red-500 text-center p-8">فشل تحميل البيانات</div>;
+    return <div className="text-red-500 text-center p-8">{t("admin.libraries.dataLoadFailed")}</div>;
   }
 
   return (
@@ -398,7 +400,7 @@ export default function LibrariesTab() {
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div className="flex items-center gap-4">
           <Input
-            placeholder="بحث بالاسم أو اسم المستخدم..."
+            placeholder={t("admin.libraries.searchPlaceholder")}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-64"
@@ -438,7 +440,7 @@ export default function LibrariesTab() {
                     <p className="text-sm text-muted-foreground">@{lib.username}</p>
                   </div>
                 </div>
-                {!lib.isActive && <Badge variant="secondary">غير نشط</Badge>}
+                {!lib.isActive && <Badge variant="secondary">{t("admin.libraries.inactive")}</Badge>}
               </div>
             </CardHeader>
             <CardContent>
@@ -471,7 +473,7 @@ export default function LibrariesTab() {
                     size="icon" 
                     variant="ghost" 
                     onClick={() => {
-                      if (confirm("هل تريد حذف هذه المكتبة؟")) {
+                      if (confirm(t("admin.libraries.confirmDeleteLibrary"))) {
                         deleteMutation.mutate(lib.id);
                       }
                     }}
@@ -489,7 +491,7 @@ export default function LibrariesTab() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
-            <span>طلبات المكتبات</span>
+            <span>{t("admin.libraries.libraryOrders")}</span>
             <Badge variant="secondary">
               {(libraryOrders || []).filter((o) => o.status === "pending_admin").length} بانتظار التأكيد
             </Badge>
@@ -499,7 +501,7 @@ export default function LibrariesTab() {
           {(libraryOrders || []).slice(0, 30).map((order) => (
             <div key={order.id} className="flex items-center justify-between p-3 border rounded-lg gap-3">
               <div className="min-w-0">
-                <p className="font-medium truncate">{order.productTitle || "منتج"} - {order.libraryName || "مكتبة"}</p>
+                <p className="font-medium truncate">{order.productTitle || t("admin.libraries.product")} - {order.libraryName || t("admin.libraries.library")}</p>
                 <p className="text-sm text-muted-foreground truncate">المشتري: {order.parentName || "-"} • الكمية: {order.quantity}</p>
                 <p className="text-xs text-muted-foreground">{new Date(order.createdAt).toLocaleString("ar")}</p>
               </div>
@@ -519,7 +521,7 @@ export default function LibrariesTab() {
             </div>
           ))}
           {(!libraryOrders || libraryOrders.length === 0) && (
-            <p className="text-sm text-muted-foreground text-center py-6">لا توجد طلبات مكتبات حالياً</p>
+            <p className="text-sm text-muted-foreground text-center py-6">{t("admin.libraries.noLibraryOrders")}</p>
           )}
         </CardContent>
       </Card>
@@ -537,7 +539,7 @@ export default function LibrariesTab() {
           {(libraryWithdrawals || []).slice(0, 30).map((request) => (
             <div key={request.id} className="flex items-center justify-between p-3 border rounded-lg gap-3">
               <div className="min-w-0">
-                <p className="font-medium truncate">{request.libraryName || "مكتبة"}</p>
+                <p className="font-medium truncate">{request.libraryName || t("admin.libraries.library")}</p>
                 <p className="text-sm text-muted-foreground truncate">المبلغ: {request.amount} • الطريقة: {request.paymentMethod}</p>
                 <p className="text-xs text-muted-foreground">{new Date(request.requestedAt).toLocaleString("ar")}</p>
               </div>
@@ -557,7 +559,7 @@ export default function LibrariesTab() {
             </div>
           ))}
           {(!libraryWithdrawals || libraryWithdrawals.length === 0) && (
-            <p className="text-sm text-muted-foreground text-center py-6">لا توجد طلبات سحب حالياً</p>
+            <p className="text-sm text-muted-foreground text-center py-6">{t("admin.libraries.noWithdrawalRequests")}</p>
           )}
         </CardContent>
       </Card>
@@ -565,11 +567,11 @@ export default function LibrariesTab() {
       <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>إضافة مكتبة جديدة</DialogTitle>
+            <DialogTitle>{t("admin.libraries.addNewLibrary")}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label>اسم المكتبة *</Label>
+              <Label>{t("admin.libraries.libraryName")}</Label>
               <Input
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
@@ -577,7 +579,7 @@ export default function LibrariesTab() {
               />
             </div>
             <div>
-              <Label>الوصف</Label>
+              <Label>{t("admin.libraries.descriptionLabel")}</Label>
               <Textarea
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
@@ -585,7 +587,7 @@ export default function LibrariesTab() {
               />
             </div>
             <div>
-              <Label>الموقع</Label>
+              <Label>{t("admin.libraries.locationLabel")}</Label>
               <Input
                 value={formData.location}
                 onChange={(e) => setFormData({ ...formData, location: e.target.value })}
@@ -593,7 +595,7 @@ export default function LibrariesTab() {
               />
             </div>
             <div>
-              <Label>رابط الصورة</Label>
+              <Label>{t("admin.libraries.imageUrl")}</Label>
               <Input
                 value={formData.imageUrl}
                 onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
@@ -601,7 +603,7 @@ export default function LibrariesTab() {
               />
             </div>
             <div>
-              <Label>اسم المستخدم *</Label>
+              <Label>{t("admin.libraries.username")}</Label>
               <Input
                 value={formData.username}
                 onChange={(e) => setFormData({ ...formData, username: e.target.value })}
@@ -609,7 +611,7 @@ export default function LibrariesTab() {
               />
             </div>
             <div>
-              <Label>كلمة المرور *</Label>
+              <Label>{t("admin.libraries.password")}</Label>
               <Input
                 type="password"
                 value={formData.password}
@@ -618,7 +620,7 @@ export default function LibrariesTab() {
               />
             </div>
             <div>
-              <Label>نسبة العمولة اليومية (%)</Label>
+              <Label>{t("admin.libraries.dailyCommission")}</Label>
               <Input
                 type="number"
                 min="0"
@@ -627,17 +629,17 @@ export default function LibrariesTab() {
                 onChange={(e) => setFormData({ ...formData, commissionRatePct: e.target.value })}
                 data-testid="input-library-commission"
               />
-              <p className="text-xs text-gray-500 mt-1">نسبة العمولة المستقطعة من المبيعات اليومية</p>
+              <p className="text-xs text-gray-500 mt-1">{t("admin.libraries.dailyCommissionDesc")}</p>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowAddModal(false)}>إلغاء</Button>
+            <Button variant="outline" onClick={() => setShowAddModal(false)}>{t("common.cancel")}</Button>
             <Button 
               onClick={() => createMutation.mutate(formData)}
               disabled={createMutation.isPending}
               data-testid="button-submit-library"
             >
-              {createMutation.isPending ? "جاري الإضافة..." : "إضافة"}
+              {createMutation.isPending ? t("admin.libraries.adding") : t("admin.libraries.addBtn")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -646,46 +648,46 @@ export default function LibrariesTab() {
       <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>تعديل المكتبة</DialogTitle>
+            <DialogTitle>{t("admin.libraries.editLibrary")}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label>اسم المكتبة</Label>
+              <Label>{t("admin.libraries.libraryName")}</Label>
               <Input
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               />
             </div>
             <div>
-              <Label>الوصف</Label>
+              <Label>{t("admin.libraries.descriptionLabel")}</Label>
               <Textarea
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               />
             </div>
             <div>
-              <Label>الموقع</Label>
+              <Label>{t("admin.libraries.locationLabel")}</Label>
               <Input
                 value={formData.location}
                 onChange={(e) => setFormData({ ...formData, location: e.target.value })}
               />
             </div>
             <div>
-              <Label>رابط الصورة</Label>
+              <Label>{t("admin.libraries.imageUrl")}</Label>
               <Input
                 value={formData.imageUrl}
                 onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
               />
             </div>
             <div>
-              <Label>اسم المستخدم</Label>
+              <Label>{t("admin.libraries.username")}</Label>
               <Input
                 value={formData.username}
                 onChange={(e) => setFormData({ ...formData, username: e.target.value })}
               />
             </div>
             <div>
-              <Label>كلمة المرور الجديدة (اتركها فارغة للإبقاء)</Label>
+              <Label>{t("admin.libraries.newPasswordOpt")}</Label>
               <Input
                 type="password"
                 value={formData.password}
@@ -693,7 +695,7 @@ export default function LibrariesTab() {
               />
             </div>
             <div>
-              <Label>نسبة العمولة اليومية (%)</Label>
+              <Label>{t("admin.libraries.dailyCommission")}</Label>
               <Input
                 type="number"
                 min="0"
@@ -701,7 +703,7 @@ export default function LibrariesTab() {
                 value={formData.commissionRatePct}
                 onChange={(e) => setFormData({ ...formData, commissionRatePct: e.target.value })}
               />
-              <p className="text-xs text-gray-500 mt-1">نسبة العمولة المستقطعة من المبيعات اليومية</p>
+              <p className="text-xs text-gray-500 mt-1">{t("admin.libraries.dailyCommissionDesc")}</p>
             </div>
             <div className="flex items-center gap-2">
               <Switch 
@@ -715,11 +717,11 @@ export default function LibrariesTab() {
                   }
                 }}
               />
-              <Label>نشط</Label>
+              <Label>{t("admin.libraries.activeLabel")}</Label>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowEditModal(false)}>إلغاء</Button>
+            <Button variant="outline" onClick={() => setShowEditModal(false)}>{t("common.cancel")}</Button>
             <Button 
               onClick={() => {
                 if (selectedLibrary) {
@@ -730,7 +732,7 @@ export default function LibrariesTab() {
               }}
               disabled={updateMutation.isPending}
             >
-              {updateMutation.isPending ? "جاري التحديث..." : "حفظ"}
+              {updateMutation.isPending ? t("admin.libraries.updating") : t("admin.libraries.saveBtn")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -744,38 +746,38 @@ export default function LibrariesTab() {
           {libraryDetails && (
             <Tabs defaultValue="info">
               <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="info">المعلومات</TabsTrigger>
+                <TabsTrigger value="info">{t("admin.libraries.infoTab")}</TabsTrigger>
                 <TabsTrigger value="products">المنتجات ({libraryDetails.products?.length || 0})</TabsTrigger>
-                <TabsTrigger value="activity">النشاط</TabsTrigger>
+                <TabsTrigger value="activity">{t("admin.libraries.activityTab")}</TabsTrigger>
               </TabsList>
               
               <TabsContent value="info" className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label className="text-muted-foreground">اسم المستخدم</Label>
+                    <Label className="text-muted-foreground">{t("admin.libraries.username")}</Label>
                     <p className="font-medium">@{libraryDetails.username}</p>
                   </div>
                   <div>
-                    <Label className="text-muted-foreground">الموقع</Label>
+                    <Label className="text-muted-foreground">{t("admin.libraries.locationLabel")}</Label>
                     <p className="font-medium">{libraryDetails.location || "-"}</p>
                   </div>
                   <div>
-                    <Label className="text-muted-foreground">نقاط النشاط</Label>
+                    <Label className="text-muted-foreground">{t("admin.libraries.activityPoints")}</Label>
                     <p className="font-medium">{libraryDetails.activityScore}</p>
                   </div>
                   <div>
-                    <Label className="text-muted-foreground">نسبة العمولة</Label>
+                    <Label className="text-muted-foreground">{t("admin.libraries.commissionRate")}</Label>
                     <p className="font-medium">{libraryDetails.commissionRatePct ?? 10}%</p>
                   </div>
                   <div>
-                    <Label className="text-muted-foreground">إجمالي المبيعات</Label>
+                    <Label className="text-muted-foreground">{t("admin.libraries.totalSales")}</Label>
                     <p className="font-medium">{libraryDetails.totalSales}</p>
                   </div>
                 </div>
                 
                 <div className="p-4 bg-muted rounded-lg space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm">كود الإحالة:</span>
+                    <span className="text-sm">{t("admin.libraries.referralCodeLabel")}</span>
                     <div className="flex items-center gap-2">
                       <code className="bg-background px-2 py-1 rounded">{libraryDetails.referralCode}</code>
                       <Button size="icon" variant="ghost" onClick={() => copyToClipboard(libraryDetails.referralCode)}>
@@ -784,7 +786,7 @@ export default function LibrariesTab() {
                     </div>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm">رابط تسجيل الدخول:</span>
+                    <span className="text-sm">{t("admin.libraries.loginLink")}</span>
                     <div className="flex items-center gap-2">
                       <code className="bg-background px-2 py-1 rounded text-xs">{loginUrl}</code>
                       <Button size="icon" variant="ghost" onClick={() => copyToClipboard(loginUrl)}>
@@ -798,13 +800,13 @@ export default function LibrariesTab() {
                   <Card>
                     <CardContent className="pt-4 text-center">
                       <p className="text-2xl font-bold">{libraryDetails.stats?.totalProducts || 0}</p>
-                      <p className="text-muted-foreground">إجمالي المنتجات</p>
+                      <p className="text-muted-foreground">{t("admin.libraries.totalProducts")}</p>
                     </CardContent>
                   </Card>
                   <Card>
                     <CardContent className="pt-4 text-center">
                       <p className="text-2xl font-bold">{libraryDetails.stats?.totalReferrals || 0}</p>
-                      <p className="text-muted-foreground">الإحالات</p>
+                      <p className="text-muted-foreground">{t("admin.libraries.referrals")}</p>
                     </CardContent>
                   </Card>
                 </div>
@@ -829,7 +831,7 @@ export default function LibrariesTab() {
                     ))}
                   </div>
                 ) : (
-                  <p className="text-center text-muted-foreground py-8">لا توجد منتجات</p>
+                  <p className="text-center text-muted-foreground py-8">{t("admin.libraries.noProducts")}</p>
                 )}
               </TabsContent>
               
@@ -849,7 +851,7 @@ export default function LibrariesTab() {
                     ))}
                   </div>
                 ) : (
-                  <p className="text-center text-muted-foreground py-8">لا يوجد نشاط</p>
+                  <p className="text-center text-muted-foreground py-8">{t("admin.libraries.noActivity")}</p>
                 )}
               </TabsContent>
             </Tabs>
@@ -860,7 +862,7 @@ export default function LibrariesTab() {
       <Dialog open={showSettingsModal} onOpenChange={setShowSettingsModal}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>إعدادات المكتبات</DialogTitle>
+            <DialogTitle>{t("admin.libraries.librarySettings")}</DialogTitle>
           </DialogHeader>
           <div className="space-y-6">
             {/* Library Store UI Settings */}
@@ -872,7 +874,7 @@ export default function LibrariesTab() {
               <div className="flex items-center justify-between p-3 rounded-lg border">
                 <div className="flex items-center gap-2">
                   <Moon className="h-4 w-4 text-purple-500" />
-                  <Label>إظهار زر تبديل الثيم</Label>
+                  <Label>{t("admin.libraries.showThemeToggle")}</Label>
                 </div>
                 <Switch
                   checked={libraryStoreSettings?.showThemeToggle !== false}
@@ -882,7 +884,7 @@ export default function LibrariesTab() {
               <div className="flex items-center justify-between p-3 rounded-lg border">
                 <div className="flex items-center gap-2">
                   <Bell className="h-4 w-4 text-orange-500" />
-                  <Label>إظهار أيقونة الإشعارات</Label>
+                  <Label>{t("admin.libraries.showNotificationIcon")}</Label>
                 </div>
                 <Switch
                   checked={libraryStoreSettings?.showNotifications !== false}
@@ -899,7 +901,7 @@ export default function LibrariesTab() {
                   إعدادات الإحالات
                 </h4>
               <div>
-                <Label>نقاط لكل إحالة</Label>
+                <Label>{t("admin.libraries.pointsPerReferral")}</Label>
                 <Input
                   type="number"
                   defaultValue={referralSettings.pointsPerReferral}
@@ -907,7 +909,7 @@ export default function LibrariesTab() {
                 />
               </div>
               <div>
-                <Label>نقاط لكل عملية بيع</Label>
+                <Label>{t("admin.libraries.pointsPerSale")}</Label>
                 <Input
                   type="number"
                   defaultValue={referralSettings.pointsPerSale}
@@ -915,7 +917,7 @@ export default function LibrariesTab() {
                 />
               </div>
               <div>
-                <Label>نقاط لكل منتج مضاف</Label>
+                <Label>{t("admin.libraries.pointsPerProduct")}</Label>
                 <Input
                   type="number"
                   defaultValue={referralSettings.pointsPerProductAdd}
@@ -927,7 +929,7 @@ export default function LibrariesTab() {
                   checked={referralSettings.isActive}
                   onCheckedChange={(checked) => updateSettingsMutation.mutate({ isActive: checked })}
                 />
-                <Label>تفعيل نظام الإحالات</Label>
+                <Label>{t("admin.libraries.enableReferrals")}</Label>
               </div>
               </div>
             )}

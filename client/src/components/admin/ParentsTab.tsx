@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
+import i18next from "i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Users, Eye, Send, Mail, Phone, Calendar, Wallet, ListTodo, Share2, X, Image, ArrowDownCircle, ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -63,19 +65,21 @@ interface ParentDetails extends Parent {
 const formatAmount = (value: string | number | null | undefined) => Number(value || 0).toFixed(2);
 
 const depositStatusMeta: Record<string, { label: string; className: string }> = {
-  pending: { label: "قيد المراجعة", className: "bg-yellow-100 text-yellow-800" },
-  completed: { label: "مقبول", className: "bg-green-100 text-green-800" },
-  cancelled: { label: "مرفوض", className: "bg-red-100 text-red-800" },
+  pending: { label: i18next.t("admin.parents.pending"), className: "bg-yellow-100 text-yellow-800" },
+  completed: { label: i18next.t("admin.parents.depositStatus.accepted"), className: "bg-green-100 text-green-800" },
+  cancelled: { label: i18next.t("admin.parents.depositStatus.rejected"), className: "bg-red-100 text-red-800" },
 };
 
 const purchaseStatusMeta: Record<string, { label: string; className: string }> = {
   pending: { label: "قيد الانتظار", className: "bg-yellow-100 text-yellow-800" },
-  paid: { label: "مدفوع", className: "bg-green-100 text-green-800" },
+  paid: { label: i18next.t("admin.parents.depositStatus.paid"), className: "bg-green-100 text-green-800" },
   failed: { label: "فشل", className: "bg-red-100 text-red-800" },
   refunded: { label: "مسترجع", className: "bg-gray-100 text-gray-700" },
 };
 
-export function ParentsTab({ token }: { token: string }) {
+export function ParentsTab({
+  token }: { token: string }) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [selectedParent, setSelectedParent] = useState<ParentDetails | null>(null);
   const [depositFilter, setDepositFilter] = useState<"all" | "pending" | "completed" | "cancelled">("all");
@@ -153,7 +157,7 @@ export function ParentsTab({ token }: { token: string }) {
   ) || [];
 
   if (isLoading) {
-    return <div className="p-4">جاري التحميل...</div>;
+    return <div className="p-4">{t("admin.parents.loading")}</div>;
   }
 
   return (
@@ -166,7 +170,7 @@ export function ParentsTab({ token }: { token: string }) {
         <div className="flex items-center gap-2">
           <Badge variant="secondary">{parents?.length || 0} والد</Badge>
           <Input
-            placeholder="بحث بالاسم أو البريد..."
+            placeholder={t("admin.parents.searchPlaceholder")}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-64"
@@ -347,9 +351,9 @@ export function ParentsTab({ token }: { token: string }) {
                 <div className="flex flex-wrap gap-2 mb-3">
                   {[
                     { key: "all", label: "الكل" },
-                    { key: "pending", label: "قيد المراجعة" },
-                    { key: "completed", label: "مقبول" },
-                    { key: "cancelled", label: "مرفوض" },
+                    { key: "pending", label: t("admin.parents.pending") },
+                    { key: "completed", label: t("admin.parents.depositStatus.accepted") },
+                    { key: "cancelled", label: t("admin.parents.depositStatus.rejected") },
                   ].map((item) => (
                     <button
                       key={item.key}
@@ -400,7 +404,7 @@ export function ParentsTab({ token }: { token: string }) {
                 <div className="flex flex-wrap gap-2 mb-3">
                   {[
                     { key: "all", label: "الكل" },
-                    { key: "paid", label: "مدفوع" },
+                    { key: "paid", label: t("admin.parents.depositStatus.paid") },
                     { key: "pending", label: "قيد الانتظار" },
                     { key: "failed", label: "فشل" },
                     { key: "refunded", label: "مسترجع" },

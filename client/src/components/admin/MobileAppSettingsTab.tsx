@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
+import i18next from "i18next";
 import { useTheme } from "@/contexts/ThemeContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -68,7 +69,7 @@ interface AppConfig {
 
 const DEFAULT_CONFIG: AppConfig = {
   appName: "Classify",
-  appNameAr: "كلاسيفاي",
+  appNameAr: i18next.t("admin.mobileApp.appNameDefault"),
   appVersion: "1.1",
   appBuildNumber: "1",
   appDescription: "Kids Educational & Parental Control Platform",

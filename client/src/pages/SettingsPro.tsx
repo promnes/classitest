@@ -179,7 +179,7 @@ export const Settings = (): JSX.Element => {
       {/* Header */}
       <header className="bg-gradient-to-r from-purple-700 to-purple-800 text-white p-4 md:p-6 shadow-lg">
         <div className="max-w-6xl mx-auto flex justify-between items-center">
-          <h1 className="text-3xl font-bold">⚙️ الإعدادات</h1>
+          <h1 className="text-3xl font-bold">{t("settingsPro.title")}</h1>
           <div className="flex items-center gap-2">
             <LanguageSelector />
             <button

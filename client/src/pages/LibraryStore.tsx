@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from 'react-i18next';
 import { useLocation } from "wouter";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Store, Star, Package, Search, Filter, ShoppingCart, BookOpen, Plus, Minus, X, CreditCard, MapPin, Check, Bell, Moon, Sun } from "lucide-react";
@@ -65,6 +66,7 @@ const normalizeSharedCartProduct = (product: LibraryProduct): LibraryProduct => 
 };
 
 export default function LibraryStore() {
+  const { t } = useTranslation();
   const [, navigate] = useLocation();
   const queryClient = useQueryClient();
   const { isDark, toggleTheme } = useTheme();
@@ -312,16 +314,16 @@ export default function LibraryStore() {
       setSelectedPaymentMethod("");
       setShippingAddress({ name: "", line1: "", city: "", state: "", postalCode: "", country: "EG" });
       queryClient.invalidateQueries({ queryKey: ["library-store-wallet"] });
-      alert("تم إنشاء الطلب بنجاح وهو الآن بانتظار موافقة الأدمن");
+      alert(t('libraryStore.orderCreatedSuccess'));
     },
     onError: (error: any) => {
-      alert(error?.message || "فشل إتمام الشراء");
+      alert(error?.message || t('libraryStore.purchaseFailed'));
     },
   });
 
   const requireParentAuth = () => {
     if (token) return true;
-    alert("يرجى تسجيل دخول ولي الأمر أولاً لإتمام الشراء");
+    alert(t('libraryStore.loginRequired'));
     navigate("/parent-auth");
     return false;
   };
@@ -329,7 +331,7 @@ export default function LibraryStore() {
   const addToCart = (product: LibraryProduct) => {
     if (!requireParentAuth()) return;
     if (Number(product.stock || 0) <= 0) {
-      alert("هذا المنتج غير متوفر حالياً");
+      alert(t('libraryStore.productUnavailable'));
       return;
     }
     const normalizedProduct = normalizeSharedCartProduct(product);
@@ -374,15 +376,15 @@ export default function LibraryStore() {
 
   const handleCheckout = () => {
     if (!checkoutItems.length) {
-      alert("السلة فارغة");
+      alert(t('libraryStore.cartEmpty'));
       return;
     }
     if (!selectedPaymentMethod) {
-      alert("يرجى اختيار طريقة الدفع");
+      alert(t('libraryStore.selectPayment'));
       return;
     }
     if (!isShippingAddressComplete) {
-      alert("يرجى استكمال بيانات عنوان الشحن");
+      alert(t('libraryStore.completeShipping'));
       return;
     }
     checkoutMutation.mutate({ isBuyNow: !!buyNowProduct });
@@ -447,7 +449,7 @@ export default function LibraryStore() {
             <div className="relative flex-1">
               <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
               <Input
-                placeholder="ابحث عن منتج..."
+                placeholder={t('libraryStore.searchPlaceholder')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pr-10"
@@ -649,7 +651,7 @@ export default function LibraryStore() {
                   disabled={Number(selectedProduct.stock || 0) <= 0}
                 >
                   <ShoppingCart className="h-5 w-5 ml-2" />
-                  {Number(selectedProduct.stock || 0) <= 0 ? "غير متوفر" : "إضافة للسلة"}
+                  {Number(selectedProduct.stock || 0) <= 0 ? t('libraryStore.outOfStock') : t('libraryStore.addToCartAlt')}
                 </Button>
                 <Button
                   className="w-full bg-emerald-600 hover:bg-emerald-700"
@@ -760,7 +762,7 @@ export default function LibraryStore() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <CreditCard className="w-5 h-5" />
-              {buyNowProduct ? "شراء مباشر من المكتبات" : "إتمام الشراء من المكتبات"}
+              {buyNowProduct ? t('libraryStore.directPurchaseTitle') : t('libraryStore.checkoutTitle')}
             </DialogTitle>
           </DialogHeader>
 
@@ -770,11 +772,11 @@ export default function LibraryStore() {
                 <MapPin className="w-4 h-4" /> عنوان الشحن
               </h3>
               <div className="grid grid-cols-2 gap-4">
-                <Input placeholder="الاسم الكامل" value={shippingAddress.name} onChange={(e) => setShippingAddress((prev) => ({ ...prev, name: e.target.value }))} />
-                <Input placeholder="المدينة" value={shippingAddress.city} onChange={(e) => setShippingAddress((prev) => ({ ...prev, city: e.target.value }))} />
-                <Input placeholder="العنوان التفصيلي" value={shippingAddress.line1} onChange={(e) => setShippingAddress((prev) => ({ ...prev, line1: e.target.value }))} className="col-span-2" />
-                <Input placeholder="المنطقة/الحي" value={shippingAddress.state} onChange={(e) => setShippingAddress((prev) => ({ ...prev, state: e.target.value }))} />
-                <Input placeholder="الرمز البريدي" value={shippingAddress.postalCode} onChange={(e) => setShippingAddress((prev) => ({ ...prev, postalCode: e.target.value }))} />
+                <Input placeholder={t('libraryStore.fullName')} value={shippingAddress.name} onChange={(e) => setShippingAddress((prev) => ({ ...prev, name: e.target.value }))} />
+                <Input placeholder={t('libraryStore.city')} value={shippingAddress.city} onChange={(e) => setShippingAddress((prev) => ({ ...prev, city: e.target.value }))} />
+                <Input placeholder={t('libraryStore.detailedAddress')} value={shippingAddress.line1} onChange={(e) => setShippingAddress((prev) => ({ ...prev, line1: e.target.value }))} className="col-span-2" />
+                <Input placeholder={t('libraryStore.district')} value={shippingAddress.state} onChange={(e) => setShippingAddress((prev) => ({ ...prev, state: e.target.value }))} />
+                <Input placeholder={t('libraryStore.postalCode')} value={shippingAddress.postalCode} onChange={(e) => setShippingAddress((prev) => ({ ...prev, postalCode: e.target.value }))} />
               </div>
             </div>
 

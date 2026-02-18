@@ -37,11 +37,11 @@ interface TaskItem {
 }
 
 const SORT_OPTIONS = [
-  { value: "popular", labelKey: "الأكثر مبيعاً", icon: TrendingUp },
-  { value: "newest", labelKey: "الأحدث", icon: Clock },
-  { value: "likes", labelKey: "الأكثر إعجاباً", icon: Heart },
-  { value: "price_low", labelKey: "الأقل سعراً", icon: DollarSign },
-  { value: "price_high", labelKey: "الأعلى سعراً", icon: DollarSign },
+  { value: "popular", labelKey: "taskMarketplace.sortPopular", icon: TrendingUp },
+  { value: "newest", labelKey: "taskMarketplace.sortNewest", icon: Clock },
+  { value: "likes", labelKey: "taskMarketplace.sortLikes", icon: Heart },
+  { value: "price_low", labelKey: "taskMarketplace.sortPriceLow", icon: DollarSign },
+  { value: "price_high", labelKey: "taskMarketplace.sortPriceHigh", icon: DollarSign },
 ];
 
 export default function TaskMarketplace() {
@@ -100,7 +100,7 @@ export default function TaskMarketplace() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["browse-tasks"] });
     },
-    onError: () => toast({ title: "حدث خطأ", variant: "destructive" }),
+    onError: () => toast({ title: t('taskMarketplace.errorOccurred'), variant: "destructive" }),
   });
 
   // Add to cart mutation
@@ -120,7 +120,7 @@ export default function TaskMarketplace() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["cart-count"] });
       queryClient.invalidateQueries({ queryKey: ["browse-tasks"] });
-      toast({ title: "تمت الإضافة للسلة ✓" });
+      toast({ title: t('taskMarketplace.addedToCart') });
     },
     onError: (err: any) => toast({ title: err.message, variant: "destructive" }),
   });
@@ -171,7 +171,7 @@ export default function TaskMarketplace() {
             <Input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="ابحث عن مهام، مواد..."
+              placeholder={t('taskMarketplace.searchPlaceholder')}
               className="pr-10 rounded-xl"
             />
           </div>
@@ -189,7 +189,7 @@ export default function TaskMarketplace() {
                 }`}
               >
                 <opt.icon className="h-3.5 w-3.5" />
-                {opt.labelKey}
+                {t(opt.labelKey)}
               </button>
             ))}
           </div>

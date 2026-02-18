@@ -1,4 +1,6 @@
 import React, { useState } from "react";
+import { useTranslation } from "react-i18next";
+import i18next from "i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,11 +23,11 @@ interface Symbol {
 }
 
 const SYMBOL_CATEGORIES = [
-  { value: "general", label: "عام" },
-  { value: "education", label: "تعليم" },
-  { value: "rewards", label: "مكافآت" },
-  { value: "tasks", label: "مهام" },
-  { value: "emotions", label: "مشاعر" },
+  { value: "general", label: i18next.t("admin.symbols.general") },
+  { value: "education", label: i18next.t("admin.symbols.education") },
+  { value: "rewards", label: i18next.t("admin.symbols.rewards") },
+  { value: "tasks", label: i18next.t("admin.symbols.tasks") },
+  { value: "emotions", label: i18next.t("admin.symbols.emotions") },
   { value: "animals", label: "حيوانات" },
   { value: "sports", label: "رياضة" },
 ];
@@ -36,7 +38,9 @@ const COMMON_EMOJIS = [
   "🦁", "🐻", "🦊", "🐶", "🐱", "🦋", "🌺", "🌸", "🍎", "🍪"
 ];
 
-export function SymbolsTab({ token }: { token: string }) {
+export function SymbolsTab({
+  token }: { token: string }) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingSymbol, setEditingSymbol] = useState<Symbol | null>(null);

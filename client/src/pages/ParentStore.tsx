@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
+import { useTranslation } from 'react-i18next';
 import { useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { 
@@ -60,7 +61,7 @@ interface CartItem {
 const normalizeCartProduct = (raw: any): Product => {
   return {
     ...raw,
-    name: raw?.name || raw?.nameAr || raw?.title || "منتج",
+    name: raw?.name || raw?.nameAr || raw?.title || "Product",
     nameAr: raw?.nameAr || raw?.name || raw?.title || "منتج",
     image: raw?.image || raw?.imageUrl || undefined,
     stock: typeof raw?.stock === "number" ? raw.stock : 999,
@@ -72,6 +73,7 @@ const normalizeCartProduct = (raw: any): Product => {
 const CART_STORAGE_KEY = "parent-store-cart";
 
 export const ParentStore = (): JSX.Element => {
+  const { t } = useTranslation();
   const [, navigate] = useLocation();
   const queryClient = useQueryClient();
   const { isDark } = useTheme();
@@ -432,9 +434,9 @@ export const ParentStore = (): JSX.Element => {
         <div className="max-w-7xl mx-auto px-4">
           <div className="flex gap-1 py-2">
             {[
-              { id: "store" as const, label: "المتجر", icon: Package, count: null },
-              { id: "cart" as const, label: "السلة", icon: ShoppingCart, count: cartItemsCount },
-              { id: "orders" as const, label: "طلباتي", icon: Clock, count: ordersList.length },
+              { id: "store" as const, label: t('parentStore.storeTab'), icon: Package, count: null },
+              { id: "cart" as const, label: t('parentStore.cartTab'), icon: ShoppingCart, count: cartItemsCount },
+              { id: "orders" as const, label: t('parentStore.myOrdersTab'), icon: Clock, count: ordersList.length },
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -519,11 +521,11 @@ export const ParentStore = (): JSX.Element => {
                           order.status === "completed" || order.status === "delivered" ? "default" :
                           order.status === "cancelled" ? "destructive" : "secondary"
                         }>
-                          {order.status === "completed" || order.status === "delivered" ? "✅ مكتمل" :
-                           order.status === "pending" ? "⏳ قيد المعالجة" :
-                           order.status === "processing" ? "🔄 جاري التجهيز" :
-                           order.status === "shipped" ? "🚚 تم الشحن" :
-                           order.status === "cancelled" ? "❌ ملغي" : order.status}
+                          {order.status === "completed" || order.status === "delivered" ? t('parentStore.statusCompleted') :
+                           order.status === "pending" ? t('parentStore.statusPending') :
+                           order.status === "processing" ? t('parentStore.statusProcessing') :
+                           order.status === "shipped" ? t('parentStore.statusShipped') :
+                           order.status === "cancelled" ? t('parentStore.statusCancelled') : order.status}
                         </Badge>
                         <p className={`text-lg font-bold mt-1 ${isDark ? "text-orange-400" : "text-orange-600"}`}>
                           {order.totalAmount} ج.م
@@ -656,7 +658,7 @@ export const ParentStore = (): JSX.Element => {
             <div className="flex items-center gap-4">
               <Select value={sortBy} onValueChange={setSortBy}>
                 <SelectTrigger className="w-40 h-8 text-xs" data-testid="select-sort">
-                  <SelectValue placeholder="ترتيب حسب" />
+                  <SelectValue placeholder={t('parentStore.sortBy')} />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="featured">الأكثر مبيعاً</SelectItem>
@@ -727,7 +729,7 @@ export const ParentStore = (): JSX.Element => {
                     )}
                     {product.isLibraryProduct && (
                       <Badge className="absolute bottom-2 left-2 bg-purple-500 text-white text-xs">
-                        {product.libraryName || "مكتبة"}
+                        {product.libraryName || t('parentStore.library')}
                       </Badge>
                     )}
                   </div>
@@ -775,8 +777,8 @@ export const ParentStore = (): JSX.Element => {
           <div className="flex items-center justify-between mb-4">
             <h2 className={`text-xl font-bold ${isDark ? "text-white" : "text-gray-800"}`}>
               {selectedCategory 
-                ? categories.find((c: Category) => c.id === selectedCategory)?.nameAr || "المنتجات"
-                : searchQuery ? `نتائج البحث: "${searchQuery}"` : "جميع المنتجات"
+                ? categories.find((c: Category) => c.id === selectedCategory)?.nameAr || t('parentStore.products')
+                : searchQuery ? `نتائج البحث: "${searchQuery}"` : t('parentStore.allProducts')
               }
             </h2>
             <p className={`text-sm ${isDark ? "text-gray-400" : "text-gray-500"}`}>{products.length} منتج</p>
@@ -839,7 +841,7 @@ export const ParentStore = (): JSX.Element => {
                       )}
                       {product.isLibraryProduct && (
                         <Badge className="absolute bottom-2 left-2 bg-purple-500 text-white text-xs">
-                          {product.libraryName || "مكتبة"}
+                          {product.libraryName || t('parentStore.library')}
                         </Badge>
                       )}
                       <button 
@@ -921,7 +923,7 @@ export const ParentStore = (): JSX.Element => {
                       )}
                       {product.isLibraryProduct && (
                         <Badge className="absolute bottom-2 left-2 bg-purple-500 text-white text-xs">
-                          {product.libraryName || "مكتبة"}
+                          {product.libraryName || t('parentStore.library')}
                         </Badge>
                       )}
                     </div>
@@ -1068,7 +1070,7 @@ export const ParentStore = (): JSX.Element => {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <CreditCard className="w-5 h-5" />
-              {buyNowProduct ? "شراء مباشر" : "إتمام الشراء"}
+              {buyNowProduct ? t('parentStore.directPurchase') : t('parentStore.completePurchase')}
             </DialogTitle>
           </DialogHeader>
 
@@ -1080,31 +1082,31 @@ export const ParentStore = (): JSX.Element => {
               </h3>
               <div className="grid grid-cols-2 gap-4">
                 <Input
-                  placeholder="الاسم الكامل"
+                  placeholder={t('parentStore.fullName')}
                   value={shippingAddress.name}
                   onChange={(e) => setShippingAddress(prev => ({ ...prev, name: e.target.value }))}
                   data-testid="input-shipping-name"
                 />
                 <Input
-                  placeholder="المدينة"
+                  placeholder={t('parentStore.city')}
                   value={shippingAddress.city}
                   onChange={(e) => setShippingAddress(prev => ({ ...prev, city: e.target.value }))}
                   data-testid="input-shipping-city"
                 />
                 <Input
-                  placeholder="العنوان التفصيلي"
+                  placeholder={t('parentStore.detailedAddress')}
                   value={shippingAddress.line1}
                   onChange={(e) => setShippingAddress(prev => ({ ...prev, line1: e.target.value }))}
                   className="col-span-2"
                   data-testid="input-shipping-address"
                 />
                 <Input
-                  placeholder="المنطقة/الحي"
+                  placeholder={t('parentStore.areaDistrict')}
                   value={shippingAddress.state}
                   onChange={(e) => setShippingAddress(prev => ({ ...prev, state: e.target.value }))}
                 />
                 <Input
-                  placeholder="الرمز البريدي"
+                  placeholder={t('parentStore.postalCode')}
                   value={shippingAddress.postalCode}
                   onChange={(e) => setShippingAddress(prev => ({ ...prev, postalCode: e.target.value }))}
                 />
@@ -1227,7 +1229,7 @@ export const ParentStore = (): JSX.Element => {
                 <label className="block text-sm font-medium mb-2">اختر الطفل</label>
                 <Select value={selectedChild} onValueChange={setSelectedChild}>
                   <SelectTrigger data-testid="select-child">
-                    <SelectValue placeholder="اختر طفلاً..." />
+                    <SelectValue placeholder={t('parentStore.selectChildPlaceholder')} />
                   </SelectTrigger>
                   <SelectContent>
                     {children.map((child: any) => (
@@ -1245,7 +1247,7 @@ export const ParentStore = (): JSX.Element => {
                   type="number"
                   value={requiredPoints}
                   onChange={(e) => setRequiredPoints(e.target.value)}
-                  placeholder="مثال: 100"
+                  placeholder={t('parentStore.pointsExample')}
                   data-testid="input-required-points"
                 />
                 <p className="text-xs text-gray-500 mt-1">
@@ -1267,7 +1269,7 @@ export const ParentStore = (): JSX.Element => {
                   disabled={!selectedChild || !requiredPoints || assignProductMutation.isPending}
                   data-testid="button-assign-product"
                 >
-                  {assignProductMutation.isPending ? "جاري..." : "شراء وتعيين كهدية"}
+                  {assignProductMutation.isPending ? t('parentStore.assigningInProgress') : t('parentStore.buyAndAssign')}
                 </Button>
                 <Button
                   variant="outline"

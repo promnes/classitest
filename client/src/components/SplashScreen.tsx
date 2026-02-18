@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
 
 interface SplashScreenProps {
@@ -6,7 +7,9 @@ interface SplashScreenProps {
   duration?: number;
 }
 
-export function SplashScreen({ onComplete, duration = 1500 }: SplashScreenProps) {
+export function SplashScreen({
+  onComplete, duration = 1500 }: SplashScreenProps) {
+  const { t } = useTranslation();
   const [isExiting, setIsExiting] = useState(false);
 
   useEffect(() => {

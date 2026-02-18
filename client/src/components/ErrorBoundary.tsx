@@ -1,4 +1,6 @@
 import { Component, type ErrorInfo, type ReactNode, useState, useEffect } from "react";
+import i18next from "i18next";
+import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle, RefreshCw, Mail, Phone, MessageCircle, Home, Send } from "lucide-react";
@@ -36,7 +38,7 @@ function ErrorFallback({
   onReset: () => void;
 }) {
   const [support, setSupport] = useState<SupportSettings>({
-    errorPageTitle: "حدث خطأ غير متوقع",
+    errorPageTitle: i18next.t("errorBoundary.unexpectedError"),
     errorPageMessage: "نأسف على هذا الخطأ. يرجى التواصل مع الدعم الفني.",
     showContactOnError: true,
     supportEmail: "support@classify.app",
@@ -72,7 +74,7 @@ function ErrorFallback({
             <AlertTriangle className="w-8 h-8 text-red-600 dark:text-red-400" />
           </div>
           <CardTitle className="text-2xl text-red-600 dark:text-red-400">
-            {support.errorPageTitle || "حدث خطأ غير متوقع"}
+            {support.errorPageTitle || i18next.t("errorBoundary.unexpectedError")}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">

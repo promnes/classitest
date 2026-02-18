@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -7,7 +8,9 @@ interface MandatoryTaskModalProps {
   childId: string;
 }
 
-export const MandatoryTaskModal = ({ childId }: MandatoryTaskModalProps): JSX.Element | null => {
+export const MandatoryTaskModal = ({
+  childId }: MandatoryTaskModalProps): JSX.Element | null => {
+  const { t } = useTranslation();
   const { isDark } = useTheme();
   const [isVisible, setIsVisible] = useState(false);
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
@@ -120,7 +123,7 @@ export const MandatoryTaskModal = ({ childId }: MandatoryTaskModalProps): JSX.El
           <div className={`p-8 text-center ${isCorrect ? "bg-green-500" : "bg-red-500"}`}>
             <div className="text-6xl mb-4">{isCorrect ? "🎉" : "😢"}</div>
             <h2 className="text-3xl font-bold text-white mb-2">
-              {isCorrect ? "أحسنت!" : "حاول مرة أخرى"}
+              {isCorrect ? t("mandatoryTask.wellDone") : t("mandatoryTask.tryAgain")}
             </h2>
             <p className="text-white text-lg">
               {isCorrect 

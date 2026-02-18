@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Shield, FileText, Save, Loader2, RefreshCw, Clock, Users, Eye, EyeOff, AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -8,6 +9,7 @@ interface LegalTabProps {
 }
 
 export const LegalTab = ({ token }: LegalTabProps): JSX.Element => {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [activeSection, setActiveSection] = useState<"privacy" | "terms">("privacy");

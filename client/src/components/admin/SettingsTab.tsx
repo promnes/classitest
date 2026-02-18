@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
+import i18next from "i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -25,14 +27,16 @@ interface NotificationSettings {
 }
 
 const NOTIFICATION_SOUNDS = [
-  { value: "default", label: "الافتراضي" },
-  { value: "chime", label: "رنين" },
-  { value: "bell", label: "جرس" },
-  { value: "pop", label: "فقاعة" },
-  { value: "ding", label: "دينغ" },
+  { value: "default", label: i18next.t("admin.settingsTab.defaultSound") },
+  { value: "chime", label: i18next.t("admin.settingsTab.ringSound") },
+  { value: "bell", label: i18next.t("admin.settingsTab.bellSound") },
+  { value: "pop", label: i18next.t("admin.settingsTab.bubbleSound") },
+  { value: "ding", label: i18next.t("admin.settingsTab.dingSound") },
 ];
 
-export function SettingsTab({ token }: { token: string }) {
+export function SettingsTab({
+  token }: { token: string }) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [recoveryEmail, setRecoveryEmail] = useState("");
   const [currentPassword, setCurrentPassword] = useState("");

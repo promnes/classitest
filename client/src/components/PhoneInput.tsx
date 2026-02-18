@@ -1,4 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo } from "react";
+import { useTranslation } from "react-i18next";
+import i18next from "i18next";
 import { ChevronDown, Search, X, Phone } from "lucide-react";
 
 interface CountryData {
@@ -11,34 +13,34 @@ interface CountryData {
 
 const countries: CountryData[] = [
   // Gulf / Middle East — top priority
-  { code: "SA", name: "Saudi Arabia", nameAr: "السعودية", flag: "🇸🇦", dialCode: "+966" },
-  { code: "EG", name: "Egypt", nameAr: "مصر", flag: "🇪🇬", dialCode: "+20" },
-  { code: "AE", name: "UAE", nameAr: "الإمارات", flag: "🇦🇪", dialCode: "+971" },
-  { code: "QA", name: "Qatar", nameAr: "قطر", flag: "🇶🇦", dialCode: "+974" },
-  { code: "KW", name: "Kuwait", nameAr: "الكويت", flag: "🇰🇼", dialCode: "+965" },
-  { code: "BH", name: "Bahrain", nameAr: "البحرين", flag: "🇧🇭", dialCode: "+973" },
-  { code: "OM", name: "Oman", nameAr: "عُمان", flag: "🇴🇲", dialCode: "+968" },
-  { code: "YE", name: "Yemen", nameAr: "اليمن", flag: "🇾🇪", dialCode: "+967" },
-  { code: "JO", name: "Jordan", nameAr: "الأردن", flag: "🇯🇴", dialCode: "+962" },
-  { code: "IQ", name: "Iraq", nameAr: "العراق", flag: "🇮🇶", dialCode: "+964" },
-  { code: "PS", name: "Palestine", nameAr: "فلسطين", flag: "🇵🇸", dialCode: "+970" },
-  { code: "LB", name: "Lebanon", nameAr: "لبنان", flag: "🇱🇧", dialCode: "+961" },
-  { code: "SY", name: "Syria", nameAr: "سوريا", flag: "🇸🇾", dialCode: "+963" },
+  { code: "SA", name: "Saudi Arabia", nameAr: i18next.t("phoneInput.saudiArabia"), flag: "🇸🇦", dialCode: "+966" },
+  { code: "EG", name: "Egypt", nameAr: i18next.t("phoneInput.egypt"), flag: "🇪🇬", dialCode: "+20" },
+  { code: "AE", name: "UAE", nameAr: i18next.t("phoneInput.uae"), flag: "🇦🇪", dialCode: "+971" },
+  { code: "QA", name: "Qatar", nameAr: i18next.t("phoneInput.qatar"), flag: "🇶🇦", dialCode: "+974" },
+  { code: "KW", name: "Kuwait", nameAr: i18next.t("phoneInput.kuwait"), flag: "🇰🇼", dialCode: "+965" },
+  { code: "BH", name: "Bahrain", nameAr: i18next.t("phoneInput.bahrain"), flag: "🇧🇭", dialCode: "+973" },
+  { code: "OM", name: "Oman", nameAr: i18next.t("phoneInput.oman"), flag: "🇴🇲", dialCode: "+968" },
+  { code: "YE", name: "Yemen", nameAr: i18next.t("phoneInput.yemen"), flag: "🇾🇪", dialCode: "+967" },
+  { code: "JO", name: "Jordan", nameAr: i18next.t("phoneInput.jordan"), flag: "🇯🇴", dialCode: "+962" },
+  { code: "IQ", name: "Iraq", nameAr: i18next.t("phoneInput.iraq"), flag: "🇮🇶", dialCode: "+964" },
+  { code: "PS", name: "Palestine", nameAr: i18next.t("phoneInput.palestine"), flag: "🇵🇸", dialCode: "+970" },
+  { code: "LB", name: "Lebanon", nameAr: i18next.t("phoneInput.lebanon"), flag: "🇱🇧", dialCode: "+961" },
+  { code: "SY", name: "Syria", nameAr: i18next.t("phoneInput.syria"), flag: "🇸🇾", dialCode: "+963" },
   // North Africa
-  { code: "MA", name: "Morocco", nameAr: "المغرب", flag: "🇲🇦", dialCode: "+212" },
-  { code: "DZ", name: "Algeria", nameAr: "الجزائر", flag: "🇩🇿", dialCode: "+213" },
-  { code: "TN", name: "Tunisia", nameAr: "تونس", flag: "🇹🇳", dialCode: "+216" },
-  { code: "LY", name: "Libya", nameAr: "ليبيا", flag: "🇱🇾", dialCode: "+218" },
-  { code: "SD", name: "Sudan", nameAr: "السودان", flag: "🇸🇩", dialCode: "+249" },
-  { code: "SO", name: "Somalia", nameAr: "الصومال", flag: "🇸🇴", dialCode: "+252" },
-  { code: "MR", name: "Mauritania", nameAr: "موريتانيا", flag: "🇲🇷", dialCode: "+222" },
-  { code: "DJ", name: "Djibouti", nameAr: "جيبوتي", flag: "🇩🇯", dialCode: "+253" },
-  { code: "KM", name: "Comoros", nameAr: "جزر القمر", flag: "🇰🇲", dialCode: "+269" },
+  { code: "MA", name: "Morocco", nameAr: i18next.t("phoneInput.morocco"), flag: "🇲🇦", dialCode: "+212" },
+  { code: "DZ", name: "Algeria", nameAr: i18next.t("phoneInput.algeria"), flag: "🇩🇿", dialCode: "+213" },
+  { code: "TN", name: "Tunisia", nameAr: i18next.t("phoneInput.tunisia"), flag: "🇹🇳", dialCode: "+216" },
+  { code: "LY", name: "Libya", nameAr: i18next.t("phoneInput.libya"), flag: "🇱🇾", dialCode: "+218" },
+  { code: "SD", name: "Sudan", nameAr: i18next.t("phoneInput.sudan"), flag: "🇸🇩", dialCode: "+249" },
+  { code: "SO", name: "Somalia", nameAr: i18next.t("phoneInput.somalia"), flag: "🇸🇴", dialCode: "+252" },
+  { code: "MR", name: "Mauritania", nameAr: i18next.t("phoneInput.mauritania"), flag: "🇲🇷", dialCode: "+222" },
+  { code: "DJ", name: "Djibouti", nameAr: i18next.t("phoneInput.djibouti"), flag: "🇩🇯", dialCode: "+253" },
+  { code: "KM", name: "Comoros", nameAr: i18next.t("phoneInput.comoros"), flag: "🇰🇲", dialCode: "+269" },
   // Europe & Americas
-  { code: "US", name: "United States", nameAr: "أمريكا", flag: "🇺🇸", dialCode: "+1" },
-  { code: "GB", name: "United Kingdom", nameAr: "بريطانيا", flag: "🇬🇧", dialCode: "+44" },
-  { code: "FR", name: "France", nameAr: "فرنسا", flag: "🇫🇷", dialCode: "+33" },
-  { code: "DE", name: "Germany", nameAr: "ألمانيا", flag: "🇩🇪", dialCode: "+49" },
+  { code: "US", name: "United States", nameAr: i18next.t("phoneInput.usa"), flag: "🇺🇸", dialCode: "+1" },
+  { code: "GB", name: "United Kingdom", nameAr: i18next.t("phoneInput.uk"), flag: "🇬🇧", dialCode: "+44" },
+  { code: "FR", name: "France", nameAr: i18next.t("phoneInput.france"), flag: "🇫🇷", dialCode: "+33" },
+  { code: "DE", name: "Germany", nameAr: i18next.t("phoneInput.germany"), flag: "🇩🇪", dialCode: "+49" },
   { code: "IT", name: "Italy", nameAr: "إيطاليا", flag: "🇮🇹", dialCode: "+39" },
   { code: "ES", name: "Spain", nameAr: "إسبانيا", flag: "🇪🇸", dialCode: "+34" },
   { code: "NL", name: "Netherlands", nameAr: "هولندا", flag: "🇳🇱", dialCode: "+31" },
@@ -46,7 +48,7 @@ const countries: CountryData[] = [
   { code: "CA", name: "Canada", nameAr: "كندا", flag: "🇨🇦", dialCode: "+1" },
   { code: "AU", name: "Australia", nameAr: "أستراليا", flag: "🇦🇺", dialCode: "+61" },
   // Asia
-  { code: "TR", name: "Turkey", nameAr: "تركيا", flag: "🇹🇷", dialCode: "+90" },
+  { code: "TR", name: "Turkey", nameAr: i18next.t("phoneInput.turkey"), flag: "🇹🇷", dialCode: "+90" },
   { code: "PK", name: "Pakistan", nameAr: "باكستان", flag: "🇵🇰", dialCode: "+92" },
   { code: "IN", name: "India", nameAr: "الهند", flag: "🇮🇳", dialCode: "+91" },
   { code: "MY", name: "Malaysia", nameAr: "ماليزيا", flag: "🇲🇾", dialCode: "+60" },

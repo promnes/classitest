@@ -1,4 +1,6 @@
 import React, { useState } from "react";
+import { useTranslation } from "react-i18next";
+import i18next from "i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 
@@ -104,17 +106,17 @@ export const GiftsTab: React.FC<{ token: string }> = ({ token }) => {
       {/* Header with Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 p-4 rounded-lg border border-blue-200 dark:border-blue-700">
-          <p className="text-sm text-blue-600 dark:text-blue-400 font-semibold">إجمالي الهدايا</p>
+          <p className="text-sm text-blue-600 dark:text-blue-400 font-semibold">{i18next.t("admin.gifts.totalGifts")}</p>
           <p className="text-3xl font-bold text-blue-900 dark:text-blue-100">{stats.total || 0}</p>
         </div>
 
         <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-900/20 dark:to-yellow-800/20 p-4 rounded-lg border border-yellow-200 dark:border-yellow-700">
-          <p className="text-sm text-yellow-600 dark:text-yellow-400 font-semibold">معلقة</p>
+          <p className="text-sm text-yellow-600 dark:text-yellow-400 font-semibold">{i18next.t("admin.gifts.pendingGifts")}</p>
           <p className="text-3xl font-bold text-yellow-900 dark:text-yellow-100">{stats.pending || 0}</p>
         </div>
 
         <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-900/20 dark:to-emerald-800/20 p-4 rounded-lg border border-emerald-200 dark:border-emerald-700">
-          <p className="text-sm text-emerald-600 dark:text-emerald-400 font-semibold">مسلمة</p>
+          <p className="text-sm text-emerald-600 dark:text-emerald-400 font-semibold">{i18next.t("admin.gifts.deliveredGifts")}</p>
           <p className="text-3xl font-bold text-emerald-900 dark:text-emerald-100">
             {stats.delivered || 0}
           </p>
@@ -128,7 +130,7 @@ export const GiftsTab: React.FC<{ token: string }> = ({ token }) => {
 
       {/* Filters */}
       <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700 space-y-3">
-        <h3 className="font-semibold text-gray-900 dark:text-white">الفلترة</h3>
+        <h3 className="font-semibold text-gray-900 dark:text-white">{i18next.t("admin.gifts.filter")}</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <input
             type="text"
@@ -161,8 +163,8 @@ export const GiftsTab: React.FC<{ token: string }> = ({ token }) => {
             className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
           >
             <option value="">كل الحالات</option>
-            <option value="pending">معلقة</option>
-            <option value="delivered">مسلمة</option>
+            <option value="pending">{i18next.t("admin.gifts.pendingGifts")}</option>
+            <option value="delivered">{i18next.t("admin.gifts.deliveredGifts")}</option>
             <option value="acknowledged">مؤكدة</option>
           </select>
         </div>

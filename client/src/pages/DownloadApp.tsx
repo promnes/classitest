@@ -11,8 +11,8 @@ export default function DownloadApp() {
   const isRTL = i18n.language === "ar";
 
   const features = [
-    { icon: <Shield className="w-8 h-8" />, title: isRTL ? "رقابة أبوية ذكية" : "Smart Parental Control", desc: isRTL ? "تحكم كامل في أنشطة طفلك" : "Full control over your child's activities" },
-    { icon: <Smartphone className="w-8 h-8" />, title: isRTL ? "تطبيق سهل الاستخدام" : "Easy to Use", desc: isRTL ? "واجهة بسيطة وسهلة للأطفال والآباء" : "Simple interface for kids and parents" },
+    { icon: <Shield className="w-8 h-8" />, title: isRTL ? t("downloadApp.smartParentalControl") : "Smart Parental Control", desc: isRTL ? "تحكم كامل في أنشطة طفلك" : "Full control over your child's activities" },
+    { icon: <Smartphone className="w-8 h-8" />, title: isRTL ? t("downloadApp.easyToUse") : "Easy to Use", desc: isRTL ? "واجهة بسيطة وسهلة للأطفال والآباء" : "Simple interface for kids and parents" },
     { icon: <Zap className="w-8 h-8" />, title: isRTL ? "مهام وألعاب تعليمية" : "Educational Tasks & Games", desc: isRTL ? "تعلم ممتع مع مكافآت حقيقية" : "Fun learning with real rewards" },
   ];
 

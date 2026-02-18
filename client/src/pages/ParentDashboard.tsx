@@ -430,11 +430,11 @@ export const ParentDashboard = (): JSX.Element => {
       setNewChildSchoolId("");
       setNewChildSchoolName("");
       setAddChildStep(1);
-      toast({ title: "تم إضافة الطفل بنجاح ✅", description: "يمكنه الآن الدخول برمز PIN" });
+      toast({ title: t("parentDashboard.childAdded"), description: "يمكنه الآن الدخول برمز PIN" });
     },
     onError: (err: any) => {
       const msg = extractErrorMessage(err);
-      toast({ title: "خطأ", description: msg || "فشل إضافة الطفل", variant: "destructive" });
+      toast({ title: "خطأ", description: msg || t("parentDashboard.childAddFailed"), variant: "destructive" });
     },
   });
 
@@ -448,7 +448,7 @@ export const ParentDashboard = (): JSX.Element => {
       setShowSetPinModal(false);
       setPinTargetChild(null);
       setChildPinValue("");
-      toast({ title: "تم تعيين رمز PIN ✅" });
+      toast({ title: t("parentDashboard.pinSet") });
     },
     onError: (err: any) => {
       const msg = extractErrorMessage(err);

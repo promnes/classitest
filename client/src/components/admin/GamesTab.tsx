@@ -1,4 +1,5 @@
 import React, { useState, useRef, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Gamepad2, Plus, Pencil, Trash2, ToggleLeft, ToggleRight, Save, X,
@@ -50,17 +51,18 @@ const emptyForm: GameForm = {
 };
 
 const CATEGORIES = [
-  { value: "general", label: "عام", icon: "🎮" },
-  { value: "educational", label: "تعليمي", icon: "📚" },
-  { value: "math", label: "رياضيات", icon: "🔢" },
-  { value: "language", label: "لغات", icon: "🗣️" },
-  { value: "science", label: "علوم", icon: "🔬" },
-  { value: "puzzle", label: "ألغاز", icon: "🧩" },
-  { value: "creative", label: "إبداعي", icon: "🎨" },
-  { value: "sport", label: "رياضة", icon: "⚽" },
+  { value: "general", label: "admin.games.catGeneral", icon: "🎮" },
+  { value: "educational", label: "admin.games.catEducational", icon: "📚" },
+  { value: "math", label: "admin.games.catMath", icon: "🔢" },
+  { value: "language", label: "admin.games.catLanguages", icon: "🗣️" },
+  { value: "science", label: "admin.games.catScience", icon: "🔬" },
+  { value: "puzzle", label: "admin.games.catPuzzles", icon: "🧩" },
+  { value: "creative", label: "admin.games.catCreative", icon: "🎨" },
+  { value: "sport", label: "admin.games.catSports", icon: "⚽" },
 ];
 
 export function GamesTab({ token }: { token: string }) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -243,15 +245,15 @@ export function GamesTab({ token }: { token: string }) {
 
   const handleFileUpload = useCallback(async (file: File) => {
     if (!file.name.match(/\.(html|htm)$/i)) {
-      setUploadProgress("❌ يجب أن يكون الملف بصيغة .html أو .htm");
+      setUploadProgress("❌ " + t("admin.games.uploadInvalidFormat"));
       return;
     }
     if (file.size > 10 * 1024 * 1024) {
-      setUploadProgress("❌ حجم الملف يجب أن لا يتجاوز 10MB");
+      setUploadProgress("❌ " + t("admin.games.uploadTooLarge"));
       return;
     }
 
-    setUploadProgress("⏳ جاري الرفع...");
+    setUploadProgress("⏳ " + t("admin.games.uploadInProgress"));
     const formData = new FormData();
     formData.append("gameFile", file);
 
@@ -333,7 +335,7 @@ export function GamesTab({ token }: { token: string }) {
   const localGames = games?.filter(g => g.embedUrl.startsWith("/")).length || 0;
   const externalGames = totalGames - localGames;
 
-  if (isLoading) return <div className="p-4 text-gray-700 dark:text-gray-200">جاري التحميل...</div>;
+  if (isLoading) return <div className="p-4 text-gray-700 dark:text-gray-200">{t("admin.games.loading")}</div>;
 
   return (
     <div className="p-4 space-y-4">
@@ -366,23 +368,23 @@ export function GamesTab({ token }: { token: string }) {
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border dark:border-gray-700 text-center">
           <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">{totalGames}</div>
-          <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">إجمالي الألعاب</div>
+          <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">{t("admin.games.totalGames")}</div>
         </div>
         <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border dark:border-gray-700 text-center">
           <div className="text-3xl font-bold text-green-600 dark:text-green-400">{activeGames}</div>
-          <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">مفعّلة</div>
+          <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">{t("admin.games.enabled")}</div>
         </div>
         <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border dark:border-gray-700 text-center">
           <div className="text-3xl font-bold text-red-500 dark:text-red-400">{inactiveGames}</div>
-          <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">معطّلة</div>
+          <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">{t("admin.games.disabled")}</div>
         </div>
         <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border dark:border-gray-700 text-center">
           <div className="text-3xl font-bold text-purple-600 dark:text-purple-400">{localGames}</div>
-          <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">محلية</div>
+          <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">{t("admin.games.local")}</div>
         </div>
         <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border dark:border-gray-700 text-center">
           <div className="text-3xl font-bold text-cyan-600 dark:text-cyan-400">{externalGames}</div>
-          <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">خارجية</div>
+          <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">{t("admin.games.external")}</div>
         </div>
       </div>
 
@@ -395,8 +397,8 @@ export function GamesTab({ token }: { token: string }) {
                 <BookOpen className="w-7 h-7 text-white" />
               </div>
               <div>
-                <h3 className="text-xl font-bold text-gray-800 dark:text-white">دليل إضافة الألعاب الشامل</h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400">من الصفر حتى تشغيل اللعبة على المنصة</p>
+                <h3 className="text-xl font-bold text-gray-800 dark:text-white">{t("admin.games.guideTitle")}</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400">{t("admin.games.guideSubtitle")}</p>
               </div>
             </div>
             <button onClick={() => setShowGuide(false)} className="p-2 hover:bg-amber-200/50 dark:hover:bg-gray-700 rounded-lg">
@@ -455,37 +457,37 @@ export function GamesTab({ token }: { token: string }) {
                 <div className="font-bold text-green-700 dark:text-green-400 group-hover:underline flex items-center justify-between">
                   🎮 itch.io <ExternalLink className="w-3 h-3" />
                 </div>
-                <p className="text-xs mt-1">أكبر مكتبة ألعاب HTML5 مجانية</p>
+                <p className="text-xs mt-1">{t("admin.games.largestFreeLibrary")}</p>
               </a>
               <a href="https://github.com/nicknamedev/html5-games" target="_blank" rel="noopener noreferrer" className="block border dark:border-gray-600 rounded-lg p-3 hover:border-green-400 transition group">
                 <div className="font-bold text-green-700 dark:text-green-400 group-hover:underline flex items-center justify-between">
                   🐙 GitHub <ExternalLink className="w-3 h-3" />
                 </div>
-                <p className="text-xs mt-1">مستودعات مفتوحة المصدر</p>
+                <p className="text-xs mt-1">{t("admin.games.openSourceRepos")}</p>
               </a>
               <a href="https://www.crazygames.com/t/html5" target="_blank" rel="noopener noreferrer" className="block border dark:border-gray-600 rounded-lg p-3 hover:border-green-400 transition group">
                 <div className="font-bold text-green-700 dark:text-green-400 group-hover:underline flex items-center justify-between">
                   🤪 CrazyGames <ExternalLink className="w-3 h-3" />
                 </div>
-                <p className="text-xs mt-1">ألعاب مجانية قابلة للتضمين</p>
+                <p className="text-xs mt-1">{t("admin.games.freeEmbeddableGames")}</p>
               </a>
               <a href="https://html5games.com" target="_blank" rel="noopener noreferrer" className="block border dark:border-gray-600 rounded-lg p-3 hover:border-green-400 transition group">
                 <div className="font-bold text-green-700 dark:text-green-400 group-hover:underline flex items-center justify-between">
                   🌐 HTML5Games <ExternalLink className="w-3 h-3" />
                 </div>
-                <p className="text-xs mt-1">مكتبة كبيرة مصنفة</p>
+                <p className="text-xs mt-1">{t("admin.games.largeCategorizedLibrary")}</p>
               </a>
               <a href="https://gdevelop.io/game-example" target="_blank" rel="noopener noreferrer" className="block border dark:border-gray-600 rounded-lg p-3 hover:border-green-400 transition group">
                 <div className="font-bold text-green-700 dark:text-green-400 group-hover:underline flex items-center justify-between">
                   🔧 GDevelop <ExternalLink className="w-3 h-3" />
                 </div>
-                <p className="text-xs mt-1">صنع ألعاب بدون برمجة</p>
+                <p className="text-xs mt-1">{t("admin.games.makeGamesNoCoding")}</p>
               </a>
               <a href="https://www.codepen.io/search/pens?q=html5+game" target="_blank" rel="noopener noreferrer" className="block border dark:border-gray-600 rounded-lg p-3 hover:border-green-400 transition group">
                 <div className="font-bold text-green-700 dark:text-green-400 group-hover:underline flex items-center justify-between">
                   ✏️ CodePen <ExternalLink className="w-3 h-3" />
                 </div>
-                <p className="text-xs mt-1">ألعاب صغيرة بـ HTML/CSS/JS</p>
+                <p className="text-xs mt-1">{t("admin.games.smallHtmlGames")}</p>
               </a>
             </div>
           </div>
@@ -520,7 +522,7 @@ export function GamesTab({ token }: { token: string }) {
           {/* Method Selection (only for new games) */}
           {!editingId && !addMethod && (
             <div className="p-6">
-              <p className="text-sm text-gray-600 dark:text-gray-300 mb-4 font-medium">اختر طريقة إضافة اللعبة:</p>
+              <p className="text-sm text-gray-600 dark:text-gray-300 mb-4 font-medium">{t("admin.games.chooseMethod")}</p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <button
                   onClick={() => setAddMethod("url")}
@@ -529,7 +531,7 @@ export function GamesTab({ token }: { token: string }) {
                   <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center group-hover:scale-110 transition">
                     <Link className="w-8 h-8 text-blue-600 dark:text-blue-400" />
                   </div>
-                  <div className="font-bold text-blue-700 dark:text-blue-300 text-lg">رابط خارجي (URL)</div>
+                  <div className="font-bold text-blue-700 dark:text-blue-300 text-lg">{t("admin.games.externalUrl")}</div>
                   <p className="text-xs text-gray-500 dark:text-gray-400 text-center">ألصق رابط لعبة من موقع خارجي مثل itch.io أو CrazyGames أو أي رابط HTML</p>
                 </button>
                 <button
@@ -539,7 +541,7 @@ export function GamesTab({ token }: { token: string }) {
                   <div className="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center group-hover:scale-110 transition">
                     <FileUp className="w-8 h-8 text-green-600 dark:text-green-400" />
                   </div>
-                  <div className="font-bold text-green-700 dark:text-green-300 text-lg">رفع ملف HTML</div>
+                  <div className="font-bold text-green-700 dark:text-green-300 text-lg">{t("admin.games.uploadHtml")}</div>
                   <p className="text-xs text-gray-500 dark:text-gray-400 text-center">ارفع ملف .html من جهازك — يتم تخزينه على السيرفر والرابط يتولّد تلقائياً</p>
                 </button>
               </div>
@@ -564,8 +566,8 @@ export function GamesTab({ token }: { token: string }) {
                 className="border-2 border-dashed border-green-300 dark:border-green-600 rounded-xl p-8 text-center cursor-pointer hover:border-green-500 hover:bg-green-50/30 dark:hover:bg-green-900/10 transition"
               >
                 <Upload className="w-12 h-12 text-green-400 mx-auto mb-3" />
-                <p className="text-sm font-medium text-gray-700 dark:text-gray-200">اسحب ملف HTML هنا أو اضغط للاختيار</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">يقبل ملفات .html و .htm — حد أقصى 10MB</p>
+                <p className="text-sm font-medium text-gray-700 dark:text-gray-200">{t("admin.games.dropHtmlHere")}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{t("admin.games.acceptsHtml")}</p>
               </div>
               <input ref={fileInputRef} type="file" accept=".html,.htm" className="hidden" onChange={(e) => { if (e.target.files?.[0]) handleFileUpload(e.target.files[0]); }} />
               {uploadProgress && (
@@ -594,13 +596,13 @@ export function GamesTab({ token }: { token: string }) {
           {(addMethod || editingId) && (
             <form onSubmit={handleSubmit} className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-200">عنوان اللعبة *</label>
+                <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-200">{t("admin.games.gameTitle")}</label>
                 <input
                   type="text"
                   value={form.title}
                   onChange={(e) => setForm({ ...form, title: e.target.value })}
                   required
-                  placeholder="مثال: تحدي الرياضيات"
+                  placeholder={t("admin.games.gameTitlePlaceholder")}
                   className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:border-blue-600 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                 />
               </div>
@@ -608,7 +610,7 @@ export function GamesTab({ token }: { token: string }) {
                 <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-200">
                   رابط التضمين (Embed URL) *
                   {form.embedUrl && (
-                    <button type="button" onClick={() => setPreviewUrl(form.embedUrl)} className="mr-2 text-blue-600 hover:underline text-xs">معاينة</button>
+                    <button type="button" onClick={() => setPreviewUrl(form.embedUrl)} className="mr-2 text-blue-600 hover:underline text-xs">{t("admin.games.preview")}</button>
                   )}
                 </label>
                 <input
@@ -623,17 +625,17 @@ export function GamesTab({ token }: { token: string }) {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-200">الوصف</label>
+                <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-200">{t("admin.games.description")}</label>
                 <input
                   type="text"
                   value={form.description}
                   onChange={(e) => setForm({ ...form, description: e.target.value })}
-                  placeholder="وصف مختصر يظهر للأطفال"
+                  placeholder={t("admin.games.descPlaceholder")}
                   className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:border-blue-600 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-200">صورة مصغرة (URL)</label>
+                <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-200">{t("admin.games.thumbnailUrl")}</label>
                 <input
                   type="url"
                   value={form.thumbnailUrl}
@@ -644,7 +646,7 @@ export function GamesTab({ token }: { token: string }) {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-200">الفئة</label>
+                <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-200">{t("admin.games.category")}</label>
                 <select
                   value={form.category}
                   onChange={(e) => setForm({ ...form, category: e.target.value })}
@@ -656,7 +658,7 @@ export function GamesTab({ token }: { token: string }) {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-200">النقاط لكل لعبة</label>
+                <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-200">{t("admin.games.pointsPerGame")}</label>
                 <input
                   type="number"
                   min="0"
@@ -666,19 +668,19 @@ export function GamesTab({ token }: { token: string }) {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-200">الحد الأقصى مرات اللعب يومياً</label>
+                <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-200">{t("admin.games.maxDailyPlays")}</label>
                 <input
                   type="number"
                   min="0"
                   value={form.maxPlaysPerDay}
                   onChange={(e) => setForm({ ...form, maxPlaysPerDay: e.target.value })}
                   className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:border-blue-600 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                  placeholder="0 = بلا حدود"
+                  placeholder={t("admin.games.noLimit")}
                 />
               </div>
               <div className="flex gap-4">
                 <div className="flex-1">
-                  <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-200">الحد الأدنى للعمر</label>
+                  <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-200">{t("admin.games.minAge")}</label>
                   <input
                     type="number"
                     min="0"
@@ -686,11 +688,11 @@ export function GamesTab({ token }: { token: string }) {
                     value={form.minAge}
                     onChange={(e) => setForm({ ...form, minAge: e.target.value })}
                     className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:border-blue-600 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                    placeholder="اختياري"
+                    placeholder={t("admin.games.optional")}
                   />
                 </div>
                 <div className="flex-1">
-                  <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-200">الحد الأقصى للعمر</label>
+                  <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-200">{t("admin.games.maxAge")}</label>
                   <input
                     type="number"
                     min="0"
@@ -698,7 +700,7 @@ export function GamesTab({ token }: { token: string }) {
                     value={form.maxAge}
                     onChange={(e) => setForm({ ...form, maxAge: e.target.value })}
                     className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:border-blue-600 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                    placeholder="اختياري"
+                    placeholder={t("admin.games.optional")}
                   />
                 </div>
               </div>
@@ -740,7 +742,7 @@ export function GamesTab({ token }: { token: string }) {
           <Search className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
-            placeholder="بحث بالاسم أو الرابط..."
+            placeholder={t("admin.games.searchPlaceholder")}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pr-10 pl-4 py-2 border rounded-lg focus:outline-none focus:border-blue-600 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
@@ -751,7 +753,7 @@ export function GamesTab({ token }: { token: string }) {
           onChange={(e) => setFilterCategory(e.target.value)}
           className="border rounded-lg px-3 py-2 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white text-sm"
         >
-          <option value="all">كل الفئات</option>
+          <option value="all">{t("admin.games.allCategories")}</option>
           {CATEGORIES.map(c => (
             <option key={c.value} value={c.value}>{c.icon} {c.label}</option>
           ))}
@@ -761,9 +763,9 @@ export function GamesTab({ token }: { token: string }) {
           onChange={(e) => setFilterStatus(e.target.value)}
           className="border rounded-lg px-3 py-2 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white text-sm"
         >
-          <option value="all">كل الحالات</option>
-          <option value="active">مفعّلة فقط</option>
-          <option value="inactive">معطّلة فقط</option>
+          <option value="all">{t("admin.games.allStatuses")}</option>
+          <option value="active">{t("admin.games.enabledOnly")}</option>
+          <option value="inactive">{t("admin.games.disabledOnly")}</option>
         </select>
       </div>
 
@@ -820,14 +822,14 @@ export function GamesTab({ token }: { token: string }) {
                   )}
                 </button>
               </th>
-              <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700 dark:text-gray-200">اللعبة</th>
-              <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700 dark:text-gray-200">الفئة</th>
-              <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700 dark:text-gray-200">المصدر</th>
-              <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700 dark:text-gray-200">النقاط</th>
-              <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700 dark:text-gray-200">حد يومي</th>
-              <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700 dark:text-gray-200">العمر</th>
-              <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700 dark:text-gray-200">الحالة</th>
-              <th className="px-4 py-3 text-center text-sm font-semibold text-gray-700 dark:text-gray-200">إجراءات</th>
+              <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700 dark:text-gray-200">{t("admin.games.colGame")}</th>
+              <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700 dark:text-gray-200">{t("admin.games.category")}</th>
+              <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700 dark:text-gray-200">{t("admin.games.colSource")}</th>
+              <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700 dark:text-gray-200">{t("admin.games.colPoints")}</th>
+              <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700 dark:text-gray-200">{t("admin.games.colDailyLimit")}</th>
+              <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700 dark:text-gray-200">{t("admin.games.colAge")}</th>
+              <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700 dark:text-gray-200">{t("admin.games.colStatus")}</th>
+              <th className="px-4 py-3 text-center text-sm font-semibold text-gray-700 dark:text-gray-200">{t("admin.games.colActions")}</th>
             </tr>
           </thead>
           <tbody>
@@ -881,7 +883,7 @@ export function GamesTab({ token }: { token: string }) {
                     onClick={() => toggleMutation.mutate(game.id)}
                     disabled={toggleMutation.isPending}
                     className="flex items-center gap-1 disabled:opacity-50"
-                    title={game.isActive ? "تعطيل" : "تفعيل"}
+                    title={game.isActive ? t("admin.games.disable") : t("admin.games.enable")}
                   >
                     {game.isActive ? (
                       <ToggleRight className="w-7 h-7 text-green-500" />
@@ -889,7 +891,7 @@ export function GamesTab({ token }: { token: string }) {
                       <ToggleLeft className="w-7 h-7 text-gray-400" />
                     )}
                     <span className={`text-xs font-medium ${game.isActive ? "text-green-600 dark:text-green-400" : "text-gray-400"}`}>
-                      {game.isActive ? "مفعّل" : "معطّل"}
+                      {game.isActive ? t("admin.games.enabledStatus") : t("admin.games.disabledStatus")}
                     </span>
                   </button>
                 </td>
@@ -925,7 +927,7 @@ export function GamesTab({ token }: { token: string }) {
         {filtered.length === 0 && (
           <div className="p-8 text-center text-gray-500 dark:text-gray-400">
             <Gamepad2 className="w-12 h-12 mx-auto mb-2 opacity-50" />
-            <p>لا توجد ألعاب</p>
+            <p>{t("admin.games.noGames")}</p>
             <p className="text-xs mt-1">اضغط "إضافة لعبة" لبدء إضافة الألعاب</p>
           </div>
         )}
@@ -950,7 +952,7 @@ export function GamesTab({ token }: { token: string }) {
                 <Trash2 className="w-6 h-6 text-red-600 dark:text-red-400" />
               </div>
               <div>
-                <h3 className="text-lg font-bold text-gray-800 dark:text-white">تأكيد الحذف</h3>
+                <h3 className="text-lg font-bold text-gray-800 dark:text-white">{t("admin.games.confirmDelete")}</h3>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
                   هل أنت متأكد من حذف لعبة "{games?.find(g => g.id === deleteConfirmId)?.title}"؟
                 </p>
@@ -997,7 +999,7 @@ export function GamesTab({ token }: { token: string }) {
                   {bulkAction === "delete" ? "حذف جماعي" : bulkAction === "activate" ? "تفعيل جماعي" : "تعطيل جماعي"}
                 </h3>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
-                  سيتم {bulkAction === "delete" ? "حذف" : bulkAction === "activate" ? "تفعيل" : "تعطيل"} {selectedGames.size} لعبة
+                  سيتم {bulkAction === "delete" ? "حذف" : bulkAction === "activate" ? t("admin.games.enable") : t("admin.games.disable")} {selectedGames.size} لعبة
                 </p>
               </div>
             </div>
@@ -1027,7 +1029,7 @@ export function GamesTab({ token }: { token: string }) {
                 {(bulkDeleteMutation.isPending || bulkToggleMutation.isPending) ? (
                   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                 ) : (
-                  <>تأكيد</>
+                  <>{t("admin.games.confirm")}</>
                 )}
               </button>
             </div>
@@ -1042,7 +1044,7 @@ export function GamesTab({ token }: { token: string }) {
             <div className="flex items-center justify-between p-4 border-b dark:border-gray-700">
               <div className="flex items-center gap-2">
                 <Eye className="w-5 h-5 text-purple-600" />
-                <h3 className="font-bold text-gray-800 dark:text-white">معاينة اللعبة</h3>
+                <h3 className="font-bold text-gray-800 dark:text-white">{t("admin.games.previewGame")}</h3>
                 <span className="text-xs text-gray-500 dark:text-gray-400 font-mono" dir="ltr">{previewUrl}</span>
               </div>
               <button

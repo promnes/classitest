@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
+import i18next from "i18next";
 import { useTheme } from "@/contexts/ThemeContext";
 import {
   ClipboardList, Plus, Pencil, Trash2, Save, X, Search,
@@ -70,9 +71,9 @@ const emptyForm: TaskForm = {
 };
 
 const DIFFICULTIES = [
-  { value: "easy", labelAr: "سهل", labelEn: "Easy", color: "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300" },
-  { value: "medium", labelAr: "متوسط", labelEn: "Medium", color: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300" },
-  { value: "hard", labelAr: "صعب", labelEn: "Hard", color: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300" },
+  { value: "easy", labelAr: i18next.t("admin.tasksTab.easy"), labelEn: "Easy", color: "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300" },
+  { value: "medium", labelAr: i18next.t("admin.tasksTab.medium"), labelEn: "Medium", color: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300" },
+  { value: "hard", labelAr: i18next.t("admin.tasksTab.hard"), labelEn: "Hard", color: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300" },
 ];
 
 export function TasksTab({ token }: { token: string }) {
@@ -395,9 +396,9 @@ export function TasksTab({ token }: { token: string }) {
         {[
           { label: isRTL ? "إجمالي المهام" : "Total", value: totalTasks, color: "blue" },
           { label: isRTL ? "نشطة" : "Active", value: activeTasks, color: "green" },
-          { label: isRTL ? "سهل" : "Easy", value: easyCount, color: "emerald" },
-          { label: isRTL ? "متوسط" : "Medium", value: mediumCount, color: "yellow" },
-          { label: isRTL ? "صعب" : "Hard", value: hardCount, color: "red" },
+          { label: isRTL ? t("admin.tasksTab.easy") : "Easy", value: easyCount, color: "emerald" },
+          { label: isRTL ? t("admin.tasksTab.medium") : "Medium", value: mediumCount, color: "yellow" },
+          { label: isRTL ? t("admin.tasksTab.hard") : "Hard", value: hardCount, color: "red" },
         ].map((stat) => (
           <div
             key={stat.label}

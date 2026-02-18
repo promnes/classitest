@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -120,8 +121,10 @@ export function TaskForm({
   allowDifficulty = true,
   allowPublic = false,
   allowTaskMedia = true,
-  submitLabel = "حفظ المهمة",
+  submitLabel,
 }: TaskFormProps) {
+  const { t } = useTranslation();
+  const effectiveSubmitLabel = submitLabel || t("taskForm.saveTask");
   const [form, setForm] = useState<TaskFormValue>({ ...initialValue });
   const [uploadingAnswer, setUploadingAnswer] = useState<string | null>(null);
   const [uploadingTaskMedia, setUploadingTaskMedia] = useState(false);
@@ -196,7 +199,7 @@ export function TaskForm({
       {showSubject && (
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
-            <Label>المادة</Label>
+            <Label>{t("taskForm.subject")}</Label>
             <Select
               value={form.subjectId || ""}
               onValueChange={(v) => setForm({ ...form, subjectId: v })}
@@ -215,7 +218,7 @@ export function TaskForm({
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label>النقاط</Label>
+              <Label>{t("taskForm.points")}</Label>
               <Input
                 type="number"
                 value={form.pointsReward}
@@ -247,7 +250,7 @@ export function TaskForm({
       {!showSubject && (
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <Label>النقاط</Label>
+            <Label>{t("taskForm.points")}</Label>
             <Input
               type="number"
               value={form.pointsReward}
@@ -432,7 +435,7 @@ export function TaskForm({
         </p>
       )}
       <Button onClick={handleSubmit} className="w-full" disabled={submitting}>
-        {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : submitLabel}
+        {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : effectiveSubmitLabel}
       </Button>
     </div>
   );

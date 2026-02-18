@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
+import i18next from "i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
@@ -14,13 +16,14 @@ import { ParentNotificationBell } from "@/components/NotificationBell";
 import { LanguageSelector } from "@/components/LanguageSelector";
 
 const statusConfig: Record<string, { label: string; color: string; icon: any }> = {
-  pending_admin_approval: { label: "بانتظار موافقة الإدارة", color: "bg-yellow-100 text-yellow-800 border-yellow-200", icon: Clock },
-  active: { label: "متاح للتعيين", color: "bg-green-100 text-green-800 border-green-200", icon: CheckCircle },
-  assigned_to_child: { label: "مُعيّن لطفل", color: "bg-blue-100 text-blue-800 border-blue-200", icon: Gift },
+  pending_admin_approval: { label: i18next.t("parentInventory.awaitingApproval"), color: "bg-yellow-100 text-yellow-800 border-yellow-200", icon: Clock },
+  active: { label: i18next.t("parentInventory.availableToAssign"), color: "bg-green-100 text-green-800 border-green-200", icon: CheckCircle },
+  assigned_to_child: { label: i18next.t("parentInventory.assignedToChild"), color: "bg-blue-100 text-blue-800 border-blue-200", icon: Gift },
   exhausted: { label: "مستخدَم", color: "bg-gray-100 text-gray-500 border-gray-200", icon: Package },
 };
 
 export default function ParentInventory() {
+  const { t } = useTranslation();
   const [, navigate] = useLocation();
   const queryClient = useQueryClient();
   const { isDark } = useTheme();

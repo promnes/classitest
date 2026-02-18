@@ -263,7 +263,7 @@ export const ChildTasks = (): JSX.Element => {
                     className="flex-1"
                     data-testid="button-submit-answer"
                   >
-                    {submitAnswerMutation.isPending ? "جاري الإرسال..." : "إرسال الإجابة"}
+                    {submitAnswerMutation.isPending ? t("childTasks.sending") : "إرسال الإجابة"}
                   </Button>
                   <Button
                     variant="outline"

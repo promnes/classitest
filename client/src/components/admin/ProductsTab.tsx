@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
+import i18next from "i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -43,12 +45,14 @@ interface Category {
 }
 
 const PRODUCT_TYPES = [
-  { value: "digital", label: "رقمي", icon: "💻" },
-  { value: "physical", label: "مادي", icon: "📦" },
-  { value: "subscription", label: "اشتراك", icon: "🔄" },
+  { value: "digital", label: i18next.t("admin.products.typeDigital"), icon: "💻" },
+  { value: "physical", label: i18next.t("admin.products.typePhysical"), icon: "📦" },
+  { value: "subscription", label: i18next.t("admin.products.typeSubscription"), icon: "🔄" },
 ];
 
-export function ProductsTab({ token }: { token: string }) {
+export function ProductsTab({
+  token }: { token: string }) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [showModal, setShowModal] = useState(false);
@@ -109,8 +113,8 @@ export function ProductsTab({ token }: { token: string }) {
       if (!res.ok) { const j = await res.json(); throw new Error(j?.message || "Failed"); }
       return res.json();
     },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["admin-products"] }); resetForm(); toast({ title: "تم إنشاء المنتج بنجاح" }); },
-    onError: (err: Error) => toast({ title: err.message || "فشل في إنشاء المنتج", variant: "destructive" }),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["admin-products"] }); resetForm(); toast({ title: t("admin.products.productCreated") }); },
+    onError: (err: Error) => toast({ title: err.message || t("admin.products.productCreateFailed"), variant: "destructive" }),
   });
 
   const updateMutation = useMutation({
@@ -123,8 +127,8 @@ export function ProductsTab({ token }: { token: string }) {
       if (!res.ok) { const j = await res.json(); throw new Error(j?.message || "Failed to update"); }
       return res.json();
     },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["admin-products"] }); resetForm(); toast({ title: "تم تحديث المنتج بنجاح" }); },
-    onError: (err: Error) => toast({ title: err.message || "فشل في تحديث المنتج", variant: "destructive" }),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["admin-products"] }); resetForm(); toast({ title: t("admin.products.productUpdated") }); },
+    onError: (err: Error) => toast({ title: err.message || t("admin.products.productUpdateFailed"), variant: "destructive" }),
   });
 
   const deleteMutation = useMutation({
@@ -136,8 +140,8 @@ export function ProductsTab({ token }: { token: string }) {
       if (!res.ok) { const j = await res.json(); throw new Error(j?.message || "Failed to delete"); }
       return res.json();
     },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["admin-products"] }); toast({ title: "تم حذف المنتج" }); },
-    onError: (err: Error) => toast({ title: err.message || "فشل في حذف المنتج", variant: "destructive" }),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["admin-products"] }); toast({ title: t("admin.products.productDeleted") }); },
+    onError: (err: Error) => toast({ title: err.message || t("admin.products.productDeleteFailed"), variant: "destructive" }),
   });
 
   const duplicateMutation = useMutation({
@@ -146,8 +150,8 @@ export function ProductsTab({ token }: { token: string }) {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({
-          name: p.name + " (نسخة)",
-          nameAr: p.nameAr ? p.nameAr + " (نسخة)" : "",
+          name: p.name + " " + t("admin.products.copy"),
+          nameAr: p.nameAr ? p.nameAr + " " + t("admin.products.copy") : "",
           description: p.description,
           descriptionAr: p.descriptionAr,
           price: parseFloat(typeof p.price === "string" ? p.price : p.price.toString()),
@@ -164,8 +168,8 @@ export function ProductsTab({ token }: { token: string }) {
       });
       return res.json();
     },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["admin-products"] }); toast({ title: "تم نسخ المنتج بنجاح" }); },
-    onError: (err: Error) => toast({ title: err.message || "فشل في نسخ المنتج", variant: "destructive" }),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["admin-products"] }); toast({ title: t("admin.products.productDuplicated") }); },
+    onError: (err: Error) => toast({ title: err.message || t("admin.products.productDuplicateFailed"), variant: "destructive" }),
   });
 
   const resetForm = () => {
@@ -272,7 +276,7 @@ export function ProductsTab({ token }: { token: string }) {
             <Package className="h-6 w-6 text-blue-500" />
             إدارة المنتجات
           </h2>
-          <p className="text-sm text-muted-foreground mt-1">إدارة المنتجات المعروضة في متجر الأطفال والآباء</p>
+          <p className="text-sm text-muted-foreground mt-1">{t("admin.products.subtitle")}</p>
         </div>
         <Button onClick={() => setShowModal(true)} className="gap-2 bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600">
           <Plus className="h-4 w-4" />
@@ -290,7 +294,7 @@ export function ProductsTab({ token }: { token: string }) {
               </div>
               <div>
                 <p className="text-2xl font-bold">{list.length}</p>
-                <p className="text-xs text-muted-foreground">إجمالي المنتجات</p>
+                <p className="text-xs text-muted-foreground">{t("admin.products.totalProducts")}</p>
               </div>
             </div>
           </CardContent>
@@ -303,7 +307,7 @@ export function ProductsTab({ token }: { token: string }) {
               </div>
               <div>
                 <p className="text-2xl font-bold">{activeCount}</p>
-                <p className="text-xs text-muted-foreground">منتجات نشطة</p>
+                <p className="text-xs text-muted-foreground">{t("admin.products.activeProducts")}</p>
               </div>
             </div>
           </CardContent>
@@ -316,7 +320,7 @@ export function ProductsTab({ token }: { token: string }) {
               </div>
               <div>
                 <p className="text-2xl font-bold">{featuredCount}</p>
-                <p className="text-xs text-muted-foreground">منتجات مميزة</p>
+                <p className="text-xs text-muted-foreground">{t("admin.products.featuredProducts")}</p>
               </div>
             </div>
           </CardContent>
@@ -329,7 +333,7 @@ export function ProductsTab({ token }: { token: string }) {
               </div>
               <div>
                 <p className="text-2xl font-bold">{lowStock}</p>
-                <p className="text-xs text-muted-foreground">مخزون منخفض</p>
+                <p className="text-xs text-muted-foreground">{t("admin.products.lowStock")}</p>
               </div>
             </div>
           </CardContent>
@@ -347,7 +351,7 @@ export function ProductsTab({ token }: { token: string }) {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pr-10 pl-4 py-2 border rounded-xl text-sm bg-background"
-              placeholder="بحث عن منتج..."
+              placeholder={t("admin.products.searchPlaceholder")}
             />
           </div>
           <div className="flex gap-1 border rounded-lg p-0.5">
@@ -362,13 +366,13 @@ export function ProductsTab({ token }: { token: string }) {
 
         {/* Sort & Filter */}
         <div className="flex flex-wrap gap-2 items-center">
-          <span className="text-sm text-muted-foreground">ترتيب:</span>
+          <span className="text-sm text-muted-foreground">{t("admin.products.sortBy")}</span>
           {([
-            { key: "date", label: "الأحدث" },
-            { key: "price", label: "السعر" },
-            { key: "points", label: "النقاط" },
-            { key: "stock", label: "المخزون" },
-            { key: "name", label: "الاسم" },
+            { key: "date", label: t("admin.products.sortNewest") },
+            { key: "price", label: t("admin.products.sortPrice") },
+            { key: "points", label: t("admin.products.sortPoints") },
+            { key: "stock", label: t("admin.products.sortStock") },
+            { key: "name", label: t("admin.products.sortName") },
           ] as const).map((s) => (
             <Button key={s.key} size="sm" variant={sortBy === s.key ? "default" : "outline"} className="h-7 text-xs" onClick={() => setSortBy(s.key)}>
               {s.label}

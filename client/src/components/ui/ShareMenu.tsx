@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -25,6 +26,7 @@ export function ShareMenu({
   className = "",
   buttonLabel = "مشاركة",
 }: ShareMenuProps) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
@@ -175,7 +177,7 @@ export function ShareMenu({
               <div className="p-1.5 bg-white dark:bg-gray-700 rounded-lg shadow-sm">
                 <Copy className="h-4 w-4 text-gray-600 dark:text-gray-300" />
               </div>
-              <span>نسخ الرابط</span>
+              <span>{t("shareMenu.copyLink")}</span>
               <Link2 className="h-3.5 w-3.5 text-muted-foreground mr-auto" />
             </button>
           </div>

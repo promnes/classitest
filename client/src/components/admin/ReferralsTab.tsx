@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -113,7 +114,9 @@ interface Ad {
 
 type ViewTab = "settings" | "referrals" | "codes" | "ad-tracking";
 
-export function ReferralsTab({ token }: { token: string }) {
+export function ReferralsTab({
+  token }: { token: string }) {
+  const { t } = useTranslation();
   const [activeView, setActiveView] = useState<ViewTab>("settings");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedAdId, setSelectedAdId] = useState<string | null>(null);
@@ -681,7 +684,7 @@ export function ReferralsTab({ token }: { token: string }) {
                         <MousePointer className="h-3 w-3" /> {ad.clickCount}
                       </span>
                       <Badge variant={ad.isActive ? "default" : "secondary"} className="text-xs">
-                        {ad.isActive ? "نشط" : "متوقف"}
+                        {ad.isActive ? t("admin.referrals.active") : "متوقف"}
                       </Badge>
                     </div>
                   </button>

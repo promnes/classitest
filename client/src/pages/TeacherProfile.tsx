@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { useRoute } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
@@ -20,6 +21,7 @@ export default function TeacherProfile() {
   const [, params] = useRoute("/teacher/:id");
   const teacherId = params?.id;
   const { toast } = useToast();
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
 
   const [reviewRating, setReviewRating] = useState(5);
@@ -138,14 +140,14 @@ export default function TeacherProfile() {
       });
       if (!res.ok) {
         const err = await res.json();
-        throw new Error(err.message || "فشل الإضافة");
+        throw new Error(err.message || t("teacherProfile.addToCartFailed"));
       }
       return res.json();
     },
     onSuccess: (_, taskId) => {
       setTaskInCart(p => ({ ...p, [taskId]: true }));
       queryClient.invalidateQueries({ queryKey: ["task-cart-count"] });
-      toast({ title: "تمت الإضافة للسلة" });
+      toast({ title: t("teacherProfile.addedToCart") });
     },
     onError: (err: Error) => {
       toast({ title: err.message, variant: "destructive" });
@@ -174,14 +176,14 @@ export default function TeacherProfile() {
       });
       if (!res.ok) {
         const err = await res.json();
-        throw new Error(err.message || "فشل إرسال التقييم");
+        throw new Error(err.message || t("teacherProfile.submitReviewFailed"));
       }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["teacher-reviews", teacherId] });
       setReviewComment("");
       setReviewRating(5);
-      toast({ title: "تم إرسال تقييمك بنجاح" });
+      toast({ title: t("teacherProfile.reviewSubmitted") });
     },
     onError: (err: any) => toast({ title: err.message, variant: "destructive" }),
   });
@@ -226,7 +228,7 @@ export default function TeacherProfile() {
 
   const likePost = useMutation({
     mutationFn: async (postId: string) => {
-      if (!token) throw new Error("يجب تسجيل الدخول");
+      if (!token) throw new Error(t("teacherProfile.loginRequired"));
       const res = await fetch(`/api/store/schools/posts/${postId}/like`, {
         method: "POST",
         headers: { "Content-Type": "application/json", ...authHeaders },
@@ -238,12 +240,12 @@ export default function TeacherProfile() {
       setLikedPosts(prev => ({ ...prev, [postId]: data.liked }));
       setLocalLikesCount(prev => ({ ...prev, [postId]: data.likesCount }));
     },
-    onError: (err: any) => toast({ title: err.message || "فشل الإعجاب", variant: "destructive" }),
+    onError: (err: any) => toast({ title: err.message || t("teacherProfile.likeFailed"), variant: "destructive" }),
   });
 
   const addComment = useMutation({
     mutationFn: async ({ postId, content }: { postId: string; content: string }) => {
-      if (!token) throw new Error("يجب تسجيل الدخول");
+      if (!token) throw new Error(t("teacherProfile.loginRequired"));
       const res = await fetch(`/api/store/schools/posts/${postId}/comment`, {
         method: "POST",
         headers: { "Content-Type": "application/json", ...authHeaders },
@@ -255,9 +257,9 @@ export default function TeacherProfile() {
     onSuccess: (data, { postId }) => {
       setCommentTexts(prev => ({ ...prev, [postId]: "" }));
       if (data.data) setPostComments(prev => ({ ...prev, [postId]: [data.data, ...(prev[postId] || [])] }));
-      toast({ title: "تم إضافة التعليق" });
+      toast({ title: t("teacherProfile.commentAdded") });
     },
-    onError: (err: any) => toast({ title: err.message || "فشل إضافة التعليق", variant: "destructive" }),
+    onError: (err: any) => toast({ title: err.message || t("teacherProfile.commentFailed"), variant: "destructive" }),
   });
 
   if (isLoading) {
@@ -271,7 +273,7 @@ export default function TeacherProfile() {
   if (!teacher) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <p className="text-muted-foreground">المدرس غير موجود</p>
+        <p className="text-muted-foreground">{t("teacherProfile.notFound")}</p>
       </div>
     );
   }
@@ -296,8 +298,8 @@ export default function TeacherProfile() {
           entityId={teacherId!}
           avgRating={avgRating}
           totalReviews={reviews.length}
-          shareTitle={`${teacher.name} — معلم على Classify`}
-          shareDescription={teacher.bio || `تعرّف على المعلم ${teacher.name} على منصة Classify`}
+          shareTitle={`${teacher.name} — ${t("teacherProfile.teacherOnClassify")}`}
+          shareDescription={teacher.bio || `${t("teacherProfile.meetTeacher")} ${teacher.name} ${t("teacherProfile.onClassifyPlatform")}`}
           extraBadges={
             <>
               {teacher.subject && (
@@ -309,7 +311,7 @@ export default function TeacherProfile() {
               {teacher.yearsExperience > 0 && (
                 <Badge variant="outline" className="gap-1">
                   <Clock className="h-3 w-3" />
-                  {teacher.yearsExperience} سنة خبرة
+                  {teacher.yearsExperience} {t("teacherProfile.yearsExperience")}
                 </Badge>
               )}
             </>
@@ -318,17 +320,17 @@ export default function TeacherProfile() {
           {teacher.schoolName && (
             <div className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
               <GraduationCap className="h-4 w-4" />
-              <span>يعمل في: {teacher.schoolName}</span>
+              <span>{t("teacherProfile.worksAt")}{" "}{teacher.schoolName}</span>
             </div>
           )}
           <div className="flex gap-4 mt-3 text-sm text-muted-foreground">
             <span className="flex items-center gap-1">
               <Users className="h-4 w-4" />
-              {teacher.totalStudents || 0} طالب
+              {teacher.totalStudents || 0} {t("teacherProfile.student", "طالب")}
             </span>
             <span className="flex items-center gap-1">
               <Briefcase className="h-4 w-4" />
-              {teacher.totalTasksSold || 0} مهمة مباعة
+              {teacher.totalTasksSold || 0} {t("teacherProfile.tasksSold", "مهمة مباعة")}
             </span>
           </div>
         </ProfileHeader>
@@ -337,15 +339,15 @@ export default function TeacherProfile() {
           <TabsList className="w-full grid grid-cols-3">
             <TabsTrigger value="tasks" className="gap-1">
               <BookOpen className="h-4 w-4" />
-              المهام ({tasks.length})
+              {t("teacherProfile.tasks")} ({tasks.length})
             </TabsTrigger>
             <TabsTrigger value="posts" className="gap-1">
               <MessageSquare className="h-4 w-4" />
-              المنشورات ({posts.length})
+              {t("teacherProfile.posts")} ({posts.length})
             </TabsTrigger>
             <TabsTrigger value="reviews" className="gap-1">
               <Star className="h-4 w-4" />
-              التقييمات ({reviews.length})
+              {t("teacherProfile.reviews", "التقييمات")} ({reviews.length})
             </TabsTrigger>
           </TabsList>
 
@@ -354,7 +356,7 @@ export default function TeacherProfile() {
             {tasks.length === 0 ? (
               <Card><CardContent className="p-8 text-center text-muted-foreground">
                 <BookOpen className="h-12 w-12 mx-auto text-gray-300 mb-3" />
-                <p>لا توجد مهام متاحة حالياً</p>
+                <p>{t("teacherProfile.noTasksAvailable")}</p>
               </CardContent></Card>
             ) : (
               tasks.map((task: any) => (
@@ -376,7 +378,7 @@ export default function TeacherProfile() {
                           {task.pointsReward > 0 && (
                             <Badge variant="secondary" className="text-xs gap-1">
                               <Star className="h-3 w-3" />
-                              {task.pointsReward} نقطة
+                              {task.pointsReward} {t("teacherProfile.points", "نقطة")}
                             </Badge>
                           )}
                         </div>
@@ -384,7 +386,7 @@ export default function TeacherProfile() {
                       <div className="text-left shrink-0">
                         <div className="bg-green-50 dark:bg-green-950 px-3 py-2 rounded-xl text-center">
                           <span className="text-lg font-bold text-green-600">{task.price}</span>
-                          <span className="text-xs text-green-600 block">ج.م</span>
+                          <span className="text-xs text-green-600 block">{t("teacherProfile.currency", "ج.م")}</span>
                         </div>
                       </div>
                     </div>
@@ -392,7 +394,7 @@ export default function TeacherProfile() {
                     <div className="flex items-center justify-between mt-3 pt-3 border-t">
                       <button
                         onClick={() => {
-                          if (!token) { toast({ title: "يجب تسجيل الدخول", variant: "destructive" }); return; }
+                          if (!token) { toast({ title: t("teacherProfile.loginRequired"), variant: "destructive" }); return; }
                           likeTask.mutate(String(task.id));
                         }}
                         className={`flex items-center gap-1.5 text-sm transition-colors ${
@@ -404,23 +406,23 @@ export default function TeacherProfile() {
                       </button>
                       {taskPurchased[task.id] ? (
                         <Badge className="bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">
-                          مُشترى
+                          {t("teacherProfile.purchased")}
                         </Badge>
                       ) : taskInCart[task.id] ? (
-                        <Badge variant="secondary">في السلة</Badge>
+                        <Badge variant="secondary">{t("teacherProfile.inCart")}</Badge>
                       ) : (
                         <Button
                           size="sm"
                           variant="outline"
                           className="gap-1.5 text-xs"
                           onClick={() => {
-                            if (!token) { toast({ title: "يجب تسجيل الدخول", variant: "destructive" }); return; }
+                            if (!token) { toast({ title: t("teacherProfile.loginRequired"), variant: "destructive" }); return; }
                             addToCart.mutate(String(task.id));
                           }}
                           disabled={addToCart.isPending}
                         >
                           <ShoppingCart className="h-3.5 w-3.5" />
-                          أضف للسلة
+                          {t("teacherProfile.addToCart")}
                         </Button>
                       )}
                     </div>
@@ -435,7 +437,7 @@ export default function TeacherProfile() {
             {posts.length === 0 ? (
               <Card><CardContent className="p-8 text-center text-muted-foreground">
                 <MessageSquare className="h-12 w-12 mx-auto text-gray-300 mb-3" />
-                <p>لا توجد منشورات</p>
+                <p>{t("teacherProfile.noPosts")}</p>
               </CardContent></Card>
             ) : (
               posts.map((post: any) => (
@@ -468,7 +470,7 @@ export default function TeacherProfile() {
                         setShowComments(p => ({ ...p, [post.id]: next }));
                         if (next && !postComments[post.id]) fetchComments(post.id);
                       }} className="hover:underline">
-                        {post.commentsCount || 0} تعليق
+                        {post.commentsCount || 0} {t("teacherProfile.comment", "تعليق")}
                       </button>
                     </div>
 
@@ -476,7 +478,7 @@ export default function TeacherProfile() {
                     <div className="flex border-t border-b dark:border-gray-800 mt-1 py-1">
                       <button
                         onClick={() => {
-                          if (!token) { toast({ title: "يجب تسجيل الدخول للإعجاب", variant: "destructive" }); return; }
+                          if (!token) { toast({ title: t("teacherProfile.loginToLike"), variant: "destructive" }); return; }
                           likePost.mutate(post.id);
                         }}
                         className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-sm font-medium rounded-lg transition-colors ${
@@ -484,7 +486,7 @@ export default function TeacherProfile() {
                         }`}
                       >
                         <Heart className={`h-5 w-5 ${likedPosts[post.id] ? "fill-blue-600 text-blue-600" : ""}`} />
-                        أعجبني
+                        {t("teacherProfile.like")}
                       </button>
                       <button
                         onClick={() => {
@@ -495,16 +497,16 @@ export default function TeacherProfile() {
                         className="flex-1 flex items-center justify-center gap-1.5 py-2 text-sm font-medium text-muted-foreground hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
                       >
                         <MessageSquare className="h-5 w-5" />
-                        تعليق
+                        {t("teacherProfile.commentAction", "تعليق")}
                       </button>
                       <div className="flex-1 flex items-center justify-center">
                         <ShareMenu
                           url={typeof window !== "undefined" ? window.location.href : ""}
-                          title={post.content?.substring(0, 60) || "منشور"}
+                          title={post.content?.substring(0, 60) || t("teacherProfile.post", "منشور")}
                           description={post.content?.substring(0, 120) || ""}
                           variant="ghost"
                           size="sm"
-                          buttonLabel="مشاركة"
+                          buttonLabel={t("teacherProfile.share", "مشاركة")}
                           className="text-xs w-full justify-center"
                         />
                       </div>
@@ -514,7 +516,7 @@ export default function TeacherProfile() {
                     {showComments[post.id] && (
                       <div className="pt-2 space-y-2">
                         {loadingComments[post.id] ? (
-                          <div className="text-center text-xs text-muted-foreground py-2">جاري التحميل...</div>
+                          <div className="text-center text-xs text-muted-foreground py-2">{t("teacherProfile.loading")}</div>
                         ) : postComments[post.id]?.length > 0 ? (
                           <div className="space-y-2 max-h-48 overflow-y-auto">
                             {postComments[post.id].map((c: any) => (
@@ -532,7 +534,7 @@ export default function TeacherProfile() {
                         ) : null}
                         <div className="flex items-center gap-2">
                           <Input
-                            placeholder={token ? "اكتب تعليقاً..." : "سجل دخول لكتابة تعليق"}
+                            placeholder={token ? t("teacherProfile.writeComment") : t("teacherProfile.loginToComment")}
                             value={commentTexts[post.id] || ""}
                             onChange={e => setCommentTexts(prev => ({ ...prev, [post.id]: e.target.value }))}
                             className="text-sm rounded-full bg-gray-100 dark:bg-gray-800 border-0 h-9"
@@ -576,7 +578,7 @@ export default function TeacherProfile() {
                         <Star key={n} className={`h-4 w-4 ${n <= Math.round(parseFloat(avgRating)) ? "text-yellow-400 fill-yellow-400" : "text-gray-300"}`} />
                       ))}
                     </div>
-                    <p className="text-xs text-muted-foreground mt-1">{reviews.length} تقييم</p>
+                    <p className="text-xs text-muted-foreground mt-1">{reviews.length} {t("teacherProfile.reviewCount", "تقييم")}</p>
                   </div>
                   <div className="flex-1 space-y-1.5">
                     {[5, 4, 3, 2, 1].map(n => {
@@ -601,7 +603,7 @@ export default function TeacherProfile() {
             {/* Submit Review Form */}
             <Card>
               <CardContent className="p-6 space-y-3">
-                <h3 className="font-bold text-lg">أضف تقييمك</h3>
+                <h3 className="font-bold text-lg">{t("teacherProfile.addYourReview")}</h3>
                 <div className="flex gap-1">
                   {[1, 2, 3, 4, 5].map(star => (
                     <button
@@ -616,7 +618,7 @@ export default function TeacherProfile() {
                 <Textarea
                   value={reviewComment}
                   onChange={(e) => setReviewComment(e.target.value)}
-                  placeholder="شاركنا رأيك عن المعلم..."
+                  placeholder={t("teacherProfile.shareOpinionTeacher")}
                   className="min-h-[80px]"
                 />
                 <Button
@@ -624,7 +626,7 @@ export default function TeacherProfile() {
                   disabled={submitReview.isPending}
                   className="bg-blue-600 hover:bg-blue-700 gap-2"
                 >
-                  {submitReview.isPending ? "جاري الإرسال..." : "إرسال التقييم"}
+                  {submitReview.isPending ? t("teacherProfile.submitting") : t("teacherProfile.submitReview")}
                 </Button>
               </CardContent>
             </Card>
@@ -632,7 +634,7 @@ export default function TeacherProfile() {
             {reviews.length === 0 ? (
               <Card><CardContent className="p-8 text-center text-muted-foreground">
                 <Star className="h-12 w-12 mx-auto text-gray-300 mb-3" />
-                <p>لا توجد تقييمات بعد</p>
+                <p>{t("teacherProfile.noReviewsYet")}</p>
               </CardContent></Card>
             ) : (
               <div className="space-y-3">
@@ -645,7 +647,7 @@ export default function TeacherProfile() {
                         </div>
                         <div className="flex-1">
                           <div className="flex items-center justify-between">
-                            <span className="font-bold text-sm">{review.parentName || "ولي أمر"}</span>
+                            <span className="font-bold text-sm">{review.parentName || t("teacherProfile.parent")}</span>
                             <span className="text-xs text-muted-foreground">
                               {new Date(review.createdAt).toLocaleDateString("ar-EG", { year: "numeric", month: "long", day: "numeric" })}
                             </span>

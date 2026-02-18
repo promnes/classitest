@@ -115,7 +115,7 @@ export const ChildProgress = (): JSX.Element => {
                   {speedConfig.icon}
                 </div>
                 <div className="flex-1">
-                  <p className={`text-sm ${isDark ? "text-gray-400" : "text-gray-600"}`}>مستوى السرعة</p>
+                  <p className={`text-sm ${isDark ? "text-gray-400" : "text-gray-600"}`}>{t("childProgress.speedLevel")}</p>
                   <h2 className={`text-2xl font-bold ${isDark ? "text-white" : "text-gray-800"}`}>
                     {speedConfig.label}
                   </h2>
@@ -124,7 +124,7 @@ export const ChildProgress = (): JSX.Element => {
                   <p className={`text-3xl font-bold ${isDark ? "text-white" : "text-gray-800"}`}>
                     {progress.pointsPerDay}
                   </p>
-                  <p className={`text-xs ${isDark ? "text-gray-400" : "text-gray-600"}`}>نقطة/يوم</p>
+                  <p className={`text-xs ${isDark ? "text-gray-400" : "text-gray-600"}`}>{t("childProgress.pointsPerDay")}</p>
                 </div>
               </div>
               <div className={`p-4 rounded-2xl ${isDark ? "bg-gray-700" : "bg-blue-50"}`}>
@@ -147,7 +147,7 @@ export const ChildProgress = (): JSX.Element => {
                 <p className={`text-3xl font-bold ${isDark ? "text-white" : "text-gray-800"}`}>
                   {progress.tasksCompleted}
                 </p>
-                <p className={`text-sm ${isDark ? "text-gray-400" : "text-gray-600"}`}>مهمة منجزة</p>
+                <p className={`text-sm ${isDark ? "text-gray-400" : "text-gray-600"}`}>{t("childProgress.completedTask")}</p>
               </div>
               <div className={`${isDark ? "bg-gray-800" : "bg-white"} rounded-2xl p-5 text-center shadow-lg`}>
                 <Gift className="w-10 h-10 mx-auto mb-2 text-pink-500" />

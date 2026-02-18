@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { useLocation } from "wouter";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import ImageCropper from "@/components/ImageCropper";
@@ -155,14 +156,14 @@ const emptySocial = { facebook: "", twitter: "", instagram: "", youtube: "", tik
 
 const PAGE_SIZE = 10;
 
-function getActivityLabel(action: string) {
+function getActivityLabel(action: string, t: (key: string) => string) {
   const map: Record<string, string> = {
-    teacher_added: "تمت إضافة معلم",
-    teacher_updated: "تم تحديث بيانات معلم",
-    teacher_transferred_out: "تم نقل معلم لمدرسة أخرى",
-    teacher_transferred_in: "تم استقبال معلم من مدرسة أخرى",
-    post_created: "تم إنشاء منشور",
-    profile_updated: "تم تحديث ملف المدرسة",
+    teacher_added: t("schoolDashboard.activity.teacherAdded"),
+    teacher_updated: t("schoolDashboard.activity.teacherUpdated"),
+    teacher_transferred_out: t("schoolDashboard.activity.teacherTransferredOut"),
+    teacher_transferred_in: t("schoolDashboard.activity.teacherTransferredIn"),
+    post_created: t("schoolDashboard.activity.postCreated"),
+    profile_updated: t("schoolDashboard.activity.profileUpdated"),
   };
   return map[action] || action;
 }
@@ -170,6 +171,7 @@ function getActivityLabel(action: string) {
 export default function SchoolDashboard() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const { t } = useTranslation();
   const token = localStorage.getItem("schoolToken");
   const schoolData = JSON.parse(localStorage.getItem("schoolData") || "{}");
 
@@ -422,10 +424,10 @@ export default function SchoolDashboard() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["school-profile"] });
-      toast({ title: "تم تحديث بيانات المدرسة" });
+      toast({ title: t("schoolDashboard.profileUpdateSuccess") });
       setShowProfileModal(false);
     },
-    onError: (err: any) => toast({ title: err.message || "فشل التحديث", variant: "destructive" }),
+    onError: (err: any) => toast({ title: err.message || t("schoolDashboard.updateFailed"), variant: "destructive" }),
   });
 
   const createTeacher = useMutation({
@@ -445,9 +447,9 @@ export default function SchoolDashboard() {
       setShowTeacherModal(false);
       setEditingTeacher(null);
       resetTeacherForm();
-      toast({ title: "تم إضافة المعلم" });
+      toast({ title: t("schoolDashboard.teacherAddSuccess") });
     },
-    onError: (err: any) => toast({ title: err.message || "فشل إضافة المعلم", variant: "destructive" }),
+    onError: (err: any) => toast({ title: err.message || t("schoolDashboard.teacherAddFailed"), variant: "destructive" }),
   });
 
   const updateTeacher = useMutation({
@@ -467,9 +469,9 @@ export default function SchoolDashboard() {
       setShowTeacherModal(false);
       setEditingTeacher(null);
       resetTeacherForm();
-      toast({ title: "تم تحديث بيانات المعلم" });
+      toast({ title: t("schoolDashboard.teacherUpdateSuccess") });
     },
-    onError: (err: any) => toast({ title: err.message || "فشل تحديث المعلم", variant: "destructive" }),
+    onError: (err: any) => toast({ title: err.message || t("schoolDashboard.teacherUpdateFailed"), variant: "destructive" }),
   });
 
   const deleteTeacher = useMutation({
@@ -482,9 +484,9 @@ export default function SchoolDashboard() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["school-teachers"] });
       queryClient.invalidateQueries({ queryKey: ["school-stats"] });
-      toast({ title: "تم حذف المعلم" });
+      toast({ title: t("schoolDashboard.teacherDeleteSuccess") });
     },
-    onError: (err: any) => toast({ title: err.message || "فشل حذف المعلم", variant: "destructive" }),
+    onError: (err: any) => toast({ title: err.message || t("schoolDashboard.teacherDeleteFailed"), variant: "destructive" }),
   });
 
   const { data: availableSchools = [] } = useQuery<{ id: string; name: string; imageUrl: string | null; isActive: boolean; isVerified: boolean }[]>({
@@ -514,9 +516,9 @@ export default function SchoolDashboard() {
       setShowTransferModal(false);
       setTransferTeacherId(null);
       setTransferForm({ toSchoolId: "", performanceRating: 0, performanceComment: "", reason: "" });
-      toast({ title: "تم نقل المعلم بنجاح" });
+      toast({ title: t("schoolDashboard.teacherTransferSuccess") });
     },
-    onError: (err: any) => toast({ title: err.message || "فشل نقل المعلم", variant: "destructive" }),
+    onError: (err: any) => toast({ title: err.message || t("schoolDashboard.teacherTransferFailed"), variant: "destructive" }),
   });
 
   const updatePost = useMutation({
@@ -535,9 +537,9 @@ export default function SchoolDashboard() {
       resetPostForm();
       setEditingPost(null);
       setShowPostModal(false);
-      toast({ title: "تم تحديث المنشور" });
+      toast({ title: t("schoolDashboard.postUpdateSuccess") });
     },
-    onError: (err: any) => toast({ title: err.message || "فشل تحديث المنشور", variant: "destructive" }),
+    onError: (err: any) => toast({ title: err.message || t("schoolDashboard.postUpdateFailed"), variant: "destructive" }),
   });
 
   const deletePost = useMutation({
@@ -550,9 +552,9 @@ export default function SchoolDashboard() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["school-feed"] });
       queryClient.invalidateQueries({ queryKey: ["school-stats"] });
-      toast({ title: "تم حذف المنشور" });
+      toast({ title: t("schoolDashboard.postDeleteSuccess") });
     },
-    onError: (err: any) => toast({ title: err.message || "فشل حذف المنشور", variant: "destructive" }),
+    onError: (err: any) => toast({ title: err.message || t("schoolDashboard.postDeleteFailed"), variant: "destructive" }),
   });
 
   const addPostComment = useMutation({
@@ -561,7 +563,7 @@ export default function SchoolDashboard() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          authorName: profile?.name || "المدرسة",
+          authorName: profile?.name || t("schoolDashboard.school"),
           content,
         }),
       });
@@ -573,9 +575,9 @@ export default function SchoolDashboard() {
       setCommentInputByPost((prev) => ({ ...prev, [vars.postId]: "" }));
       await loadPostComments(vars.postId);
       queryClient.invalidateQueries({ queryKey: ["school-feed"] });
-      toast({ title: "تم إرسال الرد" });
+      toast({ title: t("schoolDashboard.replySuccess") });
     },
-    onError: (err: any) => toast({ title: err.message || "فشل إرسال الرد", variant: "destructive" }),
+    onError: (err: any) => toast({ title: err.message || t("schoolDashboard.replyFailed"), variant: "destructive" }),
   });
 
   const createPoll = useMutation({
@@ -593,9 +595,9 @@ export default function SchoolDashboard() {
       queryClient.invalidateQueries({ queryKey: ["school-polls"] });
       setShowPollModal(false);
       resetPollForm();
-      toast({ title: "تم إنشاء التصويت" });
+      toast({ title: t("schoolDashboard.pollCreateSuccess") });
     },
-    onError: (err: any) => toast({ title: err.message || "فشل إنشاء التصويت", variant: "destructive" }),
+    onError: (err: any) => toast({ title: err.message || t("schoolDashboard.pollCreateFailed"), variant: "destructive" }),
   });
 
   const updatePoll = useMutation({
@@ -611,9 +613,9 @@ export default function SchoolDashboard() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["school-polls"] });
-      toast({ title: "تم تحديث التصويت" });
+      toast({ title: t("schoolDashboard.pollUpdateSuccess") });
     },
-    onError: (err: any) => toast({ title: err.message || "فشل التحديث", variant: "destructive" }),
+    onError: (err: any) => toast({ title: err.message || t("schoolDashboard.pollUpdateFailed"), variant: "destructive" }),
   });
 
   const deletePoll = useMutation({
@@ -625,9 +627,9 @@ export default function SchoolDashboard() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["school-polls"] });
-      toast({ title: "تم حذف التصويت" });
+      toast({ title: t("schoolDashboard.pollDeleteSuccess") });
     },
-    onError: (err: any) => toast({ title: err.message || "فشل الحذف", variant: "destructive" }),
+    onError: (err: any) => toast({ title: err.message || t("schoolDashboard.deleteFailed", "فشل الحذف"), variant: "destructive" }),
   });
 
   function cleanSocialLinks(input: any): SocialLinks | null {
@@ -686,12 +688,12 @@ export default function SchoolDashboard() {
 
   function handleSubmitPoll() {
     if (!pollForm.question.trim()) {
-      toast({ title: "سؤال التصويت مطلوب", variant: "destructive" });
+      toast({ title: t("schoolDashboard.pollQuestionRequired"), variant: "destructive" });
       return;
     }
     const validOptions = pollForm.options.filter((o) => o.text.trim());
     if (validOptions.length < 2) {
-      toast({ title: "يجب إضافة خيارين على الأقل", variant: "destructive" });
+      toast({ title: t("schoolDashboard.pollMinOptions"), variant: "destructive" });
       return;
     }
     createPoll.mutate({
@@ -765,7 +767,7 @@ export default function SchoolDashboard() {
       if (!res.ok) throw new Error(body.message || "Failed");
       setCommentsByPost((prev) => ({ ...prev, [postId]: body.data || [] }));
     } catch (error: any) {
-      toast({ title: error.message || "فشل تحميل التعليقات", variant: "destructive" });
+      toast({ title: error.message || t("schoolDashboard.commentsLoadFailed", "فشل تحميل التعليقات"), variant: "destructive" });
     } finally {
       setCommentsLoadingByPost((prev) => ({ ...prev, [postId]: false }));
     }
@@ -791,7 +793,7 @@ export default function SchoolDashboard() {
       }),
     });
     const presignBody = await presignRes.json();
-    if (!presignRes.ok) throw new Error(presignBody.message || "فشل إنشاء رابط الرفع");
+    if (!presignRes.ok) throw new Error(presignBody.message || t("schoolDashboard.presignFailed", "فشل إنشاء رابط الرفع"));
 
     const { uploadURL, objectPath } = presignBody.data;
 
@@ -804,7 +806,7 @@ export default function SchoolDashboard() {
         body: file,
       });
       const directBody = await directRes.json();
-      if (!directRes.ok) throw new Error(directBody.message || "فشل رفع الملف");
+      if (!directRes.ok) throw new Error(directBody.message || t("schoolDashboard.uploadFailed", "فشل رفع الملف"));
     } else {
       const proxyRes = await fetch("/api/school/uploads/proxy", {
         method: "PUT",
@@ -816,7 +818,7 @@ export default function SchoolDashboard() {
         body: file,
       });
       const proxyBody = await proxyRes.json();
-      if (!proxyRes.ok) throw new Error(proxyBody.message || "فشل رفع الملف");
+      if (!proxyRes.ok) throw new Error(proxyBody.message || t("schoolDashboard.uploadFailed", "فشل رفع الملف"));
     }
 
     const finalizeRes = await fetch("/api/school/uploads/finalize", {
@@ -831,7 +833,7 @@ export default function SchoolDashboard() {
       }),
     });
     const finalizeBody = await finalizeRes.json();
-    if (!finalizeRes.ok) throw new Error(finalizeBody.message || "فشل تأكيد رفع الملف");
+    if (!finalizeRes.ok) throw new Error(finalizeBody.message || t("schoolDashboard.uploadFinalizeFailed", "فشل تأكيد رفع الملف"));
 
     return {
       url: finalizeBody.data.url,
@@ -855,7 +857,7 @@ export default function SchoolDashboard() {
   function handleSelectSchoolProfileImage(file: File | undefined, type: "avatar" | "cover") {
     if (!file) return;
     if (!file.type.startsWith("image/")) {
-      toast({ title: "يرجى اختيار صورة فقط", variant: "destructive" });
+      toast({ title: t("schoolDashboard.imageOnlyPlease"), variant: "destructive" });
       return;
     }
     const url = URL.createObjectURL(file);
@@ -878,9 +880,9 @@ export default function SchoolDashboard() {
         imageUrl: type === "avatar" ? url : prev.imageUrl,
         coverImageUrl: type === "cover" ? url : prev.coverImageUrl,
       }));
-      toast({ title: type === "avatar" ? "تم رفع صورة المدرسة" : "تم رفع صورة الغلاف" });
+      toast({ title: type === "avatar" ? t("schoolDashboard.schoolImageUploaded") : t("schoolDashboard.coverImageUploaded") });
     } catch (error: any) {
-      toast({ title: error.message || "فشل رفع الصورة", variant: "destructive" });
+      toast({ title: error.message || t("schoolDashboard.imageUploadFailed"), variant: "destructive" });
     } finally {
       if (type === "avatar") setUploadingProfileImage(false);
       if (type === "cover") setUploadingProfileCover(false);
@@ -920,7 +922,7 @@ export default function SchoolDashboard() {
 
   function handleSubmitTeacher() {
     if (!teacherForm.name || !teacherForm.username || (!editingTeacher && !teacherForm.password)) {
-      toast({ title: "الاسم واسم المستخدم وكلمة المرور مطلوبة", variant: "destructive" });
+      toast({ title: t("schoolDashboard.teacherFormRequired"), variant: "destructive" });
       return;
     }
 
@@ -955,7 +957,7 @@ export default function SchoolDashboard() {
     const hasPendingFiles = pendingPostFiles.length > 0;
 
     if (!hasContent && !hasExistingMedia && !hasPendingFiles) {
-      toast({ title: "أضف محتوى أو وسائط", variant: "destructive" });
+      toast({ title: t("schoolDashboard.postContentRequired"), variant: "destructive" });
       return;
     }
 
@@ -973,7 +975,7 @@ export default function SchoolDashboard() {
     resetPostForm();
     setPublishingPost(true);
 
-    toast({ title: "جاري نشر المنشور في الخلفية..." });
+    toast({ title: t("schoolDashboard.postPublishingInBackground", "جاري نشر المنشور في الخلفية...") });
 
     // Background upload + publish
     (async () => {
@@ -1011,13 +1013,13 @@ export default function SchoolDashboard() {
         }
 
         const body = await res.json();
-        if (!res.ok) throw new Error(body.message || "فشل نشر المنشور");
+        if (!res.ok) throw new Error(body.message || t("schoolDashboard.postPublishFailed", "فشل نشر المنشور"));
 
         queryClient.invalidateQueries({ queryKey: ["school-feed"] });
         queryClient.invalidateQueries({ queryKey: ["school-stats"] });
-        toast({ title: capturedEditingPost ? "✅ تم تحديث المنشور بنجاح" : "✅ تم نشر المنشور بنجاح" });
+        toast({ title: capturedEditingPost ? t("schoolDashboard.postUpdateSuccessMsg", "✅ تم تحديث المنشور بنجاح") : t("schoolDashboard.postPublishSuccessMsg", "✅ تم نشر المنشور بنجاح") });
       } catch (error: any) {
-        toast({ title: error.message || "فشل نشر المنشور", variant: "destructive" });
+        toast({ title: error.message || t("schoolDashboard.postPublishFailed", "فشل نشر المنشور"), variant: "destructive" });
       } finally {
         setPublishingPost(false);
       }
@@ -1026,7 +1028,7 @@ export default function SchoolDashboard() {
 
   function handleSubmitProfile() {
     if (!profileForm.name.trim()) {
-      toast({ title: "اسم المدرسة مطلوب", variant: "destructive" });
+      toast({ title: t("schoolDashboard.schoolNameRequired"), variant: "destructive" });
       return;
     }
 
@@ -1060,7 +1062,7 @@ export default function SchoolDashboard() {
       {publishingPost && (
         <div className="fixed bottom-4 left-4 z-50 bg-blue-600 text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-2 animate-pulse">
           <Loader2 className="h-4 w-4 animate-spin" />
-          <span className="text-sm font-medium">جاري نشر المنشور...</span>
+          <span className="text-sm font-medium">{t("schoolDashboard.publishingPost", "جاري نشر المنشور...")}</span>
         </div>
       )}
       <div className="bg-blue-600 text-white p-4">
@@ -1074,13 +1076,13 @@ export default function SchoolDashboard() {
             </div>
             <div>
               <h1 className="font-bold text-lg">{profile?.name || schoolData.name}</h1>
-              <p className="text-blue-100 text-xs">لوحة تحكم المدرسة</p>
+              <p className="text-blue-100 text-xs">{t("schoolDashboard.dashboardTitle")}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="sm" className="text-white hover:bg-blue-700" onClick={openEditProfile}>
               <Edit className="h-4 w-4 ml-1" />
-              تعديل المدرسة
+              {t("schoolDashboard.editSchool")}
             </Button>
             <Button
               variant="ghost"
@@ -1088,7 +1090,7 @@ export default function SchoolDashboard() {
               className="text-white hover:bg-blue-700"
               onClick={() => {
                 navigator.clipboard.writeText(profile?.referralCode || "");
-                toast({ title: "تم نسخ كود الإحالة" });
+                toast({ title: t("schoolDashboard.referralCodeCopied") });
               }}
             >
               <Copy className="h-4 w-4 ml-1" />
@@ -1096,11 +1098,11 @@ export default function SchoolDashboard() {
             </Button>
             <ShareMenu
               url={typeof window !== "undefined" ? `${window.location.origin}/school/${profile?.id || ""}` : ""}
-              title={`${profile?.nameAr || profile?.name || "المدرسة"} — Classify`}
-              description={profile?.description || `تعرّف على المدرسة على منصة Classify`}
+              title={`${profile?.nameAr || profile?.name || t("schoolDashboard.school")} — Classify`}
+              description={profile?.description || t("schoolDashboard.schoolShareDescription")}
               variant="ghost"
               className="text-white hover:bg-blue-700"
-              buttonLabel="مشاركة"
+              buttonLabel={t("schoolDashboard.share", "مشاركة")}
             />
             <LanguageSelector />
             <SchoolNotificationBell />
@@ -1117,62 +1119,62 @@ export default function SchoolDashboard() {
             <CardContent className="p-4 text-center">
               <GraduationCap className="h-8 w-8 mx-auto mb-2 text-blue-600" />
               <div className="text-2xl font-bold">{stats?.totalTeachers || 0}</div>
-              <div className="text-xs text-muted-foreground">المعلمين ({stats?.activeTeachers || 0} نشط)</div>
+              <div className="text-xs text-muted-foreground">{t("schoolDashboard.teachersCount")} ({stats?.activeTeachers || 0} {t("schoolDashboard.active", "نشط")})</div>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-4 text-center">
               <Users className="h-8 w-8 mx-auto mb-2 text-green-600" />
               <div className="text-2xl font-bold">{stats?.totalStudents || 0}</div>
-              <div className="text-xs text-muted-foreground">الطلاب</div>
+              <div className="text-xs text-muted-foreground">{t("schoolDashboard.students")}</div>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-4 text-center">
               <MessageSquare className="h-8 w-8 mx-auto mb-2 text-purple-600" />
               <div className="text-2xl font-bold">{stats?.totalPosts || 0}</div>
-              <div className="text-xs text-muted-foreground">المنشورات</div>
+              <div className="text-xs text-muted-foreground">{t("schoolDashboard.posts", "المنشورات")}</div>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-4 text-center">
               <Star className="h-8 w-8 mx-auto mb-2 text-yellow-500" />
               <div className="text-2xl font-bold">{stats?.avgRating || 0}</div>
-              <div className="text-xs text-muted-foreground">التقييم ({stats?.totalReviews || 0})</div>
+              <div className="text-xs text-muted-foreground">{t("schoolDashboard.rating", "التقييم")} ({stats?.totalReviews || 0})</div>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-4 text-center">
               <TrendingUp className="h-8 w-8 mx-auto mb-2 text-rose-600" />
               <div className="text-2xl font-bold">{stats?.activityScore || 0}</div>
-              <div className="text-xs text-muted-foreground">نقاط النشاط</div>
+              <div className="text-xs text-muted-foreground">{t("schoolDashboard.activityPoints", "نقاط النشاط")}</div>
             </CardContent>
           </Card>
         </div>
 
         <Tabs defaultValue="teachers" dir="rtl">
           <TabsList className="grid w-full grid-cols-7">
-            <TabsTrigger value="teachers">المعلمين</TabsTrigger>
-            <TabsTrigger value="posts">المنشورات</TabsTrigger>
-            <TabsTrigger value="polls">التصويتات</TabsTrigger>
-            <TabsTrigger value="students">الطلاب</TabsTrigger>
-            <TabsTrigger value="reviews">التقييمات</TabsTrigger>
-            <TabsTrigger value="activity">النشاط</TabsTrigger>
-            <TabsTrigger value="profile">الصفحة الشخصية</TabsTrigger>
+            <TabsTrigger value="teachers">{t("schoolDashboard.teachersTab")}</TabsTrigger>
+            <TabsTrigger value="posts">{t("schoolDashboard.postsTab", "المنشورات")}</TabsTrigger>
+            <TabsTrigger value="polls">{t("schoolDashboard.pollsTab", "التصويتات")}</TabsTrigger>
+            <TabsTrigger value="students">{t("schoolDashboard.studentsTab")}</TabsTrigger>
+            <TabsTrigger value="reviews">{t("schoolDashboard.reviewsTab")}</TabsTrigger>
+            <TabsTrigger value="activity">{t("schoolDashboard.activityTab", "النشاط")}</TabsTrigger>
+            <TabsTrigger value="profile">{t("schoolDashboard.profileTab", "الصفحة الشخصية")}</TabsTrigger>
           </TabsList>
 
           <TabsContent value="teachers" className="space-y-4">
             <div className="flex justify-between items-center">
-              <h2 className="text-lg font-bold">إدارة المعلمين</h2>
+              <h2 className="text-lg font-bold">{t("schoolDashboard.manageTeachers")}</h2>
               <Button onClick={() => { setEditingTeacher(null); resetTeacherForm(); setShowTeacherModal(true); }} className="bg-blue-600">
                 <Plus className="h-4 w-4 ml-1" />
-                إضافة معلم
+                {t("schoolDashboard.addTeacher")}
               </Button>
             </div>
 
             <div className="grid md:grid-cols-2 gap-2">
               <Input
-                placeholder="بحث بالاسم أو اسم المستخدم أو التخصص..."
+                placeholder={t("schoolDashboard.teacherSearchPlaceholder")}
                 value={teacherSearch}
                 onChange={(e) => setTeacherSearch(e.target.value)}
               />
@@ -1181,21 +1183,21 @@ export default function SchoolDashboard() {
                 value={teacherSort}
                 onChange={(e) => setTeacherSort(e.target.value as any)}
               >
-                <option value="newest">الأحدث</option>
-                <option value="oldest">الأقدم</option>
-                <option value="mostActive">الأكثر نشاطًا</option>
-                <option value="mostStudents">الأكثر طلابًا</option>
+                <option value="newest">{t("schoolDashboard.newest")}</option>
+                <option value="oldest">{t("schoolDashboard.oldest")}</option>
+                <option value="mostActive">{t("schoolDashboard.mostActive")}</option>
+                <option value="mostStudents">{t("schoolDashboard.mostStudents")}</option>
               </select>
             </div>
             {isTeachersFetching && (
               <div className="text-xs text-muted-foreground flex items-center gap-1">
                 <Loader2 className="h-3 w-3 animate-spin" />
-                جارِ تحديث نتائج المعلمين...
+                {t("schoolDashboard.updatingTeachers")}
               </div>
             )}
 
             {teachers.length === 0 ? (
-              <Card><CardContent className="p-8 text-center text-muted-foreground">لم يتم إضافة معلمين بعد</CardContent></Card>
+              <Card><CardContent className="p-8 text-center text-muted-foreground">{t("schoolDashboard.noTeachersYet")}</CardContent></Card>
             ) : (
               <div className="grid md:grid-cols-2 gap-4">
                 {teachers.map((teacher) => (
@@ -1211,32 +1213,32 @@ export default function SchoolDashboard() {
                           </div>
                           <div>
                             <h3 className="font-bold">{teacher.name}</h3>
-                            <p className="text-sm text-muted-foreground">{teacher.subject || "بدون تخصص"}</p>
+                            <p className="text-sm text-muted-foreground">{teacher.subject || t("schoolDashboard.noSubject")}</p>
                             <p className="text-xs text-muted-foreground">@{teacher.username}</p>
                           </div>
                         </div>
                         <Badge variant={teacher.isActive ? "default" : "secondary"}>
-                          {teacher.isActive ? "نشط" : "غير نشط"}
+                          {teacher.isActive ? t("schoolDashboard.activeStatus", "نشط") : t("schoolDashboard.inactiveStatus", "غير نشط")}
                         </Badge>
                       </div>
 
                       <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
-                        <span>{teacher.totalTasksSold} مهمة مباعة</span>
-                        <span>{teacher.totalStudents} طالب</span>
-                        <span>{teacher.yearsExperience} سنة خبرة</span>
+                        <span>{teacher.totalTasksSold} {t("schoolDashboard.tasksSold")}</span>
+                        <span>{teacher.totalStudents} {t("schoolDashboard.student", "طالب")}</span>
+                        <span>{teacher.yearsExperience} {t("schoolDashboard.yearsExperience")}</span>
                       </div>
 
                       <div className="flex flex-wrap gap-2">
                         <Button size="sm" variant="outline" onClick={() => openEditTeacher(teacher)}>
                           <Edit className="h-3 w-3 ml-1" />
-                          تعديل
+                          {t("schoolDashboard.edit", "تعديل")}
                         </Button>
                         <Button
                           size="sm"
                           variant={teacher.isActive ? "secondary" : "default"}
                           onClick={() => updateTeacher.mutate({ id: teacher.id, isActive: !teacher.isActive })}
                         >
-                          {teacher.isActive ? "تعطيل" : "تفعيل"}
+                          {teacher.isActive ? t("schoolDashboard.deactivate") : t("schoolDashboard.activate")}
                         </Button>
                         <Button
                           size="sm"
@@ -1250,7 +1252,7 @@ export default function SchoolDashboard() {
                           }}
                         >
                           <Send className="h-3 w-3 ml-1" />
-                          نقل
+                          {t("schoolDashboard.transfer")}
                         </Button>
                       </div>
                     </CardContent>
@@ -1262,15 +1264,15 @@ export default function SchoolDashboard() {
 
           <TabsContent value="posts" className="space-y-4">
             <div className="flex justify-between items-center">
-              <h2 className="text-lg font-bold">المنشورات</h2>
+              <h2 className="text-lg font-bold">{t("schoolDashboard.postsHeader", "المنشورات")}</h2>
               <Button onClick={() => { setEditingPost(null); resetPostForm(); setShowPostModal(true); }} className="bg-blue-600">
                 <Plus className="h-4 w-4 ml-1" />
-                منشور جديد
+                {t("schoolDashboard.newPost")}
               </Button>
             </div>
 
             {feed.length === 0 ? (
-              <Card><CardContent className="p-8 text-center text-muted-foreground">لا يوجد منشورات بعد</CardContent></Card>
+              <Card><CardContent className="p-8 text-center text-muted-foreground">{t("schoolDashboard.noPostsYet")}</CardContent></Card>
             ) : (
               <div className="space-y-4">
                 {[...feed].sort((a, b) => {
@@ -1282,9 +1284,9 @@ export default function SchoolDashboard() {
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex items-center gap-2">
                           <Badge variant={post.authorType === "school" ? "default" : "secondary"}>
-                            {post.authorType === "school" ? "المدرسة" : post.teacherName || "معلم"}
+                            {post.authorType === "school" ? t("schoolDashboard.school") : post.teacherName || t("schoolDashboard.teacher")}
                           </Badge>
-                          {post.isPinned && <Badge variant="outline">مثبت</Badge>}
+                          {post.isPinned && <Badge variant="outline">{t("schoolDashboard.pinned", "مثبت")}</Badge>}
                         </div>
 
                         {post.authorType === "school" && (
@@ -1303,7 +1305,7 @@ export default function SchoolDashboard() {
                               size="sm"
                               variant="ghost"
                               onClick={() => {
-                                if (confirm("هل تريد حذف هذا المنشور؟")) deletePost.mutate(post.id);
+                                if (confirm(t("schoolDashboard.confirmDeletePost"))) deletePost.mutate(post.id);
                               }}
                             >
                               <Trash2 className="h-4 w-4 text-red-500" />
@@ -1334,7 +1336,7 @@ export default function SchoolDashboard() {
                           onClick={() => togglePostComments(post.id)}
                           className="hover:underline cursor-pointer"
                         >
-                          💬 {post.commentsCount} تعليق
+                          💬 {post.commentsCount} {t("schoolDashboard.comment")}
                         </button>
                         <span>{new Date(post.createdAt).toLocaleString("ar-EG", { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</span>
                       </div>
@@ -1343,7 +1345,7 @@ export default function SchoolDashboard() {
                       {showCommentsByPost[post.id] && (
                         <div className="border-t pt-2 space-y-2">
                           {commentsLoadingByPost[post.id] ? (
-                            <div className="text-center text-xs text-muted-foreground py-2">جاري التحميل...</div>
+                            <div className="text-center text-xs text-muted-foreground py-2">{t("schoolDashboard.loading")}</div>
                           ) : commentsByPost[post.id]?.length > 0 ? (
                             <div className="space-y-2 max-h-48 overflow-y-auto">
                               {commentsByPost[post.id].map((c) => (
@@ -1361,7 +1363,7 @@ export default function SchoolDashboard() {
                           ) : null}
                           <div className="flex items-center gap-2">
                             <Input
-                              placeholder="اكتب رداً..."
+                              placeholder={t("schoolDashboard.writeReply")}
                               value={commentInputByPost[post.id] || ""}
                               onChange={(e) => setCommentInputByPost((prev) => ({ ...prev, [post.id]: e.target.value }))}
                               className="text-sm rounded-full bg-gray-100 dark:bg-gray-800 border-0 h-9"
@@ -1395,10 +1397,10 @@ export default function SchoolDashboard() {
           </TabsContent>
 
           <TabsContent value="students" className="space-y-4">
-            <h2 className="text-lg font-bold">الطلاب المسجلين</h2>
+            <h2 className="text-lg font-bold">{t("schoolDashboard.registeredStudents")}</h2>
             <div className="grid md:grid-cols-2 gap-2">
               <Input
-                placeholder="بحث باسم الطالب أو ولي الأمر..."
+                placeholder={t("schoolDashboard.studentSearchPlaceholder")}
                 value={studentsSearch}
                 onChange={(e) => {
                   setStudentsSearch(e.target.value);
@@ -1413,20 +1415,20 @@ export default function SchoolDashboard() {
                   setStudentsPage(1);
                 }}
               >
-                <option value="newest">الأحدث</option>
-                <option value="oldest">الأقدم</option>
-                <option value="nameAsc">الاسم (أ-ي)</option>
-                <option value="nameDesc">الاسم (ي-أ)</option>
+                <option value="newest">{t("schoolDashboard.newest")}</option>
+                <option value="oldest">{t("schoolDashboard.oldest")}</option>
+                <option value="nameAsc">{t("schoolDashboard.nameAsc")}</option>
+                <option value="nameDesc">{t("schoolDashboard.nameDesc")}</option>
               </select>
             </div>
             {isStudentsFetching && (
               <div className="text-xs text-muted-foreground flex items-center gap-1">
                 <Loader2 className="h-3 w-3 animate-spin" />
-                جارِ تحديث نتائج الطلاب...
+                {t("schoolDashboard.updatingStudents")}
               </div>
             )}
             {students.length === 0 ? (
-              <Card><CardContent className="p-8 text-center text-muted-foreground">لا يوجد طلاب مسجلين بعد</CardContent></Card>
+              <Card><CardContent className="p-8 text-center text-muted-foreground">{t("schoolDashboard.noStudentsYet")}</CardContent></Card>
             ) : (
               <>
               <div className="grid md:grid-cols-2 gap-4">
@@ -1441,8 +1443,8 @@ export default function SchoolDashboard() {
                           )}
                         </div>
                         <div>
-                          <h3 className="font-bold">{student.childName || "طالب"}</h3>
-                          <p className="text-sm text-muted-foreground">ولي الأمر: {student.parentName || "—"}</p>
+                          <h3 className="font-bold">{student.childName || t("schoolDashboard.studentDefault", "طالب")}</h3>
+                          <p className="text-sm text-muted-foreground">{t("schoolDashboard.parentLabel")} {student.parentName || "—"}</p>
                           <p className="text-xs text-muted-foreground">{new Date(student.createdAt).toLocaleDateString("ar")}</p>
                         </div>
                       </div>
@@ -1451,19 +1453,19 @@ export default function SchoolDashboard() {
                 ))}
               </div>
               <div className="flex items-center justify-center gap-2">
-                <Button variant="outline" size="sm" disabled={studentsPage <= 1} onClick={() => setStudentsPage((p) => Math.max(1, p - 1))}>السابق</Button>
-                <span className="text-sm text-muted-foreground">صفحة {studentsPage} من {studentsPagesCount}</span>
-                <Button variant="outline" size="sm" disabled={studentsPage >= studentsPagesCount} onClick={() => setStudentsPage((p) => Math.min(studentsPagesCount, p + 1))}>التالي</Button>
+                <Button variant="outline" size="sm" disabled={studentsPage <= 1} onClick={() => setStudentsPage((p) => Math.max(1, p - 1))}>{t("schoolDashboard.previous")}</Button>
+                <span className="text-sm text-muted-foreground">{t("schoolDashboard.page")} {studentsPage} {t("schoolDashboard.of")} {studentsPagesCount}</span>
+                <Button variant="outline" size="sm" disabled={studentsPage >= studentsPagesCount} onClick={() => setStudentsPage((p) => Math.min(studentsPagesCount, p + 1))}>{t("schoolDashboard.next")}</Button>
               </div>
               </>
             )}
           </TabsContent>
 
           <TabsContent value="reviews" className="space-y-4">
-            <h2 className="text-lg font-bold">التقييمات</h2>
+            <h2 className="text-lg font-bold">{t("schoolDashboard.reviewsHeader")}</h2>
             <div className="grid md:grid-cols-2 gap-2">
               <Input
-                placeholder="بحث باسم ولي الأمر أو نص التقييم..."
+                placeholder={t("schoolDashboard.reviewsSearchPlaceholder")}
                 value={reviewsSearch}
                 onChange={(e) => {
                   setReviewsSearch(e.target.value);
@@ -1478,20 +1480,20 @@ export default function SchoolDashboard() {
                   setReviewsPage(1);
                 }}
               >
-                <option value="newest">الأحدث</option>
-                <option value="oldest">الأقدم</option>
-                <option value="highest">الأعلى تقييمًا</option>
-                <option value="lowest">الأقل تقييمًا</option>
+                <option value="newest">{t("schoolDashboard.newest")}</option>
+                <option value="oldest">{t("schoolDashboard.oldest")}</option>
+                <option value="highest">{t("schoolDashboard.highestRated")}</option>
+                <option value="lowest">{t("schoolDashboard.lowestRated")}</option>
               </select>
             </div>
             {isReviewsFetching && (
               <div className="text-xs text-muted-foreground flex items-center gap-1">
                 <Loader2 className="h-3 w-3 animate-spin" />
-                جارِ تحديث نتائج التقييمات...
+                {t("schoolDashboard.updatingReviews")}
               </div>
             )}
             {reviews.length === 0 ? (
-              <Card><CardContent className="p-8 text-center text-muted-foreground">لا يوجد تقييمات بعد</CardContent></Card>
+              <Card><CardContent className="p-8 text-center text-muted-foreground">{t("schoolDashboard.noReviewsYet")}</CardContent></Card>
             ) : (
               <>
               <div className="space-y-4">
@@ -1499,7 +1501,7 @@ export default function SchoolDashboard() {
                   <Card key={review.id}>
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between">
-                        <span className="font-bold">{review.parentName || "ولي أمر"}</span>
+                        <span className="font-bold">{review.parentName || t("schoolDashboard.parentDefault")}</span>
                         <div className="flex">
                           {[1, 2, 3, 4, 5].map((n) => (
                             <Star key={n} className={`h-4 w-4 ${n <= review.rating ? "text-yellow-400 fill-yellow-400" : "text-gray-300"}`} />
@@ -1513,9 +1515,9 @@ export default function SchoolDashboard() {
                 ))}
               </div>
               <div className="flex items-center justify-center gap-2">
-                <Button variant="outline" size="sm" disabled={reviewsPage <= 1} onClick={() => setReviewsPage((p) => Math.max(1, p - 1))}>السابق</Button>
-                <span className="text-sm text-muted-foreground">صفحة {reviewsPage} من {reviewsPagesCount}</span>
-                <Button variant="outline" size="sm" disabled={reviewsPage >= reviewsPagesCount} onClick={() => setReviewsPage((p) => Math.min(reviewsPagesCount, p + 1))}>التالي</Button>
+                <Button variant="outline" size="sm" disabled={reviewsPage <= 1} onClick={() => setReviewsPage((p) => Math.max(1, p - 1))}>{t("schoolDashboard.previous")}</Button>
+                <span className="text-sm text-muted-foreground">{t("schoolDashboard.page")} {reviewsPage} {t("schoolDashboard.of")} {reviewsPagesCount}</span>
+                <Button variant="outline" size="sm" disabled={reviewsPage >= reviewsPagesCount} onClick={() => setReviewsPage((p) => Math.min(reviewsPagesCount, p + 1))}>{t("schoolDashboard.next")}</Button>
               </div>
               </>
             )}
@@ -1524,15 +1526,15 @@ export default function SchoolDashboard() {
           {/* Polls Tab */}
           <TabsContent value="polls" className="space-y-4">
             <div className="flex justify-between items-center">
-              <h2 className="text-lg font-bold">التصويتات</h2>
+              <h2 className="text-lg font-bold">{t("schoolDashboard.pollsHeader", "التصويتات")}</h2>
               <Button onClick={() => { resetPollForm(); setShowPollModal(true); }} className="bg-blue-600">
                 <Plus className="h-4 w-4 ml-1" />
-                إنشاء تصويت
+                {t("schoolDashboard.createPoll", "إنشاء تصويت")}
               </Button>
             </div>
 
             {polls.length === 0 ? (
-              <Card><CardContent className="p-8 text-center text-muted-foreground">لا يوجد تصويتات بعد</CardContent></Card>
+              <Card><CardContent className="p-8 text-center text-muted-foreground">{t("schoolDashboard.noPollsYet", "لا يوجد تصويتات بعد")}</CardContent></Card>
             ) : (
               <div className="space-y-4">
                 {[...polls].sort((a, b) => {
@@ -1551,19 +1553,19 @@ export default function SchoolDashboard() {
                               <h3 className="font-bold text-base">{poll.question}</h3>
                               <p className="text-xs text-muted-foreground">
                                 {poll.authorType === "teacher"
-                                  ? `👨‍🏫 ${(poll as any).teacherName || "معلم"}`
-                                  : "🏫 المدرسة"}
+                                  ? `👨‍🏫 ${(poll as any).teacherName || t("schoolDashboard.teacher")}`
+                                  : `🏫 ${t("schoolDashboard.school")}`}
                               </p>
                             </div>
                           </div>
                           <div className="flex items-center gap-1">
-                            {poll.authorType === "teacher" && <Badge variant="secondary" className="text-xs">معلم</Badge>}
-                            {poll.isPinned && <Badge variant="secondary">📌 مثبت</Badge>}
-                            {poll.isClosed && <Badge variant="destructive">مغلق</Badge>}
-                            {isExpired && !poll.isClosed && <Badge variant="outline">منتهي</Badge>}
-                            {poll.isAnonymous && <Badge variant="outline">مجهول</Badge>}
-                            {poll.allowMultiple && <Badge variant="outline">متعدد</Badge>}
-                            {!poll.allowMultiple && <Badge variant="outline">واحد فقط</Badge>}
+                            {poll.authorType === "teacher" && <Badge variant="secondary" className="text-xs">{t("schoolDashboard.teacher")}</Badge>}
+                            {poll.isPinned && <Badge variant="secondary">📌 {t("schoolDashboard.pinned", "مثبت")}</Badge>}
+                            {poll.isClosed && <Badge variant="destructive">{t("schoolDashboard.closed", "مغلق")}</Badge>}
+                            {isExpired && !poll.isClosed && <Badge variant="outline">{t("schoolDashboard.expired", "منتهي")}</Badge>}
+                            {poll.isAnonymous && <Badge variant="outline">{t("schoolDashboard.anonymous", "مجهول")}</Badge>}
+                            {poll.allowMultiple && <Badge variant="outline">{t("schoolDashboard.multiple", "متعدد")}</Badge>}
+                            {!poll.allowMultiple && <Badge variant="outline">{t("schoolDashboard.singleOnly", "واحد فقط")}</Badge>}
                           </div>
                         </div>
 
@@ -1593,7 +1595,7 @@ export default function SchoolDashboard() {
 
                         <div className="flex items-center justify-between pt-2 border-t">
                           <div className="text-xs text-muted-foreground flex items-center gap-3">
-                            <span>👥 {poll.votersCount} مصوّت</span>
+                            <span>👥 {poll.votersCount} {t("schoolDashboard.voters", "مصوّت")}</span>
                             <span>{new Date(poll.createdAt).toLocaleString("ar-EG", { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</span>
                             {poll.expiresAt && <span>⏰ {new Date(poll.expiresAt).toLocaleString("ar-EG", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</span>}
                           </div>
@@ -1602,7 +1604,7 @@ export default function SchoolDashboard() {
                               variant="ghost"
                               size="sm"
                               onClick={() => updatePoll.mutate({ id: poll.id, isPinned: !poll.isPinned })}
-                              title={poll.isPinned ? "إلغاء التثبيت" : "تثبيت"}
+                              title={poll.isPinned ? t("schoolDashboard.unpin", "إلغاء التثبيت") : t("schoolDashboard.pin", "تثبيت")}
                             >
                               {poll.isPinned ? <PinOff className="h-4 w-4" /> : <Pin className="h-4 w-4" />}
                             </Button>
@@ -1610,14 +1612,14 @@ export default function SchoolDashboard() {
                               variant="ghost"
                               size="sm"
                               onClick={() => updatePoll.mutate({ id: poll.id, isClosed: !poll.isClosed })}
-                              title={poll.isClosed ? "فتح التصويت" : "إغلاق التصويت"}
+                              title={poll.isClosed ? t("schoolDashboard.openPoll", "فتح التصويت") : t("schoolDashboard.closePoll", "إغلاق التصويت")}
                             >
                               {poll.isClosed ? <Unlock className="h-4 w-4 text-green-600" /> : <Lock className="h-4 w-4 text-orange-600" />}
                             </Button>
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => { if (confirm("حذف هذا التصويت؟")) deletePoll.mutate(poll.id); }}
+                              onClick={() => { if (confirm(t("schoolDashboard.confirmDeletePoll"))) deletePoll.mutate(poll.id); }}
                             >
                               <Trash2 className="h-4 w-4 text-red-500" />
                             </Button>
@@ -1632,16 +1634,16 @@ export default function SchoolDashboard() {
           </TabsContent>
 
           <TabsContent value="activity" className="space-y-4">
-            <h2 className="text-lg font-bold">سجل النشاط</h2>
+            <h2 className="text-lg font-bold">{t("schoolDashboard.activityLog")}</h2>
             {activity.length === 0 ? (
-              <Card><CardContent className="p-8 text-center text-muted-foreground">لا يوجد نشاط بعد</CardContent></Card>
+              <Card><CardContent className="p-8 text-center text-muted-foreground">{t("schoolDashboard.noActivityYet")}</CardContent></Card>
             ) : (
               <div className="space-y-3">
                 {activity.map((log) => (
                   <Card key={log.id}>
                     <CardContent className="p-4 flex items-start justify-between gap-4">
                       <div>
-                        <p className="font-medium">{getActivityLabel(log.action)}</p>
+                        <p className="font-medium">{getActivityLabel(log.action, t)}</p>
                         {log.metadata && <p className="text-xs text-muted-foreground mt-1">{JSON.stringify(log.metadata)}</p>}
                       </div>
                       <div className="text-left">
@@ -1671,7 +1673,7 @@ export default function SchoolDashboard() {
                     )}
                   </div>
                   <div className="flex-1 relative z-10">
-                    <h2 className="text-xl sm:text-2xl font-bold">{profile?.name || "المدرسة"}</h2>
+                    <h2 className="text-xl sm:text-2xl font-bold">{profile?.name || t("schoolDashboard.school")}</h2>
                     {profile?.nameAr && <p className="text-muted-foreground text-sm">{profile.nameAr}</p>}
                     {profile?.description && <p className="text-sm mt-1 text-muted-foreground">{profile.description}</p>}
                     <div className="flex flex-wrap gap-3 text-xs text-muted-foreground mt-2">
@@ -1688,20 +1690,20 @@ export default function SchoolDashboard() {
                   <div className="flex gap-2 relative z-10">
                     <Button variant="outline" onClick={openEditProfile}>
                       <Edit className="h-4 w-4 ml-1" />
-                      تعديل البيانات
+                      {t("schoolDashboard.editData")}
                     </Button>
                     <Button variant="outline" onClick={() => window.open(`/school/${profile?.id}`, "_blank")}>
                       <Eye className="h-4 w-4 ml-1" />
-                      عرض الصفحة العامة
+                      {t("schoolDashboard.viewPublicPage")}
                     </Button>
                     <ShareMenu
                       url={typeof window !== "undefined" ? `${window.location.origin}/school/${profile?.id || ""}` : ""}
-                      title={`${profile?.nameAr || profile?.name || "المدرسة"} — Classify`}
+                      title={`${profile?.nameAr || profile?.name || t("schoolDashboard.school")} — Classify`}
                       description={profile?.description || ""}
                     />
                     <Button className="bg-blue-600" onClick={() => { setEditingPost(null); resetPostForm(); setShowPostModal(true); }}>
                       <Plus className="h-4 w-4 ml-1" />
-                      إنشاء منشور
+                      {t("schoolDashboard.createPost")}
                     </Button>
                   </div>
                 </div>
@@ -1709,7 +1711,7 @@ export default function SchoolDashboard() {
             </Card>
 
             {feed.length === 0 ? (
-              <Card><CardContent className="p-8 text-center text-muted-foreground">لا يوجد منشورات بعد</CardContent></Card>
+              <Card><CardContent className="p-8 text-center text-muted-foreground">{t("schoolDashboard.noPostsYet")}</CardContent></Card>
             ) : (
               <div className="space-y-4">
                 {[...feed].sort((a, b) => {
@@ -1721,9 +1723,9 @@ export default function SchoolDashboard() {
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex items-center gap-2">
                           <Badge variant={post.authorType === "school" ? "default" : "secondary"}>
-                            {post.authorType === "school" ? "المدرسة" : post.teacherName || "معلم"}
+                            {post.authorType === "school" ? t("schoolDashboard.school") : post.teacherName || t("schoolDashboard.teacher")}
                           </Badge>
-                          {post.isPinned && <Badge variant="outline">مثبت</Badge>}
+                          {post.isPinned && <Badge variant="outline">{t("schoolDashboard.pinned", "مثبت")}</Badge>}
                         </div>
 
                         {post.authorType === "school" && (
@@ -1735,7 +1737,7 @@ export default function SchoolDashboard() {
                               {post.isPinned ? <PinOff className="h-4 w-4" /> : <Pin className="h-4 w-4" />}
                             </Button>
                             <Button size="sm" variant="ghost" onClick={() => {
-                              if (confirm("هل تريد حذف هذا المنشور؟")) deletePost.mutate(post.id);
+                              if (confirm(t("schoolDashboard.confirmDeletePost"))) deletePost.mutate(post.id);
                             }}>
                               <Trash2 className="h-4 w-4 text-red-500" />
                             </Button>
@@ -1765,14 +1767,14 @@ export default function SchoolDashboard() {
                         </div>
                         <Button size="sm" variant="ghost" onClick={() => togglePostComments(post.id)}>
                           <MessageSquare className="h-4 w-4 ml-1" />
-                          {showCommentsByPost[post.id] ? "إخفاء التعليقات" : "عرض التعليقات"}
+                          {showCommentsByPost[post.id] ? t("schoolDashboard.hideComments", "إخفاء التعليقات") : t("schoolDashboard.showComments", "عرض التعليقات")}
                         </Button>
                       </div>
 
                       {showCommentsByPost[post.id] && (
                         <div className="space-y-2 border-t pt-3">
                           {commentsLoadingByPost[post.id] ? (
-                            <p className="text-xs text-muted-foreground">جاري تحميل التعليقات...</p>
+                            <p className="text-xs text-muted-foreground">{t("schoolDashboard.loadingComments", "جاري تحميل التعليقات...")}</p>
                           ) : (
                             (commentsByPost[post.id] || []).map((comment) => (
                               <div key={comment.id} className="bg-gray-50 dark:bg-gray-800 rounded p-2 text-sm">
@@ -1784,7 +1786,7 @@ export default function SchoolDashboard() {
 
                           <div className="flex gap-2">
                             <Input
-                              placeholder="اكتب ردًا على التعليقات..."
+                              placeholder={t("schoolDashboard.writeReplyToComments", "اكتب ردًا على التعليقات...")}
                               value={commentInputByPost[post.id] || ""}
                               onChange={(e) => setCommentInputByPost((prev) => ({ ...prev, [post.id]: e.target.value }))}
                             />
@@ -1811,20 +1813,20 @@ export default function SchoolDashboard() {
       <Dialog open={showTeacherModal} onOpenChange={setShowTeacherModal}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{editingTeacher ? "تعديل المعلم" : "إضافة معلم جديد"}</DialogTitle>
+            <DialogTitle>{editingTeacher ? t("schoolDashboard.editTeacher") : t("schoolDashboard.addNewTeacher")}</DialogTitle>
           </DialogHeader>
 
           <div className="grid md:grid-cols-2 gap-3">
             <div>
-              <Label>الاسم *</Label>
+              <Label>{t("schoolDashboard.nameLabel")}</Label>
               <Input value={teacherForm.name} onChange={(e) => setTeacherForm((f) => ({ ...f, name: e.target.value }))} />
             </div>
             <div>
-              <Label>اسم المستخدم *</Label>
+              <Label>{t("schoolDashboard.usernameLabel")}</Label>
               <Input value={teacherForm.username} onChange={(e) => setTeacherForm((f) => ({ ...f, username: e.target.value }))} />
             </div>
             <div>
-              <Label>{editingTeacher ? "كلمة المرور الجديدة (اختياري)" : "كلمة المرور *"}</Label>
+              <Label>{editingTeacher ? t("schoolDashboard.newPasswordOptional") : t("schoolDashboard.passwordLabel")}</Label>
               <div className="relative">
                 <Input
                   type={showPassword ? "text" : "password"}
@@ -1837,35 +1839,35 @@ export default function SchoolDashboard() {
               </div>
             </div>
             <div>
-              <Label>التخصص</Label>
+              <Label>{t("schoolDashboard.subjectLabel")}</Label>
               <Input value={teacherForm.subject} onChange={(e) => setTeacherForm((f) => ({ ...f, subject: e.target.value }))} />
             </div>
             <div>
-              <Label>سنوات الخبرة</Label>
+              <Label>{t("schoolDashboard.yearsExpLabel")}</Label>
               <Input type="number" value={teacherForm.yearsExperience} onChange={(e) => setTeacherForm((f) => ({ ...f, yearsExperience: parseInt(e.target.value || "0", 10) || 0 }))} />
             </div>
             <div>
-              <Label>تاريخ الميلاد</Label>
+              <Label>{t("schoolDashboard.birthdayLabel")}</Label>
               <Input type="date" value={teacherForm.birthday} onChange={(e) => setTeacherForm((f) => ({ ...f, birthday: e.target.value }))} />
             </div>
             <div>
-              <Label>رابط الصورة الشخصية</Label>
+              <Label>{t("schoolDashboard.avatarUrlLabel")}</Label>
               <Input value={teacherForm.avatarUrl} onChange={(e) => setTeacherForm((f) => ({ ...f, avatarUrl: e.target.value }))} />
             </div>
             <div>
-              <Label>رابط صورة الغلاف</Label>
+              <Label>{t("schoolDashboard.coverImageUrlLabel")}</Label>
               <Input value={teacherForm.coverImageUrl} onChange={(e) => setTeacherForm((f) => ({ ...f, coverImageUrl: e.target.value }))} />
             </div>
             <div>
-              <Label>السعر الشهري</Label>
+              <Label>{t("schoolDashboard.monthlyRateLabel")}</Label>
               <Input value={teacherForm.monthlyRate} onChange={(e) => setTeacherForm((f) => ({ ...f, monthlyRate: e.target.value }))} />
             </div>
             <div>
-              <Label>سعر المهمة</Label>
+              <Label>{t("schoolDashboard.perTaskRateLabel")}</Label>
               <Input value={teacherForm.perTaskRate} onChange={(e) => setTeacherForm((f) => ({ ...f, perTaskRate: e.target.value }))} />
             </div>
             <div className="md:col-span-2">
-              <Label>نبذة</Label>
+              <Label>{t("schoolDashboard.bioLabel")}</Label>
               <Textarea value={teacherForm.bio} onChange={(e) => setTeacherForm((f) => ({ ...f, bio: e.target.value }))} />
             </div>
 
@@ -1896,9 +1898,9 @@ export default function SchoolDashboard() {
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowTeacherModal(false)}>إلغاء</Button>
+            <Button variant="outline" onClick={() => setShowTeacherModal(false)}>{t("schoolDashboard.cancel", "إلغاء")}</Button>
             <Button className="bg-blue-600" onClick={handleSubmitTeacher}>
-              {editingTeacher ? "تحديث" : "إضافة"}
+              {editingTeacher ? t("schoolDashboard.update", "تحديث") : t("schoolDashboard.add", "إضافة")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1907,12 +1909,12 @@ export default function SchoolDashboard() {
       <Dialog open={showPostModal} onOpenChange={setShowPostModal}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{editingPost ? "تعديل المنشور" : "منشور جديد"}</DialogTitle>
+            <DialogTitle>{editingPost ? t("schoolDashboard.editPost") : t("schoolDashboard.newPostTitle")}</DialogTitle>
           </DialogHeader>
 
           <div className="space-y-3">
             <Textarea
-              placeholder="اكتب محتوى المنشور..."
+              placeholder={t("schoolDashboard.postContentPlaceholder")}
               value={postForm.content}
               onChange={(e) => setPostForm((p) => ({ ...p, content: e.target.value }))}
               className="min-h-[120px]"
@@ -1921,12 +1923,12 @@ export default function SchoolDashboard() {
             <div className="flex flex-wrap items-center gap-2">
               <Label className="cursor-pointer inline-flex items-center gap-2 border rounded-md px-3 py-2">
                 <Upload className="h-4 w-4" />
-                رفع صورة/فيديو
+                {t("schoolDashboard.uploadMedia")}
                 <input type="file" accept="image/*,video/*" multiple className="hidden" onChange={(e) => { handlePostMediaSelected(e.target.files); e.target.value = ""; }} />
               </Label>
               <Button type="button" variant={postForm.isPinned ? "default" : "outline"} onClick={() => setPostForm((p) => ({ ...p, isPinned: !p.isPinned }))}>
                 {postForm.isPinned ? <Pin className="h-4 w-4 ml-1" /> : <PinOff className="h-4 w-4 ml-1" />}
-                {postForm.isPinned ? "مثبت" : "غير مثبت"}
+                {postForm.isPinned ? t("schoolDashboard.pinned", "مثبت") : t("schoolDashboard.unpinned")}
               </Button>
             </div>
 
@@ -1983,10 +1985,10 @@ export default function SchoolDashboard() {
                 resetPostForm();
               }}
             >
-              إلغاء
+              {t("schoolDashboard.cancel", "إلغاء")}
             </Button>
             <Button className="bg-blue-600" onClick={handleSubmitPost} disabled={publishingPost}>
-              {editingPost ? "تحديث" : "نشر"}
+              {editingPost ? t("schoolDashboard.update", "تحديث") : t("schoolDashboard.publish", "نشر")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1995,20 +1997,20 @@ export default function SchoolDashboard() {
       <Dialog open={showProfileModal} onOpenChange={setShowProfileModal}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>تعديل بيانات المدرسة</DialogTitle>
+            <DialogTitle>{t("schoolDashboard.editSchoolData")}</DialogTitle>
           </DialogHeader>
 
           <div className="grid md:grid-cols-2 gap-3">
             <div>
-              <Label>الاسم *</Label>
+              <Label>{t("schoolDashboard.nameLabel")}</Label>
               <Input value={profileForm.name} onChange={(e) => setProfileForm((f) => ({ ...f, name: e.target.value }))} />
             </div>
             <div>
-              <Label>الاسم العربي</Label>
+              <Label>{t("schoolDashboard.arabicNameLabel")}</Label>
               <Input value={profileForm.nameAr} onChange={(e) => setProfileForm((f) => ({ ...f, nameAr: e.target.value }))} />
             </div>
             <div>
-              <Label>صورة المدرسة</Label>
+              <Label>{t("schoolDashboard.schoolImageLabel")}</Label>
               <div className="space-y-2">
                 <div className="w-16 h-16 rounded-full relative overflow-hidden bg-gray-100 dark:bg-gray-800 flex items-center justify-center border">
                   <School className="h-7 w-7 text-blue-600" />
@@ -2018,7 +2020,7 @@ export default function SchoolDashboard() {
                 </div>
                 <Label className="cursor-pointer inline-flex items-center gap-2 border rounded-md px-3 py-2 text-sm">
                   <Upload className="h-4 w-4" />
-                  {uploadingProfileImage ? "جاري الرفع..." : "رفع من الجهاز"}
+                  {uploadingProfileImage ? t("schoolDashboard.uploading", "جاري الرفع...") : t("schoolDashboard.uploadFromDevice")}
                   <input
                     type="file"
                     accept="image/*"
@@ -2030,7 +2032,7 @@ export default function SchoolDashboard() {
               </div>
             </div>
             <div>
-              <Label>صورة الغلاف</Label>
+              <Label>{t("schoolDashboard.coverImageLabel")}</Label>
               <div className="space-y-2">
                 <div className="w-full h-16 rounded relative overflow-hidden bg-gray-100 dark:bg-gray-800 border">
                   {profileForm.coverImageUrl && (
@@ -2039,7 +2041,7 @@ export default function SchoolDashboard() {
                 </div>
                 <Label className="cursor-pointer inline-flex items-center gap-2 border rounded-md px-3 py-2 text-sm">
                   <Upload className="h-4 w-4" />
-                  {uploadingProfileCover ? "جاري الرفع..." : "رفع من الجهاز"}
+                  {uploadingProfileCover ? t("schoolDashboard.uploading", "جاري الرفع...") : t("schoolDashboard.uploadFromDevice")}
                   <input
                     type="file"
                     accept="image/*"
@@ -2051,27 +2053,27 @@ export default function SchoolDashboard() {
               </div>
             </div>
             <div>
-              <Label>الهاتف</Label>
+              <Label>{t("schoolDashboard.phoneLabel")}</Label>
               <Input value={profileForm.phoneNumber} onChange={(e) => setProfileForm((f) => ({ ...f, phoneNumber: e.target.value }))} />
             </div>
             <div>
-              <Label>البريد</Label>
+              <Label>{t("schoolDashboard.emailLabel")}</Label>
               <Input value={profileForm.email} onChange={(e) => setProfileForm((f) => ({ ...f, email: e.target.value }))} />
             </div>
             <div>
-              <Label>العنوان</Label>
+              <Label>{t("schoolDashboard.addressLabel")}</Label>
               <Input value={profileForm.address} onChange={(e) => setProfileForm((f) => ({ ...f, address: e.target.value }))} />
             </div>
             <div>
-              <Label>المدينة</Label>
+              <Label>{t("schoolDashboard.cityLabel", "المدينة")}</Label>
               <Input value={profileForm.city} onChange={(e) => setProfileForm((f) => ({ ...f, city: e.target.value }))} />
             </div>
             <div>
-              <Label>المحافظة</Label>
+              <Label>{t("schoolDashboard.governorateLabel")}</Label>
               <Input value={profileForm.governorate} onChange={(e) => setProfileForm((f) => ({ ...f, governorate: e.target.value }))} />
             </div>
             <div className="md:col-span-2">
-              <Label>الوصف</Label>
+              <Label>{t("schoolDashboard.descriptionLabel", "الوصف")}</Label>
               <Textarea value={profileForm.description} onChange={(e) => setProfileForm((f) => ({ ...f, description: e.target.value }))} />
             </div>
 
@@ -2102,8 +2104,8 @@ export default function SchoolDashboard() {
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowProfileModal(false)}>إلغاء</Button>
-            <Button className="bg-blue-600" onClick={handleSubmitProfile}>حفظ</Button>
+            <Button variant="outline" onClick={() => setShowProfileModal(false)}>{t("schoolDashboard.cancel", "إلغاء")}</Button>
+            <Button className="bg-blue-600" onClick={handleSubmitProfile}>{t("schoolDashboard.save", "حفظ")}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -2111,24 +2113,24 @@ export default function SchoolDashboard() {
       {/* Poll Creation Modal */}
       <Dialog open={showPollModal} onOpenChange={setShowPollModal}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>إنشاء تصويت جديد</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{t("schoolDashboard.createNewPoll")}</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label>السؤال *</Label>
+              <Label>{t("schoolDashboard.questionLabel")}</Label>
               <Input
-                placeholder="ما سؤال التصويت؟"
+                placeholder={t("schoolDashboard.pollQuestionPlaceholder")}
                 value={pollForm.question}
                 onChange={(e) => setPollForm((f) => ({ ...f, question: e.target.value }))}
               />
             </div>
 
             <div className="space-y-2">
-              <Label>الخيارات * (2-10)</Label>
+              <Label>{t("schoolDashboard.optionsLabel")}</Label>
               {pollForm.options.map((opt, i) => (
                 <div key={i} className="space-y-1">
                   <div className="flex gap-2">
                     <Input
-                      placeholder={`الخيار ${i + 1}`}
+                      placeholder={t("schoolDashboard.optionPlaceholder") + ` ${i + 1}`}
                       value={opt.text}
                       onChange={(e) => {
                         const newOpts = [...pollForm.options];
@@ -2145,7 +2147,7 @@ export default function SchoolDashboard() {
                           const file = e.target.files?.[0];
                           if (!file) return;
                           if (file.size > 5 * 1024 * 1024) {
-                            toast({ title: "حجم الصورة يجب أن يكون أقل من 5MB", variant: "destructive" });
+                            toast({ title: t("schoolDashboard.imageSizeLimit", "حجم الصورة يجب أن يكون أقل من 5MB"), variant: "destructive" });
                             return;
                           }
                           try {
@@ -2154,9 +2156,9 @@ export default function SchoolDashboard() {
                             const newOpts = [...pollForm.options];
                             newOpts[i] = { ...newOpts[i], imageUrl: url };
                             setPollForm((f) => ({ ...f, options: newOpts }));
-                            toast({ title: `تم رفع صورة الخيار ${i + 1}` });
+                            toast({ title: t("schoolDashboard.optionImageUploaded", "تم رفع صورة الخيار") + ` ${i + 1}` });
                           } catch (err: any) {
-                            toast({ title: err.message || "فشل رفع الصورة", variant: "destructive" });
+                            toast({ title: err.message || t("schoolDashboard.imageUploadFailed"), variant: "destructive" });
                           } finally {
                             setUploadingPollOptionIdx(null);
                           }
@@ -2215,7 +2217,7 @@ export default function SchoolDashboard() {
                   onClick={() => setPollForm((f) => ({ ...f, options: [...f.options, { text: "", imageUrl: "" }] }))}
                 >
                   <Plus className="h-4 w-4 ml-1" />
-                  إضافة خيار
+                  {t("schoolDashboard.addOption")}
                 </Button>
               )}
             </div>
@@ -2228,7 +2230,7 @@ export default function SchoolDashboard() {
                   onChange={(e) => setPollForm((f) => ({ ...f, allowMultiple: e.target.checked }))}
                   className="rounded"
                 />
-                <span className="text-sm">السماح باختيار متعدد</span>
+                <span className="text-sm">{t("schoolDashboard.allowMultiple")}</span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
@@ -2237,7 +2239,7 @@ export default function SchoolDashboard() {
                   onChange={(e) => setPollForm((f) => ({ ...f, isAnonymous: e.target.checked }))}
                   className="rounded"
                 />
-                <span className="text-sm">تصويت مجهول</span>
+                <span className="text-sm">{t("schoolDashboard.anonymousVoting")}</span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
@@ -2246,12 +2248,12 @@ export default function SchoolDashboard() {
                   onChange={(e) => setPollForm((f) => ({ ...f, isPinned: e.target.checked }))}
                   className="rounded"
                 />
-                <span className="text-sm">تثبيت التصويت</span>
+                <span className="text-sm">{t("schoolDashboard.pinPoll")}</span>
               </label>
             </div>
 
             <div>
-              <Label>تاريخ الانتهاء (اختياري)</Label>
+              <Label>{t("schoolDashboard.expiryDateOptional")}</Label>
               <Input
                 type="datetime-local"
                 value={pollForm.expiresAt}
@@ -2261,9 +2263,9 @@ export default function SchoolDashboard() {
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowPollModal(false)}>إلغاء</Button>
+            <Button variant="outline" onClick={() => setShowPollModal(false)}>{t("schoolDashboard.cancel", "إلغاء")}</Button>
             <Button className="bg-blue-600" onClick={handleSubmitPoll} disabled={createPoll.isPending}>
-              {createPoll.isPending ? "جاري الإنشاء..." : "إنشاء التصويت"}
+              {createPoll.isPending ? t("schoolDashboard.creating", "جاري الإنشاء...") : t("schoolDashboard.createPollBtn")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -2281,16 +2283,16 @@ export default function SchoolDashboard() {
       {/* Transfer Teacher Modal */}
       <Dialog open={showTransferModal} onOpenChange={setShowTransferModal}>
         <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>نقل المعلم: {transferTeacherName}</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{t("schoolDashboard.transferTeacher")} {transferTeacherName}</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label>المدرسة المستهدفة *</Label>
+              <Label>{t("schoolDashboard.targetSchoolLabel")}</Label>
               <select
                 className="w-full border rounded-md p-2 mt-1 bg-background"
                 value={transferForm.toSchoolId}
                 onChange={e => setTransferForm(f => ({ ...f, toSchoolId: e.target.value }))}
               >
-                <option value="">اختر مدرسة...</option>
+                <option value="">{t("schoolDashboard.selectSchoolPlaceholder")}</option>
                 {availableSchools.map((s: any) => (
                   <option key={s.id} value={s.id}>{s.name}</option>
                 ))}
@@ -2298,7 +2300,7 @@ export default function SchoolDashboard() {
             </div>
 
             <div>
-              <Label>تقييم أداء المعلم * (1-5)</Label>
+              <Label>{t("schoolDashboard.performanceRatingLabel")}</Label>
               <div className="flex gap-1 mt-1">
                 {[1, 2, 3, 4, 5].map(n => (
                   <button
@@ -2314,26 +2316,26 @@ export default function SchoolDashboard() {
             </div>
 
             <div>
-              <Label>تعليق على الأداء *</Label>
+              <Label>{t("schoolDashboard.performanceCommentLabel")}</Label>
               <Textarea
                 value={transferForm.performanceComment}
                 onChange={e => setTransferForm(f => ({ ...f, performanceComment: e.target.value }))}
-                placeholder="اكتب تقييمك لأداء المعلم..."
+                placeholder={t("schoolDashboard.performanceCommentPlaceholder")}
                 rows={3}
               />
             </div>
 
             <div>
-              <Label>سبب النقل (اختياري)</Label>
+              <Label>{t("schoolDashboard.transferReasonLabel")}</Label>
               <Input
                 value={transferForm.reason}
                 onChange={e => setTransferForm(f => ({ ...f, reason: e.target.value }))}
-                placeholder="سبب النقل..."
+                placeholder={t("schoolDashboard.transferReasonPlaceholder")}
               />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowTransferModal(false)}>إلغاء</Button>
+            <Button variant="outline" onClick={() => setShowTransferModal(false)}>{t("schoolDashboard.cancel", "إلغاء")}</Button>
             <Button
               className="bg-orange-600 hover:bg-orange-700"
               disabled={!transferForm.toSchoolId || !transferForm.performanceRating || !transferForm.performanceComment || transferTeacher.isPending}
@@ -2348,7 +2350,7 @@ export default function SchoolDashboard() {
                 });
               }}
             >
-              {transferTeacher.isPending ? "جاري النقل..." : "تأكيد النقل"}
+              {transferTeacher.isPending ? t("schoolDashboard.transferring") : t("schoolDashboard.confirmTransfer")}
             </Button>
           </DialogFooter>
         </DialogContent>

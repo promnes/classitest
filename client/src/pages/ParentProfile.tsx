@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest, authenticatedFetch } from "@/lib/queryClient";
@@ -34,6 +35,7 @@ export default function ParentProfile() {
   const [, navigate] = useLocation();
   const { isDark } = useTheme();
   const { toast } = useToast();
+  const { t } = useTranslation();
   const token = localStorage.getItem("token");
   const [activeTab, setActiveTab] = useState("library");
   const [selectedChild, setSelectedChild] = useState("");
@@ -99,10 +101,10 @@ export default function ParentProfile() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/parent/task-library"] });
       queryClient.invalidateQueries({ queryKey: ["/api/parent/wallet"] });
-      toast({ title: "تم ✅", description: data?.data?.message || "تم إرسال المهمة للطفل" });
+      toast({ title: t("parentProfile.taskSentSuccess"), description: data?.data?.message || t("parentProfile.taskSentToChild") });
     },
     onError: (err: any) => {
-      toast({ title: "خطأ", description: err?.message || "فشل إرسال المهمة", variant: "destructive" });
+      toast({ title: t("parentProfile.error"), description: err?.message || t("parentProfile.taskSendFailed"), variant: "destructive" });
     },
   });
 
@@ -143,7 +145,7 @@ export default function ParentProfile() {
         originalName: file.name,
       }),
     });
-    if (!presignRes.ok) throw new Error("فشل رفع الملف");
+    if (!presignRes.ok) throw new Error(t("parentProfile.uploadFailed"));
     const { data: presign } = await presignRes.json();
 
     // Step 2: Upload
@@ -154,7 +156,7 @@ export default function ParentProfile() {
         headers: { "Content-Type": file.type || "application/octet-stream" },
         body: file,
       });
-      if (!directRes.ok) throw new Error("فشل رفع الملف إلى التخزين");
+      if (!directRes.ok) throw new Error(t("parentProfile.uploadToStorageFailed"));
     } else {
       const proxyRes = await fetch("/api/parent/uploads/proxy", {
         method: "PUT",
@@ -165,7 +167,7 @@ export default function ParentProfile() {
         },
         body: file,
       });
-      if (!proxyRes.ok) throw new Error("فشل رفع الملف إلى التخزين");
+      if (!proxyRes.ok) throw new Error(t("parentProfile.uploadToStorageFailed"));
     }
 
     // Step 3: Finalize
@@ -180,7 +182,7 @@ export default function ParentProfile() {
         purpose: "profile_image",
       }),
     });
-    if (!finalizeRes.ok) throw new Error("فشل تأكيد رفع الملف");
+    if (!finalizeRes.ok) throw new Error(t("parentProfile.uploadConfirmFailed"));
     const { data: media } = await finalizeRes.json();
     return media.url;
   }
@@ -189,7 +191,7 @@ export default function ParentProfile() {
     const file = e.target.files?.[0];
     if (!file) return;
     if (!file.type.startsWith("image/")) {
-      toast({ title: "يرجى اختيار صورة فقط", variant: "destructive" });
+      toast({ title: t("parentProfile.selectImageOnly"), variant: "destructive" });
       return;
     }
     const url = URL.createObjectURL(file);
@@ -220,10 +222,10 @@ export default function ParentProfile() {
       });
       await queryClient.refetchQueries({ queryKey: ["/api/parent/profile-data"] });
       setImageVersion((v) => v + 1);
-      toast({ title: type === "avatar" ? "تم رفع الصورة الشخصية" : "تم رفع صورة الغلاف" });
+      toast({ title: type === "avatar" ? t("parentProfile.avatarUploaded") : t("parentProfile.coverUploaded") });
     } catch (error: any) {
       console.error(`[ParentProfile] Upload ${type} error:`, error);
-      toast({ title: error.message || "فشل رفع الصورة", variant: "destructive" });
+      toast({ title: error.message || t("parentProfile.imageUploadFailed"), variant: "destructive" });
     } finally {
       if (type === "avatar") setAvatarUploading(false);
       else setCoverUploading(false);
@@ -244,7 +246,7 @@ export default function ParentProfile() {
         <Button variant="ghost" size="icon" onClick={() => navigate("/parent-dashboard")}>
           <ArrowRight className="h-5 w-5" />
         </Button>
-        <h1 className="text-lg font-bold flex-1">ملفي الشخصي</h1>
+        <h1 className="text-lg font-bold flex-1">{t("parentProfile.myProfile")}</h1>
         <LanguageSelector />
         <ParentNotificationBell />
       </div>
@@ -272,7 +274,7 @@ export default function ParentProfile() {
               className="absolute bottom-2 left-2 bg-black/50 hover:bg-black/70 text-white rounded-full px-3 py-1 text-xs flex items-center gap-1 transition-all"
             >
               {coverUploading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Camera className="h-3 w-3" />}
-              {coverUploading ? "جاري الرفع..." : "تغيير الغلاف"}
+              {coverUploading ? t("parentProfile.uploading") : t("parentProfile.changeCover")}
             </button>
             <input ref={coverInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => handleSelectParentImage(e, "cover")} />
           </div>
@@ -322,10 +324,10 @@ export default function ParentProfile() {
           {/* Stats */}
           <div className="grid grid-cols-4 gap-2 px-4 mt-4">
             {[
-              { label: "الأطفال", value: stats?.children || 0, icon: Users },
-              { label: "المكتبة", value: stats?.libraryTasks || 0, icon: BookOpen },
-              { label: "المفضلة", value: stats?.favorites || 0, icon: Heart },
-              { label: "متابَع", value: stats?.following || 0, icon: Star },
+              { label: t("parentProfile.childrenLabel"), value: stats?.children || 0, icon: Users },
+              { label: t("parentProfile.libraryLabel"), value: stats?.libraryTasks || 0, icon: BookOpen },
+              { label: t("parentProfile.favoritesLabel"), value: stats?.favorites || 0, icon: Heart },
+              { label: t("parentProfile.followingLabel", "متابَع"), value: stats?.following || 0, icon: Star },
             ].map((s, i) => (
               <div key={i} className={`text-center p-2 rounded-xl ${isDark ? "bg-gray-800/50" : "bg-white"}`}>
                 <s.icon className={`h-4 w-4 mx-auto mb-1 ${isDark ? "text-blue-400" : "text-blue-500"}`} />
@@ -341,10 +343,10 @@ export default function ParentProfile() {
       <div className="px-4 mt-4">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="w-full grid grid-cols-4">
-            <TabsTrigger value="library">📚 المكتبة</TabsTrigger>
-            <TabsTrigger value="favorites">❤️ المفضلة</TabsTrigger>
-            <TabsTrigger value="following">👥 المتابعة</TabsTrigger>
-            <TabsTrigger value="discover">✨ مقترح</TabsTrigger>
+            <TabsTrigger value="library">📚 {t("parentProfile.libraryTab")}</TabsTrigger>
+            <TabsTrigger value="favorites">❤️ {t("parentProfile.favoritesTab")}</TabsTrigger>
+            <TabsTrigger value="following">👥 {t("parentProfile.followingTab")}</TabsTrigger>
+            <TabsTrigger value="discover">✨ {t("parentProfile.discoverTab")}</TabsTrigger>
           </TabsList>
 
           {/* Library Tab */}
@@ -352,8 +354,8 @@ export default function ParentProfile() {
             {libraryTasks.length === 0 ? (
               <div className={`text-center py-8 rounded-xl ${isDark ? "bg-gray-800/50" : "bg-white"}`}>
                 <BookOpen className={`h-10 w-10 mx-auto mb-2 ${isDark ? "text-gray-600" : "text-gray-300"}`} />
-                <p className={`text-sm ${isDark ? "text-gray-400" : "text-gray-500"}`}>مكتبتك فارغة</p>
-                <p className={`text-xs ${isDark ? "text-gray-500" : "text-gray-400"}`}>اشترِ مهام من المعلمين لتظهر هنا</p>
+                <p className={`text-sm ${isDark ? "text-gray-400" : "text-gray-500"}`}>{t("parentProfile.libraryEmpty")}</p>
+                <p className={`text-xs ${isDark ? "text-gray-500" : "text-gray-400"}`}>{t("parentProfile.libraryEmptyHint")}</p>
               </div>
             ) : (
               libraryTasks.map((item: any) => (
@@ -363,14 +365,14 @@ export default function ParentProfile() {
                       <div className="flex-1">
                         <h4 className="font-semibold text-sm">{item.title}</h4>
                         <p className={`text-xs mt-1 ${isDark ? "text-gray-400" : "text-gray-500"}`}>
-                          {item.subjectLabel || "بدون مادة"} • {item.pointsReward} نقطة
+                          {item.subjectLabel || t("parentProfile.noSubject")} • {item.pointsReward} {t("parentProfile.points", "نقطة")}
                         </p>
                         <div className="flex items-center gap-2 mt-1">
                           <Badge variant="secondary" className="text-xs">
-                            {item.purchaseType === "permanent" ? "♾️ دائم" : "1️⃣ مرة واحدة"}
+                            {item.purchaseType === "permanent" ? t("parentProfile.permanent") : t("parentProfile.oneTime")}
                           </Badge>
                           <span className={`text-xs ${isDark ? "text-gray-500" : "text-gray-400"}`}>
-                            استُخدمت {item.usageCount} مرة
+                            {t("parentProfile.used")} {item.usageCount} {t("parentProfile.times")}
                           </span>
                         </div>
                       </div>
@@ -381,7 +383,7 @@ export default function ParentProfile() {
                           onChange={(e) => setSelectedChild(e.target.value)}
                           className={`text-xs px-2 py-1 rounded border ${isDark ? "bg-gray-700 border-gray-600 text-white" : "border-gray-300"}`}
                         >
-                          <option value="">اختر طفل</option>
+                          <option value="">{t("parentProfile.selectChild")}</option>
                           {(Array.isArray(childrenList) ? childrenList : []).map((c: any) => (
                             <option key={c.id} value={c.id}>{c.name}</option>
                           ))}
@@ -392,7 +394,7 @@ export default function ParentProfile() {
                           disabled={!selectedChild || useTaskMutation.isPending}
                           onClick={() => useTaskMutation.mutate({ libraryId: item.id, childId: selectedChild })}
                         >
-                          <Send className="h-3 w-3" /> إرسال
+                          <Send className="h-3 w-3" /> {t("parentProfile.send")}
                         </Button>
                       </div>
                     </div>
@@ -407,7 +409,7 @@ export default function ParentProfile() {
             {favList.length === 0 ? (
               <div className={`text-center py-8 rounded-xl ${isDark ? "bg-gray-800/50" : "bg-white"}`}>
                 <Heart className={`h-10 w-10 mx-auto mb-2 ${isDark ? "text-gray-600" : "text-gray-300"}`} />
-                <p className={`text-sm ${isDark ? "text-gray-400" : "text-gray-500"}`}>لا توجد مهام مفضلة</p>
+                <p className={`text-sm ${isDark ? "text-gray-400" : "text-gray-500"}`}>{t("parentProfile.noFavorites")}</p>
               </div>
             ) : (
               favList.map((fav: any) => (
@@ -417,9 +419,9 @@ export default function ParentProfile() {
                       <div className="flex-1">
                         <h4 className="font-semibold text-sm">{fav.task?.title || fav.task?.question}</h4>
                         <p className={`text-xs mt-1 ${isDark ? "text-gray-400" : "text-gray-500"}`}>
-                          {fav.taskType === "teacher_task" ? "مهمة معلم" : "مهمة قالب"}
-                          {fav.task?.price ? ` • ${fav.task.price} ر.س` : ""}
-                          {fav.task?.pointsReward ? ` • ${fav.task.pointsReward} نقطة` : ""}
+                          {fav.taskType === "teacher_task" ? t("parentProfile.teacherTask") : t("parentProfile.templateTask")}
+                          {fav.task?.price ? ` • ${fav.task.price} ${t("parentProfile.currency", "ر.س")}` : ""}
+                          {fav.task?.pointsReward ? ` • ${fav.task.pointsReward} ${t("parentProfile.points", "نقطة")}` : ""}
                         </p>
                       </div>
                       <Button
@@ -441,7 +443,7 @@ export default function ParentProfile() {
             {followList.length === 0 ? (
               <div className={`text-center py-8 rounded-xl ${isDark ? "bg-gray-800/50" : "bg-white"}`}>
                 <Users className={`h-10 w-10 mx-auto mb-2 ${isDark ? "text-gray-600" : "text-gray-300"}`} />
-                <p className={`text-sm ${isDark ? "text-gray-400" : "text-gray-500"}`}>لا تتابع أحداً بعد</p>
+                <p className={`text-sm ${isDark ? "text-gray-400" : "text-gray-500"}`}>{t("parentProfile.notFollowingAnyone")}</p>
               </div>
             ) : (
               followList.map((f: any) => (
@@ -458,9 +460,9 @@ export default function ParentProfile() {
                       )}
                     </div>
                     <div className="flex-1">
-                      <h4 className="font-semibold text-sm">{f.entity?.name || "غير معروف"}</h4>
+                      <h4 className="font-semibold text-sm">{f.entity?.name || t("parentProfile.unknown")}</h4>
                       <p className={`text-xs ${isDark ? "text-gray-400" : "text-gray-500"}`}>
-                        {f.entityType === "school" ? "مدرسة" : "معلم"}
+                        {f.entityType === "school" ? t("parentProfile.school") : t("parentProfile.teacher", "معلم")}
                         {f.entity?.subject ? ` • ${f.entity.subject}` : ""}
                         {f.entity?.governorate ? ` • ${f.entity.governorate}` : ""}
                       </p>
@@ -478,25 +480,25 @@ export default function ParentProfile() {
             {recs.teachers && recs.teachers.length > 0 && (
               <div>
                 <h3 className="font-bold text-sm mb-2 flex items-center gap-1">
-                  <GraduationCap className="h-4 w-4 text-purple-500" /> معلمون مقترحون
+                  <GraduationCap className="h-4 w-4 text-purple-500" /> {t("parentProfile.suggestedTeachers")}
                 </h3>
                 <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
-                  {recs.teachers.map((t: any) => (
-                    <Card key={t.id} className={`min-w-[160px] cursor-pointer flex-shrink-0 ${isDark ? "bg-gray-800/50 border-gray-700" : ""}`}
-                      onClick={() => navigate(`/teacher/${t.id}`)}>
+                  {recs.teachers.map((teacher: any) => (
+                    <Card key={teacher.id} className={`min-w-[160px] cursor-pointer flex-shrink-0 ${isDark ? "bg-gray-800/50 border-gray-700" : ""}`}
+                      onClick={() => navigate(`/teacher/${teacher.id}`)}>
                       <CardContent className="p-3 text-center">
                         <div className={`h-12 w-12 rounded-full mx-auto flex items-center justify-center text-lg font-bold ${
                           isDark ? "bg-purple-900/50 text-purple-300" : "bg-purple-100 text-purple-600"
                         }`}>
-                          {t.avatarUrl ? (
-                            <img src={t.avatarUrl} className="w-full h-full rounded-full object-cover" alt="" />
+                          {teacher.avatarUrl ? (
+                            <img src={teacher.avatarUrl} className="w-full h-full rounded-full object-cover" alt="" />
                           ) : (
-                            t.name?.charAt(0)
+                            teacher.name?.charAt(0)
                           )}
                         </div>
-                        <p className="font-semibold text-sm mt-2 truncate">{t.name}</p>
-                        <p className={`text-xs ${isDark ? "text-gray-400" : "text-gray-500"}`}>{t.subject || "عام"}</p>
-                        <FollowButton entityType="teacher" entityId={t.id} size="sm" className="mt-2 w-full text-xs" />
+                        <p className="font-semibold text-sm mt-2 truncate">{teacher.name}</p>
+                        <p className={`text-xs ${isDark ? "text-gray-400" : "text-gray-500"}`}>{teacher.subject || t("parentProfile.general")}</p>
+                        <FollowButton entityType="teacher" entityId={teacher.id} size="sm" className="mt-2 w-full text-xs" />
                       </CardContent>
                     </Card>
                   ))}
@@ -508,7 +510,7 @@ export default function ParentProfile() {
             {recs.schools && recs.schools.length > 0 && (
               <div>
                 <h3 className="font-bold text-sm mb-2 flex items-center gap-1">
-                  <School className="h-4 w-4 text-blue-500" /> مدارس مقترحة
+                  <School className="h-4 w-4 text-blue-500" /> {t("parentProfile.suggestedSchools")}
                 </h3>
                 <div className="space-y-2">
                   {recs.schools.map((s: any) => (
@@ -523,7 +525,7 @@ export default function ParentProfile() {
                         <div className="flex-1">
                           <p className="font-semibold text-sm">{s.name}</p>
                           <p className={`text-xs ${isDark ? "text-gray-400" : "text-gray-500"}`}>
-                            {s.governorate || ""} • {s.totalTeachers || 0} معلم
+                            {s.governorate || ""} • {s.totalTeachers || 0} {t("parentProfile.teacherCount", "معلم")}
                             {s.isVerified && " ✓"}
                           </p>
                         </div>
@@ -539,17 +541,17 @@ export default function ParentProfile() {
             {recs.tasks && recs.tasks.length > 0 && (
               <div>
                 <h3 className="font-bold text-sm mb-2 flex items-center gap-1">
-                  <Sparkles className="h-4 w-4 text-amber-500" /> مهام شائعة
+                  <Sparkles className="h-4 w-4 text-amber-500" /> {t("parentProfile.popularTasks")}
                 </h3>
                 <div className="space-y-2">
-                  {recs.tasks.map((t: any) => (
-                    <Card key={t.id} className={isDark ? "bg-gray-800/50 border-gray-700" : ""}>
+                  {recs.tasks.map((task: any) => (
+                    <Card key={task.id} className={isDark ? "bg-gray-800/50 border-gray-700" : ""}>
                       <CardContent className="p-3">
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
-                            <h4 className="font-semibold text-sm">{t.title}</h4>
+                            <h4 className="font-semibold text-sm">{task.title}</h4>
                             <p className={`text-xs mt-1 ${isDark ? "text-gray-400" : "text-gray-500"}`}>
-                              {t.subjectLabel || "عام"} • {t.price} ر.س • {t.purchaseCount || 0} مشتري
+                              {task.subjectLabel || t("parentProfile.general")} • {task.price} {t("parentProfile.currency", "ر.س")} • {task.purchaseCount || 0} {t("parentProfile.buyers")}
                             </p>
                           </div>
                           <div className="flex gap-1">
@@ -559,7 +561,7 @@ export default function ParentProfile() {
                               className="h-8 w-8"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                toggleFavMutation.mutate({ taskType: "teacher_task", taskId: t.id });
+                                toggleFavMutation.mutate({ taskType: "teacher_task", taskId: task.id });
                               }}
                             >
                               <Heart className="h-4 w-4" />
@@ -567,9 +569,9 @@ export default function ParentProfile() {
                             <Button
                               size="sm"
                               className="text-xs gap-1"
-                              onClick={() => navigate(`/teacher/${t.teacherId}`)}
+                              onClick={() => navigate(`/teacher/${task.teacherId}`)}
                             >
-                              <ShoppingCart className="h-3 w-3" /> شراء
+                              <ShoppingCart className="h-3 w-3" /> {t("parentProfile.buy")}
                             </Button>
                           </div>
                         </div>
@@ -583,8 +585,8 @@ export default function ParentProfile() {
             {(!recs.teachers?.length && !recs.schools?.length && !recs.tasks?.length) && (
               <div className={`text-center py-8 rounded-xl ${isDark ? "bg-gray-800/50" : "bg-white"}`}>
                 <Sparkles className={`h-10 w-10 mx-auto mb-2 ${isDark ? "text-gray-600" : "text-gray-300"}`} />
-                <p className={`text-sm ${isDark ? "text-gray-400" : "text-gray-500"}`}>لا توجد اقتراحات حالياً</p>
-                <p className={`text-xs ${isDark ? "text-gray-500" : "text-gray-400"}`}>تابع مدارس ومعلمين لتحصل على اقتراحات أفضل</p>
+                <p className={`text-sm ${isDark ? "text-gray-400" : "text-gray-500"}`}>{t("parentProfile.noSuggestions")}</p>
+                <p className={`text-xs ${isDark ? "text-gray-500" : "text-gray-400"}`}>{t("parentProfile.noSuggestionsHint")}</p>
               </div>
             )}
           </TabsContent>

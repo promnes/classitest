@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, CheckCircle2, XCircle, Clock, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -36,6 +37,7 @@ export function SponsoredTaskNotification({
   onComplete,
   onDismiss,
 }: SponsoredTaskNotificationProps) {
+  const { t } = useTranslation();
   const [isVisible, setIsVisible] = useState(true);
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [showError, setShowError] = useState(false);
@@ -167,7 +169,7 @@ export function SponsoredTaskNotification({
                     <Input
                       value={inputAnswer}
                       onChange={(e) => setInputAnswer(e.target.value)}
-                      placeholder="اكتب إجابتك هنا..."
+                      placeholder={t("sponsoredTask.writeAnswerHere")}
                       className="text-center"
                       data-testid="input-task-answer"
                     />

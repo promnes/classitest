@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import { X, ExternalLink, Megaphone } from "lucide-react";
 
@@ -82,6 +83,7 @@ function getRandomDelay(): number {
 }
 
 export function RandomAdPopup() {
+  const { t } = useTranslation();
   const [visibleAd, setVisibleAd] = useState<Ad | null>(null);
   const [isClosing, setIsClosing] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout>>();

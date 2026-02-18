@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Gamepad2, X, Check, Loader2, Star } from "lucide-react";
 
@@ -31,6 +32,7 @@ interface ChildGameManagerProps {
 }
 
 export function ChildGameManager({ childId, childName, token, onClose }: ChildGameManagerProps) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [selectedGameIds, setSelectedGameIds] = useState<Set<string>>(new Set());
 
@@ -123,7 +125,7 @@ export function ChildGameManager({ childId, childName, token, onClose }: ChildGa
               <Gamepad2 className="w-5 h-5 text-purple-600" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-gray-900">إدارة ألعاب الطفل</h2>
+              <h2 className="text-lg font-bold text-gray-900">{t("admin.childGameManager.title")}</h2>
               <p className="text-sm text-gray-500">{childName}</p>
             </div>
           </div>

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { useLocation, useSearch } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -34,6 +35,7 @@ interface Child {
 }
 
 export default function SubjectTasks() {
+  const { t } = useTranslation();
   const [, navigate] = useLocation();
   const searchString = useSearch();
   const params = new URLSearchParams(searchString);
@@ -122,7 +124,7 @@ export default function SubjectTasks() {
       setSelectedChildId("");
       setCustomPoints(10);
       queryClient.invalidateQueries({ queryKey: ["/api/parent/wallet"] });
-      toast({ title: "تم إرسال المهمة للطفل بنجاح!" });
+      toast({ title: t("subjectTasks.taskSentSuccess") });
     },
   });
 

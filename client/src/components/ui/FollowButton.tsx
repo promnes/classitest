@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { UserPlus, UserCheck, Loader2 } from "lucide-react";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -13,6 +14,7 @@ interface FollowButtonProps {
 }
 
 export function FollowButton({ entityType, entityId, className = "", size = "default" }: FollowButtonProps) {
+  const { t } = useTranslation();
   const { toast } = useToast();
 
   const { data: followStatus, isLoading: statusLoading } = useQuery({
@@ -42,7 +44,7 @@ export function FollowButton({ entityType, entityId, className = "", size = "def
   const toggleFollow = useMutation({
     mutationFn: async () => {
       const token = localStorage.getItem("token");
-      if (!token) throw new Error("يجب تسجيل الدخول أولاً");
+      if (!token) throw new Error(t("followButton.mustLogin"));
 
       const method = followStatus?.isFollowing ? "DELETE" : "POST";
       const res = await fetch("/api/follow", {
@@ -93,7 +95,7 @@ export function FollowButton({ entityType, entityId, className = "", size = "def
         ) : (
           <UserPlus className="h-4 w-4" />
         )}
-        {isFollowing ? "متابَع" : "متابعة"}
+        {isFollowing ? t("followButton.following") : t("followButton.follow")}
       </Button>
       {count > 0 && (
         <span className="text-sm text-muted-foreground">

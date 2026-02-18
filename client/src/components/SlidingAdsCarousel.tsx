@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import { ExternalLink, ChevronLeft, ChevronRight, Megaphone } from "lucide-react";
 
@@ -20,6 +21,7 @@ interface SlidingAdsCarouselProps {
 }
 
 export function SlidingAdsCarousel({ audience, variant, isDark, className = "" }: SlidingAdsCarouselProps) {
+  const { t } = useTranslation();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [slideDirection, setSlideDirection] = useState<"left" | "right">("left");
   const [isAnimating, setIsAnimating] = useState(false);
@@ -136,12 +138,13 @@ export function SlidingAdsCarousel({ audience, variant, isDark, className = "" }
 // ===== Sub-components =====
 
 function HomeHeader({ isDark, adsList, currentIndex }: { isDark: boolean; adsList: Ad[]; currentIndex: number }) {
+  const { t } = useTranslation();
   return (
     <div className="flex items-center justify-center gap-2 mb-6">
       <div className={`flex h-9 w-9 items-center justify-center rounded-xl ${isDark ? "bg-amber-500/20" : "bg-white/20"}`}>
         <Megaphone className={`h-5 w-5 ${isDark ? "text-amber-400" : "text-yellow-300"}`} />
       </div>
-      <h2 className="text-2xl font-bold text-white">إعلانات</h2>
+      <h2 className="text-2xl font-bold text-white">{t("adsCarousel.ads")}</h2>
       {adsList.length > 1 && (
         <span className="text-xs px-2 py-0.5 rounded-full bg-white/15 text-white/70 mr-2">
           {currentIndex + 1}/{adsList.length}
@@ -152,12 +155,13 @@ function HomeHeader({ isDark, adsList, currentIndex }: { isDark: boolean; adsLis
 }
 
 function PageHeader({ isDark, adsList, currentIndex }: { isDark: boolean; adsList: Ad[]; currentIndex: number }) {
+  const { t } = useTranslation();
   return (
     <div className={`flex items-center gap-2 px-5 py-3 border-b ${isDark ? "border-gray-700/50" : "border-gray-100"}`}>
       <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${isDark ? "bg-amber-500/15" : "bg-amber-50"}`}>
         <Megaphone className={`h-4 w-4 ${isDark ? "text-amber-400" : "text-amber-600"}`} />
       </div>
-      <span className={`text-sm font-semibold ${isDark ? "text-gray-300" : "text-gray-600"}`}>إعلانات</span>
+      <span className={`text-sm font-semibold ${isDark ? "text-gray-300" : "text-gray-600"}`}>{t("adsCarousel.ads")}</span>
       {adsList.length > 1 && (
         <span className={`mr-auto text-xs px-2 py-0.5 rounded-full ${isDark ? "bg-gray-700 text-gray-400" : "bg-gray-100 text-gray-500"}`}>
           {currentIndex + 1}/{adsList.length}
@@ -186,6 +190,7 @@ function CarouselBody({
   goPrev: () => void;
   onClick: () => void;
 }) {
+  const { t } = useTranslation();
   const imgHeight = isHome ? "h-48 sm:h-60" : "h-44 sm:h-52";
   const padding = isHome ? "p-6" : "p-5";
 
@@ -210,7 +215,7 @@ function CarouselBody({
               {ad.linkUrl && (
                 <div className="flex items-center gap-1.5 mt-2 text-white/60 text-xs">
                   <ExternalLink className="h-3 w-3" />
-                  <span>عرض التفاصيل</span>
+                  <span>{t("adsCarousel.viewDetails")}</span>
                 </div>
               )}
             </div>
@@ -224,7 +229,7 @@ function CarouselBody({
             {ad.linkUrl && (
               <div className={`flex items-center gap-1.5 mt-3 text-xs ${isDark ? "text-blue-400" : "text-blue-600"}`}>
                 <ExternalLink className="h-3 w-3" />
-                <span>عرض التفاصيل</span>
+                <span>{t("adsCarousel.viewDetails")}</span>
               </div>
             )}
           </div>

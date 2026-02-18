@@ -1,9 +1,11 @@
 import React from "react";
+import { useTranslation } from "react-i18next";
 import { useLocation } from "wouter";
 import { useTheme } from "@/contexts/ThemeContext";
 import { LanguageSelector } from "@/components/LanguageSelector";
 
 export const PrivacyPolicy = (): JSX.Element => {
+  const { t } = useTranslation();
   const [, navigate] = useLocation();
   const { isDark } = useTheme();
 
@@ -11,7 +13,7 @@ export const PrivacyPolicy = (): JSX.Element => {
     <div className={`min-h-screen ${isDark ? "bg-gray-900" : "bg-gray-50"}`}>
       <header className="bg-gradient-to-r from-blue-700 to-blue-800 text-white p-4 md:p-6 shadow-lg">
         <div className="max-w-4xl mx-auto flex justify-between items-center">
-          <h1 className="text-3xl font-bold">سياسة الخصوصية</h1>
+          <h1 className="text-3xl font-bold">{t("privacyPolicy.title")}</h1>
           <div className="flex items-center gap-2">
             <LanguageSelector />
             <button
@@ -33,7 +35,7 @@ export const PrivacyPolicy = (): JSX.Element => {
       <main className="max-w-4xl mx-auto p-4 md:p-6 mt-8">
         <article className={`${isDark ? "bg-gray-800 text-gray-100" : "bg-white text-gray-800"} rounded-lg p-8 shadow-lg`}>
           <section className="mb-8">
-            <h2 className="text-2xl font-bold mb-4">مقدمة</h2>
+            <h2 className="text-2xl font-bold mb-4">{t("privacyPolicy.introduction")}</h2>
             <p>نلتزم بحماية خصوصيتك. تشرح هذه السياسة كيفية جمع بياناتك واستخدامها وحمايتها عند استخدام التطبيق.</p>
           </section>
 

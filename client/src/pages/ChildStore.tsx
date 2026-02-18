@@ -249,7 +249,7 @@ export const ChildStore = (): JSX.Element => {
               <div className="relative">
                 <Input
                   type="text"
-                  placeholder="ابحث..."
+                  placeholder={t('childStore.searchPlaceholder')}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full pl-8 sm:pl-10 pr-3 py-1.5 sm:py-2 rounded-lg bg-white text-gray-800 placeholder-gray-500 border-0 text-sm min-h-[36px]"
@@ -350,7 +350,7 @@ export const ChildStore = (): JSX.Element => {
             <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto justify-between sm:justify-end">
               <Select value={sortBy} onValueChange={setSortBy}>
                 <SelectTrigger className="w-28 sm:w-36 h-8 text-xs min-h-[36px]" data-testid="select-sort">
-                  <SelectValue placeholder="ترتيب" />
+                  <SelectValue placeholder={t('childStore.sortPlaceholder')} />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="featured">الأكثر مبيعاً</SelectItem>
@@ -418,7 +418,7 @@ export const ChildStore = (): JSX.Element => {
                     )}
                     {product.isLibraryProduct && (
                       <Badge className="absolute bottom-2 left-2 bg-purple-500 text-white text-xs">
-                        {product.libraryName || "مكتبة"}
+                        {product.libraryName || t('childStore.library')}
                       </Badge>
                     )}
                   </div>
@@ -461,8 +461,8 @@ export const ChildStore = (): JSX.Element => {
           <div className="flex items-center justify-between mb-3 sm:mb-4 gap-2">
             <h2 className="text-base sm:text-xl font-bold text-gray-800 truncate">
               {selectedCategory 
-                ? categories.find((c: Category) => c.id === selectedCategory)?.nameAr || "المنتجات"
-                : searchQuery ? `نتائج: "${searchQuery}"` : "جميع المنتجات"
+                ? categories.find((c: Category) => c.id === selectedCategory)?.nameAr || t('childStore.products')
+                : searchQuery ? `نتائج: "${searchQuery}"` : t('childStore.allProducts')
               }
             </h2>
             <p className="text-xs sm:text-sm text-gray-500 shrink-0">{products.length} منتج</p>
@@ -522,7 +522,7 @@ export const ChildStore = (): JSX.Element => {
                       )}
                       {product.isLibraryProduct && (
                         <Badge className="absolute bottom-2 left-2 bg-purple-500 text-white text-xs">
-                          {product.libraryName || "مكتبة"}
+                          {product.libraryName || t('childStore.library')}
                         </Badge>
                       )}
                     </div>
@@ -579,7 +579,7 @@ export const ChildStore = (): JSX.Element => {
                       )}
                       {product.isLibraryProduct && (
                         <Badge className="absolute bottom-2 left-2 bg-purple-500 text-white text-xs">
-                          {product.libraryName || "مكتبة"}
+                          {product.libraryName || t('childStore.library')}
                         </Badge>
                       )}
                     </div>

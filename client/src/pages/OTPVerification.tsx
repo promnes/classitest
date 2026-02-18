@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { useLocation } from "wouter";
 import { useMutation } from "@tanstack/react-query";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -27,6 +28,7 @@ function getDeviceName(): string {
 }
 
 export const OTPVerification = (): JSX.Element => {
+  const { t } = useTranslation();
   const [, navigate] = useLocation();
   const { isDark } = useTheme();
   const [otp, setOtp] = useState("");

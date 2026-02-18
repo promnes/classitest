@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useTranslation } from 'react-i18next';
 import { useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import ImageCropper from "@/components/ImageCropper";
@@ -65,7 +66,7 @@ async function uploadFileForTeacher(file: File, token: string, purpose: string):
       originalName: file.name,
     }),
   });
-  if (!presignRes.ok) throw new Error("فشل رفع الملف");
+  if (!presignRes.ok) throw new Error("Upload file failed");
   const { data: presign } = await presignRes.json();
 
   // Step 2: Upload file — handle local vs remote URLs
@@ -77,7 +78,7 @@ async function uploadFileForTeacher(file: File, token: string, purpose: string):
       headers: { "Content-Type": file.type || "application/octet-stream" },
       body: file,
     });
-    if (!directRes.ok) throw new Error("فشل رفع الملف إلى التخزين");
+    if (!directRes.ok) throw new Error("Upload to storage failed");
   } else {
     // Remote storage: Upload via proxy
     const proxyRes = await fetch("/api/teacher/uploads/proxy", {
@@ -89,7 +90,7 @@ async function uploadFileForTeacher(file: File, token: string, purpose: string):
       },
       body: file,
     });
-    if (!proxyRes.ok) throw new Error("فشل رفع الملف إلى التخزين");
+    if (!proxyRes.ok) throw new Error("Upload to storage failed");
   }
 
   // Step 3: Finalize
@@ -104,12 +105,14 @@ async function uploadFileForTeacher(file: File, token: string, purpose: string):
       purpose,
     }),
   });
-  if (!finalizeRes.ok) throw new Error("فشل تأكيد رفع الملف");
+  if (!finalizeRes.ok) throw new Error("Upload finalize failed");
   const { data: media } = await finalizeRes.json();
   return media.url;
 }
 
 export default function TeacherDashboard() {
+  const { t } = useTranslation();
+
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const token = localStorage.getItem("teacherToken");
@@ -317,7 +320,7 @@ export default function TeacherDashboard() {
       queryClient.invalidateQueries({ queryKey: ["teacher-tasks"] });
       setShowTaskModal(false);
       resetTaskForm();
-      toast({ title: "تم إضافة المهمة بنجاح" });
+      toast({ title: t('teacherDashboard.taskAddedSuccess') });
     },
     onError: (err: any) => toast({ title: err.message, variant: "destructive" }),
   });
@@ -340,7 +343,7 @@ export default function TeacherDashboard() {
       setShowTaskModal(false);
       setEditingTask(null);
       resetTaskForm();
-      toast({ title: "تم تحديث المهمة" });
+      toast({ title: t('teacherDashboard.taskUpdated') });
     },
     onError: (err: any) => toast({ title: err.message, variant: "destructive" }),
   });
@@ -355,7 +358,7 @@ export default function TeacherDashboard() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["teacher-tasks"] });
-      toast({ title: "تم حذف المهمة" });
+      toast({ title: t('teacherDashboard.taskDeleted') });
     },
   });
 
@@ -375,7 +378,7 @@ export default function TeacherDashboard() {
       setPostContent("");
       setPostMediaFiles([]);
       setPostMediaPreviews([]);
-      toast({ title: "تم نشر المنشور" });
+      toast({ title: t('teacherDashboard.postPublished') });
     },
   });
 
@@ -389,7 +392,7 @@ export default function TeacherDashboard() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["teacher-posts"] });
-      toast({ title: "تم حذف المنشور" });
+      toast({ title: t('teacherDashboard.postDeleted') });
     },
   });
 
@@ -411,7 +414,7 @@ export default function TeacherDashboard() {
       queryClient.invalidateQueries({ queryKey: ["teacher-withdrawals"] });
       setShowWithdrawModal(false);
       setWithdrawAmount("");
-      toast({ title: "تم إرسال طلب السحب" });
+      toast({ title: t('teacherDashboard.withdrawalRequestSent') });
     },
     onError: (err: any) => toast({ title: err.message, variant: "destructive" }),
   });
@@ -432,7 +435,7 @@ export default function TeacherDashboard() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["teacher-tasks"] });
       setShowTemplateModal(false);
-      toast({ title: "تم إنشاء المهمة من القالب بنجاح" });
+      toast({ title: t('teacherDashboard.taskFromTemplateSuccess') });
     },
     onError: (err: any) => toast({ title: err.message, variant: "destructive" }),
   });
@@ -450,7 +453,7 @@ export default function TeacherDashboard() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["teacher-profile"] });
       setProfileEditMode(false);
-      toast({ title: "تم تحديث الملف الشخصي" });
+      toast({ title: t('teacherDashboard.profileUpdated') });
     },
     onError: (err: any) => toast({ title: err.message, variant: "destructive" }),
   });
@@ -470,9 +473,9 @@ export default function TeacherDashboard() {
       queryClient.invalidateQueries({ queryKey: ["teacher-polls"] });
       setShowPollModal(false);
       resetPollForm();
-      toast({ title: "تم إنشاء التصويت" });
+      toast({ title: t('teacherDashboard.pollCreated') });
     },
-    onError: (err: any) => toast({ title: err.message || "فشل إنشاء التصويت", variant: "destructive" }),
+    onError: (err: any) => toast({ title: err.message || t('teacherDashboard.pollCreateFailed'), variant: "destructive" }),
   });
 
   const updatePoll = useMutation({
@@ -488,9 +491,9 @@ export default function TeacherDashboard() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["teacher-polls"] });
-      toast({ title: "تم تحديث التصويت" });
+      toast({ title: t('teacherDashboard.pollUpdated') });
     },
-    onError: (err: any) => toast({ title: err.message || "فشل التحديث", variant: "destructive" }),
+    onError: (err: any) => toast({ title: err.message || t('teacherDashboard.updateFailed'), variant: "destructive" }),
   });
 
   const deletePoll = useMutation({
@@ -502,9 +505,9 @@ export default function TeacherDashboard() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["teacher-polls"] });
-      toast({ title: "تم حذف التصويت" });
+      toast({ title: t('teacherDashboard.pollDeleted') });
     },
-    onError: (err: any) => toast({ title: err.message || "فشل الحذف", variant: "destructive" }),
+    onError: (err: any) => toast({ title: err.message || t('teacherDashboard.deleteFailed'), variant: "destructive" }),
   });
 
   function resetPollForm() {
@@ -521,12 +524,12 @@ export default function TeacherDashboard() {
 
   function handleSubmitPoll() {
     if (!pollForm.question.trim()) {
-      toast({ title: "سؤال التصويت مطلوب", variant: "destructive" });
+      toast({ title: t('teacherDashboard.pollQuestionRequired'), variant: "destructive" });
       return;
     }
     const validOptions = pollForm.options.filter((o) => o.text.trim());
     if (validOptions.length < 2) {
-      toast({ title: "يجب إضافة خيارين على الأقل", variant: "destructive" });
+      toast({ title: t('teacherDashboard.minTwoOptionsRequired'), variant: "destructive" });
       return;
     }
     createPoll.mutate({
@@ -604,11 +607,11 @@ export default function TeacherDashboard() {
   async function handleSubmitTask() {
     const filteredAnswers = taskForm.answers.filter(a => a.text.trim());
     if (!taskForm.question || !taskForm.price || filteredAnswers.length < 2) {
-      toast({ title: "السؤال والسعر وإجابتين على الأقل مطلوبة", variant: "destructive" });
+      toast({ title: t('teacherDashboard.taskFormValidation'), variant: "destructive" });
       return;
     }
     if (!filteredAnswers.some(a => a.isCorrect)) {
-      toast({ title: "يجب تحديد إجابة صحيحة واحدة على الأقل", variant: "destructive" });
+      toast({ title: t('teacherDashboard.correctAnswerRequired'), variant: "destructive" });
       return;
     }
 
@@ -678,7 +681,7 @@ export default function TeacherDashboard() {
         createTask.mutate(data);
       }
     } catch (err: any) {
-      toast({ title: err.message || "فشل رفع الملفات", variant: "destructive" });
+      toast({ title: err.message || t('teacherDashboard.uploadFilesFailed'), variant: "destructive" });
     } finally {
       setTaskUploading(false);
     }
@@ -699,7 +702,7 @@ export default function TeacherDashboard() {
       }
       createPost.mutate({ content: postContent, mediaUrls, mediaTypes });
     } catch (err: any) {
-      toast({ title: err.message || "فشل رفع الملفات", variant: "destructive" });
+      toast({ title: err.message || t('teacherDashboard.uploadFilesFailed'), variant: "destructive" });
     } finally {
       setPostUploading(false);
     }
@@ -715,7 +718,7 @@ export default function TeacherDashboard() {
         video.onloadedmetadata = () => {
           URL.revokeObjectURL(video.src);
           if (video.duration > 30) {
-            toast({ title: "الفيديو يجب أن يكون أقل من 30 ثانية", variant: "destructive" });
+            toast({ title: t('teacherDashboard.videoMaxDuration'), variant: "destructive" });
             return;
           }
           setPostMediaFiles(prev => [...prev, file]);
@@ -742,7 +745,7 @@ export default function TeacherDashboard() {
     const file = e.target.files?.[0];
     if (!file) return;
     if (!file.type.startsWith("image/")) {
-      toast({ title: "يرجى اختيار صورة فقط", variant: "destructive" });
+      toast({ title: t('teacherDashboard.imageOnlyPlease'), variant: "destructive" });
       return;
     }
     const url = URL.createObjectURL(file);
@@ -768,7 +771,7 @@ export default function TeacherDashboard() {
         await updateProfile.mutateAsync({ coverImageUrl: url });
       }
     } catch {
-      toast({ title: type === "avatar" ? "فشل رفع الصورة" : "فشل رفع صورة الغلاف", variant: "destructive" });
+      toast({ title: type === "avatar" ? t('teacherDashboard.imageUploadFailed') : t('teacherDashboard.coverUploadFailed'), variant: "destructive" });
     } finally {
       if (type === "avatar") setAvatarUploading(false);
       else setCoverUploading(false);
@@ -802,11 +805,11 @@ export default function TeacherDashboard() {
           <div className="flex items-center gap-2">
             <ShareMenu
               url={typeof window !== "undefined" ? `${window.location.origin}/teacher/${profile?.id || ""}` : ""}
-              title={`${profile?.name || "المعلم"} — Classify`}
-              description={profile?.bio || `تعرّف على المعلم على منصة Classify`}
+              title={`${profile?.name || t('teacherDashboard.teacherFallbackName')} — Classify`}
+              description={profile?.bio || t('teacherDashboard.shareDescription')}
               variant="ghost"
               className="text-white hover:bg-green-700"
-              buttonLabel="مشاركة"
+              buttonLabel={t('teacherDashboard.share')}
             />
             <LanguageSelector />
             <TeacherNotificationBell />
@@ -888,7 +891,7 @@ export default function TeacherDashboard() {
                           <p className="text-xs text-muted-foreground mt-1">{task.question}</p>
                         </div>
                         <Badge variant={task.isActive ? "default" : "secondary"}>
-                          {task.isActive ? "نشط" : "غير نشط"}
+                          {task.isActive ? t('teacherDashboard.active') : t('teacherDashboard.inactive')}
                         </Badge>
                       </div>
                       {task.subjectLabel && <Badge variant="outline" className="mt-2 text-xs">{task.subjectLabel}</Badge>}
@@ -904,7 +907,7 @@ export default function TeacherDashboard() {
                           <Edit className="h-3 w-3 ml-1" />
                           تعديل
                         </Button>
-                        <Button size="sm" variant="destructive" onClick={() => { if (confirm("هل تريد حذف هذه المهمة؟")) deleteTask.mutate(task.id); }}>
+                        <Button size="sm" variant="destructive" onClick={() => { if (confirm(t('teacherDashboard.confirmDeleteTask'))) deleteTask.mutate(task.id); }}>
                           <Trash2 className="h-3 w-3 ml-1" />
                           حذف
                         </Button>
@@ -987,8 +990,8 @@ export default function TeacherDashboard() {
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between">
                         <div>
-                          <h3 className="font-bold text-sm">{order.taskQuestion || "مهمة"}</h3>
-                          <p className="text-xs text-muted-foreground">المشتري: {order.childName || "طالب"}</p>
+                          <h3 className="font-bold text-sm">{order.taskQuestion || t('teacherDashboard.taskFallback')}</h3>
+                          <p className="text-xs text-muted-foreground">المشتري: {order.childName || t('teacherDashboard.studentFallback')}</p>
                         </div>
                         <div className="text-left">
                           <p className="font-bold text-green-600">{order.teacherEarningAmount} ج.م</p>
@@ -1053,7 +1056,7 @@ export default function TeacherDashboard() {
                         </p>
                       </div>
                       <Badge variant={w.status === "approved" ? "default" : w.status === "rejected" ? "destructive" : "secondary"}>
-                        {w.status === "approved" ? "مقبول" : w.status === "rejected" ? "مرفوض" : "قيد المراجعة"}
+                        {w.status === "approved" ? t('teacherDashboard.approved') : w.status === "rejected" ? t('teacherDashboard.rejected') : t('teacherDashboard.underReview')}
                       </Badge>
                     </CardContent>
                   </Card>
@@ -1080,7 +1083,7 @@ export default function TeacherDashboard() {
                     <CardContent className="p-4">
                       <div className="flex justify-between items-start">
                         <p className="text-sm whitespace-pre-wrap flex-1">{post.content}</p>
-                        <Button size="sm" variant="ghost" onClick={() => { if (confirm("حذف؟")) deletePost.mutate(post.id); }}>
+                        <Button size="sm" variant="ghost" onClick={() => { if (confirm(t('teacherDashboard.confirmDeleteShort'))) deletePost.mutate(post.id); }}>
                           <Trash2 className="h-4 w-4 text-red-500" />
                         </Button>
                       </div>
@@ -1178,7 +1181,7 @@ export default function TeacherDashboard() {
                               variant="ghost"
                               size="sm"
                               onClick={() => updatePoll.mutate({ id: poll.id, isPinned: !poll.isPinned })}
-                              title={poll.isPinned ? "إلغاء التثبيت" : "تثبيت"}
+                              title={poll.isPinned ? t('teacherDashboard.unpin') : t('teacherDashboard.pin')}
                             >
                               {poll.isPinned ? <PinOff className="h-4 w-4" /> : <Pin className="h-4 w-4" />}
                             </Button>
@@ -1186,14 +1189,14 @@ export default function TeacherDashboard() {
                               variant="ghost"
                               size="sm"
                               onClick={() => updatePoll.mutate({ id: poll.id, isClosed: !poll.isClosed })}
-                              title={poll.isClosed ? "فتح التصويت" : "إغلاق التصويت"}
+                              title={poll.isClosed ? t('teacherDashboard.openPoll') : t('teacherDashboard.closePoll')}
                             >
                               {poll.isClosed ? <Unlock className="h-4 w-4 text-green-600" /> : <Lock className="h-4 w-4 text-orange-600" />}
                             </Button>
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => { if (confirm("حذف هذا التصويت؟")) deletePoll.mutate(poll.id); }}
+                              onClick={() => { if (confirm(t('teacherDashboard.confirmDeletePoll'))) deletePoll.mutate(poll.id); }}
                             >
                               <Trash2 className="h-4 w-4 text-red-500" />
                             </Button>
@@ -1223,7 +1226,7 @@ export default function TeacherDashboard() {
                   disabled={coverUploading}
                 >
                   <Camera className="h-3 w-3" />
-                  {coverUploading ? "جاري الرفع..." : "تغيير الغلاف"}
+                  {coverUploading ? t('teacherDashboard.uploading') : t('teacherDashboard.changeCover')}
                 </Button>
                 <input ref={coverInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => handleSelectTeacherImage(e, "cover")} />
               </div>
@@ -1250,7 +1253,7 @@ export default function TeacherDashboard() {
                   </div>
                   <div className="flex-1 pt-2">
                     <h2 className="text-xl font-bold">{profile?.name}</h2>
-                    <p className="text-sm text-muted-foreground">{profile?.subject || "لم يتم تحديد المادة"}</p>
+                    <p className="text-sm text-muted-foreground">{profile?.subject || t('teacherDashboard.noSubjectSet')}</p>
                     <p className="text-sm text-muted-foreground">{profile?.schoolName}</p>
                   </div>
                   <div className="flex items-center gap-2">
@@ -1265,7 +1268,7 @@ export default function TeacherDashboard() {
                     </Button>
                     <ShareMenu
                       url={typeof window !== "undefined" ? `${window.location.origin}/teacher/${profile?.id || ""}` : ""}
-                      title={`${profile?.name || "المعلم"} — Classify`}
+                      title={`${profile?.name || t('teacherDashboard.teacherFallbackName')} — Classify`}
                       description={profile?.bio || ""}
                     />
                     <Button
@@ -1286,7 +1289,7 @@ export default function TeacherDashboard() {
                       className="gap-1"
                     >
                       <Settings className="h-3 w-3" />
-                      {profileEditMode ? "إلغاء" : "تعديل"}
+                      {profileEditMode ? t('teacherDashboard.cancel') : t('teacherDashboard.edit')}
                     </Button>
                   </div>
                 </div>
@@ -1375,12 +1378,12 @@ export default function TeacherDashboard() {
       <Dialog open={showTaskModal} onOpenChange={setShowTaskModal}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{editingTask ? "تعديل المهمة" : "مهمة جديدة"}</DialogTitle>
+            <DialogTitle>{editingTask ? t('teacherDashboard.editTask') : t('teacherDashboard.newTask')}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
             <div>
               <Label>عنوان المهمة</Label>
-              <Input value={taskForm.title} onChange={e => setTaskForm(f => ({ ...f, title: e.target.value }))} placeholder="عنوان واضح للمهمة" />
+              <Input value={taskForm.title} onChange={e => setTaskForm(f => ({ ...f, title: e.target.value }))} placeholder={t('teacherDashboard.taskTitlePlaceholder')} />
             </div>
             <div>
               <Label>السؤال *</Label>
@@ -1393,7 +1396,7 @@ export default function TeacherDashboard() {
               </div>
               <div>
                 <Label>تصنيف المادة</Label>
-                <Input value={taskForm.subjectLabel} onChange={e => setTaskForm(f => ({ ...f, subjectLabel: e.target.value }))} placeholder="مثال: رياضيات" />
+                <Input value={taskForm.subjectLabel} onChange={e => setTaskForm(f => ({ ...f, subjectLabel: e.target.value }))} placeholder={t('teacherDashboard.subjectPlaceholder')} />
               </div>
             </div>
             <div>
@@ -1444,7 +1447,7 @@ export default function TeacherDashboard() {
                             setAnswerMediaPreviews(prev => { const n = { ...prev }; delete n[removedId]; return n; });
                           }}
                           className="text-red-400 hover:text-red-600 p-1 rounded hover:bg-red-50 dark:hover:bg-red-950"
-                          title="حذف الإجابة"
+                          title={t('teacherDashboard.deleteAnswer')}
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>
@@ -1634,7 +1637,7 @@ export default function TeacherDashboard() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowTaskModal(false)}>إلغاء</Button>
             <Button className="bg-green-600" onClick={handleSubmitTask} disabled={taskUploading}>
-              {taskUploading ? "جاري الرفع..." : editingTask ? "تحديث" : "إضافة"}
+              {taskUploading ? t('teacherDashboard.uploading') : editingTask ? t('teacherDashboard.update') : t('teacherDashboard.add')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1653,7 +1656,7 @@ export default function TeacherDashboard() {
             </div>
             <div>
               <Label>السعر (ج.م) *</Label>
-              <Input type="number" step="0.01" value={taskForm.price} onChange={e => setTaskForm(f => ({ ...f, price: e.target.value }))} placeholder="حدد سعر المهمة" />
+              <Input type="number" step="0.01" value={taskForm.price} onChange={e => setTaskForm(f => ({ ...f, price: e.target.value }))} placeholder={t('teacherDashboard.templatePricePlaceholder')} />
             </div>
             <div>
               <Label>العنوان (اختياري)</Label>
@@ -1664,7 +1667,7 @@ export default function TeacherDashboard() {
             <Button variant="outline" onClick={() => setShowTemplateModal(false)}>إلغاء</Button>
             <Button className="bg-green-600" onClick={() => {
               if (!taskForm.price) {
-                toast({ title: "السعر مطلوب", variant: "destructive" });
+                toast({ title: t('teacherDashboard.priceRequired'), variant: "destructive" });
                 return;
               }
               createTaskFromTemplate.mutate({
@@ -1673,7 +1676,7 @@ export default function TeacherDashboard() {
                 title: taskForm.title,
               });
             }} disabled={createTaskFromTemplate.isPending}>
-              {createTaskFromTemplate.isPending ? "جاري الإنشاء..." : "إنشاء المهمة"}
+              {createTaskFromTemplate.isPending ? t('teacherDashboard.creating') : t('teacherDashboard.createTask')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1683,7 +1686,7 @@ export default function TeacherDashboard() {
       <Dialog open={showPostModal} onOpenChange={setShowPostModal}>
         <DialogContent className="max-w-md">
           <DialogHeader><DialogTitle>منشور جديد</DialogTitle></DialogHeader>
-          <Textarea placeholder="اكتب محتوى المنشور..." value={postContent} onChange={e => setPostContent(e.target.value)} className="min-h-[100px]" />
+          <Textarea placeholder={t('teacherDashboard.postPlaceholder')} value={postContent} onChange={e => setPostContent(e.target.value)} className="min-h-[100px]" />
 
           {/* Media previews */}
           {postMediaPreviews.length > 0 && (
@@ -1724,7 +1727,7 @@ export default function TeacherDashboard() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowPostModal(false)}>إلغاء</Button>
             <Button className="bg-green-600" onClick={handleSubmitPost} disabled={!postContent.trim() || postUploading || createPost.isPending}>
-              {postUploading ? "جاري الرفع..." : "نشر"}
+              {postUploading ? t('teacherDashboard.uploading') : t('teacherDashboard.publish')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1738,7 +1741,7 @@ export default function TeacherDashboard() {
             <div>
               <Label>السؤال *</Label>
               <Input
-                placeholder="ما سؤال التصويت؟"
+                placeholder={t('teacherDashboard.pollQuestionPlaceholder')}
                 value={pollForm.question}
                 onChange={(e) => setPollForm((f) => ({ ...f, question: e.target.value }))}
               />
@@ -1767,7 +1770,7 @@ export default function TeacherDashboard() {
                           const file = e.target.files?.[0];
                           if (!file) return;
                           if (file.size > 5 * 1024 * 1024) {
-                            toast({ title: "حجم الصورة يجب أن يكون أقل من 5MB", variant: "destructive" });
+                            toast({ title: t('teacherDashboard.imageSizeLimit'), variant: "destructive" });
                             return;
                           }
                           try {
@@ -1778,7 +1781,7 @@ export default function TeacherDashboard() {
                             setPollForm((f) => ({ ...f, options: newOpts }));
                             toast({ title: `تم رفع صورة الخيار ${i + 1}` });
                           } catch (err: any) {
-                            toast({ title: err.message || "فشل رفع الصورة", variant: "destructive" });
+                            toast({ title: err.message || t('teacherDashboard.imageUploadFailed'), variant: "destructive" });
                           } finally {
                             setUploadingPollOptionIdx(null);
                           }
@@ -1885,7 +1888,7 @@ export default function TeacherDashboard() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowPollModal(false)}>إلغاء</Button>
             <Button className="bg-green-600" onClick={handleSubmitPoll} disabled={createPoll.isPending}>
-              {createPoll.isPending ? "جاري الإنشاء..." : "إنشاء التصويت"}
+              {createPoll.isPending ? t('teacherDashboard.creating') : t('teacherDashboard.createPollSubmit')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1905,7 +1908,7 @@ export default function TeacherDashboard() {
                 min="1"
                 value={withdrawAmount}
                 onChange={(e) => setWithdrawAmount(e.target.value)}
-                placeholder="أدخل المبلغ المراد سحبه"
+                placeholder={t('teacherDashboard.withdrawPlaceholder')}
               />
             </div>
           </div>

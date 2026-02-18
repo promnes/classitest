@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
+import { useTranslation } from "react-i18next";
+import i18next from "i18next";
 import { useRoute, Link } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
@@ -33,12 +35,12 @@ function SocialIcon({ platform }: { platform: string }) {
 
 function socialLabel(platform: string): string {
   const labels: Record<string, string> = {
-    facebook: "فيسبوك",
-    instagram: "انستجرام",
-    youtube: "يوتيوب",
-    twitter: "تويتر",
-    tiktok: "تيك توك",
-    website: "الموقع الإلكتروني",
+    facebook: i18next.t("schoolProfile.socialFacebook"),
+    instagram: i18next.t("schoolProfile.socialInstagram"),
+    youtube: i18next.t("schoolProfile.socialYoutube"),
+    twitter: i18next.t("schoolProfile.socialTwitter"),
+    tiktok: i18next.t("schoolProfile.socialTiktok"),
+    website: i18next.t("schoolProfile.socialWebsite"),
   };
   return labels[platform] || platform;
 }
@@ -59,6 +61,7 @@ export default function SchoolProfile() {
   const [, params] = useRoute("/school/:id");
   const schoolId = params?.id;
   const { toast } = useToast();
+  const { t } = useTranslation();
 
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewComment, setReviewComment] = useState("");
@@ -110,7 +113,7 @@ export default function SchoolProfile() {
   // Vote mutation
   const votePoll = useMutation({
     mutationFn: async ({ pollId, selectedOptions }: { pollId: string; selectedOptions: string[] }) => {
-      if (!parentToken) throw new Error("يجب تسجيل الدخول كولي أمر للتصويت");
+      if (!parentToken) throw new Error(t("schoolProfile.loginToVote"));
       const res = await fetch(`/api/store/schools/polls/${pollId}/vote`, {
         method: "POST",
         headers: { "Content-Type": "application/json", ...parentAuthHeaders },
@@ -118,14 +121,14 @@ export default function SchoolProfile() {
       });
       if (!res.ok) {
         const err = await res.json();
-        throw new Error(err.message || "فشل التصويت");
+        throw new Error(err.message || t("schoolProfile.voteFailed"));
       }
       return await res.json();
     },
     onSuccess: (_, { pollId, selectedOptions }) => {
       setVotedPolls(prev => ({ ...prev, [pollId]: selectedOptions }));
       queryClient.invalidateQueries({ queryKey: ["school-polls-public", schoolId] });
-      toast({ title: "تم تسجيل تصويتك بنجاح" });
+      toast({ title: t("schoolProfile.voteRecorded") });
     },
     onError: (err: any) => toast({ title: err.message, variant: "destructive" }),
   });
@@ -156,7 +159,7 @@ export default function SchoolProfile() {
       queryClient.invalidateQueries({ queryKey: ["public-school", schoolId] });
       setReviewComment("");
       setReviewRating(5);
-      toast({ title: "تم إرسال تقييمك بنجاح" });
+      toast({ title: t("schoolProfile.reviewSubmitted") });
     },
     onError: (err: any) => toast({ title: err.message, variant: "destructive" }),
   });
@@ -201,7 +204,7 @@ export default function SchoolProfile() {
 
   const likePost = useMutation({
     mutationFn: async (postId: string) => {
-      if (!token) throw new Error("يجب تسجيل الدخول");
+      if (!token) throw new Error(t("schoolProfile.loginRequired", "يجب تسجيل الدخول"));
       const res = await fetch(`/api/store/schools/posts/${postId}/like`, {
         method: "POST",
         headers: { "Content-Type": "application/json", ...authHeaders },
@@ -216,12 +219,12 @@ export default function SchoolProfile() {
       setLikedPosts(prev => ({ ...prev, [postId]: data.liked }));
       setLocalLikesCount(prev => ({ ...prev, [postId]: data.likesCount }));
     },
-    onError: (err: any) => toast({ title: err.message || "فشل الإعجاب", variant: "destructive" }),
+    onError: (err: any) => toast({ title: err.message || t("schoolProfile.likeFailed", "فشل الإعجاب"), variant: "destructive" }),
   });
 
   const addComment = useMutation({
     mutationFn: async ({ postId, content }: { postId: string; content: string }) => {
-      if (!token) throw new Error("يجب تسجيل الدخول");
+      if (!token) throw new Error(t("schoolProfile.loginRequired", "يجب تسجيل الدخول"));
       const res = await fetch(`/api/store/schools/posts/${postId}/comment`, {
         method: "POST",
         headers: { "Content-Type": "application/json", ...authHeaders },
@@ -240,9 +243,9 @@ export default function SchoolProfile() {
       if (data.data) {
         setPostComments(prev => ({ ...prev, [postId]: [data.data, ...(prev[postId] || [])] }));
       }
-      toast({ title: "تم إضافة التعليق" });
+      toast({ title: t("schoolProfile.commentAdded", "تم إضافة التعليق") });
     },
-    onError: (err: any) => toast({ title: err.message || "فشل إضافة التعليق", variant: "destructive" }),
+    onError: (err: any) => toast({ title: err.message || t("schoolProfile.commentFailed", "فشل إضافة التعليق"), variant: "destructive" }),
   });
 
   if (isLoading) {
@@ -257,7 +260,7 @@ export default function SchoolProfile() {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100 dark:bg-gray-950">
         <School className="h-16 w-16 text-gray-300 mb-4" />
-        <p className="text-lg text-muted-foreground">المدرسة غير موجودة</p>
+        <p className="text-lg text-muted-foreground">{t("schoolProfile.notFound")}</p>
       </div>
     );
   }
@@ -314,17 +317,17 @@ export default function SchoolProfile() {
                 <span className="flex items-center gap-0.5">
                   <Star className="h-4 w-4 text-yellow-400 fill-yellow-400" />
                   <strong className="text-foreground">{school.avgRating || 0}</strong>
-                  <span>({school.reviews?.length || 0} تقييم)</span>
+                  <span>({school.reviews?.length || 0} {t("schoolProfile.reviewCount", "تقييم")})</span>
                 </span>
                 <span>•</span>
                 <span className="flex items-center gap-0.5">
                   <Users className="h-4 w-4" />
-                  {school.totalStudents || 0} طالب
+                  {school.totalStudents || 0} {t("schoolProfile.student", "طالب")}
                 </span>
                 <span>•</span>
                 <span className="flex items-center gap-0.5">
                   <GraduationCap className="h-4 w-4" />
-                  {school.teachers?.length || school.totalTeachers || 0} معلم
+                  {school.teachers?.length || school.totalTeachers || 0} {t("schoolProfile.teacherCount", "معلم")}
                 </span>
               </div>
             </div>
@@ -334,7 +337,7 @@ export default function SchoolProfile() {
               <ShareMenu
                 url={typeof window !== "undefined" ? window.location.href : ""}
                 title={`${school.nameAr || school.name} — Classify`}
-                description={school.description || `تعرّف على ${school.nameAr || school.name} على منصة Classify`}
+                description={school.description || `${t("schoolProfile.discoverSchool")} ${school.nameAr || school.name} ${t("schoolProfile.onClassifyPlatform")}`}
               />
             </div>
           </div>
@@ -343,11 +346,11 @@ export default function SchoolProfile() {
           <div className="border-t dark:border-gray-800">
             <div className="flex gap-0 overflow-x-auto scrollbar-hide -mb-px">
               {[
-                { key: "posts", label: "المنشورات", icon: BookOpen },
-                { key: "polls", label: "التصويتات", icon: BarChart3 },
-                { key: "about", label: "حول", icon: School },
-                { key: "teachers", label: "المعلمين", icon: GraduationCap },
-                { key: "reviews", label: "التقييمات", icon: Star },
+                { key: "posts", label: t("schoolProfile.postsTab", "المنشورات"), icon: BookOpen },
+                { key: "polls", label: t("schoolProfile.pollsTab", "التصويتات"), icon: BarChart3 },
+                { key: "about", label: t("schoolProfile.aboutTab"), icon: School },
+                { key: "teachers", label: t("schoolProfile.teachersTab", "المعلمين"), icon: GraduationCap },
+                { key: "reviews", label: t("schoolProfile.reviewsTab", "التقييمات"), icon: Star },
               ].map(tab => (
                 <button
                   key={tab.key}
@@ -377,7 +380,7 @@ export default function SchoolProfile() {
               <CardContent className="p-4 space-y-3">
                 <h3 className="font-bold text-lg flex items-center gap-2">
                   <School className="h-5 w-5 text-blue-600" />
-                  معلومات المدرسة
+                  {t("schoolProfile.schoolInfo")}
                 </h3>
                 {school.description && (
                   <p className="text-sm text-muted-foreground leading-relaxed">{school.description}</p>
@@ -403,12 +406,12 @@ export default function SchoolProfile() {
                   )}
                   <div className="flex items-center gap-2.5 text-sm">
                     <Calendar className="h-4 w-4 text-muted-foreground shrink-0" />
-                    <span>انضمت في {joinDate}</span>
+                    <span>{t("schoolProfile.joinedIn")} {joinDate}</span>
                   </div>
                   {school.referralCode && (
                     <div className="flex items-center gap-2.5 text-sm">
                       <Award className="h-4 w-4 text-muted-foreground shrink-0" />
-                      <span>كود الإحالة: <strong className="font-mono bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded text-blue-600">{school.referralCode}</strong></span>
+                      <span>{t("schoolProfile.referralCode")} <strong className="font-mono bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded text-blue-600">{school.referralCode}</strong></span>
                     </div>
                   )}
                 </div>
@@ -420,7 +423,7 @@ export default function SchoolProfile() {
                 <CardContent className="p-4 space-y-3">
                   <h3 className="font-bold text-lg flex items-center gap-2">
                     <Globe className="h-5 w-5 text-blue-600" />
-                    وسائل التواصل
+                    {t("schoolProfile.socialMedia")}
                   </h3>
                   <div className="space-y-2">
                     {socialEntries.map(([platform, url]) => (
@@ -445,24 +448,24 @@ export default function SchoolProfile() {
               <CardContent className="p-4">
                 <h3 className="font-bold text-lg flex items-center gap-2 mb-3">
                   <TrendingUp className="h-5 w-5 text-blue-600" />
-                  إحصائيات
+                  {t("schoolProfile.statistics")}
                 </h3>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="text-center p-3 bg-blue-50 dark:bg-blue-950 rounded-lg">
                     <div className="text-xl font-bold text-blue-600">{school.teachers?.length || 0}</div>
-                    <div className="text-xs text-muted-foreground">معلم</div>
+                    <div className="text-xs text-muted-foreground">{t("schoolProfile.teacherCount", "معلم")}</div>
                   </div>
                   <div className="text-center p-3 bg-green-50 dark:bg-green-950 rounded-lg">
                     <div className="text-xl font-bold text-green-600">{school.totalStudents || 0}</div>
-                    <div className="text-xs text-muted-foreground">طالب</div>
+                    <div className="text-xs text-muted-foreground">{t("schoolProfile.student", "طالب")}</div>
                   </div>
                   <div className="text-center p-3 bg-yellow-50 dark:bg-yellow-950 rounded-lg">
                     <div className="text-xl font-bold text-yellow-600">{school.avgRating || 0}</div>
-                    <div className="text-xs text-muted-foreground">تقييم</div>
+                    <div className="text-xs text-muted-foreground">{t("schoolProfile.reviewCount", "تقييم")}</div>
                   </div>
                   <div className="text-center p-3 bg-purple-50 dark:bg-purple-950 rounded-lg">
                     <div className="text-xl font-bold text-purple-600">{school.posts?.length || 0}</div>
-                    <div className="text-xs text-muted-foreground">منشور</div>
+                    <div className="text-xs text-muted-foreground">{t("schoolProfile.postCount", "منشور")}</div>
                   </div>
                 </div>
               </CardContent>
@@ -474,10 +477,10 @@ export default function SchoolProfile() {
                   <div className="flex items-center justify-between mb-3">
                     <h3 className="font-bold text-lg flex items-center gap-2">
                       <GraduationCap className="h-5 w-5 text-blue-600" />
-                      المعلمين
+                      {t("schoolProfile.teachersTab", "المعلمين")}
                     </h3>
                     <button onClick={() => setActiveTab("teachers")} className="text-xs text-blue-600 hover:underline">
-                      عرض الكل
+                      {t("schoolProfile.showAll")}
                     </button>
                   </div>
                   <div className="grid grid-cols-3 gap-2">
@@ -510,7 +513,7 @@ export default function SchoolProfile() {
                   <Card className="shadow-sm">
                     <CardContent className="p-12 text-center">
                       <BookOpen className="h-12 w-12 mx-auto text-gray-300 mb-3" />
-                      <p className="text-muted-foreground">لا يوجد منشورات بعد</p>
+                      <p className="text-muted-foreground">{t("schoolProfile.noPostsYet")}</p>
                     </CardContent>
                   </Card>
                 ) : (
@@ -543,12 +546,12 @@ export default function SchoolProfile() {
                             )}
                             <div className="flex-1">
                               <p className="font-bold text-sm">
-                                {post.authorType === "school" ? (school.nameAr || school.name) : (post.teacherName || "معلم")}
+                                {post.authorType === "school" ? (school.nameAr || school.name) : (post.teacherName || t("schoolProfile.teacher", "معلم"))}
                               </p>
                               <div className="flex items-center gap-1 text-xs text-muted-foreground">
                                 <Clock className="h-3 w-3" />
                                 {new Date(post.createdAt).toLocaleString("ar-EG", { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
-                                {post.isPinned && <Badge variant="outline" className="mr-1 text-xs py-0 px-1">مثبت</Badge>}
+                                {post.isPinned && <Badge variant="outline" className="mr-1 text-xs py-0 px-1">{t("schoolProfile.pinned", "مثبت")}</Badge>}
                               </div>
                             </div>
                           </div>
@@ -562,7 +565,7 @@ export default function SchoolProfile() {
                                 onClick={() => setExpandedPosts(p => ({ ...p, [post.id]: !expanded }))}
                                 className="text-blue-600 text-sm font-medium mt-1 hover:underline"
                               >
-                                {expanded ? "عرض أقل" : "عرض المزيد"}
+                                {expanded ? t("schoolProfile.showLess") : t("schoolProfile.showMore")}
                               </button>
                             )}
                           </div>
@@ -601,14 +604,14 @@ export default function SchoolProfile() {
                               setShowComments(p => ({ ...p, [post.id]: next }));
                               if (next && !postComments[post.id]) fetchComments(post.id);
                             }} className="hover:underline">
-                              {post.commentsCount} تعليق
+                              {post.commentsCount} {t("schoolProfile.comment", "تعليق")}
                             </button>
                           </div>
 
                           <div className="px-4 py-1 flex border-b dark:border-gray-800">
                             <button
                               onClick={() => {
-                                if (!token) { toast({ title: "يجب تسجيل الدخول للإعجاب", variant: "destructive" }); return; }
+                                if (!token) { toast({ title: t("schoolProfile.loginToLike", "يجب تسجيل الدخول للإعجاب"), variant: "destructive" }); return; }
                                 likePost.mutate(post.id);
                               }}
                               className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-sm font-medium rounded-lg transition-colors ${
@@ -618,7 +621,7 @@ export default function SchoolProfile() {
                               }`}
                             >
                               <Heart className={`h-5 w-5 ${likedPosts[post.id] ? "fill-blue-600 text-blue-600" : ""}`} />
-                              {likedPosts[post.id] ? "أعجبني" : "أعجبني"}
+                              {likedPosts[post.id] ? t("schoolProfile.liked", "أعجبني") : t("schoolProfile.like", "أعجبني")}
                             </button>
                             <button
                               onClick={() => {
@@ -629,15 +632,15 @@ export default function SchoolProfile() {
                               className="flex-1 flex items-center justify-center gap-1.5 py-2 text-sm font-medium text-muted-foreground hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
                             >
                               <MessageSquare className="h-5 w-5" />
-                              تعليق
+                              {t("schoolProfile.commentAction", "تعليق")}
                             </button>
                             <div className="flex-1 flex items-center justify-center">
                               <ShareMenu
                                 url={typeof window !== "undefined" ? `${window.location.origin}/school/${schoolId}` : ""}
-                                title={post.content?.substring(0, 60) || "منشور"}
+                                title={post.content?.substring(0, 60) || t("schoolProfile.post", "منشور")}
                                 description={post.content?.substring(0, 120) || ""}
                                 variant="ghost"
-                                buttonLabel="مشاركة"
+                                buttonLabel={t("schoolProfile.share", "مشاركة")}
                                 className="text-sm font-medium text-muted-foreground hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg w-full justify-center"
                               />
                             </div>
@@ -647,7 +650,7 @@ export default function SchoolProfile() {
                             <div className="border-t dark:border-gray-800">
                               {/* Existing comments */}
                               {loadingComments[post.id] ? (
-                                <div className="p-4 text-center text-xs text-muted-foreground">جاري تحميل التعليقات...</div>
+                                <div className="p-4 text-center text-xs text-muted-foreground">{t("schoolProfile.loadingComments")}</div>
                               ) : postComments[post.id]?.length > 0 ? (
                                 <div className="px-4 pt-2 space-y-3 max-h-64 overflow-y-auto">
                                   {postComments[post.id].map((c: any) => (
@@ -663,13 +666,13 @@ export default function SchoolProfile() {
                                   ))}
                                 </div>
                               ) : post.commentsCount > 0 ? (
-                                <div className="p-3 text-center text-xs text-muted-foreground">لا توجد تعليقات</div>
+                                <div className="p-3 text-center text-xs text-muted-foreground">{t("schoolProfile.noComments")}</div>
                               ) : null}
 
                               {/* Comment input */}
                               <div className="p-3 flex items-center gap-2">
                                 <Input
-                                  placeholder={token ? "اكتب تعليقاً..." : "سجل دخول لكتابة تعليق"}
+                                  placeholder={token ? t("schoolProfile.writeComment", "اكتب تعليقاً...") : t("schoolProfile.loginToComment", "سجل دخول لكتابة تعليق")}
                                   value={commentTexts[post.id] || ""}
                                   onChange={e => setCommentTexts(prev => ({ ...prev, [post.id]: e.target.value }))}
                                   className="text-sm rounded-full bg-gray-100 dark:bg-gray-800 border-0"
@@ -711,7 +714,7 @@ export default function SchoolProfile() {
                   <Card className="shadow-sm">
                     <CardContent className="p-12 text-center">
                       <BarChart3 className="h-12 w-12 mx-auto text-gray-300 mb-3" />
-                      <p className="text-muted-foreground">لا يوجد تصويتات حالياً</p>
+                      <p className="text-muted-foreground">{t("schoolProfile.noPollsYet")}</p>
                     </CardContent>
                   </Card>
                 ) : (
@@ -746,7 +749,7 @@ export default function SchoolProfile() {
                             )}
                             <div className="flex-1">
                               <p className="font-bold text-sm">
-                                {poll.authorType === "school" ? (school.nameAr || school.name) : (poll.teacherName || "معلم")}
+                                {poll.authorType === "school" ? (school.nameAr || school.name) : (poll.teacherName || t("schoolProfile.teacher", "معلم"))}
                               </p>
                               <div className="flex items-center gap-1 text-xs text-muted-foreground">
                                 <Clock className="h-3 w-3" />
@@ -754,9 +757,9 @@ export default function SchoolProfile() {
                               </div>
                             </div>
                             <div className="flex gap-1">
-                              {poll.isPinned && <Badge variant="outline" className="text-xs py-0 px-1.5 gap-0.5"><Pin className="h-3 w-3" /> مثبت</Badge>}
-                              {poll.isAnonymous && <Badge variant="outline" className="text-xs py-0 px-1.5 gap-0.5"><Lock className="h-3 w-3" /> مجهول</Badge>}
-                              {isClosed && <Badge variant="destructive" className="text-xs py-0 px-1.5">مغلق</Badge>}
+                              {poll.isPinned && <Badge variant="outline" className="text-xs py-0 px-1.5 gap-0.5"><Pin className="h-3 w-3" /> {t("schoolProfile.pinned", "مثبت")}</Badge>}
+                              {poll.isAnonymous && <Badge variant="outline" className="text-xs py-0 px-1.5 gap-0.5"><Lock className="h-3 w-3" /> {t("schoolProfile.anonymous", "مجهول")}</Badge>}
+                              {isClosed && <Badge variant="destructive" className="text-xs py-0 px-1.5">{t("schoolProfile.closed", "مغلق")}</Badge>}
                             </div>
                           </div>
 
@@ -767,7 +770,7 @@ export default function SchoolProfile() {
                               <p className="font-semibold text-base">{poll.question}</p>
                             </div>
                             <p className="text-xs text-muted-foreground mt-1 mr-7">
-                              {poll.allowMultiple ? "يمكن اختيار أكثر من إجابة" : "اختر إجابة واحدة فقط"}
+                              {poll.allowMultiple ? t("schoolProfile.multipleAnswers") : t("schoolProfile.singleAnswer")}
                             </p>
                           </div>
 
@@ -847,7 +850,7 @@ export default function SchoolProfile() {
                               <Button
                                 onClick={() => {
                                   if (!currentSelections.length) {
-                                    toast({ title: "اختر إجابة واحدة على الأقل", variant: "destructive" });
+                                    toast({ title: t("schoolProfile.selectAtLeastOne"), variant: "destructive" });
                                     return;
                                   }
                                   // Enforce single-select: take only the last selected option
@@ -859,14 +862,14 @@ export default function SchoolProfile() {
                                 className="w-full bg-blue-600 hover:bg-blue-700"
                                 disabled={votePoll.isPending || !currentSelections.length}
                               >
-                                {votePoll.isPending ? "جاري التصويت..." : "تصويت"}
+                                {votePoll.isPending ? t("schoolProfile.voting") : t("schoolProfile.vote")}
                               </Button>
                             )}
                             <div className="flex items-center justify-between mt-2 text-xs text-muted-foreground">
-                              <span>{poll.votersCount || poll.totalVotes || 0} صوت</span>
+                              <span>{poll.votersCount || poll.totalVotes || 0} {t("schoolProfile.voteCount")}</span>
                               {poll.expiresAt && (
                                 <span>
-                                  {isExpired ? "انتهى التصويت" : `ينتهي ${new Date(poll.expiresAt).toLocaleDateString("ar-EG", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}`}
+                                  {isExpired ? t("schoolProfile.voteEnded") : `${t("schoolProfile.voteEndsAt")} ${new Date(poll.expiresAt).toLocaleDateString("ar-EG", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}`}
                                 </span>
                               )}
                             </div>
@@ -886,12 +889,12 @@ export default function SchoolProfile() {
                   <CardContent className="p-6 space-y-4">
                     <h2 className="text-xl font-bold flex items-center gap-2">
                       <School className="h-6 w-6 text-blue-600" />
-                      حول المدرسة
+                      {t("schoolProfile.aboutSchool")}
                     </h2>
                     {school.description ? (
                       <p className="text-sm leading-relaxed text-muted-foreground">{school.description}</p>
                     ) : (
-                      <p className="text-sm text-muted-foreground italic">لم يتم إضافة وصف بعد</p>
+                      <p className="text-sm text-muted-foreground italic">{t("schoolProfile.noDescriptionYet")}</p>
                     )}
                   </CardContent>
                 </Card>
@@ -900,14 +903,14 @@ export default function SchoolProfile() {
                   <CardContent className="p-6 space-y-4">
                     <h2 className="text-xl font-bold flex items-center gap-2">
                       <Phone className="h-6 w-6 text-blue-600" />
-                      معلومات التواصل
+                      {t("schoolProfile.contactInfo")}
                     </h2>
                     <div className="space-y-3">
                       {(school.address || school.city || school.governorate) && (
                         <div className="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg">
                           <MapPin className="h-5 w-5 text-red-500 mt-0.5 shrink-0" />
                           <div>
-                            <p className="text-sm font-medium">العنوان</p>
+                            <p className="text-sm font-medium">{t("schoolProfile.address", "العنوان")}</p>
                             <p className="text-sm text-muted-foreground">{[school.address, school.city, school.governorate].filter(Boolean).join("، ")}</p>
                           </div>
                         </div>
@@ -916,7 +919,7 @@ export default function SchoolProfile() {
                         <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg">
                           <Phone className="h-5 w-5 text-green-500 shrink-0" />
                           <div>
-                            <p className="text-sm font-medium">رقم الهاتف</p>
+                            <p className="text-sm font-medium">{t("schoolProfile.phoneNumber")}</p>
                             <a href={`tel:${school.phoneNumber}`} className="text-sm text-blue-600 hover:underline" dir="ltr">{school.phoneNumber}</a>
                           </div>
                         </div>
@@ -925,7 +928,7 @@ export default function SchoolProfile() {
                         <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg">
                           <Mail className="h-5 w-5 text-blue-500 shrink-0" />
                           <div>
-                            <p className="text-sm font-medium">البريد الإلكتروني</p>
+                            <p className="text-sm font-medium">{t("schoolProfile.email")}</p>
                             <a href={`mailto:${school.email}`} className="text-sm text-blue-600 hover:underline">{school.email}</a>
                           </div>
                         </div>
@@ -939,7 +942,7 @@ export default function SchoolProfile() {
                     <CardContent className="p-6 space-y-4">
                       <h2 className="text-xl font-bold flex items-center gap-2">
                         <Globe className="h-6 w-6 text-blue-600" />
-                        صفحات التواصل الاجتماعي
+                        {t("schoolProfile.socialMediaPages")}
                       </h2>
                       <div className="grid sm:grid-cols-2 gap-3">
                         {socialEntries.map(([platform, url]) => (
@@ -967,28 +970,28 @@ export default function SchoolProfile() {
                   <CardContent className="p-6 space-y-4">
                     <h2 className="text-xl font-bold flex items-center gap-2">
                       <BookOpenCheck className="h-6 w-6 text-blue-600" />
-                      معلومات عامة
+                      {t("schoolProfile.generalInfo")}
                     </h2>
                     <div className="grid sm:grid-cols-2 gap-4">
                       <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg">
                         <Calendar className="h-5 w-5 text-blue-500" />
                         <div>
-                          <p className="text-xs text-muted-foreground">تاريخ الانضمام</p>
+                          <p className="text-xs text-muted-foreground">{t("schoolProfile.joinDate")}</p>
                           <p className="text-sm font-medium">{joinDate}</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg">
                         <Award className="h-5 w-5 text-yellow-500" />
                         <div>
-                          <p className="text-xs text-muted-foreground">حالة التوثيق</p>
-                          <p className="text-sm font-medium">{school.isVerified ? "موثقة ✓" : "غير موثقة"}</p>
+                          <p className="text-xs text-muted-foreground">{t("schoolProfile.verificationStatus")}</p>
+                          <p className="text-sm font-medium">{school.isVerified ? t("schoolProfile.verified") : t("schoolProfile.notVerified")}</p>
                         </div>
                       </div>
                       {school.referralCode && (
                         <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg">
                           <Share2 className="h-5 w-5 text-purple-500" />
                           <div>
-                            <p className="text-xs text-muted-foreground">كود الإحالة</p>
+                            <p className="text-xs text-muted-foreground">{t("schoolProfile.referralCodeLabel", "كود الإحالة")}</p>
                             <p className="text-sm font-mono font-bold text-blue-600">{school.referralCode}</p>
                           </div>
                         </div>
@@ -996,7 +999,7 @@ export default function SchoolProfile() {
                       <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg">
                         <TrendingUp className="h-5 w-5 text-green-500" />
                         <div>
-                          <p className="text-xs text-muted-foreground">نقاط النشاط</p>
+                          <p className="text-xs text-muted-foreground">{t("schoolProfile.activityPoints", "نقاط النشاط")}</p>
                           <p className="text-sm font-medium">{school.activityScore}</p>
                         </div>
                       </div>
@@ -1013,7 +1016,7 @@ export default function SchoolProfile() {
                   <Card className="shadow-sm">
                     <CardContent className="p-12 text-center">
                       <GraduationCap className="h-12 w-12 mx-auto text-gray-300 mb-3" />
-                      <p className="text-muted-foreground">لا يوجد معلمين بعد</p>
+                      <p className="text-muted-foreground">{t("schoolProfile.noTeachersYet")}</p>
                     </CardContent>
                   </Card>
                 ) : (
@@ -1050,7 +1053,7 @@ export default function SchoolProfile() {
                                     <Badge variant="secondary" className="text-xs">{teacher.subject}</Badge>
                                   )}
                                   {teacher.yearsExperience > 0 && (
-                                    <span className="text-xs text-muted-foreground">{teacher.yearsExperience} سنة خبرة</span>
+                                    <span className="text-xs text-muted-foreground">{teacher.yearsExperience} {t("schoolProfile.yearsExperience", "سنة خبرة")}</span>
                                   )}
                                 </div>
                                 {teacher.bio && (
@@ -1059,17 +1062,17 @@ export default function SchoolProfile() {
                                 <div className="flex flex-wrap gap-3 mt-2 text-xs text-muted-foreground">
                                   <span className="flex items-center gap-1">
                                     <BookOpen className="h-3 w-3" />
-                                    {teacher.totalTasksSold || 0} مهمة مباعة
+                                    {teacher.totalTasksSold || 0} {t("schoolProfile.tasksSold", "مهمة مباعة")}
                                   </span>
                                   <span className="flex items-center gap-1">
                                     <Users className="h-3 w-3" />
-                                    {teacher.totalStudents || 0} طالب
+                                    {teacher.totalStudents || 0} {t("schoolProfile.student", "طالب")}
                                   </span>
                                   {teacher.perTaskRate && (
-                                    <span className="text-green-600 font-bold">{teacher.perTaskRate} ج.م/مهمة</span>
+                                    <span className="text-green-600 font-bold">{teacher.perTaskRate} {t("schoolProfile.currencyPerTask", "ج.م/مهمة")}</span>
                                   )}
                                   {teacher.monthlyRate && (
-                                    <span className="text-blue-600 font-bold">{teacher.monthlyRate} ج.م/شهر</span>
+                                    <span className="text-blue-600 font-bold">{teacher.monthlyRate} {t("schoolProfile.currencyPerMonth", "ج.م/شهر")}</span>
                                   )}
                                 </div>
                                 {teacherSocials.length > 0 && (
@@ -1092,7 +1095,7 @@ export default function SchoolProfile() {
                               <Link href={`/teacher/${teacher.id}`}>
                                 <Button size="sm" variant="outline" className="shrink-0 gap-1">
                                   <ExternalLink className="h-3 w-3" />
-                                  عرض الملف
+                                  {t("schoolProfile.viewProfile")}
                                 </Button>
                               </Link>
                             </div>
@@ -1118,7 +1121,7 @@ export default function SchoolProfile() {
                             <Star key={n} className={`h-4 w-4 ${n <= Math.round(school.avgRating || 0) ? "text-yellow-400 fill-yellow-400" : "text-gray-300"}`} />
                           ))}
                         </div>
-                        <p className="text-xs text-muted-foreground mt-1">{school.reviews?.length || 0} تقييم</p>
+                        <p className="text-xs text-muted-foreground mt-1">{school.reviews?.length || 0} {t("schoolProfile.reviewCount", "تقييم")}</p>
                       </div>
                       <div className="flex-1 space-y-1.5">
                         {[5, 4, 3, 2, 1].map(n => {
@@ -1142,7 +1145,7 @@ export default function SchoolProfile() {
 
                 <Card className="shadow-sm">
                   <CardContent className="p-6 space-y-3">
-                    <h3 className="font-bold text-lg">أضف تقييمك</h3>
+                    <h3 className="font-bold text-lg">{t("schoolProfile.addYourReview", "أضف تقييمك")}</h3>
                     <div className="flex gap-1">
                       {[1, 2, 3, 4, 5].map(n => (
                         <button key={n} onClick={() => setReviewRating(n)} className="transition-transform hover:scale-110">
@@ -1151,13 +1154,13 @@ export default function SchoolProfile() {
                       ))}
                     </div>
                     <Textarea
-                      placeholder="شاركنا رأيك عن المدرسة..."
+                      placeholder={t("schoolProfile.shareOpinionSchool")}
                       value={reviewComment}
                       onChange={e => setReviewComment(e.target.value)}
                       className="min-h-[80px]"
                     />
                     <Button onClick={() => submitReview.mutate()} className="bg-blue-600 hover:bg-blue-700" disabled={submitReview.isPending}>
-                      {submitReview.isPending ? "جاري الإرسال..." : "إرسال التقييم"}
+                      {submitReview.isPending ? t("schoolProfile.submitting", "جاري الإرسال...") : t("schoolProfile.submitReview", "إرسال التقييم")}
                     </Button>
                   </CardContent>
                 </Card>
@@ -1173,7 +1176,7 @@ export default function SchoolProfile() {
                             </div>
                             <div className="flex-1">
                               <div className="flex items-center justify-between">
-                                <span className="font-bold text-sm">{review.parentName || "ولي أمر"}</span>
+                                <span className="font-bold text-sm">{review.parentName || t("schoolProfile.parent", "ولي أمر")}</span>
                                 <span className="text-xs text-muted-foreground">{new Date(review.createdAt).toLocaleDateString("ar-EG", { year: "numeric", month: "long", day: "numeric" })}</span>
                               </div>
                               <div className="flex gap-0.5 mt-0.5">

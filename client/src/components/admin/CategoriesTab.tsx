@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,7 +29,9 @@ const COLORS = [
   "#06b6d4", "#eab308", "#ef4444", "#22c55e", "#3b82f6"
 ];
 
-export function CategoriesTab({ token }: { token: string }) {
+export function CategoriesTab({
+  token }: { token: string }) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
@@ -194,7 +197,7 @@ export function CategoriesTab({ token }: { token: string }) {
               <div className="flex items-center justify-between text-sm">
                 <span>الترتيب: {category.sortOrder}</span>
                 <span className={category.isActive ? "text-green-600" : "text-red-600"}>
-                  {category.isActive ? "نشط" : "غير نشط"}
+                  {category.isActive ? t("admin.categories.active") : t("admin.categories.inactive")}
                 </span>
               </div>
             </CardContent>

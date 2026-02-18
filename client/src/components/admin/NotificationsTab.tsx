@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Bell, Send, Users, User, Trash2, CheckCircle, Clock, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -16,7 +17,9 @@ interface Notification {
   parentName?: string;
 }
 
-export function NotificationsTab({ token }: { token: string }) {
+export function NotificationsTab({
+  token }: { token: string }) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [showSendModal, setShowSendModal] = useState(false);
   const [sendForm, setSendForm] = useState({
@@ -97,11 +100,11 @@ export function NotificationsTab({ token }: { token: string }) {
 
   const getTypeLabel = (type: string) => {
     switch (type) {
-      case "announcement": return "إعلان";
-      case "warning": return "تنبيه";
-      case "success": return "نجاح";
-      case "task_assigned": return "مهمة";
-      case "task_completed": return "مهمة مكتملة";
+      case "announcement": return t("admin.notifications.announcement");
+      case "warning": return t("admin.notifications.alert");
+      case "success": return t("admin.notifications.success");
+      case "task_assigned": return t("admin.notifications.task");
+      case "task_completed": return t("admin.notifications.taskCompleted");
       case "points_received": return "نقاط";
       case "gift_received": return "هدية";
       default: return type;
