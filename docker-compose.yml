@@ -71,12 +71,7 @@ services:
       - "traefik.http.middlewares.https-redirect.redirectscheme.scheme=https"
       - "traefik.http.middlewares.https-redirect.redirectscheme.permanent=true"
       
-      # Security headers
-      - "traefik.http.routers.classify-secure.middlewares=security-headers"
-      - "traefik.http.middlewares.security-headers.headers.stsSeconds=63072000"
-      - "traefik.http.middlewares.security-headers.headers.stsIncludeSubdomains=true"
-      - "traefik.http.middlewares.security-headers.headers.frameDeny=false"
-      - "traefik.http.middlewares.security-headers.headers.contentTypeNosniff=true"
+      # Security headers are handled by the app (helmet + custom headers)
       
       # Container metadata
       - "com.classify.version=3.0"
