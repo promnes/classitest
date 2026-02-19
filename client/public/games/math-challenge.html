@@ -25,13 +25,15 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',Tahoma,s
 .ls-btn:active{transform:scale(.95)}
 .ls-btn.daily{background:linear-gradient(135deg,#f59e0b,#f97316);box-shadow:0 2px 10px rgba(249,115,22,.4)}
 .ls-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:clamp(6px,1.5vmin,10px);width:100%;max-width:540px;padding:4px 0}
-.lc{position:relative;background:rgba(255,255,255,.2);border:3px solid rgba(255,255,255,.3);border-radius:clamp(10px,2.2vmin,16px);padding:clamp(8px,2vmin,16px) clamp(4px,1vmin,8px);text-align:center;cursor:pointer;transition:all .2s;backdrop-filter:blur(4px)}
-.lc:hover{transform:scale(1.04);background:rgba(255,255,255,.25)}
-.lc:active{transform:scale(.96)}
-.lc.locked{opacity:.5;cursor:not-allowed}.lc.locked:hover{transform:none;background:rgba(255,255,255,.15)}
-.lc.current{border-color:#fbbf24;box-shadow:0 0 14px rgba(251,191,36,.5)}
+.lc{position:relative;background:linear-gradient(145deg,rgba(255,255,255,.35),rgba(255,255,255,.15));border:3px solid rgba(255,255,255,.45);border-radius:clamp(14px,3vmin,22px);padding:clamp(8px,2vmin,16px) clamp(4px,1vmin,8px);text-align:center;cursor:pointer;transition:all .25s;backdrop-filter:blur(6px);box-shadow:0 6px 0 rgba(0,0,0,.12),0 10px 24px rgba(0,0,0,.08);transform-style:preserve-3d;animation:cardFloat 3s ease-in-out infinite}
+.lc:nth-child(even){animation-delay:.5s}.lc:nth-child(3n){animation-delay:1s}.lc:nth-child(4n+1){animation-delay:1.5s}
+.lc:hover{transform:translateY(-4px) scale(1.06);background:linear-gradient(145deg,rgba(255,255,255,.45),rgba(255,255,255,.25));box-shadow:0 10px 0 rgba(0,0,0,.1),0 16px 32px rgba(0,0,0,.1)}
+.lc:active{transform:translateY(3px) scale(.97);box-shadow:0 2px 0 rgba(0,0,0,.15),0 3px 8px rgba(0,0,0,.08)}
+.lc.locked{opacity:.5;cursor:not-allowed;animation:none}.lc.locked:hover{transform:none;background:rgba(255,255,255,.15);box-shadow:0 6px 0 rgba(0,0,0,.12),0 10px 24px rgba(0,0,0,.08)}
+.lc.current{border-color:#fbbf24;box-shadow:0 6px 0 rgba(251,191,36,.3),0 0 18px rgba(251,191,36,.5)}
 .lc-num{font-size:clamp(22px,5vmin,32px);font-weight:900;color:#fff;text-shadow:0 2px 6px rgba(0,0,0,.3)}
-.lc-emoji{font-size:clamp(32px,7vmin,48px);margin:3px 0;filter:drop-shadow(0 2px 3px rgba(0,0,0,.2))}
+.lc-emoji{font-size:clamp(32px,7vmin,48px);margin:3px 0;filter:drop-shadow(0 2px 3px rgba(0,0,0,.2));animation:emojiWiggle 2.5s ease-in-out infinite}
+.lc:nth-child(2n) .lc-emoji{animation-delay:.3s}.lc:nth-child(3n) .lc-emoji{animation-delay:.7s}.lc:nth-child(4n) .lc-emoji{animation-delay:1.1s}.lc.locked .lc-emoji{animation:none}
 .lc-name{font-size:clamp(10px,1.8vmin,13px);color:#fff;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-shadow:0 1px 3px rgba(0,0,0,.3)}
 .lc-stars{font-size:clamp(14px,2.8vmin,18px);margin-top:2px}
 .lc-lock{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:clamp(32px,7vmin,46px);filter:drop-shadow(0 2px 6px rgba(0,0,0,.4))}
@@ -58,11 +60,11 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',Tahoma,s
 .q-text{font-size:clamp(32px,8vmin,52px);font-weight:900;color:#111827;direction:ltr;margin-bottom:4px;text-shadow:0 1px 2px rgba(0,0,0,.1)}
 .q-feedback{font-size:clamp(16px,3vmin,22px);color:#d97706;font-weight:800;min-height:clamp(20px,3.5vmin,26px);transition:all .3s}
 .ans-grid{display:grid;grid-template-columns:1fr 1fr;gap:clamp(8px,1.8vmin,12px);margin-bottom:clamp(6px,1.5vmin,10px)}
-.ans-btn{padding:clamp(12px,2.8vmin,20px);font-size:clamp(24px,5.5vmin,36px);font-weight:900;border:4px solid #d1d5db;border-radius:clamp(12px,2.5vmin,18px);background:#fff;cursor:pointer;transition:all .15s;color:#111827;text-shadow:0 1px 2px rgba(0,0,0,.08)}
-.ans-btn:hover{border-color:var(--accent,#8b5cf6);background:#f5f3ff;transform:scale(1.03)}
-.ans-btn:active{transform:scale(.97)}
-.ans-btn.correct{border-color:#059669;background:#d1fae5;color:#064e3b;animation:apulse .4s ease}
-.ans-btn.wrong{border-color:#dc2626;background:#fee2e2;color:#7f1d1d;animation:ashake .4s ease}
+.ans-btn{padding:clamp(12px,2.8vmin,20px);font-size:clamp(24px,5.5vmin,36px);font-weight:900;border:4px solid #e5d5ff;border-radius:clamp(16px,3vmin,24px);background:linear-gradient(145deg,#fff,#f5f0ff);cursor:pointer;transition:all .12s;color:#111827;text-shadow:0 1px 2px rgba(0,0,0,.08);box-shadow:0 6px 0 #c4b5fd,0 8px 20px rgba(0,0,0,.08);transform:translateY(0)}
+.ans-btn:hover{border-color:var(--accent,#8b5cf6);background:linear-gradient(145deg,#f5f0ff,#ede9fe);transform:translateY(-3px);box-shadow:0 9px 0 #c4b5fd,0 14px 28px rgba(0,0,0,.1)}
+.ans-btn:active{transform:translateY(4px);box-shadow:0 2px 0 #c4b5fd,0 3px 8px rgba(0,0,0,.08)}
+.ans-btn.correct{border-color:#059669;background:linear-gradient(145deg,#d1fae5,#a7f3d0);color:#064e3b;animation:apulse .4s ease;box-shadow:0 6px 0 #059669,0 8px 16px rgba(5,150,105,.15)}
+.ans-btn.wrong{border-color:#dc2626;background:linear-gradient(145deg,#fee2e2,#fecaca);color:#7f1d1d;animation:ashake .4s ease;box-shadow:0 6px 0 #dc2626,0 8px 16px rgba(220,38,38,.15)}
 .ans-btn:disabled{cursor:default;opacity:.7}
 @keyframes apulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
 @keyframes ashake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
@@ -141,6 +143,8 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',Tahoma,s
 @keyframes floatup{0%{opacity:1;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(-90px) scale(.3)}}
 @keyframes emojiBounce{0%{transform:scale(1)}30%{transform:scale(1.2)}60%{transform:scale(0.95)}100%{transform:scale(1)}}
 @keyframes screenShake{0%,100%{transform:translateX(0)}20%{transform:translateX(-4px)}40%{transform:translateX(4px)}60%{transform:translateX(-3px)}80%{transform:translateX(2px)}}
+@keyframes cardFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+@keyframes emojiWiggle{0%,100%{transform:scale(1) rotate(0deg)}25%{transform:scale(1.15) rotate(-6deg)}50%{transform:scale(1) rotate(0deg)}75%{transform:scale(1.15) rotate(6deg)}}
 </style>
 </head>
 <body>
