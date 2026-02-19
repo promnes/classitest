@@ -2082,7 +2082,65 @@
     "nameMinLength": "O nome deve ter pelo menos 2 caracteres",
     "pts": "pts",
     "pleaseSelectImage": "Por favor, selecione apenas uma imagem",
-    "questionMark": "?"
+    "questionMark": "?",
+    "coverUploaded": "Imagem de capa enviada",
+    "treeLevel": "Nível da Árvore",
+    "dayStreak": "dias seguidos",
+    "shareProfile": "Compartilhar Perfil",
+    "copyLink": "Copiar Link",
+    "shareDescription": "Compartilhe seu perfil com amigos para que vejam suas conquistas!",
+    "shareText": "Confira meu perfil no Classify!",
+    "linkCopied": "Link copiado",
+    "bioSection": "Sobre Mim",
+    "bioPlaceholder": "Escreva algo sobre você...",
+    "interestsSection": "Meus Interesses",
+    "tabs": {
+      "showcase": "Vitrine",
+      "friends": "Amigos",
+      "notifications": "Notificações",
+      "edit": "Editar"
+    },
+    "stats": {
+      "tasks": "Tarefas",
+      "games": "Jogos",
+      "waterings": "Regas"
+    },
+    "achievements": {
+      "title": "Conquistas"
+    },
+    "friends": {
+      "title": "Amigos",
+      "myFriends": "Meus Amigos",
+      "noFriendsYet": "Nenhum amigo ainda. Adicione alguns!",
+      "pendingRequests": "Pedidos de Amizade",
+      "suggestions": "Amigos Sugeridos",
+      "add": "Adicionar",
+      "requestSent": "Pedido de amizade enviado",
+      "reason": {
+        "school": "Mesma Escola",
+        "location": "Mesma Região",
+        "grade": "Mesma Série",
+        "interests": "Interesses Similares",
+        "hobbies": "Hobbies Similares"
+      }
+    },
+    "notifications": {
+      "empty": "Nenhuma notificação ainda"
+    },
+    "interest": {
+      "reading": "Leitura",
+      "drawing": "Desenho",
+      "coding": "Programação",
+      "sports": "Esportes",
+      "music": "Música",
+      "science": "Ciências",
+      "math": "Matemática",
+      "languages": "Idiomas",
+      "cooking": "Culinária",
+      "photography": "Fotografia",
+      "nature": "Natureza",
+      "robotics": "Robótica"
+    }
   },
   "parentDashboard": {
     "welcomeUser": "Bem-vindo {{name}}",

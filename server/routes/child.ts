@@ -37,6 +37,8 @@ import {
   libraryReferralSettings,
   childGameAssignments,
   gamePlayHistory,
+  childFriendships,
+  childFriendNotifications,
 } from "../../shared/schema";
 import bcrypt from "bcrypt";
 import crypto from "crypto";
@@ -2862,6 +2864,602 @@ export async function registerChildRoutes(app: Express) {
     } catch (error: any) {
       console.error("Get child annual report error:", error);
       res.status(500).json({ message: "Failed to get annual report" });
+    }
+  });
+
+  // ==========================================
+  // ===== SHOWCASE PROFILE & FRIEND SYSTEM =====
+  // ==========================================
+
+  // Generate share code for a child (if not exists)
+  async function ensureShareCode(childId: string): Promise<string> {
+    const child = await db.select({ shareCode: children.shareCode }).from(children).where(eq(children.id, childId));
+    if (child[0]?.shareCode) return child[0].shareCode;
+    const code = crypto.randomBytes(4).toString("hex").toUpperCase(); // 8-char hex code
+    await db.update(children).set({ shareCode: code }).where(eq(children.id, childId));
+    return code;
+  }
+
+  // Get full showcase profile for current child
+  app.get("/api/child/showcase", authMiddleware, async (req: any, res) => {
+    try {
+      const childId = req.user.childId;
+      const child = await db.select().from(children).where(eq(children.id, childId));
+      if (!child[0]) return res.status(404).json(errorResponse(ErrorCode.NOT_FOUND, "Child not found"));
+
+      const shareCode = await ensureShareCode(childId);
+
+      // Growth tree
+      const tree = await db.select().from(childGrowthTrees).where(eq(childGrowthTrees.childId, childId));
+
+      // Task stats
+      const completedTasks = await db.select({ count: count() }).from(taskResults)
+        .where(and(eq(taskResults.childId, childId), eq(taskResults.isCorrect, true)));
+
+      // Game stats
+      const gamesPlayed = await db.select({ count: count() }).from(gamePlayHistory)
+        .where(eq(gamePlayHistory.childId, childId));
+
+      // Waterings
+      const wateringsCount = tree[0]?.wateringsCount || 0;
+
+      // Streaks — calculate current task streak
+      const recentTasks = await db.select({ completedAt: taskResults.completedAt })
+        .from(taskResults)
+        .where(and(eq(taskResults.childId, childId), eq(taskResults.isCorrect, true)))
+        .orderBy(sql`${taskResults.completedAt} DESC`)
+        .limit(60);
+
+      let streak = 0;
+      if (recentTasks.length > 0) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        let checkDate = new Date(today);
+        for (let i = 0; i < 60; i++) {
+          const dayStr = checkDate.toISOString().split("T")[0];
+          const hasTask = recentTasks.some(t => {
+            const tDate = new Date(t.completedAt!);
+            return tDate.toISOString().split("T")[0] === dayStr;
+          });
+          if (hasTask) { streak++; checkDate.setDate(checkDate.getDate() - 1); }
+          else break;
+        }
+      }
+
+      // Build achievement badges
+      const achievements: { id: string; icon: string; title: string; description: string; earned: boolean }[] = [];
+      const totalPts = child[0].totalPoints;
+      const tasksCount = Number(completedTasks[0]?.count || 0);
+      const gamesCount = Number(gamesPlayed[0]?.count || 0);
+      const treeStage = tree[0]?.currentStage || 1;
+
+      // Points milestones
+      const pointMilestones = [
+        { pts: 100, id: "pts100", icon: "⭐", title: "نجمة مبتدئ", titleEn: "Rising Star" },
+        { pts: 500, id: "pts500", icon: "🌟", title: "نجمة لامعة", titleEn: "Shining Star" },
+        { pts: 1000, id: "pts1000", icon: "💫", title: "نجمة خارقة", titleEn: "Super Star" },
+        { pts: 5000, id: "pts5000", icon: "🏆", title: "بطل النقاط", titleEn: "Points Champion" },
+        { pts: 10000, id: "pts10000", icon: "👑", title: "ملك النقاط", titleEn: "Points King" },
+      ];
+      for (const m of pointMilestones) {
+        achievements.push({ id: m.id, icon: m.icon, title: m.title, description: `${m.pts}+ ${m.titleEn}`, earned: totalPts >= m.pts });
+      }
+
+      // Task milestones
+      const taskMilestones = [
+        { count: 10, id: "tasks10", icon: "📝", title: "منجز المهام", titleEn: "Task Achiever" },
+        { count: 50, id: "tasks50", icon: "📚", title: "عالم المهام", titleEn: "Task Scholar" },
+        { count: 100, id: "tasks100", icon: "🎓", title: "خبير المهام", titleEn: "Task Expert" },
+      ];
+      for (const m of taskMilestones) {
+        achievements.push({ id: m.id, icon: m.icon, title: m.title, description: `${m.count}+ ${m.titleEn}`, earned: tasksCount >= m.count });
+      }
+
+      // Game milestones
+      const gameMilestones = [
+        { count: 10, id: "games10", icon: "🎮", title: "لاعب نشط", titleEn: "Active Gamer" },
+        { count: 50, id: "games50", icon: "🕹️", title: "لاعب محترف", titleEn: "Pro Gamer" },
+      ];
+      for (const m of gameMilestones) {
+        achievements.push({ id: m.id, icon: m.icon, title: m.title, description: `${m.count}+ ${m.titleEn}`, earned: gamesCount >= m.count });
+      }
+
+      // Tree milestones
+      const treeMilestones = [
+        { stage: 5, id: "tree5", icon: "🌱", title: "مزارع مبتدئ", titleEn: "Young Gardener" },
+        { stage: 10, id: "tree10", icon: "🌳", title: "مزارع ماهر", titleEn: "Skilled Gardener" },
+        { stage: 15, id: "tree15", icon: "🌲", title: "سيد الشجرة", titleEn: "Tree Master" },
+        { stage: 20, id: "tree20", icon: "✨", title: "الشجرة الأسطورية", titleEn: "Legendary Tree" },
+      ];
+      for (const m of treeMilestones) {
+        achievements.push({ id: m.id, icon: m.icon, title: m.title, description: `Stage ${m.stage}+`, earned: treeStage >= m.stage });
+      }
+
+      // Streak milestones
+      if (streak >= 3) achievements.push({ id: "streak3", icon: "🔥", title: "نشاط مستمر", description: "3-day streak", earned: true });
+      if (streak >= 7) achievements.push({ id: "streak7", icon: "💪", title: "أسبوع كامل", description: "7-day streak", earned: true });
+      if (streak >= 30) achievements.push({ id: "streak30", icon: "🏅", title: "شهر من النجاح", description: "30-day streak", earned: true });
+
+      // Watering milestones
+      if (wateringsCount >= 10) achievements.push({ id: "water10", icon: "💧", title: "ساقي الشجرة", description: "10+ waterings", earned: true });
+      if (wateringsCount >= 50) achievements.push({ id: "water50", icon: "🌊", title: "ملك الري", description: "50+ waterings", earned: true });
+
+      // Friend count
+      const friendCount = await db.select({ count: count() }).from(childFriendships)
+        .where(and(
+          or(eq(childFriendships.requesterId, childId), eq(childFriendships.addresseeId, childId)),
+          eq(childFriendships.status, "accepted")
+        ));
+      const fCount = Number(friendCount[0]?.count || 0);
+
+      res.json(successResponse({
+        child: {
+          id: child[0].id,
+          name: child[0].name,
+          avatarUrl: child[0].avatarUrl,
+          coverImageUrl: child[0].coverImageUrl,
+          bio: child[0].bio,
+          schoolName: child[0].schoolName,
+          academicGrade: child[0].academicGrade,
+          hobbies: child[0].hobbies,
+          governorate: child[0].governorate,
+          interests: child[0].interests,
+          totalPoints: child[0].totalPoints,
+          shareCode,
+          joinedAt: child[0].createdAt,
+        },
+        stats: {
+          totalPoints: totalPts,
+          tasksCompleted: tasksCount,
+          gamesPlayed: gamesCount,
+          treeStage,
+          wateringsCount,
+          streak,
+          friendCount: fCount,
+        },
+        achievements,
+        growthTree: tree[0] || null,
+      }));
+    } catch (error: any) {
+      console.error("Get child showcase error:", error);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to get showcase profile"));
+    }
+  });
+
+  // Get a child's public profile by share code
+  app.get("/api/child/profile/:shareCode", async (req, res) => {
+    try {
+      const { shareCode } = req.params;
+      const child = await db.select().from(children).where(eq(children.shareCode, shareCode));
+      if (!child[0] || !child[0].profilePublic) {
+        return res.status(404).json(errorResponse(ErrorCode.NOT_FOUND, "Profile not found"));
+      }
+
+      const tree = await db.select().from(childGrowthTrees).where(eq(childGrowthTrees.childId, child[0].id));
+      const completedTasks = await db.select({ count: count() }).from(taskResults)
+        .where(and(eq(taskResults.childId, child[0].id), eq(taskResults.isCorrect, true)));
+      const gamesPlayed = await db.select({ count: count() }).from(gamePlayHistory)
+        .where(eq(gamePlayHistory.childId, child[0].id));
+
+      res.json(successResponse({
+        name: child[0].name,
+        avatarUrl: child[0].avatarUrl,
+        coverImageUrl: child[0].coverImageUrl,
+        bio: child[0].bio,
+        schoolName: child[0].schoolName,
+        governorate: child[0].governorate,
+        totalPoints: child[0].totalPoints,
+        treeStage: tree[0]?.currentStage || 1,
+        tasksCompleted: Number(completedTasks[0]?.count || 0),
+        gamesPlayed: Number(gamesPlayed[0]?.count || 0),
+      }));
+    } catch (error: any) {
+      console.error("Get public profile error:", error);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to get profile"));
+    }
+  });
+
+  // Upload cover image
+  app.post("/api/child/cover-image", authMiddleware, async (req: any, res) => {
+    try {
+      const multer = await import("multer");
+      const path = await import("path");
+      const fs = await import("fs");
+
+      const uploadDir = path.join(process.cwd(), "uploads", "covers");
+      if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+
+      const storage = multer.default.diskStorage({
+        destination: (_r: any, _f: any, cb: any) => cb(null, uploadDir),
+        filename: (_r: any, file: any, cb: any) => {
+          const unique = Date.now() + "-" + Math.round(Math.random() * 1e9);
+          cb(null, unique + path.extname(file.originalname));
+        },
+      });
+      const upload = multer.default({
+        storage,
+        limits: { fileSize: 5 * 1024 * 1024 },
+        fileFilter: (_r: any, file: any, cb: any) => {
+          const allowed = ["image/jpeg", "image/png", "image/webp"];
+          cb(null, allowed.includes(file.mimetype));
+        },
+      }).single("cover");
+
+      upload(req, res, async (err: any) => {
+        if (err) return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, err.message || "Upload failed"));
+        if (!req.file) return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "No image selected"));
+
+        const coverUrl = `/uploads/covers/${req.file.filename}`;
+
+        // Delete old cover
+        const old = await db.select({ coverImageUrl: children.coverImageUrl }).from(children).where(eq(children.id, req.user.childId));
+        if (old[0]?.coverImageUrl) {
+          const oldPath = path.join(process.cwd(), old[0].coverImageUrl);
+          if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+        }
+
+        await db.update(children).set({ coverImageUrl: coverUrl }).where(eq(children.id, req.user.childId));
+        res.json(successResponse({ coverImageUrl: coverUrl }, "Cover image uploaded"));
+      });
+    } catch (error: any) {
+      console.error("Cover upload error:", error);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to upload cover"));
+    }
+  });
+
+  // Update bio & interests
+  app.put("/api/child/showcase-settings", authMiddleware, async (req: any, res) => {
+    try {
+      const { bio, interests, profilePublic } = req.body;
+      const updateData: Record<string, any> = {};
+      if (bio !== undefined) updateData.bio = (bio || "").slice(0, 300);
+      if (interests !== undefined) updateData.interests = Array.isArray(interests) ? interests.slice(0, 10) : [];
+      if (profilePublic !== undefined) updateData.profilePublic = !!profilePublic;
+
+      await db.update(children).set(updateData).where(eq(children.id, req.user.childId));
+      res.json(successResponse({ updated: true }));
+    } catch (error: any) {
+      console.error("Update showcase settings error:", error);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to update settings"));
+    }
+  });
+
+  // ===== FRIENDSHIP ENDPOINTS =====
+
+  // Send friend request
+  app.post("/api/child/friends/request", authMiddleware, async (req: any, res) => {
+    try {
+      const childId = req.user.childId;
+      const { friendId } = req.body;
+
+      if (!friendId || friendId === childId) {
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Invalid friend ID"));
+      }
+
+      // Check friend exists
+      const friend = await db.select({ id: children.id }).from(children).where(eq(children.id, friendId));
+      if (!friend[0]) return res.status(404).json(errorResponse(ErrorCode.NOT_FOUND, "Child not found"));
+
+      // Check existing friendship in either direction
+      const existing = await db.select().from(childFriendships).where(
+        or(
+          and(eq(childFriendships.requesterId, childId), eq(childFriendships.addresseeId, friendId)),
+          and(eq(childFriendships.requesterId, friendId), eq(childFriendships.addresseeId, childId))
+        )
+      );
+
+      if (existing[0]) {
+        if (existing[0].status === "accepted") return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Already friends"));
+        if (existing[0].status === "pending") return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Request already pending"));
+        if (existing[0].status === "blocked") return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Cannot send request"));
+        // If rejected, allow re-request by updating
+        await db.update(childFriendships).set({ status: "pending", requesterId: childId, addresseeId: friendId, updatedAt: new Date() }).where(eq(childFriendships.id, existing[0].id));
+        return res.json(successResponse({ sent: true }));
+      }
+
+      await db.insert(childFriendships).values({ requesterId: childId, addresseeId: friendId, status: "pending" });
+
+      // Notify the addressee
+      const requester = await db.select({ name: children.name }).from(children).where(eq(children.id, childId));
+      await db.insert(childFriendNotifications).values({
+        childId: friendId,
+        fromChildId: childId,
+        type: "new_friend",
+        title: "طلب صداقة جديد",
+        message: `${requester[0]?.name || "طفل"} يريد أن يكون صديقك!`,
+      });
+
+      res.json(successResponse({ sent: true }));
+    } catch (error: any) {
+      console.error("Send friend request error:", error);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to send request"));
+    }
+  });
+
+  // Accept/Reject friend request
+  app.put("/api/child/friends/:friendshipId", authMiddleware, async (req: any, res) => {
+    try {
+      const childId = req.user.childId;
+      const { friendshipId } = req.params;
+      const { action } = req.body; // "accept" or "reject"
+
+      const friendship = await db.select().from(childFriendships).where(eq(childFriendships.id, friendshipId));
+      if (!friendship[0] || friendship[0].addresseeId !== childId) {
+        return res.status(404).json(errorResponse(ErrorCode.NOT_FOUND, "Request not found"));
+      }
+
+      if (friendship[0].status !== "pending") {
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Request is not pending"));
+      }
+
+      const newStatus = action === "accept" ? "accepted" : "rejected";
+      await db.update(childFriendships).set({ status: newStatus, updatedAt: new Date() }).where(eq(childFriendships.id, friendshipId));
+
+      if (action === "accept") {
+        // Notify the requester
+        const child = await db.select({ name: children.name }).from(children).where(eq(children.id, childId));
+        await db.insert(childFriendNotifications).values({
+          childId: friendship[0].requesterId,
+          fromChildId: childId,
+          type: "new_friend",
+          title: "تم قبول طلب الصداقة",
+          message: `${child[0]?.name || "طفل"} وافق على طلب صداقتك! 🎉`,
+        });
+      }
+
+      res.json(successResponse({ status: newStatus }));
+    } catch (error: any) {
+      console.error("Handle friend request error:", error);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to handle request"));
+    }
+  });
+
+  // Remove friendship
+  app.delete("/api/child/friends/:friendshipId", authMiddleware, async (req: any, res) => {
+    try {
+      const childId = req.user.childId;
+      const { friendshipId } = req.params;
+
+      const friendship = await db.select().from(childFriendships).where(eq(childFriendships.id, friendshipId));
+      if (!friendship[0]) return res.status(404).json(errorResponse(ErrorCode.NOT_FOUND, "Friendship not found"));
+      if (friendship[0].requesterId !== childId && friendship[0].addresseeId !== childId) {
+        return res.status(403).json(errorResponse(ErrorCode.UNAUTHORIZED, "Not authorized"));
+      }
+
+      await db.delete(childFriendships).where(eq(childFriendships.id, friendshipId));
+      res.json(successResponse({ removed: true }));
+    } catch (error: any) {
+      console.error("Remove friend error:", error);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to remove friend"));
+    }
+  });
+
+  // Get my friends list
+  app.get("/api/child/friends", authMiddleware, async (req: any, res) => {
+    try {
+      const childId = req.user.childId;
+
+      const friendships = await db.select().from(childFriendships).where(
+        and(
+          or(eq(childFriendships.requesterId, childId), eq(childFriendships.addresseeId, childId)),
+          eq(childFriendships.status, "accepted")
+        )
+      );
+
+      const friendIds = friendships.map(f => f.requesterId === childId ? f.addresseeId : f.requesterId);
+      if (friendIds.length === 0) return res.json(successResponse({ friends: [], pending: [] }));
+
+      const friends = await db.select({
+        id: children.id,
+        name: children.name,
+        avatarUrl: children.avatarUrl,
+        schoolName: children.schoolName,
+        governorate: children.governorate,
+        totalPoints: children.totalPoints,
+      }).from(children).where(sql`${children.id} IN (${sql.join(friendIds.map(id => sql`${id}`), sql`, `)})`);
+
+      // Add friendship ID and growth tree stage
+      const friendsWithMeta = await Promise.all(friends.map(async (f) => {
+        const tree = await db.select({ currentStage: childGrowthTrees.currentStage }).from(childGrowthTrees).where(eq(childGrowthTrees.childId, f.id));
+        const friendship = friendships.find(fs => fs.requesterId === f.id || fs.addresseeId === f.id);
+        return { ...f, treeStage: tree[0]?.currentStage || 1, friendshipId: friendship?.id };
+      }));
+
+      // Pending requests (incoming)
+      const pending = await db.select().from(childFriendships).where(
+        and(eq(childFriendships.addresseeId, childId), eq(childFriendships.status, "pending"))
+      );
+
+      const pendingDetails = await Promise.all(pending.map(async (p) => {
+        const child = await db.select({ id: children.id, name: children.name, avatarUrl: children.avatarUrl, schoolName: children.schoolName })
+          .from(children).where(eq(children.id, p.requesterId));
+        return { ...p, requester: child[0] || null };
+      }));
+
+      res.json(successResponse({ friends: friendsWithMeta, pending: pendingDetails }));
+    } catch (error: any) {
+      console.error("Get friends error:", error);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to get friends"));
+    }
+  });
+
+  // Get friend suggestions (by geography, school, interests)
+  app.get("/api/child/friends/suggestions", authMiddleware, async (req: any, res) => {
+    try {
+      const childId = req.user.childId;
+      const child = await db.select().from(children).where(eq(children.id, childId));
+      if (!child[0]) return res.status(404).json(errorResponse(ErrorCode.NOT_FOUND, "Child not found"));
+
+      // Get existing friend IDs + pending
+      const existingFriendships = await db.select().from(childFriendships).where(
+        or(eq(childFriendships.requesterId, childId), eq(childFriendships.addresseeId, childId))
+      );
+      const excludeIds = new Set<string>([childId]);
+      existingFriendships.forEach(f => {
+        excludeIds.add(f.requesterId);
+        excludeIds.add(f.addresseeId);
+      });
+
+      // Get all children who are not already friends/pending
+      const allChildren = await db.select({
+        id: children.id,
+        name: children.name,
+        avatarUrl: children.avatarUrl,
+        schoolName: children.schoolName,
+        governorate: children.governorate,
+        hobbies: children.hobbies,
+        interests: children.interests,
+        academicGrade: children.academicGrade,
+        profilePublic: children.profilePublic,
+      }).from(children).where(sql`${children.profilePublic} = true`).limit(200);
+
+      const mySchool = child[0].schoolName?.toLowerCase().trim();
+      const myGov = child[0].governorate?.toLowerCase().trim();
+      const myHobbies = (child[0].hobbies || "").toLowerCase().split(/[,،\s]+/).filter(Boolean);
+      const myInterests: string[] = (child[0].interests as string[]) || [];
+      const myGrade = child[0].academicGrade;
+
+      const scored = allChildren
+        .filter(c => !excludeIds.has(c.id))
+        .map(c => {
+          let score = 0;
+          const reasons: string[] = [];
+
+          // Same school (+40)
+          if (mySchool && c.schoolName && c.schoolName.toLowerCase().trim() === mySchool) {
+            score += 40; reasons.push("school");
+          }
+
+          // Same governorate (+25)
+          if (myGov && c.governorate && c.governorate.toLowerCase().trim() === myGov) {
+            score += 25; reasons.push("location");
+          }
+
+          // Same grade (+15)
+          if (myGrade && c.academicGrade && c.academicGrade === myGrade) {
+            score += 15; reasons.push("grade");
+          }
+
+          // Shared hobbies (+10 each)
+          const theirHobbies = (c.hobbies || "").toLowerCase().split(/[,،\s]+/).filter(Boolean);
+          const hobbyMatch = myHobbies.filter(h => theirHobbies.includes(h)).length;
+          if (hobbyMatch > 0) { score += hobbyMatch * 10; reasons.push("hobbies"); }
+
+          // Shared interests (+8 each)
+          const theirInterests: string[] = (c.interests as string[]) || [];
+          const interestMatch = myInterests.filter(i => theirInterests.includes(i)).length;
+          if (interestMatch > 0) { score += interestMatch * 8; reasons.push("interests"); }
+
+          return { ...c, score, reasons };
+        })
+        .filter(c => c.score > 0)
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 20);
+
+      res.json(successResponse({ suggestions: scored }));
+    } catch (error: any) {
+      console.error("Get friend suggestions error:", error);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to get suggestions"));
+    }
+  });
+
+  // Get friend notifications
+  app.get("/api/child/friends/notifications", authMiddleware, async (req: any, res) => {
+    try {
+      const childId = req.user.childId;
+      const notifs = await db.select().from(childFriendNotifications)
+        .where(eq(childFriendNotifications.childId, childId))
+        .orderBy(sql`${childFriendNotifications.createdAt} DESC`)
+        .limit(50);
+
+      // Enrich with friend names
+      const enriched = await Promise.all(notifs.map(async (n) => {
+        const friend = await db.select({ name: children.name, avatarUrl: children.avatarUrl })
+          .from(children).where(eq(children.id, n.fromChildId));
+        return { ...n, friendName: friend[0]?.name, friendAvatar: friend[0]?.avatarUrl };
+      }));
+
+      const unreadCount = enriched.filter(n => !n.isRead).length;
+
+      res.json(successResponse({ notifications: enriched, unreadCount }));
+    } catch (error: any) {
+      console.error("Get friend notifications error:", error);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to get notifications"));
+    }
+  });
+
+  // Mark friend notification as read
+  app.put("/api/child/friends/notifications/:notifId/read", authMiddleware, async (req: any, res) => {
+    try {
+      await db.update(childFriendNotifications).set({ isRead: true })
+        .where(and(
+          eq(childFriendNotifications.id, req.params.notifId),
+          eq(childFriendNotifications.childId, req.user.childId)
+        ));
+      res.json(successResponse({ read: true }));
+    } catch (error: any) {
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed"));
+    }
+  });
+
+  // Mark all friend notifications as read
+  app.put("/api/child/friends/notifications/read-all", authMiddleware, async (req: any, res) => {
+    try {
+      await db.update(childFriendNotifications).set({ isRead: true })
+        .where(eq(childFriendNotifications.childId, req.user.childId));
+      res.json(successResponse({ read: true }));
+    } catch (error: any) {
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed"));
+    }
+  });
+
+  // ===== AUTO-ACHIEVEMENT NOTIFICATION HELPER =====
+  // This is called internally when a child achieves something notable
+  async function notifyFriendsOfAchievement(childId: string, type: string, title: string, message: string, metadata?: Record<string, any>) {
+    try {
+      const friendships = await db.select().from(childFriendships).where(
+        and(
+          or(eq(childFriendships.requesterId, childId), eq(childFriendships.addresseeId, childId)),
+          eq(childFriendships.status, "accepted")
+        )
+      );
+
+      const friendIds = friendships.map(f => f.requesterId === childId ? f.addresseeId : f.requesterId);
+      if (friendIds.length === 0) return;
+
+      const notifications = friendIds.map(fId => ({
+        childId: fId,
+        fromChildId: childId,
+        type,
+        title,
+        message,
+        metadata: metadata || {},
+      }));
+
+      await db.insert(childFriendNotifications).values(notifications);
+    } catch (err) {
+      console.error("Failed to notify friends:", err);
+    }
+  }
+
+  // Hook: Achievement notification on growth tree level up
+  // This can be called from the water-tree or growth event processing
+  app.post("/api/child/friends/notify-achievement", authMiddleware, async (req: any, res) => {
+    try {
+      const childId = req.user.childId;
+      const { type, title, message } = req.body;
+      if (!type || !title || !message) {
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Missing fields"));
+      }
+
+      const child = await db.select({ name: children.name }).from(children).where(eq(children.id, childId));
+      const finalMessage = message.replace("{name}", child[0]?.name || "طفل");
+
+      await notifyFriendsOfAchievement(childId, type, title, finalMessage);
+      res.json(successResponse({ notified: true }));
+    } catch (error: any) {
+      console.error("Notify achievement error:", error);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed"));
     }
   });
 

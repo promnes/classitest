@@ -163,6 +163,11 @@ export const children = pgTable("children", {
   hobbies: text("hobbies"),
   governorate: text("governorate"),
   pin: varchar("pin", { length: 255 }),
+  coverImageUrl: text("cover_image_url"),
+  bio: text("bio"),
+  shareCode: varchar("share_code", { length: 12 }).unique(),
+  profilePublic: boolean("profile_public").default(true).notNull(),
+  interests: json("interests").$type<string[]>(),
   privacyAccepted: boolean("privacy_accepted").default(false).notNull(),
   privacyAcceptedAt: timestamp("privacy_accepted_at"),
   privacyAcceptedIp: text("privacy_accepted_ip"),
@@ -2158,3 +2163,37 @@ export const taskCart = pgTable("task_cart", {
 }));
 
 export type TaskCartItem = typeof taskCart.$inferSelect;
+
+// ===== Child Friendships (صداقات الأطفال) =====
+export const childFriendships = pgTable("child_friendships", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  requesterId: varchar("requester_id").notNull().references(() => children.id, { onDelete: "cascade" }),
+  addresseeId: varchar("addressee_id").notNull().references(() => children.id, { onDelete: "cascade" }),
+  status: varchar("status", { length: 20 }).default("pending").notNull(), // pending, accepted, rejected, blocked
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => ({
+  uniqueFriendship: uniqueIndex("unique_friendship_idx").on(table.requesterId, table.addresseeId),
+  requesterIdx: index("cf_requester_idx").on(table.requesterId),
+  addresseeIdx: index("cf_addressee_idx").on(table.addresseeId),
+}));
+
+export type ChildFriendship = typeof childFriendships.$inferSelect;
+
+// ===== Friend Activity Notifications (إشعارات نشاط الأصدقاء) =====
+export const childFriendNotifications = pgTable("child_friend_notifications", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  childId: varchar("child_id").notNull().references(() => children.id, { onDelete: "cascade" }),
+  fromChildId: varchar("from_child_id").notNull().references(() => children.id, { onDelete: "cascade" }),
+  type: varchar("type", { length: 50 }).notNull(), // achievement, level_up, task_streak, watering, points_milestone, new_friend
+  title: text("title").notNull(),
+  message: text("message").notNull(),
+  metadata: json("metadata").$type<Record<string, any>>(),
+  isRead: boolean("is_read").default(false).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  childIdx: index("cfn_child_idx").on(table.childId),
+  readIdx: index("cfn_read_idx").on(table.childId, table.isRead),
+}));
+
+export type ChildFriendNotification = typeof childFriendNotifications.$inferSelect;

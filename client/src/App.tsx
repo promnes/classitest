@@ -56,6 +56,7 @@ const SchoolProfile = lazy(() => import("@/pages/SchoolProfile"));
 const TeacherProfile = lazy(() => import("@/pages/TeacherProfile"));
 const LibraryProfile = lazy(() => import("@/pages/LibraryProfile"));
 const ChildProfile = lazy(() => import("@/pages/ChildProfile"));
+const ChildPublicProfile = lazy(() => import("@/pages/ChildPublicProfile"));
 const ChildSettings = lazy(() => import("@/pages/ChildSettings"));
 const DownloadApp = lazy(() => import("@/pages/DownloadApp"));
 const ParentProfile = lazy(() => import("@/pages/ParentProfile"));
@@ -240,6 +241,9 @@ function Router() {
         <Route path="/child-progress" component={WrappedChildProgress} />
         <Route path="/child-tasks" component={WrappedChildTasks} />
         <Route path="/child-profile" component={WrappedChildProfile} />
+        <Route path="/child-public-profile/:shareCode">
+          <ErrorBoundary><ChildPublicProfile /></ErrorBoundary>
+        </Route>
         <Route path="/child-settings" component={WrappedChildSettings} />
         {/* DEPRECATED: Remove after 2026-02-20 */}
         <Route path="/create-task">

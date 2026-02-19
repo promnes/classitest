@@ -2082,7 +2082,65 @@
     "nameMinLength": "الاسم يجب أن يكون حرفين على الأقل",
     "pts": "نقطة",
     "pleaseSelectImage": "يرجى اختيار صورة فقط",
-    "questionMark": "؟"
+    "questionMark": "؟",
+    "coverUploaded": "تم رفع صورة الغلاف",
+    "treeLevel": "مستوى الشجرة",
+    "dayStreak": "يوم متواصل",
+    "shareProfile": "مشاركة الملف الشخصي",
+    "copyLink": "نسخ الرابط",
+    "shareDescription": "شارك ملفك الشخصي مع أصدقائك ليروا إنجازاتك!",
+    "shareText": "شاهد ملفي الشخصي على كلاسيفاي!",
+    "linkCopied": "تم نسخ الرابط",
+    "bioSection": "عني",
+    "bioPlaceholder": "اكتب شيئاً عن نفسك...",
+    "interestsSection": "اهتماماتي",
+    "tabs": {
+      "showcase": "إنجازاتي",
+      "friends": "أصدقائي",
+      "notifications": "الإشعارات",
+      "edit": "تعديل"
+    },
+    "stats": {
+      "tasks": "المهام",
+      "games": "الألعاب",
+      "waterings": "الريّ"
+    },
+    "achievements": {
+      "title": "الإنجازات"
+    },
+    "friends": {
+      "title": "أصدقاء",
+      "myFriends": "أصدقائي",
+      "noFriendsYet": "لا يوجد أصدقاء بعد. أضف بعضهم!",
+      "pendingRequests": "طلبات الصداقة",
+      "suggestions": "أصدقاء مقترحون",
+      "add": "إضافة",
+      "requestSent": "تم إرسال طلب الصداقة",
+      "reason": {
+        "school": "نفس المدرسة",
+        "location": "نفس المنطقة",
+        "grade": "نفس الصف",
+        "interests": "اهتمامات مشتركة",
+        "hobbies": "هوايات مشتركة"
+      }
+    },
+    "notifications": {
+      "empty": "لا توجد إشعارات بعد"
+    },
+    "interest": {
+      "reading": "القراءة",
+      "drawing": "الرسم",
+      "coding": "البرمجة",
+      "sports": "الرياضة",
+      "music": "الموسيقى",
+      "science": "العلوم",
+      "math": "الرياضيات",
+      "languages": "اللغات",
+      "cooking": "الطبخ",
+      "photography": "التصوير",
+      "nature": "الطبيعة",
+      "robotics": "الروبوتات"
+    }
   },
   "parentDashboard": {
     "welcomeUser": "مرحباً {{name}}",

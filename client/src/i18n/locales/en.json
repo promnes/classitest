@@ -2082,7 +2082,65 @@
     "nameMinLength": "Name must be at least 2 characters",
     "pts": "pts",
     "pleaseSelectImage": "Please select an image only",
-    "questionMark": "?"
+    "questionMark": "?",
+    "coverUploaded": "Cover image uploaded",
+    "treeLevel": "Tree Level",
+    "dayStreak": "day streak",
+    "shareProfile": "Share Profile",
+    "copyLink": "Copy Link",
+    "shareDescription": "Share your profile with friends so they can see your achievements!",
+    "shareText": "Check out my profile on Classify!",
+    "linkCopied": "Link copied to clipboard",
+    "bioSection": "About Me",
+    "bioPlaceholder": "Write something about yourself...",
+    "interestsSection": "My Interests",
+    "tabs": {
+      "showcase": "Showcase",
+      "friends": "Friends",
+      "notifications": "Notifications",
+      "edit": "Edit"
+    },
+    "stats": {
+      "tasks": "Tasks",
+      "games": "Games",
+      "waterings": "Waterings"
+    },
+    "achievements": {
+      "title": "Achievements"
+    },
+    "friends": {
+      "title": "Friends",
+      "myFriends": "My Friends",
+      "noFriendsYet": "No friends yet. Add some!",
+      "pendingRequests": "Friend Requests",
+      "suggestions": "Suggested Friends",
+      "add": "Add",
+      "requestSent": "Friend request sent",
+      "reason": {
+        "school": "Same School",
+        "location": "Same Area",
+        "grade": "Same Grade",
+        "interests": "Similar Interests",
+        "hobbies": "Similar Hobbies"
+      }
+    },
+    "notifications": {
+      "empty": "No notifications yet"
+    },
+    "interest": {
+      "reading": "Reading",
+      "drawing": "Drawing",
+      "coding": "Coding",
+      "sports": "Sports",
+      "music": "Music",
+      "science": "Science",
+      "math": "Math",
+      "languages": "Languages",
+      "cooking": "Cooking",
+      "photography": "Photography",
+      "nature": "Nature",
+      "robotics": "Robotics"
+    }
   },
   "parentDashboard": {
     "welcomeUser": "Welcome {{name}}",
