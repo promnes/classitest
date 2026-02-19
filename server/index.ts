@@ -207,6 +207,7 @@ app.use((req, res, next) => {
 // API response cache headers for stable/semi-stable endpoints
 // Reduces server load by allowing browsers to reuse recent responses
 const apiCacheRules: Array<{ pattern: RegExp; maxAge: number }> = [
+  { pattern: /^\/api\/games$/, maxAge: 60 },                // 1 min (game list)
   { pattern: /^\/api\/subjects$/, maxAge: 300 },           // 5 min
   { pattern: /^\/api\/parent\/ads$/, maxAge: 300 },         // 5 min
   { pattern: /^\/api\/parent\/referral-stats$/, maxAge: 120 }, // 2 min

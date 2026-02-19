@@ -861,7 +861,7 @@ export async function registerChildRoutes(app: Express) {
 
       if (!childId) {
         // No auth — return all active games
-        return res.json(allActiveGames);
+        return res.json(successResponse(allActiveGames));
       }
 
       // Check if this child has ANY assignments
@@ -870,16 +870,16 @@ export async function registerChildRoutes(app: Express) {
 
       if (assignments.length === 0) {
         // No assignments exist → return all active games (backwards compatible)
-        return res.json(allActiveGames);
+        return res.json(successResponse(allActiveGames));
       }
 
       // Child has assignments → return only assigned games
       const assignedGameIds = new Set(assignments.map((a: typeof assignments[number]) => a.gameId));
       const filteredGames = allActiveGames.filter((g: typeof allActiveGames[number]) => assignedGameIds.has(g.id));
-      return res.json(filteredGames);
+      return res.json(successResponse(filteredGames));
     } catch (error: any) {
       console.error("Fetch games error:", error);
-      res.status(500).json({ message: "Failed to fetch games" });
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to fetch games"));
     }
   });
 

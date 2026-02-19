@@ -1054,13 +1054,13 @@ export function GamesTab({ token }: { token: string }) {
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <div className="aspect-video bg-black">
+            <div className="aspect-video bg-black relative">
               <iframe
                 src={previewUrl}
                 className="w-full h-full"
                 allowFullScreen
                 title="معاينة اللعبة"
-                sandbox="allow-scripts allow-same-origin"
+                sandbox="allow-scripts allow-same-origin allow-popups"
               />
             </div>
           </div>

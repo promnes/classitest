@@ -34,6 +34,8 @@ export const ChildGames = (): JSX.Element => {
   const [showReward, setShowReward] = useState<{ points: number; total: number } | null>(null);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [gameResult, setGameResult] = useState<{ score: number; total: number } | null>(null);
+  const [iframeLoading, setIframeLoading] = useState(false);
+  const [mutationError, setMutationError] = useState<string | null>(null);
 
   const { data: games, isLoading } = useQuery<Game[]>({
     queryKey: ["games"],
@@ -41,7 +43,8 @@ export const ChildGames = (): JSX.Element => {
       const headers: Record<string, string> = {};
       if (token) headers.Authorization = `Bearer ${token}`;
       const res = await fetch("/api/games", { headers });
-      return res.json();
+      const json = await res.json();
+      return json?.data || json || [];
     },
     refetchInterval: 60000,
   });
@@ -66,11 +69,16 @@ export const ChildGames = (): JSX.Element => {
     refetchInterval: token ? 60000 : false,
   });
 
-  // Listen for game completion messages from iframe
+  // Listen for game completion messages from iframe (origin-validated)
   useEffect(() => {
     const handler = (e: MessageEvent) => {
+      // Validate origin: only accept messages from our own domain
+      const allowedOrigin = window.location.origin;
+      if (e.origin !== allowedOrigin && e.origin !== 'null') return;
       if (e.data?.type === 'GAME_COMPLETE' && typeof e.data.score === 'number') {
-        setGameResult({ score: e.data.score, total: e.data.total || 10 });
+        const score = Math.max(0, Math.min(e.data.score, 10000)); // clamp
+        const total = Math.max(1, Math.min(e.data.total || 10, 10000));
+        setGameResult({ score, total });
       }
     };
     window.addEventListener('message', handler);
@@ -98,9 +106,33 @@ export const ChildGames = (): JSX.Element => {
       setShowReward({ points: d.pointsEarned, total: d.newTotalPoints });
       setSelectedGame(null);
       setGameResult(null);
+      setMutationError(null);
       setTimeout(() => setShowReward(null), 3000);
     },
+    onError: (error: Error) => {
+      const rtl = i18n.language === 'ar';
+      const msg = error.message || "";
+      if (msg.includes("Daily play limit")) {
+        setMutationError(rtl ? "وصلت للحد اليومي لهذه اللعبة" : "Daily play limit reached for this game");
+      } else {
+        setMutationError(rtl ? "حدث خطأ، حاول مرة أخرى" : "An error occurred, please try again");
+      }
+      setTimeout(() => setMutationError(null), 4000);
+    },
   });
+
+  // Close game modal on Escape key
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && selectedGame) {
+        setSelectedGame(null);
+        setGameResult(null);
+        setMutationError(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedGame]);
 
   if (!token || isChildInfoLoading) {
     return (
@@ -116,6 +148,8 @@ export const ChildGames = (): JSX.Element => {
   const handlePlayGame = (game: Game) => {
     setSelectedGame(game);
     setGameResult(null);
+    setMutationError(null);
+    setIframeLoading(true);
   };
 
   const handleCompleteGame = () => {
@@ -334,7 +368,7 @@ export const ChildGames = (): JSX.Element => {
                   +{selectedGame.pointsPerPlay} {t("pointsEarned")}
                 </span>
                 <button
-                  onClick={() => setSelectedGame(null)}
+                  onClick={() => { setSelectedGame(null); setGameResult(null); setMutationError(null); }}
                   className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-all"
                   data-testid="button-close-game"
                 >
@@ -342,15 +376,30 @@ export const ChildGames = (): JSX.Element => {
                 </button>
               </div>
             </div>
-            <div className="aspect-video bg-black">
+            <div className="aspect-video bg-black relative">
+              {iframeLoading && (
+                <div className="absolute inset-0 flex items-center justify-center z-10">
+                  <div className="text-center">
+                    <Loader2 className="w-10 h-10 animate-spin text-purple-400 mx-auto mb-2" />
+                    <p className="text-white/70 text-sm">{isRTL ? "جاري تحميل اللعبة..." : "Loading game..."}</p>
+                  </div>
+                </div>
+              )}
               <iframe
                 src={selectedGame.embedUrl}
                 className="w-full h-full"
                 allowFullScreen
                 title={selectedGame.title}
+                onLoad={() => setIframeLoading(false)}
+                {...(!selectedGame.embedUrl.startsWith("/") ? { sandbox: "allow-scripts allow-same-origin allow-popups" } : {})}
               />
             </div>
             <div className="p-4 flex flex-col items-center gap-3">
+              {mutationError && (
+                <div className="w-full px-4 py-2 bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700 rounded-xl text-center">
+                  <p className="text-sm font-semibold text-red-600 dark:text-red-400">{mutationError}</p>
+                </div>
+              )}
               {gameResult ? (
                 <>
                   <p className={`text-sm font-semibold ${isDark ? "text-gray-300" : "text-gray-600"}`}>
