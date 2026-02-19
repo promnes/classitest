@@ -204,14 +204,6 @@
     "storeCategories": "Store Categories",
     "symbolsLibrary": "Symbols Library",
     "products": {
-      "0": "P",
-      "1": "r",
-      "2": "o",
-      "3": "d",
-      "4": "u",
-      "5": "c",
-      "6": "t",
-      "7": "s",
       "title": "Product Management",
       "subtitle": "Manage products displayed in children's and parents' store",
       "newProduct": "New Product",
@@ -276,14 +268,6 @@
     "wallets": "Wallets",
     "orders": "Orders",
     "deposits": {
-      "0": "D",
-      "1": "e",
-      "2": "p",
-      "3": "o",
-      "4": "s",
-      "5": "i",
-      "6": "t",
-      "7": "s",
       "title": "Deposit Management",
       "searchPlaceholder": "Search deposits...",
       "bankTransfer": "Bank Transfer",
@@ -392,15 +376,6 @@
       "reject": "Reject"
     },
     "referrals": {
-      "0": "R",
-      "1": "e",
-      "2": "f",
-      "3": "e",
-      "4": "r",
-      "5": "r",
-      "6": "a",
-      "7": "l",
-      "8": "s",
       "title": "Referral Management",
       "saved": "Saved",
       "active": "Active",
@@ -419,9 +394,6 @@
       "save": "Save"
     },
     "ads": {
-      "0": "A",
-      "1": "d",
-      "2": "s",
       "title": "Ad Management",
       "addAd": "Add Ad",
       "totalAds": "Total Ads",
@@ -456,15 +428,6 @@
       "actions": "Actions"
     },
     "libraries": {
-      "0": "L",
-      "1": "i",
-      "2": "b",
-      "3": "r",
-      "4": "a",
-      "5": "r",
-      "6": "i",
-      "7": "e",
-      "8": "s",
       "title": "Libraries",
       "searchPlaceholder": "Search by name or username...",
       "libraryCount": "{{count}} library",
@@ -557,13 +520,6 @@
       "copied": "Copied"
     },
     "schools": {
-      "0": "S",
-      "1": "c",
-      "2": "h",
-      "3": "o",
-      "4": "o",
-      "5": "l",
-      "6": "s",
       "title": "Schools",
       "teacherWithdrawals": "Teacher Withdrawals",
       "settingsTab": "Settings",
@@ -710,13 +666,6 @@
     "settings": "Settings",
     "logout": "Logout",
     "parents": {
-      "0": "P",
-      "1": "a",
-      "2": "r",
-      "3": "e",
-      "4": "n",
-      "5": "t",
-      "6": "s",
       "title": "Parents Management",
       "searchPlaceholder": "Search by name or email...",
       "totalParents": "Total Parents",
@@ -3279,5 +3228,62 @@
   },
   "governorateSelect": {
     "selectGovernorate": "Select Governorate"
+  },
+  "answer": "Answer",
+  "askParentPermission": "Ask your parent for permission",
+  "askParentToApprove": "Ask your parent to approve",
+  "cameraAccessDenied": "Camera access denied",
+  "enterPin": "Enter PIN code",
+  "invalidPin": "Invalid PIN code",
+  "pinHint": "Enter your 4-digit access code",
+  "switchAccount": "Switch Account",
+  "quickLogin": "Quick Login",
+  "linkAccount": "Link Account",
+  "loading": "Loading...",
+  "minutes": "minutes",
+  "imageLoadFailed": "Failed to load image",
+  "scanWithCamera": "Scan with Camera",
+  "uploadImage": "Upload Image",
+  "qrProcessError": "Error processing QR code",
+  "tryAgain": "Try Again",
+  "waitingForApproval": "Waiting for approval...",
+  "parentWillReceiveNotification": "Your parent will receive a notification",
+  "loginApproved": "Login approved",
+  "loginRejected": "Login rejected",
+  "parentRejectedLogin": "Parent rejected the login request",
+  "redirectingNow": "Redirecting...",
+  "requestExpired": "Request expired",
+  "pleaseRequestAgain": "Please submit a new request",
+  "sendNewRequest": "Send New Request",
+  "childGames": {
+    "level": "Level",
+    "playNow": "Play Now",
+    "yourPoints": "Your Points"
+  },
+  "childTasks": {
+    "completed": "Completed",
+    "failed": "Failed",
+    "pending": "Pending",
+    "start": "Start"
+  },
+  "errors": {
+    "error": "Error",
+    "somethingWentWrong": "Something went wrong"
+  },
+  "parentDashboard": {
+    "logoutTitle": "Logout",
+    "logoutConfirm": "Are you sure you want to logout?",
+    "logout": "Logout",
+    "codeCopied": "Code copied",
+    "copyFailed": "Copy failed",
+    "linkChild": "Link Child",
+    "showQR": "Show QR Code",
+    "yourCode": "Your Code"
+  },
+  "settings": {
+    "notificationsSaved": "Notification settings saved!"
+  },
+  "subjects": {
+    "taskSent": "Task sent successfully!"
   }
 }

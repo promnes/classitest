@@ -204,14 +204,6 @@
     "storeCategories": "أقسام المتجر",
     "symbolsLibrary": "مكتبة الرموز",
     "products": {
-      "0": "P",
-      "1": "r",
-      "2": "o",
-      "3": "d",
-      "4": "u",
-      "5": "c",
-      "6": "t",
-      "7": "s",
       "title": "إدارة المنتجات",
       "subtitle": "إدارة المنتجات المعروضة في متجر الأطفال والآباء",
       "newProduct": "منتج جديد",
@@ -276,14 +268,6 @@
     "wallets": "المحافظ",
     "orders": "الطلبات",
     "deposits": {
-      "0": "D",
-      "1": "e",
-      "2": "p",
-      "3": "o",
-      "4": "s",
-      "5": "i",
-      "6": "t",
-      "7": "s",
       "title": "إدارة الإيداعات",
       "searchPlaceholder": "بحث في الإيداعات...",
       "bankTransfer": "تحويل بنكي",
@@ -392,15 +376,6 @@
       "reject": "رفض"
     },
     "referrals": {
-      "0": "R",
-      "1": "e",
-      "2": "f",
-      "3": "e",
-      "4": "r",
-      "5": "r",
-      "6": "a",
-      "7": "l",
-      "8": "s",
       "title": "إدارة الإحالات",
       "saved": "تم الحفظ",
       "active": "نشط",
@@ -419,9 +394,6 @@
       "save": "حفظ"
     },
     "ads": {
-      "0": "A",
-      "1": "d",
-      "2": "s",
       "title": "إدارة الإعلانات",
       "addAd": "إضافة إعلان",
       "totalAds": "إجمالي الإعلانات",
@@ -456,15 +428,6 @@
       "actions": "إجراءات"
     },
     "libraries": {
-      "0": "L",
-      "1": "i",
-      "2": "b",
-      "3": "r",
-      "4": "a",
-      "5": "r",
-      "6": "i",
-      "7": "e",
-      "8": "s",
       "title": "المكتبات",
       "searchPlaceholder": "بحث بالاسم أو اسم المستخدم...",
       "libraryCount": "{{count}} مكتبة",
@@ -557,13 +520,6 @@
       "copied": "تم النسخ"
     },
     "schools": {
-      "0": "S",
-      "1": "c",
-      "2": "h",
-      "3": "o",
-      "4": "o",
-      "5": "l",
-      "6": "s",
       "title": "المدارس",
       "teacherWithdrawals": "سحوبات المعلمين",
       "settingsTab": "الإعدادات",
@@ -710,13 +666,6 @@
     "settings": "الإعدادات",
     "logout": "تسجيل الخروج",
     "parents": {
-      "0": "P",
-      "1": "a",
-      "2": "r",
-      "3": "e",
-      "4": "n",
-      "5": "t",
-      "6": "s",
       "title": "إدارة أولياء الأمور",
       "searchPlaceholder": "بحث بالاسم أو البريد الإلكتروني...",
       "totalParents": "إجمالي أولياء الأمور",
@@ -3279,5 +3228,62 @@
   },
   "governorateSelect": {
     "selectGovernorate": "اختر المحافظة"
+  },
+  "answer": "الإجابة",
+  "askParentPermission": "اطلب إذن من بابا وماما",
+  "askParentToApprove": "اطلب من ولي الأمر الموافقة",
+  "cameraAccessDenied": "تم رفض الوصول للكاميرا",
+  "enterPin": "أدخل رمز PIN",
+  "invalidPin": "رمز PIN غير صحيح",
+  "pinHint": "اكتب رمز الدخول المكون من 4 أرقام",
+  "switchAccount": "تبديل الحساب",
+  "quickLogin": "دخول سريع",
+  "linkAccount": "ربط الحساب",
+  "loading": "جاري التحميل...",
+  "minutes": "دقائق",
+  "imageLoadFailed": "فشل تحميل الصورة",
+  "scanWithCamera": "مسح بالكاميرا",
+  "uploadImage": "رفع صورة",
+  "qrProcessError": "خطأ في معالجة رمز QR",
+  "tryAgain": "حاول مرة أخرى",
+  "waitingForApproval": "في انتظار الموافقة...",
+  "parentWillReceiveNotification": "سيصل إشعار لولي الأمر",
+  "loginApproved": "تمت الموافقة على الدخول",
+  "loginRejected": "تم رفض الدخول",
+  "parentRejectedLogin": "ولي الأمر رفض طلب الدخول",
+  "redirectingNow": "جاري التحويل...",
+  "requestExpired": "انتهت صلاحية الطلب",
+  "pleaseRequestAgain": "يرجى تقديم طلب جديد",
+  "sendNewRequest": "إرسال طلب جديد",
+  "childGames": {
+    "level": "المستوى",
+    "playNow": "العب الآن",
+    "yourPoints": "نقاطك"
+  },
+  "childTasks": {
+    "completed": "مكتملة",
+    "failed": "فاشلة",
+    "pending": "قيد الانتظار",
+    "start": "ابدأ"
+  },
+  "errors": {
+    "error": "خطأ",
+    "somethingWentWrong": "حدث خطأ ما"
+  },
+  "parentDashboard": {
+    "logoutTitle": "تسجيل الخروج",
+    "logoutConfirm": "هل أنت متأكد من تسجيل الخروج؟",
+    "logout": "تسجيل الخروج",
+    "codeCopied": "تم نسخ الكود",
+    "copyFailed": "فشل في النسخ",
+    "linkChild": "ربط طفل",
+    "showQR": "عرض رمز QR",
+    "yourCode": "كودك"
+  },
+  "settings": {
+    "notificationsSaved": "تم حفظ إعدادات الإشعارات!"
+  },
+  "subjects": {
+    "taskSent": "تم إرسال المهمة بنجاح!"
   }
 }

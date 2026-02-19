@@ -82,7 +82,10 @@
   "pointsReward": "Pontos a ganhar",
   "answers": "Respostas",
   "answerLabel": "Resposta",
-  "createTask": "Criar tarefa",
+  "createTask": {
+    "linkingCode": "Seu codigo de vinculacao",
+    "insufficientBalance": "Saldo insuficiente"
+  },
   "creatingTask": "Criando...",
   "authError": "Erro de autenticacao",
   "invalidCredentials": "Credenciais invalidas",
@@ -3225,5 +3228,62 @@
   },
   "governorateSelect": {
     "selectGovernorate": "Selecionar Governadoria"
+  },
+  "answer": "Resposta",
+  "askParentPermission": "Peca permissao ao seu pai/mae",
+  "askParentToApprove": "Peca ao seu pai/mae para aprovar",
+  "cameraAccessDenied": "Acesso a camera negado",
+  "enterPin": "Digite o codigo PIN",
+  "invalidPin": "Codigo PIN invalido",
+  "pinHint": "Digite seu codigo de acesso de 4 digitos",
+  "switchAccount": "Trocar Conta",
+  "quickLogin": "Login Rapido",
+  "linkAccount": "Vincular Conta",
+  "loading": "Carregando...",
+  "minutes": "minutos",
+  "imageLoadFailed": "Falha ao carregar imagem",
+  "scanWithCamera": "Escanear com Camera",
+  "uploadImage": "Enviar Imagem",
+  "qrProcessError": "Erro ao processar codigo QR",
+  "tryAgain": "Tentar Novamente",
+  "waitingForApproval": "Aguardando aprovacao...",
+  "parentWillReceiveNotification": "Seu pai/mae recebera uma notificacao",
+  "loginApproved": "Login aprovado",
+  "loginRejected": "Login rejeitado",
+  "parentRejectedLogin": "Pai/mae rejeitou o pedido de login",
+  "redirectingNow": "Redirecionando...",
+  "requestExpired": "Pedido expirado",
+  "pleaseRequestAgain": "Por favor, envie um novo pedido",
+  "sendNewRequest": "Enviar Novo Pedido",
+  "childGames": {
+    "level": "Nivel",
+    "playNow": "Jogar Agora",
+    "yourPoints": "Seus Pontos"
+  },
+  "childTasks": {
+    "completed": "Concluida",
+    "failed": "Falhou",
+    "pending": "Pendente",
+    "start": "Iniciar"
+  },
+  "errors": {
+    "error": "Erro",
+    "somethingWentWrong": "Algo deu errado"
+  },
+  "parentDashboard": {
+    "logoutTitle": "Sair",
+    "logoutConfirm": "Tem certeza que deseja sair?",
+    "logout": "Sair",
+    "codeCopied": "Codigo copiado",
+    "copyFailed": "Falha ao copiar",
+    "linkChild": "Vincular Crianca",
+    "showQR": "Mostrar QR Code",
+    "yourCode": "Seu Codigo"
+  },
+  "settings": {
+    "notificationsSaved": "Configuracoes de notificacao salvas!"
+  },
+  "subjects": {
+    "taskSent": "Tarefa enviada com sucesso!"
   }
 }
