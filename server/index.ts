@@ -75,6 +75,7 @@ app.set("trust proxy", 1);
 
 // Basic production hardening with CSP configuration
 app.use(helmet({
+  frameguard: false,
   contentSecurityPolicy: {
     useDefaults: false,
     directives: {
@@ -157,6 +158,7 @@ const allowedOrigins = (process.env.CORS_ORIGIN || "*")
 const allowAnyOrigin = allowedOrigins.includes("*");
 
 app.use((req, res, next) => {
+  res.removeHeader("X-Frame-Options");
   const origin = req.headers.origin as string | undefined;
   const isAllowed = allowAnyOrigin || !origin || allowedOrigins.includes(origin);
 
