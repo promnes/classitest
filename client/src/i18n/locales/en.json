@@ -3453,5 +3453,97 @@
   "redirectingNow": "Redirecting...",
   "requestExpired": "Request expired",
   "pleaseRequestAgain": "Please submit a new request",
-  "sendNewRequest": "Send New Request"
+  "sendNewRequest": "Send New Request",
+  "pp": {
+    "title": "My Profile",
+    "changeCover": "Change Cover",
+    "avatarUploaded": "Profile picture updated",
+    "coverUploaded": "Cover image updated",
+    "uploadFailed": "Upload failed",
+    "selectImageOnly": "Please select images only",
+    "shareText": "Check out my profile",
+    "tabs": {
+      "posts": "Posts",
+      "about": "About",
+      "library": "Library",
+      "following": "Following",
+      "edit": "Settings"
+    },
+    "stats": {
+      "children": "Children",
+      "library": "Library",
+      "favorites": "Favorites",
+      "following": "Following"
+    },
+    "posts": {
+      "placeholder": "What's on your mind?",
+      "addMedia": "Photo/Video",
+      "publish": "Post",
+      "created": "Post published",
+      "deleted": "Post deleted",
+      "empty": "No posts yet. Share your first post!",
+      "justNow": "Just now",
+      "minutesAgo": "min ago",
+      "hoursAgo": "h ago",
+      "daysAgo": "d ago",
+      "showMore": "Show more",
+      "showLess": "Show less",
+      "commentPlaceholder": "Write a comment..."
+    },
+    "about": {
+      "bio": "Bio",
+      "personalInfo": "Personal Information",
+      "email": "Email",
+      "phone": "Phone",
+      "location": "Location",
+      "joined": "Joined",
+      "children": "Children",
+      "pts": "pts",
+      "shareProfile": "Share Profile",
+      "linkCode": "Unique Code"
+    },
+    "library": {
+      "title": "Task Library",
+      "empty": "Your library is empty",
+      "noSubject": "No subject",
+      "pts": "pts",
+      "permanent": "Permanent",
+      "oneTime": "One time",
+      "used": "Used",
+      "selectChild": "Select child",
+      "send": "Send",
+      "taskSent": "Task sent",
+      "favorites": "Favorites",
+      "noFavorites": "No saved favorites",
+      "teacherTask": "Teacher task",
+      "templateTask": "Template task"
+    },
+    "following": {
+      "title": "Following",
+      "empty": "Not following anyone yet",
+      "unknown": "Unknown",
+      "school": "School",
+      "teacher": "Teacher",
+      "suggested": "Suggested Teachers",
+      "suggestedSchools": "Suggested Schools",
+      "general": "General"
+    },
+    "edit": {
+      "basicInfo": "Basic Information",
+      "name": "Full Name",
+      "bio": "Bio",
+      "bioPlaceholder": "Write something about yourself...",
+      "phone": "Phone Number",
+      "governorate": "Governorate",
+      "city": "City",
+      "save": "Save Changes",
+      "saved": "Saved successfully",
+      "socialLinks": "Social Links",
+      "saveSocial": "Save Links",
+      "changePassword": "Change Password",
+      "oldPassword": "Current Password",
+      "newPassword": "New Password",
+      "passwordNote": "Leave empty if you don't want to change password"
+    }
+  }
 }

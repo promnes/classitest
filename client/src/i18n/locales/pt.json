@@ -3453,5 +3453,97 @@
   "redirectingNow": "Redirecionando...",
   "requestExpired": "Pedido expirado",
   "pleaseRequestAgain": "Por favor, envie um novo pedido",
-  "sendNewRequest": "Enviar Novo Pedido"
+  "sendNewRequest": "Enviar Novo Pedido",
+  "pp": {
+    "title": "Meu Perfil",
+    "changeCover": "Alterar Capa",
+    "avatarUploaded": "Foto de perfil atualizada",
+    "coverUploaded": "Imagem de capa atualizada",
+    "uploadFailed": "Falha no upload",
+    "selectImageOnly": "Selecione apenas imagens",
+    "shareText": "Confira meu perfil",
+    "tabs": {
+      "posts": "Posts",
+      "about": "Sobre",
+      "library": "Biblioteca",
+      "following": "Seguindo",
+      "edit": "Configuracoes"
+    },
+    "stats": {
+      "children": "Filhos",
+      "library": "Biblioteca",
+      "favorites": "Favoritos",
+      "following": "Seguindo"
+    },
+    "posts": {
+      "placeholder": "No que voce esta pensando?",
+      "addMedia": "Foto/Video",
+      "publish": "Publicar",
+      "created": "Post publicado",
+      "deleted": "Post excluido",
+      "empty": "Nenhum post ainda. Compartilhe seu primeiro!",
+      "justNow": "Agora mesmo",
+      "minutesAgo": "min atras",
+      "hoursAgo": "h atras",
+      "daysAgo": "d atras",
+      "showMore": "Ver mais",
+      "showLess": "Ver menos",
+      "commentPlaceholder": "Escreva um comentario..."
+    },
+    "about": {
+      "bio": "Bio",
+      "personalInfo": "Informacoes Pessoais",
+      "email": "Email",
+      "phone": "Telefone",
+      "location": "Localizacao",
+      "joined": "Cadastro",
+      "children": "Filhos",
+      "pts": "pts",
+      "shareProfile": "Compartilhar Perfil",
+      "linkCode": "Codigo Unico"
+    },
+    "library": {
+      "title": "Biblioteca de Tarefas",
+      "empty": "Sua biblioteca esta vazia",
+      "noSubject": "Sem materia",
+      "pts": "pts",
+      "permanent": "Permanente",
+      "oneTime": "Uso unico",
+      "used": "Usado",
+      "selectChild": "Selecionar filho",
+      "send": "Enviar",
+      "taskSent": "Tarefa enviada",
+      "favorites": "Favoritos",
+      "noFavorites": "Nenhum favorito salvo",
+      "teacherTask": "Tarefa do professor",
+      "templateTask": "Tarefa modelo"
+    },
+    "following": {
+      "title": "Seguindo",
+      "empty": "Nao segue ninguem ainda",
+      "unknown": "Desconhecido",
+      "school": "Escola",
+      "teacher": "Professor",
+      "suggested": "Professores Sugeridos",
+      "suggestedSchools": "Escolas Sugeridas",
+      "general": "Geral"
+    },
+    "edit": {
+      "basicInfo": "Informacoes Basicas",
+      "name": "Nome Completo",
+      "bio": "Bio",
+      "bioPlaceholder": "Escreva algo sobre voce...",
+      "phone": "Telefone",
+      "governorate": "Estado",
+      "city": "Cidade",
+      "save": "Salvar Alteracoes",
+      "saved": "Salvo com sucesso",
+      "socialLinks": "Links Sociais",
+      "saveSocial": "Salvar Links",
+      "changePassword": "Alterar Senha",
+      "oldPassword": "Senha Atual",
+      "newPassword": "Nova Senha",
+      "passwordNote": "Deixe vazio se nao quiser alterar a senha"
+    }
+  }
 }

@@ -3453,5 +3453,97 @@
   "redirectingNow": "جاري التحويل...",
   "requestExpired": "انتهت صلاحية الطلب",
   "pleaseRequestAgain": "يرجى تقديم طلب جديد",
-  "sendNewRequest": "إرسال طلب جديد"
+  "sendNewRequest": "إرسال طلب جديد",
+  "pp": {
+    "title": "صفحتي الشخصية",
+    "changeCover": "تغيير الغلاف",
+    "avatarUploaded": "تم تحديث صورة الملف الشخصي",
+    "coverUploaded": "تم تحديث صورة الغلاف",
+    "uploadFailed": "فشل الرفع",
+    "selectImageOnly": "يرجى اختيار صور فقط",
+    "shareText": "شاهد صفحتي الشخصية",
+    "tabs": {
+      "posts": "المنشورات",
+      "about": "حول",
+      "library": "المكتبة",
+      "following": "المتابَعون",
+      "edit": "الإعدادات"
+    },
+    "stats": {
+      "children": "الأبناء",
+      "library": "المكتبة",
+      "favorites": "المفضلة",
+      "following": "المتابَعون"
+    },
+    "posts": {
+      "placeholder": "بماذا تفكر؟",
+      "addMedia": "صورة/فيديو",
+      "publish": "نشر",
+      "created": "تم نشر المنشور",
+      "deleted": "تم حذف المنشور",
+      "empty": "لا توجد منشورات بعد. شارك أول منشور!",
+      "justNow": "الآن",
+      "minutesAgo": "د مضت",
+      "hoursAgo": "س مضت",
+      "daysAgo": "ي مضت",
+      "showMore": "عرض المزيد",
+      "showLess": "عرض أقل",
+      "commentPlaceholder": "اكتب تعليقاً..."
+    },
+    "about": {
+      "bio": "نبذة",
+      "personalInfo": "المعلومات الشخصية",
+      "email": "البريد الإلكتروني",
+      "phone": "الهاتف",
+      "location": "الموقع",
+      "joined": "تاريخ الانضمام",
+      "children": "الأبناء",
+      "pts": "نقاط",
+      "shareProfile": "مشاركة الملف الشخصي",
+      "linkCode": "الكود الفريد"
+    },
+    "library": {
+      "title": "مكتبة المهام",
+      "empty": "مكتبتك فارغة",
+      "noSubject": "بدون مادة",
+      "pts": "نقاط",
+      "permanent": "دائم",
+      "oneTime": "مرة واحدة",
+      "used": "مستخدم",
+      "selectChild": "اختر الطفل",
+      "send": "إرسال",
+      "taskSent": "تم إرسال المهمة",
+      "favorites": "المفضلة",
+      "noFavorites": "لا توجد مفضلات محفوظة",
+      "teacherTask": "مهمة معلم",
+      "templateTask": "مهمة قالب"
+    },
+    "following": {
+      "title": "المتابَعون",
+      "empty": "لا تتابع أحداً بعد",
+      "unknown": "غير معروف",
+      "school": "مدرسة",
+      "teacher": "معلم",
+      "suggested": "معلمون مقترحون",
+      "suggestedSchools": "مدارس مقترحة",
+      "general": "عام"
+    },
+    "edit": {
+      "basicInfo": "المعلومات الأساسية",
+      "name": "الاسم الكامل",
+      "bio": "نبذة",
+      "bioPlaceholder": "اكتب شيئاً عن نفسك...",
+      "phone": "رقم الهاتف",
+      "governorate": "المحافظة",
+      "city": "المدينة",
+      "save": "حفظ التغييرات",
+      "saved": "تم الحفظ بنجاح",
+      "socialLinks": "روابط التواصل",
+      "saveSocial": "حفظ الروابط",
+      "changePassword": "تغيير كلمة المرور",
+      "oldPassword": "كلمة المرور الحالية",
+      "newPassword": "كلمة المرور الجديدة",
+      "passwordNote": "اتركها فارغة إذا لم ترد تغيير كلمة المرور"
+    }
+  }
 }

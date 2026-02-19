@@ -2253,3 +2253,44 @@ export const childPostLikes = pgTable("child_post_likes", {
 export type ChildPost = typeof childPosts.$inferSelect;
 export type ChildPostComment = typeof childPostComments.$inferSelect;
 export type ChildPostLike = typeof childPostLikes.$inferSelect;
+
+// ======= PARENT POSTS =======
+export const parentPosts = pgTable("parent_posts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  parentId: varchar("parent_id").notNull().references(() => parents.id, { onDelete: "cascade" }),
+  content: text("content"),
+  mediaUrls: json("media_urls").$type<string[]>().default([]),
+  mediaTypes: json("media_types").$type<string[]>().default([]),
+  likesCount: integer("likes_count").default(0).notNull(),
+  commentsCount: integer("comments_count").default(0).notNull(),
+  isPinned: boolean("is_pinned").default(false).notNull(),
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const parentPostComments = pgTable("parent_post_comments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  postId: varchar("post_id").notNull().references(() => parentPosts.id, { onDelete: "cascade" }),
+  authorId: varchar("author_id"),
+  authorName: text("author_name").notNull(),
+  authorAvatar: text("author_avatar"),
+  authorType: varchar("author_type", { length: 20 }).default("parent"),
+  content: text("content").notNull(),
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const parentPostLikes = pgTable("parent_post_likes", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  postId: varchar("post_id").notNull().references(() => parentPosts.id, { onDelete: "cascade" }),
+  userId: varchar("user_id"),
+  userType: varchar("user_type", { length: 20 }).default("parent"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  uniqueLike: uniqueIndex("ppl_unique_like_idx").on(table.postId, table.userId),
+}));
+
+export type ParentPost = typeof parentPosts.$inferSelect;
+export type ParentPostComment = typeof parentPostComments.$inferSelect;
+export type ParentPostLike = typeof parentPostLikes.$inferSelect;

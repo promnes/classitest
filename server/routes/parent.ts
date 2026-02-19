@@ -53,6 +53,9 @@ import {
   childGameAssignments,
   gamePlayHistory,
   childGrowthTrees,
+  parentPosts,
+  parentPostComments,
+  parentPostLikes,
 } from "../../shared/schema";
 import jwt from "jsonwebtoken";
 import { JWT_SECRET } from "./middleware";
@@ -3306,6 +3309,197 @@ export async function registerParentRoutes(app: Express) {
     } catch (error: any) {
       console.error("Parent get child game stats error:", error);
       res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to fetch game stats"));
+    }
+  });
+
+  // ======= PARENT POSTS SYSTEM =======
+
+  // Create post
+  app.post("/api/parent/posts", authMiddleware, async (req, res) => {
+    try {
+      const parentId = (req as any).user.id;
+      const { content, mediaUrls, mediaTypes } = req.body;
+      if (!content?.trim() && (!mediaUrls || mediaUrls.length === 0)) {
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Post must have content or media"));
+      }
+      if (content && content.length > 5000) {
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Content too long"));
+      }
+      const [post] = await db.insert(parentPosts).values({
+        parentId,
+        content: content?.trim() || "",
+        mediaUrls: mediaUrls || [],
+        mediaTypes: mediaTypes || [],
+      }).returning();
+      res.json(successResponse(post));
+    } catch (error: any) {
+      console.error("Create parent post error:", error);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to create post"));
+    }
+  });
+
+  // Upload post media
+  app.post("/api/parent/posts/media", authMiddleware, async (req, res) => {
+    try {
+      const multer = (await import("multer")).default;
+      const path = await import("path");
+      const fs = await import("fs");
+      const uploadDir = path.resolve(process.cwd(), "uploads", "parent-posts");
+      if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+      const store = multer.diskStorage({
+        destination: (_r, _f, cb) => cb(null, uploadDir),
+        filename: (_r, file, cb) => cb(null, `${Date.now()}-${Math.random().toString(36).slice(2)}${path.extname(file.originalname)}`),
+      });
+      const upload = multer({ storage: store, limits: { fileSize: 10 * 1024 * 1024 }, fileFilter: (_r, f, cb) => {
+        if (f.mimetype.startsWith("image/") || f.mimetype.startsWith("video/")) cb(null, true);
+        else cb(new Error("Only images and videos are allowed"));
+      }}).array("media", 5);
+      upload(req, res, (err) => {
+        if (err) return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, err.message));
+        const files = req.files as Express.Multer.File[];
+        if (!files || files.length === 0) return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "No files uploaded"));
+        const urls = files.map(f => `/uploads/parent-posts/${f.filename}`);
+        const types = files.map(f => f.mimetype.startsWith("video/") ? "video" : "image");
+        res.json(successResponse({ urls, types }));
+      });
+    } catch (error: any) {
+      console.error("Upload parent post media error:", error);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to upload media"));
+    }
+  });
+
+  // Get own posts
+  app.get("/api/parent/posts", authMiddleware, async (req, res) => {
+    try {
+      const parentId = (req as any).user.id;
+      const posts = await db.select().from(parentPosts)
+        .where(and(eq(parentPosts.parentId, parentId), eq(parentPosts.isActive, true)))
+        .orderBy(desc(parentPosts.createdAt));
+      // Attach author info
+      const [parent] = await db.select({ name: parents.name, avatarUrl: parents.avatarUrl }).from(parents).where(eq(parents.id, parentId));
+      const enriched = posts.map(p => ({ ...p, authorName: parent?.name || "", authorAvatar: parent?.avatarUrl || null }));
+      res.json(successResponse(enriched));
+    } catch (error: any) {
+      console.error("Get parent posts error:", error);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to fetch posts"));
+    }
+  });
+
+  // Get posts by parentId (public)
+  app.get("/api/parent/posts/:parentId", async (req, res) => {
+    try {
+      const { parentId } = req.params;
+      const posts = await db.select().from(parentPosts)
+        .where(and(eq(parentPosts.parentId, parentId), eq(parentPosts.isActive, true)))
+        .orderBy(desc(parentPosts.createdAt));
+      const [parent] = await db.select({ name: parents.name, avatarUrl: parents.avatarUrl }).from(parents).where(eq(parents.id, parentId));
+      const enriched = posts.map(p => ({ ...p, authorName: parent?.name || "", authorAvatar: parent?.avatarUrl || null }));
+      res.json(successResponse(enriched));
+    } catch (error: any) {
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to fetch posts"));
+    }
+  });
+
+  // Delete post
+  app.delete("/api/parent/posts/:postId", authMiddleware, async (req, res) => {
+    try {
+      const parentId = (req as any).user.id;
+      const { postId } = req.params;
+      const [post] = await db.select().from(parentPosts).where(and(eq(parentPosts.id, postId), eq(parentPosts.parentId, parentId)));
+      if (!post) return res.status(404).json(errorResponse(ErrorCode.NOT_FOUND, "Post not found"));
+      await db.update(parentPosts).set({ isActive: false }).where(eq(parentPosts.id, postId));
+      res.json(successResponse({ deleted: true }));
+    } catch (error: any) {
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to delete post"));
+    }
+  });
+
+  // Check liked posts
+  app.post("/api/parent/posts/check-likes", authMiddleware, async (req, res) => {
+    try {
+      const userId = (req as any).user.id;
+      const { postIds } = req.body;
+      if (!postIds || !Array.isArray(postIds)) return res.json(successResponse({}));
+      const likes = await db.select().from(parentPostLikes)
+        .where(and(inArray(parentPostLikes.postId, postIds), eq(parentPostLikes.userId, userId)));
+      const map: Record<string, boolean> = {};
+      likes.forEach(l => { map[l.postId] = true; });
+      res.json(successResponse(map));
+    } catch (error: any) {
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to check likes"));
+    }
+  });
+
+  // Like / unlike post
+  app.post("/api/parent/posts/:postId/like", authMiddleware, async (req, res) => {
+    try {
+      const userId = (req as any).user.id;
+      const { postId } = req.params;
+      const existing = await db.select().from(parentPostLikes)
+        .where(and(eq(parentPostLikes.postId, postId), eq(parentPostLikes.userId, userId)));
+      if (existing.length > 0) {
+        await db.delete(parentPostLikes).where(eq(parentPostLikes.id, existing[0].id));
+        await db.update(parentPosts).set({ likesCount: sql`GREATEST(${parentPosts.likesCount} - 1, 0)` }).where(eq(parentPosts.id, postId));
+        const [updated] = await db.select({ likesCount: parentPosts.likesCount }).from(parentPosts).where(eq(parentPosts.id, postId));
+        res.json({ success: true, liked: false, likesCount: updated?.likesCount || 0 });
+      } else {
+        await db.insert(parentPostLikes).values({ postId, userId, userType: "parent" });
+        await db.update(parentPosts).set({ likesCount: sql`${parentPosts.likesCount} + 1` }).where(eq(parentPosts.id, postId));
+        const [updated] = await db.select({ likesCount: parentPosts.likesCount }).from(parentPosts).where(eq(parentPosts.id, postId));
+        res.json({ success: true, liked: true, likesCount: updated?.likesCount || 0 });
+      }
+    } catch (error: any) {
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to toggle like"));
+    }
+  });
+
+  // Get comments for a post
+  app.get("/api/parent/posts/:postId/comments", async (req, res) => {
+    try {
+      const { postId } = req.params;
+      const comments = await db.select().from(parentPostComments)
+        .where(and(eq(parentPostComments.postId, postId), eq(parentPostComments.isActive, true)))
+        .orderBy(parentPostComments.createdAt);
+      res.json(successResponse(comments));
+    } catch (error: any) {
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to fetch comments"));
+    }
+  });
+
+  // Add comment to a post
+  app.post("/api/parent/posts/:postId/comment", authMiddleware, async (req, res) => {
+    try {
+      const userId = (req as any).user.id;
+      const { postId } = req.params;
+      const { content } = req.body;
+      if (!content?.trim() || content.length > 1000) {
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Comment must be 1-1000 characters"));
+      }
+      const [parent] = await db.select({ name: parents.name, avatarUrl: parents.avatarUrl }).from(parents).where(eq(parents.id, userId));
+      const [comment] = await db.insert(parentPostComments).values({
+        postId,
+        authorId: userId,
+        authorName: parent?.name || "Parent",
+        authorAvatar: parent?.avatarUrl || null,
+        authorType: "parent",
+        content: content.trim(),
+      }).returning();
+      await db.update(parentPosts).set({ commentsCount: sql`${parentPosts.commentsCount} + 1` }).where(eq(parentPosts.id, postId));
+      res.json(successResponse(comment));
+    } catch (error: any) {
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to add comment"));
+    }
+  });
+
+  // Update social links
+  app.post("/api/parent/profile/social-links", authMiddleware, async (req, res) => {
+    try {
+      const parentId = (req as any).user.id;
+      const { socialLinks } = req.body;
+      await db.update(parents).set({ socialLinks }).where(eq(parents.id, parentId));
+      res.json(successResponse({ updated: true }));
+    } catch (error: any) {
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to update social links"));
     }
   });
 }
