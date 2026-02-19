@@ -129,6 +129,95 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',Tahoma,G
 
 .particle{position:fixed;pointer-events:none;z-index:999;animation:particle 1.1s ease-out forwards}
 .streak-flash{position:fixed;inset:0;background:radial-gradient(circle,rgba(251,191,36,.22) 0%,transparent 70%);pointer-events:none;z-index:50;animation:flashPulse .45s ease-out forwards}
+
+/* ===== ROYAL MATCH 3D VISUAL SYSTEM ===== */
+
+/* Animated gradient backgrounds */
+#level-screen{background-size:300% 300%;animation:royalBG 15s ease infinite}
+#complete-screen{background-size:300% 300%;animation:royalBG 15s ease infinite}
+@keyframes royalBG{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+
+/* Screen transitions */
+.screen.active{animation:screenIn .4s cubic-bezier(.34,1.56,.64,1)}
+@keyframes screenIn{0%{opacity:0;transform:scale(.93) translateY(12px)}100%{opacity:1;transform:scale(1) translateY(0)}}
+
+/* 3D Level Cards */
+.lv-card{transform-style:preserve-3d;box-shadow:0 6px 0 rgba(0,0,0,.18),0 10px 0 rgba(0,0,0,.08),0 20px 40px rgba(0,0,0,.12),inset 0 1px 0 rgba(255,255,255,.4) !important;background:linear-gradient(160deg,rgba(255,255,255,.5) 0%,rgba(255,255,255,.2) 40%,rgba(255,255,255,.05) 100%) !important;border:2px solid rgba(255,255,255,.55) !important;transition:all .35s cubic-bezier(.34,1.56,.64,1) !important}
+.lv-card:hover{transform:translateY(-8px) scale(1.1) rotateX(5deg) !important;box-shadow:0 12px 0 rgba(0,0,0,.12),0 20px 0 rgba(0,0,0,.05),0 32px 60px rgba(0,0,0,.15),inset 0 1px 0 rgba(255,255,255,.6) !important}
+.lv-card:active{transform:translateY(2px) scale(.96) !important}
+.lv-card.current{animation:currentGlow 2.5s ease-in-out infinite,cardFloat 3s ease-in-out infinite !important;border-color:#fbbf24 !important}
+@keyframes currentGlow{0%,100%{box-shadow:0 0 15px rgba(251,191,36,.4),0 6px 0 rgba(0,0,0,.15)}50%{box-shadow:0 0 30px rgba(251,191,36,.7),0 0 60px rgba(251,191,36,.2),0 6px 0 rgba(0,0,0,.12)}}
+
+/* 3D Tiles */
+.tile{box-shadow:0 5px 0 rgba(0,0,0,.14),0 7px 0 rgba(0,0,0,.07),0 12px 24px rgba(0,0,0,.1),inset 0 -3px 0 rgba(0,0,0,.05),inset 0 2px 0 rgba(255,255,255,.7) !important;background:linear-gradient(180deg,rgba(255,255,255,.98),rgba(245,240,255,.92),rgba(237,233,254,.85)) !important;border-radius:14px !important;transition:all .15s cubic-bezier(.34,1.56,.64,1) !important}
+.tile:hover{box-shadow:0 8px 0 rgba(0,0,0,.12),0 10px 0 rgba(0,0,0,.05),0 18px 32px rgba(0,0,0,.12),inset 0 -3px 0 rgba(0,0,0,.04),inset 0 2px 0 rgba(255,255,255,.8) !important;transform:scale(1.06) !important}
+.tile.selected{box-shadow:0 5px 0 rgba(251,191,36,.4),0 0 0 3px #fbbf24,0 0 20px rgba(251,191,36,.5),0 12px 24px rgba(251,191,36,.15) !important;z-index:2;animation:selectedPulse 1s ease-in-out infinite}
+@keyframes selectedPulse{0%,100%{box-shadow:0 5px 0 rgba(251,191,36,.4),0 0 0 3px #fbbf24,0 0 16px rgba(251,191,36,.4)}50%{box-shadow:0 5px 0 rgba(251,191,36,.4),0 0 0 3px #fbbf24,0 0 28px rgba(251,191,36,.6)}}
+.tile.dragging{box-shadow:0 12px 0 rgba(0,0,0,.15),0 16px 36px rgba(0,0,0,.22),0 0 20px rgba(124,58,237,.2) !important;transform:scale(1.15) !important}
+.tile.matching{animation:matchPop3D .5s cubic-bezier(.34,1.56,.64,1) forwards !important}
+@keyframes matchPop3D{0%{transform:scale(1) rotateZ(0);opacity:1}30%{transform:scale(1.4) rotateZ(10deg);opacity:1}60%{transform:scale(.3) rotateZ(-20deg);opacity:.5}100%{transform:scale(0) rotateZ(30deg);opacity:0}}
+.tile.falling{animation:tileFall3D .42s cubic-bezier(.34,1.56,.64,1) !important}
+@keyframes tileFall3D{0%{transform:translateY(-140%) scale(.8);opacity:0}50%{transform:translateY(6%) scale(1.05);opacity:1}75%{transform:translateY(-3%) scale(.98)}100%{transform:translateY(0) scale(1);opacity:1}}
+.tile.hint-glow{animation:hintPulse3D .6s ease 4 !important}
+@keyframes hintPulse3D{0%,100%{box-shadow:0 0 0 0 rgba(251,191,36,.6),0 5px 0 rgba(0,0,0,.14)}50%{box-shadow:0 0 0 8px rgba(251,191,36,.2),0 0 20px rgba(251,191,36,.4),0 5px 0 rgba(0,0,0,.14);transform:scale(1.1)}}
+
+/* 3D Board */
+.board{filter:drop-shadow(0 8px 24px rgba(0,0,0,.12))}
+
+/* 3D Moves Bar */
+.mv-track{box-shadow:inset 0 3px 6px rgba(0,0,0,.15),0 2px 0 rgba(255,255,255,.1) !important;border:1px solid rgba(0,0,0,.06)}
+.mv-fill{box-shadow:0 2px 8px rgba(16,185,129,.4),inset 0 -2px 0 rgba(0,0,0,.1),inset 0 2px 0 rgba(255,255,255,.3) !important}
+
+/* 3D Game Stats */
+.g-stat{box-shadow:0 3px 0 rgba(0,0,0,.08),0 4px 8px rgba(0,0,0,.05),inset 0 1px 0 rgba(255,255,255,.3) !important;transition:all .2s}
+
+/* 3D Footer Buttons */
+.f-btn{box-shadow:0 4px 0 rgba(0,0,0,.1),0 6px 10px rgba(0,0,0,.06),inset 0 1px 0 rgba(255,255,255,.3) !important;transition:all .2s cubic-bezier(.34,1.56,.64,1) !important}
+.f-btn:hover{transform:translateY(-3px) scale(1.05) !important;box-shadow:0 7px 0 rgba(0,0,0,.08),0 10px 16px rgba(0,0,0,.08) !important}
+.f-btn:active{transform:translateY(2px) scale(.96) !important}
+.f-btn.hint{box-shadow:0 4px 0 #b45309,0 6px 10px rgba(245,158,11,.3),inset 0 1px 0 rgba(255,255,255,.3) !important}
+.f-btn.hint:hover{box-shadow:0 7px 0 #b45309,0 10px 16px rgba(245,158,11,.35) !important}
+
+/* Combo 3D */
+.combo-pop{text-shadow:0 0 10px rgba(255,255,255,.6),0 0 20px rgba(251,191,36,.4),0 3px 10px rgba(0,0,0,.5) !important;animation:comboRise3D .9s cubic-bezier(.34,1.56,.64,1) forwards !important}
+@keyframes comboRise3D{0%{opacity:1;transform:translateX(-50%) translateY(0) scale(.5) rotateZ(-10deg)}30%{opacity:1;transform:translateX(-50%) translateY(-25px) scale(1.4) rotateZ(5deg)}60%{opacity:1;transform:translateX(-50%) translateY(-40px) scale(1.1) rotateZ(-2deg)}100%{opacity:0;transform:translateX(-50%) translateY(-65px) scale(.7) rotateZ(0)}}
+
+/* 3D Done Screen */
+.c-emoji{animation:doneBounce3D 1.5s cubic-bezier(.34,1.56,.64,1) infinite !important;filter:drop-shadow(0 8px 20px rgba(0,0,0,.3)) !important}
+@keyframes doneBounce3D{0%,100%{transform:translateY(0) scale(1) rotateZ(0)}25%{transform:translateY(-12px) scale(1.05) rotateZ(-3deg)}50%{transform:translateY(-6px) scale(1.02) rotateZ(0)}75%{transform:translateY(-12px) scale(1.05) rotateZ(3deg)}}
+
+/* 3D Stars */
+.c-stars-row span{display:inline-block;animation:starPop3D .6s cubic-bezier(.34,1.56,.64,1) both}
+.c-stars-row span:nth-child(1){animation-delay:.1s}
+.c-stars-row span:nth-child(2){animation-delay:.3s}
+.c-stars-row span:nth-child(3){animation-delay:.5s}
+@keyframes starPop3D{0%{transform:scale(0) rotateY(180deg);opacity:0}60%{transform:scale(1.3) rotateY(45deg);opacity:1}100%{transform:scale(1) rotateY(0deg);opacity:1}}
+
+/* 3D Stat Cards */
+.c-stat{box-shadow:0 4px 0 rgba(0,0,0,.1),0 8px 16px rgba(0,0,0,.08),inset 0 1px 0 rgba(255,255,255,.2) !important;transition:all .3s cubic-bezier(.34,1.56,.64,1)}
+.c-stat:hover{transform:translateY(-3px) scale(1.05)}
+
+/* 3D Completion Buttons */
+.c-btn.primary{box-shadow:0 6px 0 #c2410c,0 8px 0 #9a3412,0 14px 24px rgba(249,115,22,.3) !important}
+.c-btn.primary:hover{transform:translateY(-3px) scale(1.06) !important;box-shadow:0 9px 0 #c2410c,0 12px 0 #9a3412,0 20px 32px rgba(249,115,22,.35) !important}
+.c-btn.primary:active{transform:translateY(3px) scale(.96) !important;box-shadow:0 2px 0 #c2410c !important}
+.c-btn.share{box-shadow:0 6px 0 #1d4ed8,0 8px 0 #1e40af,0 14px 24px rgba(37,99,235,.3) !important}
+.c-btn.secondary{box-shadow:0 4px 0 rgba(0,0,0,.15),0 6px 12px rgba(0,0,0,.08) !important}
+
+/* 3D Free Play */
+.fp-btn{box-shadow:0 3px 0 rgba(0,0,0,.1),0 4px 8px rgba(0,0,0,.06),inset 0 1px 0 rgba(255,255,255,.15) !important;transition:all .2s cubic-bezier(.34,1.56,.64,1) !important}
+.fp-btn:hover{transform:translateY(-2px) scale(1.05) !important}
+.fp-btn.sel{box-shadow:0 0 0 2px #fff,0 0 16px rgba(255,255,255,.3),0 3px 0 rgba(0,0,0,.1) !important}
+.fp-go{box-shadow:0 6px 0 #c2410c,0 8px 0 #9a3412,0 14px 24px rgba(249,115,22,.3) !important}
+.fp-go:hover{transform:translateY(-3px) scale(1.06) !important;box-shadow:0 9px 0 #c2410c,0 20px 32px rgba(249,115,22,.35) !important}
+.ls-free-btn{box-shadow:0 6px 0 #c2410c,0 8px 0 #9a3412,0 14px 24px rgba(249,115,22,.3) !important}
+.ls-free-btn:hover{transform:translateY(-3px) scale(1.06) !important}
+
+/* No Moves Modal 3D */
+.no-mv-card{box-shadow:0 8px 0 rgba(0,0,0,.06),0 20px 48px rgba(0,0,0,.25),inset 0 2px 0 rgba(255,255,255,.8) !important}
+.no-mv-card button{box-shadow:0 4px 0 rgba(124,58,237,.3),0 6px 12px rgba(124,58,237,.15) !important}
+
+/* ===== END ROYAL MATCH 3D ===== */
 </style>
 </head>
 <body>
@@ -191,6 +280,94 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',Tahoma,G
     <button class="c-btn secondary" onclick="showScreen('level-screen')">🏠 المستويات</button>
   </div>
 </div>
+
+<script>
+// ===== ROYAL MATCH 3D PARTICLE SYSTEM =====
+(function(){
+const c=document.createElement('canvas');
+c.style.cssText='position:fixed;inset:0;pointer-events:none;z-index:9999';
+document.body.appendChild(c);
+const ctx=c.getContext('2d');
+let P=[],raf=null;
+function resize(){c.width=innerWidth;c.height=innerHeight}
+addEventListener('resize',resize);resize();
+
+window.spawnConfetti=function(x,y,n){
+  n=n||40;
+  const cols=['#FF6B6B','#4ECDC4','#45B7D1','#FFEAA7','#DDA0DD','#FF69B4','#98D8C8','#F7DC6F','#BB8FCE','#85C1E9','#F8C471','#82E0AA'];
+  for(let i=0;i<n;i++){
+    P.push({x:x||Math.random()*c.width,y:y||c.height*.3,
+      vx:(Math.random()-.5)*14,vy:-Math.random()*16-3,
+      w:Math.random()*10+4,h:Math.random()*6+3,
+      color:cols[Math.floor(Math.random()*cols.length)],
+      rot:Math.random()*360,rs:(Math.random()-.5)*15,
+      g:.25+Math.random()*.2,life:1,d:.006+Math.random()*.007})}
+  if(!raf)loop()};
+
+window.spawnFirework=function(x,y){
+  const cols=['#FFD700','#FF4500','#00FF7F','#1E90FF','#FF69B4','#FFA500','#E74C3C','#2ECC71','#9B59B6','#F39C12'];
+  const col=cols[Math.floor(Math.random()*cols.length)];
+  for(let i=0;i<50;i++){
+    const a=(i/50)*Math.PI*2,sp=2+Math.random()*6;
+    P.push({t:'fw',x:x,y:y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,
+      r:1.5+Math.random()*3,color:col,life:1,d:.012+Math.random()*.012,g:.06})}
+  if(!raf)loop()};
+
+window.spawn3DStars=function(x,y,n){
+  const em=['\u2b50','\ud83c\udf1f','\u2728','\ud83d\udcab','\ud83c\udf86','\ud83d\udc8e','\ud83c\udfc6','\ud83c\udf89','\ud83c\udf8a','\ud83d\udc51'];
+  for(let i=0;i<(n||8);i++){
+    P.push({t:'em',x:x+(Math.random()-.5)*100,y:y,
+      vx:(Math.random()-.5)*6,vy:-Math.random()*10-3,
+      em:em[Math.floor(Math.random()*em.length)],
+      sz:18+Math.random()*24,life:1,d:.009,g:.12,rot:0,rs:(Math.random()-.5)*10})}
+  if(!raf)loop()};
+
+window.royalCelebration=function(stars){
+  stars=stars||1;
+  for(let w=0;w<Math.min(stars+1,4);w++)
+    setTimeout(()=>{
+      spawnConfetti(c.width*(.2+Math.random()*.6),c.height*(.2+Math.random()*.2),25+stars*10);
+    },w*350);
+  for(let f=0;f<Math.min(stars,3);f++)
+    setTimeout(()=>{
+      spawnFirework(c.width*(.15+Math.random()*.7),c.height*(.1+Math.random()*.25));
+    },200+f*600);
+  setTimeout(()=>spawn3DStars(c.width/2,c.height*.45,stars*4),100);
+};
+
+window.spawnMatchParticles=function(matches){
+  if(!matches||!matches.length)return;
+  const em=['\u2b50','\u2728','\ud83c\udf1f','\ud83d\udcab','\ud83c\udf86','\ud83d\udc8e'];
+  matches.forEach((m,i)=>{
+    if(i%2!==0)return;
+    const el=document.querySelector('.tile[data-r="'+m.r+'"][data-c="'+m.c+'"]');
+    if(!el)return;
+    const rect=el.getBoundingClientRect();
+    spawn3DStars(rect.left+rect.width/2,rect.top+rect.height/2,2);
+  });
+};
+
+function loop(){
+  ctx.clearRect(0,0,c.width,c.height);
+  for(let i=P.length-1;i>=0;i--){
+    const p=P[i];
+    p.life-=p.d;
+    if(p.life<=0){P.splice(i,1);continue}
+    p.vy+=(p.g||.2);p.x+=p.vx;p.y+=p.vy;p.rot=(p.rot||0)+(p.rs||0);
+    ctx.save();ctx.globalAlpha=Math.min(1,p.life*1.5);
+    ctx.translate(p.x,p.y);ctx.rotate((p.rot||0)*Math.PI/180);
+    if(p.t==='fw'){
+      ctx.beginPath();ctx.arc(0,0,p.r*p.life,0,Math.PI*2);ctx.fillStyle=p.color;ctx.fill();
+      ctx.globalAlpha=p.life*.3;ctx.beginPath();ctx.arc(-p.vx*.5,-p.vy*.5,p.r*p.life*.6,0,Math.PI*2);ctx.fill();
+    } else if(p.t==='em'){
+      ctx.font=p.sz+'px serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(p.em,0,0);
+    } else {
+      ctx.fillStyle=p.color;ctx.fillRect(-p.w/2,-p.h/2,p.w,p.h);
+    }
+    ctx.restore()}
+  raf=P.length>0?requestAnimationFrame(loop):null}
+})();
+</script>
 
 <script>
 // =========================================================================
@@ -905,6 +1082,7 @@ function endGame(){
   
   sfxComplete();
   showScreen('complete-screen');
+  if(window.royalCelebration) window.royalCelebration(stars);
   
   // Celebration particles
   if(stars>=1){

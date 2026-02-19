@@ -84,6 +84,70 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',Tahoma,G
 @keyframes cardFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
 @keyframes emojiWiggle{0%,100%{transform:scale(1) rotate(0deg)}25%{transform:scale(1.15) rotate(-6deg)}50%{transform:scale(1) rotate(0deg)}75%{transform:scale(1.15) rotate(6deg)}}
 @keyframes emojiBreath{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}
+
+/* ===== ROYAL MATCH 3D VISUAL SYSTEM ===== */
+
+/* Animated gradient backgrounds */
+#lvl-screen{background-size:300% 300%;animation:royalBG 15s ease infinite}
+#done-screen{background-size:300% 300%;animation:royalBG 15s ease infinite}
+@keyframes royalBG{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+
+/* Screen transitions */
+.screen.active{animation:screenIn .4s cubic-bezier(.34,1.56,.64,1)}
+@keyframes screenIn{0%{opacity:0;transform:scale(.93) translateY(12px)}100%{opacity:1;transform:scale(1) translateY(0)}}
+
+/* 3D Level Cards */
+.lc{transform-style:preserve-3d;box-shadow:0 6px 0 rgba(0,0,0,.18),0 10px 0 rgba(0,0,0,.08),0 20px 40px rgba(0,0,0,.12),inset 0 1px 0 rgba(255,255,255,.4) !important;background:linear-gradient(160deg,rgba(255,255,255,.5) 0%,rgba(255,255,255,.2) 40%,rgba(255,255,255,.05) 100%) !important;border:2px solid rgba(255,255,255,.55) !important;transition:all .35s cubic-bezier(.34,1.56,.64,1) !important}
+.lc:hover{transform:translateY(-8px) scale(1.1) rotateX(5deg) !important;box-shadow:0 12px 0 rgba(0,0,0,.12),0 20px 0 rgba(0,0,0,.05),0 32px 60px rgba(0,0,0,.15),inset 0 1px 0 rgba(255,255,255,.6) !important}
+.lc:active{transform:translateY(2px) scale(.96) !important}
+.lc.current{animation:currentGlow 2.5s ease-in-out infinite,cardFloat 3s ease-in-out infinite !important;border-color:#fbbf24 !important}
+@keyframes currentGlow{0%,100%{box-shadow:0 0 15px rgba(251,191,36,.4),0 6px 0 rgba(0,0,0,.15)}50%{box-shadow:0 0 30px rgba(251,191,36,.7),0 0 60px rgba(251,191,36,.2),0 6px 0 rgba(0,0,0,.12)}}
+
+/* 3D Memory Cards */
+.card-front{box-shadow:0 6px 0 rgba(0,0,0,.2),0 8px 0 rgba(0,0,0,.1),0 14px 28px rgba(0,0,0,.15),inset 0 2px 0 rgba(255,255,255,.35) !important;background:linear-gradient(165deg,var(--cf1,#6366f1),var(--cf2,#4f46e5),rgba(0,0,0,.15)) !important}
+.card:not(.flipped):not(.matched):hover .card-front{box-shadow:0 10px 0 rgba(0,0,0,.15),0 14px 0 rgba(0,0,0,.08),0 20px 36px rgba(0,0,0,.18),inset 0 2px 0 rgba(255,255,255,.4) !important;transform:scale(1.08) !important}
+.card:not(.flipped):not(.matched):active .card-front{transform:scale(.94) !important;box-shadow:0 2px 0 rgba(0,0,0,.2),0 3px 6px rgba(0,0,0,.1) !important}
+.card-back{box-shadow:0 6px 0 rgba(99,102,241,.2),0 8px 0 rgba(99,102,241,.1),0 14px 24px rgba(0,0,0,.1),inset 0 -2px 0 rgba(0,0,0,.04),inset 0 2px 0 rgba(255,255,255,.6) !important;background:linear-gradient(180deg,#fff,#f5f3ff,#ede9fe) !important}
+.card.matched .card-back{background:linear-gradient(180deg,#d1fae5,#a7f3d0,#6ee7b7) !important;border-color:rgba(16,185,129,.4) !important;box-shadow:0 0 20px rgba(16,185,129,.3),0 6px 0 rgba(16,185,129,.2),inset 0 2px 0 rgba(255,255,255,.4) !important;animation:matchedGlow 1.5s ease-in-out infinite}
+@keyframes matchedGlow{0%,100%{box-shadow:0 0 10px rgba(16,185,129,.2),0 6px 0 rgba(16,185,129,.2),inset 0 2px 0 rgba(255,255,255,.4)}50%{box-shadow:0 0 25px rgba(16,185,129,.4),0 0 50px rgba(16,185,129,.15),0 6px 0 rgba(16,185,129,.2),inset 0 2px 0 rgba(255,255,255,.4)}}
+
+/* 3D Game Header */
+.g-stat{box-shadow:0 3px 0 rgba(0,0,0,.1),0 4px 8px rgba(0,0,0,.06),inset 0 1px 0 rgba(255,255,255,.2) !important;transition:all .2s}
+
+/* 3D Footer Buttons */
+.f-btn{box-shadow:0 4px 0 rgba(0,0,0,.12),0 6px 10px rgba(0,0,0,.06),inset 0 1px 0 rgba(255,255,255,.2) !important;transition:all .2s cubic-bezier(.34,1.56,.64,1) !important}
+.f-btn:hover{transform:translateY(-3px) scale(1.05) !important;box-shadow:0 7px 0 rgba(0,0,0,.1),0 10px 16px rgba(0,0,0,.08) !important}
+.f-btn:active{transform:translateY(2px) scale(.96) !important;box-shadow:0 1px 0 rgba(0,0,0,.12) !important}
+
+/* 3D Done Screen Stars */
+.d-stars span{display:inline-block;animation:starPop3D .6s cubic-bezier(.34,1.56,.64,1) both}
+.d-stars span:nth-child(1){animation-delay:.1s}
+.d-stars span:nth-child(2){animation-delay:.3s}
+.d-stars span:nth-child(3){animation-delay:.5s}
+@keyframes starPop3D{0%{transform:scale(0) rotateY(180deg);opacity:0}60%{transform:scale(1.3) rotateY(45deg);opacity:1}100%{transform:scale(1) rotateY(0deg);opacity:1}}
+
+/* Done Screen Stat Cards 3D */
+.d-st{box-shadow:0 4px 0 rgba(0,0,0,.1),0 8px 16px rgba(0,0,0,.08),inset 0 1px 0 rgba(255,255,255,.2) !important;transition:all .3s cubic-bezier(.34,1.56,.64,1)}
+.d-st:hover{transform:translateY(-3px) scale(1.05)}
+
+/* 3D Done Buttons */
+.d-btn.pri{box-shadow:0 6px 0 #c2410c,0 8px 0 #9a3412,0 14px 24px rgba(249,115,22,.3) !important}
+.d-btn.pri:hover{transform:translateY(-3px) scale(1.06) !important;box-shadow:0 9px 0 #c2410c,0 12px 0 #9a3412,0 20px 32px rgba(249,115,22,.35) !important}
+.d-btn.pri:active{transform:translateY(3px) scale(.96) !important;box-shadow:0 2px 0 #c2410c !important}
+.d-btn.shr{box-shadow:0 6px 0 #1d4ed8,0 8px 0 #1e40af,0 14px 24px rgba(37,99,235,.3) !important}
+.d-btn.sec{box-shadow:0 4px 0 rgba(0,0,0,.15),0 6px 12px rgba(0,0,0,.08) !important}
+
+/* Done Emoji Bounce */
+.d-emoji{animation:doneBounce3D 1.5s cubic-bezier(.34,1.56,.64,1) infinite !important;filter:drop-shadow(0 8px 20px rgba(0,0,0,.3)) !important}
+@keyframes doneBounce3D{0%,100%{transform:translateY(0) scale(1) rotateZ(0)}25%{transform:translateY(-12px) scale(1.05) rotateZ(-3deg)}50%{transform:translateY(-6px) scale(1.02) rotateZ(0)}75%{transform:translateY(-12px) scale(1.05) rotateZ(3deg)}}
+
+/* Card flip enhanced */
+.card.flipped .card-inner{transform:rotateY(180deg);transition:transform .5s cubic-bezier(.34,1.56,.64,1) !important}
+
+/* Grid glow */
+.grid{filter:drop-shadow(0 4px 16px rgba(0,0,0,.1))}
+
+/* ===== END ROYAL MATCH 3D ===== */
 </style>
 </head>
 <body>
@@ -133,6 +197,82 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',Tahoma,G
     <button class="d-btn sec" onclick="showScreen('lvl-screen')">🏠 المستويات</button>
   </div>
 </div>
+
+<script>
+// ===== ROYAL MATCH 3D PARTICLE SYSTEM =====
+(function(){
+const c=document.createElement('canvas');
+c.style.cssText='position:fixed;inset:0;pointer-events:none;z-index:9999';
+document.body.appendChild(c);
+const ctx=c.getContext('2d');
+let P=[],raf=null;
+function resize(){c.width=innerWidth;c.height=innerHeight}
+addEventListener('resize',resize);resize();
+
+window.spawnConfetti=function(x,y,n){
+  n=n||40;
+  const cols=['#FF6B6B','#4ECDC4','#45B7D1','#FFEAA7','#DDA0DD','#FF69B4','#98D8C8','#F7DC6F','#BB8FCE','#85C1E9','#F8C471','#82E0AA'];
+  for(let i=0;i<n;i++){
+    P.push({x:x||Math.random()*c.width,y:y||c.height*.3,
+      vx:(Math.random()-.5)*14,vy:-Math.random()*16-3,
+      w:Math.random()*10+4,h:Math.random()*6+3,
+      color:cols[Math.floor(Math.random()*cols.length)],
+      rot:Math.random()*360,rs:(Math.random()-.5)*15,
+      g:.25+Math.random()*.2,life:1,d:.006+Math.random()*.007})}
+  if(!raf)loop()};
+
+window.spawnFirework=function(x,y){
+  const cols=['#FFD700','#FF4500','#00FF7F','#1E90FF','#FF69B4','#FFA500','#E74C3C','#2ECC71','#9B59B6','#F39C12'];
+  const col=cols[Math.floor(Math.random()*cols.length)];
+  for(let i=0;i<50;i++){
+    const a=(i/50)*Math.PI*2,sp=2+Math.random()*6;
+    P.push({t:'fw',x:x,y:y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,
+      r:1.5+Math.random()*3,color:col,life:1,d:.012+Math.random()*.012,g:.06})}
+  if(!raf)loop()};
+
+window.spawn3DStars=function(x,y,n){
+  const em=['\u2b50','\ud83c\udf1f','\u2728','\ud83d\udcab','\ud83c\udf86','\ud83d\udc8e','\ud83c\udfc6','\ud83c\udf89','\ud83c\udf8a','\ud83d\udc51'];
+  for(let i=0;i<(n||8);i++){
+    P.push({t:'em',x:x+(Math.random()-.5)*100,y:y,
+      vx:(Math.random()-.5)*6,vy:-Math.random()*10-3,
+      em:em[Math.floor(Math.random()*em.length)],
+      sz:18+Math.random()*24,life:1,d:.009,g:.12,rot:0,rs:(Math.random()-.5)*10})}
+  if(!raf)loop()};
+
+window.royalCelebration=function(stars){
+  stars=stars||1;
+  for(let w=0;w<Math.min(stars+1,4);w++)
+    setTimeout(()=>{
+      spawnConfetti(c.width*(.2+Math.random()*.6),c.height*(.2+Math.random()*.2),25+stars*10);
+    },w*350);
+  for(let f=0;f<Math.min(stars,3);f++)
+    setTimeout(()=>{
+      spawnFirework(c.width*(.15+Math.random()*.7),c.height*(.1+Math.random()*.25));
+    },200+f*600);
+  setTimeout(()=>spawn3DStars(c.width/2,c.height*.45,stars*4),100);
+};
+
+function loop(){
+  ctx.clearRect(0,0,c.width,c.height);
+  for(let i=P.length-1;i>=0;i--){
+    const p=P[i];
+    p.life-=p.d;
+    if(p.life<=0){P.splice(i,1);continue}
+    p.vy+=(p.g||.2);p.x+=p.vx;p.y+=p.vy;p.rot=(p.rot||0)+(p.rs||0);
+    ctx.save();ctx.globalAlpha=Math.min(1,p.life*1.5);
+    ctx.translate(p.x,p.y);ctx.rotate((p.rot||0)*Math.PI/180);
+    if(p.t==='fw'){
+      ctx.beginPath();ctx.arc(0,0,p.r*p.life,0,Math.PI*2);ctx.fillStyle=p.color;ctx.fill();
+      ctx.globalAlpha=p.life*.3;ctx.beginPath();ctx.arc(-p.vx*.5,-p.vy*.5,p.r*p.life*.6,0,Math.PI*2);ctx.fill();
+    } else if(p.t==='em'){
+      ctx.font=p.sz+'px serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(p.em,0,0);
+    } else {
+      ctx.fillStyle=p.color;ctx.fillRect(-p.w/2,-p.h/2,p.w,p.h);
+    }
+    ctx.restore()}
+  raf=P.length>0?requestAnimationFrame(loop):null}
+})();
+</script>
 
 <script>
 // ===== i18n =====
@@ -397,6 +537,7 @@ function endGame(){
   document.getElementById('d-nx').style.display=(currentLevel>=0&&currentLevel<LEVELS.length-1)?'':'none';
   sfxComplete();if(stars>0)sfxStar();
   showScreen('done-screen');
+  if(window.royalCelebration) window.royalCelebration(stars);
   // Particles
   for(let i=0;i<stars*6;i++){setTimeout(()=>{const p=document.createElement('div');p.className='particle';p.textContent=['⭐','✨','🌟','🎉','💎'][Math.floor(Math.random()*5)];p.style.left=(Math.random()*innerWidth)+'px';p.style.top=(innerHeight*.6+Math.random()*80)+'px';p.style.fontSize='22px';document.body.appendChild(p);setTimeout(()=>p.remove(),1200)},i*70)}
   // PostMessage
