@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>لعبة الذاكرة - Memory Match</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* ---------- Header ---------- */
+    .header {
+      text-align: center;
+      margin-bottom: 1rem;
+      width: 100%;
+      max-width: 480px;
+    }
+
+    .title {
+      font-size: 1.6rem;
+      font-weight: 800;
+      color: #fff;
+      margin: 0 0 0.75rem;
+      text-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+    }
+
+    .stats {
+      display: flex;
+      justify-content: center;
+      gap: 1.25rem;
+    }
+
+    .stat {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background: rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(6px);
+      border-radius: 12px;
+      padding: 0.4rem 1rem;
+      min-width: 72px;
+    }
+
+    .stat-label {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: rgba(255, 255, 255, 0.7);
+    }
+
+    .stat-value {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    /* ---------- Grid ---------- */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0.6rem;
+      width: 100%;
+      max-width: 400px;
+      perspective: 1000px;
+    }
+
+    /* ---------- Card ---------- */
+    .card {
+      aspect-ratio: 1;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      padding: 0;
+      outline: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .card:disabled { cursor: default; }
+
+    .card-inner {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      transition: transform 0.5s ease;
+      transform-style: preserve-3d;
+      border-radius: 14px;
+    }
+
+    .card.flipped .card-inner { transform: rotateY(180deg); }
+
+    .card-front, .card-back {
+      position: absolute;
+      inset: 0;
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .card-front {
+      background: linear-gradient(145deg, #6366f1, #4f46e5);
+      box-shadow: 0 4px 12px rgba(79, 70, 229, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+      border: 2px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .card-front .icon { font-size: 1.8rem; filter: brightness(0.85); }
+
+    .card:not(.flipped):not(.matched):hover .card-front {
+      box-shadow: 0 6px 20px rgba(79, 70, 229, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+      transform: scale(1.04);
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+
+    .card:not(.flipped):not(.matched):active .card-front { transform: scale(0.96); }
+
+    .card-back {
+      background: linear-gradient(145deg, #fff, #f1f5f9);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+      transform: rotateY(180deg);
+      border: 2px solid rgba(99, 102, 241, 0.2);
+    }
+
+    .card-back .symbol { font-size: 2.2rem; }
+
+    .card.matched .card-inner { transform: rotateY(180deg); }
+
+    .card.matched .card-back {
+      background: linear-gradient(145deg, #d1fae5, #a7f3d0);
+      border-color: rgba(16, 185, 129, 0.3);
+      box-shadow: 0 0 16px rgba(16, 185, 129, 0.25), 0 4px 12px rgba(0, 0, 0, 0.08);
+      animation: matchPop 0.4s ease;
+    }
+
+    @keyframes matchPop {
+      0% { transform: rotateY(180deg) scale(1); }
+      50% { transform: rotateY(180deg) scale(1.12); }
+      100% { transform: rotateY(180deg) scale(1); }
+    }
+
+    /* ---------- Overlay ---------- */
+    .overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(6px);
+      align-items: center;
+      justify-content: center;
+      z-index: 50;
+      animation: fadeIn 0.3s ease;
+      padding: 1rem;
+    }
+
+    .overlay.show { display: flex; }
+
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+    .result-card {
+      background: #fff;
+      border-radius: 24px;
+      padding: 2rem 2.5rem;
+      text-align: center;
+      max-width: 360px;
+      width: 100%;
+      box-shadow: 0 24px 64px rgba(0, 0, 0, 0.3);
+      animation: slideUp 0.4s ease;
+    }
+
+    @keyframes slideUp {
+      from { transform: translateY(30px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    .result-emoji { font-size: 3.5rem; margin-bottom: 0.5rem; }
+
+    .result-title {
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: #1e293b;
+      margin: 0 0 0.25rem;
+    }
+
+    .result-score {
+      font-size: 2.5rem;
+      font-weight: 900;
+      color: #7c3aed;
+      margin: 0.5rem 0;
+    }
+
+    .result-details {
+      font-size: 0.95rem;
+      color: #64748b;
+      margin: 0 0 1.25rem;
+    }
+
+    .result-stats {
+      display: flex;
+      justify-content: center;
+      gap: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .result-stat {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 1rem;
+      font-weight: 600;
+      color: #334155;
+    }
+
+    .btn-play-again {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      color: #fff;
+      border: none;
+      border-radius: 14px;
+      padding: 0.75rem 2rem;
+      font-size: 1.05rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.15s;
+      box-shadow: 0 4px 16px rgba(99, 102, 241, 0.4);
+    }
+
+    .btn-play-again:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(99, 102, 241, 0.5);
+    }
+
+    .btn-play-again:active { transform: scale(0.97); }
+
+    /* ---------- Hint ---------- */
+    .hint {
+      margin-top: 1rem;
+      color: rgba(255, 255, 255, 0.8);
+      font-size: 0.95rem;
+      font-weight: 500;
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse { 0%, 100% { opacity: 0.7; } 50% { opacity: 1; } }
+
+    /* ---------- Responsive ---------- */
+    @media (max-width: 400px) {
+      .grid { gap: 0.4rem; max-width: 320px; }
+      .card-back .symbol { font-size: 1.6rem; }
+      .card-front .icon { font-size: 1.4rem; }
+      .title { font-size: 1.3rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <div class="header">
+    <h1 class="title">🧠 لعبة الذاكرة</h1>
+    <div class="stats">
+      <div class="stat">
+        <span class="stat-label">المحاولات</span>
+        <span class="stat-value" id="moves">0</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">الأزواج</span>
+        <span class="stat-value" id="pairs">0/8</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">الوقت</span>
+        <span class="stat-value" id="timer">00:00</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Card Grid -->
+  <div class="grid" id="grid"></div>
+
+  <!-- Start Hint -->
+  <p class="hint" id="hint">اضغط على أي بطاقة للبدء!</p>
+
+  <!-- Result Overlay -->
+  <div class="overlay" id="overlay">
+    <div class="result-card">
+      <div class="result-emoji">🎉</div>
+      <h2 class="result-title">مبروك!</h2>
+      <div class="result-score" id="finalScore">100</div>
+      <p class="result-details" id="resultDetails"></p>
+      <div class="result-stats">
+        <div class="result-stat"><span>🏆</span><span id="finalMoves"></span></div>
+        <div class="result-stat"><span>⏱️</span><span id="finalTime"></span></div>
+      </div>
+      <button class="btn-play-again" onclick="restartGame()">🔄 العب مرة أخرى</button>
+    </div>
+  </div>
+
+  <script>
+    // ===== Configuration =====
+    const PAIRS = 8;
+    const SYMBOLS = ['🍎', '🐶', '🌟', '🎨', '🚀', '🌈', '🐱', '🎵', '🦋', '🌻', '🐠', '🎯', '🧩', '📚', '🔔', '🏆'];
+    const FLIP_DELAY = 800;
+    const MAX_SCORE = 100;
+    const MIN_SCORE = 10;
+    const GRACE_SECONDS = 30;
+
+    // ===== State =====
+    let cards = [];
+    let moves = 0;
+    let matchedPairs = 0;
+    let firstPick = null;
+    let secondPick = null;
+    let isChecking = false;
+    let gameStarted = false;
+    let startTime = null;
+    let timerInterval = null;
+    let elapsedSeconds = 0;
+
+    // ===== DOM =====
+    const gridEl = document.getElementById('grid');
+    const movesEl = document.getElementById('moves');
+    const pairsEl = document.getElementById('pairs');
+    const timerEl = document.getElementById('timer');
+    const hintEl = document.getElementById('hint');
+    const overlayEl = document.getElementById('overlay');
+    const finalScoreEl = document.getElementById('finalScore');
+    const resultDetailsEl = document.getElementById('resultDetails');
+    const finalMovesEl = document.getElementById('finalMoves');
+    const finalTimeEl = document.getElementById('finalTime');
+
+    // ===== Utils =====
+    function shuffle(arr) {
+      const a = [...arr];
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+      }
+      return a;
+    }
+
+    function formatTime(sec) {
+      const m = Math.floor(sec / 60);
+      const s = sec % 60;
+      return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    }
+
+    function calculateScore(moves, duration) {
+      const extraMoves = Math.max(0, moves - PAIRS);
+      const movePenalty = extraMoves * 3;
+      const extraSec = Math.max(0, duration - GRACE_SECONDS);
+      const timePenalty = extraSec * 0.5;
+      const score = Math.round(MAX_SCORE - movePenalty - timePenalty);
+      return Math.max(MIN_SCORE, Math.min(MAX_SCORE, score));
+    }
+
+    // ===== Game Logic =====
+    function createDeck() {
+      const chosen = shuffle(SYMBOLS).slice(0, PAIRS);
+      const doubled = [...chosen, ...chosen];
+      return shuffle(doubled).map((symbol, i) => ({ id: i, symbol, flipped: false, matched: false }));
+    }
+
+    function renderCards() {
+      gridEl.innerHTML = '';
+      cards.forEach((card) => {
+        const btn = document.createElement('button');
+        btn.className = 'card' + (card.flipped ? ' flipped' : '') + (card.matched ? ' matched flipped' : '');
+        btn.disabled = card.flipped || card.matched;
+        btn.setAttribute('data-id', card.id);
+        btn.innerHTML = `
+          <div class="card-inner">
+            <div class="card-front"><span class="icon">❓</span></div>
+            <div class="card-back"><span class="symbol">${card.symbol}</span></div>
+          </div>
+        `;
+        btn.addEventListener('click', () => flipCard(card.id));
+        gridEl.appendChild(btn);
+      });
+    }
+
+    function flipCard(id) {
+      if (isChecking) return;
+      const card = cards[id];
+      if (!card || card.flipped || card.matched) return;
+
+      // Start timer on first click
+      if (!gameStarted) {
+        gameStarted = true;
+        startTime = Date.now();
+        hintEl.style.display = 'none';
+        timerInterval = setInterval(() => {
+          elapsedSeconds = Math.floor((Date.now() - startTime) / 1000);
+          timerEl.textContent = formatTime(elapsedSeconds);
+        }, 1000);
+      }
+
+      card.flipped = true;
+      updateCardDOM(id, true, false);
+
+      if (firstPick === null) {
+        firstPick = id;
+        return;
+      }
+
+      // Second pick
+      secondPick = id;
+      moves++;
+      movesEl.textContent = moves;
+
+      const first = cards[firstPick];
+      const second = cards[secondPick];
+
+      if (first.symbol === second.symbol) {
+        // Match!
+        first.matched = true;
+        second.matched = true;
+        matchedPairs++;
+        pairsEl.textContent = `${matchedPairs}/${PAIRS}`;
+        updateCardDOM(first.id, true, true);
+        updateCardDOM(second.id, true, true);
+        firstPick = null;
+        secondPick = null;
+
+        if (matchedPairs === PAIRS) {
+          gameComplete();
+        }
+      } else {
+        // No match — flip back after delay
+        isChecking = true;
+        setTimeout(() => {
+          first.flipped = false;
+          second.flipped = false;
+          updateCardDOM(first.id, false, false);
+          updateCardDOM(second.id, false, false);
+          firstPick = null;
+          secondPick = null;
+          isChecking = false;
+        }, FLIP_DELAY);
+      }
+    }
+
+    function updateCardDOM(id, flipped, matched) {
+      const btn = gridEl.querySelector(`[data-id="${id}"]`);
+      if (!btn) return;
+      btn.className = 'card' + (flipped ? ' flipped' : '') + (matched ? ' matched' : '');
+      btn.disabled = flipped || matched;
+    }
+
+    function gameComplete() {
+      clearInterval(timerInterval);
+      const finalDuration = Math.floor((Date.now() - startTime) / 1000);
+      const score = calculateScore(moves, finalDuration);
+      const timeStr = formatTime(finalDuration);
+
+      finalScoreEl.textContent = score + ' / 100';
+      resultDetailsEl.textContent = `أنهيت في ${moves} محاولة و ${timeStr}`;
+      finalMovesEl.textContent = `المحاولات: ${moves}`;
+      finalTimeEl.textContent = `الوقت: ${timeStr}`;
+
+      setTimeout(() => {
+        overlayEl.classList.add('show');
+      }, 600);
+
+      // Send result to parent (ChildGames.tsx iframe listener)
+      try {
+        window.parent.postMessage({
+          type: 'GAME_COMPLETE',
+          score: score,
+          total: MAX_SCORE,
+          timeElapsed: finalDuration,
+          moves: moves
+        }, '*');
+      } catch (e) {
+        // Silently fail if not in iframe
+      }
+    }
+
+    function restartGame() {
+      clearInterval(timerInterval);
+      cards = createDeck();
+      moves = 0;
+      matchedPairs = 0;
+      firstPick = null;
+      secondPick = null;
+      isChecking = false;
+      gameStarted = false;
+      startTime = null;
+      elapsedSeconds = 0;
+
+      movesEl.textContent = '0';
+      pairsEl.textContent = '0/8';
+      timerEl.textContent = '00:00';
+      hintEl.style.display = '';
+      overlayEl.classList.remove('show');
+
+      renderCards();
+    }
+
+    // ===== Init =====
+    cards = createDeck();
+    renderCards();
+  </script>
+</body>
+</html>
