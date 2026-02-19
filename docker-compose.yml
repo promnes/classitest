@@ -56,11 +56,11 @@ services:
       - "traefik.enable=true"
       
       # Minimal HTTPS router (safe baseline)
-      - "traefik.http.routers.classify-secure.rule=PathPrefix(`/`)"
-      - "traefik.http.routers.classify-secure.entrypoints=websecure"
-      - "traefik.http.routers.classify-secure.service=classify"
-      - "traefik.http.routers.classify-secure.tls=true"
-      - "traefik.http.services.classify.loadbalancer.server.port=5000"
+      - "traefik.http.routers.classitest-app-secure.rule=PathPrefix(`/`)"
+      - "traefik.http.routers.classitest-app-secure.entrypoints=websecure"
+      - "traefik.http.routers.classitest-app-secure.service=classitest-app-svc"
+      - "traefik.http.routers.classitest-app-secure.tls=true"
+      - "traefik.http.services.classitest-app-svc.loadbalancer.server.port=5000"
       
       # Container metadata
       - "com.classify.version=3.0"
