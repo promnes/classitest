@@ -175,7 +175,7 @@ export const Home = (): JSX.Element => {
             className="w-full py-5 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-bold text-2xl rounded-2xl transition-all hover:scale-[1.02] flex items-center justify-center gap-3 shadow-xl"
           >
             <Gamepad2 className="w-8 h-8" />
-            {t("startPlaying") || "ابدأ اللعب! 🚀"}
+            {t("startPlaying")}
           </button>
 
           {/* Download App */}
@@ -185,7 +185,7 @@ export const Home = (): JSX.Element => {
             className="flex items-center justify-center gap-3 w-full py-4 px-6 rounded-2xl shadow-lg transition-all hover:scale-[1.01] font-bold text-lg bg-white/80 hover:bg-white text-purple-700"
           >
             <Download className="w-6 h-6" />
-            <span>📱 {t("downloadApp")}</span>
+            <span>{t("downloadApp")}</span>
           </a>
           <p className="text-center text-sm text-purple-500/70">
             Android APK • 6 MB
