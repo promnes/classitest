@@ -883,7 +883,22 @@
       "stageIcons": "Stage Icons Preview",
       "totalWaterings": "Total Waterings",
       "totalPointsSpent": "Total Points Spent",
-      "totalGrowthEarned": "Total Growth Earned"
+      "totalGrowthEarned": "Total Growth Earned",
+      "activeChildren": "Active Children",
+      "leaderboard": "Children Growth Leaderboard",
+      "children": "children",
+      "noChildren": "No children have started growing trees yet",
+      "child": "Child",
+      "stage": "Stage",
+      "speed": "Speed",
+      "days": "days",
+      "pointsSpent": "Points Spent",
+      "speedExcellent": "Excellent",
+      "speedGood": "Good",
+      "speedAverage": "Average",
+      "speedSlow": "Slow",
+      "selectSwapTarget": "Select target to swap",
+      "iconReorderHint": "Click two icons to swap them, or use arrows to reorder. Changes are saved with the Save button."
     },
     "games": {
       "catGeneral": "General",

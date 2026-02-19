@@ -1175,6 +1175,78 @@ export async function registerAdminRoutes(app: Express) {
     }
   });
 
+  // Get children growth tree leaderboard (admin)
+  app.get("/api/admin/growth-tree-leaderboard", adminMiddleware, async (req: any, res) => {
+    try {
+      // Get all growth trees with child info
+      const trees = await db
+        .select({
+          childId: childGrowthTrees.childId,
+          childName: children.name,
+          childAvatar: children.avatarUrl,
+          currentStage: childGrowthTrees.currentStage,
+          totalGrowthPoints: childGrowthTrees.totalGrowthPoints,
+          tasksCompleted: childGrowthTrees.tasksCompleted,
+          gamesPlayed: childGrowthTrees.gamesPlayed,
+          wateringsCount: childGrowthTrees.wateringsCount,
+          rewardsEarned: childGrowthTrees.rewardsEarned,
+          treeCreatedAt: childGrowthTrees.createdAt,
+          lastGrowthAt: childGrowthTrees.lastGrowthAt,
+        })
+        .from(childGrowthTrees)
+        .innerJoin(children, eq(children.id, childGrowthTrees.childId))
+        .orderBy(desc(childGrowthTrees.currentStage), desc(childGrowthTrees.totalGrowthPoints));
+
+      // Calculate speed: growth points per day since tree creation
+      const leaderboard = trees.map((t: typeof trees[number], index: number) => {
+        const createdAt = new Date(t.treeCreatedAt);
+        const now = new Date();
+        const daysSinceCreation = Math.max(1, Math.floor((now.getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 24)));
+        const growthSpeed = parseFloat((t.totalGrowthPoints / daysSinceCreation).toFixed(1));
+
+        return {
+          rank: index + 1,
+          childId: t.childId,
+          childName: t.childName,
+          childAvatar: t.childAvatar,
+          currentStage: t.currentStage,
+          totalGrowthPoints: t.totalGrowthPoints,
+          tasksCompleted: t.tasksCompleted,
+          gamesPlayed: t.gamesPlayed,
+          wateringsCount: t.wateringsCount,
+          rewardsEarned: t.rewardsEarned,
+          daysSinceCreation,
+          growthSpeed, // points per day
+          lastGrowthAt: t.lastGrowthAt,
+        };
+      });
+
+      // Get per-child watering points spent
+      const wateringStats = await db
+        .select({
+          childId: childWateringLog.childId,
+          totalSpent: sum(childWateringLog.pointsSpent),
+        })
+        .from(childWateringLog)
+        .groupBy(childWateringLog.childId);
+
+      const wateringMap = new Map(wateringStats.map((w: typeof wateringStats[number]) => [w.childId, Number(w.totalSpent) || 0]));
+
+      const enrichedLeaderboard = leaderboard.map((entry: typeof leaderboard[number]) => ({
+        ...entry,
+        pointsSpentOnWatering: wateringMap.get(entry.childId) || 0,
+      }));
+
+      res.json(successResponse({
+        leaderboard: enrichedLeaderboard,
+        totalChildren: enrichedLeaderboard.length,
+      }));
+    } catch (error: any) {
+      console.error("Get growth tree leaderboard error:", error);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to get growth tree leaderboard"));
+    }
+  });
+
   // Adjust points for parent or child (admin)
   app.post("/api/admin/adjust-points", adminMiddleware, async (req: any, res) => {
     try {

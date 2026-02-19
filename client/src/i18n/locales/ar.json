@@ -883,7 +883,22 @@
       "stageIcons": "معاينة أيقونات المراحل",
       "totalWaterings": "إجمالي مرات الري",
       "totalPointsSpent": "إجمالي النقاط المستخدمة",
-      "totalGrowthEarned": "إجمالي النمو المكتسب"
+      "totalGrowthEarned": "إجمالي النمو المكتسب",
+      "activeChildren": "الأطفال النشطون",
+      "leaderboard": "ترتيب الأطفال حسب نمو الشجرة",
+      "children": "أطفال",
+      "noChildren": "لم يبدأ أي طفل في زراعة شجرته بعد",
+      "child": "الطفل",
+      "stage": "المرحلة",
+      "speed": "السرعة",
+      "days": "يوم",
+      "pointsSpent": "النقاط المنفقة",
+      "speedExcellent": "ممتاز",
+      "speedGood": "جيد",
+      "speedAverage": "متوسط",
+      "speedSlow": "بطيء",
+      "selectSwapTarget": "اختر الهدف للتبديل",
+      "iconReorderHint": "انقر على أيقونتين لتبديلهما، أو استخدم الأسهم لإعادة الترتيب. يتم حفظ التغييرات بزر الحفظ."
     },
     "games": {
       "catGeneral": "عام",

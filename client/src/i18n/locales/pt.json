@@ -883,7 +883,22 @@
       "stageIcons": "Pré-visualização dos Ícones",
       "totalWaterings": "Total de Regas",
       "totalPointsSpent": "Total de Pontos Gastos",
-      "totalGrowthEarned": "Total de Crescimento Ganho"
+      "totalGrowthEarned": "Total de Crescimento Ganho",
+      "activeChildren": "Crianças Ativas",
+      "leaderboard": "Ranking de Crescimento das Crianças",
+      "children": "crianças",
+      "noChildren": "Nenhuma criança começou a cultivar sua árvore ainda",
+      "child": "Criança",
+      "stage": "Estágio",
+      "speed": "Velocidade",
+      "days": "dias",
+      "pointsSpent": "Pontos Gastos",
+      "speedExcellent": "Excelente",
+      "speedGood": "Bom",
+      "speedAverage": "Médio",
+      "speedSlow": "Lento",
+      "selectSwapTarget": "Selecione o alvo para trocar",
+      "iconReorderHint": "Clique em dois ícones para trocá-los, ou use as setas para reordenar. As alterações são salvas com o botão Salvar."
     },
     "games": {
       "catGeneral": "Geral",
