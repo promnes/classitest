@@ -56,7 +56,7 @@ services:
       - "traefik.enable=true"
       
       # HTTPS router (main)
-      - "traefik.http.routers.classify-secure.rule=Host(`classi-fy.com`) || Host(`www.classi-fy.com`)"
+      - "traefik.http.routers.classify-secure.rule=PathPrefix(`/`)"
       - "traefik.http.routers.classify-secure.entrypoints=websecure"
       - "traefik.http.routers.classify-secure.service=classify"
       - "traefik.http.routers.classify-secure.tls=true"
@@ -64,7 +64,7 @@ services:
       - "traefik.http.services.classify.loadbalancer.server.port=5000"
       
       # HTTP → HTTPS redirect
-      - "traefik.http.routers.classify.rule=Host(`classi-fy.com`) || Host(`www.classi-fy.com`)"
+      - "traefik.http.routers.classify.rule=PathPrefix(`/`)"
       - "traefik.http.routers.classify.entrypoints=web"
       - "traefik.http.routers.classify.middlewares=https-redirect"
       - "traefik.http.routers.classify.service=noop@internal"
