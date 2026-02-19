@@ -1175,6 +1175,158 @@ export async function registerAdminRoutes(app: Express) {
     }
   });
 
+  // Upload a custom icon for a specific growth tree stage
+  app.post("/api/admin/growth-tree-stage-icon", adminMiddleware, async (req: any, res) => {
+    try {
+      const multer = await import("multer");
+      const path = await import("path");
+      const fs = await import("fs");
+
+      const uploadDir = path.join(process.cwd(), "uploads", "growth-tree-icons");
+      if (!fs.existsSync(uploadDir)) {
+        fs.mkdirSync(uploadDir, { recursive: true });
+      }
+
+      const iconStorage = multer.default.diskStorage({
+        destination: (_req: any, _file: any, cb: any) => {
+          cb(null, uploadDir);
+        },
+        filename: (_req: any, file: any, cb: any) => {
+          const ext = path.extname(file.originalname).toLowerCase();
+          const uniqueSuffix = Date.now().toString(36) + "-" + Math.random().toString(36).substring(2, 6);
+          cb(null, `stage-icon-${uniqueSuffix}${ext}`);
+        },
+      });
+
+      const fileFilter = (_req: any, file: any, cb: any) => {
+        const allowed = ["image/jpeg", "image/png", "image/webp", "image/svg+xml", "image/gif"];
+        if (allowed.includes(file.mimetype)) {
+          cb(null, true);
+        } else {
+          cb(new Error("Only image files (JPEG, PNG, WebP, SVG, GIF) are allowed"));
+        }
+      };
+
+      const upload = multer.default({
+        storage: iconStorage,
+        limits: { fileSize: 2 * 1024 * 1024 }, // 2MB per icon
+        fileFilter,
+      }).single("file");
+
+      upload(req, res, async (err: any) => {
+        if (err) {
+          console.error("Stage icon upload error:", err);
+          return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, `Upload failed: ${err.message}`));
+        }
+
+        if (!req.file) {
+          return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "No file uploaded"));
+        }
+
+        const stageIndex = parseInt(req.body?.stageIndex);
+        if (isNaN(stageIndex) || stageIndex < 0 || stageIndex > 19) {
+          // Delete the uploaded file since stage index is invalid
+          fs.unlinkSync(path.join(uploadDir, req.file.filename));
+          return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "stageIndex must be 0-19"));
+        }
+
+        const iconUrl = `/uploads/growth-tree-icons/${req.file.filename}`;
+
+        // Update the stageIcons array in settings
+        let settings = await db.select().from(growthTreeSettings);
+        if (!settings[0]) {
+          const defaultIcons = ["seed","sprout","sapling","youngPlant","bush","smallTree","growingTree","mediumTree","tallTree","strongTree","largeTree","matureTree","fruitTree","grandTree","ancientTree","goldenTree","crystalTree","diamondTree","legendaryTree","cosmicTree"];
+          defaultIcons[stageIndex] = iconUrl;
+          const created = await db.insert(growthTreeSettings).values({
+            stageIcons: defaultIcons,
+          }).returning();
+          return res.json(successResponse({
+            url: iconUrl,
+            stageIndex,
+            settings: created[0],
+          }));
+        }
+
+        const currentIcons = (settings[0].stageIcons as string[]) || [];
+        // Ensure array has 20 entries
+        const icons = Array.from({ length: 20 }, (_, i) => currentIcons[i] || ["seed","sprout","sapling","youngPlant","bush","smallTree","growingTree","mediumTree","tallTree","strongTree","largeTree","matureTree","fruitTree","grandTree","ancientTree","goldenTree","crystalTree","diamondTree","legendaryTree","cosmicTree"][i]);
+
+        // Delete old custom icon file if it was a custom upload
+        const oldIcon = icons[stageIndex];
+        if (oldIcon && oldIcon.startsWith("/uploads/")) {
+          const oldPath = path.join(process.cwd(), oldIcon);
+          if (fs.existsSync(oldPath)) {
+            try { fs.unlinkSync(oldPath); } catch (e) { /* ignore */ }
+          }
+        }
+
+        icons[stageIndex] = iconUrl;
+
+        const updated = await db.update(growthTreeSettings)
+          .set({ stageIcons: icons, updatedAt: new Date() })
+          .where(eq(growthTreeSettings.id, settings[0].id))
+          .returning();
+
+        res.json(successResponse({
+          url: iconUrl,
+          stageIndex,
+          settings: updated[0],
+        }));
+      });
+    } catch (error: any) {
+      console.error("Stage icon upload error:", error);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to upload stage icon"));
+    }
+  });
+
+  // Reset a stage icon back to default SVG
+  app.post("/api/admin/growth-tree-stage-icon-reset", adminMiddleware, async (req: any, res) => {
+    try {
+      const { stageIndex } = req.body;
+      const idx = parseInt(stageIndex);
+      if (isNaN(idx) || idx < 0 || idx > 19) {
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "stageIndex must be 0-19"));
+      }
+
+      const defaultNames = ["seed","sprout","sapling","youngPlant","bush","smallTree","growingTree","mediumTree","tallTree","strongTree","largeTree","matureTree","fruitTree","grandTree","ancientTree","goldenTree","crystalTree","diamondTree","legendaryTree","cosmicTree"];
+
+      let settings = await db.select().from(growthTreeSettings);
+      if (!settings[0]) {
+        return res.json(successResponse({ stageIndex: idx, icon: defaultNames[idx] }));
+      }
+
+      const currentIcons = (settings[0].stageIcons as string[]) || defaultNames;
+      const icons = Array.from({ length: 20 }, (_, i) => currentIcons[i] || defaultNames[i]);
+
+      // Delete custom file if exists
+      const oldIcon = icons[idx];
+      if (oldIcon && oldIcon.startsWith("/uploads/")) {
+        const path = await import("path");
+        const fs = await import("fs");
+        const oldPath = path.join(process.cwd(), oldIcon);
+        if (fs.existsSync(oldPath)) {
+          try { fs.unlinkSync(oldPath); } catch (e) { /* ignore */ }
+        }
+      }
+
+      icons[idx] = defaultNames[idx];
+
+      const updated = await db.update(growthTreeSettings)
+        .set({ stageIcons: icons, updatedAt: new Date() })
+        .where(eq(growthTreeSettings.id, settings[0].id))
+        .returning();
+
+      res.json(successResponse({
+        stageIndex: idx,
+        icon: defaultNames[idx],
+        settings: updated[0],
+      }));
+    } catch (error: any) {
+      console.error("Reset stage icon error:", error);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to reset stage icon"));
+    }
+  });
+
   // Get children growth tree leaderboard (admin)
   app.get("/api/admin/growth-tree-leaderboard", adminMiddleware, async (req: any, res) => {
     try {

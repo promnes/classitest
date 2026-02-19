@@ -898,7 +898,13 @@
       "speedAverage": "Average",
       "speedSlow": "Slow",
       "selectSwapTarget": "Select target to swap",
-      "iconReorderHint": "Click two icons to swap them, or use arrows to reorder. Changes are saved with the Save button."
+      "iconReorderHint": "Click two icons to swap them, or use arrows to reorder. Upload custom icons with the image button.",
+      "uploadIcon": "Upload custom icon",
+      "resetIcon": "Reset to default",
+      "uploadingIcon": "Uploading...",
+      "iconUploaded": "Icon uploaded successfully",
+      "iconReset": "Icon reset to default",
+      "customIcon": "Custom"
     },
     "games": {
       "catGeneral": "General",

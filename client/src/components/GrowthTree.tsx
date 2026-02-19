@@ -25,6 +25,7 @@ interface GrowthTreeData {
   pointsToNextStage: number;
   progress: number;
   recentEvents: any[];
+  stageIcons?: string[];
 }
 
 interface WateringInfo {
@@ -238,6 +239,13 @@ export function GrowthTree() {
   const { tree, stages, currentStageName, nextStageName, pointsToNextStage, progress } = data.data;
   const currentStage = tree.currentStage;
   const totalStages = stages.length || 20;
+  const stageIcons: string[] = data.data.stageIcons || [];
+
+  // Helper: check if a stage index (0-based) has a custom uploaded icon
+  const getCustomIconUrl = (idx: number): string | null => {
+    const icon = stageIcons[idx];
+    return icon && icon.startsWith("/uploads/") ? icon : null;
+  };
 
   const stageKey = `tree${currentStageName.charAt(0).toUpperCase() + currentStageName.slice(1)}`;
   const nextStageKey = nextStageName
@@ -398,6 +406,7 @@ export function GrowthTree() {
           const nodeSize = 32 + (node.index / totalStages) * 12;
           const color = STAGE_COLORS[node.index] || "#4CAF50";
           const IconComponent = TREE_STAGE_ICONS[node.index];
+          const customIconUrl = getCustomIconUrl(node.index);
 
           return (
             <div
@@ -451,7 +460,16 @@ export function GrowthTree() {
                   cursor: "pointer",
                 }}
               >
-                {IconComponent && <IconComponent size={Math.round(nodeSize * 0.7)} />}
+                {customIconUrl ? (
+                  <img
+                    src={customIconUrl}
+                    alt={`Stage ${node.stage}`}
+                    className="object-contain rounded-full"
+                    style={{ width: Math.round(nodeSize * 0.7), height: Math.round(nodeSize * 0.7) }}
+                  />
+                ) : (
+                  IconComponent && <IconComponent size={Math.round(nodeSize * 0.7)} />
+                )}
 
                 {/* Current stage indicator (pulsing ring) */}
                 {node.stage === currentStage && (
@@ -487,6 +505,7 @@ export function GrowthTree() {
             const key = getStageTranslationKey(sInfo.name);
             const color = STAGE_COLORS[selectedStage - 1] || "#4CAF50";
             const StageIcon = TREE_STAGE_ICONS[selectedStage - 1];
+            const popupCustomIcon = getCustomIconUrl(selectedStage - 1);
 
             return (
               <motion.div
@@ -501,7 +520,11 @@ export function GrowthTree() {
                 style={{ backdropFilter: "blur(8px)" }}
               >
                 <div className="flex justify-center mb-2">
-                  {StageIcon && <StageIcon size={48} />}
+                  {popupCustomIcon ? (
+                    <img src={popupCustomIcon} alt={t(key)} className="w-12 h-12 object-contain rounded" />
+                  ) : (
+                    StageIcon && <StageIcon size={48} />
+                  )}
                 </div>
                 <h3 className={`font-bold text-base mb-1 ${isDark ? "text-white" : "text-gray-800"}`}>
                   {t(key)}

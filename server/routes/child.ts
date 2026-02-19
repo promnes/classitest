@@ -2484,6 +2484,10 @@ export async function registerChildRoutes(app: Express) {
       // Calculate next stage info
       const currentStageInfo = GROWTH_STAGES.find(s => s.stage === tree[0].currentStage);
       const nextStageInfo = GROWTH_STAGES.find(s => s.stage === tree[0].currentStage + 1);
+
+      // Fetch custom stage icons from settings (if any)
+      const treeSettings = await db.select().from(growthTreeSettings);
+      const stageIcons: string[] = (treeSettings[0]?.stageIcons as string[]) || [];
       
       const response = {
         tree: tree[0],
@@ -2496,6 +2500,7 @@ export async function registerChildRoutes(app: Express) {
               (nextStageInfo.minPoints - (currentStageInfo?.minPoints || 0))) * 100)
           : 100,
         recentEvents,
+        stageIcons,
       };
 
       res.json({ success: true, data: response });

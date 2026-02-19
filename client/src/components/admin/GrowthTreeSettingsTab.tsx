@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   TreePine, Droplets, Save, RefreshCw, Settings2, Zap, TrendingUp,
   Trophy, ArrowUpDown, User, Crown, Flame, Clock, Star, ChevronDown, ChevronUp,
-  ArrowLeft, ArrowRight,
+  ArrowLeft, ArrowRight, Upload, RotateCcw, Check, X, ImagePlus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { TREE_STAGE_ICONS, STAGE_NAMES, STAGE_COLORS } from "@/components/TreeStageIcons";
@@ -63,6 +63,11 @@ export function GrowthTreeSettingsTab({ token }: { token: string }) {
   const [stageOrder, setStageOrder] = useState<number[]>(Array.from({ length: 20 }, (_, i) => i));
   const [swapFrom, setSwapFrom] = useState<number | null>(null);
 
+  // Custom icon uploads — map stageIndex → URL (custom uploaded) or null (default SVG)
+  const [customIcons, setCustomIcons] = useState<(string | null)[]>(Array(20).fill(null));
+  const [uploadingStage, setUploadingStage] = useState<number | null>(null);
+  const fileInputRefs = useRef<(HTMLInputElement | null)[]>([]);
+
   // Leaderboard sorting
   const [sortField, setSortField] = useState<SortField>("rank");
   const [sortAsc, setSortAsc] = useState(false);
@@ -106,17 +111,37 @@ export function GrowthTreeSettingsTab({ token }: { token: string }) {
       setWateringCostPoints(settingsData.data.wateringCostPoints);
       setWateringGrowthPoints(settingsData.data.wateringGrowthPoints);
       setMaxWateringsPerDay(settingsData.data.maxWateringsPerDay);
-      // Restore stage order from saved icons
+      // Parse stageIcons — custom URLs start with "/uploads/", others are default stage names
       if (settingsData.data.stageIcons && Array.isArray(settingsData.data.stageIcons)) {
-        const savedOrder = settingsData.data.stageIcons.map(name => STAGE_NAMES.indexOf(name)).filter(i => i !== -1);
-        if (savedOrder.length === 20) setStageOrder(savedOrder);
+        const icons = settingsData.data.stageIcons;
+        const order: number[] = [];
+        const customs: (string | null)[] = [];
+        icons.forEach((icon: string, idx: number) => {
+          if (icon.startsWith("/uploads/")) {
+            // Custom uploaded icon
+            customs.push(icon);
+            order.push(idx); // keep position as-is for custom icons
+          } else {
+            customs.push(null);
+            const nameIdx = STAGE_NAMES.indexOf(icon);
+            order.push(nameIdx !== -1 ? nameIdx : idx);
+          }
+        });
+        if (order.length === 20) setStageOrder(order);
+        setCustomIcons(customs);
       }
     }
   }, [settingsData]);
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      const reorderedIcons = stageOrder.map(i => STAGE_NAMES[i]);
+      // Build final stageIcons array: custom URL or default name
+      const finalIcons = stageOrder.map((origIdx, position) => {
+        if (customIcons[position] && customIcons[position]!.startsWith("/uploads/")) {
+          return customIcons[position]!;
+        }
+        return STAGE_NAMES[origIdx];
+      });
       const res = await fetch("/api/admin/growth-tree-settings", {
         method: "PUT",
         headers: {
@@ -128,7 +153,7 @@ export function GrowthTreeSettingsTab({ token }: { token: string }) {
           wateringCostPoints,
           wateringGrowthPoints,
           maxWateringsPerDay,
-          stageIcons: reorderedIcons,
+          stageIcons: finalIcons,
         }),
       });
       if (!res.ok) throw new Error("Failed to save settings");
@@ -173,6 +198,61 @@ export function GrowthTreeSettingsTab({ token }: { token: string }) {
     });
     setHasUnsavedChanges(true);
   }, []);
+
+  // Upload custom icon for a stage
+  const handleIconUpload = useCallback(async (stagePosition: number, file: File) => {
+    setUploadingStage(stagePosition);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("stageIndex", stagePosition.toString());
+      const res = await fetch("/api/admin/growth-tree-stage-icon", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      });
+      if (!res.ok) throw new Error("Upload failed");
+      const data = await res.json();
+      if (data.success && data.data?.url) {
+        setCustomIcons(prev => {
+          const newIcons = [...prev];
+          newIcons[stagePosition] = data.data.url;
+          return newIcons;
+        });
+        queryClient.invalidateQueries({ queryKey: ["admin-growth-tree-settings"] });
+      }
+    } catch (err) {
+      console.error("Icon upload failed:", err);
+    } finally {
+      setUploadingStage(null);
+    }
+  }, [token, queryClient]);
+
+  // Reset icon back to default SVG
+  const handleIconReset = useCallback(async (stagePosition: number) => {
+    setUploadingStage(stagePosition);
+    try {
+      const res = await fetch("/api/admin/growth-tree-stage-icon-reset", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ stageIndex: stagePosition }),
+      });
+      if (!res.ok) throw new Error("Reset failed");
+      setCustomIcons(prev => {
+        const newIcons = [...prev];
+        newIcons[stagePosition] = null;
+        return newIcons;
+      });
+      queryClient.invalidateQueries({ queryKey: ["admin-growth-tree-settings"] });
+    } catch (err) {
+      console.error("Icon reset failed:", err);
+    } finally {
+      setUploadingStage(null);
+    }
+  }, [token, queryClient]);
 
   // Sort leaderboard
   const sortedLeaderboard = (() => {
@@ -444,7 +524,7 @@ export function GrowthTreeSettingsTab({ token }: { token: string }) {
         </div>
       </div>
 
-      {/* Stage Icons — Reorder & Swap */}
+      {/* Stage Icons — Upload, Reorder & Swap */}
       <div className={`rounded-xl p-6 ${isDark ? "bg-gray-800 border border-gray-700" : "bg-white border border-gray-200"} shadow-sm`}>
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
@@ -463,22 +543,21 @@ export function GrowthTreeSettingsTab({ token }: { token: string }) {
           {t("admin.growthTree.iconReorderHint")}
         </p>
 
-        <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-10 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-10 gap-3">
           {stageOrder.map((iconIdx, position) => {
             const IconComponent = TREE_STAGE_ICONS[iconIdx];
             const stageName = STAGE_NAMES[iconIdx];
             const stageKey = `tree${stageName.charAt(0).toUpperCase() + stageName.slice(1)}`;
             const isSelected = swapFrom === position;
             const stageColor = STAGE_COLORS[iconIdx];
+            const hasCustomIcon = customIcons[position] && customIcons[position]!.startsWith("/uploads/");
+            const isUploading = uploadingStage === position;
 
             return (
               <motion.div
                 key={`${position}-${iconIdx}`}
                 layout
-                whileHover={{ scale: 1.08 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => handleIconClick(position)}
-                className={`relative flex flex-col items-center p-2 rounded-xl cursor-pointer transition-all select-none ${
+                className={`relative flex flex-col items-center p-2 rounded-xl transition-all select-none ${
                   isSelected
                     ? "ring-2 ring-purple-500 shadow-lg shadow-purple-500/20"
                     : isDark ? "bg-gray-700/50 hover:bg-gray-600/50" : "bg-gray-50 hover:bg-gray-100"
@@ -486,21 +565,76 @@ export function GrowthTreeSettingsTab({ token }: { token: string }) {
               >
                 {/* Stage number badge */}
                 <span
-                  className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full text-[9px] font-bold flex items-center justify-center text-white"
+                  className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full text-[9px] font-bold flex items-center justify-center text-white z-10"
                   style={{ backgroundColor: stageColor }}
                 >
                   {position + 1}
                 </span>
 
-                <div className="w-10 h-10 flex items-center justify-center">
-                  {IconComponent && <IconComponent size={32} />}
+                {/* Custom icon indicator */}
+                {hasCustomIcon && (
+                  <span className="absolute -top-1.5 -left-1.5 w-4 h-4 rounded-full bg-green-500 flex items-center justify-center z-10">
+                    <Check className="w-2.5 h-2.5 text-white" />
+                  </span>
+                )}
+
+                {/* Icon display — custom or default SVG */}
+                <div
+                  className="w-12 h-12 flex items-center justify-center cursor-pointer relative group"
+                  onClick={() => handleIconClick(position)}
+                >
+                  {isUploading ? (
+                    <RefreshCw className="w-6 h-6 animate-spin text-purple-500" />
+                  ) : hasCustomIcon ? (
+                    <img
+                      src={customIcons[position]!}
+                      alt={`Stage ${position + 1}`}
+                      className="w-10 h-10 object-contain rounded"
+                    />
+                  ) : (
+                    IconComponent && <IconComponent size={36} />
+                  )}
                 </div>
-                <span className={`text-[10px] mt-1 text-center leading-tight ${isDark ? "text-gray-400" : "text-gray-500"}`}>
+
+                <span className={`text-[10px] mt-0.5 text-center leading-tight ${isDark ? "text-gray-400" : "text-gray-500"}`}>
                   {t(stageKey)}
                 </span>
 
-                {/* Move arrows */}
-                <div className="flex gap-0.5 mt-1">
+                {/* Action buttons: Upload + Reset */}
+                <div className="flex items-center gap-1 mt-1">
+                  {/* Upload button */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      fileInputRefs.current[position]?.click();
+                    }}
+                    disabled={isUploading}
+                    className={`p-1 rounded-md transition-colors ${
+                      isDark ? "hover:bg-gray-600 text-blue-400" : "hover:bg-blue-50 text-blue-500"
+                    } ${isUploading ? "opacity-30" : "opacity-70 hover:opacity-100"}`}
+                    title={t("admin.growthTree.uploadIcon")}
+                  >
+                    <ImagePlus className="w-3.5 h-3.5" />
+                  </button>
+
+                  {/* Reset to default (only if custom) */}
+                  {hasCustomIcon && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleIconReset(position);
+                      }}
+                      disabled={isUploading}
+                      className={`p-1 rounded-md transition-colors ${
+                        isDark ? "hover:bg-gray-600 text-orange-400" : "hover:bg-orange-50 text-orange-500"
+                      } ${isUploading ? "opacity-30" : "opacity-70 hover:opacity-100"}`}
+                      title={t("admin.growthTree.resetIcon")}
+                    >
+                      <RotateCcw className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+
+                  {/* Move arrows */}
                   <button
                     onClick={(e) => { e.stopPropagation(); moveIcon(position, isRTL ? 1 : -1); }}
                     disabled={position === 0}
@@ -516,6 +650,21 @@ export function GrowthTreeSettingsTab({ token }: { token: string }) {
                     <ArrowRight className="w-3 h-3" />
                   </button>
                 </div>
+
+                {/* Hidden file input */}
+                <input
+                  ref={(el) => { fileInputRefs.current[position] = el; }}
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp,image/svg+xml,image/gif"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      handleIconUpload(position, file);
+                      e.target.value = ""; // reset so same file can be re-selected
+                    }
+                  }}
+                />
               </motion.div>
             );
           })}
