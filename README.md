@@ -1,165 +1,206 @@
-# Classify - تطبيق الرقابة الأبوية 📱
+# Classify — Kids Educational & Parental Control Platform 📱🎓
 
 <div dir="rtl">
 
-تطبيق عربي شامل للرقابة الأبوية يساعد الآباء في إدارة علاقتهم مع أطفالهم من خلال المهام التعليمية والألعاب والمكافآت.
+**كلاسيفاي** — منصة عربية متكاملة للرقابة الأبوية والتعليم، تساعد الآباء في إدارة رحلة تعلم أبنائهم من خلال المهام التعليمية والألعاب والمكافآت وشجرة النمو ومتابعة المدارس والمعلمين.
 
 </div>
 
-## 📚 Complete Documentation | التوثيق الشامل
+---
 
-**New team members?** Start here → [**COMPLETE_OVERVIEW.md**](COMPLETE_OVERVIEW.md) | **Quick lookup?** → [**QUICK_REFERENCE.md**](QUICK_REFERENCE.md) | **How to deploy?** → [**DEPLOYMENT.md**](DEPLOYMENT.md)
+## 🔢 Project Scale | حجم المشروع
 
-| Document | Purpose | Best For |
-|----------|---------|----------|
-| [**FULL_PROJECT_ANALYSIS.md**](FULL_PROJECT_ANALYSIS.md) | تحليل شامل من الكود مباشرة (85+ جدول, 39 صفحة) | فهم كل شيء بالتفصيل |
-| [**PROJECT_BLUEPRINT.md**](PROJECT_BLUEPRINT.md) | Complete system reference (80+ tables, 150+ endpoints) | Understanding everything |
-| [**ARCHITECTURE.md**](ARCHITECTURE.md) | System diagrams & flows (20+ visuals) | Visual learners |
-| [**QUICK_REFERENCE.md**](QUICK_REFERENCE.md) | 50+ common tasks with examples | Day-to-day development |
-| [**DEPLOYMENT.md**](DEPLOYMENT.md) | 🚀 Hostinger VPS deployment guide (optimized for Docker Manager) | DevOps & deployment |
-| [**docs/DEPLOYMENT_OPTIMIZATION.md**](docs/DEPLOYMENT_OPTIMIZATION.md) | Performance benchmarks & optimization details | Understanding improvements |
-| [**COMPLETE_OVERVIEW.md**](COMPLETE_OVERVIEW.md) | Navigation & learning paths | New team members |
-| [**DOCUMENTATION_INDEX.md**](DOCUMENTATION_INDEX.md) | Master index & cross-references | Finding specific topics |
-
-**✨ Total: 5,000+ lines, 30,000+ words, 100+ code examples, 20+ diagrams**
+| Metric | Count |
+|--------|-------|
+| Database Tables | **137** |
+| API Endpoints | **533+** |
+| Client Pages | **53** |
+| Components | **130+** |
+| Route Files | **24** |
+| Translation Keys | **1,700+** (3 locales) |
+| Schema Indexes | **27** |
 
 ---
 
-## Features | الميزات
+## 📚 Documentation | التوثيق
 
-### Authentication | المصادقة
+| Document | Purpose |
+|----------|---------|
+| [COMPLETE_OVERVIEW.md](COMPLETE_OVERVIEW.md) | Navigation & learning paths — Start here |
+| [QUICK_REFERENCE.md](QUICK_REFERENCE.md) | 50+ common tasks with examples |
+| [FULL_PROJECT_ANALYSIS.md](FULL_PROJECT_ANALYSIS.md) | Deep analysis from source (137 tables, 53 pages) |
+| [PROJECT_BLUEPRINT.md](PROJECT_BLUEPRINT.md) | Complete system reference (150+ endpoints) |
+| [ARCHITECTURE.md](ARCHITECTURE.md) | System diagrams & flows (20+ visuals) |
+| [DEPLOYMENT.md](DEPLOYMENT.md) | Hostinger VPS deployment guide (Docker) |
+| [docs/DEPLOYMENT_OPTIMIZATION.md](docs/DEPLOYMENT_OPTIMIZATION.md) | Performance benchmarks & optimization |
+| [DOCUMENTATION_INDEX.md](DOCUMENTATION_INDEX.md) | Master index & cross-references |
+
+---
+
+## ✨ Features | الميزات
+
+### 🔐 Authentication | المصادقة
 - Parent registration with email/phone
-- **Social Login** (Google, Facebook, Apple) - Circular icon buttons
-- **OTP Providers** (Email/SMS) - Admin configurable
-- OTP verification (6 digits, 5 min expiry) via Resend
+- Social Login (Google, Facebook, Apple) — Circular icon buttons
+- OTP Providers (Email/SMS) — Admin configurable via Resend & Twilio
+- OTP verification (6 digits, 5 min expiry)
 - JWT sessions with bcrypt password hashing
 - Trusted device remembering (skip OTP)
 - Child PIN login with parent approval
+- Two-Factor Authentication (2FA) for parents
+- Rate limiting on auth flows
 
-### Parent Dashboard | لوحة الوالدين
+### 👨‍👩‍👧‍👦 Parent Dashboard | لوحة الوالدين
 - Child linking via QR code or unique code
-- Task management with subjects (Classy tasks + custom + public tasks)
+- Task management with subjects (Classify tasks + custom + public marketplace tasks)
 - Scheduled tasks with cancel option
 - Daily/Weekly/Monthly progress reports
 - E-commerce store with categories and filters
 - Library store integration
 - Wallet system with deposits and transfers
-- Referral program (100 points per active referral)
+- Referral program (points per active referral)
 - Growth tree tracking for children
+- Task marketplace — browse & purchase teacher-made tasks
+- Task cart system
+- Parent profile with social links
+- Inventory & product assignment to children
 
-### Child Interface | واجهة الأطفال
+### 👧 Child Interface | واجهة الأطفال
 - Animated task completion with feedback (Framer Motion)
-- Educational games with points system
-- Growth tree visualization (8 stages)
+- Educational games with points system (fullscreen, i18n, responsive)
+- 3D Growth tree visualization (20 stages) with watering mechanic & draggable water jug
+- Collapsible growth tree component
 - Gift unlocking based on milestones
 - Store browsing and wishlist
-- Notifications center
-- Annual report (Khassar Sanawi)
+- Notifications center with push notifications (Web Push)
+- Annual report (خصار سنوي)
+- **Child Showcase Profile** — tabbed profile (Showcase / Friends / Notifications / Edit)
+- Cover image & avatar upload with cropping
+- Share profile via share code
+- **Friendship system** — send/accept/reject friend requests, suggestions engine
+- **Follow system** — one-directional follow for children, schools, and teachers
+- **Search & Discover** — unified search across children, schools, teachers with filter tabs
+- Follower/following counts in profile
+- Achievement badges system
+- Interests & bio customization
 
-### Admin Panel | لوحة الإدارة
+### 🏫 Schools System | نظام المدارس
+- School registration & dashboard
+- Teacher management (hiring, profiles, subjects)
+- School posts with comments, likes, polls
+- School reviews & ratings
+- Teacher task marketplace (sell educational tasks)
+- Teacher balances & withdrawal requests
+- Student & teacher assignment
+- School referral system
+- School activity logs & analytics
+
+### 📚 Library System | نظام المكتبات
+- Library registration & dashboard
+- Library product catalog
+- Library referral system & daily sales tracking
+- Library orders & invoices
+- Library posts, comments, likes, reviews
+- Library balances & withdrawal requests
+
+### 🛡️ Admin Panel | لوحة الإدارة
 - User management (parents, children, admins)
 - Product and category management
 - Subjects and template tasks (CRUD)
-- **Social Login Providers** management
-- **OTP Providers** management (Email/SMS settings)
+- Social Login Providers management
+- OTP Providers management (Email/SMS settings)
 - Referral tracking and statistics
 - Ads management (target parents/children/all)
 - Libraries management with referral system
+- Schools & teachers management
+- Growth tree settings (per-stage icons, reordering, custom uploads)
+- Children leaderboard by growth level/speed
 - Profit system with commission tracking
 - SEO settings with meta tags
 - Support settings (email, phone, WhatsApp, Telegram)
 - Activity logs and wallet analytics
+- Gift management
+- Notification settings & task notification settings
 
-### Internationalization | التدويل
-- Arabic (RTL) and English (LTR) support
-- 200+ translation keys
+### 🌐 Internationalization | التدويل
+- Arabic (RTL), English (LTR), Portuguese support
+- 1,700+ translation keys across 3 locales
 - Language preference persistence
 - i18n integration with react-i18next
 
-## Tech Stack | البنية التقنية
+---
+
+## 🛠️ Tech Stack | البنية التقنية
 
 | Layer | Technology |
 |-------|------------|
 | Frontend | React 18 + TypeScript + Vite |
-| Styling | Tailwind CSS + shadcn/ui |
+| Styling | Tailwind CSS + shadcn/ui (Radix) |
 | Animations | Framer Motion |
 | State | TanStack Query v5 |
+| Routing | Wouter |
 | Backend | Express.js + TypeScript |
-| Database | PostgreSQL + Drizzle ORM |
+| Database | PostgreSQL 14+ + Drizzle ORM |
 | Auth | JWT + bcrypt + Social OAuth |
 | Email | Resend API |
 | SMS | Twilio (configurable) |
 | Mobile | Capacitor (iOS/Android) |
+| Deploy | Docker + Nginx + Hostinger VPS |
+| Build | Vite (frontend) + esbuild (backend) |
 
-## API Notes | ملاحظات API
+---
 
-- Parent notifications (requires auth):
-	- GET /api/notifications
-	- PUT /api/notifications/:id
-	- DELETE /api/notifications/:id
-
-## Test Tokens | توكنات الاختبار
-
-Use the web app and browser DevTools to read stored tokens:
-
-1) Parent: log in to the parent dashboard, then run:
-
-```js
-localStorage.getItem("token")
-```
-
-2) Child: log in to the child experience, then run:
-
-```js
-localStorage.getItem("childToken")
-```
-
-3) Get `childId` using the child token:
-
-```bash
-curl -H "Authorization: Bearer <childToken>" http://127.0.0.1:5000/api/child/profile
-```
-
-## Project Structure | هيكل المشروع
+## 📂 Project Structure | هيكل المشروع
 
 ```
 classify/
-├── client/                 # Frontend React application
+├── client/                    # Frontend React application
 │   ├── src/
-│   │   ├── components/     # Reusable UI components
-│   │   │   ├── ui/         # shadcn components
-│   │   │   └── admin/      # Admin-specific components
-│   │   ├── pages/          # Page components
-│   │   ├── hooks/          # Custom React hooks
-│   │   ├── contexts/       # React contexts (Theme, etc.)
-│   │   ├── i18n/           # Internationalization
-│   │   │   └── locales/    # ar.json, en.json
-│   │   └── lib/            # Utility functions
-│   └── public/             # Static assets
-├── server/                 # Backend Express application
-│   ├── routes/             # API route handlers
-│   │   ├── admin.ts        # Admin endpoints
-│   │   ├── auth.ts         # Authentication endpoints
-│   │   ├── parent.ts       # Parent endpoints
-│   │   └── child.ts        # Child endpoints
-│   ├── middleware/         # Express middleware
-│   ├── utils/              # Helper utilities
-│   ├── mailer.ts           # Resend email integration
-│   └── sms-otp.ts          # SMS OTP service
-├── shared/                 # Shared code
-│   └── schema.ts           # Drizzle ORM schema (64+ indexes)
-├── migrations/             # Database migrations
-├── nginx/                  # Nginx configuration
-│   └── nginx.conf          # Production nginx config
-├── android/                # Android project (Capacitor)
-├── ios/                    # iOS project (Capacitor)
-├── Dockerfile              # Multi-stage Docker build
-├── docker-compose.yml      # Docker Compose with nginx
-├── deploy.sh               # Deployment script for VPS
-└── .env.example            # Environment template
+│   │   ├── components/        # 130+ reusable UI components
+│   │   │   ├── ui/            # shadcn components
+│   │   │   ├── admin/         # Admin-specific components
+│   │   │   ├── child/         # Child-specific components
+│   │   │   ├── parent/        # Parent-specific components
+│   │   │   └── ...
+│   │   ├── pages/             # 53 page components
+│   │   ├── hooks/             # Custom React hooks
+│   │   ├── contexts/          # React contexts (Theme, etc.)
+│   │   ├── i18n/
+│   │   │   └── locales/       # ar.json, en.json, pt.json
+│   │   └── lib/               # Utility functions
+│   └── public/                # Static assets
+├── server/                    # Backend Express application
+│   ├── routes/                # 24 API route files
+│   │   ├── admin.ts           # Admin endpoints (166)
+│   │   ├── child.ts           # Child endpoints (70)
+│   │   ├── parent.ts          # Parent endpoints (63)
+│   │   ├── school.ts          # School endpoints (40)
+│   │   ├── teacher.ts         # Teacher endpoints (37)
+│   │   ├── library.ts         # Library endpoints (35)
+│   │   ├── auth.ts            # Auth endpoints (27)
+│   │   ├── marketplace.ts     # Marketplace endpoints (18)
+│   │   ├── follow.ts          # Follow system endpoints (13)
+│   │   └── ...                # 15 more route modules
+│   ├── services/              # Business logic services
+│   ├── utils/                 # Helper utilities & rate limiters
+│   └── ...
+├── shared/
+│   └── schema.ts              # Drizzle ORM schema (137 tables, 27 indexes)
+├── migrations/                # Database migrations
+├── nginx/                     # Nginx configuration
+├── android/                   # Android project (Capacitor)
+├── ios/                       # iOS project (Capacitor)
+├── scripts/                   # Admin setup, deploy, env scripts
+├── monitoring/                # Monitoring configuration
+├── Dockerfile                 # Multi-stage Docker build (3-stage)
+├── docker-compose.yml         # Docker Compose with nginx
+├── deploy.sh                  # Deployment script for VPS
+└── .env.example               # Environment template
 ```
 
-## Quick Start | البداية السريعة
+---
+
+## 🚀 Quick Start | البداية السريعة
 
 ### Development | التطوير
 
@@ -170,8 +211,11 @@ npm install
 # Run development server (port 5000)
 npm run dev
 
-# Database push
+# Push database schema
 npm run db:push
+
+# Setup admin account
+npm run admin:setup
 ```
 
 ### Production | الإنتاج
@@ -181,37 +225,34 @@ npm run db:push
 npm run build
 
 # Start production server
-npm run start
+NODE_ENV=production node dist/index.js
 ```
 
-## Docker Deployment | النشر عبر Docker
+---
 
-### Prerequisites | المتطلبات
+## 🐳 Docker Deployment | النشر عبر Docker
 
+### Prerequisites
 - Docker 20+
 - Docker Compose 2+
-- Ubuntu 24.04 LTS (Hostinger VPS)
+- Ubuntu 24.04 LTS (Hostinger VPS recommended)
 
-### 🚀 Quick Deploy | النشر السريع
+### Quick Deploy
 
 ```bash
-# 1. Clone the repository
-git clone https://github.com/your-repo/classify.git
-cd classify
+# 1. Clone
+git clone https://github.com/promnes/classitest.git
+cd classitest
 
-# 2. Copy environment file
+# 2. Configure
 cp .env.example .env
-
-# 3. Edit environment variables
 nano .env
 
-# 4. Start all services
+# 3. Start
 docker compose up -d
 ```
 
-### ⚡ Fast Updates | التحديثات السريعة
-
-**Most common:** One-command update with the optimized script:
+### Fast Updates
 
 ```bash
 # Quick update from main branch
@@ -225,54 +266,25 @@ docker compose up -d
 ```
 
 **Performance:**
-- Code updates: **90% faster** (~30 seconds vs 5 minutes)
-- Environment changes: **96% faster** (~5 seconds vs 2 minutes)
-- Image size: **62% smaller** (~150MB vs 400MB)
+- Code updates: **~30 seconds** (90% faster)
+- Environment changes: **~5 seconds** (96% faster)
+- Image size: **~150MB** (62% smaller)
 
-### Manual Docker Commands | أوامر Docker اليدوية
-
-```bash
-# Build and start all services
-docker compose up -d --build
-
-# View logs
-docker compose logs -f app
-
-# Stop all services
-docker compose down
-
-# Restart application
-docker compose restart app
-
-# Run database migrations
-docker compose exec app npm run db:push
-
-# Quick rebuild (with layer caching)
-docker compose up -d --build app
-```
-
-## SSL Certificate Setup | إعداد شهادة SSL
-
-### Let's Encrypt with Certbot
+### Docker Commands
 
 ```bash
-# Install certbot
-sudo apt install certbot python3-certbot-nginx
-
-# Get certificate
-sudo certbot certonly --webroot -w /var/www/certbot -d your-domain.com
-
-# Copy certificates
-sudo cp /etc/letsencrypt/live/your-domain.com/fullchain.pem nginx/ssl/
-sudo cp /etc/letsencrypt/live/your-domain.com/privkey.pem nginx/ssl/
-
-# Restart nginx
-docker-compose restart nginx
+docker compose up -d --build    # Build & start
+docker compose logs -f app      # View logs
+docker compose down             # Stop all
+docker compose restart app      # Restart app
+docker compose exec app npm run db:push  # DB migrations
 ```
 
-## Environment Variables | متغيرات البيئة
+---
 
-### Required | مطلوبة
+## 🔑 Environment Variables | متغيرات البيئة
+
+### Required
 
 ```env
 DATABASE_URL=postgresql://user:pass@host:5432/dbname
@@ -280,7 +292,7 @@ JWT_SECRET=your_super_secret_jwt_key_min_32_chars
 RESEND_API_KEY=re_your_resend_api_key
 ```
 
-### Optional | اختيارية
+### Optional
 
 ```env
 # SMS (Twilio)
@@ -288,201 +300,170 @@ TWILIO_ACCOUNT_SID=ACxxx
 TWILIO_AUTH_TOKEN=xxx
 TWILIO_PHONE_NUMBER=+1234567890
 
-# Social Login (configure in admin panel)
+# Social Login
 GOOGLE_CLIENT_ID=xxx
 FACEBOOK_APP_ID=xxx
 APPLE_CLIENT_ID=xxx
-```
 
-## Admin Access | دخول المسؤول
-
-```
-URL: /admin
-Email: marco0000110@gmail.com
-Password: admin123
-```
-
-**⚠️ Change admin credentials in production!**
-
-### Managing Admin Credentials | إدارة بيانات الإدمن
-
-To change admin email or password:
-
-```bash
-# 1. Edit .env
-ADMIN_EMAIL=newemail@domain.com
-ADMIN_PASSWORD=NewPassword@2025
-
-# 2. Apply changes to database
-npm run admin:setup
-```
-
-**Important:** Changes in `.env` alone are not enough. You must run `npm run admin:setup` to sync changes to the database.
-
-For detailed guide, see [ADMIN_CREDENTIALS.md](docs/ADMIN_CREDENTIALS.md)
-
-## API Endpoints | نقاط النهاية
-
-### Public
-- `GET /api/health` - Health check
-- `GET /api/auth/social-providers` - Active social login providers
-- `GET /api/auth/otp-providers` - Active OTP providers
-
-### Authentication
-- `POST /api/auth/register` - Parent registration
-- `POST /api/auth/login` - Parent login
-- `POST /api/auth/send-otp` - Send OTP
-- `POST /api/auth/verify-otp` - Verify OTP
-
-### Admin
-- `GET /api/admin/social-login-providers` - All social providers
-- `PUT /api/admin/social-login-providers/:id` - Update provider
-- `GET /api/admin/otp-providers` - All OTP providers
-- `PUT /api/admin/otp-providers/:id` - Update OTP settings
-
-## Performance Optimization | تحسين الأداء
-
-### Docker Build Optimization
-**3-stage multi-stage build** with aggressive layer caching:
-- **Stage 1 (deps):** Dependencies cached unless `package.json` changes
-- **Stage 2 (builder):** Build cached unless source code changes
-- **Stage 3 (runner):** Minimal production image (~150MB)
-
-**Results:**
-- First build: ~6 minutes (25% faster)
-- Code updates: ~30 seconds (90% faster)
-- Env changes: ~5 seconds (96% faster)
-
-### Database Indexes
-64 optimized indexes for high-performance queries:
-- Authentication indexes (parents, sessions, OTP codes)
-- Task and notification indexes
-- Order and purchase indexes
-- Activity and login history indexes
-
-### Caching
-- TanStack Query with 5-minute staleTime
-- Compression middleware enabled
-- Static asset caching via nginx
-- Docker BuildKit caching for faster rebuilds
-
-### Scalability
-- Measured mixed workload (80/20 read/write) at **~6.7k ops/s** on current benchmark environment
-- Measured sustained DB write throughput at **~13.7k ops/s** (temporary UNLOGGED benchmark table)
-- Docker resource limits configured
-- Connection pooling and optional Node.js cluster mode enabled
-- Zero-downtime rolling updates
-
-### Production Capacity Profile (Recommended)
-
-Use these environment values in `.env` (or Docker manager) for the current tuning profile:
-
-```env
+# Cluster Mode
 NODE_CLUSTER_ENABLED=true
 WEB_CONCURRENCY=4
 DB_POOL_MAX=50
-DB_POOL_MIN=5
-DB_POOL_IDLE_TIMEOUT_MS=30000
-DB_POOL_CONNECT_TIMEOUT_MS=10000
 ```
 
-Notes:
-- Increase `WEB_CONCURRENCY` gradually only after monitoring CPU saturation.
-- Keep `DB_POOL_MAX` below PostgreSQL `max_connections` headroom for admin/maintenance sessions.
+---
 
-Quick switch commands:
+## 🔌 API Overview | نقاط النهاية
+
+### Public
+- `GET /api/health` — Health check
+- `GET /api/auth/social-providers` — Active social login providers
+- `GET /api/auth/otp-providers` — Active OTP providers
+
+### Authentication
+- `POST /api/auth/register` — Parent registration
+- `POST /api/auth/login` — Parent login
+- `POST /api/auth/send-otp` — Send OTP
+- `POST /api/auth/verify-otp` — Verify OTP
+- `POST /api/auth/logout` — Logout
+
+### Child (70 endpoints)
+- `GET /api/child/showcase` — Child showcase profile
+- `GET /api/child/search?q=&type=` — Search children, schools, teachers
+- `GET /api/child/discover` — Popular/trending entities
+- `POST /api/child/follow` — Follow child/school/teacher
+- `DELETE /api/child/follow` — Unfollow
+- `GET /api/child/following` — Who I follow
+- `GET /api/child/followers` — My followers
+- `GET /api/child/follow-counts` — Follower/following counts
+- `POST /api/child/friends/request` — Send friend request
+- `GET /api/child/friends` — My friends list
+- `GET /api/child/growth-tree` — Growth tree data
+- `POST /api/child/water-tree` — Water the tree
+- ... and 50+ more
+
+### Parent (63 endpoints)
+- `GET /api/parent/children` — List children
+- `POST /api/parent/tasks` — Create task
+- `GET /api/parent/wallet` — Wallet balance
+- ... and 60+ more
+
+### Admin (166 endpoints)
+- Full platform management, analytics, settings
+
+### School & Teacher (77 endpoints)
+- School/teacher dashboards, posts, tasks, finances
+
+### Library (35 endpoints)
+- Library dashboard, products, referrals, finances
+
+---
+
+## 🧪 Test Tokens
+
+```js
+// Parent token (browser console on parent dashboard)
+localStorage.getItem("token")
+
+// Child token (browser console on child interface)
+localStorage.getItem("childToken")
+```
 
 ```bash
-# Apply balanced profile to .env
-npm run env:profile:balanced
-
-# Apply high-throughput profile to .env
-npm run env:profile:high
+# Get child profile with token
+curl -H "Authorization: Bearer <childToken>" http://127.0.0.1:5000/api/child/profile
 ```
 
-## Monitoring | المراقبة
+---
+
+## 👤 Admin Access
+
+```
+URL: /admin
+```
 
 ```bash
-# Check application health
-curl http://localhost:5000/api/health
-
-# View container status
-docker-compose ps
-
-# View application logs
-docker-compose logs -f app
-
-# View nginx logs
-docker-compose logs -f nginx
+# Setup or reset admin credentials
+npm run admin:setup
 ```
 
-### Monitoring Tools | أدوات المراقبة
+Configure `ADMIN_EMAIL` and `ADMIN_PASSWORD` in `.env` before running setup. See [docs/ADMIN_CREDENTIALS.md](docs/ADMIN_CREDENTIALS.md) for details.
 
-#### 🎛️ Management Tools | أدوات الإدارة
+---
 
-| Tool | URL | Purpose | Credentials |
-|------|-----|---------|-----------|
-| **Portainer** | `http://localhost:9000` | إدارة Docker | Use default login |
-| **pgAdmin** | `http://localhost:5050` | إدارة قاعدة البيانات | `admin@classiv3.com` / `admin123` |
-| **Redis Commander** | `http://localhost:8081` | مراقبة Redis | - |
+## 📈 Performance
 
-#### 📊 Observability Tools | أدوات المراقبة المتقدمة
+### Docker Build
+- 3-stage multi-stage build with aggressive layer caching
+- First build: ~6 minutes | Code updates: ~30s | Env changes: ~5s
+
+### Database
+- 27 optimized indexes (unique + composite)
+- Connection pooling with configurable pool size
+- Mixed workload: **~6.7k ops/s** | Write throughput: **~13.7k ops/s**
+
+### Caching
+- TanStack Query with 5-minute staleTime
+- Compression middleware | Static asset caching via Nginx
+- Docker BuildKit caching for faster rebuilds
+
+### Scalability
+- Node.js cluster mode (configurable workers)
+- Docker resource limits | Zero-downtime rolling updates
+
+### Capacity Profiles
+
+```bash
+npm run env:profile:balanced    # Balanced (recommended)
+npm run env:profile:high        # High-throughput
+```
+
+---
+
+## 🔒 SSL Setup
+
+```bash
+sudo apt install certbot python3-certbot-nginx
+sudo certbot certonly --webroot -w /var/www/certbot -d your-domain.com
+sudo cp /etc/letsencrypt/live/your-domain.com/fullchain.pem nginx/ssl/
+sudo cp /etc/letsencrypt/live/your-domain.com/privkey.pem nginx/ssl/
+docker compose restart nginx
+```
+
+---
+
+## 📊 Monitoring
+
+```bash
+curl http://localhost:5000/api/health   # Health check
+docker compose ps                       # Container status
+docker compose logs -f app              # App logs
+```
 
 | Tool | URL | Purpose |
 |------|-----|---------|
-| **Prometheus** | `http://localhost:9090` | جمع مقاييس الأداء |
-| **Grafana** | `http://localhost:3000` | لوحات تحكم بصرية |
-| **Loki** | `http://localhost:3100` | مركز السجلات المركزي |
+| Portainer | `localhost:9000` | Docker management |
+| pgAdmin | `localhost:5050` | Database management |
+| Redis Commander | `localhost:8081` | Redis monitoring |
+| Prometheus | `localhost:9090` | Metrics collection |
+| Grafana | `localhost:3000` | Visual dashboards |
+| Mailhog | `localhost:8025` | Email/OTP testing |
 
-#### 📧 Communication Tools | أدوات الاتصالات
+---
 
-| Tool | URL | Purpose |
-|------|-----|---------|
-| **Mailhog** | `http://localhost:8025` | اختبار الرسائل والـ OTP |
-
-## Backup | النسخ الاحتياطي
+## 💾 Backup
 
 ```bash
 # Backup database
-docker-compose exec db pg_dump -U classify classify > backup.sql
+docker compose exec db pg_dump -U classify classify > backup.sql
 
 # Restore database
-docker-compose exec -T db psql -U classify classify < backup.sql
-
-# Backup volumes
-docker run --rm -v classify_postgres_data:/data -v $(pwd):/backup alpine tar cvf /backup/postgres_backup.tar /data
+docker compose exec -T db psql -U classify classify < backup.sql
 ```
 
-## Troubleshooting | استكشاف الأخطاء
+---
 
-### Application not starting
-```bash
-# Check logs
-docker-compose logs app
-
-# Verify database connection
-docker-compose exec app npm run db:push
-```
-
-### Database connection issues
-```bash
-# Check database status
-docker-compose exec db pg_isready -U classify
-
-# Restart database
-docker-compose restart db
-```
-
-### SSL certificate issues
-```bash
-# Check certificate validity
-openssl x509 -in nginx/ssl/fullchain.pem -text -noout
-
-# Renew Let's Encrypt
-sudo certbot renew
-```
-
-## Contributing | المساهمة
+## 🤝 Contributing
 
 1. Fork the repository
 2. Create feature branch (`git checkout -b feature/amazing`)
@@ -490,20 +471,16 @@ sudo certbot renew
 4. Push to branch (`git push origin feature/amazing`)
 5. Open Pull Request
 
-## License | الترخيص
+---
 
-MIT License - see LICENSE file for details.
+## 📄 License
 
-## Support | الدعم
-
-- Email: support@classify-app.com
-- WhatsApp: +966500000000
-- Telegram: @classifyapp
+MIT License
 
 ---
 
 <div dir="rtl">
 
-**صُنع بـ ❤️ للآباء والأطفال**
+**صُنع بـ ❤️ للآباء والأطفال والمدارس والمعلمين**
 
 </div>
