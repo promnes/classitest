@@ -175,6 +175,8 @@
   "growthPoints": "نقاط النمو",
   "waterings": "مرات الري",
   "wateringSuccess": "تم ري الشجرة بنجاح!",
+  "tapToExpand": "اضغط للتوسيع",
+  "tapToCollapse": "اضغط للتصغير",
   "notEnoughPoints": "نقاط غير كافية للري",
   "maxWateringsReached": "تم الوصول للحد الأقصى من مرات الري اليوم",
   "annualReport": "التقرير السنوي",

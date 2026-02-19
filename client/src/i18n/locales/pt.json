@@ -175,6 +175,8 @@
   "growthPoints": "Pontos de Crescimento",
   "waterings": "Regas",
   "wateringSuccess": "Árvore regada com sucesso!",
+  "tapToExpand": "Toque para expandir",
+  "tapToCollapse": "Toque para recolher",
   "notEnoughPoints": "Pontos insuficientes para regar",
   "maxWateringsReached": "Máximo de regas atingido hoje",
   "annualReport": "Relatorio Anual",

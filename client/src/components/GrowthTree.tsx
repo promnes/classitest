@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTheme } from "@/contexts/ThemeContext";
 import { motion, AnimatePresence } from "framer-motion";
-import { TreePine, Sparkles, TrendingUp, Star, Zap, Droplets } from "lucide-react";
+import { TreePine, Sparkles, TrendingUp, Star, Zap, Droplets, ChevronDown, ChevronUp } from "lucide-react";
 import { TREE_STAGE_ICONS, STAGE_COLORS } from "./TreeStageIcons";
 
 interface GrowthTreeData {
@@ -60,6 +60,7 @@ export function GrowthTree() {
   const [isNearTree, setIsNearTree] = useState(false);
   const [showWaterAnim, setShowWaterAnim] = useState(false);
   const [waterMessage, setWaterMessage] = useState<string | null>(null);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   const { data, isLoading, error } = useQuery<{ success: boolean; data: GrowthTreeData }>({
     queryKey: ["growth-tree"],
@@ -275,24 +276,40 @@ export function GrowthTree() {
 
   return (
     <div className={`rounded-3xl overflow-hidden ${isDark ? "bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900" : "bg-gradient-to-b from-green-50 via-emerald-50 to-green-100"} shadow-2xl border ${isDark ? "border-gray-700" : "border-green-200"}`}>
-      {/* Header */}
-      <div className="px-5 pt-5 pb-3 text-center">
+      {/* Header with expand/collapse toggle */}
+      <div
+        className="px-5 pt-5 pb-3 text-center cursor-pointer select-none"
+        onClick={() => setIsExpanded((prev) => !prev)}
+      >
         <div className="flex items-center justify-center gap-2 mb-1">
           <TreePine className="w-5 h-5 text-green-500" />
           <h2 className={`text-lg font-bold ${isDark ? "text-white" : "text-gray-800"}`}>
             {t("growthTree")}
           </h2>
+          <motion.div
+            animate={{ rotate: isExpanded ? 180 : 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            <ChevronDown className={`w-5 h-5 ${isDark ? "text-gray-400" : "text-gray-500"}`} />
+          </motion.div>
         </div>
         <p className={`text-xs ${isDark ? "text-gray-400" : "text-gray-500"}`}>
           {t("treeLevel")} {currentStage}/{totalStages} • {t(stageKey)}
+          {!isExpanded && (
+            <span className={`ml-2 ${isDark ? "text-green-400" : "text-green-600"}`}>
+              — {t("tapToExpand")}
+            </span>
+          )}
         </p>
       </div>
 
       {/* 3D Tree Scene */}
-      <div
+      <motion.div
         ref={containerRef}
         className="relative mx-auto select-none cursor-grab active:cursor-grabbing"
-        style={{ width: "100%", height: 440, perspective: "800px" }}
+        style={{ width: "100%", perspective: "800px" }}
+        animate={{ height: isExpanded ? 440 : 260 }}
+        transition={{ duration: 0.35, ease: "easeInOut" }}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
@@ -556,7 +573,18 @@ export function GrowthTree() {
             );
           })()}
         </AnimatePresence>
-      </div>
+      </motion.div>
+
+      {/* Expandable sections: watering, progress, stats */}
+      <AnimatePresence initial={false}>
+      {isExpanded && (
+      <motion.div
+        initial={{ height: 0, opacity: 0 }}
+        animate={{ height: "auto", opacity: 1 }}
+        exit={{ height: 0, opacity: 0 }}
+        transition={{ duration: 0.35, ease: "easeInOut" }}
+        className="overflow-hidden"
+      >
 
       {/* Watering Section */}
       {wateringInfo?.wateringEnabled && (
@@ -724,6 +752,10 @@ export function GrowthTree() {
           </div>
         </div>
       </div>
+
+      </motion.div>
+      )}
+      </AnimatePresence>
     </div>
   );
 }

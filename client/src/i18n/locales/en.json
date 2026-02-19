@@ -175,6 +175,8 @@
   "growthPoints": "Growth Points",
   "waterings": "Waterings",
   "wateringSuccess": "Tree watered successfully!",
+  "tapToExpand": "Tap to expand",
+  "tapToCollapse": "Tap to collapse",
   "notEnoughPoints": "Not enough points to water",
   "maxWateringsReached": "Maximum waterings reached for today",
   "annualReport": "Annual Report",
