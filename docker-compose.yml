@@ -56,37 +56,27 @@ services:
       - "traefik.enable=true"
       
       # HTTPS router (main)
-      - "traefik.http.routers.classify-secure.rule=Host(`classi-fy.com`)"
+      - "traefik.http.routers.classify-secure.rule=Host(`classi-fy.com`) || Host(`www.classi-fy.com`)"
       - "traefik.http.routers.classify-secure.entrypoints=websecure"
       - "traefik.http.routers.classify-secure.service=classify"
+      - "traefik.http.routers.classify-secure.tls=true"
       - "traefik.http.routers.classify-secure.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.classify-www-secure.rule=Host(`www.classi-fy.com`)"
-      - "traefik.http.routers.classify-www-secure.entrypoints=websecure"
-      - "traefik.http.routers.classify-www-secure.service=classify"
-      - "traefik.http.routers.classify-www-secure.tls.certresolver=letsencrypt"
       - "traefik.http.services.classify.loadbalancer.server.port=5000"
-      - "traefik.http.services.classify.loadbalancer.healthcheck.path=/api/health"
-      - "traefik.http.services.classify.loadbalancer.healthcheck.interval=10s"
       
       # HTTP → HTTPS redirect
-      - "traefik.http.routers.classify.rule=Host(`classi-fy.com`)"
+      - "traefik.http.routers.classify.rule=Host(`classi-fy.com`) || Host(`www.classi-fy.com`)"
       - "traefik.http.routers.classify.entrypoints=web"
       - "traefik.http.routers.classify.middlewares=https-redirect"
       - "traefik.http.routers.classify.service=noop@internal"
-      - "traefik.http.routers.classify-www.rule=Host(`www.classi-fy.com`)"
-      - "traefik.http.routers.classify-www.entrypoints=web"
-      - "traefik.http.routers.classify-www.middlewares=https-redirect"
-      - "traefik.http.routers.classify-www.service=noop@internal"
       - "traefik.http.middlewares.https-redirect.redirectscheme.scheme=https"
       - "traefik.http.middlewares.https-redirect.redirectscheme.permanent=true"
       
       # Security headers
+      - "traefik.http.routers.classify-secure.middlewares=security-headers"
       - "traefik.http.middlewares.security-headers.headers.stsSeconds=63072000"
       - "traefik.http.middlewares.security-headers.headers.stsIncludeSubdomains=true"
       - "traefik.http.middlewares.security-headers.headers.frameDeny=false"
       - "traefik.http.middlewares.security-headers.headers.contentTypeNosniff=true"
-      - "traefik.http.routers.classify-secure.middlewares=security-headers"
-      - "traefik.http.routers.classify-www-secure.middlewares=security-headers"
       
       # Container metadata
       - "com.classify.version=3.0"
