@@ -356,13 +356,12 @@ export const ChildGames = (): JSX.Element => {
       )}
 
       {selectedGame && (
-        <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-4">
-          <div className={`${isDark ? "bg-gray-800" : "bg-white"} rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden`}>
-            <div className={`flex items-center justify-between p-4 border-b ${isDark ? "border-gray-700" : "border-gray-200"}`}>
-              <h3 className={`text-xl font-bold ${isDark ? "text-white" : "text-gray-800"}`}>
+        <div className="fixed inset-0 bg-black bg-opacity-80 flex flex-col z-50">
+          <div className={`flex items-center justify-between px-4 py-2 ${isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"} border-b shrink-0`}>
+              <h3 className={`text-lg font-bold truncate ${isDark ? "text-white" : "text-gray-800"}`}>
                 {selectedGame.title}
               </h3>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 shrink-0">
                 <span className="px-3 py-1 bg-yellow-500 text-white rounded-full text-sm font-bold flex items-center gap-1">
                   <Star className="w-4 h-4" />
                   +{selectedGame.pointsPerPlay} {t("pointsEarned")}
@@ -375,8 +374,8 @@ export const ChildGames = (): JSX.Element => {
                   <X className="w-6 h-6" />
                 </button>
               </div>
-            </div>
-            <div className="aspect-video bg-black relative">
+          </div>
+          <div className="flex-1 bg-black relative min-h-0">
               {iframeLoading && (
                 <div className="absolute inset-0 flex items-center justify-center z-10">
                   <div className="text-center">
@@ -386,15 +385,15 @@ export const ChildGames = (): JSX.Element => {
                 </div>
               )}
               <iframe
-                src={selectedGame.embedUrl}
-                className="w-full h-full"
+                src={`${selectedGame.embedUrl}${selectedGame.embedUrl.includes('?') ? '&' : '?'}lang=${i18n.language}`}
+                className="w-full h-full border-0"
                 allowFullScreen
                 title={selectedGame.title}
                 onLoad={() => setIframeLoading(false)}
                 {...(!selectedGame.embedUrl.startsWith("/") ? { sandbox: "allow-scripts allow-same-origin allow-popups" } : {})}
               />
-            </div>
-            <div className="p-4 flex flex-col items-center gap-3">
+          </div>
+          <div className={`px-4 py-2 flex flex-col items-center gap-2 shrink-0 ${isDark ? "bg-gray-800" : "bg-white"}`}>
               {mutationError && (
                 <div className="w-full px-4 py-2 bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700 rounded-xl text-center">
                   <p className="text-sm font-semibold text-red-600 dark:text-red-400">{mutationError}</p>
@@ -426,7 +425,6 @@ export const ChildGames = (): JSX.Element => {
                   🎮 {isRTL ? "أكمل اللعبة للحصول على النقاط..." : "Complete the game to earn points..."}
                 </p>
               )}
-            </div>
           </div>
         </div>
       )}

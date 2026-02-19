@@ -40,6 +40,12 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
+  // Let game HTML files pass through to the network without SW interception
+  // Prevents SW fallback from serving the SPA shell instead of the actual game
+  if (url.pathname.startsWith('/games/')) {
+    return;
+  }
+
   // Always go to network for API calls, navigation, and HTML
   if (
     url.pathname.startsWith('/api/') ||

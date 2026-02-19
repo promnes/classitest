@@ -1039,9 +1039,8 @@ export function GamesTab({ token }: { token: string }) {
 
       {/* ========== PREVIEW MODAL ========== */}
       {previewUrl && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4" onClick={() => setPreviewUrl(null)}>
-          <div className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden shadow-2xl" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between p-4 border-b dark:border-gray-700">
+        <div className="fixed inset-0 bg-black/80 flex flex-col z-50" onClick={() => setPreviewUrl(null)}>
+          <div className="flex items-center justify-between px-4 py-2 bg-white dark:bg-gray-800 border-b dark:border-gray-700 shrink-0" onClick={(e) => e.stopPropagation()}>
               <div className="flex items-center gap-2">
                 <Eye className="w-5 h-5 text-purple-600" />
                 <h3 className="font-bold text-gray-800 dark:text-white">{t("admin.games.previewGame")}</h3>
@@ -1053,16 +1052,14 @@ export function GamesTab({ token }: { token: string }) {
               >
                 <X className="w-5 h-5" />
               </button>
-            </div>
-            <div className="aspect-video bg-black relative">
+          </div>
+          <div className="flex-1 bg-black relative min-h-0" onClick={(e) => e.stopPropagation()}>
               <iframe
                 src={previewUrl}
-                className="w-full h-full"
+                className="w-full h-full border-0"
                 allowFullScreen
                 title="معاينة اللعبة"
-                sandbox="allow-scripts allow-same-origin allow-popups"
               />
-            </div>
           </div>
         </div>
       )}

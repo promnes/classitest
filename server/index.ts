@@ -112,6 +112,11 @@ app.use(helmet({
     },
   },
   crossOriginResourcePolicy: { policy: "cross-origin" },
+  // Disable COOP/COEP — Helmet v8 defaults (same-origin / require-corp)
+  // block pages from loading inside sandboxed iframes, causing
+  // ERR_BLOCKED_BY_RESPONSE ("refused to connect") in game previews.
+  crossOriginOpenerPolicy: false,
+  crossOriginEmbedderPolicy: false,
 }));
 app.use(compression());
 

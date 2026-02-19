@@ -2,44 +2,59 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>لعبة الذاكرة - Memory Match</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+    }
+
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      min-height: 100vh;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 1rem;
       user-select: none;
       -webkit-tap-highlight-color: transparent;
+    }
+
+    .game-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 100%;
+      padding: clamp(0.5rem, 2vmin, 1.5rem);
+      gap: clamp(0.4rem, 1.5vmin, 1rem);
     }
 
     /* ---------- Header ---------- */
     .header {
       text-align: center;
-      margin-bottom: 1rem;
       width: 100%;
-      max-width: 480px;
+      max-width: 500px;
+      flex-shrink: 0;
     }
 
     .title {
-      font-size: 1.6rem;
+      font-size: clamp(1rem, 4vmin, 1.8rem);
       font-weight: 800;
       color: #fff;
-      margin: 0 0 0.75rem;
+      margin: 0 0 clamp(0.3rem, 1vmin, 0.75rem);
       text-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
     }
 
     .stats {
       display: flex;
       justify-content: center;
-      gap: 1.25rem;
+      gap: clamp(0.5rem, 2vmin, 1.25rem);
     }
 
     .stat {
@@ -49,19 +64,19 @@
       background: rgba(255, 255, 255, 0.15);
       backdrop-filter: blur(6px);
       border-radius: 12px;
-      padding: 0.4rem 1rem;
-      min-width: 72px;
+      padding: clamp(0.2rem, 0.8vmin, 0.4rem) clamp(0.5rem, 1.5vmin, 1rem);
+      min-width: 60px;
     }
 
     .stat-label {
-      font-size: 0.7rem;
+      font-size: clamp(0.55rem, 1.4vmin, 0.7rem);
       text-transform: uppercase;
       letter-spacing: 0.05em;
       color: rgba(255, 255, 255, 0.7);
     }
 
     .stat-value {
-      font-size: 1.15rem;
+      font-size: clamp(0.85rem, 2.5vmin, 1.15rem);
       font-weight: 700;
       color: #fff;
     }
@@ -70,9 +85,10 @@
     .grid {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
-      gap: 0.6rem;
+      gap: clamp(0.3rem, 1vmin, 0.6rem);
       width: 100%;
-      max-width: 400px;
+      max-width: min(90vw, 70vh, 500px);
+      flex: 0 1 auto;
       perspective: 1000px;
     }
 
@@ -95,7 +111,7 @@
       height: 100%;
       transition: transform 0.5s ease;
       transform-style: preserve-3d;
-      border-radius: 14px;
+      border-radius: clamp(8px, 2vmin, 14px);
     }
 
     .card.flipped .card-inner { transform: rotateY(180deg); }
@@ -105,7 +121,7 @@
       inset: 0;
       backface-visibility: hidden;
       -webkit-backface-visibility: hidden;
-      border-radius: 14px;
+      border-radius: clamp(8px, 2vmin, 14px);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -117,7 +133,7 @@
       border: 2px solid rgba(255, 255, 255, 0.2);
     }
 
-    .card-front .icon { font-size: 1.8rem; filter: brightness(0.85); }
+    .card-front .icon { font-size: clamp(1.2rem, 4vmin, 1.8rem); filter: brightness(0.85); }
 
     .card:not(.flipped):not(.matched):hover .card-front {
       box-shadow: 0 6px 20px rgba(79, 70, 229, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.25);
@@ -134,7 +150,7 @@
       border: 2px solid rgba(99, 102, 241, 0.2);
     }
 
-    .card-back .symbol { font-size: 2.2rem; }
+    .card-back .symbol { font-size: clamp(1.4rem, 5vmin, 2.2rem); }
 
     .card.matched .card-inner { transform: rotateY(180deg); }
 
@@ -172,7 +188,7 @@
     .result-card {
       background: #fff;
       border-radius: 24px;
-      padding: 2rem 2.5rem;
+      padding: clamp(1.2rem, 4vmin, 2rem) clamp(1.5rem, 5vmin, 2.5rem);
       text-align: center;
       max-width: 360px;
       width: 100%;
@@ -185,40 +201,40 @@
       to { transform: translateY(0); opacity: 1; }
     }
 
-    .result-emoji { font-size: 3.5rem; margin-bottom: 0.5rem; }
+    .result-emoji { font-size: clamp(2.5rem, 8vmin, 3.5rem); margin-bottom: 0.5rem; }
 
     .result-title {
-      font-size: 1.5rem;
+      font-size: clamp(1.1rem, 3.5vmin, 1.5rem);
       font-weight: 800;
       color: #1e293b;
       margin: 0 0 0.25rem;
     }
 
     .result-score {
-      font-size: 2.5rem;
+      font-size: clamp(1.8rem, 6vmin, 2.5rem);
       font-weight: 900;
       color: #7c3aed;
       margin: 0.5rem 0;
     }
 
     .result-details {
-      font-size: 0.95rem;
+      font-size: clamp(0.8rem, 2vmin, 0.95rem);
       color: #64748b;
-      margin: 0 0 1.25rem;
+      margin: 0 0 1rem;
     }
 
     .result-stats {
       display: flex;
       justify-content: center;
       gap: 1.5rem;
-      margin-bottom: 1.5rem;
+      margin-bottom: 1rem;
     }
 
     .result-stat {
       display: flex;
       align-items: center;
       gap: 0.4rem;
-      font-size: 1rem;
+      font-size: clamp(0.85rem, 2.2vmin, 1rem);
       font-weight: 600;
       color: #334155;
     }
@@ -231,8 +247,8 @@
       color: #fff;
       border: none;
       border-radius: 14px;
-      padding: 0.75rem 2rem;
-      font-size: 1.05rem;
+      padding: 0.65rem 1.5rem;
+      font-size: clamp(0.9rem, 2.5vmin, 1.05rem);
       font-weight: 700;
       cursor: pointer;
       transition: transform 0.15s, box-shadow 0.15s;
@@ -248,67 +264,133 @@
 
     /* ---------- Hint ---------- */
     .hint {
-      margin-top: 1rem;
       color: rgba(255, 255, 255, 0.8);
-      font-size: 0.95rem;
+      font-size: clamp(0.8rem, 2.2vmin, 0.95rem);
       font-weight: 500;
       animation: pulse 2s ease-in-out infinite;
+      flex-shrink: 0;
     }
 
     @keyframes pulse { 0%, 100% { opacity: 0.7; } 50% { opacity: 1; } }
-
-    /* ---------- Responsive ---------- */
-    @media (max-width: 400px) {
-      .grid { gap: 0.4rem; max-width: 320px; }
-      .card-back .symbol { font-size: 1.6rem; }
-      .card-front .icon { font-size: 1.4rem; }
-      .title { font-size: 1.3rem; }
-    }
   </style>
 </head>
 <body>
-
-  <!-- Header -->
-  <div class="header">
-    <h1 class="title">🧠 لعبة الذاكرة</h1>
-    <div class="stats">
-      <div class="stat">
-        <span class="stat-label">المحاولات</span>
-        <span class="stat-value" id="moves">0</span>
-      </div>
-      <div class="stat">
-        <span class="stat-label">الأزواج</span>
-        <span class="stat-value" id="pairs">0/8</span>
-      </div>
-      <div class="stat">
-        <span class="stat-label">الوقت</span>
-        <span class="stat-value" id="timer">00:00</span>
+  <div class="game-wrapper">
+    <!-- Header -->
+    <div class="header">
+      <h1 class="title" id="gameTitle">🧠 لعبة الذاكرة</h1>
+      <div class="stats">
+        <div class="stat">
+          <span class="stat-label" id="labelMoves">المحاولات</span>
+          <span class="stat-value" id="moves">0</span>
+        </div>
+        <div class="stat">
+          <span class="stat-label" id="labelPairs">الأزواج</span>
+          <span class="stat-value" id="pairs">0/8</span>
+        </div>
+        <div class="stat">
+          <span class="stat-label" id="labelTime">الوقت</span>
+          <span class="stat-value" id="timer">00:00</span>
+        </div>
       </div>
     </div>
+
+    <!-- Card Grid -->
+    <div class="grid" id="grid"></div>
+
+    <!-- Start Hint -->
+    <p class="hint" id="hint">اضغط على أي بطاقة للبدء!</p>
   </div>
-
-  <!-- Card Grid -->
-  <div class="grid" id="grid"></div>
-
-  <!-- Start Hint -->
-  <p class="hint" id="hint">اضغط على أي بطاقة للبدء!</p>
 
   <!-- Result Overlay -->
   <div class="overlay" id="overlay">
     <div class="result-card">
       <div class="result-emoji">🎉</div>
-      <h2 class="result-title">مبروك!</h2>
+      <h2 class="result-title" id="resultTitle">مبروك!</h2>
       <div class="result-score" id="finalScore">100</div>
       <p class="result-details" id="resultDetails"></p>
       <div class="result-stats">
         <div class="result-stat"><span>🏆</span><span id="finalMoves"></span></div>
         <div class="result-stat"><span>⏱️</span><span id="finalTime"></span></div>
       </div>
-      <button class="btn-play-again" onclick="restartGame()">🔄 العب مرة أخرى</button>
+      <button class="btn-play-again" id="btnPlayAgain" onclick="restartGame()">🔄 العب مرة أخرى</button>
     </div>
   </div>
 
   <script>
+    // ===== i18n =====
+    const TRANSLATIONS = {
+      ar: {
+        title: '🧠 لعبة الذاكرة',
+        moves: 'المحاولات',
+        pairs: 'الأزواج',
+        time: 'الوقت',
+        hint: 'اضغط على أي بطاقة للبدء!',
+        congrats: 'مبروك!',
+        finishedIn: (m, t) => `أنهيت في ${m} محاولة و ${t}`,
+        movesResult: (m) => `المحاولات: ${m}`,
+        timeResult: (t) => `الوقت: ${t}`,
+        playAgain: '🔄 العب مرة أخرى',
+        dir: 'rtl',
+        lang: 'ar',
+      },
+      en: {
+        title: '🧠 Memory Match',
+        moves: 'Moves',
+        pairs: 'Pairs',
+        time: 'Time',
+        hint: 'Tap any card to start!',
+        congrats: 'Congratulations!',
+        finishedIn: (m, t) => `Finished in ${m} moves and ${t}`,
+        movesResult: (m) => `Moves: ${m}`,
+        timeResult: (t) => `Time: ${t}`,
+        playAgain: '🔄 Play Again',
+        dir: 'ltr',
+        lang: 'en',
+      },
+      pt: {
+        title: '🧠 Jogo da Memória',
+        moves: 'Jogadas',
+        pairs: 'Pares',
+        time: 'Tempo',
+        hint: 'Toque em qualquer carta para começar!',
+        congrats: 'Parabéns!',
+        finishedIn: (m, t) => `Terminou em ${m} jogadas e ${t}`,
+        movesResult: (m) => `Jogadas: ${m}`,
+        timeResult: (t) => `Tempo: ${t}`,
+        playAgain: '🔄 Jogar Novamente',
+        dir: 'ltr',
+        lang: 'pt',
+      }
+    };
+
+    function getLang() {
+      const params = new URLSearchParams(window.location.search);
+      const lang = (params.get('lang') || 'ar').toLowerCase();
+      if (TRANSLATIONS[lang]) return lang;
+      if (lang.startsWith('pt')) return 'pt';
+      if (lang.startsWith('en')) return 'en';
+      return 'ar';
+    }
+
+    const LANG = getLang();
+    const T = TRANSLATIONS[LANG];
+
+    function applyTranslations() {
+      const html = document.documentElement;
+      html.setAttribute('lang', T.lang);
+      html.setAttribute('dir', T.dir);
+      document.body.style.direction = T.dir;
+
+      document.getElementById('gameTitle').textContent = T.title;
+      document.getElementById('labelMoves').textContent = T.moves;
+      document.getElementById('labelPairs').textContent = T.pairs;
+      document.getElementById('labelTime').textContent = T.time;
+      document.getElementById('hint').textContent = T.hint;
+      document.getElementById('resultTitle').textContent = T.congrats;
+      document.getElementById('btnPlayAgain').textContent = T.playAgain;
+    }
+
     // ===== Configuration =====
     const PAIRS = 8;
     const SYMBOLS = ['🍎', '🐶', '🌟', '🎨', '🚀', '🌈', '🐱', '🎵', '🦋', '🌻', '🐠', '🎯', '🧩', '📚', '🔔', '🏆'];
@@ -466,9 +548,9 @@
       const timeStr = formatTime(finalDuration);
 
       finalScoreEl.textContent = score + ' / 100';
-      resultDetailsEl.textContent = `أنهيت في ${moves} محاولة و ${timeStr}`;
-      finalMovesEl.textContent = `المحاولات: ${moves}`;
-      finalTimeEl.textContent = `الوقت: ${timeStr}`;
+      resultDetailsEl.textContent = T.finishedIn(moves, timeStr);
+      finalMovesEl.textContent = T.movesResult(moves);
+      finalTimeEl.textContent = T.timeResult(timeStr);
 
       setTimeout(() => {
         overlayEl.classList.add('show');
@@ -510,6 +592,7 @@
     }
 
     // ===== Init =====
+    applyTranslations();
     cards = createDeck();
     renderCards();
   </script>
