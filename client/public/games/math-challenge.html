@@ -1,688 +1,449 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>تحدي الرياضيات - Math Challenge</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>تحدي الرياضيات - Math Challenge</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;user-select:none;-webkit-tap-highlight-color:transparent}
+.screen{display:none;width:100%;height:100%;position:absolute;top:0;left:0}
+.screen.active{display:flex}
 
-    html, body {
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-    }
+/* === LEVEL SELECT === */
+#lvl-screen{flex-direction:column;align-items:center;padding:clamp(8px,2vmin,16px);gap:clamp(6px,1.5vmin,12px);overflow-y:auto;background:linear-gradient(135deg,#8b5cf6,#6366f1)}
+.ls-title{font-size:clamp(20px,5vmin,32px);font-weight:900;color:#fff;text-shadow:0 2px 10px rgba(0,0,0,.3);text-align:center;flex-shrink:0}
+.ls-sub{font-size:clamp(11px,2vmin,14px);color:rgba(255,255,255,.8);text-align:center;flex-shrink:0}
+.ls-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:clamp(6px,1.5vmin,10px);width:100%;max-width:480px;padding:clamp(4px,1vmin,8px) 0}
+.lc{position:relative;background:rgba(255,255,255,.15);border:2px solid rgba(255,255,255,.2);border-radius:clamp(10px,2vmin,16px);padding:clamp(8px,2vmin,14px) clamp(4px,1vmin,8px);text-align:center;cursor:pointer;transition:all .2s;backdrop-filter:blur(4px)}
+.lc:hover{transform:scale(1.04);background:rgba(255,255,255,.25)}
+.lc:active{transform:scale(.96)}
+.lc.locked{opacity:.5;cursor:not-allowed}
+.lc.locked:hover{transform:none;background:rgba(255,255,255,.15)}
+.lc.current{border-color:#fbbf24;box-shadow:0 0 16px rgba(251,191,36,.5)}
+.lc-num{font-size:clamp(18px,4vmin,28px);font-weight:900;color:#fff}
+.lc-emoji{font-size:clamp(22px,5vmin,34px);margin:2px 0}
+.lc-name{font-size:clamp(8px,1.5vmin,11px);color:rgba(255,255,255,.85);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lc-stars{font-size:clamp(10px,2vmin,14px);margin-top:2px}
+.lc-lock{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:clamp(24px,6vmin,36px)}
 
-    body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
+/* === GAME === */
+#game-screen{flex-direction:column;align-items:center;justify-content:center;padding:clamp(8px,2vmin,16px);gap:clamp(4px,1vmin,10px);background:var(--bg,linear-gradient(135deg,#8b5cf6,#6366f1));transition:background .5s}
+.gc{background:rgba(255,255,255,.95);border-radius:clamp(12px,3vmin,24px);padding:clamp(12px,3vmin,24px);max-width:min(480px,95vw);width:100%;max-height:92vh;overflow-y:auto;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.g-hdr{margin-bottom:clamp(8px,2vmin,16px)}
+.g-hdr h1{font-size:clamp(14px,3vmin,20px);color:var(--accent,#4c1d95);margin-bottom:6px}
+.g-stats{display:flex;justify-content:center;gap:clamp(12px,3vmin,24px);margin-bottom:clamp(8px,2vmin,14px)}
+.g-stat{display:flex;flex-direction:column;align-items:center}
+.g-sv{font-size:clamp(20px,4.5vmin,28px);font-weight:800;color:var(--accent,#7c3aed)}
+.g-sl{font-size:clamp(9px,1.4vmin,11px);color:#6b7280;text-transform:uppercase;letter-spacing:.04em}
+.pbar{width:100%;height:clamp(5px,1vmin,8px);background:#e5e7eb;border-radius:999px;margin-bottom:clamp(10px,2.5vmin,18px);overflow:hidden}
+.pfill{height:100%;background:linear-gradient(90deg,var(--accent,#8b5cf6),#ec4899);border-radius:999px;transition:width .4s}
+.timer{font-size:clamp(12px,1.8vmin,14px);color:#6b7280;margin-bottom:6px}
+.timer.urgent{color:#ef4444;font-weight:700}
+.q-area{margin-bottom:clamp(10px,2.5vmin,20px)}
+.q-visual{font-size:clamp(18px,4vmin,28px);margin-bottom:6px;line-height:1.4;min-height:clamp(24px,5vmin,36px)}
+.q-text{font-size:clamp(28px,7vmin,44px);font-weight:800;color:#1f2937;direction:ltr;margin-bottom:4px}
+.q-hint{font-size:clamp(11px,1.6vmin,13px);color:#9ca3af}
+.ans-grid{display:grid;grid-template-columns:1fr 1fr;gap:clamp(6px,1.2vmin,10px);margin-bottom:clamp(8px,2vmin,14px)}
+.ans-btn{padding:clamp(10px,2vmin,16px);font-size:clamp(18px,4vmin,24px);font-weight:700;border:3px solid #e5e7eb;border-radius:clamp(10px,2vmin,16px);background:#fff;cursor:pointer;transition:all .2s;color:#374151;position:relative;overflow:hidden}
+.ans-btn:hover{border-color:var(--accent,#8b5cf6);background:#f5f3ff;transform:scale(1.03)}
+.ans-btn:active{transform:scale(.97)}
+.ans-btn.correct{border-color:#10b981;background:#d1fae5;color:#065f46;animation:apulse .4s ease}
+.ans-btn.wrong{border-color:#ef4444;background:#fee2e2;color:#991b1b;animation:ashake .4s ease}
+.ans-btn:disabled{cursor:default;opacity:.7}
+@keyframes apulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+@keyframes ashake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+.g-back{background:none;border:none;color:rgba(255,255,255,.7);font-size:clamp(11px,1.8vmin,13px);font-weight:600;cursor:pointer;padding:6px 12px;border-radius:8px}
+.g-back:hover{color:#fff;background:rgba(255,255,255,.15)}
 
-    .game-container {
-      background: rgba(255, 255, 255, 0.95);
-      border-radius: clamp(12px, 3vmin, 24px);
-      padding: clamp(16px, 4vmin, 32px);
-      max-width: min(480px, 95vw);
-      width: 100%;
-      max-height: 98vh;
-      overflow-y: auto;
-      text-align: center;
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-      position: relative;
-      animation: slideUp 0.6s ease-out;
-    }
-
-    @keyframes slideUp {
-      from { opacity: 0; transform: translateY(40px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    .header { margin-bottom: clamp(12px, 3vmin, 24px); }
-
-    .header h1 {
-      font-size: clamp(18px, 4vmin, 28px);
-      color: #4c1d95;
-      margin-bottom: 8px;
-    }
-
-    .stats {
-      display: flex;
-      justify-content: center;
-      gap: clamp(12px, 3vmin, 24px);
-      margin-bottom: clamp(12px, 3vmin, 20px);
-    }
-
-    .stat { display: flex; flex-direction: column; align-items: center; }
-
-    .stat-value {
-      font-size: clamp(22px, 5vmin, 32px);
-      font-weight: 800;
-      color: #7c3aed;
-    }
-
-    .stat-label {
-      font-size: clamp(10px, 1.5vmin, 12px);
-      color: #6b7280;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-    }
-
-    .progress-bar {
-      width: 100%;
-      height: clamp(6px, 1vmin, 8px);
-      background: #e5e7eb;
-      border-radius: 999px;
-      margin-bottom: clamp(16px, 4vmin, 32px);
-      overflow: hidden;
-    }
-
-    .progress-fill {
-      height: 100%;
-      background: linear-gradient(90deg, #8b5cf6, #ec4899);
-      border-radius: 999px;
-      transition: width 0.4s ease;
-    }
-
-    .question-area { margin-bottom: clamp(16px, 4vmin, 32px); }
-
-    .question {
-      font-size: clamp(28px, 8vmin, 48px);
-      font-weight: 800;
-      color: #1f2937;
-      margin-bottom: 8px;
-      direction: ltr;
-    }
-
-    .question-hint { font-size: clamp(12px, 1.8vmin, 14px); color: #9ca3af; }
-
-    .answers-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: clamp(8px, 1.5vmin, 12px);
-      margin-bottom: clamp(12px, 3vmin, 24px);
-    }
-
-    .answer-btn {
-      padding: clamp(10px, 2vmin, 16px);
-      font-size: clamp(18px, 4vmin, 24px);
-      font-weight: 700;
-      border: 3px solid #e5e7eb;
-      border-radius: clamp(10px, 2vmin, 16px);
-      background: white;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      color: #374151;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .answer-btn:hover { border-color: #8b5cf6; background: #f5f3ff; transform: scale(1.03); }
-    .answer-btn:active { transform: scale(0.97); }
-    .answer-btn.correct { border-color: #10b981; background: #d1fae5; color: #065f46; animation: pulse 0.4s ease; }
-    .answer-btn.wrong { border-color: #ef4444; background: #fee2e2; color: #991b1b; animation: shake 0.4s ease; }
-    .answer-btn:disabled { cursor: default; opacity: 0.7; }
-
-    @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.08); } }
-    @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-8px); } 75% { transform: translateX(8px); } }
-
-    .timer { font-size: clamp(12px, 1.8vmin, 14px); color: #6b7280; margin-bottom: 8px; }
-    .timer-urgent { color: #ef4444; font-weight: 700; }
-
-    /* Completion Screen */
-    .completion { animation: slideUp 0.6s ease-out; }
-    .completion .trophy { font-size: clamp(48px, 12vmin, 80px); margin-bottom: 16px; animation: bounce 1s infinite; }
-
-    @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
-
-    .completion h2 { font-size: clamp(20px, 4vmin, 28px); color: #4c1d95; margin-bottom: 12px; }
-
-    .completion .score {
-      font-size: clamp(40px, 10vmin, 64px);
-      font-weight: 900;
-      background: linear-gradient(135deg, #8b5cf6, #ec4899);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-
-    .completion .score-label { font-size: clamp(12px, 2vmin, 16px); color: #6b7280; margin-bottom: clamp(12px, 3vmin, 24px); }
-
-    .result-details {
-      display: flex;
-      justify-content: center;
-      gap: clamp(16px, 4vmin, 32px);
-      margin-bottom: clamp(12px, 3vmin, 24px);
-    }
-
-    .result-item { text-align: center; }
-    .result-item .value { font-size: clamp(18px, 4vmin, 24px); font-weight: 800; }
-    .result-item .label { font-size: clamp(10px, 1.5vmin, 12px); color: #9ca3af; }
-    .result-item.correct-count .value { color: #10b981; }
-    .result-item.wrong-count .value { color: #ef4444; }
-    .result-item.time-count .value { color: #f59e0b; }
-
-    .play-again-btn {
-      padding: clamp(10px, 2vmin, 14px) clamp(28px, 6vmin, 48px);
-      font-size: clamp(14px, 2.5vmin, 18px);
-      font-weight: 700;
-      border: none;
-      border-radius: 16px;
-      background: linear-gradient(135deg, #8b5cf6, #ec4899);
-      color: white;
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
-
-    .play-again-btn:hover { transform: scale(1.05); box-shadow: 0 8px 24px rgba(139, 92, 246, 0.4); }
-
-    /* Star particles */
-    .star-particle {
-      position: fixed;
-      pointer-events: none;
-      font-size: 24px;
-      animation: float-up 1.5s ease-out forwards;
-      z-index: 999;
-    }
-
-    @keyframes float-up {
-      0% { opacity: 1; transform: translateY(0) scale(1) rotate(0deg); }
-      100% { opacity: 0; transform: translateY(-120px) scale(0.3) rotate(180deg); }
-    }
-
-    /* Start Screen */
-    .start-screen h1 { font-size: clamp(24px, 5vmin, 36px); color: #4c1d95; margin-bottom: 12px; }
-    .start-screen .emoji { font-size: clamp(40px, 10vmin, 64px); margin-bottom: 16px; }
-    .start-screen p { color: #6b7280; margin-bottom: 8px; font-size: clamp(13px, 2vmin, 15px); }
-
-    .start-screen .rules {
-      margin: 16px 0 24px;
-      padding: clamp(10px, 2vmin, 16px);
-      background: #f5f3ff;
-      border-radius: 12px;
-    }
-
-    [dir="ltr"] .start-screen .rules { text-align: left; }
-    [dir="rtl"] .start-screen .rules { text-align: right; }
-
-    .start-screen .rules li {
-      margin-bottom: 6px;
-      color: #4b5563;
-      font-size: clamp(12px, 1.8vmin, 14px);
-    }
-
-    .start-btn {
-      padding: clamp(12px, 2.5vmin, 16px) clamp(36px, 8vmin, 64px);
-      font-size: clamp(16px, 3vmin, 20px);
-      font-weight: 700;
-      border: none;
-      border-radius: 16px;
-      background: linear-gradient(135deg, #8b5cf6, #ec4899);
-      color: white;
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
-
-    .start-btn:hover { transform: scale(1.05); box-shadow: 0 8px 24px rgba(139, 92, 246, 0.4); }
-
-    .difficulty-select {
-      display: flex;
-      gap: 8px;
-      justify-content: center;
-      margin-bottom: 20px;
-    }
-
-    .diff-btn {
-      padding: clamp(6px, 1vmin, 8px) clamp(14px, 2.5vmin, 20px);
-      border: 2px solid #e5e7eb;
-      border-radius: 12px;
-      background: white;
-      cursor: pointer;
-      font-size: clamp(12px, 1.8vmin, 14px);
-      font-weight: 600;
-      transition: all 0.2s;
-      color: #4b5563;
-    }
-
-    .diff-btn.active { border-color: #8b5cf6; background: #f5f3ff; color: #7c3aed; }
-    .diff-btn:hover { border-color: #8b5cf6; }
-  </style>
+/* === DONE === */
+#done-screen{flex-direction:column;align-items:center;justify-content:center;gap:clamp(8px,2vmin,16px);padding:clamp(12px,3vmin,24px);background:var(--bg,linear-gradient(135deg,#8b5cf6,#6366f1))}
+.d-emoji{font-size:clamp(44px,12vmin,72px);animation:bounce 1s ease infinite}
+@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+.d-title{font-size:clamp(20px,5.5vmin,32px);font-weight:900;color:#fff;text-shadow:0 3px 10px rgba(0,0,0,.3)}
+.d-stars{display:flex;gap:clamp(4px,1vmin,8px);font-size:clamp(28px,7vmin,44px)}
+.d-sub{font-size:clamp(11px,2.2vmin,14px);color:rgba(255,255,255,.85)}
+.d-stats{display:flex;gap:clamp(8px,2vmin,16px);flex-wrap:wrap;justify-content:center}
+.d-st{text-align:center;background:rgba(255,255,255,.2);border-radius:12px;padding:clamp(6px,1.5vmin,12px) clamp(10px,2.5vmin,18px);backdrop-filter:blur(4px)}
+.d-st-e{font-size:clamp(18px,4.5vmin,28px)}
+.d-st-v{font-size:clamp(16px,3.5vmin,22px);font-weight:800;color:#fff}
+.d-st-l{font-size:clamp(8px,1.3vmin,10px);color:rgba(255,255,255,.7);text-transform:uppercase}
+.d-btns{display:flex;gap:clamp(6px,1.5vmin,10px);flex-wrap:wrap;justify-content:center}
+.d-btn{border:none;border-radius:14px;padding:clamp(8px,2vmin,14px) clamp(20px,5vmin,36px);font-size:clamp(12px,2.5vmin,16px);font-weight:800;cursor:pointer;transition:all .2s}
+.d-btn:hover{transform:scale(1.04)}.d-btn:active{transform:scale(.95)}
+.d-btn.pri{background:linear-gradient(135deg,#f59e0b,#f97316);color:#fff;box-shadow:0 4px 18px rgba(249,115,22,.4)}
+.d-btn.sec{background:rgba(255,255,255,.25);color:#fff}
+.d-btn.shr{background:linear-gradient(135deg,#3b82f6,#2563eb);color:#fff;box-shadow:0 4px 18px rgba(37,99,235,.4)}
+.particle{position:fixed;pointer-events:none;z-index:999;animation:floatup 1.2s ease-out forwards}
+@keyframes floatup{0%{opacity:1;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(-90px) scale(.3)}}
+</style>
 </head>
 <body>
-  <div class="game-container" id="game">
-    <!-- Start Screen -->
-    <div id="start-screen" class="start-screen">
-      <div class="emoji">🧮</div>
-      <h1 id="startTitle">تحدي الرياضيات</h1>
-      <p id="startDesc">أجب على 10 أسئلة رياضية بأسرع وقت!</p>
 
-      <div class="rules">
-        <ul id="rulesList">
-          <li>🎯 10 أسئلة متنوعة (جمع، طرح، ضرب)</li>
-          <li>⏱️ 15 ثانية لكل سؤال</li>
-          <li>⭐ نقطة لكل إجابة صحيحة</li>
-          <li>🏆 حاول الحصول على 10/10!</li>
-        </ul>
-      </div>
+<!-- LEVEL SELECT -->
+<div id="lvl-screen" class="screen active">
+  <div class="ls-title" id="ls-t">🧮 تحدي الرياضيات</div>
+  <div class="ls-sub" id="ls-s">اختر المستوى لتبدأ!</div>
+  <div class="ls-grid" id="ls-g"></div>
+</div>
 
-      <p id="chooseLevelLabel" style="font-weight:600; margin-bottom:12px;">اختر المستوى:</p>
-      <div class="difficulty-select">
-        <button class="diff-btn" data-diff="easy" id="btnEasy" onclick="setDifficulty('easy')">سهل</button>
-        <button class="diff-btn active" data-diff="medium" id="btnMedium" onclick="setDifficulty('medium')">متوسط</button>
-        <button class="diff-btn" data-diff="hard" id="btnHard" onclick="setDifficulty('hard')">صعب</button>
-      </div>
-
-      <button class="start-btn" id="btnStart" onclick="startGame()">🚀 ابدأ اللعب</button>
+<!-- GAME -->
+<div id="game-screen" class="screen">
+  <div class="gc">
+    <div class="g-hdr"><h1 id="g-t">تحدي الرياضيات 🧮</h1></div>
+    <div class="g-stats">
+      <div class="g-stat"><span class="g-sv" id="g-sc">0</span><span class="g-sl" id="g-scl">النقاط</span></div>
+      <div class="g-stat"><span class="g-sv" id="g-qn">1/10</span><span class="g-sl" id="g-qnl">السؤال</span></div>
     </div>
-
-    <!-- Game Screen -->
-    <div id="game-screen" style="display:none;">
-      <div class="header">
-        <h1 id="gameTitle">تحدي الرياضيات 🧮</h1>
-      </div>
-
-      <div class="stats">
-        <div class="stat">
-          <span class="stat-value" id="score">0</span>
-          <span class="stat-label" id="labelPoints">النقاط</span>
-        </div>
-        <div class="stat">
-          <span class="stat-value" id="question-num">1</span>
-          <span class="stat-label" id="labelQuestion">السؤال</span>
-        </div>
-      </div>
-
-      <div class="progress-bar">
-        <div class="progress-fill" id="progress" style="width: 10%"></div>
-      </div>
-
-      <div class="timer" id="timer">⏱️ 15 ثانية</div>
-
-      <div class="question-area">
-        <div class="question" id="question">5 + 3 = ?</div>
-        <div class="question-hint" id="hint"></div>
-      </div>
-
-      <div class="answers-grid" id="answers"></div>
+    <div class="pbar"><div class="pfill" id="pfill" style="width:10%"></div></div>
+    <div class="timer" id="timer">⏱️ 15</div>
+    <div class="q-area">
+      <div class="q-visual" id="q-visual"></div>
+      <div class="q-text" id="q-text">5 + 3 = ?</div>
+      <div class="q-hint" id="q-hint"></div>
     </div>
-
-    <!-- Completion Screen -->
-    <div id="completion-screen" class="completion" style="display:none;">
-      <div class="trophy">🏆</div>
-      <h2 id="completion-title">أحسنت!</h2>
-      <div class="score" id="final-score">8</div>
-      <div class="score-label" id="scoreLabel">من 10</div>
-
-      <div class="result-details">
-        <div class="result-item correct-count">
-          <div class="value" id="correct-count">8</div>
-          <div class="label" id="labelCorrect">صحيح ✅</div>
-        </div>
-        <div class="result-item wrong-count">
-          <div class="value" id="wrong-count">2</div>
-          <div class="label" id="labelWrong">خطأ ❌</div>
-        </div>
-        <div class="result-item time-count">
-          <div class="value" id="total-time">45s</div>
-          <div class="label" id="labelTimeResult">الوقت ⏱️</div>
-        </div>
-      </div>
-
-      <button class="play-again-btn" id="btnPlayAgain" onclick="resetGame()">🔄 العب مرة أخرى</button>
-    </div>
+    <div class="ans-grid" id="answers"></div>
   </div>
+  <button class="g-back" onclick="showScreen('lvl-screen')">🏠 رجوع</button>
+</div>
 
-  <script>
-    // ===== i18n =====
-    const TRANSLATIONS = {
-      ar: {
-        dir: 'rtl', lang: 'ar',
-        startTitle: 'تحدي الرياضيات',
-        startDesc: 'أجب على 10 أسئلة رياضية بأسرع وقت!',
-        rules: [
-          '🎯 10 أسئلة متنوعة (جمع، طرح، ضرب)',
-          '⏱️ 15 ثانية لكل سؤال',
-          '⭐ نقطة لكل إجابة صحيحة',
-          '🏆 حاول الحصول على 10/10!',
-        ],
-        chooseLevel: 'اختر المستوى:',
-        easy: 'سهل', medium: 'متوسط', hard: 'صعب',
-        startBtn: '🚀 ابدأ اللعب',
-        gameTitle: 'تحدي الرياضيات 🧮',
-        points: 'النقاط', questionLabel: 'السؤال',
-        timerText: (s) => `⏱️ ${s} ثانية`,
-        timeUp: '⏰ انتهى الوقت!',
-        scoreLabel: 'من 10',
-        correct: 'صحيح ✅', wrong: 'خطأ ❌', timeResult: 'الوقت ⏱️',
-        playAgain: '🔄 العب مرة أخرى',
-        titles: { 10: '🌟 ممتاز! عبقري! 🌟', 8: '🎉 أحسنت! رائع!', 6: '👍 جيد جداً!', 4: '💪 حاول مرة أخرى!', 0: '📚 تحتاج تدريب أكثر' },
-      },
-      en: {
-        dir: 'ltr', lang: 'en',
-        startTitle: 'Math Challenge',
-        startDesc: 'Answer 10 math questions as fast as you can!',
-        rules: [
-          '🎯 10 mixed questions (addition, subtraction, multiplication)',
-          '⏱️ 15 seconds per question',
-          '⭐ 1 point for each correct answer',
-          '🏆 Try to get 10/10!',
-        ],
-        chooseLevel: 'Choose difficulty:',
-        easy: 'Easy', medium: 'Medium', hard: 'Hard',
-        startBtn: '🚀 Start Playing',
-        gameTitle: 'Math Challenge 🧮',
-        points: 'Score', questionLabel: 'Question',
-        timerText: (s) => `⏱️ ${s} seconds`,
-        timeUp: '⏰ Time\'s up!',
-        scoreLabel: 'out of 10',
-        correct: 'Correct ✅', wrong: 'Wrong ❌', timeResult: 'Time ⏱️',
-        playAgain: '🔄 Play Again',
-        titles: { 10: '🌟 Excellent! Genius! 🌟', 8: '🎉 Great job!', 6: '👍 Very good!', 4: '💪 Try again!', 0: '📚 Keep practicing!' },
-      },
-      pt: {
-        dir: 'ltr', lang: 'pt',
-        startTitle: 'Desafio de Matemática',
-        startDesc: 'Responda 10 questões o mais rápido possível!',
-        rules: [
-          '🎯 10 questões variadas (adição, subtração, multiplicação)',
-          '⏱️ 15 segundos por questão',
-          '⭐ 1 ponto por resposta correta',
-          '🏆 Tente conseguir 10/10!',
-        ],
-        chooseLevel: 'Escolha a dificuldade:',
-        easy: 'Fácil', medium: 'Médio', hard: 'Difícil',
-        startBtn: '🚀 Começar',
-        gameTitle: 'Desafio de Matemática 🧮',
-        points: 'Pontos', questionLabel: 'Questão',
-        timerText: (s) => `⏱️ ${s} segundos`,
-        timeUp: '⏰ Tempo esgotado!',
-        scoreLabel: 'de 10',
-        correct: 'Correto ✅', wrong: 'Errado ❌', timeResult: 'Tempo ⏱️',
-        playAgain: '🔄 Jogar Novamente',
-        titles: { 10: '🌟 Excelente! Gênio! 🌟', 8: '🎉 Muito bem!', 6: '👍 Bom trabalho!', 4: '💪 Tente novamente!', 0: '📚 Continue praticando!' },
-      }
-    };
+<!-- DONE -->
+<div id="done-screen" class="screen">
+  <div class="d-emoji" id="d-e">🏆</div>
+  <div class="d-title" id="d-t">أحسنت!</div>
+  <div class="d-stars" id="d-st"></div>
+  <div class="d-sub" id="d-sub"></div>
+  <div class="d-stats">
+    <div class="d-st"><div class="d-st-e">✅</div><div class="d-st-v" id="d-cr">0</div><div class="d-st-l" id="d-crl">صحيح</div></div>
+    <div class="d-st"><div class="d-st-e">❌</div><div class="d-st-v" id="d-wr">0</div><div class="d-st-l" id="d-wrl">خطأ</div></div>
+    <div class="d-st"><div class="d-st-e">⏱️</div><div class="d-st-v" id="d-tm">0s</div><div class="d-st-l" id="d-tml">الوقت</div></div>
+  </div>
+  <div class="d-btns">
+    <button class="d-btn pri" id="d-nx" onclick="nextLevel()">➡️ التالي</button>
+    <button class="d-btn shr" id="d-sh" onclick="shareResult()">📤 مشاركة</button>
+    <button class="d-btn sec" onclick="replayLevel()">🔄 إعادة</button>
+    <button class="d-btn sec" onclick="showScreen('lvl-screen')">🏠 المستويات</button>
+  </div>
+</div>
 
-    function getLang() {
-      const params = new URLSearchParams(window.location.search);
-      const lang = (params.get('lang') || 'ar').toLowerCase();
-      if (TRANSLATIONS[lang]) return lang;
-      if (lang.startsWith('pt')) return 'pt';
-      if (lang.startsWith('en')) return 'en';
-      return 'ar';
+<script>
+// ===== i18n =====
+const LANG=new URLSearchParams(location.search).get('lang')||'ar';
+document.documentElement.lang=LANG;document.documentElement.dir=LANG==='ar'?'rtl':'ltr';
+const I={
+ar:{title:'🧮 تحدي الرياضيات',sub:'اختر المستوى لتبدأ!',score:'النقاط',question:'السؤال',time:'الوقت',correct:'صحيح',wrong:'خطأ',
+excellent:'🌟 ممتاز!',great:'🎉 أحسنت!',good:'👍 جيد!',tryMore:'💪 حاول أكثر!',done:'أتممت المستوى!',
+next:'➡️ التالي',share:'📤 مشاركة',again:'🔄 إعادة',levels:'🏠 المستويات',back:'🏠 رجوع',locked:'🔒',
+timerTxt:(s)=>'⏱️ '+s+' ثانية',timeUp:'⏰ انتهى الوقت!',
+shareText:'حققت {score}/10 في المستوى {level} من تحدي الرياضيات! ⭐{stars}',
+lvNames:['عد المزرعة','عد الفواكه','عد البحر','عد الحشرات','جمع الطقس','جمع الزهور','جمع و طرح الخضار','جمع و طرح الطعام','ضرب المركبات','ضرب الفضاء','عمليات الرياضة','عمليات الموسيقى','تحدي السفاري','تحدي الطيور','ضرب وقسمة الأدوات','ضرب وقسمة الأزياء','كل العمليات - مباني','كل العمليات - مدرسة','تحدي التقنية','🌍 بطل الرياضيات'],
+ops:{add:'جمع',sub:'طرح',mul:'ضرب',div:'قسمة',mix:'مختلط'}},
+en:{title:'🧮 Math Challenge',sub:'Choose a level to start!',score:'Score',question:'Question',time:'Time',correct:'Correct',wrong:'Wrong',
+excellent:'🌟 Excellent!',great:'🎉 Great!',good:'👍 Good!',tryMore:'💪 Try More!',done:'Level complete!',
+next:'➡️ Next',share:'📤 Share',again:'🔄 Replay',levels:'🏠 Levels',back:'🏠 Back',locked:'🔒',
+timerTxt:(s)=>'⏱️ '+s+'s',timeUp:'⏰ Time up!',
+shareText:'I scored {score}/10 on Level {level} in Math Challenge! ⭐{stars}',
+lvNames:['Farm Counting','Fruit Counting','Sea Counting','Bug Counting','Weather Addition','Flower Addition','Veggie Add & Sub','Food Add & Sub','Vehicle Multiply','Space Multiply','Sports Mixed','Music Mixed','Safari Challenge','Bird Challenge','Tools Mul & Div','Fashion Mul & Div','Building All Ops','School All Ops','Tech Challenge','🌍 Math Champion'],
+ops:{add:'Addition',sub:'Subtraction',mul:'Multiplication',div:'Division',mix:'Mixed'}},
+pt:{title:'🧮 Desafio Matemático',sub:'Escolha um nível!',score:'Pontos',question:'Questão',time:'Tempo',correct:'Correto',wrong:'Errado',
+excellent:'🌟 Excelente!',great:'🎉 Muito Bem!',good:'👍 Bom!',tryMore:'💪 Tente Mais!',done:'Nível completo!',
+next:'➡️ Próximo',share:'📤 Compartilhar',again:'🔄 Repetir',levels:'🏠 Níveis',back:'🏠 Voltar',locked:'🔒',
+timerTxt:(s)=>'⏱️ '+s+'s',timeUp:'⏰ Acabou!',
+shareText:'Acertei {score}/10 no Nível {level} do Desafio Matemático! ⭐{stars}',
+lvNames:['Contando Fazenda','Contando Frutas','Contando Mar','Contando Insetos','Adição Clima','Adição Flores','Vegetal Soma & Sub','Comida Soma & Sub','Multiplicar Veículos','Multiplicar Espaço','Esportes Misto','Música Misto','Safari Desafio','Pássaros Desafio','Ferramentas Mul & Div','Moda Mul & Div','Edifícios Todas Ops','Escola Todas Ops','Tech Desafio','🌍 Campeão da Matemática'],
+ops:{add:'Adição',sub:'Subtração',mul:'Multiplicação',div:'Divisão',mix:'Misto'}}
+};
+const t=I[LANG]||I.en;
+
+// ===== 1000+ EDUCATIONAL SYMBOLS =====
+const POOL={
+farm:['🐄','🐷','🐑','🐐','🐴','🐔','🐓','🦃','🐤','🐣','🦆','🐕','🐈','🐰','🐇','🐹','🐭','🐿','🦔','🐶','🐱','🐮','🐖','🐗','🐽','🐏','🐪','🐫','🦙','🐎','🐥','🕊','🐩','🐾','🦝','🦡','🦨','🦥','🦦','🐻','🐨','🐼','🦊','🐺','🦫','🐂','🐃','🦄','🐁','🐀'],
+fruit:['🍎','🍏','🍐','🍊','🍋','🍌','🍉','🍇','🍓','🍈','🍑','🍒','🥝','🥥','🍍','🥭','🍅','🥑','🫐','🫒','🥕','🍆','🌶','🌽','🥒','🥬','🧅','🧄','🥜','🌰','🍄','🍠','🥦','🥗','🥣','🫙','🥫','🥔','🫑','🧆','🥙','🫓','🥯','🍞','🥖','🥨','🧀','🥚','🧈','🍋‍🟩'],
+sea:['🐟','🐠','🐡','🦈','🐬','🐳','🐋','🦭','🐙','🦑','🦐','🦀','🦞','🐚','🪸','🪼','🐊','🐢','🐍','🦎','🐸','🐲','🐉','🦕','🦖','🐳','🐋','🦈','🐬','🐙','🦑','🐠','🐟','🐡','🦐','🦀','🦞','🐚','🐢','🐊','🐍','🐸','🦎','🪸','🪼','🦭','🐉','🐲','🦕','🦖'],
+bug:['🦋','🐛','🐝','🐞','🦗','🕷','🦂','🐜','🪲','🪳','🦟','🪰','🐌','🪱','🌿','🍀','🍁','🍂','🍃','🌱','🌲','🌳','🌴','🌵','🌾','🪴','🎋','🎍','🍄','🌻','🌸','🌹','🌺','🌼','🌷','💐','🪻','🪷','🐦','🕊','🦋','🐛','🐝','🐞','🦗','🐜','🪲','🐌','🪱','🕷'],
+weather:['☀️','🌤','⛅','🌥','☁️','🌦','🌧','⛈','🌩','🌨','❄️','☃️','⛄','🌬','💨','🌊','🌈','🌪','🌫','💧','💦','🌡','🔥','⭐','🌟','💫','✨','☄️','🌙','🌛','🌜','🌚','🌝','🌞','🌕','🌖','🌗','🌘','🌑','🌒','🌓','🌔','🌅','🌄','🌇','🌆','🏙','🌃','🌌','🌠'],
+flower:['🌸','🌹','🌺','🌻','🌼','🌷','💐','🪻','🪷','🌱','🌲','🌳','🌴','🌵','🌾','🍀','☘️','🍁','🍂','🍃','🪴','🎋','🎍','🪹','🪺','🍄','🌿','🎄','💮','🏵','🌸','🌹','🌺','🌻','🌼','🌷','💐','🪻','🪷','🌱','🌲','🌳','🌴','🌵','🍀','☘️','🍁','🍂','🍃','🪴'],
+veggie:['🥕','🥦','🌽','🥒','🥬','🧅','🧄','🥔','🍆','🌶','🫑','🥜','🌰','🍄','🍠','🫘','🫛','🥗','🧆','🥙','🌱','🥕','🥦','🌽','🥒','🥬','🧅','🧄','🥔','🍆','🌶','🫑','🥜','🌰','🍄','🍠','🫘','🫛','🥗','🧆','🌿','🍀','🌾','🌻','🌼','🪴','🧂','🫙','🥫','🧈'],
+food:['🍕','🍔','🌮','🌯','🥚','🍳','🥘','🍲','🍿','🍱','🍘','🍙','🍚','🍛','🍜','🍝','🍠','🍢','🍣','🍤','🍥','🥮','🍡','🥟','🥠','🥡','🧁','🍰','🎂','🍮','🍭','🍬','🍫','🍩','🍪','🍯','🥐','🥖','🧇','🥞','🧈','🫕','🫔','🥣','🫗','🍿','🍱','🧆','🥙','🫓'],
+vehicle:['🚗','🚕','🚙','🚌','🚎','🏎','🚓','🚑','🚒','🚐','🛻','🚚','🚛','🚜','🏍','🛵','🚲','🛴','🛹','🛼','🚁','🛸','🚀','🛩','✈️','🛫','🛬','🚢','⛵','🛶','🚤','🛥','🛳','⛴','🚂','🚃','🚄','🚅','🚆','🚇','🚈','🚉','🚊','🚝','🚞','🚋','🚠','🚡','🛰','🚏'],
+space:['🌍','🌎','🌏','🌑','🌒','🌓','🌔','🌕','🌖','🌗','🌘','🌙','🌚','🌛','🌜','🌝','🌞','☀️','⭐','🌟','💫','✨','☄️','🪐','🔭','🔬','🧲','🧪','🧫','🧬','💡','🔦','🕯','🪔','🔋','⚡','🛸','🚀','🛰','📡','🌌','🌠','🎆','🎇','💥','🔥','💧','🌊','🌀','🌈'],
+sport:['⚽','🏀','🏈','⚾','🥎','🎾','🏐','🏉','🥏','🎱','🏓','🏸','🏒','🥍','🏏','🥅','⛳','🪁','🏹','🎯','🥊','🥋','🎿','⛷','🏂','🏋️','🤸','🤺','🤾','🏌️','🏇','🧘','🧗','🤿','🏄','🏊','🚣','🎽','🏅','🥇','🥈','🥉','🏆','🎖','🎪','🎠','🎡','🎢','🛝','⛺'],
+music:['🎵','🎶','🎼','🎹','🎸','🎺','🎻','🥁','🪘','🪗','🎷','🎤','🎧','📯','🪈','🎬','🎭','🎨','🖌','🖍','✏️','🖊','🖋','📝','🎪','🎠','🎲','🎯','🎳','🎰','🎮','🕹','📺','📻','📸','🎥','📹','📽','🎞','🎟','💿','📀','💽','📱','🖥','⌨️','🖱','🖨','📢','📣'],
+wild:['🦁','🐯','🐅','🐆','🦒','🦓','🐘','🦛','🦏','🐻','🦊','🐺','🦌','🦬','🦣','🦧','🦍','🐒','🐵','🙈','🙉','🙊','🦘','🦥','🦨','🦡','🦝','🦦','🐻‍❄️','🐼','🐨','🐾','🐊','🐢','🐍','🦎','🐸','🐲','🐉','🦕','🦖','🦋','🐝','🐞','🦅','🦉','🐧','🦜','🦚','🦩'],
+bird:['🦅','🦆','🦉','🦜','🐧','🦚','🦢','🦩','🦤','🪶','🐦','🕊','🦃','🐔','🐓','🐤','🐣','🐥','🦅','🦆','🦉','🦜','🐧','🦚','🦢','🦩','🪶','🐦','🕊','🦃','🐔','🐓','🐤','🐣','🐥','🦤','🪹','🪺','🥚','🐾','🌿','🍀','🌲','🌳','☁️','🌤','⛅','🌈','🌅','🏔'],
+tool:['🔨','🪓','⛏','🔧','🪛','🔩','⚙️','🗜','🪚','📏','📐','✂️','🖊','🖋','✒️','🔑','🗝','🔒','🔓','🪤','🧲','🪝','🧰','🪜','🪣','🧹','🧺','🧻','🪠','🧼','🧽','🪥','🪒','🔋','🔌','💡','🔦','🕯','🪔','🧯','🪤','📌','📍','🗂','📁','📂','🗃','📎','🖇','🗑'],
+fashion:['👕','👖','🧣','🧤','🧥','🧦','👗','👘','🥻','🩱','🩲','🩳','👙','👚','👛','👜','👝','🎒','🩴','👞','👟','🥾','🥿','👠','👡','🩰','👢','👑','👒','🎩','🪖','⛑️','💄','💍','💎','👓','🕶','🥽','📿','🧢','👕','👖','🧣','🧥','👗','👘','🎒','👟','🥾','👠'],
+building:['🏠','🏡','🏢','🏣','🏤','🏥','🏦','🏨','🏩','🏪','🏫','🏬','🏭','🏯','🏰','🕌','🕍','⛪','🕋','🛕','⛩','🏗','🏚','🗼','🗽','🗾','🎑','⛲','⛺','🏛','🏟','🗺','🏖','🏜','🏝','🏞','🏔','⛰','🌋','🌁','🌉','🌅','🌄','🌇','🌆','🏙','🌃','🗻','🎪','🎡'],
+school:['📚','📖','📝','📒','📓','📔','📕','📗','📘','📙','📄','📃','📋','📎','📏','📐','✂️','✏️','🖊','🖋','🖍','🔗','📌','📍','🗂','📁','📂','🗃','🗄','🗑','📰','🗞','📊','📈','📉','🗒','🗓','📆','📅','🔖','📮','📬','📭','📪','📫','✉️','📩','📨','📧','💌'],
+tech:['💻','🖥','🖨','⌨️','🖱','💽','💾','💿','📱','📲','📷','📸','📹','📺','📻','📡','🔌','🔋','💡','📟','📠','🕹','🎮','🎧','🔬','🔭','📡','🛰','💻','🖥','⌨️','🖱','📱','📲','📷','📹','📺','📻','🔌','🔋','💡','🕹','🎮','🎧','🔬','🔭','🛰','📡','⌚','🤖'],
+mix:['🐄','🍎','🐟','🦋','☀️','🌸','🥕','🍕','🚗','🌍','⚽','🎵','🦁','🦅','🔨','👕','🏠','📚','💻','🎉','🐷','🍊','🐬','🐝','🌈','🌹','🌽','🍔','🚌','🪐','🏀','🎸','🐯','🦉','🔧','👗','🏫','📖','📱','🎊','🐴','🍇','🐙','🐞','⭐','🌻','🍆','🍰','✈️','🚀']
+};
+
+// ===== THEMES =====
+const THEMES=[
+  {bg:'linear-gradient(135deg,#86efac,#22c55e)',accent:'#16a34a'},
+  {bg:'linear-gradient(135deg,#fca5a5,#ef4444)',accent:'#b91c1c'},
+  {bg:'linear-gradient(135deg,#67e8f9,#0891b2)',accent:'#0e7490'},
+  {bg:'linear-gradient(135deg,#a3e635,#65a30d)',accent:'#4d7c0f'},
+  {bg:'linear-gradient(135deg,#93c5fd,#3b82f6)',accent:'#1d4ed8'},
+  {bg:'linear-gradient(135deg,#f9a8d4,#ec4899)',accent:'#be185d'},
+  {bg:'linear-gradient(135deg,#86efac,#16a34a)',accent:'#15803d'},
+  {bg:'linear-gradient(135deg,#fdba74,#ea580c)',accent:'#c2410c'},
+  {bg:'linear-gradient(135deg,#cbd5e1,#475569)',accent:'#334155'},
+  {bg:'linear-gradient(135deg,#c4b5fd,#7c3aed)',accent:'#6d28d9'},
+  {bg:'linear-gradient(135deg,#6ee7b7,#059669)',accent:'#047857'},
+  {bg:'linear-gradient(135deg,#d8b4fe,#9333ea)',accent:'#7e22ce'},
+  {bg:'linear-gradient(135deg,#fde68a,#d97706)',accent:'#b45309'},
+  {bg:'linear-gradient(135deg,#7dd3fc,#0284c7)',accent:'#0369a1'},
+  {bg:'linear-gradient(135deg,#fb923c,#c2410c)',accent:'#9a3412'},
+  {bg:'linear-gradient(135deg,#f0abfc,#a855f7)',accent:'#9333ea'},
+  {bg:'linear-gradient(135deg,#a8a29e,#57534e)',accent:'#44403c'},
+  {bg:'linear-gradient(135deg,#60a5fa,#2563eb)',accent:'#1d4ed8'},
+  {bg:'linear-gradient(135deg,#22d3ee,#0e7490)',accent:'#0891b2'},
+  {bg:'linear-gradient(135deg,#fb7185,#be123c)',accent:'#9f1239'},
+];
+
+// ===== 20 LEVEL CONFIG =====
+// ops: add, sub, mul, div; range: max number; timer: seconds per question; questions: number
+const LEVELS=[
+  {cat:'farm',   ops:['add'],         range:5,  timer:20,questions:10,emoji:'🐄'},
+  {cat:'fruit',  ops:['add'],         range:8,  timer:18,questions:10,emoji:'🍎'},
+  {cat:'sea',    ops:['add'],         range:10, timer:18,questions:10,emoji:'🐠'},
+  {cat:'bug',    ops:['add'],         range:12, timer:16,questions:10,emoji:'🦋'},
+  {cat:'weather',ops:['add','sub'],   range:10, timer:18,questions:10,emoji:'🌤'},
+  {cat:'flower', ops:['add','sub'],   range:15, timer:16,questions:10,emoji:'🌸'},
+  {cat:'veggie', ops:['add','sub'],   range:20, timer:16,questions:10,emoji:'🥕'},
+  {cat:'food',   ops:['add','sub'],   range:25, timer:15,questions:10,emoji:'🍕'},
+  {cat:'vehicle',ops:['mul'],         range:5,  timer:18,questions:10,emoji:'🚗'},
+  {cat:'space',  ops:['mul'],         range:8,  timer:16,questions:10,emoji:'🚀'},
+  {cat:'sport',  ops:['add','sub','mul'],range:12,timer:15,questions:10,emoji:'⚽'},
+  {cat:'music',  ops:['add','sub','mul'],range:15,timer:14,questions:10,emoji:'🎵'},
+  {cat:'wild',   ops:['add','sub','mul'],range:20,timer:14,questions:10,emoji:'🦁'},
+  {cat:'bird',   ops:['add','sub','mul'],range:25,timer:13,questions:10,emoji:'🦅'},
+  {cat:'tool',   ops:['mul','div'],   range:10, timer:16,questions:10,emoji:'🔨'},
+  {cat:'fashion',ops:['mul','div'],   range:12, timer:15,questions:10,emoji:'👗'},
+  {cat:'building',ops:['add','sub','mul','div'],range:20,timer:14,questions:10,emoji:'🏠'},
+  {cat:'school', ops:['add','sub','mul','div'],range:30,timer:13,questions:10,emoji:'📚'},
+  {cat:'tech',   ops:['add','sub','mul','div'],range:50,timer:12,questions:10,emoji:'💻'},
+  {cat:'mix',    ops:['add','sub','mul','div'],range:100,timer:10,questions:10,emoji:'🌍'},
+];
+
+// ===== AUDIO =====
+let audioCtx=null;
+function ctx(){if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();return audioCtx}
+function tone(f,d,tp,v){try{const c=ctx(),o=c.createOscillator(),g=c.createGain();o.type=tp||'sine';o.frequency.setValueAtTime(f,c.currentTime);g.gain.setValueAtTime(v||.1,c.currentTime);g.gain.exponentialRampToValueAtTime(.001,c.currentTime+(d||.15));o.connect(g);g.connect(c.destination);o.start();o.stop(c.currentTime+(d||.15))}catch(e){}}
+function sfxCorrect(){tone(659,.1,'sine',.1);setTimeout(()=>tone(988,.12,'sine',.1),80)}
+function sfxWrong(){tone(220,.15,'sawtooth',.06)}
+function sfxComplete(){[523,659,784,988,1175,1319].forEach((f,i)=>setTimeout(()=>tone(f,.18,'sine',.1),i*80))}
+function sfxStar(){[880,1100,1320].forEach((f,i)=>setTimeout(()=>tone(f,.15,'sine',.1),i*120))}
+function sfxTick(){tone(440,.03,'sine',.04)}
+
+// ===== GAME STATE =====
+let currentLevel=-1,currentQ=0,score=0,questions=[],timer=null,timeLeft=15;
+let answering=false,startTime=0,levelEmoji=[],totalQ=10,currentTimerMax=15;
+
+let progress=JSON.parse(localStorage.getItem('classify_math_progress')||'{"unlocked":1,"scores":{},"stars":{}}');
+function saveProgress(){localStorage.setItem('classify_math_progress',JSON.stringify(progress))}
+
+// ===== HELPERS =====
+function shuffle(arr){const a=[...arr];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function pickEmoji(cat){const pool=POOL[cat]||POOL.mix;return shuffle([...new Set(pool)])}
+
+// ===== QUESTION GENERATION =====
+function genQuestion(ops,range,emojiPool){
+  const op=ops[Math.floor(Math.random()*ops.length)];
+  let a,b,answer,text,visual='';
+  const em=emojiPool[Math.floor(Math.random()*emojiPool.length)];
+  switch(op){
+    case 'add':
+      a=Math.floor(Math.random()*range)+1;
+      b=Math.floor(Math.random()*range)+1;
+      answer=a+b;text=`${a} + ${b} = ?`;
+      if(a<=6&&b<=6){visual=em.repeat(a)+' + '+em.repeat(b)}
+      break;
+    case 'sub':
+      a=Math.floor(Math.random()*range)+1;
+      b=Math.floor(Math.random()*a)+1;
+      answer=a-b;text=`${a} - ${b} = ?`;
+      if(a<=8){visual=em.repeat(a)+' - '+em.repeat(b)}
+      break;
+    case 'mul':
+      a=Math.floor(Math.random()*Math.min(range,12))+1;
+      b=Math.floor(Math.random()*Math.min(range,12))+1;
+      answer=a*b;text=`${a} × ${b} = ?`;
+      if(a<=4&&b<=4){const rows=[];for(let i=0;i<a;i++)rows.push(em.repeat(b));visual=rows.join(' ')}
+      break;
+    case 'div':
+      b=Math.floor(Math.random()*Math.min(range,12))+1;
+      const q=Math.floor(Math.random()*Math.min(range,12))+1;
+      a=b*q;
+      answer=q;text=`${a} ÷ ${b} = ?`;
+      if(a<=12){visual=em.repeat(a)+' ÷ '+b}
+      break;
+  }
+  // Generate wrong answers
+  const wrongs=new Set();
+  while(wrongs.size<3){
+    const off=Math.floor(Math.random()*10)+1;
+    const w=Math.random()<.5?answer+off:answer-off;
+    if(w!==answer&&w>=0&&!wrongs.has(w))wrongs.add(w);
+  }
+  const options=shuffle([answer,...wrongs]);
+  return{text,answer,options,visual};
+}
+
+function genAllQuestions(){
+  const cfg=LEVELS[currentLevel];
+  const pool=pickEmoji(cfg.cat);
+  questions=[];
+  for(let i=0;i<cfg.questions;i++)questions.push(genQuestion(cfg.ops,cfg.range,pool));
+}
+
+// ===== SCREENS =====
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  if(id==='lvl-screen')renderLevelSelect();
+}
+
+function renderLevelSelect(){
+  const g=document.getElementById('ls-g');g.innerHTML='';
+  for(let i=0;i<LEVELS.length;i++){
+    const cfg=LEVELS[i];
+    const unlocked=i<progress.unlocked;
+    const stars=progress.stars[i]||0;
+    const isCurr=i===progress.unlocked-1;
+    const card=document.createElement('div');
+    card.className='lc'+(unlocked?'':' locked')+(isCurr?' current':'');
+    if(unlocked){
+      card.innerHTML=`<div class="lc-num">${i+1}</div><div class="lc-emoji">${cfg.emoji}</div><div class="lc-name">${t.lvNames[i]}</div><div class="lc-stars">${stars>=1?'⭐':'☆'}${stars>=2?'⭐':'☆'}${stars>=3?'⭐':'☆'}</div>`;
+      card.onclick=()=>startLevel(i);
+    } else {
+      card.innerHTML=`<div class="lc-num" style="opacity:.4">${i+1}</div><div class="lc-lock">${t.locked}</div><div class="lc-name" style="opacity:.4">${t.lvNames[i]}</div>`;
     }
+    g.appendChild(card);
+  }
+}
 
-    const LANG = getLang();
-    const T = TRANSLATIONS[LANG];
+// ===== START LEVEL =====
+function startLevel(idx){
+  currentLevel=idx;
+  const cfg=LEVELS[idx];
+  totalQ=cfg.questions;currentTimerMax=cfg.timer;
+  const theme=THEMES[idx];
+  document.getElementById('game-screen').style.background=theme.bg;
+  document.getElementById('game-screen').style.setProperty('--accent',theme.accent);
+  document.getElementById('done-screen').style.background=theme.bg;
+  document.getElementById('g-t').textContent=t.lvNames[idx]+' 🧮';
+  currentQ=0;score=0;answering=false;
+  startTime=Date.now();
+  genAllQuestions();
+  document.getElementById('g-sc').textContent='0';
+  showScreen('game-screen');
+  showQuestion();
+}
 
-    function applyTranslations() {
-      const html = document.documentElement;
-      html.setAttribute('lang', T.lang);
-      html.setAttribute('dir', T.dir);
-      document.body.style.direction = T.dir;
+function showQuestion(){
+  if(currentQ>=totalQ){endGame();return}
+  answering=false;
+  const q=questions[currentQ];
+  document.getElementById('q-text').textContent=q.text;
+  document.getElementById('q-visual').textContent=q.visual||'';
+  document.getElementById('q-hint').textContent='';
+  document.getElementById('g-qn').textContent=(currentQ+1)+'/'+totalQ;
+  document.getElementById('g-sc').textContent=score;
+  document.getElementById('pfill').style.width=((currentQ+1)/totalQ*100)+'%';
+  const ans=document.getElementById('answers');ans.innerHTML='';
+  q.options.forEach(opt=>{
+    const btn=document.createElement('button');btn.className='ans-btn';btn.textContent=opt;
+    btn.onclick=()=>selectAns(opt,btn);ans.appendChild(btn);
+  });
+  timeLeft=currentTimerMax;updateTimerUI();
+  clearInterval(timer);
+  timer=setInterval(()=>{timeLeft--;updateTimerUI();sfxTick();if(timeLeft<=0){clearInterval(timer);timeUp()}},1000);
+}
 
-      document.getElementById('startTitle').textContent = T.startTitle;
-      document.getElementById('startDesc').textContent = T.startDesc;
-      const rulesList = document.getElementById('rulesList');
-      rulesList.innerHTML = T.rules.map(r => `<li>${r}</li>`).join('');
-      document.getElementById('chooseLevelLabel').textContent = T.chooseLevel;
-      document.getElementById('btnEasy').textContent = T.easy;
-      document.getElementById('btnMedium').textContent = T.medium;
-      document.getElementById('btnHard').textContent = T.hard;
-      document.getElementById('btnStart').textContent = T.startBtn;
-      document.getElementById('gameTitle').textContent = T.gameTitle;
-      document.getElementById('labelPoints').textContent = T.points;
-      document.getElementById('labelQuestion').textContent = T.questionLabel;
-      document.getElementById('scoreLabel').textContent = T.scoreLabel;
-      document.getElementById('labelCorrect').textContent = T.correct;
-      document.getElementById('labelWrong').textContent = T.wrong;
-      document.getElementById('labelTimeResult').textContent = T.timeResult;
-      document.getElementById('btnPlayAgain').textContent = T.playAgain;
-    }
+function updateTimerUI(){
+  const el=document.getElementById('timer');
+  el.textContent=t.timerTxt(timeLeft);
+  el.className=timeLeft<=5?'timer urgent':'timer';
+}
 
-    // ===== Game State =====
-    let currentQuestion = 0;
-    let score = 0;
-    let totalQuestions = 10;
-    let questions = [];
-    let timer = null;
-    let timeLeft = 15;
-    let startTime = 0;
-    let difficulty = 'medium';
-    let answering = false;
+function selectAns(sel,btn){
+  if(answering)return;answering=true;clearInterval(timer);
+  const q=questions[currentQ];
+  document.querySelectorAll('.ans-btn').forEach(b=>b.disabled=true);
+  if(sel===q.answer){btn.classList.add('correct');score++;sfxCorrect();spawnStars(btn)}
+  else{btn.classList.add('wrong');sfxWrong();document.querySelectorAll('.ans-btn').forEach(b=>{if(+b.textContent===q.answer)b.classList.add('correct')})}
+  currentQ++;setTimeout(showQuestion,1100);
+}
 
-    function setDifficulty(diff) {
-      difficulty = diff;
-      document.querySelectorAll('.diff-btn').forEach(b => b.classList.remove('active'));
-      document.querySelector(`[data-diff="${diff}"]`).classList.add('active');
-    }
+function timeUp(){
+  answering=true;const q=questions[currentQ];
+  document.querySelectorAll('.ans-btn').forEach(b=>{b.disabled=true;if(+b.textContent===q.answer)b.classList.add('correct')});
+  document.getElementById('q-hint').textContent=t.timeUp;
+  currentQ++;setTimeout(()=>{document.getElementById('q-hint').textContent='';showQuestion()},1300);
+}
 
-    function generateQuestion() {
-      const ops = ['+', '-', '×'];
-      const op = ops[Math.floor(Math.random() * ops.length)];
-      let a, b, answer;
+function spawnStars(btn){
+  const rect=btn.getBoundingClientRect();
+  for(let i=0;i<4;i++){const p=document.createElement('div');p.className='particle';p.textContent=['⭐','✨','🌟'][Math.floor(Math.random()*3)];p.style.left=(rect.left+Math.random()*rect.width)+'px';p.style.top=rect.top+'px';p.style.fontSize='22px';document.body.appendChild(p);setTimeout(()=>p.remove(),1300)}
+}
 
-      const ranges = {
-        easy:   { add: 20, sub: 15, mul: 5 },
-        medium: { add: 50, sub: 30, mul: 10 },
-        hard:   { add: 100, sub: 50, mul: 12 }
-      };
-      const r = ranges[difficulty];
+function endGame(){
+  clearInterval(timer);
+  const elapsed=Math.round((Date.now()-startTime)/1000);
+  let stars=0;
+  if(score>=6)stars=1;if(score>=8)stars=2;if(score>=10)stars=3;
+  if(currentLevel>=0){
+    const prev=progress.stars[currentLevel]||0;if(stars>prev)progress.stars[currentLevel]=stars;
+    const prevSc=progress.scores[currentLevel]||0;if(score>prevSc)progress.scores[currentLevel]=score;
+    if(stars>=1&&currentLevel+1>=progress.unlocked)progress.unlocked=currentLevel+2;
+    saveProgress();
+  }
+  let title,emoji;
+  if(stars>=3){title=t.excellent;emoji='🏆'}else if(stars>=2){title=t.great;emoji='🎉'}else if(stars>=1){title=t.good;emoji='👍'}else{title=t.tryMore;emoji='💪'}
+  document.getElementById('d-e').textContent=emoji;
+  document.getElementById('d-t').textContent=title;
+  document.getElementById('d-sub').textContent=t.done;
+  document.getElementById('d-cr').textContent=score;
+  document.getElementById('d-wr').textContent=totalQ-score;
+  document.getElementById('d-tm').textContent=elapsed+'s';
+  const starsEl=document.getElementById('d-st');starsEl.innerHTML='';
+  for(let i=0;i<3;i++){const sp=document.createElement('span');sp.textContent=i<stars?'⭐':'☆';sp.style.opacity=i<stars?'1':'.3';starsEl.appendChild(sp)}
+  document.getElementById('d-nx').style.display=(currentLevel>=0&&currentLevel<LEVELS.length-1)?'':'none';
+  sfxComplete();if(stars>0)sfxStar();
+  showScreen('done-screen');
+  // Particles
+  for(let i=0;i<stars*5;i++){setTimeout(()=>{const p=document.createElement('div');p.className='particle';p.textContent=['⭐','✨','🏆','🎉','💎'][Math.floor(Math.random()*5)];p.style.left=(Math.random()*innerWidth)+'px';p.style.top=(innerHeight*.6+Math.random()*80)+'px';p.style.fontSize='22px';document.body.appendChild(p);setTimeout(()=>p.remove(),1300)},i*70)}
+  // PostMessage — score is out of 100 scale
+  const scaledScore=Math.round(score/totalQ*100);
+  try{window.parent.postMessage({type:'GAME_COMPLETE',score:scaledScore,total:100,timeElapsed:elapsed,level:currentLevel>=0?currentLevel+1:0,stars:stars},'*')}catch(e){}
+}
 
-      switch (op) {
-        case '+':
-          a = Math.floor(Math.random() * r.add) + 1;
-          b = Math.floor(Math.random() * r.add) + 1;
-          answer = a + b;
-          break;
-        case '-':
-          a = Math.floor(Math.random() * r.sub) + 1;
-          b = Math.floor(Math.random() * a) + 1;
-          answer = a - b;
-          break;
-        case '×':
-          a = Math.floor(Math.random() * r.mul) + 1;
-          b = Math.floor(Math.random() * r.mul) + 1;
-          answer = a * b;
-          break;
-      }
+function nextLevel(){if(currentLevel>=0&&currentLevel<LEVELS.length-1)startLevel(currentLevel+1)}
+function replayLevel(){if(currentLevel>=0)startLevel(currentLevel)}
+function shareResult(){
+  const lvl=currentLevel>=0?currentLevel+1:0;const stars=currentLevel>=0?(progress.stars[currentLevel]||0):0;
+  const text=t.shareText.replace('{score}',score).replace('{level}',lvl).replace('{stars}','⭐'.repeat(stars));
+  try{if(navigator.share)navigator.share({title:t.title,text:text})}catch(e){}
+  try{window.parent.postMessage({type:'SHARE_ACHIEVEMENT',game:'math',level:lvl,score:score,stars:stars,text:text},'*')}catch(e){}
+  const btn=document.getElementById('d-sh');const o=btn.textContent;btn.textContent='✅';setTimeout(()=>{btn.textContent=o},2000);
+}
 
-      const wrongAnswers = new Set();
-      while (wrongAnswers.size < 3) {
-        let wrong;
-        const offset = Math.floor(Math.random() * 10) + 1;
-        wrong = Math.random() < 0.5 ? answer + offset : answer - offset;
-        if (wrong !== answer && wrong >= 0 && !wrongAnswers.has(wrong)) {
-          wrongAnswers.add(wrong);
-        }
-      }
+// ===== i18n APPLY =====
+document.getElementById('ls-t').textContent=t.title;
+document.getElementById('ls-s').textContent=t.sub;
+document.getElementById('g-scl').textContent=t.score;
+document.getElementById('g-qnl').textContent=t.question;
+document.getElementById('d-crl').textContent=t.correct;
+document.getElementById('d-wrl').textContent=t.wrong;
+document.getElementById('d-tml').textContent=t.time;
+document.getElementById('d-nx').textContent=t.next;
+document.getElementById('d-sh').textContent=t.share;
 
-      const options = [answer, ...wrongAnswers];
-      for (let i = options.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [options[i], options[j]] = [options[j], options[i]];
-      }
-
-      return { text: `${a} ${op} ${b} = ?`, answer, options };
-    }
-
-    function generateAllQuestions() {
-      questions = [];
-      for (let i = 0; i < totalQuestions; i++) {
-        questions.push(generateQuestion());
-      }
-    }
-
-    function startGame() {
-      generateAllQuestions();
-      currentQuestion = 0;
-      score = 0;
-      startTime = Date.now();
-
-      document.getElementById('start-screen').style.display = 'none';
-      document.getElementById('game-screen').style.display = 'block';
-      document.getElementById('completion-screen').style.display = 'none';
-
-      showQuestion();
-    }
-
-    function showQuestion() {
-      if (currentQuestion >= totalQuestions) {
-        showCompletion();
-        return;
-      }
-
-      answering = false;
-      const q = questions[currentQuestion];
-
-      document.getElementById('question').textContent = q.text;
-      document.getElementById('question-num').textContent = currentQuestion + 1;
-      document.getElementById('score').textContent = score;
-      document.getElementById('progress').style.width = `${((currentQuestion + 1) / totalQuestions) * 100}%`;
-
-      const answersDiv = document.getElementById('answers');
-      answersDiv.innerHTML = '';
-
-      q.options.forEach((opt, i) => {
-        const btn = document.createElement('button');
-        btn.className = 'answer-btn';
-        btn.textContent = opt;
-        btn.onclick = () => selectAnswer(opt, btn);
-        btn.setAttribute('data-testid', `answer-${i}`);
-        answersDiv.appendChild(btn);
-      });
-
-      timeLeft = 15;
-      updateTimerDisplay();
-      clearInterval(timer);
-      timer = setInterval(() => {
-        timeLeft--;
-        updateTimerDisplay();
-        if (timeLeft <= 0) {
-          clearInterval(timer);
-          timeUp();
-        }
-      }, 1000);
-    }
-
-    function updateTimerDisplay() {
-      const el = document.getElementById('timer');
-      el.textContent = T.timerText(timeLeft);
-      el.className = timeLeft <= 5 ? 'timer timer-urgent' : 'timer';
-    }
-
-    function selectAnswer(selected, btn) {
-      if (answering) return;
-      answering = true;
-      clearInterval(timer);
-
-      const q = questions[currentQuestion];
-      const allBtns = document.querySelectorAll('.answer-btn');
-      allBtns.forEach(b => b.disabled = true);
-
-      if (selected === q.answer) {
-        btn.classList.add('correct');
-        score++;
-        spawnStars(btn);
-      } else {
-        btn.classList.add('wrong');
-        allBtns.forEach(b => {
-          if (parseInt(b.textContent) === q.answer) {
-            b.classList.add('correct');
-          }
-        });
-      }
-
-      currentQuestion++;
-      setTimeout(showQuestion, 1200);
-    }
-
-    function timeUp() {
-      answering = true;
-      const q = questions[currentQuestion];
-      const allBtns = document.querySelectorAll('.answer-btn');
-      allBtns.forEach(b => {
-        b.disabled = true;
-        if (parseInt(b.textContent) === q.answer) {
-          b.classList.add('correct');
-        }
-      });
-
-      document.getElementById('hint').textContent = T.timeUp;
-      currentQuestion++;
-      setTimeout(() => {
-        document.getElementById('hint').textContent = '';
-        showQuestion();
-      }, 1500);
-    }
-
-    function spawnStars(btn) {
-      const rect = btn.getBoundingClientRect();
-      for (let i = 0; i < 5; i++) {
-        const star = document.createElement('div');
-        star.className = 'star-particle';
-        star.textContent = ['⭐', '✨', '🌟'][Math.floor(Math.random() * 3)];
-        star.style.left = `${rect.left + Math.random() * rect.width}px`;
-        star.style.top = `${rect.top}px`;
-        document.body.appendChild(star);
-        setTimeout(() => star.remove(), 1500);
-      }
-    }
-
-    function showCompletion() {
-      clearInterval(timer);
-      const elapsed = Math.round((Date.now() - startTime) / 1000);
-
-      try {
-        window.parent.postMessage({
-          type: 'GAME_COMPLETE',
-          score: score,
-          total: totalQuestions,
-          timeElapsed: elapsed,
-          difficulty: difficulty
-        }, '*');
-      } catch (e) {}
-
-      document.getElementById('game-screen').style.display = 'none';
-      document.getElementById('completion-screen').style.display = 'block';
-
-      document.getElementById('final-score').textContent = score;
-      document.getElementById('correct-count').textContent = score;
-      document.getElementById('wrong-count').textContent = totalQuestions - score;
-      document.getElementById('total-time').textContent = `${elapsed}s`;
-
-      let title = T.titles[0];
-      if (score >= 10) title = T.titles[10];
-      else if (score >= 8) title = T.titles[8];
-      else if (score >= 6) title = T.titles[6];
-      else if (score >= 4) title = T.titles[4];
-
-      document.getElementById('completion-title').textContent = title;
-
-      if (score >= 8) {
-        for (let i = 0; i < 15; i++) {
-          setTimeout(() => {
-            const star = document.createElement('div');
-            star.className = 'star-particle';
-            star.textContent = ['⭐', '✨', '🌟', '🎉', '🏆'][Math.floor(Math.random() * 5)];
-            star.style.left = `${Math.random() * window.innerWidth}px`;
-            star.style.top = `${window.innerHeight * 0.6}px`;
-            document.body.appendChild(star);
-            setTimeout(() => star.remove(), 1500);
-          }, i * 100);
-        }
-      }
-    }
-
-    function resetGame() {
-      document.getElementById('completion-screen').style.display = 'none';
-      document.getElementById('start-screen').style.display = 'block';
-    }
-
-    // ===== Init =====
-    applyTranslations();
-  </script>
+// ===== INIT =====
+renderLevelSelect();
+</script>
 </body>
 </html>

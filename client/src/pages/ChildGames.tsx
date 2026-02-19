@@ -69,7 +69,7 @@ export const ChildGames = (): JSX.Element => {
     refetchInterval: token ? 60000 : false,
   });
 
-  // Listen for game completion messages from iframe (origin-validated)
+  // Listen for game completion & share messages from iframe (origin-validated)
   useEffect(() => {
     const handler = (e: MessageEvent) => {
       // Validate origin: only accept messages from our own domain
@@ -80,10 +80,20 @@ export const ChildGames = (): JSX.Element => {
         const total = Math.max(1, Math.min(e.data.total || 10, 10000));
         setGameResult({ score, total });
       }
+      // Handle achievement sharing to child profile
+      if (e.data?.type === 'SHARE_ACHIEVEMENT' && token) {
+        const { game, level, score, stars, text } = e.data;
+        const content = text || `🏆 ${game} - Level ${level} - Score: ${score} ${'⭐'.repeat(stars || 0)}`;
+        fetch("/api/child/posts", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ content, mediaUrls: [], mediaTypes: [] }),
+        }).catch(() => {});
+      }
     };
     window.addEventListener('message', handler);
     return () => window.removeEventListener('message', handler);
-  }, []);
+  }, [token]);
 
   const completeGameMutation = useMutation({
     mutationFn: async ({ gameId, score, totalQuestions }: { gameId: string; score?: number; totalQuestions?: number }) => {
