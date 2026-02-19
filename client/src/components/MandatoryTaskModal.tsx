@@ -32,7 +32,7 @@ export const MandatoryTaskModal = ({
       return res.json();
     },
     enabled: !!childId && !!childToken,
-    refetchInterval: childToken ? 10000 : false, // Stop polling when no token
+    refetchInterval: childToken ? 30000 : false, // Stop polling when no token
   });
 
   const answerMutation = useMutation({

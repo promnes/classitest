@@ -65,7 +65,7 @@ export function ChildNotificationBell() {
       return json?.data || [];
     },
     enabled: !!token,
-    refetchInterval: token ? 5000 : false,
+    refetchInterval: token ? 30000 : false,
   });
 
   const { data: unreadCountData } = useQuery<{ count: number }>({
@@ -78,7 +78,7 @@ export function ChildNotificationBell() {
       return json?.data || { count: 0 };
     },
     enabled: !!token,
-    refetchInterval: token ? 5000 : false,
+    refetchInterval: token ? 30000 : false,
   });
 
   const unreadCount = unreadCountData?.count || 0;

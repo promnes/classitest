@@ -46,18 +46,6 @@ export const ChildGames = (): JSX.Element => {
     refetchInterval: 60000,
   });
 
-  const { data: tasks } = useQuery({
-    queryKey: ["child-tasks"],
-    queryFn: async () => {
-      const res = await fetch("/api/child/tasks", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      return res.json();
-    },
-    enabled: !!token,
-    refetchInterval: token ? 15000 : false,
-  });
-
   const { data: childInfo, isLoading: isChildInfoLoading } = useQuery({
     queryKey: ["child-info"],
     queryFn: async () => {
@@ -75,7 +63,7 @@ export const ChildGames = (): JSX.Element => {
       return json?.data || json;
     },
     enabled: !!token,
-    refetchInterval: token ? 30000 : false,
+    refetchInterval: token ? 60000 : false,
   });
 
   // Listen for game completion messages from iframe
