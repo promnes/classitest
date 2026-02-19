@@ -28,6 +28,8 @@ import {
   childGrowthTrees,
   childGrowthEvents,
   childLoginRequests,
+  growthTreeSettings,
+  childWateringLog,
   libraryProducts,
   libraries,
   libraryReferrals,
@@ -2500,6 +2502,149 @@ export async function registerChildRoutes(app: Express) {
     } catch (error: any) {
       console.error("Get growth tree error:", error);
       res.status(500).json({ message: "Failed to get growth tree" });
+    }
+  });
+
+  // Water the growth tree (costs child points, gives growth points — NO parent approval)
+  app.post("/api/child/water-tree", authMiddleware, async (req: any, res) => {
+    try {
+      const childId = req.user.childId;
+
+      // Get watering settings
+      const settings = await db.select().from(growthTreeSettings);
+      const config = settings[0];
+      
+      if (!config || !config.wateringEnabled) {
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Watering is currently disabled"));
+      }
+
+      // Check daily limit
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const todayWaterings = await db.select({ count: count() })
+        .from(childWateringLog)
+        .where(and(
+          eq(childWateringLog.childId, childId),
+          sql`${childWateringLog.wateredAt} >= ${today}`
+        ));
+
+      if ((todayWaterings[0]?.count || 0) >= config.maxWateringsPerDay) {
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Maximum daily waterings reached"));
+      }
+
+      // Check if child has enough points
+      const child = await db.select().from(children).where(eq(children.id, childId));
+      if (!child[0]) {
+        return res.status(404).json(errorResponse(ErrorCode.NOT_FOUND, "Child not found"));
+      }
+
+      if (child[0].totalPoints < config.wateringCostPoints) {
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Not enough points for watering"));
+      }
+
+      // Deduct points from child
+      await db.update(children)
+        .set({ totalPoints: child[0].totalPoints - config.wateringCostPoints })
+        .where(eq(children.id, childId));
+
+      // Log the watering
+      await db.insert(childWateringLog).values({
+        childId,
+        pointsSpent: config.wateringCostPoints,
+        growthPointsEarned: config.wateringGrowthPoints,
+      });
+
+      // Record growth event and update tree
+      let tree = await db.select().from(childGrowthTrees).where(eq(childGrowthTrees.childId, childId));
+      
+      if (!tree[0]) {
+        await db.insert(childGrowthTrees).values({
+          childId,
+          currentStage: 1,
+          totalGrowthPoints: config.wateringGrowthPoints,
+          wateringsCount: 1,
+        });
+      } else {
+        const newTotal = tree[0].totalGrowthPoints + config.wateringGrowthPoints;
+        const newStage = calculateTreeStage(newTotal);
+        
+        await db.update(childGrowthTrees)
+          .set({
+            totalGrowthPoints: newTotal,
+            wateringsCount: tree[0].wateringsCount + 1,
+            currentStage: Math.max(tree[0].currentStage, newStage),
+            lastGrowthAt: new Date(),
+            updatedAt: new Date(),
+          })
+          .where(eq(childGrowthTrees.childId, childId));
+      }
+
+      // Record growth event
+      await db.insert(childGrowthEvents).values({
+        childId,
+        eventType: "watering",
+        growthPoints: config.wateringGrowthPoints,
+        metadata: { pointsSpent: config.wateringCostPoints },
+      });
+
+      // Get updated tree for response
+      const updatedTree = await db.select().from(childGrowthTrees).where(eq(childGrowthTrees.childId, childId));
+      const remainingWaterings = config.maxWateringsPerDay - ((todayWaterings[0]?.count || 0) + 1);
+
+      res.json({
+        success: true,
+        data: {
+          pointsDeducted: config.wateringCostPoints,
+          growthPointsEarned: config.wateringGrowthPoints,
+          remainingWateringsToday: remainingWaterings,
+          newTotalPoints: child[0].totalPoints - config.wateringCostPoints,
+          tree: updatedTree[0],
+        },
+        message: "Tree watered successfully!",
+      });
+    } catch (error: any) {
+      console.error("Water tree error:", error);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to water tree"));
+    }
+  });
+
+  // Get watering info for child
+  app.get("/api/child/watering-info", authMiddleware, async (req: any, res) => {
+    try {
+      const childId = req.user.childId;
+
+      // Get settings
+      const settings = await db.select().from(growthTreeSettings);
+      const config = settings[0];
+
+      if (!config) {
+        return res.json({ success: true, data: { wateringEnabled: false } });
+      }
+
+      // Get today's watering count
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const todayWaterings = await db.select({ count: count() })
+        .from(childWateringLog)
+        .where(and(
+          eq(childWateringLog.childId, childId),
+          sql`${childWateringLog.wateredAt} >= ${today}`
+        ));
+
+      res.json({
+        success: true,
+        data: {
+          wateringEnabled: config.wateringEnabled,
+          wateringCostPoints: config.wateringCostPoints,
+          wateringGrowthPoints: config.wateringGrowthPoints,
+          maxWateringsPerDay: config.maxWateringsPerDay,
+          wateringsToday: todayWaterings[0]?.count || 0,
+          remainingWateringsToday: config.maxWateringsPerDay - (todayWaterings[0]?.count || 0),
+        },
+      });
+    } catch (error: any) {
+      console.error("Get watering info error:", error);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to get watering info"));
     }
   });
 

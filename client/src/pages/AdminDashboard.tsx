@@ -38,8 +38,9 @@ import { TasksTab } from "@/components/admin/TasksTab";
 import { TaskNotificationLevelsTab } from "@/components/admin/TaskNotificationLevelsTab";
 import { LegalTab } from "@/components/admin/LegalTab";
 import { MobileAppSettingsTab } from "@/components/admin/MobileAppSettingsTab";
+import { GrowthTreeSettingsTab } from "@/components/admin/GrowthTreeSettingsTab";
 
-type TabType = "dashboard" | "products" | "categories" | "symbols" | "users" | "settings" | "wallets" | "orders" | "deposits" | "activity" | "analytics" | "payment-methods" | "subjects" | "notifications" | "notification-settings" | "task-notification-levels" | "gifts" | "referrals" | "ads" | "parents" | "profits" | "libraries" | "schools" | "games" | "tasks" | "social-login" | "otp-providers" | "seo" | "support" | "legal" | "mobile-app";
+type TabType = "dashboard" | "products" | "categories" | "symbols" | "users" | "settings" | "wallets" | "orders" | "deposits" | "activity" | "analytics" | "payment-methods" | "subjects" | "notifications" | "notification-settings" | "task-notification-levels" | "gifts" | "referrals" | "ads" | "parents" | "profits" | "libraries" | "schools" | "games" | "tasks" | "social-login" | "otp-providers" | "seo" | "support" | "legal" | "mobile-app" | "growth-tree";
 
 export const AdminDashboard = (): JSX.Element => {
   const { t, i18n } = useTranslation();
@@ -73,6 +74,7 @@ export const AdminDashboard = (): JSX.Element => {
     { id: "users", labelKey: "admin.children", icon: "👥" },
     { id: "games", labelKey: "admin.games.title", icon: "🎮" },
     { id: "tasks", labelKey: "admin.tasks", icon: "📝" },
+    { id: "growth-tree", labelKey: "admin.growthTree.title", icon: "🌳" },
     { id: "wallets", labelKey: "admin.wallets", icon: "💰" },
     { id: "orders", labelKey: "admin.orders", icon: "📦" },
     { id: "deposits", labelKey: "admin.deposits.title", icon: "💳" },
@@ -183,6 +185,7 @@ export const AdminDashboard = (): JSX.Element => {
           {activeTab === "schools" && <SchoolsTab />}
           {activeTab === "games" && <GamesTab token={token} />}
           {activeTab === "tasks" && <TasksTab token={token} />}
+          {activeTab === "growth-tree" && <GrowthTreeSettingsTab token={token} />}
           {activeTab === "social-login" && <SocialLoginTab />}
           {activeTab === "otp-providers" && <OTPProvidersTab />}
           {activeTab === "seo" && <SeoSettingsTab />}

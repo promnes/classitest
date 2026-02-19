@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTheme } from "@/contexts/ThemeContext";
 import { motion, AnimatePresence } from "framer-motion";
-import { TreePine, Sparkles, TrendingUp, Star, Zap } from "lucide-react";
+import { TreePine, Sparkles, TrendingUp, Star, Zap, Droplets } from "lucide-react";
+import { TREE_STAGE_ICONS, STAGE_COLORS } from "./TreeStageIcons";
 
 interface GrowthTreeData {
   tree: {
@@ -14,6 +15,7 @@ interface GrowthTreeData {
     tasksCompleted: number;
     gamesPlayed: number;
     rewardsEarned: number;
+    wateringsCount: number;
     lastGrowthAt: string | null;
     createdAt: string;
   };
@@ -25,40 +27,22 @@ interface GrowthTreeData {
   recentEvents: any[];
 }
 
-// Color palette for each stage tier
-const STAGE_COLORS = [
-  "#8B6914", // 1 seed
-  "#6B8E23", // 2 sprout
-  "#228B22", // 3 sapling
-  "#32CD32", // 4 youngPlant
-  "#3CB371", // 5 bush
-  "#2E8B57", // 6 smallTree
-  "#20B2AA", // 7 growingTree
-  "#008B8B", // 8 mediumTree
-  "#4682B4", // 9 tallTree
-  "#4169E1", // 10 strongTree
-  "#6A5ACD", // 11 largeTree
-  "#8A2BE2", // 12 matureTree
-  "#FF6347", // 13 fruitTree
-  "#FF4500", // 14 grandTree
-  "#DAA520", // 15 ancientTree
-  "#FFD700", // 16 goldenTree
-  "#00CED1", // 17 crystalTree
-  "#E0E7FF", // 18 diamondTree
-  "#FF69B4", // 19 legendaryTree
-  "#9400D3", // 20 cosmicTree
-];
-
-const STAGE_EMOJIS = [
-  "🌰", "🌱", "🌿", "🪴", "🌳", "🌲", "🎄", "🌴", "🎋", "💪",
-  "🏔️", "🌍", "🍎", "👑", "⏳", "✨", "💎", "💠", "🔥", "🌌",
-];
+interface WateringInfo {
+  wateringEnabled: boolean;
+  wateringCostPoints: number;
+  wateringGrowthPoints: number;
+  maxWateringsPerDay: number;
+  wateringsToday: number;
+  remainingWateringsToday: number;
+}
 
 export function GrowthTree() {
   const { t, i18n } = useTranslation();
   const { isDark } = useTheme();
+  const queryClient = useQueryClient();
   const token = localStorage.getItem("childToken");
   const containerRef = useRef<HTMLDivElement>(null);
+  const treeTargetRef = useRef<HTMLDivElement>(null);
   const [rotation, setRotation] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState(0);
@@ -67,6 +51,14 @@ export function GrowthTree() {
   const animFrameRef = useRef<number>(0);
   const lastTimeRef = useRef<number>(0);
   const isRTL = i18n.language === "ar";
+
+  // Water jug drag state
+  const [jugPos, setJugPos] = useState({ x: 0, y: 0 });
+  const [isDraggingJug, setIsDraggingJug] = useState(false);
+  const [jugDragOffset, setJugDragOffset] = useState({ x: 0, y: 0 });
+  const [isNearTree, setIsNearTree] = useState(false);
+  const [showWaterAnim, setShowWaterAnim] = useState(false);
+  const [waterMessage, setWaterMessage] = useState<string | null>(null);
 
   const { data, isLoading, error } = useQuery<{ success: boolean; data: GrowthTreeData }>({
     queryKey: ["growth-tree"],
@@ -80,9 +72,57 @@ export function GrowthTree() {
     enabled: !!token,
   });
 
+  const { data: wateringData } = useQuery<{ success: boolean; data: WateringInfo }>({
+    queryKey: ["watering-info"],
+    queryFn: async () => {
+      const res = await fetch("/api/child/watering-info", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error("Failed to fetch watering info");
+      return res.json();
+    },
+    enabled: !!token,
+  });
+
+  const waterMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch("/api/child/water-tree", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || "Failed to water tree");
+      }
+      return res.json();
+    },
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ["growth-tree"] });
+      queryClient.invalidateQueries({ queryKey: ["watering-info"] });
+      queryClient.invalidateQueries({ queryKey: ["child-profile"] });
+      setShowWaterAnim(true);
+      const pts = result.data?.growthPointsEarned || 0;
+      setWaterMessage(`+${pts} ${t("growthPoints")} 🌱`);
+      setTimeout(() => {
+        setShowWaterAnim(false);
+        setWaterMessage(null);
+      }, 2500);
+    },
+    onError: (err: Error) => {
+      setWaterMessage(err.message);
+      setTimeout(() => setWaterMessage(null), 2500);
+    },
+  });
+
+  const wateringInfo = wateringData?.data;
+  const canWater = wateringInfo?.wateringEnabled && (wateringInfo?.remainingWateringsToday || 0) > 0;
+
   // Auto-rotation animation
   useEffect(() => {
-    if (isDragging) return;
+    if (isDragging || isDraggingJug) return;
     const animate = (time: number) => {
       if (lastTimeRef.current === 0) lastTimeRef.current = time;
       const delta = time - lastTimeRef.current;
@@ -92,26 +132,91 @@ export function GrowthTree() {
     };
     animFrameRef.current = requestAnimationFrame(animate);
     return () => cancelAnimationFrame(animFrameRef.current);
-  }, [isDragging]);
+  }, [isDragging, isDraggingJug]);
 
   // Drag-to-rotate handlers
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
+    if (isDraggingJug) return;
     setIsDragging(true);
     setDragStart(e.clientX);
     setDragRotation(rotation);
     lastTimeRef.current = 0;
-  }, [rotation]);
+  }, [rotation, isDraggingJug]);
 
   const handlePointerMove = useCallback((e: React.PointerEvent) => {
-    if (!isDragging) return;
+    if (!isDragging || isDraggingJug) return;
     const diff = e.clientX - dragStart;
     setRotation(dragRotation + diff * 0.5);
-  }, [isDragging, dragStart, dragRotation]);
+  }, [isDragging, dragStart, dragRotation, isDraggingJug]);
 
   const handlePointerUp = useCallback(() => {
     setIsDragging(false);
     lastTimeRef.current = 0;
   }, []);
+
+  // Water jug drag handlers
+  const handleJugPointerDown = useCallback((e: React.PointerEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    const rect = (e.target as HTMLElement).closest('[data-jug]')?.getBoundingClientRect();
+    if (rect) {
+      setJugDragOffset({ x: e.clientX - rect.left - rect.width / 2, y: e.clientY - rect.top - rect.height / 2 });
+    }
+    setIsDraggingJug(true);
+    setJugPos({ x: e.clientX, y: e.clientY });
+  }, []);
+
+  const handleJugPointerMove = useCallback((e: React.PointerEvent) => {
+    if (!isDraggingJug) return;
+    e.preventDefault();
+    setJugPos({ x: e.clientX - jugDragOffset.x, y: e.clientY - jugDragOffset.y });
+    // Check proximity to tree center
+    if (treeTargetRef.current) {
+      const treeRect = treeTargetRef.current.getBoundingClientRect();
+      const treeCenterX = treeRect.left + treeRect.width / 2;
+      const treeCenterY = treeRect.top + treeRect.height / 2;
+      const dist = Math.sqrt(Math.pow(e.clientX - treeCenterX, 2) + Math.pow(e.clientY - treeCenterY, 2));
+      setIsNearTree(dist < 80);
+    }
+  }, [isDraggingJug, jugDragOffset]);
+
+  const handleJugPointerUp = useCallback(() => {
+    if (isNearTree && canWater && !waterMutation.isPending) {
+      waterMutation.mutate();
+    }
+    setIsDraggingJug(false);
+    setIsNearTree(false);
+    setJugPos({ x: 0, y: 0 });
+  }, [isNearTree, canWater, waterMutation]);
+
+  // Global pointer move/up for jug drag
+  useEffect(() => {
+    if (!isDraggingJug) return;
+    const handleMove = (e: PointerEvent) => {
+      setJugPos({ x: e.clientX - jugDragOffset.x, y: e.clientY - jugDragOffset.y });
+      if (treeTargetRef.current) {
+        const treeRect = treeTargetRef.current.getBoundingClientRect();
+        const treeCenterX = treeRect.left + treeRect.width / 2;
+        const treeCenterY = treeRect.top + treeRect.height / 2;
+        const dist = Math.sqrt(Math.pow(e.clientX - treeCenterX, 2) + Math.pow(e.clientY - treeCenterY, 2));
+        setIsNearTree(dist < 80);
+      }
+    };
+    const handleUp = () => {
+      if (isNearTree && canWater && !waterMutation.isPending) {
+        waterMutation.mutate();
+      }
+      setIsDraggingJug(false);
+      setIsNearTree(false);
+      setJugPos({ x: 0, y: 0 });
+    };
+    window.addEventListener("pointermove", handleMove);
+    window.addEventListener("pointerup", handleUp);
+    return () => {
+      window.removeEventListener("pointermove", handleMove);
+      window.removeEventListener("pointerup", handleUp);
+    };
+  }, [isDraggingJug, jugDragOffset, isNearTree, canWater, waterMutation]);
 
   // Auto-dismiss popup
   useEffect(() => {
@@ -145,17 +250,16 @@ export function GrowthTree() {
   const radiusZ = 80;
   const nodes = stages.map((stage, i) => {
     const fraction = i / (totalStages - 1);
-    const y = treeHeight - fraction * treeHeight; // bottom to top
-    const angle = (i / totalStages) * 360 * 2.5; // 2.5 spirals
+    const y = treeHeight - fraction * treeHeight;
+    const angle = (i / totalStages) * 360 * 2.5;
     const rad = ((angle + rotation) * Math.PI) / 180;
     const x = Math.sin(rad) * radiusX;
     const z = Math.cos(rad) * radiusZ;
-    const scale = 0.7 + (z + radiusZ) / (2 * radiusZ) * 0.6; // depth scaling
+    const scale = 0.7 + (z + radiusZ) / (2 * radiusZ) * 0.6;
     const unlocked = stage.stage <= currentStage;
     return { ...stage, x, y, z, scale, unlocked, angle, index: i };
   });
 
-  // Sort by z for proper layering (back to front)
   const sortedNodes = [...nodes].sort((a, b) => a.z - b.z);
 
   const getStageTranslationKey = (name: string) =>
@@ -212,6 +316,70 @@ export function GrowthTree() {
           />
         ))}
 
+        {/* Tree target zone (invisible) for proximity detection */}
+        <div
+          ref={treeTargetRef}
+          className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none"
+          style={{ width: 160, height: 160 }}
+        />
+
+        {/* Near-tree glow indicator */}
+        <AnimatePresence>
+          {isNearTree && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.5 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.5 }}
+              className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full pointer-events-none"
+              style={{
+                width: 140,
+                height: 140,
+                background: "radial-gradient(circle, rgba(59,130,246,0.3) 0%, transparent 70%)",
+                border: "2px dashed rgba(59,130,246,0.5)",
+              }}
+            />
+          )}
+        </AnimatePresence>
+
+        {/* Water animation */}
+        <AnimatePresence>
+          {showWaterAnim && (
+            <>
+              {[...Array(8)].map((_, i) => (
+                <motion.div
+                  key={`drop-${i}`}
+                  className="absolute left-1/2 top-1/2 pointer-events-none"
+                  initial={{
+                    x: -4,
+                    y: -4,
+                    opacity: 1,
+                    scale: 1,
+                  }}
+                  animate={{
+                    x: (Math.random() - 0.5) * 120,
+                    y: Math.random() * 60 + 20,
+                    opacity: 0,
+                    scale: 0.3,
+                  }}
+                  transition={{ duration: 1.2, delay: i * 0.08 }}
+                >
+                  <Droplets className="w-4 h-4 text-blue-400" />
+                </motion.div>
+              ))}
+              {waterMessage && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: -10 }}
+                  exit={{ opacity: 0, y: -40 }}
+                  className="absolute left-1/2 top-[40%] -translate-x-1/2 z-50 px-4 py-2 rounded-xl bg-blue-500 text-white font-bold text-sm shadow-xl pointer-events-none"
+                >
+                  {waterMessage}
+                </motion.div>
+              )}
+            </>
+          )}
+        </AnimatePresence>
+
         {/* Central trunk */}
         <div
           className="absolute left-1/2 -translate-x-1/2 bottom-6 rounded-full"
@@ -229,6 +397,7 @@ export function GrowthTree() {
         {sortedNodes.map((node) => {
           const nodeSize = 32 + (node.index / totalStages) * 12;
           const color = STAGE_COLORS[node.index] || "#4CAF50";
+          const IconComponent = TREE_STAGE_ICONS[node.index];
 
           return (
             <div
@@ -255,7 +424,7 @@ export function GrowthTree() {
                 }}
               />
 
-              {/* Node circle */}
+              {/* Node circle with SVG icon */}
               <motion.button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -263,7 +432,7 @@ export function GrowthTree() {
                 }}
                 whileHover={{ scale: 1.2 }}
                 whileTap={{ scale: 0.9 }}
-                className="relative rounded-full flex items-center justify-center transition-shadow"
+                className="relative rounded-full flex items-center justify-center transition-shadow overflow-hidden"
                 style={{
                   width: nodeSize,
                   height: nodeSize,
@@ -280,10 +449,9 @@ export function GrowthTree() {
                     ? `1px solid ${color}66`
                     : `1px solid ${isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)"}`,
                   cursor: "pointer",
-                  fontSize: nodeSize * 0.45,
                 }}
               >
-                {STAGE_EMOJIS[node.index]}
+                {IconComponent && <IconComponent size={Math.round(nodeSize * 0.7)} />}
 
                 {/* Current stage indicator (pulsing ring) */}
                 {node.stage === currentStage && (
@@ -318,7 +486,7 @@ export function GrowthTree() {
             const unlocked = selectedStage <= currentStage;
             const key = getStageTranslationKey(sInfo.name);
             const color = STAGE_COLORS[selectedStage - 1] || "#4CAF50";
-            const emoji = STAGE_EMOJIS[selectedStage - 1] || "🌳";
+            const StageIcon = TREE_STAGE_ICONS[selectedStage - 1];
 
             return (
               <motion.div
@@ -332,7 +500,9 @@ export function GrowthTree() {
                 }`}
                 style={{ backdropFilter: "blur(8px)" }}
               >
-                <div className="text-3xl mb-2">{emoji}</div>
+                <div className="flex justify-center mb-2">
+                  {StageIcon && <StageIcon size={48} />}
+                </div>
                 <h3 className={`font-bold text-base mb-1 ${isDark ? "text-white" : "text-gray-800"}`}>
                   {t(key)}
                 </h3>
@@ -347,7 +517,6 @@ export function GrowthTree() {
                     ? isRTL ? "✅ مفتوحة" : "✅ Unlocked"
                     : `🔒 ${sInfo.minPoints} ${t("points")}`}
                 </div>
-                {/* Auto-dismiss progress bar */}
                 <motion.div
                   className="mt-3 h-1 rounded-full overflow-hidden"
                   style={{ background: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)" }}
@@ -365,6 +534,113 @@ export function GrowthTree() {
           })()}
         </AnimatePresence>
       </div>
+
+      {/* Watering Section */}
+      {wateringInfo?.wateringEnabled && (
+        <div className={`mx-5 mb-3 rounded-xl p-3 ${isDark ? "bg-blue-900/20 border border-blue-800/50" : "bg-blue-50 border border-blue-200"}`}>
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <Droplets className="w-4 h-4 text-blue-500" />
+              <span className={`text-sm font-semibold ${isDark ? "text-blue-300" : "text-blue-700"}`}>
+                {t("waterTree")}
+              </span>
+            </div>
+            <span className={`text-xs ${isDark ? "text-blue-400" : "text-blue-600"}`}>
+              {wateringInfo.remainingWateringsToday}/{wateringInfo.maxWateringsPerDay} {t("wateringsRemaining")}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-3">
+            {/* Draggable Water Jug */}
+            <div className="relative">
+              <motion.div
+                data-jug="true"
+                onPointerDown={handleJugPointerDown}
+                className={`cursor-grab active:cursor-grabbing select-none touch-none ${
+                  canWater ? "" : "opacity-40 pointer-events-none"
+                }`}
+                whileHover={canWater ? { scale: 1.1 } : {}}
+                whileTap={canWater ? { scale: 0.95 } : {}}
+                style={{ touchAction: "none" }}
+              >
+                <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
+                  isDark ? "bg-blue-800/40" : "bg-blue-100"
+                } ${canWater ? "ring-2 ring-blue-400/50 ring-offset-1" : ""}`}>
+                  <svg width="32" height="32" viewBox="0 0 64 64" fill="none">
+                    {/* Water Jug SVG */}
+                    <path d="M20 20h24v8c0 12-4 20-12 24-8-4-12-12-12-24v-8z" fill="#3B82F6" />
+                    <path d="M20 20h24v4H20v-4z" fill="#60A5FA" />
+                    <path d="M24 16h16v4H24v-4z" fill="#93C5FD" />
+                    <ellipse cx="32" cy="16" rx="10" ry="2" fill="#BFDBFE" />
+                    {/* Handle */}
+                    <path d="M44 22c4 0 6 2 6 6s-2 6-6 6" stroke="#2563EB" strokeWidth="3" fill="none" />
+                    {/* Water drops */}
+                    <path d="M28 30c0 2-1 4-2 4s-2-2-2-4 1-3 2-3 2 1 2 3z" fill="#93C5FD" opacity="0.6" />
+                    <path d="M36 34c0 2-1 4-2 4s-2-2-2-4 1-3 2-3 2 1 2 3z" fill="#93C5FD" opacity="0.4" />
+                  </svg>
+                </div>
+                {canWater && (
+                  <p className={`text-[9px] text-center mt-0.5 ${isDark ? "text-blue-400" : "text-blue-600"}`}>
+                    {t("dragToWater")}
+                  </p>
+                )}
+              </motion.div>
+            </div>
+
+            {/* Info */}
+            <div className="flex-1">
+              <div className="flex items-center gap-4 text-xs">
+                <span className={isDark ? "text-gray-400" : "text-gray-500"}>
+                  {t("wateringCost")}: <strong className="text-red-500">{wateringInfo.wateringCostPoints}</strong> {t("points")}
+                </span>
+                <span className={isDark ? "text-gray-400" : "text-gray-500"}>
+                  {t("wateringGrowth")}: <strong className="text-green-500">+{wateringInfo.wateringGrowthPoints}</strong>
+                </span>
+              </div>
+            </div>
+
+            {/* Quick water button */}
+            <button
+              onClick={() => canWater && !waterMutation.isPending && waterMutation.mutate()}
+              disabled={!canWater || waterMutation.isPending}
+              className={`px-3 py-2 rounded-lg text-xs font-bold transition-all ${
+                canWater
+                  ? "bg-blue-500 hover:bg-blue-600 text-white shadow-lg shadow-blue-500/25"
+                  : isDark ? "bg-gray-700 text-gray-500" : "bg-gray-200 text-gray-400"
+              }`}
+            >
+              {waterMutation.isPending ? "..." : t("waterNow")}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Floating dragged jug */}
+      {isDraggingJug && (
+        <div
+          className="fixed z-[9999] pointer-events-none"
+          style={{
+            left: jugPos.x - 24,
+            top: jugPos.y - 24,
+          }}
+        >
+          <motion.div
+            animate={{ rotate: isNearTree ? [0, -15, 15, -15, 0] : 0 }}
+            transition={{ duration: 0.5, repeat: isNearTree ? Infinity : 0 }}
+          >
+            <div className={`w-12 h-12 rounded-xl flex items-center justify-center shadow-2xl ${
+              isNearTree ? "bg-blue-500 ring-4 ring-blue-300" : "bg-blue-400"
+            }`}>
+              <svg width="32" height="32" viewBox="0 0 64 64" fill="none">
+                <path d="M20 20h24v8c0 12-4 20-12 24-8-4-12-12-12-24v-8z" fill="white" />
+                <path d="M20 20h24v4H20v-4z" fill="#DBEAFE" />
+                <path d="M24 16h16v4H24v-4z" fill="#EFF6FF" />
+                <path d="M44 22c4 0 6 2 6 6s-2 6-6 6" stroke="white" strokeWidth="3" fill="none" />
+              </svg>
+            </div>
+          </motion.div>
+        </div>
+      )}
 
       {/* Progress bar */}
       {nextStageName && (
@@ -397,7 +673,7 @@ export function GrowthTree() {
 
       {/* Stats */}
       <div className="px-5 pb-5 pt-2">
-        <div className="grid grid-cols-4 gap-2">
+        <div className="grid grid-cols-5 gap-2">
           <div className={`text-center p-2.5 rounded-xl ${isDark ? "bg-gray-800" : "bg-white"} shadow-sm`}>
             <Zap className="w-4 h-4 mx-auto mb-0.5 text-green-500" />
             <p className="text-base font-bold text-green-600">{tree.totalGrowthPoints}</p>
@@ -417,6 +693,11 @@ export function GrowthTree() {
             <Star className="w-4 h-4 mx-auto mb-0.5 text-purple-500" />
             <p className="text-base font-bold text-purple-600">{tree.rewardsEarned}</p>
             <p className={`text-[10px] ${isDark ? "text-gray-500" : "text-gray-500"}`}>{t("rewards")}</p>
+          </div>
+          <div className={`text-center p-2.5 rounded-xl ${isDark ? "bg-gray-800" : "bg-white"} shadow-sm`}>
+            <Droplets className="w-4 h-4 mx-auto mb-0.5 text-blue-400" />
+            <p className="text-base font-bold text-blue-400">{tree.wateringsCount || 0}</p>
+            <p className={`text-[10px] ${isDark ? "text-gray-500" : "text-gray-500"}`}>{t("waterings")}</p>
           </div>
         </div>
       </div>

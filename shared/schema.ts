@@ -178,6 +178,7 @@ export const childGrowthTrees = pgTable("child_growth_trees", {
   tasksCompleted: integer("tasks_completed").default(0).notNull(),
   gamesPlayed: integer("games_played").default(0).notNull(),
   rewardsEarned: integer("rewards_earned").default(0).notNull(),
+  wateringsCount: integer("waterings_count").default(0).notNull(),
   lastGrowthAt: timestamp("last_growth_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -209,6 +210,34 @@ export const insertChildGrowthEventSchema = createInsertSchema(childGrowthEvents
 
 export type InsertChildGrowthEvent = z.infer<typeof insertChildGrowthEventSchema>;
 export type ChildGrowthEvent = typeof childGrowthEvents.$inferSelect;
+
+// إعدادات شجرة النمو (يتحكم فيها الأدمن)
+export const growthTreeSettings = pgTable("growth_tree_settings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  // Watering settings
+  wateringEnabled: boolean("watering_enabled").default(true).notNull(),
+  wateringCostPoints: integer("watering_cost_points").default(10).notNull(),
+  wateringGrowthPoints: integer("watering_growth_points").default(15).notNull(),
+  maxWateringsPerDay: integer("max_waterings_per_day").default(5).notNull(),
+  // Stage icons (JSON array of 20 icon identifiers)
+  stageIcons: json("stage_icons").$type<string[]>().default(sql`'["seed","sprout","sapling","youngPlant","bush","smallTree","growingTree","mediumTree","tallTree","strongTree","largeTree","matureTree","fruitTree","grandTree","ancientTree","goldenTree","crystalTree","diamondTree","legendaryTree","cosmicTree"]'::jsonb`).notNull(),
+  // Stage requirements override (JSON: array of { stage, minPoints, requiresWatering, wateringsRequired })
+  stageRequirements: json("stage_requirements").$type<{ stage: number; minPoints: number; requiresWatering: boolean; wateringsRequired: number }[]>(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export type GrowthTreeSettings = typeof growthTreeSettings.$inferSelect;
+
+// سجل ري شجرة النمو
+export const childWateringLog = pgTable("child_watering_log", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  childId: varchar("child_id").notNull().references(() => children.id, { onDelete: "cascade" }),
+  pointsSpent: integer("points_spent").default(0).notNull(),
+  growthPointsEarned: integer("growth_points_earned").default(0).notNull(),
+  wateredAt: timestamp("watered_at").defaultNow().notNull(),
+});
+
+export type ChildWateringLog = typeof childWateringLog.$inferSelect;
 
 export const childTrustedDevices = pgTable("child_trusted_devices", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),

@@ -73,6 +73,10 @@ import {
   childGameAssignments,
   gamePlayHistory,
   tasksSettings,
+  growthTreeSettings,
+  childWateringLog,
+  childGrowthTrees,
+  childGrowthEvents,
 } from "../../shared/schema";
 import { createNotification } from "../notifications";
 import { emitGiftEvent } from "../giftEvents";
@@ -1085,6 +1089,89 @@ export async function registerAdminRoutes(app: Express) {
       res
         .status(500)
         .json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to update child"));
+    }
+  });
+
+  // ============ GROWTH TREE SETTINGS (ADMIN) ============
+
+  // Get growth tree settings
+  app.get("/api/admin/growth-tree-settings", adminMiddleware, async (req: any, res) => {
+    try {
+      const settings = await db.select().from(growthTreeSettings);
+      
+      if (!settings[0]) {
+        // Create default settings
+        const defaultSettings = await db.insert(growthTreeSettings).values({
+          wateringEnabled: true,
+          wateringCostPoints: 10,
+          wateringGrowthPoints: 15,
+          maxWateringsPerDay: 5,
+        }).returning();
+        return res.json(successResponse(defaultSettings[0]));
+      }
+
+      res.json(successResponse(settings[0]));
+    } catch (error: any) {
+      console.error("Get growth tree settings error:", error);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to get growth tree settings"));
+    }
+  });
+
+  // Update growth tree settings
+  app.put("/api/admin/growth-tree-settings", adminMiddleware, async (req: any, res) => {
+    try {
+      const { wateringEnabled, wateringCostPoints, wateringGrowthPoints, maxWateringsPerDay, stageIcons, stageRequirements } = req.body;
+
+      let settings = await db.select().from(growthTreeSettings);
+      
+      if (!settings[0]) {
+        // Create if not exists
+        const created = await db.insert(growthTreeSettings).values({
+          wateringEnabled: wateringEnabled ?? true,
+          wateringCostPoints: wateringCostPoints ?? 10,
+          wateringGrowthPoints: wateringGrowthPoints ?? 15,
+          maxWateringsPerDay: maxWateringsPerDay ?? 5,
+          ...(stageIcons ? { stageIcons } : {}),
+          ...(stageRequirements ? { stageRequirements } : {}),
+        }).returning();
+        return res.json(successResponse(created[0], "Growth tree settings created"));
+      }
+
+      const updateData: Record<string, any> = { updatedAt: new Date() };
+      if (wateringEnabled !== undefined) updateData.wateringEnabled = wateringEnabled;
+      if (wateringCostPoints !== undefined) updateData.wateringCostPoints = wateringCostPoints;
+      if (wateringGrowthPoints !== undefined) updateData.wateringGrowthPoints = wateringGrowthPoints;
+      if (maxWateringsPerDay !== undefined) updateData.maxWateringsPerDay = maxWateringsPerDay;
+      if (stageIcons !== undefined) updateData.stageIcons = stageIcons;
+      if (stageRequirements !== undefined) updateData.stageRequirements = stageRequirements;
+
+      const updated = await db.update(growthTreeSettings)
+        .set(updateData)
+        .where(eq(growthTreeSettings.id, settings[0].id))
+        .returning();
+
+      res.json(successResponse(updated[0], "Growth tree settings updated"));
+    } catch (error: any) {
+      console.error("Update growth tree settings error:", error);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to update growth tree settings"));
+    }
+  });
+
+  // Get watering statistics (admin)
+  app.get("/api/admin/watering-stats", adminMiddleware, async (req: any, res) => {
+    try {
+      const totalWaterings = await db.select({ count: count() }).from(childWateringLog);
+      const totalPointsSpent = await db.select({ total: sum(childWateringLog.pointsSpent) }).from(childWateringLog);
+      const totalGrowthPoints = await db.select({ total: sum(childWateringLog.growthPointsEarned) }).from(childWateringLog);
+
+      res.json(successResponse({
+        totalWaterings: totalWaterings[0]?.count || 0,
+        totalPointsSpent: totalPointsSpent[0]?.total || 0,
+        totalGrowthPointsEarned: totalGrowthPoints[0]?.total || 0,
+      }));
+    } catch (error: any) {
+      console.error("Get watering stats error:", error);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to get watering stats"));
     }
   });
 
