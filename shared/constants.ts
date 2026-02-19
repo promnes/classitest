@@ -31,13 +31,25 @@ export const POINTS_CONFIG = {
 
 export const GROWTH_TREE_STAGES = [
   { level: 1, name: "seed", nameAr: "بذرة", minPoints: 0 },
-  { level: 2, name: "sprout", nameAr: "برعم", minPoints: 100 },
-  { level: 3, name: "sapling", nameAr: "شتلة", minPoints: 500 },
-  { level: 4, name: "smallTree", nameAr: "شجرة صغيرة", minPoints: 1500 },
-  { level: 5, name: "mediumTree", nameAr: "شجرة متوسطة", minPoints: 3500 },
-  { level: 6, name: "largeTree", nameAr: "شجرة كبيرة", minPoints: 7000 },
-  { level: 7, name: "matureTree", nameAr: "شجرة ناضجة", minPoints: 12000 },
-  { level: 8, name: "greatTree", nameAr: "شجرة عظيمة", minPoints: 20000 },
+  { level: 2, name: "sprout", nameAr: "برعم", minPoints: 50 },
+  { level: 3, name: "sapling", nameAr: "شتلة", minPoints: 150 },
+  { level: 4, name: "youngPlant", nameAr: "نبتة صغيرة", minPoints: 350 },
+  { level: 5, name: "bush", nameAr: "شجيرة", minPoints: 600 },
+  { level: 6, name: "smallTree", nameAr: "شجرة صغيرة", minPoints: 1000 },
+  { level: 7, name: "growingTree", nameAr: "شجرة نامية", minPoints: 1600 },
+  { level: 8, name: "mediumTree", nameAr: "شجرة متوسطة", minPoints: 2500 },
+  { level: 9, name: "tallTree", nameAr: "شجرة طويلة", minPoints: 3500 },
+  { level: 10, name: "strongTree", nameAr: "شجرة قوية", minPoints: 5000 },
+  { level: 11, name: "largeTree", nameAr: "شجرة كبيرة", minPoints: 7000 },
+  { level: 12, name: "matureTree", nameAr: "شجرة ناضجة", minPoints: 10000 },
+  { level: 13, name: "fruitTree", nameAr: "شجرة مثمرة", minPoints: 14000 },
+  { level: 14, name: "grandTree", nameAr: "شجرة عريقة", minPoints: 19000 },
+  { level: 15, name: "ancientTree", nameAr: "شجرة عتيقة", minPoints: 25000 },
+  { level: 16, name: "goldenTree", nameAr: "شجرة ذهبية", minPoints: 33000 },
+  { level: 17, name: "crystalTree", nameAr: "شجرة كريستالية", minPoints: 42000 },
+  { level: 18, name: "diamondTree", nameAr: "شجرة ماسية", minPoints: 55000 },
+  { level: 19, name: "legendaryTree", nameAr: "شجرة أسطورية", minPoints: 70000 },
+  { level: 20, name: "cosmicTree", nameAr: "شجرة كونية", minPoints: 100000 },
 ] as const;
 
 export const NOTIFICATION_TYPES = {

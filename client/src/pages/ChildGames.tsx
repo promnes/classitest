@@ -8,7 +8,7 @@ import { GrowthTree } from "@/components/GrowthTree";
 import { useTheme } from "@/contexts/ThemeContext";
 import { ChildNotificationBell } from "@/components/ChildNotificationBell";
 import { useChildAuth } from "@/hooks/useChildAuth";
-import { Gamepad2, Star, Gift, Bell, ShoppingBag, X, Trophy, Play, BookOpen, TrendingUp, LogOut, TreePine, Settings, User, Loader2 } from "lucide-react";
+import { Gamepad2, Star, Gift, Bell, ShoppingBag, X, Trophy, Play, BookOpen, TrendingUp, LogOut, Settings, User, Loader2 } from "lucide-react";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -165,66 +165,66 @@ export const ChildGames = (): JSX.Element => {
   const isRTL = i18n.language === 'ar';
 
   return (
-    <div className={`min-h-screen ${isDark ? "bg-gradient-to-br from-purple-900 to-indigo-900" : "bg-gradient-to-br from-purple-400 to-purple-600"} p-4`} dir={isRTL ? "rtl" : "ltr"}>
+    <div className={`min-h-screen ${isDark ? "bg-gradient-to-br from-purple-900 via-indigo-900 to-slate-900" : "bg-gradient-to-br from-purple-400 via-purple-500 to-indigo-500"} p-3 sm:p-4`} dir={isRTL ? "rtl" : "ltr"}>
       {childInfo?.id && <MandatoryTaskModal childId={childInfo.id} />}
       
-      <div className="max-w-6xl mx-auto mb-8 flex flex-wrap justify-between items-center gap-4">
-        <div className="flex items-center gap-4">
+      <div className="max-w-6xl mx-auto mb-4 flex flex-wrap justify-between items-center gap-3">
+        <div className="flex items-center gap-3">
           <div className="cursor-pointer" onClick={() => navigate("/child-profile")}>
-            <Avatar className={`w-12 h-12 border-2 ${isDark ? "border-purple-300" : "border-white/70"} shadow-lg`}>
+            <Avatar className={`w-10 h-10 border-2 ${isDark ? "border-purple-300" : "border-white/70"} shadow-lg`}>
               <AvatarImage src={childInfo?.avatarUrl || undefined} className="object-cover" />
-              <AvatarFallback className="bg-gradient-to-br from-yellow-400 to-orange-500 text-white text-lg font-bold">
+              <AvatarFallback className="bg-gradient-to-br from-yellow-400 to-orange-500 text-white text-base font-bold">
                 {childInfo?.name?.charAt(0) || "؟"}
               </AvatarFallback>
             </Avatar>
           </div>
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-white">
+            <h1 className="text-xl sm:text-2xl font-bold text-white">
               {isRTL ? `مرحباً ${childInfo?.name || ""} 👋` : `Hi ${childInfo?.name || ""} 👋`}
             </h1>
-            <p className="text-white text-opacity-80 flex items-center gap-2">
-              <Star className="w-5 h-5 text-yellow-400" />
+            <p className="text-white text-opacity-80 flex items-center gap-1.5 text-sm">
+              <Star className="w-4 h-4 text-yellow-400" />
               {t("pointsLabel")} {childInfo?.totalPoints || 0}
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+        <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
           <LanguageSelector />
           <PWAInstallButton 
             variant="outline" 
             size="sm" 
             showText={false}
-            className="bg-cyan-500 hover:bg-cyan-600 text-white border-cyan-400 rounded-xl px-4 py-3"
+            className="bg-cyan-500 hover:bg-cyan-600 text-white border-cyan-400 rounded-xl px-3 py-2.5"
           />
           <ChildNotificationBell />
           <button
             onClick={() => navigate("/child-gifts")}
-            className="px-4 py-3 bg-yellow-500 hover:bg-yellow-600 text-white font-bold rounded-xl shadow-lg transition-all"
+            className="px-3 py-2.5 bg-yellow-500 hover:bg-yellow-600 text-white font-bold rounded-xl shadow-md transition-all"
             data-testid="button-child-gifts"
           >
-            <Gift className="w-5 h-5" />
+            <Gift className="w-4 h-4" />
           </button>
           <button
             onClick={() => navigate("/child-store")}
-            className="px-4 py-3 bg-pink-500 hover:bg-pink-600 text-white font-bold rounded-xl shadow-lg transition-all flex items-center gap-2"
+            className="px-3 py-2.5 bg-pink-500 hover:bg-pink-600 text-white font-bold rounded-xl shadow-md transition-all flex items-center gap-1.5"
             data-testid="button-child-store"
           >
-            <ShoppingBag className="w-5 h-5" />
+            <ShoppingBag className="w-4 h-4" />
           </button>
           <button
             onClick={() => navigate("/child-settings")}
-            className="px-4 py-3 bg-purple-500 hover:bg-purple-600 text-white font-bold rounded-xl shadow-lg transition-all"
+            className="px-3 py-2.5 bg-purple-500 hover:bg-purple-600 text-white font-bold rounded-xl shadow-md transition-all"
             data-testid="button-child-settings"
           >
-            <Settings className="w-5 h-5" />
+            <Settings className="w-4 h-4" />
           </button>
           <button
             onClick={() => setShowLogoutConfirm(true)}
-            className="px-4 py-3 bg-red-500 hover:bg-red-600 text-white font-bold rounded-xl shadow-lg transition-all"
+            className="px-3 py-2.5 bg-red-500 hover:bg-red-600 text-white font-bold rounded-xl shadow-md transition-all"
             data-testid="button-child-logout"
             disabled={isLoggingOut}
           >
-            <LogOut className="w-5 h-5" />
+            <LogOut className="w-4 h-4" />
           </button>
         </div>
       </div>
@@ -274,73 +274,61 @@ export const ChildGames = (): JSX.Element => {
       </AnimatePresence>
 
       {/* Growth Tree Section */}
-      <div className="max-w-6xl mx-auto mb-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-1">
-            <GrowthTree />
-          </div>
-          <div className="lg:col-span-2 flex flex-col justify-center">
-            <div className={`p-6 rounded-2xl ${isDark ? "bg-gray-800/80" : "bg-white/80"} backdrop-blur-sm shadow-lg`}>
-              <div className="flex items-center gap-3 mb-4">
-                <TreePine className="w-8 h-8 text-green-500" />
-                <h2 className={`text-2xl font-bold ${isDark ? "text-white" : "text-gray-800"}`}>
-                  {t("child.yourJourney")}
-                </h2>
-              </div>
-              <p className={`text-lg ${isDark ? "text-gray-300" : "text-gray-600"}`}>
-                {t("child.growthTreeDescription")}
-              </p>
-            </div>
-          </div>
+      <div className="max-w-6xl mx-auto mb-6">
+        <GrowthTree />
+      </div>
+
+      {/* Games Section Header */}
+      <div className="max-w-6xl mx-auto mb-4">
+        <div className="flex items-center gap-2">
+          <Gamepad2 className="w-6 h-6 text-white/80" />
+          <h2 className="text-xl font-bold text-white">{t("gamesLabel") || t("gamesAndTasks")}</h2>
         </div>
       </div>
 
       {isLoading ? (
-        <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-16 w-16 border-4 border-white border-t-transparent"></div>
+        <div className="flex justify-center items-center h-40">
+          <div className="animate-spin rounded-full h-12 w-12 border-4 border-white border-t-transparent"></div>
         </div>
       ) : (
-        <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="max-w-6xl mx-auto grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
           {games?.map((game, index) => (
             <motion.div
               key={game.id}
-              initial={{ opacity: 0, y: 30, scale: 0.9 }}
+              initial={{ opacity: 0, y: 20, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
-              transition={{ duration: 0.4, delay: index * 0.1 }}
-              whileHover={{ y: -8, scale: 1.02 }}
-              className={`${isDark ? "bg-gray-800" : "bg-white"} rounded-2xl overflow-hidden shadow-lg cursor-pointer`}
+              transition={{ duration: 0.3, delay: index * 0.05 }}
+              whileHover={{ y: -4, scale: 1.03 }}
+              onClick={() => handlePlayGame(game)}
+              className={`${isDark ? "bg-gray-800" : "bg-white"} rounded-xl overflow-hidden shadow-md cursor-pointer active:scale-95 transition-transform`}
               data-testid={`game-card-${game.id}`}
             >
-              <div className={`aspect-video ${isDark ? "bg-gray-700" : "bg-purple-200"} flex items-center justify-center relative overflow-hidden`}>
+              <div className={`aspect-[4/3] ${isDark ? "bg-gray-700" : "bg-purple-100"} flex items-center justify-center relative overflow-hidden`}>
                 {game.thumbnailUrl ? (
                   <img src={game.thumbnailUrl} alt={game.title} className="w-full h-full object-cover" />
                 ) : (
-                  <Gamepad2 className="w-20 h-20 text-purple-500" />
+                  <Gamepad2 className="w-12 h-12 text-purple-400" />
                 )}
-                <div className="absolute top-3 left-3 bg-yellow-500 text-white px-3 py-1 rounded-full text-sm font-bold flex items-center gap-1">
-                  <Star className="w-4 h-4" />
+                <div className="absolute top-2 left-2 bg-yellow-500/90 text-white px-2 py-0.5 rounded-full text-xs font-bold flex items-center gap-1">
+                  <Star className="w-3 h-3" />
                   +{game.pointsPerPlay}
                 </div>
               </div>
-              <div className="p-5">
-                <h3 className={`font-bold text-xl mb-2 ${isDark ? "text-white" : "text-gray-800"}`}>
+              <div className="p-3">
+                <h3 className={`font-bold text-sm mb-1 truncate ${isDark ? "text-white" : "text-gray-800"}`}>
                   {game.title}
                 </h3>
                 {game.description && (
-                  <p className={`text-sm mb-4 ${isDark ? "text-gray-400" : "text-gray-600"}`}>
+                  <p className={`text-xs mb-2 line-clamp-2 ${isDark ? "text-gray-400" : "text-gray-500"}`}>
                     {game.description}
                   </p>
                 )}
-                <motion.button 
-                  onClick={() => handlePlayGame(game)}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="w-full px-4 py-3 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-bold rounded-xl flex items-center justify-center gap-2 transition-all"
-                  data-testid={`button-play-${game.id}`}
+                <div
+                  className="w-full px-3 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold rounded-lg flex items-center justify-center gap-1.5 text-xs"
                 >
-                  <Play className="w-5 h-5" />
+                  <Play className="w-3.5 h-3.5" />
                   {t("playNow")}
-                </motion.button>
+                </div>
               </div>
             </motion.div>
           ))}
