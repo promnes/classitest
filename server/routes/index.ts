@@ -53,6 +53,28 @@ async function seedDefaultGames() {
       });
       console.log("✅ Seeded default game: Math Challenge");
     }
+
+    // Seed Match 3 Education game
+    const existingMatch3 = await db.select({ id: flashGames.id })
+      .from(flashGames)
+      .where(eq(flashGames.embedUrl, "/games/match3-education.html"))
+      .limit(1);
+
+    if (existingMatch3.length === 0) {
+      await db.insert(flashGames).values({
+        title: "مطابقة ثلاثية تعليمية - Educational Match 3",
+        description: "لعبة مطابقة ثلاثية تعليمية! طابق الألوان أو الأشكال أو الحروف أو الأرقام. ثلاث مستويات صعوبة مع مؤثرات صوتية وحركية ممتعة!",
+        embedUrl: "/games/match3-education.html",
+        thumbnailUrl: "",
+        category: "puzzle",
+        minAge: 4,
+        maxAge: 14,
+        pointsPerPlay: 10,
+        maxPlaysPerDay: 5,
+        isActive: true,
+      });
+      console.log("✅ Seeded default game: Match 3 Education");
+    }
   } catch (err) {
     console.warn("⚠️ Could not seed default games:", (err as Error).message);
   }
