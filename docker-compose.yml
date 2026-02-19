@@ -55,23 +55,12 @@ services:
       # Traefik configuration
       - "traefik.enable=true"
       
-      # HTTPS router (main)
+      # Minimal HTTPS router (safe baseline)
       - "traefik.http.routers.classify-secure.rule=PathPrefix(`/`)"
       - "traefik.http.routers.classify-secure.entrypoints=websecure"
       - "traefik.http.routers.classify-secure.service=classify"
       - "traefik.http.routers.classify-secure.tls=true"
-      - "traefik.http.routers.classify-secure.tls.certresolver=letsencrypt"
       - "traefik.http.services.classify.loadbalancer.server.port=5000"
-      
-      # HTTP → HTTPS redirect
-      - "traefik.http.routers.classify.rule=PathPrefix(`/`)"
-      - "traefik.http.routers.classify.entrypoints=web"
-      - "traefik.http.routers.classify.middlewares=https-redirect"
-      - "traefik.http.routers.classify.service=noop@internal"
-      - "traefik.http.middlewares.https-redirect.redirectscheme.scheme=https"
-      - "traefik.http.middlewares.https-redirect.redirectscheme.permanent=true"
-      
-      # Security headers are handled by the app (helmet + custom headers)
       
       # Container metadata
       - "com.classify.version=3.0"
