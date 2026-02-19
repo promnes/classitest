@@ -55,12 +55,27 @@ services:
       # Traefik configuration
       - "traefik.enable=true"
       
-      # Minimal HTTPS router (safe baseline)
-      - "traefik.http.routers.classitest-app-secure.rule=PathPrefix(`/`)"
-      - "traefik.http.routers.classitest-app-secure.entrypoints=websecure"
-      - "traefik.http.routers.classitest-app-secure.service=classitest-app-svc"
-      - "traefik.http.routers.classitest-app-secure.tls=true"
-      - "traefik.http.services.classitest-app-svc.loadbalancer.server.port=5000"
+      # HTTPS router (main)
+      - "traefik.http.routers.classify-secure.rule=Host(`classi-fy.com`) || Host(`www.classi-fy.com`)"
+      - "traefik.http.routers.classify-secure.entrypoints=websecure"
+      - "traefik.http.routers.classify-secure.tls.certresolver=letsencrypt"
+      - "traefik.http.services.classify.loadbalancer.server.port=5000"
+      - "traefik.http.services.classify.loadbalancer.healthcheck.path=/api/health"
+      - "traefik.http.services.classify.loadbalancer.healthcheck.interval=10s"
+      
+      # HTTP → HTTPS redirect
+      - "traefik.http.routers.classify.rule=Host(`classi-fy.com`) || Host(`www.classi-fy.com`)"
+      - "traefik.http.routers.classify.entrypoints=web"
+      - "traefik.http.routers.classify.middlewares=https-redirect"
+      - "traefik.http.middlewares.https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.https-redirect.redirectscheme.permanent=true"
+      
+      # Security headers
+      - "traefik.http.middlewares.security-headers.headers.stsSeconds=63072000"
+      - "traefik.http.middlewares.security-headers.headers.stsIncludeSubdomains=true"
+      - "traefik.http.middlewares.security-headers.headers.frameDeny=true"
+      - "traefik.http.middlewares.security-headers.headers.contentTypeNosniff=true"
+      - "traefik.http.routers.classify-secure.middlewares=security-headers"
       
       # Container metadata
       - "com.classify.version=3.0"
