@@ -1343,7 +1343,8 @@
     "privacyPolicy": "View Privacy Policy",
     "governorate": "🏢 Governorate",
     "city": "🏙️ City",
-    "bio": "📝 About You"
+    "bio": "📝 About You",
+    "notificationsSaved": "Notification settings saved!"
   },
   "permissions": {
     "title": "App Setup",
@@ -1535,7 +1536,9 @@
     "tryAgain": "Try Again",
     "goHome": "Go Home",
     "needHelp": "Need help?",
-    "workingHours": "Working Hours"
+    "workingHours": "Working Hours",
+    "error": "Error",
+    "somethingWentWrong": "Something went wrong"
   },
   "validation": {
     "nameEmailRequired": "Name and email are required",
@@ -2140,7 +2143,15 @@
     "followedSchools": "Followed Schools",
     "followedTeachers": "Followed Teachers",
     "noFollowedSchools": "No followed schools",
-    "noFollowedTeachers": "No followed teachers"
+    "noFollowedTeachers": "No followed teachers",
+    "logoutTitle": "Logout",
+    "logoutConfirm": "Are you sure you want to logout?",
+    "logout": "Logout",
+    "codeCopied": "Code copied",
+    "copyFailed": "Copy failed",
+    "linkChild": "Link Child",
+    "showQR": "Show QR Code",
+    "yourCode": "Your Code"
   },
   "accessibility": {
     "title": "Accessibility Policy",
@@ -3015,7 +3026,8 @@
     "subjectsLabel": "Subjects",
     "noSubjects": "No subjects available",
     "tasks": "Tasks",
-    "viewTasks": "View Tasks"
+    "viewTasks": "View Tasks",
+    "taskSent": "Task sent successfully!"
   },
   "childTasks": {
     "task": "Task",
@@ -3024,7 +3036,11 @@
     "wellDone": "Well Done!",
     "submitAnswer": "Submit Answer",
     "noTasks": "No tasks",
-    "pointsEarned": "Points Earned"
+    "pointsEarned": "Points Earned",
+    "completed": "Completed",
+    "failed": "Failed",
+    "pending": "Pending",
+    "start": "Start"
   },
   "otpVerification": {
     "title": "🔐 Identity Verification",
@@ -3044,7 +3060,10 @@
     "yourScore": "Your Score",
     "finishedGame": "Finished Game",
     "noGames": "No games available",
-    "play": "Play"
+    "play": "Play",
+    "level": "Level",
+    "playNow": "Play Now",
+    "yourPoints": "Your Points"
   },
   "memoryGame": {
     "title": "Memory Match",
@@ -3254,36 +3273,5 @@
   "redirectingNow": "Redirecting...",
   "requestExpired": "Request expired",
   "pleaseRequestAgain": "Please submit a new request",
-  "sendNewRequest": "Send New Request",
-  "childGames": {
-    "level": "Level",
-    "playNow": "Play Now",
-    "yourPoints": "Your Points"
-  },
-  "childTasks": {
-    "completed": "Completed",
-    "failed": "Failed",
-    "pending": "Pending",
-    "start": "Start"
-  },
-  "errors": {
-    "error": "Error",
-    "somethingWentWrong": "Something went wrong"
-  },
-  "parentDashboard": {
-    "logoutTitle": "Logout",
-    "logoutConfirm": "Are you sure you want to logout?",
-    "logout": "Logout",
-    "codeCopied": "Code copied",
-    "copyFailed": "Copy failed",
-    "linkChild": "Link Child",
-    "showQR": "Show QR Code",
-    "yourCode": "Your Code"
-  },
-  "settings": {
-    "notificationsSaved": "Notification settings saved!"
-  },
-  "subjects": {
-    "taskSent": "Task sent successfully!"
-  }
+  "sendNewRequest": "Send New Request"
 }

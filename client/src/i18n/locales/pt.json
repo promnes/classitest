@@ -1343,7 +1343,8 @@
     "privacyPolicy": "Ver Politica de Privacidade",
     "governorate": "Governadoria",
     "city": "Cidade",
-    "bio": "Sobre Você"
+    "bio": "Sobre Você",
+    "notificationsSaved": "Configuracoes de notificacao salvas!"
   },
   "permissions": {
     "title": "Configuracao do App",
@@ -1535,7 +1536,9 @@
     "tryAgain": "Tentar Novamente",
     "goHome": "Pagina Inicial",
     "needHelp": "Precisa de ajuda?",
-    "workingHours": "Horario de Funcionamento"
+    "workingHours": "Horario de Funcionamento",
+    "error": "Erro",
+    "somethingWentWrong": "Algo deu errado"
   },
   "validation": {
     "nameEmailRequired": "Nome e email sao obrigatorios",
@@ -2140,7 +2143,15 @@
     "followedSchools": "Escolas Seguidas",
     "followedTeachers": "Professores Seguidos",
     "noFollowedSchools": "Nenhuma escola seguida",
-    "noFollowedTeachers": "Nenhum professor seguido"
+    "noFollowedTeachers": "Nenhum professor seguido",
+    "logoutTitle": "Sair",
+    "logoutConfirm": "Tem certeza que deseja sair?",
+    "logout": "Sair",
+    "codeCopied": "Codigo copiado",
+    "copyFailed": "Falha ao copiar",
+    "linkChild": "Vincular Crianca",
+    "showQR": "Mostrar QR Code",
+    "yourCode": "Seu Codigo"
   },
   "accessibility": {
     "title": "Politica de Acessibilidade",
@@ -3015,7 +3026,8 @@
     "subjectsLabel": "Matérias",
     "noSubjects": "Nenhuma matéria disponível",
     "tasks": "Tarefas",
-    "viewTasks": "Ver Tarefas"
+    "viewTasks": "Ver Tarefas",
+    "taskSent": "Tarefa enviada com sucesso!"
   },
   "childTasks": {
     "task": "Tarefa",
@@ -3024,7 +3036,11 @@
     "wellDone": "Muito Bem!",
     "submitAnswer": "Enviar Resposta",
     "noTasks": "Nenhuma tarefa",
-    "pointsEarned": "Pontos Ganhos"
+    "pointsEarned": "Pontos Ganhos",
+    "completed": "Concluida",
+    "failed": "Falhou",
+    "pending": "Pendente",
+    "start": "Iniciar"
   },
   "otpVerification": {
     "title": "Verificação de Identidade",
@@ -3044,7 +3060,10 @@
     "yourScore": "Sua Pontuação",
     "finishedGame": "Jogo Finalizado",
     "noGames": "Nenhum jogo disponível",
-    "play": "Jogar"
+    "play": "Jogar",
+    "level": "Nivel",
+    "playNow": "Jogar Agora",
+    "yourPoints": "Seus Pontos"
   },
   "memoryGame": {
     "title": "Jogo da Memória",
@@ -3254,36 +3273,5 @@
   "redirectingNow": "Redirecionando...",
   "requestExpired": "Pedido expirado",
   "pleaseRequestAgain": "Por favor, envie um novo pedido",
-  "sendNewRequest": "Enviar Novo Pedido",
-  "childGames": {
-    "level": "Nivel",
-    "playNow": "Jogar Agora",
-    "yourPoints": "Seus Pontos"
-  },
-  "childTasks": {
-    "completed": "Concluida",
-    "failed": "Falhou",
-    "pending": "Pendente",
-    "start": "Iniciar"
-  },
-  "errors": {
-    "error": "Erro",
-    "somethingWentWrong": "Algo deu errado"
-  },
-  "parentDashboard": {
-    "logoutTitle": "Sair",
-    "logoutConfirm": "Tem certeza que deseja sair?",
-    "logout": "Sair",
-    "codeCopied": "Codigo copiado",
-    "copyFailed": "Falha ao copiar",
-    "linkChild": "Vincular Crianca",
-    "showQR": "Mostrar QR Code",
-    "yourCode": "Seu Codigo"
-  },
-  "settings": {
-    "notificationsSaved": "Configuracoes de notificacao salvas!"
-  },
-  "subjects": {
-    "taskSent": "Tarefa enviada com sucesso!"
-  }
+  "sendNewRequest": "Enviar Novo Pedido"
 }
