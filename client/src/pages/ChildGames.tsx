@@ -78,17 +78,6 @@ export const ChildGames = (): JSX.Element => {
     refetchInterval: token ? 30000 : false,
   });
 
-  if (!token || isChildInfoLoading) {
-    return (
-      <div className={`min-h-screen flex items-center justify-center ${isDark ? "bg-gray-900" : "bg-gray-100"}`}>
-        <div className="text-center">
-          <Loader2 className={`w-10 h-10 animate-spin mx-auto mb-3 ${isDark ? "text-purple-300" : "text-purple-600"}`} />
-          <p className={isDark ? "text-gray-300" : "text-gray-600"}>{t("loading") || "جاري التحقق..."}</p>
-        </div>
-      </div>
-    );
-  }
-
   // Listen for game completion messages from iframe
   useEffect(() => {
     const handler = (e: MessageEvent) => {
@@ -124,6 +113,17 @@ export const ChildGames = (): JSX.Element => {
       setTimeout(() => setShowReward(null), 3000);
     },
   });
+
+  if (!token || isChildInfoLoading) {
+    return (
+      <div className={`min-h-screen flex items-center justify-center ${isDark ? "bg-gray-900" : "bg-gray-100"}`}>
+        <div className="text-center">
+          <Loader2 className={`w-10 h-10 animate-spin mx-auto mb-3 ${isDark ? "text-purple-300" : "text-purple-600"}`} />
+          <p className={isDark ? "text-gray-300" : "text-gray-600"}>{t("loading") || "جاري التحقق..."}</p>
+        </div>
+      </div>
+    );
+  }
 
   const handlePlayGame = (game: Game) => {
     setSelectedGame(game);
