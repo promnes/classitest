@@ -3319,7 +3319,7 @@ export async function registerParentRoutes(app: Express) {
   // Create post
   app.post("/api/parent/posts", authMiddleware, async (req, res) => {
     try {
-      const parentId = (req as any).user.id;
+      const parentId = (req as any).user.userId;
       const { content, mediaUrls, mediaTypes } = req.body;
       if (!content?.trim() && (!mediaUrls || mediaUrls.length === 0)) {
         return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Post must have content or media"));
@@ -3373,7 +3373,7 @@ export async function registerParentRoutes(app: Express) {
   // Get own posts
   app.get("/api/parent/posts", authMiddleware, async (req, res) => {
     try {
-      const parentId = (req as any).user.id;
+      const parentId = (req as any).user.userId;
       const posts = await db.select().from(parentPosts)
         .where(and(eq(parentPosts.parentId, parentId), eq(parentPosts.isActive, true)))
         .orderBy(desc(parentPosts.createdAt));
@@ -3405,7 +3405,7 @@ export async function registerParentRoutes(app: Express) {
   // Delete post
   app.delete("/api/parent/posts/:postId", authMiddleware, async (req, res) => {
     try {
-      const parentId = (req as any).user.id;
+      const parentId = (req as any).user.userId;
       const { postId } = req.params;
       const [post] = await db.select().from(parentPosts).where(and(eq(parentPosts.id, postId), eq(parentPosts.parentId, parentId)));
       if (!post) return res.status(404).json(errorResponse(ErrorCode.NOT_FOUND, "Post not found"));
@@ -3419,7 +3419,7 @@ export async function registerParentRoutes(app: Express) {
   // Check liked posts
   app.post("/api/parent/posts/check-likes", authMiddleware, async (req, res) => {
     try {
-      const userId = (req as any).user.id;
+      const userId = (req as any).user.userId;
       const { postIds } = req.body;
       if (!postIds || !Array.isArray(postIds)) return res.json(successResponse({}));
       const likes = await db.select().from(parentPostLikes)
@@ -3435,7 +3435,7 @@ export async function registerParentRoutes(app: Express) {
   // Like / unlike post
   app.post("/api/parent/posts/:postId/like", authMiddleware, async (req, res) => {
     try {
-      const userId = (req as any).user.id;
+      const userId = (req as any).user.userId;
       const { postId } = req.params;
       const existing = await db.select().from(parentPostLikes)
         .where(and(eq(parentPostLikes.postId, postId), eq(parentPostLikes.userId, userId)));
@@ -3471,7 +3471,7 @@ export async function registerParentRoutes(app: Express) {
   // Add comment to a post
   app.post("/api/parent/posts/:postId/comment", authMiddleware, async (req, res) => {
     try {
-      const userId = (req as any).user.id;
+      const userId = (req as any).user.userId;
       const { postId } = req.params;
       const { content } = req.body;
       if (!content?.trim() || content.length > 1000) {
@@ -3496,7 +3496,7 @@ export async function registerParentRoutes(app: Express) {
   // Update social links
   app.post("/api/parent/profile/social-links", authMiddleware, async (req, res) => {
     try {
-      const parentId = (req as any).user.id;
+      const parentId = (req as any).user.userId;
       const { socialLinks } = req.body;
       await db.update(parents).set({ socialLinks }).where(eq(parents.id, parentId));
       res.json(successResponse({ updated: true }));
@@ -3508,7 +3508,7 @@ export async function registerParentRoutes(app: Express) {
   // ====== PARENT UPLOADS (presign / proxy / finalize) ======
   app.post("/api/parent/uploads/presign", authMiddleware, async (req, res) => {
     try {
-      const parentId = (req as any).user.id;
+      const parentId = (req as any).user.userId;
       const body = z.object({
         contentType: z.string().min(1),
         size: z.number().int().positive(),
@@ -3533,7 +3533,7 @@ export async function registerParentRoutes(app: Express) {
 
   app.post("/api/parent/uploads/finalize", authMiddleware, async (req, res) => {
     try {
-      const parentId = (req as any).user.id;
+      const parentId = (req as any).user.userId;
       const body = finalizeUploadSchema.parse(req.body);
       const media = await finalizeUpload({
         actor: { type: "parent", id: parentId },

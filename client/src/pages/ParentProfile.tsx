@@ -309,6 +309,10 @@ export default function ParentProfile() {
       setPostMediaTypes([]);
       toast({ title: t("pp.posts.created") + " ✅" });
     },
+    onError: (error: any) => {
+      console.error("Create post error:", error);
+      toast({ title: t("pp.posts.error") || "Failed to create post ❌", variant: "destructive" });
+    },
   });
 
   const deletePostMutation = useMutation({
