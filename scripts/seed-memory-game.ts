@@ -8,7 +8,8 @@ import pg from "pg";
 
 const { Pool } = pg;
 
-const EMBED_URL = "/game/memory-match";
+const EMBED_URL = "/games/memory-match.html";
+const LEGACY_EMBED_URL = "/game/memory-match";
 
 async function seed() {
   if (!process.env.DATABASE_URL) {
@@ -31,8 +32,8 @@ async function seed() {
 
   // Check if game already exists
   const { rows: existing } = await pool.query(
-    `SELECT id FROM flash_games WHERE embed_url = $1`,
-    [EMBED_URL]
+    `SELECT id FROM flash_games WHERE embed_url IN ($1, $2)`,
+    [EMBED_URL, LEGACY_EMBED_URL]
   );
 
   if (existing.length > 0) {
