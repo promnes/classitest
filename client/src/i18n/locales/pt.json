@@ -2096,6 +2096,8 @@
     "interestsSection": "Meus Interesses",
     "tabs": {
       "showcase": "Vitrine",
+      "posts": "Publicações",
+      "about": "Sobre",
       "friends": "Amigos",
       "notifications": "Notificações",
       "edit": "Editar"
@@ -2143,7 +2145,36 @@
     },
     "followers": "Seguidores",
     "followingCount": "Seguindo",
-    "discoverButton": "Descobrir e Pesquisar"
+    "discoverButton": "Descobrir e Pesquisar",
+    "posts": {
+      "placeholder": "No que você está pensando?",
+      "publish": "Publicar",
+      "addMedia": "Mídia",
+      "empty": "Nenhuma publicação ainda. Compartilhe algo!",
+      "created": "Publicação criada",
+      "deleted": "Publicação excluída",
+      "showMore": "Mostrar mais",
+      "showLess": "Mostrar menos",
+      "justNow": "Agora",
+      "minutesAgo": "min atrás",
+      "hoursAgo": "hr atrás",
+      "daysAgo": "dias atrás",
+      "commentPlaceholder": "Escreva um comentário..."
+    },
+    "about": {
+      "bio": "Sobre Mim",
+      "info": "Informações Pessoais",
+      "school": "Escola",
+      "grade": "Série",
+      "location": "Localização",
+      "hobbies": "Hobbies",
+      "joined": "Entrou em",
+      "interests": "Interesses",
+      "stats": "Estatísticas",
+      "totalPoints": "Pontos Totais",
+      "streak": "Dias Seguidos",
+      "shareCode": "Código de Compartilhamento"
+    }
   },
   "discover": {
     "title": "Descobrir e Pesquisar",

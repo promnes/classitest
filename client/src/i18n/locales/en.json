@@ -2096,6 +2096,8 @@
     "interestsSection": "My Interests",
     "tabs": {
       "showcase": "Showcase",
+      "posts": "Posts",
+      "about": "About",
       "friends": "Friends",
       "notifications": "Notifications",
       "edit": "Edit"
@@ -2143,7 +2145,36 @@
     },
     "followers": "Followers",
     "followingCount": "Following",
-    "discoverButton": "Discover & Search"
+    "discoverButton": "Discover & Search",
+    "posts": {
+      "placeholder": "What's on your mind?",
+      "publish": "Post",
+      "addMedia": "Media",
+      "empty": "No posts yet. Share something!",
+      "created": "Post published",
+      "deleted": "Post deleted",
+      "showMore": "Show more",
+      "showLess": "Show less",
+      "justNow": "Just now",
+      "minutesAgo": "min ago",
+      "hoursAgo": "hr ago",
+      "daysAgo": "days ago",
+      "commentPlaceholder": "Write a comment..."
+    },
+    "about": {
+      "bio": "About Me",
+      "info": "Personal Info",
+      "school": "School",
+      "grade": "Grade",
+      "location": "Location",
+      "hobbies": "Hobbies",
+      "joined": "Joined",
+      "interests": "Interests",
+      "stats": "Statistics",
+      "totalPoints": "Total Points",
+      "streak": "Day Streak",
+      "shareCode": "Share Code"
+    }
   },
   "discover": {
     "title": "Discover & Search",

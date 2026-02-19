@@ -2096,6 +2096,8 @@
     "interestsSection": "اهتماماتي",
     "tabs": {
       "showcase": "إنجازاتي",
+      "posts": "منشوراتي",
+      "about": "عني",
       "friends": "أصدقائي",
       "notifications": "الإشعارات",
       "edit": "تعديل"
@@ -2143,7 +2145,36 @@
     },
     "followers": "المتابعون",
     "followingCount": "أتابعهم",
-    "discoverButton": "اكتشف وابحث"
+    "discoverButton": "اكتشف وابحث",
+    "posts": {
+      "placeholder": "بماذا تفكر؟",
+      "publish": "نشر",
+      "addMedia": "وسائط",
+      "empty": "لا توجد منشورات بعد. شارك شيئاً!",
+      "created": "تم نشر المنشور",
+      "deleted": "تم حذف المنشور",
+      "showMore": "عرض المزيد",
+      "showLess": "عرض أقل",
+      "justNow": "الآن",
+      "minutesAgo": "دقيقة",
+      "hoursAgo": "ساعة",
+      "daysAgo": "أيام",
+      "commentPlaceholder": "اكتب تعليقاً..."
+    },
+    "about": {
+      "bio": "نبذة عني",
+      "info": "معلومات شخصية",
+      "school": "المدرسة",
+      "grade": "الصف",
+      "location": "الموقع",
+      "hobbies": "الهوايات",
+      "joined": "تاريخ الانضمام",
+      "interests": "الاهتمامات",
+      "stats": "الإحصائيات",
+      "totalPoints": "مجموع النقاط",
+      "streak": "أيام متتالية",
+      "shareCode": "رمز المشاركة"
+    }
   },
   "discover": {
     "title": "اكتشف وابحث",

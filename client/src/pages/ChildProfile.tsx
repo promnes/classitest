@@ -6,7 +6,8 @@ import {
   ArrowRight, ArrowLeft, User, Camera, Calendar, School, Heart,
   Save, Loader2, Star, Trophy, Sparkles, Share2, Users, Bell, UserPlus,
   Check, X, MapPin, Award, Flame, Gamepad2, Droplets, TreePine,
-  Copy, ImagePlus, Settings, Search, UserCheck,
+  Copy, ImagePlus, Settings, Search, UserCheck, Send, ThumbsUp,
+  MessageCircle, Trash2, Image as ImageIcon, Info, Clock, PenSquare,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -18,6 +19,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useTheme } from "@/contexts/ThemeContext";
 import { ChildNotificationBell } from "@/components/ChildNotificationBell";
 import { LanguageSelector } from "@/components/LanguageSelector";
+import { ShareMenu } from "@/components/ui/ShareMenu";
 import { apiRequest } from "@/lib/queryClient";
 import { motion, AnimatePresence } from "framer-motion";
 import ImageCropper from "@/components/ImageCropper";
@@ -58,7 +60,158 @@ interface FriendNotification {
   isRead: boolean; createdAt: string; friendName?: string; friendAvatar?: string;
 }
 
-type TabType = "showcase" | "edit" | "friends" | "notifications";
+interface ChildPost {
+  id: string; childId: string; content: string; mediaUrls?: string[]; mediaTypes?: string[];
+  likesCount: number; commentsCount: number; isPinned: boolean; isActive: boolean;
+  createdAt: string; updatedAt: string; authorName: string; authorAvatar?: string | null;
+}
+
+interface PostComment {
+  id: string; postId: string; childId: string; authorName: string; authorAvatar?: string | null;
+  content: string; isActive: boolean; createdAt: string;
+}
+
+type TabType = "showcase" | "posts" | "about" | "friends" | "notifications" | "edit";
+
+// ======= POST CARD COMPONENT =======
+function PostCard({ post, isDark, isRTL, token, t, isLiked, expanded, commentOpen, commentInput,
+  onToggleExpand, onLike, onDelete, onToggleComments, onCommentChange, onSubmitComment, isSubmittingComment,
+}: {
+  post: ChildPost; isDark: boolean; isRTL: boolean; token: string; t: (k: string) => string;
+  isLiked: boolean; expanded: boolean; commentOpen: boolean; commentInput: string;
+  onToggleExpand: () => void; onLike: () => void; onDelete: () => void;
+  onToggleComments: () => void; onCommentChange: (v: string) => void; onSubmitComment: () => void;
+  isSubmittingComment: boolean;
+}) {
+  const { data: comments } = useQuery<PostComment[]>({
+    queryKey: ["post-comments", post.id],
+    queryFn: async () => {
+      const res = await fetch(`/api/child/posts/${post.id}/comments`, { headers: { Authorization: `Bearer ${token}` } });
+      if (!res.ok) throw new Error("Failed");
+      return (await res.json()).data;
+    },
+    enabled: commentOpen,
+  });
+
+  const needsTruncate = post.content && post.content.length > 200;
+  const displayContent = needsTruncate && !expanded ? post.content.slice(0, 200) + "..." : post.content;
+  const timeAgo = (dateStr: string) => {
+    const diff = Date.now() - new Date(dateStr).getTime();
+    const m = Math.floor(diff / 60000);
+    if (m < 1) return t("childProfile.posts.justNow");
+    if (m < 60) return `${m} ${t("childProfile.posts.minutesAgo")}`;
+    const h = Math.floor(m / 60);
+    if (h < 24) return `${h} ${t("childProfile.posts.hoursAgo")}`;
+    const d = Math.floor(h / 24);
+    return `${d} ${t("childProfile.posts.daysAgo")}`;
+  };
+
+  return (
+    <Card className={`border-0 shadow-lg overflow-hidden ${isDark ? "bg-gray-800" : "bg-white"}`}>
+      <CardContent className="p-4 space-y-3">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <Avatar className="w-9 h-9">
+              <AvatarImage src={post.authorAvatar || undefined} />
+              <AvatarFallback className="bg-purple-100 text-purple-600 font-bold text-sm">{post.authorName?.charAt(0)}</AvatarFallback>
+            </Avatar>
+            <div>
+              <p className={`text-sm font-semibold leading-tight ${isDark ? "text-white" : "text-gray-800"}`}>{post.authorName}</p>
+              <p className={`text-[10px] ${isDark ? "text-gray-500" : "text-gray-400"}`}>{timeAgo(post.createdAt)}</p>
+            </div>
+          </div>
+          <button onClick={onDelete} className="p-1.5 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors">
+            <Trash2 className="w-4 h-4 text-red-400" />
+          </button>
+        </div>
+
+        {/* Content */}
+        {post.content && (
+          <div>
+            <p className={`text-sm leading-relaxed whitespace-pre-wrap ${isDark ? "text-gray-300" : "text-gray-700"}`}>{displayContent}</p>
+            {needsTruncate && (
+              <button onClick={onToggleExpand} className="text-xs text-purple-500 font-medium mt-1">
+                {expanded ? t("childProfile.posts.showLess") : t("childProfile.posts.showMore")}
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Media Gallery */}
+        {post.mediaUrls && post.mediaUrls.length > 0 && (
+          <div className={`grid gap-1.5 rounded-xl overflow-hidden ${post.mediaUrls.length === 1 ? "" : post.mediaUrls.length === 2 ? "grid-cols-2" : "grid-cols-2"}`}>
+            {post.mediaUrls.map((url, i) => (
+              post.mediaTypes?.[i] === "video" ? (
+                <video key={i} src={url} controls className="w-full rounded-xl max-h-[300px] object-cover" />
+              ) : (
+                <img key={i} src={url} alt="" className="w-full rounded-xl max-h-[300px] object-cover cursor-pointer hover:opacity-90 transition-opacity" />
+              )
+            ))}
+          </div>
+        )}
+
+        {/* Actions */}
+        <div className={`flex items-center gap-1 pt-2 border-t ${isDark ? "border-gray-700" : "border-gray-100"}`}>
+          <button onClick={onLike}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-all ${isLiked ? "bg-pink-100 text-pink-600 dark:bg-pink-900/30 dark:text-pink-400" : isDark ? "text-gray-400 hover:bg-gray-700" : "text-gray-500 hover:bg-gray-100"}`}>
+            <ThumbsUp className={`w-3.5 h-3.5 ${isLiked ? "fill-current" : ""}`} />
+            {post.likesCount > 0 && post.likesCount}
+          </button>
+          <button onClick={onToggleComments}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-all ${commentOpen ? "bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400" : isDark ? "text-gray-400 hover:bg-gray-700" : "text-gray-500 hover:bg-gray-100"}`}>
+            <MessageCircle className="w-3.5 h-3.5" />
+            {post.commentsCount > 0 && post.commentsCount}
+          </button>
+          <div className="flex-1" />
+          <ShareMenu
+            url={`${typeof window !== "undefined" ? window.location.origin : ""}/child-post/${post.id}`}
+            title={post.authorName}
+            description={post.content?.slice(0, 100) || ""}
+            size="sm"
+            variant="ghost"
+          />
+        </div>
+
+        {/* Comments Section */}
+        {commentOpen && (
+          <div className="space-y-2.5 pt-1">
+            {comments && comments.length > 0 && (
+              <div className="space-y-2 max-h-[200px] overflow-y-auto">
+                {comments.map((c) => (
+                  <div key={c.id} className={`flex items-start gap-2 p-2 rounded-xl ${isDark ? "bg-gray-700/50" : "bg-gray-50"}`}>
+                    <Avatar className="w-6 h-6 flex-shrink-0">
+                      <AvatarImage src={c.authorAvatar || undefined} />
+                      <AvatarFallback className="bg-purple-100 text-purple-600 text-[10px] font-bold">{c.authorName?.charAt(0)}</AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-xs font-semibold ${isDark ? "text-white" : "text-gray-800"}`}>{c.authorName}</p>
+                      <p className={`text-xs ${isDark ? "text-gray-400" : "text-gray-600"}`}>{c.content}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="flex items-center gap-2">
+              <Input
+                value={commentInput}
+                onChange={(e) => onCommentChange(e.target.value)}
+                placeholder={t("childProfile.posts.commentPlaceholder")}
+                maxLength={500}
+                className={`flex-1 h-8 text-xs rounded-xl ${isDark ? "bg-gray-700 border-gray-600 text-white" : "bg-gray-50 border-gray-200"}`}
+                onKeyDown={(e) => { if (e.key === "Enter" && commentInput.trim()) onSubmitComment(); }}
+              />
+              <Button size="sm" className="h-8 px-3 rounded-xl bg-purple-500 text-white" disabled={!commentInput.trim() || isSubmittingComment}
+                onClick={onSubmitComment}>
+                {isSubmittingComment ? <Loader2 className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />}
+              </Button>
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
 
 // ======= MAIN COMPONENT =======
 export default function ChildProfile() {
@@ -83,6 +236,15 @@ export default function ChildProfile() {
   });
   const [bio, setBio] = useState("");
   const [interests, setInterests] = useState<string[]>([]);
+  const [postContent, setPostContent] = useState("");
+  const [postMediaUrls, setPostMediaUrls] = useState<string[]>([]);
+  const [postMediaTypes, setPostMediaTypes] = useState<string[]>([]);
+  const [isUploadingPostMedia, setIsUploadingPostMedia] = useState(false);
+  const [expandedPosts, setExpandedPosts] = useState<Set<string>>(new Set());
+  const [likedPosts, setLikedPosts] = useState<Record<string, boolean>>({});
+  const [commentInputs, setCommentInputs] = useState<Record<string, string>>({});
+  const [openComments, setOpenComments] = useState<Set<string>>(new Set());
+  const postMediaRef = useRef<HTMLInputElement>(null);
 
   // ======= QUERIES =======
   const { data: showcaseData, isLoading } = useQuery<ShowcaseData>({
@@ -146,6 +308,31 @@ export default function ChildProfile() {
     enabled: !!token,
   });
 
+  // Posts queries
+  const { data: postsData, isLoading: postsLoading } = useQuery<ChildPost[]>({
+    queryKey: ["child-my-posts"],
+    queryFn: async () => {
+      const res = await fetch("/api/child/posts", { headers: { Authorization: `Bearer ${token}` } });
+      if (!res.ok) throw new Error("Failed");
+      return (await res.json()).data;
+    },
+    enabled: !!token && activeTab === "posts",
+  });
+
+  // Check liked posts
+  useEffect(() => {
+    if (postsData && postsData.length > 0 && token) {
+      const postIds = postsData.map(p => p.id);
+      fetch("/api/child/posts/check-likes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ postIds }),
+      }).then(r => r.json()).then(res => {
+        if (res.success) setLikedPosts(res.data);
+      }).catch(() => {});
+    }
+  }, [postsData, token]);
+
   // ======= MUTATIONS =======
   const updateMutation = useMutation({
     mutationFn: async (data: typeof formData) => apiRequest("PUT", "/api/child/profile", data),
@@ -198,6 +385,79 @@ export default function ChildProfile() {
       queryClient.invalidateQueries({ queryKey: ["child-showcase"] });
     },
   });
+
+  // Post mutations
+  const createPostMutation = useMutation({
+    mutationFn: async (data: { content: string; mediaUrls: string[]; mediaTypes: string[] }) =>
+      apiRequest("POST", "/api/child/posts", data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["child-my-posts"] });
+      setPostContent("");
+      setPostMediaUrls([]);
+      setPostMediaTypes([]);
+      toast({ title: t("childProfile.posts.created") + " ✅" });
+    },
+  });
+
+  const deletePostMutation = useMutation({
+    mutationFn: async (postId: string) => {
+      const res = await fetch(`/api/child/posts/${postId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error("Failed");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["child-my-posts"] });
+      toast({ title: t("childProfile.posts.deleted") + " ✅" });
+    },
+  });
+
+  const likePostMutation = useMutation({
+    mutationFn: async (postId: string) => {
+      const res = await fetch(`/api/child/posts/${postId}/like`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error("Failed");
+      return (await res.json()) as { liked: boolean; likesCount: number };
+    },
+    onSuccess: (data, postId) => {
+      setLikedPosts(prev => ({ ...prev, [postId]: data.liked }));
+      queryClient.invalidateQueries({ queryKey: ["child-my-posts"] });
+    },
+  });
+
+  const commentPostMutation = useMutation({
+    mutationFn: async ({ postId, content }: { postId: string; content: string }) =>
+      apiRequest("POST", `/api/child/posts/${postId}/comment`, { content }),
+    onSuccess: (_, variables) => {
+      setCommentInputs(prev => ({ ...prev, [variables.postId]: "" }));
+      queryClient.invalidateQueries({ queryKey: ["post-comments", variables.postId] });
+      queryClient.invalidateQueries({ queryKey: ["child-my-posts"] });
+    },
+  });
+
+  const handlePostMediaUpload = async (files: FileList) => {
+    setIsUploadingPostMedia(true);
+    try {
+      const fd = new FormData();
+      Array.from(files).slice(0, 5).forEach(f => fd.append("media", f));
+      const res = await fetch("/api/child/posts/media", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: fd,
+      });
+      if (!res.ok) throw new Error("Upload failed");
+      const json = await res.json();
+      setPostMediaUrls(prev => [...prev, ...json.data.urls].slice(0, 5));
+      setPostMediaTypes(prev => [...prev, ...json.data.types].slice(0, 5));
+    } catch {
+      toast({ title: t("childProfile.uploadFailed"), variant: "destructive" });
+    } finally {
+      setIsUploadingPostMedia(false);
+    }
+  };
 
   const markNotifRead = useMutation({
     mutationFn: async (notifId: string) =>
@@ -465,6 +725,8 @@ export default function ChildProfile() {
         <div className="flex gap-1 max-w-2xl mx-auto">
           {([
             { key: "showcase" as TabType, icon: Trophy, label: t("childProfile.tabs.showcase") },
+            { key: "posts" as TabType, icon: PenSquare, label: t("childProfile.tabs.posts") },
+            { key: "about" as TabType, icon: Info, label: t("childProfile.tabs.about") },
             { key: "friends" as TabType, icon: Users, label: t("childProfile.tabs.friends") },
             { key: "notifications" as TabType, icon: Bell, label: t("childProfile.tabs.notifications"), badge: unreadNotifs },
             { key: "edit" as TabType, icon: Settings, label: t("childProfile.tabs.edit") },
@@ -611,13 +873,266 @@ export default function ChildProfile() {
                         {t("childProfile.shareProfile")}
                       </span>
                     </div>
-                    <Button size="sm" variant="outline" className="rounded-xl" onClick={handleShareProfile}>
-                      <Copy className="w-3.5 h-3.5 me-1" /> {t("childProfile.copyLink")}
-                    </Button>
+                    <ShareMenu
+                      url={`${typeof window !== "undefined" ? window.location.origin : ""}/child-public-profile/${sc?.child.shareCode || ""}`}
+                      title={sc?.child.name || ""}
+                      description={sc?.child.bio || t("childProfile.shareText")}
+                      size="sm"
+                      variant="outline"
+                      buttonLabel={t("childProfile.copyLink")}
+                    />
                   </div>
                   <p className={`text-xs mt-2 ${isDark ? "text-gray-500" : "text-gray-400"}`}>
                     {t("childProfile.shareDescription")}
                   </p>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
+
+          {/* ========== POSTS TAB ========== */}
+          {activeTab === "posts" && (
+            <motion.div key="posts" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-4">
+              {/* Create Post */}
+              <Card className={`border-0 shadow-lg ${isDark ? "bg-gray-800" : "bg-white"}`}>
+                <CardContent className="p-4 space-y-3">
+                  <div className="flex items-start gap-3">
+                    <Avatar className="w-10 h-10 flex-shrink-0">
+                      <AvatarImage src={currentAvatar || undefined} />
+                      <AvatarFallback className="bg-purple-100 text-purple-600 font-bold">{sc?.child.name?.charAt(0)}</AvatarFallback>
+                    </Avatar>
+                    <Textarea
+                      value={postContent}
+                      onChange={(e) => setPostContent(e.target.value)}
+                      placeholder={t("childProfile.posts.placeholder")}
+                      maxLength={2000}
+                      className={`min-h-[80px] resize-none rounded-xl flex-1 ${isDark ? "bg-gray-700 border-gray-600 text-white" : "bg-gray-50 border-gray-200"}`}
+                    />
+                  </div>
+
+                  {/* Media Preview */}
+                  {postMediaUrls.length > 0 && (
+                    <div className="flex gap-2 flex-wrap">
+                      {postMediaUrls.map((url, i) => (
+                        <div key={i} className="relative w-20 h-20 rounded-xl overflow-hidden">
+                          {postMediaTypes[i] === "video" ? (
+                            <video src={url} className="w-full h-full object-cover" />
+                          ) : (
+                            <img src={url} alt="" className="w-full h-full object-cover" />
+                          )}
+                          <button
+                            onClick={() => {
+                              setPostMediaUrls(prev => prev.filter((_, idx) => idx !== i));
+                              setPostMediaTypes(prev => prev.filter((_, idx) => idx !== i));
+                            }}
+                            className="absolute top-0.5 end-0.5 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-[10px]"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => postMediaRef.current?.click()}
+                        disabled={isUploadingPostMedia || postMediaUrls.length >= 5}
+                        className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-medium transition-all ${isDark ? "bg-gray-700 text-gray-300 hover:bg-gray-600" : "bg-gray-100 text-gray-600 hover:bg-gray-200"} disabled:opacity-50`}
+                      >
+                        {isUploadingPostMedia ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ImageIcon className="w-3.5 h-3.5" />}
+                        {t("childProfile.posts.addMedia")}
+                      </button>
+                      <input ref={postMediaRef} type="file" accept="image/*,video/*" multiple className="hidden"
+                        onChange={(e) => { if (e.target.files) handlePostMediaUpload(e.target.files); e.target.value = ""; }} />
+                      <span className={`text-[10px] ${isDark ? "text-gray-600" : "text-gray-400"}`}>{postContent.length}/2000</span>
+                    </div>
+                    <Button
+                      size="sm"
+                      className="rounded-xl bg-gradient-to-r from-purple-500 to-fuchsia-500 text-white"
+                      disabled={createPostMutation.isPending || (!postContent.trim() && postMediaUrls.length === 0)}
+                      onClick={() => createPostMutation.mutate({ content: postContent.trim(), mediaUrls: postMediaUrls, mediaTypes: postMediaTypes })}
+                    >
+                      {createPostMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Send className="w-3.5 h-3.5 me-1" /> {t("childProfile.posts.publish")}</>}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Posts Feed */}
+              {postsLoading ? (
+                <div className="flex justify-center py-8"><Loader2 className="w-8 h-8 animate-spin text-purple-500" /></div>
+              ) : (!postsData || postsData.length === 0) ? (
+                <div className="text-center py-10">
+                  <PenSquare className={`w-10 h-10 mx-auto mb-3 ${isDark ? "text-gray-600" : "text-gray-300"}`} />
+                  <p className={`text-sm ${isDark ? "text-gray-500" : "text-gray-400"}`}>{t("childProfile.posts.empty")}</p>
+                </div>
+              ) : (
+                postsData.map((post) => (
+                  <PostCard
+                    key={post.id}
+                    post={post}
+                    isDark={isDark}
+                    isRTL={isRTL}
+                    token={token!}
+                    t={t}
+                    isLiked={likedPosts[post.id] || false}
+                    expanded={expandedPosts.has(post.id)}
+                    commentOpen={openComments.has(post.id)}
+                    commentInput={commentInputs[post.id] || ""}
+                    onToggleExpand={() => setExpandedPosts(prev => { const n = new Set(prev); if (n.has(post.id)) n.delete(post.id); else n.add(post.id); return n; })}
+                    onLike={() => likePostMutation.mutate(post.id)}
+                    onDelete={() => deletePostMutation.mutate(post.id)}
+                    onToggleComments={() => setOpenComments(prev => { const n = new Set(prev); if (n.has(post.id)) n.delete(post.id); else n.add(post.id); return n; })}
+                    onCommentChange={(val) => setCommentInputs(prev => ({ ...prev, [post.id]: val }))}
+                    onSubmitComment={() => commentPostMutation.mutate({ postId: post.id, content: commentInputs[post.id] || "" })}
+                    isSubmittingComment={commentPostMutation.isPending}
+                  />
+                ))
+              )}
+            </motion.div>
+          )}
+
+          {/* ========== ABOUT TAB ========== */}
+          {activeTab === "about" && (
+            <motion.div key="about" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-4">
+              {/* About Me */}
+              {sc?.child.bio && (
+                <Card className={`border-0 shadow-lg ${isDark ? "bg-gray-800" : "bg-white"}`}>
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <User className="w-5 h-5 text-purple-500" />
+                      <h3 className={`font-bold ${isDark ? "text-white" : "text-gray-800"}`}>{t("childProfile.about.bio")}</h3>
+                    </div>
+                    <p className={`text-sm leading-relaxed ${isDark ? "text-gray-300" : "text-gray-600"}`}>{sc.child.bio}</p>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Personal Info */}
+              <Card className={`border-0 shadow-lg ${isDark ? "bg-gray-800" : "bg-white"}`}>
+                <CardContent className="p-4 space-y-3">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Info className="w-5 h-5 text-blue-500" />
+                    <h3 className={`font-bold ${isDark ? "text-white" : "text-gray-800"}`}>{t("childProfile.about.info")}</h3>
+                  </div>
+                  {sc?.child.schoolName && (
+                    <div className={`flex items-center gap-3 p-3 rounded-xl ${isDark ? "bg-gray-700/50" : "bg-gray-50"}`}>
+                      <School className="w-5 h-5 text-green-500 flex-shrink-0" />
+                      <div>
+                        <p className={`text-xs ${isDark ? "text-gray-500" : "text-gray-400"}`}>{t("childProfile.about.school")}</p>
+                        <p className={`text-sm font-medium ${isDark ? "text-white" : "text-gray-800"}`}>{sc.child.schoolName}</p>
+                      </div>
+                    </div>
+                  )}
+                  {sc?.child.academicGrade && (
+                    <div className={`flex items-center gap-3 p-3 rounded-xl ${isDark ? "bg-gray-700/50" : "bg-gray-50"}`}>
+                      <Award className="w-5 h-5 text-blue-500 flex-shrink-0" />
+                      <div>
+                        <p className={`text-xs ${isDark ? "text-gray-500" : "text-gray-400"}`}>{t("childProfile.about.grade")}</p>
+                        <p className={`text-sm font-medium ${isDark ? "text-white" : "text-gray-800"}`}>{t(`childProfile.grades.${sc.child.academicGrade}`)}</p>
+                      </div>
+                    </div>
+                  )}
+                  {sc?.child.governorate && (
+                    <div className={`flex items-center gap-3 p-3 rounded-xl ${isDark ? "bg-gray-700/50" : "bg-gray-50"}`}>
+                      <MapPin className="w-5 h-5 text-red-500 flex-shrink-0" />
+                      <div>
+                        <p className={`text-xs ${isDark ? "text-gray-500" : "text-gray-400"}`}>{t("childProfile.about.location")}</p>
+                        <p className={`text-sm font-medium ${isDark ? "text-white" : "text-gray-800"}`}>{sc.child.governorate}</p>
+                      </div>
+                    </div>
+                  )}
+                  {sc?.child.hobbies && (
+                    <div className={`flex items-center gap-3 p-3 rounded-xl ${isDark ? "bg-gray-700/50" : "bg-gray-50"}`}>
+                      <Heart className="w-5 h-5 text-pink-500 flex-shrink-0" />
+                      <div>
+                        <p className={`text-xs ${isDark ? "text-gray-500" : "text-gray-400"}`}>{t("childProfile.about.hobbies")}</p>
+                        <p className={`text-sm font-medium ${isDark ? "text-white" : "text-gray-800"}`}>{sc.child.hobbies}</p>
+                      </div>
+                    </div>
+                  )}
+                  {sc?.child.joinedAt && (
+                    <div className={`flex items-center gap-3 p-3 rounded-xl ${isDark ? "bg-gray-700/50" : "bg-gray-50"}`}>
+                      <Clock className="w-5 h-5 text-gray-500 flex-shrink-0" />
+                      <div>
+                        <p className={`text-xs ${isDark ? "text-gray-500" : "text-gray-400"}`}>{t("childProfile.about.joined")}</p>
+                        <p className={`text-sm font-medium ${isDark ? "text-white" : "text-gray-800"}`}>
+                          {new Date(sc.child.joinedAt).toLocaleDateString(isRTL ? "ar-EG" : "en-US", { year: "numeric", month: "long", day: "numeric" })}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Interests */}
+              {sc?.child.interests && sc.child.interests.length > 0 && (
+                <Card className={`border-0 shadow-lg ${isDark ? "bg-gray-800" : "bg-white"}`}>
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Sparkles className="w-5 h-5 text-yellow-500" />
+                      <h3 className={`font-bold ${isDark ? "text-white" : "text-gray-800"}`}>{t("childProfile.about.interests")}</h3>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {sc.child.interests.map((interest) => (
+                        <span key={interest} className={`px-3 py-1.5 rounded-full text-xs font-medium ${isDark ? "bg-purple-900/30 text-purple-300 border border-purple-800/30" : "bg-purple-100 text-purple-700"}`}>
+                          #{t(`childProfile.interest.${interest}`)}
+                        </span>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Stats Summary */}
+              <Card className={`border-0 shadow-lg ${isDark ? "bg-gray-800" : "bg-white"}`}>
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Trophy className="w-5 h-5 text-yellow-500" />
+                    <h3 className={`font-bold ${isDark ? "text-white" : "text-gray-800"}`}>{t("childProfile.about.stats")}</h3>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    {[
+                      { icon: Star, value: sc?.stats.totalPoints || 0, label: t("childProfile.about.totalPoints"), color: "text-yellow-500", bg: isDark ? "bg-yellow-900/20" : "bg-yellow-50" },
+                      { icon: Sparkles, value: sc?.stats.tasksCompleted || 0, label: t("childProfile.stats.tasks"), color: "text-green-500", bg: isDark ? "bg-green-900/20" : "bg-green-50" },
+                      { icon: Gamepad2, value: sc?.stats.gamesPlayed || 0, label: t("childProfile.stats.games"), color: "text-blue-500", bg: isDark ? "bg-blue-900/20" : "bg-blue-50" },
+                      { icon: TreePine, value: sc?.stats.treeStage || 1, label: t("childProfile.treeLevel"), color: "text-emerald-500", bg: isDark ? "bg-emerald-900/20" : "bg-emerald-50" },
+                      { icon: Flame, value: sc?.stats.streak || 0, label: t("childProfile.about.streak"), color: "text-orange-500", bg: isDark ? "bg-orange-900/20" : "bg-orange-50" },
+                      { icon: Droplets, value: sc?.stats.wateringsCount || 0, label: t("childProfile.stats.waterings"), color: "text-cyan-500", bg: isDark ? "bg-cyan-900/20" : "bg-cyan-50" },
+                    ].map((s, i) => (
+                      <div key={i} className={`flex items-center gap-3 p-3 rounded-xl ${s.bg} ${isDark ? "border border-gray-700" : "border border-gray-100"}`}>
+                        <s.icon className={`w-5 h-5 ${s.color}`} />
+                        <div>
+                          <p className={`text-lg font-bold ${isDark ? "text-white" : "text-gray-800"}`}>{s.value}</p>
+                          <p className={`text-[10px] ${isDark ? "text-gray-500" : "text-gray-400"}`}>{s.label}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Share Profile */}
+              <Card className={`border-0 shadow-lg ${isDark ? "bg-gray-800" : "bg-white"}`}>
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Share2 className="w-5 h-5 text-blue-500" />
+                    <h3 className={`font-bold ${isDark ? "text-white" : "text-gray-800"}`}>{t("childProfile.shareProfile")}</h3>
+                  </div>
+                  <div className={`flex items-center gap-3 p-3 rounded-xl ${isDark ? "bg-gray-700/50" : "bg-gray-50"}`}>
+                    <div className="flex-1">
+                      <p className={`text-xs ${isDark ? "text-gray-400" : "text-gray-500"}`}>{t("childProfile.about.shareCode")}</p>
+                      <p className={`text-sm font-mono font-bold ${isDark ? "text-white" : "text-gray-800"}`}>{sc?.child.shareCode}</p>
+                    </div>
+                    <ShareMenu
+                      url={`${typeof window !== "undefined" ? window.location.origin : ""}/child-public-profile/${sc?.child.shareCode || ""}`}
+                      title={sc?.child.name || ""}
+                      description={sc?.child.bio || t("childProfile.shareText")}
+                      size="sm"
+                    />
+                  </div>
                 </CardContent>
               </Card>
             </motion.div>
