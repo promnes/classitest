@@ -76,6 +76,8 @@ import {
   markVerifiedAtomic,
 } from "../services/otpService";
 import { NOTIFICATION_TYPES, NOTIFICATION_STYLES, NOTIFICATION_PRIORITIES } from "../../shared/notificationTypes";
+import { createPresignedUpload, finalizeUpload } from "../services/uploadService";
+import { finalizeUploadSchema } from "../../shared/media";
 
 const db = storage.db;
 const stripeSecret = process.env.STRIPE_SECRET_KEY;
@@ -3500,6 +3502,77 @@ export async function registerParentRoutes(app: Express) {
       res.json(successResponse({ updated: true }));
     } catch (error: any) {
       res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to update social links"));
+    }
+  });
+
+  // ====== PARENT UPLOADS (presign / proxy / finalize) ======
+  app.post("/api/parent/uploads/presign", authMiddleware, async (req, res) => {
+    try {
+      const parentId = (req as any).user.id;
+      const body = z.object({
+        contentType: z.string().min(1),
+        size: z.number().int().positive(),
+        purpose: z.string().min(1),
+        originalName: z.string().min(1),
+      }).parse(req.body);
+      const result = await createPresignedUpload({
+        actor: { type: "parent", id: parentId },
+        purpose: body.purpose,
+        contentType: body.contentType,
+        size: body.size,
+      });
+      res.json({ success: true, data: result });
+    } catch (error: any) {
+      if (error instanceof z.ZodError) return res.status(400).json({ success: false, message: error.message });
+      if (error?.message === "POLICY_REJECTED_MIME" || error?.message === "POLICY_REJECTED_SIZE")
+        return res.status(400).json({ success: false, message: error.message });
+      console.error("Parent upload presign error:", error);
+      res.status(500).json({ success: false, message: "Upload presign failed" });
+    }
+  });
+
+  app.post("/api/parent/uploads/finalize", authMiddleware, async (req, res) => {
+    try {
+      const parentId = (req as any).user.id;
+      const body = finalizeUploadSchema.parse(req.body);
+      const media = await finalizeUpload({
+        actor: { type: "parent", id: parentId },
+        input: body,
+      });
+      res.json({ success: true, data: media });
+    } catch (error: any) {
+      if (error instanceof z.ZodError) return res.status(400).json({ success: false, message: error.message });
+      if (error?.message === "OBJECT_NOT_FOUND") return res.status(400).json({ success: false, message: "File not found" });
+      console.error("Parent upload finalize error:", error);
+      res.status(500).json({ success: false, message: "Upload finalize failed" });
+    }
+  });
+
+  app.put("/api/parent/uploads/proxy", authMiddleware, async (req, res) => {
+    try {
+      const uploadURL = String(req.headers["x-upload-url"] || "").trim();
+      if (!uploadURL) return res.status(400).json({ success: false, message: "Upload URL required" });
+      let parsed: URL;
+      try { parsed = new URL(uploadURL); } catch { return res.status(400).json({ success: false, message: "Invalid upload URL" }); }
+      const allowedHosts = new Set<string>(["127.0.0.1", "localhost", "minio", String(process.env["MINIO_ENDPOINT"] || "").trim()].filter(Boolean));
+      if (!allowedHosts.has(parsed.hostname)) return res.status(400).json({ success: false, message: "Upload host not allowed" });
+      const upstreamRes = await fetch(uploadURL, {
+        method: "PUT",
+        headers: {
+          "Content-Type": String(req.headers["content-type"] || "application/octet-stream"),
+          ...(req.headers["content-length"] ? { "Content-Length": String(req.headers["content-length"]) } : {}),
+        },
+        body: req as any,
+        duplex: "half",
+      } as any);
+      if (!upstreamRes.ok) {
+        const details = await upstreamRes.text().catch(() => "");
+        return res.status(502).json({ success: false, message: "Upload to storage failed", details: details.slice(0, 500) });
+      }
+      return res.json({ success: true });
+    } catch (error: any) {
+      console.error("Parent upload proxy error:", error);
+      return res.status(500).json({ success: false, message: "Upload proxy failed" });
     }
   });
 }

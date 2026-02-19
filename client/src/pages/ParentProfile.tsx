@@ -521,7 +521,7 @@ export default function ParentProfile() {
           <button
             onClick={() => coverInputRef.current?.click()}
             disabled={coverUploading}
-            className="absolute bottom-3 start-3 bg-black/50 hover:bg-black/70 text-white rounded-full px-3 py-1.5 text-xs flex items-center gap-1.5 transition-all backdrop-blur-sm"
+            className="absolute top-3 end-3 z-20 bg-black/50 hover:bg-black/70 text-white rounded-full px-3 py-1.5 text-xs flex items-center gap-1.5 transition-all backdrop-blur-sm shadow-lg"
           >
             {coverUploading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Camera className="h-3.5 w-3.5" />}
             {t("pp.changeCover")}
