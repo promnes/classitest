@@ -274,41 +274,107 @@ export function GrowthTree() {
   const getStageTranslationKey = (name: string) =>
     `tree${name.charAt(0).toUpperCase() + name.slice(1)}`;
 
+  // Current stage icon for collapsed preview
+  const currentStageIdx = currentStage - 1;
+  const CurrentStageIcon = TREE_STAGE_ICONS[currentStageIdx];
+  const currentStageColor = STAGE_COLORS[currentStageIdx] || "#4CAF50";
+  const currentCustomIcon = stageIcons[currentStageIdx] && stageIcons[currentStageIdx].startsWith("/uploads/") ? stageIcons[currentStageIdx] : null;
+
   return (
     <div className={`rounded-3xl overflow-hidden ${isDark ? "bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900" : "bg-gradient-to-b from-green-50 via-emerald-50 to-green-100"} shadow-2xl border ${isDark ? "border-gray-700" : "border-green-200"}`}>
-      {/* Header with expand/collapse toggle */}
+      {/* Collapsed: compact card with current stage icon */}
       <div
-        className="px-5 pt-5 pb-3 text-center cursor-pointer select-none"
+        className="px-5 pt-4 pb-3 cursor-pointer select-none"
         onClick={() => setIsExpanded((prev) => !prev)}
       >
-        <div className="flex items-center justify-center gap-2 mb-1">
-          <TreePine className="w-5 h-5 text-green-500" />
-          <h2 className={`text-lg font-bold ${isDark ? "text-white" : "text-gray-800"}`}>
-            {t("growthTree")}
-          </h2>
-          <motion.div
-            animate={{ rotate: isExpanded ? 180 : 0 }}
-            transition={{ duration: 0.3 }}
-          >
-            <ChevronDown className={`w-5 h-5 ${isDark ? "text-gray-400" : "text-gray-500"}`} />
-          </motion.div>
-        </div>
-        <p className={`text-xs ${isDark ? "text-gray-400" : "text-gray-500"}`}>
-          {t("treeLevel")} {currentStage}/{totalStages} • {t(stageKey)}
-          {!isExpanded && (
-            <span className={`ml-2 ${isDark ? "text-green-400" : "text-green-600"}`}>
-              — {t("tapToExpand")}
-            </span>
-          )}
-        </p>
+        {!isExpanded ? (
+          /* ====== COLLAPSED STATE — show only current stage ====== */
+          <div className="flex items-center gap-3">
+            {/* Current stage icon */}
+            <motion.div
+              className="relative flex-shrink-0 rounded-full flex items-center justify-center"
+              style={{
+                width: 56,
+                height: 56,
+                background: `radial-gradient(circle at 35% 35%, ${currentStageColor}ee, ${currentStageColor}88)`,
+                boxShadow: `0 0 16px ${currentStageColor}55`,
+              }}
+              animate={{ scale: [1, 1.05, 1] }}
+              transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+            >
+              {currentCustomIcon ? (
+                <img src={currentCustomIcon} alt="" className="w-9 h-9 object-contain rounded-full" />
+              ) : (
+                CurrentStageIcon && <CurrentStageIcon size={36} />
+              )}
+              <motion.div
+                className="absolute inset-[-3px] rounded-full border-2"
+                style={{ borderColor: currentStageColor }}
+                animate={{ scale: [1, 1.25, 1], opacity: [0.7, 0, 0.7] }}
+                transition={{ duration: 2, repeat: Infinity }}
+              />
+            </motion.div>
+
+            {/* Info */}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-1.5">
+                <TreePine className="w-4 h-4 text-green-500 flex-shrink-0" />
+                <h2 className={`text-base font-bold truncate ${isDark ? "text-white" : "text-gray-800"}`}>
+                  {t("growthTree")}
+                </h2>
+              </div>
+              <p className={`text-xs mt-0.5 ${isDark ? "text-gray-400" : "text-gray-500"}`}>
+                {t("treeLevel")} {currentStage}/{totalStages} • {t(stageKey)}
+              </p>
+              {/* Mini progress bar */}
+              <div className={`mt-1.5 h-1.5 rounded-full ${isDark ? "bg-gray-700" : "bg-gray-200"} overflow-hidden`}>
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-green-400 via-emerald-500 to-teal-500"
+                  style={{ width: `${Math.min(100, progress)}%`, transition: "width 0.6s ease" }}
+                />
+              </div>
+            </div>
+
+            {/* Expand indicator */}
+            <motion.div
+              animate={{ rotate: 0 }}
+              className="flex-shrink-0"
+            >
+              <ChevronDown className={`w-5 h-5 ${isDark ? "text-gray-400" : "text-gray-500"}`} />
+            </motion.div>
+          </div>
+        ) : (
+          /* ====== EXPANDED STATE — header ====== */
+          <div>
+            <div className="flex items-center justify-center gap-2 mb-1">
+              <TreePine className="w-5 h-5 text-green-500" />
+              <h2 className={`text-lg font-bold ${isDark ? "text-white" : "text-gray-800"}`}>
+                {t("growthTree")}
+              </h2>
+              <motion.div
+                animate={{ rotate: 180 }}
+                transition={{ duration: 0.3 }}
+              >
+                <ChevronDown className={`w-5 h-5 ${isDark ? "text-gray-400" : "text-gray-500"}`} />
+              </motion.div>
+            </div>
+            <p className={`text-xs text-center ${isDark ? "text-gray-400" : "text-gray-500"}`}>
+              {t("treeLevel")} {currentStage}/{totalStages} • {t(stageKey)}
+            </p>
+          </div>
+        )}
       </div>
 
-      {/* 3D Tree Scene */}
+      {/* 3D Tree Scene — only when expanded */}
+      <AnimatePresence initial={false}>
+      {isExpanded && (
       <motion.div
         ref={containerRef}
         className="relative mx-auto select-none cursor-grab active:cursor-grabbing"
         style={{ width: "100%", perspective: "800px" }}
-        animate={{ height: isExpanded ? 440 : 260 }}
+        initial={{ height: 0, opacity: 0 }}
+        animate={{ height: 440, opacity: 1 }}
+        exit={{ height: 0, opacity: 0 }}
         transition={{ duration: 0.35, ease: "easeInOut" }}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
@@ -574,6 +640,8 @@ export function GrowthTree() {
           })()}
         </AnimatePresence>
       </motion.div>
+      )}
+      </AnimatePresence>
 
       {/* Expandable sections: watering, progress, stats */}
       <AnimatePresence initial={false}>
