@@ -39,10 +39,13 @@ import {
   gamePlayHistory,
   childFriendships,
   childFriendNotifications,
+  childFollows,
+  schools,
+  schoolTeachers,
 } from "../../shared/schema";
 import bcrypt from "bcrypt";
 import crypto from "crypto";
-import { eq, and, or, desc, sql, count } from "drizzle-orm";
+import { eq, and, or, desc, sql, count, ilike, ne } from "drizzle-orm";
 import jwt from "jsonwebtoken";
 import { authMiddleware, JWT_SECRET } from "./middleware";
 import { childLinkLimiter, childLoginRequestLimiter, childLoginStatusLimiter } from "../utils/rateLimiters";
@@ -3460,6 +3463,408 @@ export async function registerChildRoutes(app: Express) {
     } catch (error: any) {
       console.error("Notify achievement error:", error);
       res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed"));
+    }
+  });
+
+  // ===== FOLLOW SYSTEM (نظام المتابعة) =====
+
+  // Follow a child, school, or teacher
+  app.post("/api/child/follow", authMiddleware, async (req: any, res) => {
+    try {
+      const childId = req.user.childId;
+      const { followingId, followingType } = req.body;
+
+      if (!followingId || !followingType) {
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Missing followingId or followingType"));
+      }
+      if (!["child", "school", "teacher"].includes(followingType)) {
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Invalid followingType"));
+      }
+      // Can't follow yourself
+      if (followingType === "child" && followingId === childId) {
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Cannot follow yourself"));
+      }
+
+      // Verify the target exists
+      if (followingType === "child") {
+        const target = await db.select({ id: children.id }).from(children).where(eq(children.id, followingId));
+        if (!target.length) return res.status(404).json(errorResponse(ErrorCode.NOT_FOUND, "Child not found"));
+      } else if (followingType === "school") {
+        const target = await db.select({ id: schools.id }).from(schools).where(and(eq(schools.id, followingId), eq(schools.isActive, true)));
+        if (!target.length) return res.status(404).json(errorResponse(ErrorCode.NOT_FOUND, "School not found"));
+      } else if (followingType === "teacher") {
+        const target = await db.select({ id: schoolTeachers.id }).from(schoolTeachers).where(and(eq(schoolTeachers.id, followingId), eq(schoolTeachers.isActive, true)));
+        if (!target.length) return res.status(404).json(errorResponse(ErrorCode.NOT_FOUND, "Teacher not found"));
+      }
+
+      // Check if already following
+      const existing = await db.select({ id: childFollows.id }).from(childFollows)
+        .where(and(
+          eq(childFollows.followerId, childId),
+          eq(childFollows.followingId, followingId),
+          eq(childFollows.followingType, followingType)
+        ));
+      if (existing.length) {
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Already following"));
+      }
+
+      const [follow] = await db.insert(childFollows).values({
+        followerId: childId,
+        followingId,
+        followingType,
+      }).returning();
+
+      res.json(successResponse({ follow }));
+    } catch (error: any) {
+      console.error("Follow error:", error);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to follow"));
+    }
+  });
+
+  // Unfollow
+  app.delete("/api/child/follow", authMiddleware, async (req: any, res) => {
+    try {
+      const childId = req.user.childId;
+      const { followingId, followingType } = req.body;
+
+      if (!followingId || !followingType) {
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Missing followingId or followingType"));
+      }
+
+      const deleted = await db.delete(childFollows)
+        .where(and(
+          eq(childFollows.followerId, childId),
+          eq(childFollows.followingId, followingId),
+          eq(childFollows.followingType, followingType)
+        )).returning();
+
+      if (!deleted.length) {
+        return res.status(404).json(errorResponse(ErrorCode.NOT_FOUND, "Follow not found"));
+      }
+
+      res.json(successResponse({ unfollowed: true }));
+    } catch (error: any) {
+      console.error("Unfollow error:", error);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to unfollow"));
+    }
+  });
+
+  // Get who the child is following (with optional type filter)
+  app.get("/api/child/following", authMiddleware, async (req: any, res) => {
+    try {
+      const childId = req.user.childId;
+      const type = req.query.type as string | undefined; // 'child', 'school', 'teacher', or undefined = all
+
+      const conditions = [eq(childFollows.followerId, childId)];
+      if (type && ["child", "school", "teacher"].includes(type)) {
+        conditions.push(eq(childFollows.followingType, type));
+      }
+
+      const follows = await db.select().from(childFollows).where(and(...conditions)).orderBy(desc(childFollows.createdAt));
+
+      // Enrich with entity details
+      const enriched = await Promise.all(follows.map(async (f) => {
+        if (f.followingType === "child") {
+          const [child] = await db.select({
+            id: children.id, name: children.name, avatarUrl: children.avatarUrl,
+            schoolName: children.schoolName, governorate: children.governorate, totalPoints: children.totalPoints,
+          }).from(children).where(eq(children.id, f.followingId));
+          return { ...f, entity: child || null };
+        } else if (f.followingType === "school") {
+          const [school] = await db.select({
+            id: schools.id, name: schools.name, nameAr: schools.nameAr,
+            imageUrl: schools.imageUrl, governorate: schools.governorate,
+            totalStudents: schools.totalStudents, totalTeachers: schools.totalTeachers,
+          }).from(schools).where(eq(schools.id, f.followingId));
+          return { ...f, entity: school || null };
+        } else if (f.followingType === "teacher") {
+          const [teacher] = await db.select({
+            id: schoolTeachers.id, name: schoolTeachers.name, avatarUrl: schoolTeachers.avatarUrl,
+            subject: schoolTeachers.subject, bio: schoolTeachers.bio,
+          }).from(schoolTeachers).where(eq(schoolTeachers.id, f.followingId));
+          return { ...f, entity: teacher || null };
+        }
+        return { ...f, entity: null };
+      }));
+
+      res.json(successResponse({ following: enriched }));
+    } catch (error: any) {
+      console.error("Get following error:", error);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed"));
+    }
+  });
+
+  // Get child's followers (other children who follow this child)
+  app.get("/api/child/followers", authMiddleware, async (req: any, res) => {
+    try {
+      const childId = req.user.childId;
+
+      const followers = await db.select({
+        id: childFollows.id,
+        followerId: childFollows.followerId,
+        createdAt: childFollows.createdAt,
+      }).from(childFollows)
+        .where(and(eq(childFollows.followingId, childId), eq(childFollows.followingType, "child")))
+        .orderBy(desc(childFollows.createdAt));
+
+      // Enrich with child details
+      const enriched = await Promise.all(followers.map(async (f) => {
+        const [child] = await db.select({
+          id: children.id, name: children.name, avatarUrl: children.avatarUrl,
+          schoolName: children.schoolName, governorate: children.governorate, totalPoints: children.totalPoints,
+        }).from(children).where(eq(children.id, f.followerId));
+        return { ...f, child: child || null };
+      }));
+
+      res.json(successResponse({ followers: enriched }));
+    } catch (error: any) {
+      console.error("Get followers error:", error);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed"));
+    }
+  });
+
+  // Get follow counts for current child
+  app.get("/api/child/follow-counts", authMiddleware, async (req: any, res) => {
+    try {
+      const childId = req.user.childId;
+
+      const [followingCount] = await db.select({ count: count() }).from(childFollows)
+        .where(eq(childFollows.followerId, childId));
+
+      const [followersCount] = await db.select({ count: count() }).from(childFollows)
+        .where(and(eq(childFollows.followingId, childId), eq(childFollows.followingType, "child")));
+
+      res.json(successResponse({
+        followingCount: followingCount?.count || 0,
+        followersCount: followersCount?.count || 0,
+      }));
+    } catch (error: any) {
+      console.error("Follow counts error:", error);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed"));
+    }
+  });
+
+  // Check if following specific entities
+  app.post("/api/child/follow-check", authMiddleware, async (req: any, res) => {
+    try {
+      const childId = req.user.childId;
+      const { targets } = req.body; // [{ id, type }]
+
+      if (!targets || !Array.isArray(targets)) {
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Missing targets"));
+      }
+
+      const results: Record<string, boolean> = {};
+      for (const t of targets) {
+        const existing = await db.select({ id: childFollows.id }).from(childFollows)
+          .where(and(
+            eq(childFollows.followerId, childId),
+            eq(childFollows.followingId, t.id),
+            eq(childFollows.followingType, t.type)
+          ));
+        results[`${t.type}:${t.id}`] = existing.length > 0;
+      }
+
+      res.json(successResponse({ follows: results }));
+    } catch (error: any) {
+      console.error("Follow check error:", error);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed"));
+    }
+  });
+
+  // ===== SEARCH & DISCOVER (البحث والاكتشاف) =====
+  app.get("/api/child/search", authMiddleware, async (req: any, res) => {
+    try {
+      const childId = req.user.childId;
+      const q = (req.query.q as string || "").trim();
+      const type = req.query.type as string || "all"; // all, children, schools, teachers
+
+      if (q.length < 2) {
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Query too short (min 2 chars)"));
+      }
+
+      const pattern = `%${q}%`;
+      const results: any = {};
+
+      // Search children
+      if (type === "all" || type === "children") {
+        const childResults = await db.select({
+          id: children.id, name: children.name, avatarUrl: children.avatarUrl,
+          schoolName: children.schoolName, governorate: children.governorate,
+          totalPoints: children.totalPoints, bio: children.bio,
+        }).from(children)
+          .where(and(
+            ne(children.id, childId),
+            eq(children.profilePublic, true),
+            or(
+              ilike(children.name, pattern),
+              ilike(sql`COALESCE(${children.schoolName}, '')`, pattern),
+              ilike(sql`COALESCE(${children.governorate}, '')`, pattern),
+              ilike(sql`COALESCE(${children.bio}, '')`, pattern),
+            )
+          ))
+          .limit(20);
+
+        // Check follow status for children
+        const childrenWithFollow = await Promise.all(childResults.map(async (c) => {
+          const [follow] = await db.select({ id: childFollows.id }).from(childFollows)
+            .where(and(
+              eq(childFollows.followerId, childId),
+              eq(childFollows.followingId, c.id),
+              eq(childFollows.followingType, "child")
+            ));
+          return { ...c, isFollowing: !!follow };
+        }));
+
+        results.children = childrenWithFollow;
+      }
+
+      // Search schools
+      if (type === "all" || type === "schools") {
+        const schoolResults = await db.select({
+          id: schools.id, name: schools.name, nameAr: schools.nameAr,
+          imageUrl: schools.imageUrl, governorate: schools.governorate,
+          totalStudents: schools.totalStudents, totalTeachers: schools.totalTeachers,
+          description: schools.description,
+        }).from(schools)
+          .where(and(
+            eq(schools.isActive, true),
+            or(
+              ilike(schools.name, pattern),
+              ilike(sql`COALESCE(${schools.nameAr}, '')`, pattern),
+              ilike(sql`COALESCE(${schools.governorate}, '')`, pattern),
+              ilike(sql`COALESCE(${schools.description}, '')`, pattern),
+              ilike(sql`COALESCE(${schools.city}, '')`, pattern),
+            )
+          ))
+          .limit(20);
+
+        const schoolsWithFollow = await Promise.all(schoolResults.map(async (s) => {
+          const [follow] = await db.select({ id: childFollows.id }).from(childFollows)
+            .where(and(
+              eq(childFollows.followerId, childId),
+              eq(childFollows.followingId, s.id),
+              eq(childFollows.followingType, "school")
+            ));
+          return { ...s, isFollowing: !!follow };
+        }));
+
+        results.schools = schoolsWithFollow;
+      }
+
+      // Search teachers
+      if (type === "all" || type === "teachers") {
+        const teacherResults = await db.select({
+          id: schoolTeachers.id, name: schoolTeachers.name, avatarUrl: schoolTeachers.avatarUrl,
+          subject: schoolTeachers.subject, bio: schoolTeachers.bio,
+        }).from(schoolTeachers)
+          .where(and(
+            eq(schoolTeachers.isActive, true),
+            or(
+              ilike(schoolTeachers.name, pattern),
+              ilike(sql`COALESCE(${schoolTeachers.subject}, '')`, pattern),
+              ilike(sql`COALESCE(${schoolTeachers.bio}, '')`, pattern),
+            )
+          ))
+          .limit(20);
+
+        // Enrich teachers with school name
+        const teachersEnriched = await Promise.all(teacherResults.map(async (t) => {
+          const [school] = await db.select({ name: schools.name, nameAr: schools.nameAr })
+            .from(schools).where(eq(schools.id, sql`(SELECT school_id FROM school_teachers WHERE id = ${t.id})`));
+          const [follow] = await db.select({ id: childFollows.id }).from(childFollows)
+            .where(and(
+              eq(childFollows.followerId, childId),
+              eq(childFollows.followingId, t.id),
+              eq(childFollows.followingType, "teacher")
+            ));
+          return { ...t, schoolName: school?.name || null, schoolNameAr: school?.nameAr || null, isFollowing: !!follow };
+        }));
+
+        results.teachers = teachersEnriched;
+      }
+
+      res.json(successResponse(results));
+    } catch (error: any) {
+      console.error("Search error:", error);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Search failed"));
+    }
+  });
+
+  // Discover: Get popular/trending entities to follow
+  app.get("/api/child/discover", authMiddleware, async (req: any, res) => {
+    try {
+      const childId = req.user.childId;
+
+      // Popular children (by points, excluding self)
+      const popularChildren = await db.select({
+        id: children.id, name: children.name, avatarUrl: children.avatarUrl,
+        schoolName: children.schoolName, governorate: children.governorate,
+        totalPoints: children.totalPoints,
+      }).from(children)
+        .where(and(ne(children.id, childId), eq(children.profilePublic, true)))
+        .orderBy(desc(children.totalPoints))
+        .limit(10);
+
+      const childrenWithFollow = await Promise.all(popularChildren.map(async (c) => {
+        const [follow] = await db.select({ id: childFollows.id }).from(childFollows)
+          .where(and(
+            eq(childFollows.followerId, childId),
+            eq(childFollows.followingId, c.id),
+            eq(childFollows.followingType, "child")
+          ));
+        return { ...c, isFollowing: !!follow };
+      }));
+
+      // Active schools
+      const activeSchools = await db.select({
+        id: schools.id, name: schools.name, nameAr: schools.nameAr,
+        imageUrl: schools.imageUrl, governorate: schools.governorate,
+        totalStudents: schools.totalStudents, totalTeachers: schools.totalTeachers,
+      }).from(schools)
+        .where(eq(schools.isActive, true))
+        .orderBy(desc(schools.activityScore))
+        .limit(10);
+
+      const schoolsWithFollow = await Promise.all(activeSchools.map(async (s) => {
+        const [follow] = await db.select({ id: childFollows.id }).from(childFollows)
+          .where(and(
+            eq(childFollows.followerId, childId),
+            eq(childFollows.followingId, s.id),
+            eq(childFollows.followingType, "school")
+          ));
+        return { ...s, isFollowing: !!follow };
+      }));
+
+      // Active teachers
+      const activeTeachers = await db.select({
+        id: schoolTeachers.id, name: schoolTeachers.name, avatarUrl: schoolTeachers.avatarUrl,
+        subject: schoolTeachers.subject, bio: schoolTeachers.bio,
+      }).from(schoolTeachers)
+        .where(eq(schoolTeachers.isActive, true))
+        .orderBy(desc(schoolTeachers.activityScore))
+        .limit(10);
+
+      const teachersWithFollow = await Promise.all(activeTeachers.map(async (t) => {
+        const [school] = await db.select({ name: schools.name, nameAr: schools.nameAr })
+          .from(schools).where(eq(schools.id, sql`(SELECT school_id FROM school_teachers WHERE id = ${t.id})`));
+        const [follow] = await db.select({ id: childFollows.id }).from(childFollows)
+          .where(and(
+            eq(childFollows.followerId, childId),
+            eq(childFollows.followingId, t.id),
+            eq(childFollows.followingType, "teacher")
+          ));
+        return { ...t, schoolName: school?.name || null, schoolNameAr: school?.nameAr || null, isFollowing: !!follow };
+      }));
+
+      res.json(successResponse({
+        children: childrenWithFollow,
+        schools: schoolsWithFollow,
+        teachers: teachersWithFollow,
+      }));
+    } catch (error: any) {
+      console.error("Discover error:", error);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Discover failed"));
     }
   });
 

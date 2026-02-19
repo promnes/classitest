@@ -2140,7 +2140,34 @@
       "photography": "التصوير",
       "nature": "الطبيعة",
       "robotics": "الروبوتات"
-    }
+    },
+    "followers": "المتابعون",
+    "followingCount": "أتابعهم",
+    "discoverButton": "اكتشف وابحث"
+  },
+  "discover": {
+    "title": "اكتشف وابحث",
+    "searchPlaceholder": "ابحث عن أطفال، مدارس، معلمين...",
+    "filters": {
+      "all": "الكل",
+      "children": "أطفال",
+      "schools": "مدارس",
+      "teachers": "معلمين"
+    },
+    "follow": "تابع",
+    "following": "متابَع",
+    "followed": "تمت المتابعة",
+    "unfollowed": "تم إلغاء المتابعة",
+    "students": "طالب",
+    "noResults": "لا توجد نتائج",
+    "startSearching": "ابحث أو اكتشف الحسابات الشائعة",
+    "tryDifferentSearch": "جرب كلمة بحث مختلفة",
+    "popularChildren": "أطفال مميزون",
+    "activeSchools": "مدارس نشطة",
+    "activeTeachers": "معلمون نشطون",
+    "childrenResults": "أطفال",
+    "schoolsResults": "مدارس",
+    "teachersResults": "معلمون"
   },
   "parentDashboard": {
     "welcomeUser": "مرحباً {{name}}",

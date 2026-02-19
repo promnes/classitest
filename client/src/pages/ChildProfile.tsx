@@ -6,7 +6,7 @@ import {
   ArrowRight, ArrowLeft, User, Camera, Calendar, School, Heart,
   Save, Loader2, Star, Trophy, Sparkles, Share2, Users, Bell, UserPlus,
   Check, X, MapPin, Award, Flame, Gamepad2, Droplets, TreePine,
-  Copy, ImagePlus, Settings,
+  Copy, ImagePlus, Settings, Search, UserCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -134,6 +134,16 @@ export default function ChildProfile() {
       return (await res.json()).data as { notifications: FriendNotification[]; unreadCount: number };
     },
     enabled: !!token && activeTab === "notifications",
+  });
+
+  const { data: followCounts } = useQuery({
+    queryKey: ["child-follow-counts"],
+    queryFn: async () => {
+      const res = await fetch("/api/child/follow-counts", { headers: { Authorization: `Bearer ${token}` } });
+      if (!res.ok) throw new Error("Failed");
+      return (await res.json()).data as { followingCount: number; followersCount: number };
+    },
+    enabled: !!token,
   });
 
   // ======= MUTATIONS =======
@@ -434,7 +444,20 @@ export default function ChildProfile() {
           <span className="inline-flex items-center gap-1 bg-purple-100 text-purple-700 px-2.5 py-1 rounded-full text-xs font-bold">
             <Users className="w-3 h-3" /> {sc?.stats.friendCount || 0} {t("childProfile.friends.title")}
           </span>
+          <span className="inline-flex items-center gap-1 bg-cyan-100 text-cyan-700 px-2.5 py-1 rounded-full text-xs font-bold">
+            <UserCheck className="w-3 h-3" /> {followCounts?.followersCount || 0} {t("childProfile.followers")}
+          </span>
+          <span className="inline-flex items-center gap-1 bg-indigo-100 text-indigo-700 px-2.5 py-1 rounded-full text-xs font-bold">
+            <UserPlus className="w-3 h-3" /> {followCounts?.followingCount || 0} {t("childProfile.followingCount")}
+          </span>
         </div>
+        {/* Discover Button */}
+        <button
+          onClick={() => navigate("/child-discover")}
+          className="mt-3 inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-gradient-to-r from-purple-500 to-fuchsia-500 text-white text-xs font-bold shadow-md hover:shadow-lg transition-all"
+        >
+          <Search className="w-3.5 h-3.5" /> {t("childProfile.discoverButton")}
+        </button>
       </div>
 
       {/* ===== TAB BAR ===== */}

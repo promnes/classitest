@@ -2197,3 +2197,18 @@ export const childFriendNotifications = pgTable("child_friend_notifications", {
 }));
 
 export type ChildFriendNotification = typeof childFriendNotifications.$inferSelect;
+
+// ===== Child Follows (متابعات الأطفال) =====
+export const childFollows = pgTable("child_follows", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  followerId: varchar("follower_id").notNull().references(() => children.id, { onDelete: "cascade" }),
+  followingId: varchar("following_id").notNull(), // id of child, school, or teacher
+  followingType: varchar("following_type", { length: 20 }).notNull(), // child, school, teacher
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  uniqueFollow: uniqueIndex("unique_child_follow_idx").on(table.followerId, table.followingId, table.followingType),
+  followerIdx: index("cfl_follower_idx").on(table.followerId),
+  followingIdx: index("cfl_following_idx").on(table.followingId, table.followingType),
+}));
+
+export type ChildFollow = typeof childFollows.$inferSelect;

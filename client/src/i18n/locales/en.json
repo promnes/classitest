@@ -2140,7 +2140,34 @@
       "photography": "Photography",
       "nature": "Nature",
       "robotics": "Robotics"
-    }
+    },
+    "followers": "Followers",
+    "followingCount": "Following",
+    "discoverButton": "Discover & Search"
+  },
+  "discover": {
+    "title": "Discover & Search",
+    "searchPlaceholder": "Search for children, schools, teachers...",
+    "filters": {
+      "all": "All",
+      "children": "Children",
+      "schools": "Schools",
+      "teachers": "Teachers"
+    },
+    "follow": "Follow",
+    "following": "Following",
+    "followed": "Followed",
+    "unfollowed": "Unfollowed",
+    "students": "students",
+    "noResults": "No results found",
+    "startSearching": "Search or discover popular accounts",
+    "tryDifferentSearch": "Try a different search term",
+    "popularChildren": "Popular Children",
+    "activeSchools": "Active Schools",
+    "activeTeachers": "Active Teachers",
+    "childrenResults": "Children",
+    "schoolsResults": "Schools",
+    "teachersResults": "Teachers"
   },
   "parentDashboard": {
     "welcomeUser": "Welcome {{name}}",

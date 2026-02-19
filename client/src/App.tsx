@@ -57,6 +57,7 @@ const TeacherProfile = lazy(() => import("@/pages/TeacherProfile"));
 const LibraryProfile = lazy(() => import("@/pages/LibraryProfile"));
 const ChildProfile = lazy(() => import("@/pages/ChildProfile"));
 const ChildPublicProfile = lazy(() => import("@/pages/ChildPublicProfile"));
+const ChildDiscover = lazy(() => import("@/pages/ChildDiscover"));
 const ChildSettings = lazy(() => import("@/pages/ChildSettings"));
 const DownloadApp = lazy(() => import("@/pages/DownloadApp"));
 const ParentProfile = lazy(() => import("@/pages/ParentProfile"));
@@ -179,6 +180,16 @@ function WrappedChildSettings() {
   );
 }
 
+function WrappedChildDiscover() {
+  return (
+    <ChildAppWrapper>
+      <Suspense fallback={<PageLoader />}>
+        <ChildDiscover />
+      </Suspense>
+    </ChildAppWrapper>
+  );
+}
+
 function LegacyLibraryStoreRedirect() {
   return <Redirect to={`/library-store${window.location.search || ""}`} replace />;
 }
@@ -245,6 +256,7 @@ function Router() {
           <ErrorBoundary><ChildPublicProfile /></ErrorBoundary>
         </Route>
         <Route path="/child-settings" component={WrappedChildSettings} />
+        <Route path="/child-discover" component={WrappedChildDiscover} />
         {/* DEPRECATED: Remove after 2026-02-20 */}
         <Route path="/create-task">
           <Redirect to="/parent-tasks" replace />
