@@ -70,5 +70,8 @@ ios/build/
 *.ipa
 *.aab
 
+# Google Play build artifacts (kept locally, uploaded to GP Console)
+classify-googleplay.*
+
 # APK builds (except the published one)
 android/app/build/
