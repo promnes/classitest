@@ -18,6 +18,7 @@ WORKDIR /app
 
 # Copy only package files for better caching
 COPY package*.json ./
+COPY .npmrc* ./
 
 # Install ALL dependencies (needed for build)
 # Uses npm ci when package-lock.json exists (faster, deterministic)
@@ -61,6 +62,7 @@ RUN addgroup --system --gid 1001 nodejs && \
 
 # Copy package files
 COPY --chown=appuser:nodejs package*.json ./
+COPY --chown=appuser:nodejs .npmrc* ./
 
 # Install ONLY production deps + migration tools
 # (drizzle-kit, tsx needed for db:push at startup)
