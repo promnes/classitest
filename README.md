@@ -473,9 +473,14 @@ docker compose exec -T db psql -U classify classify < backup.sql
 
 ---
 
-## 📄 License
+Copyright (c) 2026 Marco Abdallh
+All Rights Reserved.
 
-MIT License
+This software and its source code are the exclusive property of Marco Abdallh.
+No permission is granted to use, copy, modify, merge, publish, distribute,
+sublicense, or sell copies of this software, in whole or in part.
+
+Unauthorized use of this software in any form is strictly prohibited.
 
 ---
 
