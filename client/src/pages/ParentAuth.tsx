@@ -148,7 +148,7 @@ export const ParentAuth = (): JSX.Element => {
       <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900">
         <div className="text-center">
           <Loader2 className="w-12 h-12 animate-spin text-blue-500 mx-auto mb-4" />
-          <p className="text-gray-600 dark:text-gray-400">جاري التحقق من الجلسة...</p>
+          <p className="text-gray-600 dark:text-gray-400">{t("parentAuth.checkingSession")}</p>
         </div>
       </div>
     );
@@ -243,7 +243,7 @@ export const ParentAuth = (): JSX.Element => {
                     !usePhone ? "bg-blue-500 text-white" : "text-gray-700 dark:text-gray-300"
                   }`}
                 >
-                  📧 البريد
+                  {t("parentAuth.emailTab")}
                 </button>
                 <button
                   type="button"
@@ -255,7 +255,7 @@ export const ParentAuth = (): JSX.Element => {
                     usePhone ? "bg-blue-500 text-white" : "text-gray-700 dark:text-gray-300"
                   }`}
                 >
-                  📱 الهاتف
+                  {t("parentAuth.phoneTab")}
                 </button>
               </div>
 
@@ -263,13 +263,13 @@ export const ParentAuth = (): JSX.Element => {
                 {!isLogin && (
                   <div>
                     <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
-                      الاسم
+                      {t("parentAuth.name")}
                     </label>
                     <input
                       type="text"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
-                      placeholder="أدخل اسمك"
+                      placeholder={t("parentAuth.enterName")}
                       autoComplete="name"
                       className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-blue-400 text-gray-900 dark:text-white bg-white dark:bg-gray-700"
                       required
@@ -282,7 +282,7 @@ export const ParentAuth = (): JSX.Element => {
                     {!isLogin && (
                       <div>
                         <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
-                          البريد الإلكتروني
+                          {t("parentAuth.email")}
                         </label>
                         <input
                           type="email"
@@ -297,7 +297,7 @@ export const ParentAuth = (): JSX.Element => {
                     )}
                     <div>
                       <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
-                        رقم الهاتف
+                        {t("parentAuth.phoneNumber")}
                       </label>
                       <PhoneInput
                         value={phone}
@@ -311,7 +311,7 @@ export const ParentAuth = (): JSX.Element => {
                 ) : (
                   <div>
                     <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
-                      البريد الإلكتروني
+                      {t("parentAuth.email")}
                     </label>
                     <input
                       type="email"
@@ -327,7 +327,7 @@ export const ParentAuth = (): JSX.Element => {
 
                 <div>
                   <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
-                    كلمة المرور
+                    {t("parentAuth.password")}
                   </label>
                   <input
                     type="password"
@@ -344,19 +344,19 @@ export const ParentAuth = (): JSX.Element => {
                 {!isLogin && (
                   <div>
                     <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
-                      🔑 رمز PIN (4 أرقام)
+                      {t("parentAuth.pinLabel")}
                     </label>
                     <input
                       type="tel"
                       inputMode="numeric"
                       value={pinCode}
                       onChange={(e) => setPinCode(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                      placeholder="مثال: 1234"
+                      placeholder={t("parentAuth.pinPlaceholder")}
                       maxLength={4}
                       className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-blue-400 text-gray-900 dark:text-white bg-white dark:bg-gray-700 text-center text-xl tracking-widest font-mono"
                     />
                     <p className="text-xs text-gray-500 mt-1">
-                      رمز سري لدخول حسابك بسرعة من نفس الجهاز (اختياري)
+                      {t("parentAuth.pinHelper")}
                     </p>
                   </div>
                 )}
@@ -365,7 +365,7 @@ export const ParentAuth = (): JSX.Element => {
                 {!isLogin && (
                   <div>
                     <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
-                      🏙️ المحافظة
+                      {t("parentAuth.governorate")}
                     </label>
                     <GovernorateSelect
                       value={governorate}
@@ -373,7 +373,7 @@ export const ParentAuth = (): JSX.Element => {
                       className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-blue-400 text-gray-900 dark:text-white bg-white dark:bg-gray-700"
                     />
                     <p className="text-xs text-gray-500 mt-1">
-                      اختر محافظتك لتسهيل البحث عن المدارس والمدرسين (اختياري)
+                      {t("parentAuth.governorateHelper")}
                     </p>
                   </div>
                 )}
@@ -385,7 +385,7 @@ export const ParentAuth = (): JSX.Element => {
                   disabled={authMutation.isPending}
                   className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 rounded-lg transition-all disabled:opacity-50"
                 >
-                  {authMutation.isPending ? "جاري المعالجة..." : isLogin ? "دخول" : "إنشاء حساب"}
+                  {authMutation.isPending ? t("parentAuth.processing") : isLogin ? t("parentAuth.login") : t("parentAuth.register")}
                 </button>
               </form>
 
@@ -398,7 +398,7 @@ export const ParentAuth = (): JSX.Element => {
                 }}
                 className="w-full mt-4 text-blue-500 hover:text-blue-600 font-bold"
               >
-                {isLogin ? "ليس لديك حساب؟ إنشاء حساب جديد" : "لديك حساب بالفعل؟ دخول"}
+                {isLogin ? t("parentAuth.noAccount") : t("parentAuth.hasAccount")}
               </button>
 
               {isLogin && (
@@ -407,7 +407,7 @@ export const ParentAuth = (): JSX.Element => {
                   className="w-full mt-2 text-gray-500 hover:text-gray-600 text-sm block text-center cursor-pointer"
                   data-testid="button-forgot-password"
                 >
-                  هل نسيت كلمة المرور؟
+                  {t("parentAuth.forgotPassword")}
                 </Link>
               )}
             </>

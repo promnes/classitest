@@ -165,7 +165,7 @@ export const Home = (): JSX.Element => {
           {t("welcome")}
         </p>
         <p className="text-lg text-center text-purple-600/80 mb-10">
-          {t("letsPlay") || "هيا نلعب ونتعلم! 🎮"}
+          {t("letsPlay")}
         </p>
 
         {/* Single CTA: Start Playing */}
@@ -188,7 +188,7 @@ export const Home = (): JSX.Element => {
             <span>{t("downloadApp")}</span>
           </a>
           <p className="text-center text-sm text-purple-500/70">
-            Android APK • 6 MB
+            {t("home.apkInfo")}
           </p>
         </div>
       </main>
@@ -200,13 +200,13 @@ export const Home = (): JSX.Element => {
       <footer className="text-center py-6 text-purple-600/70 relative z-10">
         <div className="flex justify-center gap-6 mb-4">
           <button onClick={() => navigate("/privacy")} className="hover:underline text-sm">
-            🔒 Privacy
+            🔒 {t("home.privacy")}
           </button>
           <button onClick={() => navigate("/terms")} className="hover:underline text-sm">
-            📋 Terms
+            📋 {t("home.terms")}
           </button>
         </div>
-        <p className="text-xs opacity-70">© 2024 Classify by proomnes. All rights reserved.</p>
+        <p className="text-xs opacity-70">© 2025 Classify by Proomnes. {t("home.allRightsReserved")}</p>
       </footer>
     </div>
   );

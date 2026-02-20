@@ -51,17 +51,9 @@ export const AdminAuth = (): JSX.Element => {
     onSuccess: (data) => {
       const masked = data?.data?.maskedEmail;
       if (masked) {
-        setForgotMessage(
-          isRTL
-            ? `تم إرسال رابط الاستعادة إلى ${masked}`
-            : `Recovery link sent to ${masked}`
-        );
+        setForgotMessage(t("adminAuth.recoverySentTo", { email: masked }));
       } else {
-        setForgotMessage(
-          isRTL
-            ? "إذا كان الحساب موجوداً سيتم إرسال رابط الاستعادة"
-            : "If account exists, a recovery link has been sent"
-        );
+        setForgotMessage(t("adminAuth.recoveryGeneric"));
       }
     },
   });
@@ -71,14 +63,12 @@ export const AdminAuth = (): JSX.Element => {
       <div className={`min-h-screen flex items-center justify-center ${isDark ? "bg-gray-900" : "bg-gray-100"}`} dir={isRTL ? "rtl" : "ltr"}>
         <div className={`${isDark ? "bg-gray-800" : "bg-white"} rounded-lg shadow-lg p-8 max-w-md w-full`}>
           <h1 className={`text-2xl font-bold text-center mb-6 ${isDark ? "text-white" : "text-gray-800"}`}>
-            {isRTL ? t("adminAuth.recoverPassword") : "Password Recovery"}
+            {t("adminAuth.recoverPassword")}
           </h1>
 
           <div className={`p-4 rounded-lg mb-6 ${isDark ? "bg-gray-700" : "bg-blue-50"}`}>
             <p className={`text-sm ${isDark ? "text-gray-300" : "text-blue-700"}`}>
-              {isRTL
-                ? "أدخل اسم المستخدم وسيتم إرسال رابط الاستعادة إلى البريد المسجل"
-                : "Enter your username and a recovery link will be sent to the registered email"}
+              {t("adminAuth.recoverInstructions")}
             </p>
           </div>
 
@@ -91,7 +81,7 @@ export const AdminAuth = (): JSX.Element => {
           <div className="space-y-4">
             <div>
               <label className={`block font-bold mb-2 ${isDark ? "text-white" : "text-gray-800"}`}>
-                {isRTL ? "اسم المستخدم" : "Username"}
+                {t("adminAuth.username")}
               </label>
               <input
                 type="text"
@@ -101,7 +91,7 @@ export const AdminAuth = (): JSX.Element => {
                 className={`w-full px-4 py-2 border-2 rounded-lg focus:outline-none focus:border-blue-500 ${
                   isDark ? "bg-gray-700 border-gray-600 text-white" : "border-gray-300"
                 }`}
-                placeholder={isRTL ? "اسم المستخدم" : "admin_user"}
+                placeholder={t("adminAuth.usernamePlaceholder")}
               />
             </div>
 
@@ -112,8 +102,8 @@ export const AdminAuth = (): JSX.Element => {
               className="w-full px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white font-bold rounded-lg disabled:opacity-50"
             >
               {forgotMutation.isPending
-                ? (isRTL ? "جاري الإرسال..." : "Sending...")
-                : (isRTL ? "إرسال رابط الاستعادة" : "Send Recovery Link")}
+                ? t("adminAuth.sending")
+                : t("adminAuth.sendRecoveryLink")}
             </button>
 
             <button
@@ -121,7 +111,7 @@ export const AdminAuth = (): JSX.Element => {
               onClick={() => { setShowForgot(false); setForgotMessage(""); }}
               className={`w-full px-4 py-2 text-center font-bold ${isDark ? "text-gray-400 hover:text-gray-300" : "text-gray-600 hover:text-gray-800"}`}
             >
-              {isRTL ? "العودة لتسجيل الدخول" : "Back to Login"}
+              {t("adminAuth.backToLogin")}
             </button>
           </div>
         </div>
@@ -156,7 +146,7 @@ export const AdminAuth = (): JSX.Element => {
               className={`w-full px-4 py-2 border-2 rounded-lg focus:outline-none focus:border-blue-500 ${
                 isDark ? "bg-gray-700 border-gray-600 text-white" : "border-gray-300"
               }`}
-              placeholder={isRTL ? "اسم المستخدم" : "admin_user"}
+              placeholder={t("adminAuth.usernamePlaceholder")}
               data-testid="input-admin-username"
             />
           </div>

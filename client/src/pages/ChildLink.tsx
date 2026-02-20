@@ -333,7 +333,7 @@ export const ChildLink = (): JSX.Element => {
     onError: (error: any) => {
       const errorKey = error.message;
       const translatedErrors: Record<string, string> = {
-        "INVALID_CODE": t("invalidCode") || "الكود غير صحيح",
+        "INVALID_CODE": t("childLink.invalidCode"),
       };
       setErrorMessage(translatedErrors[errorKey] || error.message);
     },
@@ -351,7 +351,7 @@ export const ChildLink = (): JSX.Element => {
     
     reader.onerror = () => {
       setIsProcessingQR(false);
-      setErrorMessage(t("imageLoadFailed") || "فشل تحميل الصورة");
+      setErrorMessage(t("childLink.imageLoadFailed"));
     };
     
     reader.onload = (event) => {
@@ -359,7 +359,7 @@ export const ChildLink = (): JSX.Element => {
       
       img.onerror = () => {
         setIsProcessingQR(false);
-        setErrorMessage(t("imageLoadFailed") || "فشل تحميل الصورة");
+        setErrorMessage(t("childLink.imageLoadFailed"));
       };
       
       img.onload = () => {
@@ -384,11 +384,11 @@ export const ChildLink = (): JSX.Element => {
             setCode(qrCode.data.toUpperCase());
             setErrorMessage("");
           } else {
-            setErrorMessage(t("noQRFound") || "لم يتم العثور على رمز QR في الصورة");
+            setErrorMessage(t("childLink.noQRFound"));
           }
         } catch (error) {
           console.error("QR decode error:", error);
-          setErrorMessage(t("qrProcessError") || "حدث خطأ أثناء معالجة الصورة");
+          setErrorMessage(t("childLink.qrProcessError"));
         } finally {
           setIsProcessingQR(false);
         }
@@ -412,7 +412,7 @@ export const ChildLink = (): JSX.Element => {
         scanQRFromCamera();
       }
     } catch (err) {
-      setErrorMessage(t("cameraAccessDenied") || "لم يتم السماح بالوصول للكاميرا");
+      setErrorMessage(t("childLink.cameraAccessDenied"));
       isScanningRef.current = false;
       setIsScanning(false);
     }
@@ -525,7 +525,7 @@ export const ChildLink = (): JSX.Element => {
             data-testid="button-back"
           >
             <ArrowLeft className="w-5 h-5" />
-            {t("back") || "رجوع"}
+            {t("common.back")}
           </button>
         )}
 
@@ -549,16 +549,16 @@ export const ChildLink = (): JSX.Element => {
                 />
               </button>
               <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-                {t("welcome") || "مرحباً!"}
+                {t("childLink.welcome")}
               </h1>
-              <p className="text-gray-500 dark:text-gray-400 mt-2">{t("letsPlay") || "هيا نلعب ونتعلم"}</p>
+              <p className="text-gray-500 dark:text-gray-400 mt-2">{t("childLink.letsPlay")}</p>
             </div>
             
             {/* Quick login cards for saved children */}
             {savedChildren.length > 0 && (
               <div className="mb-6 space-y-3">
                 <p className="text-sm text-gray-500 dark:text-gray-400 font-medium text-center mb-2">
-                  {t("quickLogin") || "دخول سريع"}
+                  {t("childLink.quickLogin")}
                 </p>
                 {savedChildren.map((child, index) => (
                   <div key={child.childId} className="relative group">
@@ -604,7 +604,7 @@ export const ChildLink = (): JSX.Element => {
                 data-testid="button-existing-child"
               >
                 <User className="w-6 h-6" />
-                {t("existingChild") || "عندي حساب"}
+                {t("childLink.existingChild")}
               </button>
               
               <button
@@ -613,7 +613,7 @@ export const ChildLink = (): JSX.Element => {
                 data-testid="button-new-child"
               >
                 <UserPlus className="w-6 h-6" />
-                {t("newChild") || "حساب جديد"}
+                {t("childLink.newChild")}
               </button>
             </div>
           </div>
@@ -626,8 +626,8 @@ export const ChildLink = (): JSX.Element => {
               <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-3">
                 <User className="w-8 h-8 text-blue-600" />
               </div>
-              <h2 className="text-2xl font-bold text-gray-800 dark:text-white">{t("whatIsYourName") || "ما اسمك؟"}</h2>
-              <p className="text-gray-500 dark:text-gray-400 mt-1">{t("enterFullName") || "اكتب اسمك الثنائي"}</p>
+              <h2 className="text-2xl font-bold text-gray-800 dark:text-white">{t("childLink.whatIsYourName")}</h2>
+              <p className="text-gray-500 dark:text-gray-400 mt-1">{t("childLink.enterFullName")}</p>
             </div>
 
             <div className="space-y-4">
@@ -638,7 +638,7 @@ export const ChildLink = (): JSX.Element => {
                   setChildName(e.target.value);
                   setErrorMessage("");
                 }}
-                placeholder={t("exampleName") || "مثال: أحمد محمد"}
+                placeholder={t("childLink.exampleName")}
                 className="w-full px-5 py-4 border-2 border-gray-200 dark:border-gray-700 rounded-2xl focus:outline-none focus:border-blue-400 text-xl text-center text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-900"
                 data-testid="input-child-name"
               />
@@ -650,7 +650,7 @@ export const ChildLink = (): JSX.Element => {
                   setLoginParentCode(e.target.value.toUpperCase());
                   setErrorMessage("");
                 }}
-                placeholder={t("parentCode") || "كود الوالد"}
+                placeholder={t("childLink.parentCode")}
                 className="w-full px-5 py-4 border-2 border-gray-200 dark:border-gray-700 rounded-2xl focus:outline-none focus:border-blue-400 text-xl text-center font-mono tracking-wider text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-900"
                 maxLength={10}
                 data-testid="input-login-parent-code"
@@ -664,7 +664,7 @@ export const ChildLink = (): JSX.Element => {
                   className="h-5 w-5 rounded border-gray-300 dark:border-gray-700 text-purple-500 focus:ring-purple-400"
                   data-testid="checkbox-remember"
                 />
-                <span className="text-gray-700 dark:text-gray-300 font-medium">{t("rememberMe") || "تذكرني على هذا الجهاز"}</span>
+                <span className="text-gray-700 dark:text-gray-300 font-medium">{t("childLink.rememberMe")}</span>
               </label>
 
               {errorMessage && (
@@ -682,18 +682,18 @@ export const ChildLink = (): JSX.Element => {
                 {requestLoginMutation.isPending ? (
                   <>
                     <Loader2 className="w-6 h-6 animate-spin" />
-                    {t("sending") || "جاري الإرسال..."}
+                    {t("childLink.sending")}
                   </>
                 ) : (
                   <>
                     <Heart className="w-6 h-6" />
-                    {t("askParentPermission") || "اطلب إذن من بابا وماما"}
+                    {t("childLink.askParentPermission")}
                   </>
                 )}
               </button>
 
               <p className="text-center text-gray-500 dark:text-gray-400 text-sm">
-                {t("parentWillReceiveNotification") || "سيصل إشعار لوالديك للموافقة"}
+                {t("childLink.parentWillReceiveNotification")}
               </p>
             </div>
           </div>
@@ -709,10 +709,10 @@ export const ChildLink = (): JSX.Element => {
                     <Clock className="w-10 h-10 text-yellow-600 animate-pulse" />
                   </div>
                   <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-2">
-                    {t("waitingForApproval") || "في انتظار موافقة الوالدين"}
+                    {t("childLink.waitingForApproval")}
                   </h2>
                   <p className="text-gray-500 dark:text-gray-400 mb-6">
-                    {t("askParentToApprove") || "اطلب من ماما أو بابا الموافقة من هاتفهم"}
+                    {t("childLink.askParentToApprove")}
                   </p>
                   
                   {/* Animated dots */}
@@ -727,7 +727,7 @@ export const ChildLink = (): JSX.Element => {
                     className="w-full py-3 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 font-bold rounded-2xl transition-all"
                     data-testid="button-cancel-request"
                   >
-                    {t("cancel") || "إلغاء"}
+                    {t("common.cancel")}
                   </button>
                 </>
               )}
@@ -738,10 +738,10 @@ export const ChildLink = (): JSX.Element => {
                     <CheckCircle className="w-10 h-10 text-green-600" />
                   </div>
                   <h2 className="text-2xl font-bold text-green-600 mb-2">
-                    {t("loginApproved") || "تمت الموافقة!"}
+                    {t("childLink.loginApproved")}
                   </h2>
                   <p className="text-gray-500 dark:text-gray-400">
-                    {t("redirectingNow") || "جاري تسجيل الدخول..."}
+                    {t("childLink.redirectingNow")}
                   </p>
                   <Loader2 className="w-8 h-8 animate-spin text-green-600 mx-auto mt-4" />
                 </>
@@ -753,10 +753,10 @@ export const ChildLink = (): JSX.Element => {
                     <XCircle className="w-10 h-10 text-red-600" />
                   </div>
                   <h2 className="text-2xl font-bold text-red-600 mb-2">
-                    {t("loginRejected") || "تم رفض الطلب"}
+                    {t("childLink.loginRejected")}
                   </h2>
                   <p className="text-gray-500 dark:text-gray-400 mb-6">
-                    {t("parentRejectedLogin") || "والديك لم يوافقوا على تسجيل الدخول"}
+                    {t("childLink.parentRejectedLogin")}
                   </p>
                   <button
                     onClick={() => {
@@ -766,7 +766,7 @@ export const ChildLink = (): JSX.Element => {
                     className="w-full py-3 bg-blue-500 hover:bg-blue-600 text-white font-bold rounded-2xl transition-all"
                     data-testid="button-try-again"
                   >
-                    {t("tryAgain") || "حاول مرة أخرى"}
+                    {t("childLink.tryAgain")}
                   </button>
                 </>
               )}
@@ -777,10 +777,10 @@ export const ChildLink = (): JSX.Element => {
                     <Clock className="w-10 h-10 text-gray-600 dark:text-gray-400" />
                   </div>
                   <h2 className="text-2xl font-bold text-gray-600 dark:text-gray-400 mb-2">
-                    {t("requestExpired") || "انتهت صلاحية الطلب"}
+                    {t("childLink.requestExpired")}
                   </h2>
                   <p className="text-gray-500 dark:text-gray-400 mb-6">
-                    {t("pleaseRequestAgain") || "يرجى إرسال طلب جديد"}
+                    {t("childLink.pleaseRequestAgain")}
                   </p>
                   <button
                     onClick={() => {
@@ -790,7 +790,7 @@ export const ChildLink = (): JSX.Element => {
                     className="w-full py-3 bg-blue-500 hover:bg-blue-600 text-white font-bold rounded-2xl transition-all"
                     data-testid="button-request-again"
                   >
-                    {t("sendNewRequest") || "إرسال طلب جديد"}
+                    {t("childLink.sendNewRequest")}
                   </button>
                 </>
               )}
@@ -805,14 +805,14 @@ export const ChildLink = (): JSX.Element => {
               <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-3">
                 <UserPlus className="w-8 h-8 text-green-600" />
               </div>
-              <h2 className="text-2xl font-bold text-gray-800 dark:text-white">{t("newAccount") || "حساب جديد!"}</h2>
-              <p className="text-gray-500 dark:text-gray-400 mt-1">{t("linkWithParents") || "اربط حسابك مع والديك"}</p>
+              <h2 className="text-2xl font-bold text-gray-800 dark:text-white">{t("childLink.newAccount")}</h2>
+              <p className="text-gray-500 dark:text-gray-400 mt-1">{t("childLink.linkWithParents")}</p>
             </div>
 
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2 text-right">
-                  {t("yourName") || "اسمك"}
+                  {t("childLink.yourName")}
                 </label>
                 <input
                   type="text"
@@ -821,7 +821,7 @@ export const ChildLink = (): JSX.Element => {
                     setChildName(e.target.value);
                     setErrorMessage("");
                   }}
-                  placeholder={t("exampleName2") || "مثال: سارة أحمد"}
+                  placeholder={t("childLink.exampleName2")}
                   className="w-full px-5 py-4 border-2 border-gray-200 dark:border-gray-700 rounded-2xl focus:outline-none focus:border-green-400 text-xl text-center text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-900"
                   data-testid="input-new-child-name"
                 />
@@ -839,7 +839,7 @@ export const ChildLink = (): JSX.Element => {
                   }`}
                 >
                   <KeyRound className="w-4 h-4" />
-                  {t("typeCode") || "كتابة الكود"}
+                  {t("childLink.typeCode")}
                 </button>
                 <button
                   type="button"
@@ -851,14 +851,14 @@ export const ChildLink = (): JSX.Element => {
                   }`}
                 >
                   <QrCode className="w-4 h-4" />
-                  {t("scanQR") || "مسح QR"}
+                  {t("childLink.scanQR")}
                 </button>
               </div>
 
               {method === "code" && (
                 <div>
                   <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2 text-right">
-                    {t("parentCode") || "كود الوالد"}
+                    {t("childLink.parentCode")}
                   </label>
                   <input
                     type="text"
@@ -867,7 +867,7 @@ export const ChildLink = (): JSX.Element => {
                       setCode(e.target.value.toUpperCase());
                       setErrorMessage("");
                     }}
-                    placeholder={t("exampleCode") || "مثال: AHMED12345"}
+                    placeholder={t("childLink.exampleCode")}
                     className="w-full px-5 py-4 border-2 border-gray-200 dark:border-gray-700 rounded-2xl focus:outline-none focus:border-green-400 text-2xl text-center font-mono tracking-widest text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-900"
                     maxLength={10}
                     data-testid="input-link-code"
@@ -884,7 +884,7 @@ export const ChildLink = (): JSX.Element => {
                     data-testid="button-scan-camera"
                   >
                     <Camera className="w-5 h-5" />
-                    {t("scanWithCamera") || "مسح بالكاميرا"}
+                    {t("childLink.scanWithCamera")}
                   </button>
                   <button
                     type="button"
@@ -893,13 +893,13 @@ export const ChildLink = (): JSX.Element => {
                     data-testid="button-upload-image"
                   >
                     <Image className="w-5 h-5" />
-                    {t("uploadImage") || "رفع صورة"}
+                    {t("childLink.uploadImage")}
                   </button>
                   
                   {code && (
                     <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-xl text-center flex items-center justify-center gap-2">
                       <CheckCircle className="w-5 h-5" />
-                      {t("codeScanned") || "تم مسح الكود:"} {code}
+                      {t("childLink.codeScanned")} {code}
                     </div>
                   )}
                 </div>
@@ -920,12 +920,12 @@ export const ChildLink = (): JSX.Element => {
                 {newLinkMutation.isPending ? (
                   <>
                     <Loader2 className="w-6 h-6 animate-spin" />
-                    {t("linking") || "جاري الربط..."}
+                    {t("childLink.linking")}
                   </>
                 ) : (
                   <>
                     <CheckCircle className="w-6 h-6" />
-                    {t("linkAccount") || "اربط حسابي!"}
+                    {t("childLink.linkAccount")}
                   </>
                 )}
               </button>
