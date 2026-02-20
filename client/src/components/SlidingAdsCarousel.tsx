@@ -195,7 +195,7 @@ function CarouselBody({
   const padding = isHome ? "p-6" : "p-5";
 
   return (
-    <div className="relative cursor-pointer group overflow-hidden" onClick={onClick}>
+    <div className="relative cursor-pointer group overflow-hidden" onClick={onClick} role="link" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } }}>
       <div className={`transition-all duration-400 ease-in-out transform ${slideClasses}`} style={{ transitionDuration: "400ms" }}>
         {ad.imageUrl ? (
           <div className="relative">

@@ -164,6 +164,7 @@ export function ParentNotificationBell() {
         onClick={() => setIsOpen(!isOpen)}
         className={`relative p-2 rounded-lg transition-colors ${isDark ? "hover:bg-gray-700" : "hover:bg-gray-100"}`}
         data-testid="button-notifications"
+        aria-label="Notifications"
       >
         <Bell className="h-5 w-5" />
         {unreadCount > 0 && (
@@ -177,7 +178,7 @@ export function ParentNotificationBell() {
       {isOpen && (
         <>
           {/* Backdrop for mobile */}
-          <div className="fixed inset-0 z-40 bg-black/20 sm:hidden" onClick={() => setIsOpen(false)} />
+          <div className="fixed inset-0 z-40 bg-black/20 sm:hidden" onClick={() => setIsOpen(false)} role="presentation" />
           
           <div
             ref={panelRef}
@@ -206,7 +207,8 @@ export function ParentNotificationBell() {
                 )}
                 <button
                   onClick={() => setIsOpen(false)}
-                  className={`p-1 rounded-lg ${isDark ? "hover:bg-gray-700" : "hover:bg-gray-100"}`}
+                  className={`p-2 rounded-lg ${isDark ? "hover:bg-gray-700" : "hover:bg-gray-100"}`}
+                  aria-label="Close notifications"
                 >
                   <X className="h-4 w-4" />
                 </button>

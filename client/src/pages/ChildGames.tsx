@@ -179,7 +179,7 @@ export const ChildGames = (): JSX.Element => {
       
       <div className="max-w-6xl mx-auto mb-4 flex flex-wrap justify-between items-center gap-3">
         <div className="flex items-center gap-3">
-          <div className="cursor-pointer" onClick={() => navigate("/child-profile")}>
+          <div className="cursor-pointer" onClick={() => navigate("/child-profile")} role="button" tabIndex={0} aria-label="Go to profile" onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate("/child-profile"); } }}>
             <Avatar className={`w-10 h-10 border-2 ${isDark ? "border-purple-300" : "border-white/70"} shadow-lg`}>
               <AvatarImage src={childInfo?.avatarUrl || undefined} className="object-cover" />
               <AvatarFallback className="bg-gradient-to-br from-yellow-400 to-orange-500 text-white text-base font-bold">

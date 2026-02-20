@@ -1463,7 +1463,7 @@ export default function TeacherDashboard() {
                             setAnswerMediaPreviews(p => { const n = { ...p }; if (n[answer.id]) { delete n[answer.id].imageUrl; } return n; });
                             setAnswerMediaFiles(f => { const n = { ...f }; if (n[answer.id]) { delete n[answer.id].imageFile; } return n; });
                             setTaskForm(f => ({ ...f, answers: f.answers.map((a, i) => i === index ? { ...a, imageUrl: undefined } : a) }));
-                          }} className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5"><X className="h-2 w-2" /></button>
+                          }} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1" aria-label="Remove answer image"><X className="h-2 w-2" /></button>
                         </div>
                       ) : (
                         <label className="flex items-center gap-1 px-2 py-1 border border-dashed rounded cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 text-xs text-muted-foreground">
@@ -1486,7 +1486,7 @@ export default function TeacherDashboard() {
                             setAnswerMediaPreviews(p => { const n = { ...p }; if (n[answer.id]) { delete n[answer.id].videoUrl; } return n; });
                             setAnswerMediaFiles(f => { const n = { ...f }; if (n[answer.id]) { delete n[answer.id].videoFile; } return n; });
                             setTaskForm(f => ({ ...f, answers: f.answers.map((a, i) => i === index ? { ...a, videoUrl: undefined } : a) }));
-                          }} className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5"><X className="h-2 w-2" /></button>
+                          }} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1" aria-label="Remove answer video"><X className="h-2 w-2" /></button>
                         </div>
                       ) : (
                         <label className="flex items-center gap-1 px-2 py-1 border border-dashed rounded cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 text-xs text-muted-foreground">
@@ -1545,7 +1545,7 @@ export default function TeacherDashboard() {
                         setQuestionImageFiles(f => f.filter((_, idx) => idx !== localIndex));
                         URL.revokeObjectURL(url);
                       }
-                    }} className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5">
+                    }} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1" aria-label="Remove question image">
                       <X className="h-3 w-3" />
                     </button>
                   </div>
@@ -1574,7 +1574,7 @@ export default function TeacherDashboard() {
                   {taskCoverPreview ? (
                     <div className="relative">
                       <img src={taskCoverPreview} alt="" className="w-full h-20 rounded object-cover" />
-                      <button onClick={() => { setTaskCoverFile(null); setTaskCoverPreview(null); }} className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5">
+                      <button onClick={() => { setTaskCoverFile(null); setTaskCoverPreview(null); }} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1" aria-label="Remove cover image">
                         <X className="h-3 w-3" />
                       </button>
                     </div>
@@ -1595,7 +1595,7 @@ export default function TeacherDashboard() {
                   {taskImagePreview ? (
                     <div className="relative">
                       <img src={taskImagePreview} alt="" className="w-full h-20 rounded object-cover" />
-                      <button onClick={() => { setTaskImageFile(null); setTaskImagePreview(null); }} className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5">
+                      <button onClick={() => { setTaskImageFile(null); setTaskImagePreview(null); }} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1" aria-label="Remove task image">
                         <X className="h-3 w-3" />
                       </button>
                     </div>
@@ -1616,7 +1616,7 @@ export default function TeacherDashboard() {
                   {taskVideoPreview ? (
                     <div className="relative">
                       <video src={taskVideoPreview} className="w-full h-20 rounded object-cover" />
-                      <button onClick={() => { setTaskVideoFile(null); setTaskVideoPreview(null); }} className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5">
+                      <button onClick={() => { setTaskVideoFile(null); setTaskVideoPreview(null); }} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1" aria-label="Remove task video">
                         <X className="h-3 w-3" />
                       </button>
                     </div>
@@ -1698,7 +1698,7 @@ export default function TeacherDashboard() {
                   ) : (
                     <img src={media.url} alt="" className="w-20 h-20 rounded object-cover" />
                   )}
-                  <button onClick={() => removePostMedia(i)} className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5">
+                  <button onClick={() => removePostMedia(i)} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1" aria-label="Remove media">
                     <X className="h-3 w-3" />
                   </button>
                 </div>

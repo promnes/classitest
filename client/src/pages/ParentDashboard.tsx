@@ -635,18 +635,18 @@ export const ParentDashboard = (): JSX.Element => {
           
           <div className="flex items-center gap-2">
             <ParentNotificationBell />
-            <Button variant="ghost" size="icon" onClick={toggleTheme} data-testid="button-theme-toggle">
+            <Button variant="ghost" size="icon" onClick={toggleTheme} data-testid="button-theme-toggle" aria-label={isDark ? "Switch to light theme" : "Switch to dark theme"}>
               {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
             </Button>
             <LanguageSelector />
             <PWAInstallButton variant="ghost" size="icon" showText={false} />
-            <Button variant="ghost" size="icon" onClick={() => navigate("/settings")} data-testid="button-settings">
+            <Button variant="ghost" size="icon" onClick={() => navigate("/settings")} data-testid="button-settings" aria-label="Settings">
               <Settings className="h-5 w-5" />
             </Button>
-            <Button variant="ghost" size="icon" onClick={() => navigate("/parent-profile")} data-testid="button-profile">
+            <Button variant="ghost" size="icon" onClick={() => navigate("/parent-profile")} data-testid="button-profile" aria-label="Profile">
               <User className="h-5 w-5" />
             </Button>
-            <Button variant="ghost" size="icon" onClick={() => setShowLogoutConfirm(true)} className="text-red-500 hover:text-red-600" data-testid="button-logout">
+            <Button variant="ghost" size="icon" onClick={() => setShowLogoutConfirm(true)} className="text-red-500 hover:text-red-600" data-testid="button-logout" aria-label="Logout">
               <LogOut className="h-5 w-5" />
             </Button>
 
@@ -1946,7 +1946,7 @@ export const ParentDashboard = (): JSX.Element => {
           >
             <div className="flex justify-between items-center mb-6">
               <h2 className={`text-xl font-bold ${isDark ? "text-white" : "text-gray-900"}`}>{t('parentDashboard.qrCode')}</h2>
-              <Button variant="ghost" size="icon" onClick={() => setShowQR(false)}>
+              <Button variant="ghost" size="icon" onClick={() => setShowQR(false)} aria-label="Close QR code modal">
                 <span className="text-xl">&times;</span>
               </Button>
             </div>
@@ -1969,6 +1969,7 @@ export const ParentDashboard = (): JSX.Element => {
                 size="icon"
                 onClick={() => setShowLinkCode(!showLinkCode)}
                 data-testid="button-toggle-code-modal"
+                aria-label={showLinkCode ? "Hide link code" : "Show link code"}
               >
                 {showLinkCode ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </Button>
@@ -1976,6 +1977,7 @@ export const ParentDashboard = (): JSX.Element => {
                 variant="ghost" 
                 size="icon"
                 onClick={() => copyCode(parentData?.uniqueCode || "")}
+                aria-label="Copy link code"
               >
                 {copied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
               </Button>
