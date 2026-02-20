@@ -9,7 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Loader2, CheckCircle2, XCircle, ImagePlus, Plus, Trash2, Upload, Smile } from "lucide-react";
-import { SymbolPicker } from "@/components/SymbolPicker";
+import { SymbolLibrary3D } from "@/components/symbol-library/SymbolLibrary3D";
 import type { Media } from "@shared/media";
 
 export type TaskFormValue = {
@@ -517,7 +517,7 @@ export function TaskForm({
         {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : effectiveSubmitLabel}
       </Button>
 
-      <SymbolPicker
+      <SymbolLibrary3D
         open={symbolPickerOpen}
         onOpenChange={setSymbolPickerOpen}
         onSelect={handleSymbolSelect}
