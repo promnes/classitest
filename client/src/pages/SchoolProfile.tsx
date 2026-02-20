@@ -20,6 +20,7 @@ import {
 import { FollowButton } from "@/components/ui/FollowButton";
 import { ShareMenu } from "@/components/ui/ShareMenu";
 import { LanguageSelector } from "@/components/LanguageSelector";
+import { getDateLocale } from "@/i18n/config";
 
 function SocialIcon({ platform }: { platform: string }) {
   switch (platform) {
@@ -63,6 +64,7 @@ export default function SchoolProfile() {
   const { toast } = useToast();
   const { t } = useTranslation();
 
+  const isRTL = i18next.language === "ar";
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewComment, setReviewComment] = useState("");
   const [commentTexts, setCommentTexts] = useState<Record<string, string>>({});
@@ -266,10 +268,10 @@ export default function SchoolProfile() {
   }
 
   const socialEntries = Object.entries(school.socialLinks || {}).filter(([, v]) => v);
-  const joinDate = new Date(school.createdAt).toLocaleDateString("ar-EG", { year: "numeric", month: "long" });
+  const joinDate = new Date(school.createdAt).toLocaleDateString(getDateLocale(), { year: "numeric", month: "long" });
 
   return (
-    <div className="min-h-screen bg-gray-100 dark:bg-gray-950 relative" dir="rtl">
+    <div className="min-h-screen bg-gray-100 dark:bg-gray-950 relative" dir={isRTL ? "rtl" : "ltr"}>
       <div className="absolute top-4 ltr:right-4 rtl:left-4 z-50"><LanguageSelector /></div>
       {/* ===== FACEBOOK-STYLE COVER SECTION ===== */}
       <div className="bg-white dark:bg-gray-900 shadow-sm">
@@ -285,11 +287,11 @@ export default function SchoolProfile() {
         </div>
 
         {/* Profile Info Bar */}
-        <div className="max-w-5xl mx-auto px-4 sm:px-6">
-          <div className="flex flex-col sm:flex-row items-start sm:items-end gap-4 -mt-8 sm:-mt-10 relative z-10 pb-4">
-            <div className="relative">
-              <div className="w-28 h-28 sm:w-36 sm:h-36 rounded-full border-4 border-white dark:border-gray-900 bg-blue-100 dark:bg-blue-900 flex items-center justify-center shadow-xl overflow-hidden relative">
-                <School className="h-14 w-14 sm:h-16 sm:w-16 text-blue-600 dark:text-blue-400" />
+        <div className="max-w-5xl mx-auto px-3 sm:px-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-end gap-3 sm:gap-4 -mt-8 sm:-mt-10 relative z-10 pb-4">
+            <div className="relative shrink-0">
+              <div className="w-24 h-24 sm:w-36 sm:h-36 rounded-full border-4 border-white dark:border-gray-900 bg-blue-100 dark:bg-blue-900 flex items-center justify-center shadow-xl overflow-hidden relative">
+                <School className="h-12 w-12 sm:h-16 sm:w-16 text-blue-600 dark:text-blue-400" />
                 {school.imageUrl && (
                   <img
                     src={school.imageUrl}
@@ -306,27 +308,27 @@ export default function SchoolProfile() {
               )}
             </div>
 
-            <div className="flex-1 sm:pb-1">
-              <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white leading-tight">
+            <div className="flex-1 min-w-0 sm:pb-1">
+              <h1 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-gray-900 dark:text-white leading-tight truncate">
                 {school.nameAr || school.name}
               </h1>
               {school.nameAr && school.name !== school.nameAr && (
-                <p className="text-sm text-muted-foreground">{school.name}</p>
+                <p className="text-xs sm:text-sm text-muted-foreground truncate">{school.name}</p>
               )}
-              <div className="flex flex-wrap items-center gap-2 mt-1 text-sm text-muted-foreground">
+              <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mt-1 text-xs sm:text-sm text-muted-foreground">
                 <span className="flex items-center gap-0.5">
                   <Star className="h-4 w-4 text-yellow-400 fill-yellow-400" />
                   <strong className="text-foreground">{school.avgRating || 0}</strong>
                   <span>({school.reviews?.length || 0} {t("schoolProfile.reviewCount")})</span>
                 </span>
-                <span>•</span>
+                <span className="hidden sm:inline">•</span>
                 <span className="flex items-center gap-0.5">
-                  <Users className="h-4 w-4" />
+                  <Users className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                   {school.totalStudents || 0} {t("schoolProfile.student")}
                 </span>
-                <span>•</span>
+                <span className="hidden sm:inline">•</span>
                 <span className="flex items-center gap-0.5">
-                  <GraduationCap className="h-4 w-4" />
+                  <GraduationCap className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                   {school.teachers?.length || school.totalTeachers || 0} {t("schoolProfile.teacherCount")}
                 </span>
               </div>
@@ -344,7 +346,7 @@ export default function SchoolProfile() {
 
           {/* Navigation Tabs */}
           <div className="border-t dark:border-gray-800">
-            <div className="flex gap-0 overflow-x-auto scrollbar-hide -mb-px">
+            <div className="flex gap-0 overflow-x-auto scrollbar-hide -mb-px px-1">
               {[
                 { key: "posts", label: t("schoolProfile.postsTab"), icon: BookOpen },
                 { key: "polls", label: t("schoolProfile.pollsTab"), icon: BarChart3 },
@@ -355,14 +357,14 @@ export default function SchoolProfile() {
                 <button
                   key={tab.key}
                   onClick={() => setActiveTab(tab.key)}
-                  className={`flex items-center gap-1.5 px-4 py-3 text-sm font-semibold whitespace-nowrap transition-colors ${
+                  className={`flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-4 py-3 text-xs sm:text-sm font-semibold whitespace-nowrap transition-colors ${
                     activeTab === tab.key
                       ? "border-blue-600 text-blue-600"
                       : "border-transparent text-muted-foreground hover:bg-gray-50 dark:hover:bg-gray-800"
                   }`}
                   style={{ borderBottomWidth: "3px", borderBottomStyle: "solid", borderBottomColor: activeTab === tab.key ? "#2563eb" : "transparent" }}
                 >
-                  <tab.icon className="h-4 w-4" />
+                  <tab.icon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                   {tab.label}
                 </button>
               ))}
@@ -372,7 +374,7 @@ export default function SchoolProfile() {
       </div>
 
       {/* ===== CONTENT ===== */}
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-4">
+      <div className="max-w-5xl mx-auto px-3 sm:px-6 py-4">
         <div className="flex flex-col lg:flex-row gap-4">
           {/* ===== LEFT SIDEBAR ===== */}
           <div className="lg:w-80 space-y-4 lg:sticky lg:top-4 lg:self-start">
@@ -436,7 +438,7 @@ export default function SchoolProfile() {
                       >
                         <SocialIcon platform={platform} />
                         <span className="font-medium">{socialLabel(platform)}</span>
-                        <ExternalLink className="h-3 w-3 mr-auto opacity-60" />
+                        <ExternalLink className="h-3 w-3 ms-auto opacity-60" />
                       </a>
                     ))}
                   </div>
@@ -550,8 +552,8 @@ export default function SchoolProfile() {
                               </p>
                               <div className="flex items-center gap-1 text-xs text-muted-foreground">
                                 <Clock className="h-3 w-3" />
-                                {new Date(post.createdAt).toLocaleString("ar-EG", { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
-                                {post.isPinned && <Badge variant="outline" className="mr-1 text-xs py-0 px-1">{t("schoolProfile.pinned")}</Badge>}
+                                {new Date(post.createdAt).toLocaleString(getDateLocale(), { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                                {post.isPinned && <Badge variant="outline" className="ms-1 text-xs py-0 px-1">{t("schoolProfile.pinned")}</Badge>}
                               </div>
                             </div>
                           </div>
@@ -753,7 +755,7 @@ export default function SchoolProfile() {
                               </p>
                               <div className="flex items-center gap-1 text-xs text-muted-foreground">
                                 <Clock className="h-3 w-3" />
-                                {new Date(poll.createdAt).toLocaleString("ar-EG", { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                                {new Date(poll.createdAt).toLocaleString(getDateLocale(), { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
                               </div>
                             </div>
                             <div className="flex gap-1">
@@ -769,7 +771,7 @@ export default function SchoolProfile() {
                               <BarChart3 className="h-5 w-5 text-blue-600 mt-0.5 shrink-0" />
                               <p className="font-semibold text-base">{poll.question}</p>
                             </div>
-                            <p className="text-xs text-muted-foreground mt-1 mr-7">
+                            <p className="text-xs text-muted-foreground mt-1 ms-7">
                               {poll.allowMultiple ? t("schoolProfile.multipleAnswers") : t("schoolProfile.singleAnswer")}
                             </p>
                           </div>
@@ -821,7 +823,7 @@ export default function SchoolProfile() {
                                       return { ...prev, [poll.id]: [opt.id] };
                                     });
                                   }}
-                                  className={`w-full text-right rounded-lg border p-3 text-sm transition-all ${
+                                  className={`w-full text-start rounded-lg border p-3 text-sm transition-all ${
                                     isSelected
                                       ? "border-blue-500 bg-blue-50 dark:bg-blue-950 text-blue-700 font-medium"
                                       : "border-gray-200 dark:border-gray-700 hover:border-blue-300 hover:bg-blue-50/50 dark:hover:bg-blue-950/30"
@@ -869,7 +871,7 @@ export default function SchoolProfile() {
                               <span>{poll.votersCount || poll.totalVotes || 0} {t("schoolProfile.voteCount")}</span>
                               {poll.expiresAt && (
                                 <span>
-                                  {isExpired ? t("schoolProfile.voteEnded") : `${t("schoolProfile.voteEndsAt")} ${new Date(poll.expiresAt).toLocaleDateString("ar-EG", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}`}
+                                  {isExpired ? t("schoolProfile.voteEnded") : `${t("schoolProfile.voteEndsAt")} ${new Date(poll.expiresAt).toLocaleDateString(getDateLocale(), { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}`}
                                 </span>
                               )}
                             </div>
@@ -886,9 +888,9 @@ export default function SchoolProfile() {
             {activeTab === "about" && (
               <div className="space-y-4">
                 <Card className="shadow-sm">
-                  <CardContent className="p-6 space-y-4">
-                    <h2 className="text-xl font-bold flex items-center gap-2">
-                      <School className="h-6 w-6 text-blue-600" />
+                  <CardContent className="p-4 sm:p-6 space-y-4">
+                    <h2 className="text-lg sm:text-xl font-bold flex items-center gap-2">
+                      <School className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" />
                       {t("schoolProfile.aboutSchool")}
                     </h2>
                     {school.description ? (
@@ -900,9 +902,9 @@ export default function SchoolProfile() {
                 </Card>
 
                 <Card className="shadow-sm">
-                  <CardContent className="p-6 space-y-4">
-                    <h2 className="text-xl font-bold flex items-center gap-2">
-                      <Phone className="h-6 w-6 text-blue-600" />
+                  <CardContent className="p-4 sm:p-6 space-y-4">
+                    <h2 className="text-lg sm:text-xl font-bold flex items-center gap-2">
+                      <Phone className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" />
                       {t("schoolProfile.contactInfo")}
                     </h2>
                     <div className="space-y-3">
@@ -939,9 +941,9 @@ export default function SchoolProfile() {
 
                 {socialEntries.length > 0 && (
                   <Card className="shadow-sm">
-                    <CardContent className="p-6 space-y-4">
-                      <h2 className="text-xl font-bold flex items-center gap-2">
-                        <Globe className="h-6 w-6 text-blue-600" />
+                    <CardContent className="p-4 sm:p-6 space-y-4">
+                      <h2 className="text-lg sm:text-xl font-bold flex items-center gap-2">
+                        <Globe className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" />
                         {t("schoolProfile.socialMediaPages")}
                       </h2>
                       <div className="grid sm:grid-cols-2 gap-3">
@@ -951,7 +953,7 @@ export default function SchoolProfile() {
                             href={url as string}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className={`flex items-center gap-3 text-white px-4 py-3 rounded-xl transition-all ${socialColor(platform)} shadow-md hover:shadow-lg`}
+                            className={`flex items-center gap-2.5 sm:gap-3 text-white px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl transition-all ${socialColor(platform)} shadow-md hover:shadow-lg`}
                           >
                             <SocialIcon platform={platform} />
                             <div className="flex-1">
@@ -967,12 +969,12 @@ export default function SchoolProfile() {
                 )}
 
                 <Card className="shadow-sm">
-                  <CardContent className="p-6 space-y-4">
-                    <h2 className="text-xl font-bold flex items-center gap-2">
-                      <BookOpenCheck className="h-6 w-6 text-blue-600" />
+                  <CardContent className="p-4 sm:p-6 space-y-4">
+                    <h2 className="text-lg sm:text-xl font-bold flex items-center gap-2">
+                      <BookOpenCheck className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" />
                       {t("schoolProfile.generalInfo")}
                     </h2>
-                    <div className="grid sm:grid-cols-2 gap-4">
+                    <div className="grid sm:grid-cols-2 gap-3 sm:gap-4">
                       <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg">
                         <Calendar className="h-5 w-5 text-blue-500" />
                         <div>
@@ -1028,19 +1030,19 @@ export default function SchoolProfile() {
                           {teacher.coverImageUrl && (
                             <img src={teacher.coverImageUrl} alt="" className="w-full h-32 object-cover" onError={(e) => { e.currentTarget.style.display = 'none' }} />
                           )}
-                          <CardContent className="p-4">
-                            <div className="flex items-start gap-4">
-                              <Link href={`/teacher/${teacher.id}`}>
+                          <CardContent className="p-3 sm:p-4">
+                            <div className="flex flex-col sm:flex-row items-start gap-3 sm:gap-4">
+                              <Link href={`/teacher/${teacher.id}`} className="shrink-0">
                                 {teacher.avatarUrl ? (
                                   <img
                                     src={teacher.avatarUrl}
                                     alt=""
-                                    className={`w-16 h-16 rounded-full object-cover border-2 border-white shadow-md ${teacher.coverImageUrl ? "-mt-12" : ""}`}
+                                    className={`w-14 h-14 sm:w-16 sm:h-16 rounded-full object-cover border-2 border-white shadow-md ${teacher.coverImageUrl ? "-mt-12" : ""}`}
                                     onError={(e) => { e.currentTarget.style.display = 'none' }}
                                   />
                                 ) : (
-                                  <div className={`w-16 h-16 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center border-2 border-white shadow-md ${teacher.coverImageUrl ? "-mt-12" : ""}`}>
-                                    <GraduationCap className="h-8 w-8 text-green-600" />
+                                  <div className={`w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center border-2 border-white shadow-md ${teacher.coverImageUrl ? "-mt-12" : ""}`}>
+                                    <GraduationCap className="h-7 w-7 sm:h-8 sm:w-8 text-green-600" />
                                   </div>
                                 )}
                               </Link>
@@ -1059,7 +1061,7 @@ export default function SchoolProfile() {
                                 {teacher.bio && (
                                   <p className="text-sm text-muted-foreground mt-2 line-clamp-2">{teacher.bio}</p>
                                 )}
-                                <div className="flex flex-wrap gap-3 mt-2 text-xs text-muted-foreground">
+                                <div className="flex flex-wrap gap-2 sm:gap-3 mt-2 text-xs text-muted-foreground">
                                   <span className="flex items-center gap-1">
                                     <BookOpen className="h-3 w-3" />
                                     {teacher.totalTasksSold || 0} {t("schoolProfile.tasksSold")}
@@ -1092,8 +1094,8 @@ export default function SchoolProfile() {
                                   </div>
                                 )}
                               </div>
-                              <Link href={`/teacher/${teacher.id}`}>
-                                <Button size="sm" variant="outline" className="shrink-0 gap-1">
+                              <Link href={`/teacher/${teacher.id}`} className="shrink-0 mt-2 sm:mt-0">
+                                <Button size="sm" variant="outline" className="shrink-0 gap-1 text-xs sm:text-sm">
                                   <ExternalLink className="h-3 w-3" />
                                   {t("schoolProfile.viewProfile")}
                                 </Button>
@@ -1112,13 +1114,13 @@ export default function SchoolProfile() {
             {activeTab === "reviews" && (
               <div className="space-y-4">
                 <Card className="shadow-sm">
-                  <CardContent className="p-6">
-                    <div className="flex items-center gap-6">
-                      <div className="text-center">
-                        <div className="text-5xl font-extrabold text-foreground">{school.avgRating || 0}</div>
+                  <CardContent className="p-4 sm:p-6">
+                    <div className="flex items-center gap-4 sm:gap-6">
+                      <div className="text-center shrink-0">
+                        <div className="text-3xl sm:text-5xl font-extrabold text-foreground">{school.avgRating || 0}</div>
                         <div className="flex gap-0.5 mt-1 justify-center">
                           {[1, 2, 3, 4, 5].map(n => (
-                            <Star key={n} className={`h-4 w-4 ${n <= Math.round(school.avgRating || 0) ? "text-yellow-400 fill-yellow-400" : "text-gray-300"}`} />
+                            <Star key={n} className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${n <= Math.round(school.avgRating || 0) ? "text-yellow-400 fill-yellow-400" : "text-gray-300"}`} />
                           ))}
                         </div>
                         <p className="text-xs text-muted-foreground mt-1">{school.reviews?.length || 0} {t("schoolProfile.reviewCount")}</p>
@@ -1128,13 +1130,13 @@ export default function SchoolProfile() {
                           const count = school.reviews?.filter((r: any) => r.rating === n).length || 0;
                           const pct = school.reviews?.length ? (count / school.reviews.length) * 100 : 0;
                           return (
-                            <div key={n} className="flex items-center gap-2 text-sm">
+                            <div key={n} className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm">
                               <span className="w-3">{n}</span>
                               <Star className="h-3 w-3 text-yellow-400 fill-yellow-400" />
                               <div className="flex-1 h-2 bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden">
                                 <div className="h-full bg-yellow-400 rounded-full" style={{ width: `${pct}%` }} />
                               </div>
-                              <span className="w-6 text-xs text-muted-foreground text-left">{count}</span>
+                              <span className="w-6 text-xs text-muted-foreground text-start">{count}</span>
                             </div>
                           );
                         })}
@@ -1144,12 +1146,12 @@ export default function SchoolProfile() {
                 </Card>
 
                 <Card className="shadow-sm">
-                  <CardContent className="p-6 space-y-3">
-                    <h3 className="font-bold text-lg">{t("schoolProfile.addYourReview")}</h3>
+                  <CardContent className="p-4 sm:p-6 space-y-3">
+                    <h3 className="font-bold text-base sm:text-lg">{t("schoolProfile.addYourReview")}</h3>
                     <div className="flex gap-1">
                       {[1, 2, 3, 4, 5].map(n => (
                         <button key={n} onClick={() => setReviewRating(n)} className="transition-transform hover:scale-110">
-                          <Star className={`h-8 w-8 ${n <= reviewRating ? "text-yellow-400 fill-yellow-400" : "text-gray-300"}`} />
+                          <Star className={`h-7 w-7 sm:h-8 sm:w-8 ${n <= reviewRating ? "text-yellow-400 fill-yellow-400" : "text-gray-300"}`} />
                         </button>
                       ))}
                     </div>
@@ -1169,15 +1171,15 @@ export default function SchoolProfile() {
                   <div className="space-y-3">
                     {school.reviews.map((review: any) => (
                       <Card key={review.id} className="shadow-sm">
-                        <CardContent className="p-4">
-                          <div className="flex items-start gap-3">
-                            <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center shrink-0">
-                              <Users className="h-5 w-5 text-blue-600" />
+                        <CardContent className="p-3 sm:p-4">
+                          <div className="flex items-start gap-2.5 sm:gap-3">
+                            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center shrink-0">
+                              <Users className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />
                             </div>
-                            <div className="flex-1">
-                              <div className="flex items-center justify-between">
-                                <span className="font-bold text-sm">{review.parentName || t("schoolProfile.parent")}</span>
-                                <span className="text-xs text-muted-foreground">{new Date(review.createdAt).toLocaleDateString("ar-EG", { year: "numeric", month: "long", day: "numeric" })}</span>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-0.5">
+                                <span className="font-bold text-sm truncate">{review.parentName || t("schoolProfile.parent")}</span>
+                                <span className="text-xs text-muted-foreground shrink-0">{new Date(review.createdAt).toLocaleDateString(getDateLocale(), { year: "numeric", month: "long", day: "numeric" })}</span>
                               </div>
                               <div className="flex gap-0.5 mt-0.5">
                                 {[1, 2, 3, 4, 5].map(n => (
