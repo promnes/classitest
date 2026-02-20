@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, useRef } from "react";
+import React, { useEffect, useMemo, useState, useRef, lazy, Suspense } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,8 +9,10 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Loader2, CheckCircle2, XCircle, ImagePlus, Plus, Trash2, Upload, Smile } from "lucide-react";
-import { SymbolLibrary3D } from "@/components/symbol-library/SymbolLibrary3D";
 import type { Media } from "@shared/media";
+
+// Lazy-load the entire symbol library so Three.js bundle is never fetched until needed
+const SymbolLibrary3D = lazy(() => import("@/components/symbol-library/SymbolLibrary3D"));
 
 export type TaskFormValue = {
   title: string;
@@ -517,12 +519,16 @@ export function TaskForm({
         {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : effectiveSubmitLabel}
       </Button>
 
-      <SymbolLibrary3D
-        open={symbolPickerOpen}
-        onOpenChange={setSymbolPickerOpen}
-        onSelect={handleSymbolSelect}
-        insertTarget={symbolTarget}
-      />
+      {symbolPickerOpen && (
+        <Suspense fallback={null}>
+          <SymbolLibrary3D
+            open={symbolPickerOpen}
+            onOpenChange={setSymbolPickerOpen}
+            onSelect={handleSymbolSelect}
+            insertTarget={symbolTarget}
+          />
+        </Suspense>
+      )}
     </div>
   );
 }
