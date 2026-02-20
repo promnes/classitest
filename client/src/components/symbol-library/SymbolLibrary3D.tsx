@@ -456,49 +456,49 @@ export function SymbolLibrary3D({
           </div>
         </div>
 
-        {/* ── 3D Scene header ────────────────────────────────── */}
-        {show3D && sceneSymbols.length > 0 && (
+        {/* ── Animated Emoji Banner ────────────────────────── */}
+        {show3D && bannerEmojis.length > 0 && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 200 }}
+            animate={{ opacity: 1, height: 80 }}
             exit={{ opacity: 0, height: 0 }}
             className={`relative shrink-0 overflow-hidden bg-gradient-to-br ${theme.gradient}`}
           >
-            <Suspense
-              fallback={
-                <div className="w-full h-[200px] flex items-center justify-center">
-                  <motion.div
-                    animate={{ scale: [1, 1.2, 1], opacity: [0.5, 1, 0.5] }}
-                    transition={{ repeat: Infinity, duration: 1.5 }}
-                  >
-                    <Sparkles className="h-8 w-8 text-amber-400" />
-                  </motion.div>
-                </div>
-              }
-            >
-              <Scene3D
-                symbols={sceneSymbols}
-                accentColor={theme.accent}
-                particleColor={theme.particles}
-                onSymbolClick={handleScene3DClick}
-              />
-            </Suspense>
-            {/* toggle 3D */}
+            <div className="flex items-center justify-center h-full gap-2 px-4 overflow-hidden">
+              {bannerEmojis.map((emoji, i) => (
+                <motion.span
+                  key={`banner-${i}`}
+                  className="text-3xl select-none"
+                  animate={{
+                    y: [0, -8, 0],
+                    scale: [1, 1.15, 1],
+                  }}
+                  transition={{
+                    repeat: Infinity,
+                    duration: 2 + (i % 3) * 0.5,
+                    delay: i * 0.15,
+                    ease: "easeInOut",
+                  }}
+                >
+                  {emoji}
+                </motion.span>
+              ))}
+            </div>
             <button
               onClick={() => setShow3D(false)}
               className="absolute top-2 right-2 text-[10px] bg-white/60 backdrop-blur rounded-full px-2 py-0.5 hover:bg-white/80 transition"
             >
-              {isAr ? "إخفاء" : "Hide 3D"}
+              {isAr ? "إخفاء" : "Hide"}
             </button>
           </motion.div>
         )}
 
-        {!show3D && (
+        {!show3D && bannerEmojis.length > 0 && (
           <button
             onClick={() => setShow3D(true)}
             className="shrink-0 text-[11px] text-center py-1.5 text-muted-foreground hover:text-foreground border-b transition"
           >
-            {isAr ? "🎮 عرض المشهد ثلاثي الأبعاد" : "🎮 Show 3D Scene"}
+            {isAr ? "✨ عرض الرموز المتحركة" : "✨ Show Animated Banner"}
           </button>
         )}
 
