@@ -4,15 +4,18 @@
   "webDir": "dist/public",
   "bundledWebRuntime": false,
   "server": {
+    "url": "https://classi-fy.com",
     "androidScheme": "https",
     "iosScheme": "https",
-    "hostname": "app.classify.local"
+    "hostname": "classi-fy.com",
+    "cleartext": false
   },
   "android": {
     "allowMixedContent": false,
     "captureInput": true,
     "webContentsDebuggingEnabled": false,
-    "backgroundColor": "#667eea"
+    "backgroundColor": "#667eea",
+    "overrideUserAgent": "Classify-Android/1.2.0"
   },
   "ios": {
     "contentInset": "automatic",

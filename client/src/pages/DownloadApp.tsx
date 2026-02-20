@@ -98,11 +98,11 @@ export default function DownloadApp() {
         <div className={`rounded-2xl p-6 mb-8 ${isDark ? "bg-gray-800/50" : "bg-white/10"} backdrop-blur-sm`}>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
             <div>
-              <p className="text-2xl font-bold text-yellow-400">6 MB</p>
+              <p className="text-2xl font-bold text-yellow-400">11 MB</p>
               <p className="text-sm text-purple-200">{isRTL ? "حجم التطبيق" : "App Size"}</p>
             </div>
             <div>
-              <p className="text-2xl font-bold text-yellow-400">v1.1</p>
+              <p className="text-2xl font-bold text-yellow-400">v1.2</p>
               <p className="text-sm text-purple-200">{isRTL ? "الإصدار" : "Version"}</p>
             </div>
             <div>
