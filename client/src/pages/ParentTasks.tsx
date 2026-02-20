@@ -112,7 +112,7 @@ export default function ParentTasks() {
       });
       if (!res.ok) throw new Error("Failed");
       const json = await res.json();
-      return json.data || [];
+      return json.data?.tasks || [];
     },
     enabled: activeTab === "library" && !!token,
   });
