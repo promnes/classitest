@@ -1,8 +1,8 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "../storage";
-import { flashGames } from "../../shared/schema";
-import { eq } from "drizzle-orm";
+import { flashGames, symbolCategories } from "../../shared/schema";
+import { eq, sql } from "drizzle-orm";
 
 import { registerAuthRoutes } from "./auth";
 import { registerAdminRoutes } from "./admin";
@@ -27,6 +27,7 @@ import { registerFollowRoutes } from "./follow";
 import { registerMarketplaceRoutes } from "./marketplace";
 import { registerObjectStorageRoutes } from "../replit_integrations/object_storage";
 import { registerMediaUploadRoutes } from "./media-uploads";
+import { registerSymbolRoutes } from "./symbols";
 import { ensureOtpProviders } from "../providers/otp/bootstrap";
 
 // Seed built-in games if they don't exist yet
@@ -80,11 +81,38 @@ async function seedDefaultGames() {
   }
 }
 
+// Seed symbol categories & symbols if empty
+async function seedSymbolCategories() {
+  const db = storage.db;
+  try {
+    const existing = await db.select({ count: sql<number>`count(*)::int` }).from(symbolCategories);
+    if ((existing[0]?.count || 0) > 0) return; // Already seeded
+
+    const categories = [
+      { slug: "numbers-letters", nameAr: "أرقام وحروف", nameEn: "Numbers & Letters", icon: "🔢", sortOrder: 1 },
+      { slug: "emotions-faces", nameAr: "وجوه ومشاعر", nameEn: "Emotions & Faces", icon: "😀", sortOrder: 2 },
+      { slug: "animals", nameAr: "حيوانات", nameEn: "Animals", icon: "🐱", sortOrder: 3 },
+      { slug: "nature-elements", nameAr: "طبيعة وعناصر", nameEn: "Nature & Elements", icon: "🌿", sortOrder: 4 },
+      { slug: "shapes-colors", nameAr: "أشكال وألوان", nameEn: "Shapes & Colors", icon: "🔵", sortOrder: 5 },
+      { slug: "educational-tools", nameAr: "أدوات تعليمية", nameEn: "Educational Tools", icon: "📚", sortOrder: 6 },
+      { slug: "activities-hobbies", nameAr: "أنشطة وهوايات", nameEn: "Activities & Hobbies", icon: "⚽", sortOrder: 7 },
+      { slug: "rewards-achievements", nameAr: "مكافآت وإنجازات", nameEn: "Rewards & Achievements", icon: "🏆", sortOrder: 8 },
+      { slug: "project-specific", nameAr: "رموز المنصة", nameEn: "Project Symbols", icon: "✨", sortOrder: 9 },
+    ];
+
+    await db.insert(symbolCategories).values(categories);
+    console.log("✅ Seeded 9 symbol categories");
+  } catch (err) {
+    console.warn("⚠️ Could not seed symbol categories:", (err as Error).message);
+  }
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   const db = storage.db;
 
   await ensureOtpProviders();
   await seedDefaultGames();
+  await seedSymbolCategories();
 
   // Health Check
   app.get("/api/health", (req, res) => {
@@ -112,6 +140,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   registerMarketplaceRoutes(app);
   registerObjectStorageRoutes(app);
   registerMediaUploadRoutes(app);
+  registerSymbolRoutes(app);
   
   // Register new feature routes
   app.use("/api", trustedDevicesRouter);

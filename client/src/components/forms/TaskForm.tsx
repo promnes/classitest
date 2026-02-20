@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,7 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { Loader2, CheckCircle2, XCircle, ImagePlus, Plus, Trash2, Upload } from "lucide-react";
+import { Loader2, CheckCircle2, XCircle, ImagePlus, Plus, Trash2, Upload, Smile } from "lucide-react";
+import { SymbolPicker } from "@/components/SymbolPicker";
 import type { Media } from "@shared/media";
 
 export type TaskFormValue = {
@@ -129,6 +130,10 @@ export function TaskForm({
   const [uploadingAnswer, setUploadingAnswer] = useState<string | null>(null);
   const [uploadingTaskMedia, setUploadingTaskMedia] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [symbolPickerOpen, setSymbolPickerOpen] = useState(false);
+  const [symbolTarget, setSymbolTarget] = useState<"question" | "title" | `answer-${number}`>("question");
+  const questionRef = useRef<HTMLTextAreaElement>(null);
+  const titleRef = useRef<HTMLInputElement>(null);
 
   const headers = useAuthHeaders(mode, token);
 
@@ -182,6 +187,44 @@ export function TaskForm({
     } finally {
       setUploadingTaskMedia(false);
     }
+  };
+
+  const openSymbolPicker = (target: "question" | "title" | `answer-${number}`) => {
+    setSymbolTarget(target);
+    setSymbolPickerOpen(true);
+  };
+
+  const handleSymbolSelect = (symbol: { char: string }) => {
+    if (symbolTarget === "question") {
+      const el = questionRef.current;
+      if (el) {
+        const start = el.selectionStart ?? form.question.length;
+        const end = el.selectionEnd ?? start;
+        const newText = form.question.slice(0, start) + symbol.char + form.question.slice(end);
+        setForm({ ...form, question: newText });
+        // Restore cursor position after render
+        requestAnimationFrame(() => { el.selectionStart = el.selectionEnd = start + symbol.char.length; el.focus(); });
+      } else {
+        setForm({ ...form, question: form.question + symbol.char });
+      }
+    } else if (symbolTarget === "title") {
+      const el = titleRef.current;
+      if (el) {
+        const start = el.selectionStart ?? form.title.length;
+        const end = el.selectionEnd ?? start;
+        const newText = form.title.slice(0, start) + symbol.char + form.title.slice(end);
+        setForm({ ...form, title: newText });
+        requestAnimationFrame(() => { el.selectionStart = el.selectionEnd = start + symbol.char.length; el.focus(); });
+      } else {
+        setForm({ ...form, title: form.title + symbol.char });
+      }
+    } else if (symbolTarget.startsWith("answer-")) {
+      const idx = parseInt(symbolTarget.split("-")[1]);
+      if (!isNaN(idx) && idx < answers.length) {
+        setAnswer(idx, a => ({ ...a, text: a.text + symbol.char }));
+      }
+    }
+    setSymbolPickerOpen(false);
   };
 
   const handleSubmit = async () => {
@@ -279,8 +322,21 @@ export function TaskForm({
       )}
 
       <div>
-        <Label>عنوان المهمة</Label>
+        <div className="flex items-center justify-between mb-1">
+          <Label>عنوان المهمة</Label>
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            className="h-7 px-2 text-xs gap-1"
+            onClick={() => openSymbolPicker("title")}
+          >
+            <Smile className="h-3.5 w-3.5" />
+            رمز
+          </Button>
+        </div>
         <Input
+          ref={titleRef}
           value={form.title}
           onChange={(e) => setForm({ ...form, title: e.target.value })}
           placeholder="اكتب العنوان"
@@ -288,8 +344,21 @@ export function TaskForm({
       </div>
 
       <div>
-        <Label>السؤال</Label>
+        <div className="flex items-center justify-between mb-1">
+          <Label>السؤال</Label>
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            className="h-7 px-2 text-xs gap-1"
+            onClick={() => openSymbolPicker("question")}
+          >
+            <Smile className="h-3.5 w-3.5" />
+            إدراج رمز
+          </Button>
+        </div>
         <Textarea
+          ref={questionRef}
           value={form.question}
           onChange={(e) => setForm({ ...form, question: e.target.value })}
           placeholder="اكتب السؤال هنا..."
@@ -386,6 +455,16 @@ export function TaskForm({
                     />
                   </label>
                 </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="gap-1"
+                  onClick={() => openSymbolPicker(`answer-${idx}`)}
+                >
+                  <Smile className="h-4 w-4" />
+                  رمز
+                </Button>
                 {answer.imageUrl && (
                   <Badge variant="secondary" className="flex items-center gap-2">
                     <span>تم الرفع</span>
@@ -437,6 +516,13 @@ export function TaskForm({
       <Button onClick={handleSubmit} className="w-full" disabled={submitting}>
         {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : effectiveSubmitLabel}
       </Button>
+
+      <SymbolPicker
+        open={symbolPickerOpen}
+        onOpenChange={setSymbolPickerOpen}
+        onSelect={handleSymbolSelect}
+        insertTarget={symbolTarget}
+      />
     </div>
   );
 }

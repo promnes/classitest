@@ -2295,3 +2295,41 @@ export const parentPostLikes = pgTable("parent_post_likes", {
 export type ParentPost = typeof parentPosts.$inferSelect;
 export type ParentPostComment = typeof parentPostComments.$inferSelect;
 export type ParentPostLike = typeof parentPostLikes.$inferSelect;
+
+// ===== Symbol Library (مكتبة الرموز) =====
+export const symbolCategories = pgTable("symbol_categories", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  slug: varchar("slug", { length: 50 }).notNull().unique(),
+  nameAr: text("name_ar").notNull(),
+  nameEn: text("name_en").notNull(),
+  icon: text("icon"), // emoji icon for category itself
+  sortOrder: integer("sort_order").default(0).notNull(),
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const librarySymbols = pgTable("library_symbols", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  categoryId: varchar("category_id").notNull().references(() => symbolCategories.id, { onDelete: "cascade" }),
+  char: text("char").notNull(), // emoji character or unicode symbol
+  nameAr: text("name_ar").notNull(),
+  nameEn: text("name_en").notNull(),
+  tags: json("tags").$type<string[]>().default([]).notNull(),
+  imageUrl: text("image_url"), // optional custom image (PNG/SVG)
+  price: integer("price").default(0).notNull(), // 0 = free, >0 = premium
+  isPremium: boolean("is_premium").default(false).notNull(),
+  sortOrder: integer("sort_order").default(0).notNull(),
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  categoryIdx: index("lsym_category_idx").on(table.categoryId),
+  premiumIdx: index("lsym_premium_idx").on(table.isPremium),
+}));
+
+export const insertSymbolCategorySchema = createInsertSchema(symbolCategories).omit({ id: true, createdAt: true });
+export type SymbolCategory = typeof symbolCategories.$inferSelect;
+export type InsertSymbolCategory = z.infer<typeof insertSymbolCategorySchema>;
+
+export const insertLibrarySymbolSchema = createInsertSchema(librarySymbols).omit({ id: true, createdAt: true });
+export type LibrarySymbol = typeof librarySymbols.$inferSelect;
+export type InsertLibrarySymbol = z.infer<typeof insertLibrarySymbolSchema>;
