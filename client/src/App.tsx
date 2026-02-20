@@ -10,8 +10,7 @@ import { ChildAppWrapper } from "@/components/ChildAppWrapper";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { OfflineGuard } from "@/components/OfflineGuard";
 import { RandomAdPopup } from "@/components/RandomAdPopup";
-import { Loader2 } from "lucide-react";
-import { useTranslation } from "react-i18next";
+import { LoadingSpinner } from "@/components/LoadingSpinner";
 import NotFound from "@/pages/not-found";
 
 import { Home } from "@/pages/Home";
@@ -82,17 +81,7 @@ type PublicMobileAppSettings = {
 };
 
 function PageLoader() {
-  const { t } = useTranslation();
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/90 to-purple-600">
-      <div className="text-center text-white">
-        <div className="relative">
-          <div className="w-16 h-16 rounded-full border-4 border-white/20 border-t-white animate-spin mx-auto mb-4" />
-        </div>
-        <p className="text-lg font-semibold">{t("common.loading", "Loading...")}</p>
-      </div>
-    </div>
-  );
+  return <LoadingSpinner fullScreen />;
 }
 
 function WrappedChildGames() {
