@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { ChevronLeft, ChevronRight, Package } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 interface ProductImageCarouselProps {
   images: string[];
@@ -28,6 +29,7 @@ export function ProductImageCarousel({
   autoSlide = false,
   autoSlideInterval = 2000,
 }: ProductImageCarouselProps) {
+  const { t } = useTranslation();
   // Build the final ordered list: mainImage first, then the rest
   const allImages = (() => {
     if (!images || images.length === 0) {
@@ -136,14 +138,14 @@ export function ProductImageCarousel({
       <button
         onClick={goPrev}
         className={`absolute right-1 top-1/2 -translate-y-1/2 ${arrowSize} rounded-full bg-black/40 text-white flex items-center justify-center transition-all ${arrowVisibility} hover:bg-black/60 backdrop-blur-sm z-20`}
-        aria-label="الصورة السابقة"
+        aria-label={t("carousel.prevImage")}
       >
         <ChevronRight className={arrowIconSize} />
       </button>
       <button
         onClick={goNext}
         className={`absolute left-1 top-1/2 -translate-y-1/2 ${arrowSize} rounded-full bg-black/40 text-white flex items-center justify-center transition-all ${arrowVisibility} hover:bg-black/60 backdrop-blur-sm z-20`}
-        aria-label="الصورة التالية"
+        aria-label={t("carousel.nextImage")}
       >
         <ChevronLeft className={arrowIconSize} />
       </button>
@@ -165,7 +167,7 @@ export function ProductImageCarousel({
                   ? "w-4 h-1.5 bg-white"
                   : "w-1.5 h-1.5 bg-white/50 hover:bg-white/80"
               }`}
-              aria-label={`صورة ${idx + 1}`}
+              aria-label={t("carousel.imageN", { n: idx + 1 })}
             />
           ))}
         </div>

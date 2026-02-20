@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { useTheme } from "@/contexts/ThemeContext";
 import {
   Package, TrendingUp, ShoppingCart, Users, Star, AlertTriangle,
-  DollarSign, Gift, BarChart3, ArrowUpRight, ArrowDownRight
+  DollarSign, Gift, BarChart3,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -15,9 +15,12 @@ interface StoreAnalyticsTabProps {
 }
 
 export function StoreAnalyticsTab({ token }: StoreAnalyticsTabProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { isDark } = useTheme();
   const [days, setDays] = useState("30");
+  const locale = i18n.language === "ar" ? "ar-EG" : i18n.language === "pt" ? "pt-BR" : "en-US";
+  const curr = t("storeAnalyticsPage.currency");
+  const fmtNum = (n: number) => Number(n).toLocaleString(locale);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["store-analytics", days],
@@ -43,7 +46,7 @@ export function StoreAnalyticsTab({ token }: StoreAnalyticsTabProps) {
     return (
       <div className="text-center py-16">
         <AlertTriangle className="w-12 h-12 mx-auto text-red-400 mb-3" />
-        <p className="text-red-500">فشل في تحميل تحليلات المتجر</p>
+        <p className="text-red-500">{t("storeAnalyticsPage.loadFailed")}</p>
       </div>
     );
   }
@@ -57,10 +60,10 @@ export function StoreAnalyticsTab({ token }: StoreAnalyticsTabProps) {
         <div>
           <h2 className="text-2xl font-bold flex items-center gap-2">
             <BarChart3 className="w-6 h-6 text-blue-500" />
-            تحليلات المتجر
+            {t("storeAnalyticsPage.title")}
           </h2>
           <p className={`text-sm mt-1 ${isDark ? "text-gray-400" : "text-gray-500"}`}>
-            نظرة شاملة على أداء المتجر وسلوك المستخدمين
+            {t("storeAnalyticsPage.subtitle")}
           </p>
         </div>
         <Select value={days} onValueChange={setDays}>
@@ -68,10 +71,10 @@ export function StoreAnalyticsTab({ token }: StoreAnalyticsTabProps) {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="7">آخر 7 أيام</SelectItem>
-            <SelectItem value="30">آخر 30 يوم</SelectItem>
-            <SelectItem value="90">آخر 3 أشهر</SelectItem>
-            <SelectItem value="365">آخر سنة</SelectItem>
+            <SelectItem value="7">{t("storeAnalyticsPage.last7Days")}</SelectItem>
+            <SelectItem value="30">{t("storeAnalyticsPage.last30Days")}</SelectItem>
+            <SelectItem value="90">{t("storeAnalyticsPage.last3Months")}</SelectItem>
+            <SelectItem value="365">{t("storeAnalyticsPage.lastYear")}</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -80,33 +83,33 @@ export function StoreAnalyticsTab({ token }: StoreAnalyticsTabProps) {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <StatCard
           icon={<DollarSign className="w-5 h-5 text-green-500" />}
-          label="إجمالي الإيرادات"
-          value={`${Number(revenue?.totalRevenue || 0).toLocaleString("ar-EG")} ج.م`}
-          subtext={`${revenue?.totalOrders || 0} طلب`}
+          label={t("storeAnalyticsPage.totalRevenue")}
+          value={`${fmtNum(revenue?.totalRevenue || 0)} ${curr}`}
+          subtext={`${revenue?.totalOrders || 0} ${t("storeAnalyticsPage.orders")}`}
           isDark={isDark}
           color="green"
         />
         <StatCard
           icon={<ShoppingCart className="w-5 h-5 text-blue-500" />}
-          label="متوسط قيمة الطلب"
-          value={`${Number(revenue?.averageOrderValue || 0).toLocaleString("ar-EG")} ج.م`}
-          subtext={`${activeBuyers || 0} مشتري نشط`}
+          label={t("storeAnalyticsPage.avgOrderValue")}
+          value={`${fmtNum(revenue?.averageOrderValue || 0)} ${curr}`}
+          subtext={`${activeBuyers || 0} ${t("storeAnalyticsPage.activeBuyer")}`}
           isDark={isDark}
           color="blue"
         />
         <StatCard
           icon={<Package className="w-5 h-5 text-purple-500" />}
-          label="المنتجات النشطة"
+          label={t("storeAnalyticsPage.activeProducts")}
           value={`${overview?.activeProducts || 0}`}
-          subtext={`${overview?.outOfStock || 0} نفذ من المخزون`}
+          subtext={`${overview?.outOfStock || 0} ${t("storeAnalyticsPage.outOfStock")}`}
           isDark={isDark}
           color="purple"
         />
         <StatCard
           icon={<Gift className="w-5 h-5 text-orange-500" />}
-          label="الهدايا المعيّنة"
+          label={t("storeAnalyticsPage.assignedGifts")}
           value={`${gifts?.totalAssigned || 0}`}
-          subtext={`${gifts?.completed || 0} مكتملة • ${gifts?.active || 0} نشطة`}
+          subtext={`${gifts?.completed || 0} ${t("storeAnalyticsPage.completed")} • ${gifts?.active || 0} ${t("storeAnalyticsPage.active")}`}
           isDark={isDark}
           color="orange"
         />
@@ -118,15 +121,15 @@ export function StoreAnalyticsTab({ token }: StoreAnalyticsTabProps) {
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
               <DollarSign className="w-4 h-4 text-green-500" />
-              مشتريات الأولياء
+              {t("storeAnalyticsPage.parentPurchases")}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold text-green-600">
-              {Number(revenue?.parentPurchases?.total || 0).toLocaleString("ar-EG")} ج.م
+              {fmtNum(revenue?.parentPurchases?.total || 0)} {curr}
             </p>
             <p className={`text-xs mt-1 ${isDark ? "text-gray-400" : "text-gray-500"}`}>
-              {revenue?.parentPurchases?.count || 0} عملية شراء
+              {revenue?.parentPurchases?.count || 0} {t("storeAnalyticsPage.purchaseOp")}
             </p>
           </CardContent>
         </Card>
@@ -134,15 +137,15 @@ export function StoreAnalyticsTab({ token }: StoreAnalyticsTabProps) {
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
               <ShoppingCart className="w-4 h-4 text-blue-500" />
-              طلبات المتجر (Stripe)
+              {t("storeAnalyticsPage.storeOrdersStripe")}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold text-blue-600">
-              {Number(revenue?.storeOrders?.total || 0).toLocaleString("ar-EG")} ج.م
+              {fmtNum(revenue?.storeOrders?.total || 0)} {curr}
             </p>
             <p className={`text-xs mt-1 ${isDark ? "text-gray-400" : "text-gray-500"}`}>
-              {revenue?.storeOrders?.count || 0} طلب
+              {revenue?.storeOrders?.count || 0} {t("storeAnalyticsPage.orders")}
             </p>
           </CardContent>
         </Card>
@@ -150,15 +153,15 @@ export function StoreAnalyticsTab({ token }: StoreAnalyticsTabProps) {
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
               <Star className="w-4 h-4 text-yellow-500" />
-              مشتريات الأطفال (نقاط)
+              {t("storeAnalyticsPage.childPurchasesPoints")}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold text-yellow-600">
-              {Number(childPurchaseData?.totalPointsSpent || 0).toLocaleString("ar-EG")} نقطة
+              {fmtNum(childPurchaseData?.totalPointsSpent || 0)} {t("storeAnalyticsPage.point")}
             </p>
             <p className={`text-xs mt-1 ${isDark ? "text-gray-400" : "text-gray-500"}`}>
-              {childPurchaseData?.count || 0} عملية شراء
+              {childPurchaseData?.count || 0} {t("storeAnalyticsPage.purchaseOp")}
             </p>
           </CardContent>
         </Card>
@@ -170,7 +173,7 @@ export function StoreAnalyticsTab({ token }: StoreAnalyticsTabProps) {
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
               <TrendingUp className="w-5 h-5 text-blue-500" />
-              اتجاه الإيرادات اليومية
+              {t("storeAnalyticsPage.dailyRevenueTrend")}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -181,7 +184,7 @@ export function StoreAnalyticsTab({ token }: StoreAnalyticsTabProps) {
                   const maxRev = Math.max(...dailyRevenue.map((d: any) => Number(d.revenue)));
                   const height = maxRev > 0 ? (Number(day.revenue) / maxRev) * 100 : 0;
                   return (
-                    <div key={idx} className="flex flex-col items-center gap-1 min-w-[32px]" title={`${day.date}: ${Number(day.revenue).toLocaleString("ar-EG")} ج.م (${day.orders} طلب)`}>
+                    <div key={idx} className="flex flex-col items-center gap-1 min-w-[32px]" title={`${day.date}: ${fmtNum(day.revenue)} ${curr} (${day.orders} ${t("storeAnalyticsPage.orders")})`}>
                       <div
                         className="w-6 bg-gradient-to-t from-blue-500 to-blue-400 rounded-t transition-all hover:from-blue-600 hover:to-blue-500"
                         style={{ height: `${Math.max(height, 4)}%` }}
@@ -209,7 +212,7 @@ export function StoreAnalyticsTab({ token }: StoreAnalyticsTabProps) {
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
               <TrendingUp className="w-5 h-5 text-green-500" />
-              أكثر المنتجات مبيعاً
+              {t("storeAnalyticsPage.topSellingProducts")}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -232,19 +235,19 @@ export function StoreAnalyticsTab({ token }: StoreAnalyticsTabProps) {
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{p.nameAr || p.name}</p>
+                      <p className="text-sm font-medium truncate">{i18n.language === "ar" ? (p.nameAr || p.name) : p.name}</p>
                       <p className={`text-xs ${isDark ? "text-gray-400" : "text-gray-500"}`}>
-                        {p.totalQuantity} عملية بيع
+                        {p.totalQuantity} {t("storeAnalyticsPage.salesOp")}
                       </p>
                     </div>
                     <span className="text-sm font-bold text-green-600">
-                      {Number(p.totalRevenue).toLocaleString("ar-EG")} ج.م
+                      {fmtNum(p.totalRevenue)} {curr}
                     </span>
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-center text-gray-400 py-8">لا توجد مبيعات في هذه الفترة</p>
+              <p className="text-center text-gray-400 py-8">{t("storeAnalyticsPage.noSalesInPeriod")}</p>
             )}
           </CardContent>
         </Card>
@@ -254,7 +257,7 @@ export function StoreAnalyticsTab({ token }: StoreAnalyticsTabProps) {
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
               <BarChart3 className="w-5 h-5 text-purple-500" />
-              توزيع المنتجات حسب الفئة
+              {t("storeAnalyticsPage.categoryDistribution")}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -266,9 +269,9 @@ export function StoreAnalyticsTab({ token }: StoreAnalyticsTabProps) {
                   return (
                     <div key={cat.categoryId || "uncategorized"} className="space-y-1">
                       <div className="flex items-center justify-between text-sm">
-                        <span className="font-medium">{cat.categoryNameAr || cat.categoryName || "بدون فئة"}</span>
+                        <span className="font-medium">{i18n.language === "ar" ? (cat.categoryNameAr || cat.categoryName || t("storeAnalyticsPage.uncategorized")) : (cat.categoryName || cat.categoryNameAr || t("storeAnalyticsPage.uncategorized"))}</span>
                         <span className={isDark ? "text-gray-400" : "text-gray-500"}>
-                          {cat.productCount} منتج ({pct.toFixed(0)}%)
+                          {cat.productCount} {t("storeAnalyticsPage.product")} ({pct.toFixed(0)}%)
                         </span>
                       </div>
                       <div className={`h-2 rounded-full overflow-hidden ${isDark ? "bg-gray-700" : "bg-gray-100"}`}>
@@ -282,7 +285,7 @@ export function StoreAnalyticsTab({ token }: StoreAnalyticsTabProps) {
                 })}
               </div>
             ) : (
-              <p className="text-center text-gray-400 py-8">لا توجد بيانات</p>
+              <p className="text-center text-gray-400 py-8">{t("storeAnalyticsPage.noData")}</p>
             )}
           </CardContent>
         </Card>
@@ -295,7 +298,7 @@ export function StoreAnalyticsTab({ token }: StoreAnalyticsTabProps) {
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
               <AlertTriangle className="w-5 h-5 text-red-500" />
-              تنبيه المخزون المنخفض
+              {t("storeAnalyticsPage.lowStockAlert")}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -312,15 +315,15 @@ export function StoreAnalyticsTab({ token }: StoreAnalyticsTabProps) {
                         </div>
                       )}
                     </div>
-                    <span className="flex-1 text-sm truncate">{p.nameAr || p.name}</span>
+                    <span className="flex-1 text-sm truncate">{i18n.language === "ar" ? (p.nameAr || p.name) : p.name}</span>
                     <Badge variant={p.stock === 0 ? "destructive" : "outline"} className="text-xs">
-                      {p.stock === 0 ? "نفذ" : `${p.stock} متبقي`}
+                      {p.stock === 0 ? t("storeAnalyticsPage.soldOut") : `${p.stock} ${t("storeAnalyticsPage.remaining")}`}
                     </Badge>
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-center text-green-500 py-8">✅ جميع المنتجات في مخزون كافي</p>
+              <p className="text-center text-green-500 py-8">✅ {t("storeAnalyticsPage.allStockSufficient")}</p>
             )}
           </CardContent>
         </Card>
@@ -330,7 +333,7 @@ export function StoreAnalyticsTab({ token }: StoreAnalyticsTabProps) {
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
               <ShoppingCart className="w-5 h-5 text-blue-500" />
-              آخر الطلبات
+              {t("storeAnalyticsPage.recentOrders")}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -340,10 +343,10 @@ export function StoreAnalyticsTab({ token }: StoreAnalyticsTabProps) {
                   <div key={order.id} className={`flex items-center justify-between p-2 rounded-lg ${isDark ? "hover:bg-gray-700" : "hover:bg-gray-50"}`}>
                     <div>
                       <p className="text-sm font-medium">
-                        {Number(order.totalAmount).toLocaleString("ar-EG")} ج.م
+                        {fmtNum(order.totalAmount)} {curr}
                       </p>
                       <p className={`text-xs ${isDark ? "text-gray-400" : "text-gray-500"}`}>
-                        {new Date(order.createdAt).toLocaleDateString("ar-EG")}
+                        {new Date(order.createdAt).toLocaleDateString(locale)}
                       </p>
                     </div>
                     <Badge
@@ -356,13 +359,13 @@ export function StoreAnalyticsTab({ token }: StoreAnalyticsTabProps) {
                           : "border-yellow-500 text-yellow-600"
                       }`}
                     >
-                      {order.paymentStatus === "paid" ? "مدفوع" : order.paymentStatus === "failed" ? "فشل" : "معلق"}
+                      {order.paymentStatus === "paid" ? t("storeAnalyticsPage.paid") : order.paymentStatus === "failed" ? t("storeAnalyticsPage.failed") : t("storeAnalyticsPage.pending")}
                     </Badge>
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-center text-gray-400 py-8">لا توجد طلبات حديثة</p>
+              <p className="text-center text-gray-400 py-8">{t("storeAnalyticsPage.noRecentOrders")}</p>
             )}
           </CardContent>
         </Card>
@@ -373,7 +376,7 @@ export function StoreAnalyticsTab({ token }: StoreAnalyticsTabProps) {
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
             <Users className="w-5 h-5 text-indigo-500" />
-            رؤى سلوك المستخدم
+              {t("storeAnalyticsPage.userBehavior")}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -381,22 +384,22 @@ export function StoreAnalyticsTab({ token }: StoreAnalyticsTabProps) {
             <div className={`p-4 rounded-xl text-center ${isDark ? "bg-gray-700" : "bg-indigo-50"}`}>
               <Users className="w-6 h-6 mx-auto text-indigo-500 mb-2" />
               <p className="text-2xl font-bold text-indigo-600">{activeBuyers || 0}</p>
-              <p className={`text-xs ${isDark ? "text-gray-400" : "text-gray-500"}`}>مشتري نشط</p>
+              <p className={`text-xs ${isDark ? "text-gray-400" : "text-gray-500"}`}>{t("storeAnalyticsPage.activeBuyer")}</p>
             </div>
             <div className={`p-4 rounded-xl text-center ${isDark ? "bg-gray-700" : "bg-green-50"}`}>
               <ShoppingCart className="w-6 h-6 mx-auto text-green-500 mb-2" />
               <p className="text-2xl font-bold text-green-600">{revenue?.totalOrders || 0}</p>
-              <p className={`text-xs ${isDark ? "text-gray-400" : "text-gray-500"}`}>إجمالي الطلبات</p>
+              <p className={`text-xs ${isDark ? "text-gray-400" : "text-gray-500"}`}>{t("storeAnalyticsPage.totalOrders")}</p>
             </div>
             <div className={`p-4 rounded-xl text-center ${isDark ? "bg-gray-700" : "bg-orange-50"}`}>
               <Gift className="w-6 h-6 mx-auto text-orange-500 mb-2" />
               <p className="text-2xl font-bold text-orange-600">{gifts?.active || 0}</p>
-              <p className={`text-xs ${isDark ? "text-gray-400" : "text-gray-500"}`}>هدايا نشطة</p>
+              <p className={`text-xs ${isDark ? "text-gray-400" : "text-gray-500"}`}>{t("storeAnalyticsPage.activeGifts")}</p>
             </div>
             <div className={`p-4 rounded-xl text-center ${isDark ? "bg-gray-700" : "bg-yellow-50"}`}>
               <Star className="w-6 h-6 mx-auto text-yellow-500 mb-2" />
               <p className="text-2xl font-bold text-yellow-600">{childPurchaseData?.count || 0}</p>
-              <p className={`text-xs ${isDark ? "text-gray-400" : "text-gray-500"}`}>شراء بالنقاط</p>
+              <p className={`text-xs ${isDark ? "text-gray-400" : "text-gray-500"}`}>{t("storeAnalyticsPage.pointsPurchases")}</p>
             </div>
           </div>
         </CardContent>

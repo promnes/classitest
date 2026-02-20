@@ -868,7 +868,7 @@ export const ChildStore = (): JSX.Element => {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Gift className="w-5 h-5 text-orange-500" />
-              تفاصيل المنتج
+              {t("productDetail.title")}
             </DialogTitle>
           </DialogHeader>
 
@@ -897,22 +897,22 @@ export const ChildStore = (): JSX.Element => {
                 <p className="text-gray-500 dark:text-gray-400 mt-2">{selectedProduct.description}</p>
                 <div className="flex items-center gap-2 mt-2">
                   {renderStars(selectedProduct.rating)}
-                  <span className="text-xs text-gray-400">({selectedProduct.reviewCount || 0} تقييم)</span>
+                  <span className="text-xs text-gray-400">({selectedProduct.reviewCount || 0} {t("productDetail.reviews")})</span>
                 </div>
               </div>
 
               <div className="flex items-center justify-between p-4 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-xl">
                 <div>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">السعر</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">{t("productDetail.price")}</p>
                   <div className="flex items-center gap-2 text-2xl font-bold text-yellow-600">
                     <Star className="w-6 h-6 fill-yellow-500" />
-                    {selectedProduct.pointsPrice} نقطة
+                    {selectedProduct.pointsPrice} {t("productDetail.point")}
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="text-sm text-gray-500 dark:text-gray-400">رصيدك</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">{t("productDetail.yourBalance")}</p>
                   <p className={`text-xl font-bold ${(childInfo?.totalPoints || 0) >= selectedProduct.pointsPrice ? "text-green-600" : "text-red-600"}`}>
-                    {childInfo?.totalPoints || 0} نقطة
+                    {childInfo?.totalPoints || 0} {t("productDetail.point")}
                   </p>
                 </div>
               </div>
@@ -924,20 +924,20 @@ export const ChildStore = (): JSX.Element => {
                   data-testid="button-add-to-cart"
                 >
                   <ShoppingCart className="w-5 h-5 ml-2" />
-                  أضف للسلة
+                  {t("productDetail.addToCart")}
                 </Button>
               ) : (
                 <div className="text-center p-4 bg-red-50 dark:bg-red-900/20 rounded-xl">
-                  <p className="text-red-600 dark:text-red-400 font-bold mb-2">نقاطك غير كافية</p>
+                  <p className="text-red-600 dark:text-red-400 font-bold mb-2">{t("productDetail.insufficientPoints")}</p>
                   <p className="text-sm text-red-500 mb-4">
-                    تحتاج {selectedProduct.pointsPrice - (childInfo?.totalPoints || 0)} نقطة إضافية
+                    {t("productDetail.needMorePoints", { points: selectedProduct.pointsPrice - (childInfo?.totalPoints || 0) })}
                   </p>
                   <Button
                     onClick={() => navigate("/child-games")}
                     className="bg-green-500 hover:bg-green-600"
                   >
                     <Gamepad2 className="w-4 h-4 ml-2" />
-                    العب لتكسب نقاط
+                    {t("productDetail.playToEarn")}
                   </Button>
                 </div>
               )}

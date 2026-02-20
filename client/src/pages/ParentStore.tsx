@@ -1240,7 +1240,7 @@ export const ParentStore = (): JSX.Element => {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Package className="w-5 h-5 text-blue-500" />
-              تفاصيل المنتج
+              {t("productDetail.title")}
             </DialogTitle>
           </DialogHeader>
 
@@ -1300,25 +1300,25 @@ export const ParentStore = (): JSX.Element => {
                     }`}
                   />
                 ))}
-                <span className="text-xs text-gray-400">({selectedProduct.reviewCount || 0} تقييم)</span>
+                <span className="text-xs text-gray-400">({selectedProduct.reviewCount || 0} {t("productDetail.reviews")})</span>
               </div>
 
               {/* Price & Stock */}
               <div className={`p-4 rounded-xl ${isDark ? "bg-gray-700" : "bg-gradient-to-r from-blue-50 to-indigo-50"}`}>
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">السعر</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">{t("productDetail.price")}</p>
                     <div className="flex items-center gap-2">
-                      <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">{selectedProduct.price} ج.م</span>
+                      <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">{selectedProduct.price} {t("productDetail.currency")}</span>
                       {selectedProduct.originalPrice && parseFloat(selectedProduct.originalPrice) > parseFloat(selectedProduct.price) && (
-                        <span className="text-sm text-gray-400 line-through">{selectedProduct.originalPrice} ج.م</span>
+                        <span className="text-sm text-gray-400 line-through">{selectedProduct.originalPrice} {t("productDetail.currency")}</span>
                       )}
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm text-gray-500 dark:text-gray-400">المخزون</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">{t("productDetail.stock")}</p>
                     <p className={`font-bold ${selectedProduct.stock > 0 ? "text-green-600" : "text-red-600"}`}>
-                      {selectedProduct.stock > 0 ? `${selectedProduct.stock} متاح` : "نفذ"}
+                      {selectedProduct.stock > 0 ? `${selectedProduct.stock} ${t("productDetail.available")}` : t("productDetail.soldOut")}
                     </p>
                   </div>
                 </div>
@@ -1326,7 +1326,7 @@ export const ParentStore = (): JSX.Element => {
                   <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-600">
                     <p className="text-xs flex items-center gap-1 text-orange-600">
                       <Star className="w-3 h-3 fill-yellow-500 text-yellow-500" />
-                      يحتاج <span className="font-bold">{selectedProduct.pointsPrice}</span> نقطة كهدية
+                      {t("productDetail.needsPointsAsGift", { points: selectedProduct.pointsPrice })}
                     </p>
                   </div>
                 )}
@@ -1345,7 +1345,7 @@ export const ParentStore = (): JSX.Element => {
                     disabled={selectedProduct.stock <= 0}
                   >
                     <CreditCard className="w-4 h-4 ml-2" />
-                    شراء الآن
+                    {t("productDetail.buyNow")}
                   </Button>
                   <Button
                     variant="outline"
@@ -1357,7 +1357,7 @@ export const ParentStore = (): JSX.Element => {
                     disabled={selectedProduct.stock <= 0}
                   >
                     <ShoppingCart className="w-4 h-4 ml-2" />
-                    أضف للسلة
+                    {t("productDetail.addToCart")}
                   </Button>
                 </div>
                 <Button
@@ -1369,7 +1369,7 @@ export const ParentStore = (): JSX.Element => {
                   }}
                 >
                   <Gift className="w-4 h-4 ml-2" />
-                  تعيين كهدية لطفل
+                  {t("productDetail.assignAsGiftToChild")}
                 </Button>
               </div>
             </div>
@@ -1382,7 +1382,7 @@ export const ParentStore = (): JSX.Element => {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Gift className="w-5 h-5 text-orange-500" />
-              تعيين المنتج كهدية
+              {t("productDetail.assignProductAsGift")}
             </DialogTitle>
           </DialogHeader>
 
@@ -1408,12 +1408,12 @@ export const ParentStore = (): JSX.Element => {
                 </div>
                 <div>
                   <h4 className="font-bold text-gray-800">{selectedProduct.nameAr || selectedProduct.name}</h4>
-                  <p className="text-orange-600 font-bold text-lg">{selectedProduct.price} ج.م</p>
+                  <p className="text-orange-600 font-bold text-lg">{selectedProduct.price} {t("productDetail.currency")}</p>
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-2">اختر الطفل</label>
+                <label className="block text-sm font-medium mb-2">{t("productDetail.selectChild")}</label>
                 <Select value={selectedChild} onValueChange={setSelectedChild}>
                   <SelectTrigger data-testid="select-child">
                     <SelectValue placeholder={t('parentStore.selectChildPlaceholder')} />
@@ -1421,7 +1421,7 @@ export const ParentStore = (): JSX.Element => {
                   <SelectContent>
                     {children.map((child: any) => (
                       <SelectItem key={child.id} value={child.id}>
-                        {child.name} ({child.totalPoints || 0} نقطة)
+                        {child.name} ({child.totalPoints || 0} {t("productDetail.point")})
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -1429,7 +1429,7 @@ export const ParentStore = (): JSX.Element => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-2">النقاط المطلوبة للحصول على الهدية</label>
+                <label className="block text-sm font-medium mb-2">{t("productDetail.requiredPointsForGift")}</label>
                 <Input
                   type="number"
                   value={requiredPoints}
@@ -1438,7 +1438,7 @@ export const ParentStore = (): JSX.Element => {
                   data-testid="input-required-points"
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  سيحتاج الطفل جمع هذا العدد من النقاط للحصول على الهدية
+                  {t("productDetail.childNeedsToCollectPoints")}
                 </p>
               </div>
 
@@ -1462,7 +1462,7 @@ export const ParentStore = (): JSX.Element => {
                   variant="outline"
                   onClick={() => { addToCart(selectedProduct); setShowAssign(false); }}
                 >
-                  أضف للسلة فقط
+                  {t("productDetail.addToCartOnly")}
                 </Button>
               </div>
             </div>
