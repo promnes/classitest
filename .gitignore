@@ -64,6 +64,7 @@ android/app/build/
 android/keystore.properties
 android/*.keystore
 android/*.jks
+*.keystore
 ios/Pods/
 ios/build/
 *.ipa
