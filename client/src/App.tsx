@@ -49,6 +49,7 @@ const ParentTasks = lazy(() => import("@/pages/ParentTasks"));
 const LibraryLogin = lazy(() => import("@/pages/LibraryLogin"));
 const LibraryDashboard = lazy(() => import("@/pages/LibraryDashboard"));
 const LibraryStore = lazy(() => import("@/pages/LibraryStore"));
+const Match3Page = lazy(() => import("@/games/match3/Match3Page"));
 const SchoolLogin = lazy(() => import("@/pages/SchoolLogin"));
 const SchoolDashboard = lazy(() => import("@/pages/SchoolDashboard"));
 const TeacherLogin = lazy(() => import("@/pages/TeacherLogin"));
@@ -292,6 +293,9 @@ function Router() {
         <Route path="/store/libraries" component={LegacyLibraryStoreRedirect} />
         <Route path="/library-store">
           <ErrorBoundary><LibraryStore /></ErrorBoundary>
+        </Route>
+        <Route path="/match3">
+          <ErrorBoundary><Match3Page /></ErrorBoundary>
         </Route>
         <Route path="/school/login" component={SchoolLogin} />
         <Route path="/school/dashboard">
