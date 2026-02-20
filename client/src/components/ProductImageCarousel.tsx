@@ -16,6 +16,8 @@ interface ProductImageCarouselProps {
   autoSlide?: boolean;
   /** Auto-slide interval in ms (default: 2000) */
   autoSlideInterval?: number;
+  /** Use object-contain instead of object-cover (shows full image without cropping) */
+  contain?: boolean;
 }
 
 export function ProductImageCarousel({
@@ -28,6 +30,7 @@ export function ProductImageCarousel({
   onImageClick,
   autoSlide = false,
   autoSlideInterval = 2000,
+  contain = false,
 }: ProductImageCarouselProps) {
   const { t } = useTranslation();
   // Build the final ordered list: mainImage first, then the rest
@@ -93,13 +96,15 @@ export function ProductImageCarousel({
     );
   }
 
+  const objectFit = contain ? "object-contain" : "object-cover";
+
   if (allImages.length === 1) {
     return (
       <div className={`relative overflow-hidden ${className}`} onClick={onImageClick}>
         <img
           src={allImages[0]}
           alt={alt}
-          className="w-full h-full object-cover"
+          className={`w-full h-full ${objectFit}`}
           onError={(e) => {
             (e.target as HTMLImageElement).style.display = "none";
           }}
@@ -125,7 +130,7 @@ export function ProductImageCarousel({
           key={src}
           src={src}
           alt={`${alt} (${idx + 1}/${allImages.length})`}
-          className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ${
+          className={`absolute inset-0 w-full h-full ${objectFit} transition-opacity duration-500 ${
             idx === currentIndex ? "opacity-100 z-10" : "opacity-0 z-0"
           }`}
           onError={(e) => {

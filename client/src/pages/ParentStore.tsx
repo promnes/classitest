@@ -1236,7 +1236,7 @@ export const ParentStore = (): JSX.Element => {
 
       {/* Product Detail Modal */}
       <Dialog open={showDetail} onOpenChange={setShowDetail}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Package className="w-5 h-5 text-blue-500" />
@@ -1247,7 +1247,7 @@ export const ParentStore = (): JSX.Element => {
           {selectedProduct && (
             <div className="space-y-4">
               {/* Product Images */}
-              <div className="aspect-square bg-gray-100 dark:bg-gray-700 rounded-xl overflow-hidden">
+              <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-xl overflow-hidden" style={{ aspectRatio: '4/3' }}>
                 {(selectedProduct.images && selectedProduct.images.length > 1) ? (
                   <ProductImageCarousel
                     images={selectedProduct.images}
@@ -1256,9 +1256,10 @@ export const ParentStore = (): JSX.Element => {
                     className="w-full h-full"
                     autoSlide
                     autoSlideInterval={2000}
+                    contain
                   />
                 ) : selectedProduct.image ? (
-                  <img src={selectedProduct.image} alt={selectedProduct.name} className="w-full h-full object-cover rounded-xl" />
+                  <img src={selectedProduct.image} alt={selectedProduct.name} className="w-full h-full object-contain rounded-xl" />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
                     <Package className="w-16 h-16 text-gray-300" />

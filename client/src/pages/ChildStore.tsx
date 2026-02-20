@@ -864,7 +864,7 @@ export const ChildStore = (): JSX.Element => {
       </Dialog>
 
       <Dialog open={!!selectedProduct} onOpenChange={() => setSelectedProduct(null)}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Gift className="w-5 h-5 text-orange-500" />
@@ -874,16 +874,17 @@ export const ChildStore = (): JSX.Element => {
 
           {selectedProduct && (
             <div className="space-y-6">
-              <div className="aspect-square bg-gray-100 dark:bg-gray-700 rounded-xl overflow-hidden">
+              <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-xl overflow-hidden" style={{ aspectRatio: '4/3' }}>
                 {(selectedProduct.images && selectedProduct.images.length > 1) ? (
                   <ProductImageCarousel
                     images={selectedProduct.images}
                     mainImage={selectedProduct.image}
                     alt={selectedProduct.name}
                     className="w-full h-full"
+                    contain
                   />
                 ) : selectedProduct.image ? (
-                  <img src={selectedProduct.image} alt={selectedProduct.name} className="w-full h-full object-cover" />
+                  <img src={selectedProduct.image} alt={selectedProduct.name} className="w-full h-full object-contain rounded-xl" />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
                     <Package className="w-16 h-16 text-gray-300" />
