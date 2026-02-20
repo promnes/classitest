@@ -338,7 +338,7 @@ export const Settings = (): JSX.Element => {
               </div>
               <div>
                 <label className={`block font-bold mb-2 ${isDark ? "text-gray-300" : "text-gray-700"}`}>
-                  🏢 المحافظة
+                  {t("settings.governorate")}
                 </label>
                 <GovernorateSelect
                   value={profileData.governorate}
@@ -348,19 +348,19 @@ export const Settings = (): JSX.Element => {
               </div>
               <div>
                 <label className={`block font-bold mb-2 ${isDark ? "text-gray-300" : "text-gray-700"}`}>
-                  🏙️ المدينة
+                  {t("settings.city")}
                 </label>
                 <input
                   type="text"
                   value={profileData.city}
                   onChange={(e) => setProfileData({ ...profileData, city: e.target.value })}
                   className={`w-full px-4 py-2 border-2 rounded-lg focus:outline-none focus:border-blue-500 ${isDark ? "bg-gray-700 border-gray-600 text-white" : "border-gray-300"}`}
-                  placeholder="مثال: المعادي"
+                  placeholder={t("settings.cityPlaceholder")}
                 />
               </div>
               <div>
                 <label className={`block font-bold mb-2 ${isDark ? "text-gray-300" : "text-gray-700"}`}>
-                  📝 نبذة عنك
+                  {t("settings.aboutYou")}
                 </label>
                 <textarea
                   value={profileData.bio}
@@ -368,7 +368,7 @@ export const Settings = (): JSX.Element => {
                   rows={3}
                   maxLength={500}
                   className={`w-full px-4 py-2 border-2 rounded-lg focus:outline-none focus:border-blue-500 ${isDark ? "bg-gray-700 border-gray-600 text-white" : "border-gray-300"}`}
-                  placeholder="اكتب نبذة قصيرة عنك..."
+                  placeholder={t("settings.aboutYouPlaceholder")}
                 />
               </div>
               <button

@@ -799,7 +799,7 @@ export default function TeacherDashboard() {
             )}
             <div>
               <h1 className="font-bold text-lg">{profile?.name || teacherData.name}</h1>
-              <p className="text-green-100 text-xs">لوحة تحكم المعلم — {profile?.schoolName || ""}</p>
+              <p className="text-green-100 text-xs">{t('teacherDashboard.headerTitle')}{profile?.schoolName || ""}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -827,28 +827,28 @@ export default function TeacherDashboard() {
             <CardContent className="p-4 text-center">
               <BookOpen className="h-8 w-8 mx-auto mb-2 text-green-600" />
               <div className="text-2xl font-bold">{stats?.totalTasks || 0}</div>
-              <div className="text-xs text-muted-foreground">المهام</div>
+              <div className="text-xs text-muted-foreground">{t('teacherDashboard.statsTasks')}</div>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-4 text-center">
               <DollarSign className="h-8 w-8 mx-auto mb-2 text-blue-600" />
               <div className="text-2xl font-bold">{balance?.availableBalance || "0.00"}</div>
-              <div className="text-xs text-muted-foreground">الرصيد المتاح</div>
+              <div className="text-xs text-muted-foreground">{t('teacherDashboard.statsAvailableBalance')}</div>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-4 text-center">
               <TrendingUp className="h-8 w-8 mx-auto mb-2 text-purple-600" />
               <div className="text-2xl font-bold">{stats?.totalOrders || 0}</div>
-              <div className="text-xs text-muted-foreground">الطلبات</div>
+              <div className="text-xs text-muted-foreground">{t('teacherDashboard.statsOrders')}</div>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-4 text-center">
               <Star className="h-8 w-8 mx-auto mb-2 text-yellow-500" />
               <div className="text-2xl font-bold">{stats?.avgRating || 0}</div>
-              <div className="text-xs text-muted-foreground">التقييم ({stats?.totalReviews || 0})</div>
+              <div className="text-xs text-muted-foreground">{t('teacherDashboard.statsRating')} ({stats?.totalReviews || 0})</div>
             </CardContent>
           </Card>
         </div>
@@ -856,27 +856,27 @@ export default function TeacherDashboard() {
         {/* Tabs */}
         <Tabs defaultValue="tasks" dir="rtl">
           <TabsList className="grid w-full grid-cols-7">
-            <TabsTrigger value="tasks">المهام</TabsTrigger>
-            <TabsTrigger value="templates">القوالب</TabsTrigger>
-            <TabsTrigger value="orders">الطلبات</TabsTrigger>
-            <TabsTrigger value="balance">المحفظة</TabsTrigger>
-            <TabsTrigger value="posts">المنشورات</TabsTrigger>
-            <TabsTrigger value="polls">التصويتات</TabsTrigger>
-            <TabsTrigger value="profile">الملف الشخصي</TabsTrigger>
+            <TabsTrigger value="tasks">{t('teacherDashboard.tabTasks')}</TabsTrigger>
+            <TabsTrigger value="templates">{t('teacherDashboard.tabTemplates')}</TabsTrigger>
+            <TabsTrigger value="orders">{t('teacherDashboard.tabOrders')}</TabsTrigger>
+            <TabsTrigger value="balance">{t('teacherDashboard.tabWallet')}</TabsTrigger>
+            <TabsTrigger value="posts">{t('teacherDashboard.tabPosts')}</TabsTrigger>
+            <TabsTrigger value="polls">{t('teacherDashboard.tabPolls')}</TabsTrigger>
+            <TabsTrigger value="profile">{t('teacherDashboard.tabProfile')}</TabsTrigger>
           </TabsList>
 
           {/* Tasks Tab */}
           <TabsContent value="tasks" className="space-y-4">
             <div className="flex justify-between items-center">
-              <h2 className="text-lg font-bold">إدارة المهام</h2>
+              <h2 className="text-lg font-bold">{t('teacherDashboard.manageTasks')}</h2>
               <Button onClick={() => { resetTaskForm(); setEditingTask(null); setShowTaskModal(true); }} className="bg-green-600">
                 <Plus className="h-4 w-4 ml-1" />
-                مهمة جديدة
+                {t('teacherDashboard.newTask')}
               </Button>
             </div>
 
             {tasks.length === 0 ? (
-              <Card><CardContent className="p-8 text-center text-muted-foreground">لم يتم إضافة مهام بعد</CardContent></Card>
+              <Card><CardContent className="p-8 text-center text-muted-foreground">{t('teacherDashboard.noTasksYet')}</CardContent></Card>
             ) : (
               <div className="grid md:grid-cols-2 gap-4">
                 {tasks.map((task: Task) => (
@@ -896,20 +896,20 @@ export default function TeacherDashboard() {
                       </div>
                       {task.subjectLabel && <Badge variant="outline" className="mt-2 text-xs">{task.subjectLabel}</Badge>}
                       <div className="mt-2 flex items-center gap-2 text-sm">
-                        <span className="text-green-600 font-bold">{task.price} ج.م</span>
+                        <span className="text-green-600 font-bold">{task.price} {t('teacherDashboard.currency')}</span>
                         <span className="text-muted-foreground">•</span>
-                        <span className="text-muted-foreground">{task.purchaseCount} شراء</span>
+                        <span className="text-muted-foreground">{task.purchaseCount} {t('teacherDashboard.purchases')}</span>
                         {task.imageUrl && <Image className="h-3 w-3 text-blue-500" />}
                         {task.videoUrl && <Video className="h-3 w-3 text-red-500" />}
                       </div>
                       <div className="mt-3 flex gap-2">
                         <Button size="sm" variant="outline" onClick={() => openEditTask(task)}>
                           <Edit className="h-3 w-3 ml-1" />
-                          تعديل
+                          {t('teacherDashboard.edit')}
                         </Button>
                         <Button size="sm" variant="destructive" onClick={() => { if (confirm(t('teacherDashboard.confirmDeleteTask'))) deleteTask.mutate(task.id); }}>
                           <Trash2 className="h-3 w-3 ml-1" />
-                          حذف
+                          {t('teacherDashboard.delete')}
                         </Button>
                       </div>
                     </CardContent>
@@ -921,8 +921,8 @@ export default function TeacherDashboard() {
 
           {/* Templates Tab */}
           <TabsContent value="templates" className="space-y-4">
-            <h2 className="text-lg font-bold">قوالب المهام الجاهزة</h2>
-            <p className="text-sm text-muted-foreground">اختر مادة ثم اختر قالب لإنشاء مهمة جاهزة بسعرك</p>
+            <h2 className="text-lg font-bold">{t('teacherDashboard.readyTemplates')}</h2>
+            <p className="text-sm text-muted-foreground">{t('teacherDashboard.templateInstructions')}</p>
 
             <div className="flex flex-wrap gap-2">
               {subjectsList.map((subj: any) => (
@@ -940,7 +940,7 @@ export default function TeacherDashboard() {
             </div>
 
             {selectedSubjectId && templateTasks.length === 0 && (
-              <Card><CardContent className="p-6 text-center text-muted-foreground">لا توجد قوالب لهذه المادة</CardContent></Card>
+              <Card><CardContent className="p-6 text-center text-muted-foreground">{t('teacherDashboard.noTemplatesForSubject')}</CardContent></Card>
             )}
 
             {templateTasks.length > 0 && (
@@ -950,7 +950,7 @@ export default function TeacherDashboard() {
                     <CardContent className="p-4">
                       <h3 className="font-bold text-sm">{tmpl.title || tmpl.question}</h3>
                       <p className="text-xs text-muted-foreground mt-1">{tmpl.question}</p>
-                      <div className="mt-2 text-xs text-muted-foreground">{tmpl.answers?.length || 0} إجابات • {tmpl.pointsReward} نقطة</div>
+                      <div className="mt-2 text-xs text-muted-foreground">{tmpl.answers?.length || 0} {t('teacherDashboard.answers')} • {tmpl.pointsReward} {t('teacherDashboard.point')}</div>
                       <Button
                         size="sm"
                         className="mt-3 bg-green-600 gap-1"
@@ -969,7 +969,7 @@ export default function TeacherDashboard() {
                         }}
                       >
                         <FileText className="h-3 w-3" />
-                        استخدام القالب
+                        {t('teacherDashboard.useTemplate')}
                       </Button>
                     </CardContent>
                   </Card>
@@ -980,9 +980,9 @@ export default function TeacherDashboard() {
 
           {/* Orders Tab */}
           <TabsContent value="orders" className="space-y-4">
-            <h2 className="text-lg font-bold">الطلبات</h2>
+            <h2 className="text-lg font-bold">{t('teacherDashboard.ordersHeading')}</h2>
             {orders.length === 0 ? (
-              <Card><CardContent className="p-8 text-center text-muted-foreground">لا توجد طلبات بعد</CardContent></Card>
+              <Card><CardContent className="p-8 text-center text-muted-foreground">{t('teacherDashboard.noOrdersYet')}</CardContent></Card>
             ) : (
               <div className="space-y-3">
                 {orders.map((order: any) => (
@@ -991,15 +991,15 @@ export default function TeacherDashboard() {
                       <div className="flex items-center justify-between">
                         <div>
                           <h3 className="font-bold text-sm">{order.taskQuestion || t('teacherDashboard.taskFallback')}</h3>
-                          <p className="text-xs text-muted-foreground">المشتري: {order.childName || t('teacherDashboard.studentFallback')}</p>
+                          <p className="text-xs text-muted-foreground">{t('teacherDashboard.buyer')} {order.childName || t('teacherDashboard.studentFallback')}</p>
                         </div>
                         <div className="text-left">
-                          <p className="font-bold text-green-600">{order.teacherEarningAmount} ج.م</p>
+                          <p className="font-bold text-green-600">{order.teacherEarningAmount} {t('teacherDashboard.currency')}</p>
                           <div className="flex items-center gap-1 text-xs text-muted-foreground">
                             {order.isSettled ? (
-                              <><CheckCircle className="h-3 w-3 text-green-600" /> تم التسوية</>
+                              <><CheckCircle className="h-3 w-3 text-green-600" /> {t('teacherDashboard.settled')}</>
                             ) : (
-                              <><Clock className="h-3 w-3 text-yellow-600" /> معلق</>
+                              <><Clock className="h-3 w-3 text-yellow-600" /> {t('teacherDashboard.pending')}</>
                             )}
                           </div>
                         </div>
@@ -1016,43 +1016,43 @@ export default function TeacherDashboard() {
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               <Card>
                 <CardContent className="p-4 text-center">
-                  <div className="text-sm text-muted-foreground">الرصيد المتاح</div>
+                  <div className="text-sm text-muted-foreground">{t('teacherDashboard.availableBalance')}</div>
                   <div className="text-2xl font-bold text-green-600">{balance?.availableBalance || "0.00"}</div>
                 </CardContent>
               </Card>
               <Card>
                 <CardContent className="p-4 text-center">
-                  <div className="text-sm text-muted-foreground">الرصيد المعلق</div>
+                  <div className="text-sm text-muted-foreground">{t('teacherDashboard.pendingBalance')}</div>
                   <div className="text-2xl font-bold text-yellow-600">{balance?.pendingBalance || "0.00"}</div>
                 </CardContent>
               </Card>
               <Card>
                 <CardContent className="p-4 text-center">
-                  <div className="text-sm text-muted-foreground">إجمالي المسحوب</div>
+                  <div className="text-sm text-muted-foreground">{t('teacherDashboard.totalWithdrawn')}</div>
                   <div className="text-2xl font-bold">{balance?.totalWithdrawnAmount || "0.00"}</div>
                 </CardContent>
               </Card>
             </div>
 
             <div className="flex justify-between items-center">
-              <h3 className="font-bold">طلبات السحب</h3>
+              <h3 className="font-bold">{t('teacherDashboard.withdrawalRequests')}</h3>
               <Button onClick={() => setShowWithdrawModal(true)} className="bg-green-600">
                 <ArrowDownToLine className="h-4 w-4 ml-1" />
-                طلب سحب
+                {t('teacherDashboard.requestWithdrawal')}
               </Button>
             </div>
 
             {withdrawals.length === 0 ? (
-              <Card><CardContent className="p-6 text-center text-muted-foreground">لا توجد طلبات سحب</CardContent></Card>
+              <Card><CardContent className="p-6 text-center text-muted-foreground">{t('teacherDashboard.noWithdrawals')}</CardContent></Card>
             ) : (
               <div className="space-y-3">
                 {withdrawals.map((w: any) => (
                   <Card key={w.id}>
                     <CardContent className="p-4 flex justify-between items-center">
                       <div>
-                        <p className="font-bold">{w.amount} ج.م</p>
+                        <p className="font-bold">{w.amount} {t('teacherDashboard.currency')}</p>
                         <p className="text-xs text-muted-foreground">
-                          صافي: {w.netAmount} ج.م (عمولة {w.withdrawalCommissionPct}%)
+                          {t('teacherDashboard.net')} {w.netAmount} {t('teacherDashboard.currency')} ({t('teacherDashboard.commission')} {w.withdrawalCommissionPct}%)
                         </p>
                       </div>
                       <Badge variant={w.status === "approved" ? "default" : w.status === "rejected" ? "destructive" : "secondary"}>
@@ -1068,14 +1068,14 @@ export default function TeacherDashboard() {
           {/* Posts Tab */}
           <TabsContent value="posts" className="space-y-4">
             <div className="flex justify-between items-center">
-              <h2 className="text-lg font-bold">المنشورات</h2>
+              <h2 className="text-lg font-bold">{t('teacherDashboard.postsHeading')}</h2>
               <Button onClick={() => { setPostContent(""); setPostMediaFiles([]); setPostMediaPreviews([]); setShowPostModal(true); }} className="bg-green-600">
                 <Plus className="h-4 w-4 ml-1" />
-                منشور جديد
+                {t('teacherDashboard.newPost')}
               </Button>
             </div>
             {posts.length === 0 ? (
-              <Card><CardContent className="p-8 text-center text-muted-foreground">لا يوجد منشورات بعد</CardContent></Card>
+              <Card><CardContent className="p-8 text-center text-muted-foreground">{t('teacherDashboard.noPostsYet')}</CardContent></Card>
             ) : (
               <div className="space-y-4">
                 {[...posts].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).map((post: Post) => (
@@ -1113,15 +1113,15 @@ export default function TeacherDashboard() {
           {/* Polls Tab */}
           <TabsContent value="polls" className="space-y-4">
             <div className="flex justify-between items-center">
-              <h2 className="text-lg font-bold">التصويتات</h2>
+              <h2 className="text-lg font-bold">{t('teacherDashboard.pollsHeading')}</h2>
               <Button onClick={() => { resetPollForm(); setShowPollModal(true); }} className="bg-green-600">
                 <Plus className="h-4 w-4 ml-1" />
-                إنشاء تصويت
+                {t('teacherDashboard.createPoll')}
               </Button>
             </div>
 
             {teacherPolls.length === 0 ? (
-              <Card><CardContent className="p-8 text-center text-muted-foreground">لا يوجد تصويتات بعد</CardContent></Card>
+              <Card><CardContent className="p-8 text-center text-muted-foreground">{t('teacherDashboard.noPollsYet')}</CardContent></Card>
             ) : (
               <div className="space-y-4">
                 {[...teacherPolls].sort((a: any, b: any) => {
@@ -1138,11 +1138,11 @@ export default function TeacherDashboard() {
                             <h3 className="font-bold text-base">{poll.question}</h3>
                           </div>
                           <div className="flex items-center gap-1">
-                            {poll.isPinned && <Badge variant="secondary">📌 مثبت</Badge>}
-                            {poll.isClosed && <Badge variant="destructive">مغلق</Badge>}
-                            {isExpired && !poll.isClosed && <Badge variant="outline">منتهي</Badge>}
-                            {poll.isAnonymous && <Badge variant="outline">مجهول</Badge>}
-                            {poll.allowMultiple && <Badge variant="outline">متعدد</Badge>}
+                            {poll.isPinned && <Badge variant="secondary">📌 {t('teacherDashboard.pinned')}</Badge>}
+                            {poll.isClosed && <Badge variant="destructive">{t('teacherDashboard.closed')}</Badge>}
+                            {isExpired && !poll.isClosed && <Badge variant="outline">{t('teacherDashboard.expired')}</Badge>}
+                            {poll.isAnonymous && <Badge variant="outline">{t('teacherDashboard.anonymous')}</Badge>}
+                            {poll.allowMultiple && <Badge variant="outline">{t('teacherDashboard.multiple')}</Badge>}
                           </div>
                         </div>
 
@@ -1172,7 +1172,7 @@ export default function TeacherDashboard() {
 
                         <div className="flex items-center justify-between pt-2 border-t">
                           <div className="text-xs text-muted-foreground flex items-center gap-3">
-                            <span>👥 {poll.votersCount} مصوّت</span>
+                            <span>👥 {poll.votersCount} {t('teacherDashboard.voters')}</span>
                             <span>{new Date(poll.createdAt).toLocaleString("ar-EG", { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</span>
                             {poll.expiresAt && <span>⏰ {new Date(poll.expiresAt).toLocaleString("ar-EG", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</span>}
                           </div>
@@ -1264,7 +1264,7 @@ export default function TeacherDashboard() {
                       className="gap-1"
                     >
                       <User className="h-3 w-3" />
-                      عرض الصفحة العامة
+                      {t('teacherDashboard.viewPublicPage')}
                     </Button>
                     <ShareMenu
                       url={typeof window !== "undefined" ? `${window.location.origin}/teacher/${profile?.id || ""}` : ""}
@@ -1301,10 +1301,10 @@ export default function TeacherDashboard() {
                 {/* Profile Stats */}
                 {!profileEditMode && (
                   <div className="mt-4 grid grid-cols-4 gap-3 text-center">
-                    <div><div className="text-lg font-bold">{profile?.stats?.tasksCount || 0}</div><div className="text-xs text-muted-foreground">مهمة</div></div>
-                    <div><div className="text-lg font-bold">{profile?.stats?.studentsCount || 0}</div><div className="text-xs text-muted-foreground">طالب</div></div>
-                    <div><div className="text-lg font-bold">{profile?.stats?.postsCount || 0}</div><div className="text-xs text-muted-foreground">منشور</div></div>
-                    <div><div className="text-lg font-bold">{profile?.stats?.avgRating || 0}</div><div className="text-xs text-muted-foreground">تقييم</div></div>
+                    <div><div className="text-lg font-bold">{profile?.stats?.tasksCount || 0}</div><div className="text-xs text-muted-foreground">{t('teacherDashboard.statTask')}</div></div>
+                    <div><div className="text-lg font-bold">{profile?.stats?.studentsCount || 0}</div><div className="text-xs text-muted-foreground">{t('teacherDashboard.statStudent')}</div></div>
+                    <div><div className="text-lg font-bold">{profile?.stats?.postsCount || 0}</div><div className="text-xs text-muted-foreground">{t('teacherDashboard.statPost')}</div></div>
+                    <div><div className="text-lg font-bold">{profile?.stats?.avgRating || 0}</div><div className="text-xs text-muted-foreground">{t('teacherDashboard.statRating')}</div></div>
                   </div>
                 )}
 
@@ -1325,29 +1325,29 @@ export default function TeacherDashboard() {
                 {profileEditMode && (
                   <div className="mt-4 space-y-3">
                     <div>
-                      <Label>الاسم</Label>
+                      <Label>{t('teacherDashboard.name')}</Label>
                       <Input value={profileForm.name} onChange={e => setProfileForm(f => ({ ...f, name: e.target.value }))} />
                     </div>
                     <div>
-                      <Label>نبذة عني</Label>
+                      <Label>{t('teacherDashboard.aboutMe')}</Label>
                       <Textarea value={profileForm.bio} onChange={e => setProfileForm(f => ({ ...f, bio: e.target.value }))} />
                     </div>
                     <div>
-                      <Label>المادة</Label>
+                      <Label>{t('teacherDashboard.subject')}</Label>
                       <Input value={profileForm.subject} onChange={e => setProfileForm(f => ({ ...f, subject: e.target.value }))} />
                     </div>
                     <div>
-                      <Label>سنوات الخبرة</Label>
+                      <Label>{t('teacherDashboard.yearsExperience')}</Label>
                       <Input type="number" value={profileForm.yearsExperience} onChange={e => setProfileForm(f => ({ ...f, yearsExperience: parseInt(e.target.value) || 0 }))} />
                     </div>
                     <div>
-                      <Label>السوشيال ميديا</Label>
+                      <Label>{t('teacherDashboard.socialMedia')}</Label>
                       <div className="space-y-2 mt-1">
                         {["facebook", "instagram", "twitter", "youtube", "tiktok", "website"].map(platform => (
                           <div key={platform} className="flex items-center gap-2">
                             <span className="text-xs w-16 capitalize">{platform}</span>
                             <Input
-                              placeholder={`رابط ${platform}`}
+                              placeholder={t('teacherDashboard.linkPlaceholder', { platform })}
                               value={profileForm.socialLinks[platform] || ""}
                               onChange={e => setProfileForm(f => ({
                                 ...f,
@@ -1364,7 +1364,7 @@ export default function TeacherDashboard() {
                       onClick={() => updateProfile.mutate(profileForm)}
                       disabled={updateProfile.isPending}
                     >
-                      حفظ التغييرات
+                      {t('teacherDashboard.saveChanges')}
                     </Button>
                   </div>
                 )}
@@ -1382,27 +1382,27 @@ export default function TeacherDashboard() {
           </DialogHeader>
           <div className="space-y-3">
             <div>
-              <Label>عنوان المهمة</Label>
+              <Label>{t('teacherDashboard.taskTitle')}</Label>
               <Input value={taskForm.title} onChange={e => setTaskForm(f => ({ ...f, title: e.target.value }))} placeholder={t('teacherDashboard.taskTitlePlaceholder')} />
             </div>
             <div>
-              <Label>السؤال *</Label>
+              <Label>{t('teacherDashboard.questionLabel')}</Label>
               <Textarea value={taskForm.question} onChange={e => setTaskForm(f => ({ ...f, question: e.target.value }))} />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label>السعر (ج.م) *</Label>
+                <Label>{t('teacherDashboard.priceLabel')}</Label>
                 <Input type="number" step="0.01" value={taskForm.price} onChange={e => setTaskForm(f => ({ ...f, price: e.target.value }))} />
               </div>
               <div>
-                <Label>تصنيف المادة</Label>
+                <Label>{t('teacherDashboard.subjectCategory')}</Label>
                 <Input value={taskForm.subjectLabel} onChange={e => setTaskForm(f => ({ ...f, subjectLabel: e.target.value }))} placeholder={t('teacherDashboard.subjectPlaceholder')} />
               </div>
             </div>
             <div>
               <div className="flex items-center justify-between">
-                <Label>الإجابات (حدد الصحيحة)</Label>
-                <span className="text-xs text-muted-foreground">{taskForm.answers.length} إجابات</span>
+                <Label>{t('teacherDashboard.answersLabel')}</Label>
+                <span className="text-xs text-muted-foreground">{taskForm.answers.length} {t('teacherDashboard.answersCount')}</span>
               </div>
               <div className="space-y-3 mt-1">
                 {taskForm.answers.map((answer, index) => (
@@ -1421,7 +1421,7 @@ export default function TeacherDashboard() {
                         className="accent-green-600"
                       />
                       <Input
-                        placeholder={`إجابة ${index + 1}`}
+                        placeholder={t('teacherDashboard.answerPlaceholder', { n: index + 1 })}
                         value={answer.text}
                         onChange={e => {
                           setTaskForm(f => ({
@@ -1468,7 +1468,7 @@ export default function TeacherDashboard() {
                       ) : (
                         <label className="flex items-center gap-1 px-2 py-1 border border-dashed rounded cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 text-xs text-muted-foreground">
                           <Image className="h-3 w-3" />
-                          صورة
+                          {t('teacherDashboard.image')}
                           <input type="file" accept="image/*" className="hidden" onChange={e => {
                             const file = e.target.files?.[0];
                             if (file) {
@@ -1491,7 +1491,7 @@ export default function TeacherDashboard() {
                       ) : (
                         <label className="flex items-center gap-1 px-2 py-1 border border-dashed rounded cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 text-xs text-muted-foreground">
                           <Video className="h-3 w-3" />
-                          فيديو
+                          {t('teacherDashboard.video')}
                           <input type="file" accept="video/*" className="hidden" onChange={e => {
                             const file = e.target.files?.[0];
                             if (file) {
@@ -1520,19 +1520,19 @@ export default function TeacherDashboard() {
                   }}
                 >
                   <Plus className="h-3 w-3" />
-                  إضافة إجابة
+                  {t('teacherDashboard.addAnswer')}
                 </Button>
               )}
             </div>
             <div>
-              <Label>شرح الإجابة (اختياري)</Label>
+              <Label>{t('teacherDashboard.explanationLabel')}</Label>
               <Textarea value={taskForm.explanation} onChange={e => setTaskForm(f => ({ ...f, explanation: e.target.value }))} />
             </div>
 
             {/* Question Images */}
             <div className="border-t pt-3">
-              <Label className="text-sm font-bold">صور مع السؤال</Label>
-              <p className="text-xs text-muted-foreground">أضف صور توضيحية أو صور فقط مع السؤال</p>
+              <Label className="text-sm font-bold">{t('teacherDashboard.questionImages')}</Label>
+              <p className="text-xs text-muted-foreground">{t('teacherDashboard.questionImagesHint')}</p>
               <div className="flex gap-2 flex-wrap mt-2">
                 {questionImagePreviews.map((url, i) => (
                   <div key={i} className="relative">
@@ -1552,7 +1552,7 @@ export default function TeacherDashboard() {
                 ))}
                 <label className="flex flex-col items-center justify-center w-20 h-20 border-2 border-dashed rounded cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800">
                   <Plus className="h-5 w-5 text-muted-foreground" />
-                  <span className="text-xs text-muted-foreground">إضافة</span>
+                  <span className="text-xs text-muted-foreground">{t('teacherDashboard.add')}</span>
                   <input ref={questionImagesInputRef} type="file" accept="image/*" multiple className="hidden" onChange={e => {
                     const files = Array.from(e.target.files || []);
                     if (files.length > 0) {
@@ -1566,11 +1566,11 @@ export default function TeacherDashboard() {
 
             {/* Media Uploads */}
             <div className="border-t pt-3">
-              <Label className="text-sm font-bold">الوسائط</Label>
+              <Label className="text-sm font-bold">{t('teacherDashboard.media')}</Label>
               <div className="grid grid-cols-3 gap-3 mt-2">
                 {/* Cover Image */}
                 <div className="text-center">
-                  <p className="text-xs text-muted-foreground mb-1">صورة رئيسية</p>
+                  <p className="text-xs text-muted-foreground mb-1">{t('teacherDashboard.mainImage')}</p>
                   {taskCoverPreview ? (
                     <div className="relative">
                       <img src={taskCoverPreview} alt="" className="w-full h-20 rounded object-cover" />
@@ -1581,7 +1581,7 @@ export default function TeacherDashboard() {
                   ) : (
                     <label className="flex flex-col items-center gap-1 p-3 border-2 border-dashed rounded cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800">
                       <Image className="h-5 w-5 text-muted-foreground" />
-                      <span className="text-xs text-muted-foreground">غلاف</span>
+                      <span className="text-xs text-muted-foreground">{t('teacherDashboard.cover')}</span>
                       <input type="file" accept="image/*" className="hidden" onChange={e => {
                         const f = e.target.files?.[0];
                         if (f) { setTaskCoverFile(f); setTaskCoverPreview(URL.createObjectURL(f)); }
@@ -1591,7 +1591,7 @@ export default function TeacherDashboard() {
                 </div>
                 {/* Task Image */}
                 <div className="text-center">
-                  <p className="text-xs text-muted-foreground mb-1">صورة</p>
+                  <p className="text-xs text-muted-foreground mb-1">{t('teacherDashboard.imageUpload')}</p>
                   {taskImagePreview ? (
                     <div className="relative">
                       <img src={taskImagePreview} alt="" className="w-full h-20 rounded object-cover" />
@@ -1602,7 +1602,7 @@ export default function TeacherDashboard() {
                   ) : (
                     <label className="flex flex-col items-center gap-1 p-3 border-2 border-dashed rounded cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800">
                       <Image className="h-5 w-5 text-muted-foreground" />
-                      <span className="text-xs text-muted-foreground">صورة</span>
+                      <span className="text-xs text-muted-foreground">{t('teacherDashboard.imageUpload')}</span>
                       <input type="file" accept="image/*" className="hidden" onChange={e => {
                         const f = e.target.files?.[0];
                         if (f) { setTaskImageFile(f); setTaskImagePreview(URL.createObjectURL(f)); }
@@ -1612,7 +1612,7 @@ export default function TeacherDashboard() {
                 </div>
                 {/* Task Video */}
                 <div className="text-center">
-                  <p className="text-xs text-muted-foreground mb-1">فيديو</p>
+                  <p className="text-xs text-muted-foreground mb-1">{t('teacherDashboard.videoUpload')}</p>
                   {taskVideoPreview ? (
                     <div className="relative">
                       <video src={taskVideoPreview} className="w-full h-20 rounded object-cover" />
@@ -1623,7 +1623,7 @@ export default function TeacherDashboard() {
                   ) : (
                     <label className="flex flex-col items-center gap-1 p-3 border-2 border-dashed rounded cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800">
                       <Video className="h-5 w-5 text-muted-foreground" />
-                      <span className="text-xs text-muted-foreground">فيديو</span>
+                      <span className="text-xs text-muted-foreground">{t('teacherDashboard.videoUpload')}</span>
                       <input type="file" accept="video/*" className="hidden" onChange={e => {
                         const f = e.target.files?.[0];
                         if (f) { setTaskVideoFile(f); setTaskVideoPreview(URL.createObjectURL(f)); }
@@ -1635,7 +1635,7 @@ export default function TeacherDashboard() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowTaskModal(false)}>إلغاء</Button>
+            <Button variant="outline" onClick={() => setShowTaskModal(false)}>{t('teacherDashboard.cancelTask')}</Button>
             <Button className="bg-green-600" onClick={handleSubmitTask} disabled={taskUploading}>
               {taskUploading ? t('teacherDashboard.uploading') : editingTask ? t('teacherDashboard.update') : t('teacherDashboard.add')}
             </Button>
@@ -1647,7 +1647,7 @@ export default function TeacherDashboard() {
       <Dialog open={showTemplateModal} onOpenChange={setShowTemplateModal}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>إنشاء مهمة من قالب</DialogTitle>
+            <DialogTitle>{t('teacherDashboard.createFromTemplate')}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
             <div className="p-3 bg-green-50 dark:bg-green-950 rounded">
@@ -1655,16 +1655,16 @@ export default function TeacherDashboard() {
               <p className="text-xs text-muted-foreground mt-1">{taskForm.question}</p>
             </div>
             <div>
-              <Label>السعر (ج.م) *</Label>
+              <Label>{t('teacherDashboard.templatePriceLabel')}</Label>
               <Input type="number" step="0.01" value={taskForm.price} onChange={e => setTaskForm(f => ({ ...f, price: e.target.value }))} placeholder={t('teacherDashboard.templatePricePlaceholder')} />
             </div>
             <div>
-              <Label>العنوان (اختياري)</Label>
+              <Label>{t('teacherDashboard.templateTitleLabel')}</Label>
               <Input value={taskForm.title} onChange={e => setTaskForm(f => ({ ...f, title: e.target.value }))} />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowTemplateModal(false)}>إلغاء</Button>
+            <Button variant="outline" onClick={() => setShowTemplateModal(false)}>{t('teacherDashboard.cancelTemplate')}</Button>
             <Button className="bg-green-600" onClick={() => {
               if (!taskForm.price) {
                 toast({ title: t('teacherDashboard.priceRequired'), variant: "destructive" });
@@ -1685,7 +1685,7 @@ export default function TeacherDashboard() {
       {/* Post Modal - Enhanced with media */}
       <Dialog open={showPostModal} onOpenChange={setShowPostModal}>
         <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle>منشور جديد</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{t('teacherDashboard.newPostTitle')}</DialogTitle></DialogHeader>
           <Textarea placeholder={t('teacherDashboard.postPlaceholder')} value={postContent} onChange={e => setPostContent(e.target.value)} className="min-h-[100px]" />
 
           {/* Media previews */}
@@ -1709,7 +1709,7 @@ export default function TeacherDashboard() {
           <div className="flex gap-2">
             <Button size="sm" variant="outline" onClick={() => postMediaInputRef.current?.click()} className="gap-1">
               <Image className="h-4 w-4" />
-              صورة
+              {t('teacherDashboard.postImage')}
             </Button>
             <Button size="sm" variant="outline" onClick={() => {
               const input = document.createElement("input");
@@ -1719,13 +1719,13 @@ export default function TeacherDashboard() {
               input.click();
             }} className="gap-1">
               <Video className="h-4 w-4" />
-              فيديو (30 ثانية كحد أقصى)
+              {t('teacherDashboard.postVideo')}
             </Button>
             <input ref={postMediaInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handlePostMediaSelect} />
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowPostModal(false)}>إلغاء</Button>
+            <Button variant="outline" onClick={() => setShowPostModal(false)}>{t('teacherDashboard.cancelPost')}</Button>
             <Button className="bg-green-600" onClick={handleSubmitPost} disabled={!postContent.trim() || postUploading || createPost.isPending}>
               {postUploading ? t('teacherDashboard.uploading') : t('teacherDashboard.publish')}
             </Button>
@@ -1736,10 +1736,10 @@ export default function TeacherDashboard() {
       {/* Poll Creation Modal */}
       <Dialog open={showPollModal} onOpenChange={setShowPollModal}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>إنشاء تصويت جديد</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{t('teacherDashboard.createNewPoll')}</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label>السؤال *</Label>
+              <Label>{t('teacherDashboard.pollQuestionLabel')}</Label>
               <Input
                 placeholder={t('teacherDashboard.pollQuestionPlaceholder')}
                 value={pollForm.question}
@@ -1748,12 +1748,12 @@ export default function TeacherDashboard() {
             </div>
 
             <div className="space-y-2">
-              <Label>الخيارات * (2-10)</Label>
+              <Label>{t('teacherDashboard.pollOptionsLabel')}</Label>
               {pollForm.options.map((opt, i) => (
                 <div key={i} className="space-y-1">
                   <div className="flex gap-2">
                     <Input
-                      placeholder={`الخيار ${i + 1}`}
+                      placeholder={t('teacherDashboard.pollOptionPlaceholder', { n: i + 1 })}
                       value={opt.text}
                       onChange={(e) => {
                         const newOpts = [...pollForm.options];
@@ -1779,7 +1779,7 @@ export default function TeacherDashboard() {
                             const newOpts = [...pollForm.options];
                             newOpts[i] = { ...newOpts[i], imageUrl: url };
                             setPollForm((f) => ({ ...f, options: newOpts }));
-                            toast({ title: `تم رفع صورة الخيار ${i + 1}` });
+                            toast({ title: t('teacherDashboard.optionImageUploaded', { n: i + 1 }) });
                           } catch (err: any) {
                             toast({ title: err.message || t('teacherDashboard.imageUploadFailed'), variant: "destructive" });
                           } finally {
@@ -1840,7 +1840,7 @@ export default function TeacherDashboard() {
                   onClick={() => setPollForm((f) => ({ ...f, options: [...f.options, { text: "", imageUrl: "" }] }))}
                 >
                   <Plus className="h-4 w-4 ml-1" />
-                  إضافة خيار
+                  {t('teacherDashboard.addOption')}
                 </Button>
               )}
             </div>
@@ -1853,7 +1853,7 @@ export default function TeacherDashboard() {
                   onChange={(e) => setPollForm((f) => ({ ...f, allowMultiple: e.target.checked }))}
                   className="rounded"
                 />
-                <span className="text-sm">السماح باختيار متعدد</span>
+                <span className="text-sm">{t('teacherDashboard.allowMultiple')}</span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
@@ -1862,7 +1862,7 @@ export default function TeacherDashboard() {
                   onChange={(e) => setPollForm((f) => ({ ...f, isAnonymous: e.target.checked }))}
                   className="rounded"
                 />
-                <span className="text-sm">تصويت مجهول</span>
+                <span className="text-sm">{t('teacherDashboard.anonymousPoll')}</span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
@@ -1871,12 +1871,12 @@ export default function TeacherDashboard() {
                   onChange={(e) => setPollForm((f) => ({ ...f, isPinned: e.target.checked }))}
                   className="rounded"
                 />
-                <span className="text-sm">تثبيت التصويت</span>
+                <span className="text-sm">{t('teacherDashboard.pinPoll')}</span>
               </label>
             </div>
 
             <div>
-              <Label>تاريخ الانتهاء (اختياري)</Label>
+              <Label>{t('teacherDashboard.expiryDate')}</Label>
               <Input
                 type="datetime-local"
                 value={pollForm.expiresAt}
@@ -1886,7 +1886,7 @@ export default function TeacherDashboard() {
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowPollModal(false)}>إلغاء</Button>
+            <Button variant="outline" onClick={() => setShowPollModal(false)}>{t('teacherDashboard.cancelPoll')}</Button>
             <Button className="bg-green-600" onClick={handleSubmitPoll} disabled={createPoll.isPending}>
               {createPoll.isPending ? t('teacherDashboard.creating') : t('teacherDashboard.createPollSubmit')}
             </Button>
@@ -1897,11 +1897,11 @@ export default function TeacherDashboard() {
       {/* Withdraw Modal */}
       <Dialog open={showWithdrawModal} onOpenChange={setShowWithdrawModal}>
         <DialogContent>
-          <DialogHeader><DialogTitle>طلب سحب</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{t('teacherDashboard.withdrawTitle')}</DialogTitle></DialogHeader>
           <div className="space-y-3">
-            <p className="text-sm text-muted-foreground">الرصيد المتاح: <strong className="text-green-600">{balance?.availableBalance || "0.00"} ج.م</strong></p>
+            <p className="text-sm text-muted-foreground">{t('teacherDashboard.availableBalanceLabel')} <strong className="text-green-600">{balance?.availableBalance || "0.00"} {t('teacherDashboard.currency')}</strong></p>
             <div>
-              <Label>المبلغ (ج.م)</Label>
+              <Label>{t('teacherDashboard.amountLabel')}</Label>
               <Input
                 type="number"
                 step="0.01"
@@ -1913,9 +1913,9 @@ export default function TeacherDashboard() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowWithdrawModal(false)}>إلغاء</Button>
+            <Button variant="outline" onClick={() => setShowWithdrawModal(false)}>{t('teacherDashboard.cancelWithdraw')}</Button>
             <Button className="bg-green-600" onClick={() => requestWithdrawal.mutate(parseFloat(withdrawAmount))} disabled={!withdrawAmount || parseFloat(withdrawAmount) <= 0}>
-              إرسال الطلب
+              {t('teacherDashboard.submitRequest')}
             </Button>
           </DialogFooter>
         </DialogContent>

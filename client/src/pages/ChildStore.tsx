@@ -243,7 +243,7 @@ export const ChildStore = (): JSX.Element => {
               <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
               <div className="flex items-center gap-1 sm:gap-2">
                 <Sparkles className="w-4 h-4 sm:w-5 sm:h-5" />
-                <span className="text-sm sm:text-lg font-bold hidden xs:inline">كلاسيفاي ستور</span>
+                <span className="text-sm sm:text-lg font-bold hidden xs:inline">{t("childStore.storeName")}</span>
               </div>
             </button>
 
@@ -263,7 +263,7 @@ export const ChildStore = (): JSX.Element => {
 
             <div className="flex items-center gap-1 sm:gap-3">
               <div className="text-right hidden lg:block">
-                <p className="text-xs opacity-80">رصيد النقاط</p>
+                <p className="text-xs opacity-80">{t("childStore.pointsBalance")}</p>
                 <p className="font-bold flex items-center gap-1 text-sm">
                   <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
                   {childInfo?.totalPoints || 0}
@@ -299,7 +299,7 @@ export const ChildStore = (): JSX.Element => {
                 }`}
                 data-testid="button-category-all"
               >
-                الكل
+                {t("childStore.all")}
               </button>
               <button
                 onClick={() => { setSelectedCategory(null); setShowLibraryOnly(true); }}
@@ -309,7 +309,7 @@ export const ChildStore = (): JSX.Element => {
                 data-testid="button-category-library"
               >
                 <BookOpen className="w-3 h-3 sm:w-4 sm:h-4" />
-                المكتبات
+                {t("childStore.libraries")}
               </button>
               {categories.map((cat: Category) => {
                 const Icon = getCategoryIcon(cat.icon);
@@ -338,15 +338,15 @@ export const ChildStore = (): JSX.Element => {
             <div className="hidden sm:flex items-center gap-3 md:gap-6">
               <div className="flex items-center gap-1.5">
                 <Truck className="w-3.5 h-3.5 text-green-500" />
-                <span className="text-[11px] sm:text-xs">توصيل سريع</span>
+                <span className="text-[11px] sm:text-xs">{t("childStore.fastDelivery")}</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <Shield className="w-3.5 h-3.5 text-blue-500" />
-                <span className="text-[11px] sm:text-xs">ضمان الجودة</span>
+                <span className="text-[11px] sm:text-xs">{t("childStore.qualityGuarantee")}</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <Clock className="w-3.5 h-3.5 text-orange-500" />
-                <span className="text-[11px] sm:text-xs">دعم 24/7</span>
+                <span className="text-[11px] sm:text-xs">{t("childStore.support247")}</span>
               </div>
             </div>
             <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto justify-between sm:justify-end">
@@ -355,11 +355,11 @@ export const ChildStore = (): JSX.Element => {
                   <SelectValue placeholder={t('childStore.sortPlaceholder')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="featured">الأكثر مبيعاً</SelectItem>
-                  <SelectItem value="points_asc">النقاط: الأقل</SelectItem>
-                  <SelectItem value="points_desc">النقاط: الأعلى</SelectItem>
-                  <SelectItem value="newest">الأحدث</SelectItem>
-                  <SelectItem value="rating">التقييم</SelectItem>
+                  <SelectItem value="featured">{t("childStore.bestSelling")}</SelectItem>
+                  <SelectItem value="points_asc">{t("childStore.pointsLowest")}</SelectItem>
+                  <SelectItem value="points_desc">{t("childStore.pointsHighest")}</SelectItem>
+                  <SelectItem value="newest">{t("childStore.newest")}</SelectItem>
+                  <SelectItem value="rating">{t("childStore.rating")}</SelectItem>
                 </SelectContent>
               </Select>
               <div className="flex items-center gap-0.5 border dark:border-gray-700 rounded-lg p-0.5">
@@ -389,7 +389,7 @@ export const ChildStore = (): JSX.Element => {
             <div className="flex items-center justify-between mb-3 sm:mb-4">
               <h2 className="text-base sm:text-xl font-bold text-gray-800 dark:text-white flex items-center gap-1.5 sm:gap-2">
                 <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-orange-500" />
-                المنتجات المميزة
+                {t("childStore.featuredProducts")}
               </h2>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-4">
@@ -421,7 +421,7 @@ export const ChildStore = (): JSX.Element => {
                     )}
                     {(childInfo?.totalPoints || 0) >= product.pointsPrice && (
                       <Badge className="absolute top-2 right-2 bg-green-500 text-white text-xs">
-                        متاح لك
+                        {t("childStore.availableToYou")}
                       </Badge>
                     )}
                     {product.discountPercent && product.discountPercent > 0 && (
@@ -446,7 +446,7 @@ export const ChildStore = (): JSX.Element => {
                       <div className="flex flex-col">
                         {product.originalPrice && parseFloat(product.originalPrice) > parseFloat(product.price) && (
                           <span className="text-xs text-gray-400 line-through">
-                            {Math.round(parseFloat(product.originalPrice) * 10)} نقطة
+                            {Math.round(parseFloat(product.originalPrice) * 10)} {t("childStore.point")}
                           </span>
                         )}
                         <div className="flex items-center gap-1 bg-yellow-100 text-yellow-700 px-2 py-1 rounded-full">
@@ -475,10 +475,10 @@ export const ChildStore = (): JSX.Element => {
             <h2 className="text-base sm:text-xl font-bold text-gray-800 dark:text-white truncate">
               {selectedCategory 
                 ? categories.find((c: Category) => c.id === selectedCategory)?.nameAr || t('childStore.products')
-                : searchQuery ? `نتائج: "${searchQuery}"` : t('childStore.allProducts')
+                : searchQuery ? t('childStore.searchResults', { query: searchQuery }) : t('childStore.allProducts')
               }
             </h2>
-            <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 shrink-0">{products.length} منتج</p>
+            <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 shrink-0">{products.length} {t("childStore.productUnit")}</p>
           </div>
 
           {loadingProducts ? (
@@ -497,8 +497,8 @@ export const ChildStore = (): JSX.Element => {
           ) : products.length === 0 ? (
             <div className="text-center py-10 sm:py-16">
               <Package className="w-12 h-12 sm:w-16 sm:h-16 mx-auto text-gray-300 mb-3 sm:mb-4" />
-              <h3 className="text-base sm:text-lg font-medium text-gray-600 dark:text-gray-400 mb-2">لا توجد منتجات</h3>
-              <p className="text-sm text-gray-400">جرب البحث بكلمات أخرى</p>
+              <h3 className="text-base sm:text-lg font-medium text-gray-600 dark:text-gray-400 mb-2">{t("childStore.noProducts")}</h3>
+              <p className="text-sm text-gray-400">{t("childStore.tryDifferentSearch")}</p>
             </div>
           ) : (
             <div className={viewMode === "grid" 
@@ -536,7 +536,7 @@ export const ChildStore = (): JSX.Element => {
                       )}
                       {(childInfo?.totalPoints || 0) >= product.pointsPrice && (
                         <Badge className="absolute top-2 left-2 bg-green-500 text-white text-xs">
-                          متاح لك
+                          {t("childStore.availableToYou")}
                         </Badge>
                       )}
                       {product.discountPercent && product.discountPercent > 0 && (
@@ -561,7 +561,7 @@ export const ChildStore = (): JSX.Element => {
                         <div className="flex flex-col">
                           {product.originalPrice && parseFloat(product.originalPrice) > parseFloat(product.price) && (
                             <span className="text-xs text-gray-400 line-through">
-                              {Math.round(parseFloat(product.originalPrice) * 10)} نقطة
+                              {Math.round(parseFloat(product.originalPrice) * 10)} {t("childStore.point")}
                             </span>
                           )}
                           <div className="flex items-center gap-1 bg-yellow-100 text-yellow-700 px-2 py-1 rounded-full">
@@ -576,7 +576,7 @@ export const ChildStore = (): JSX.Element => {
                           data-testid={`button-add-cart-${product.id}`}
                         >
                           <ShoppingCart className="w-4 h-4 ml-1" />
-                          أضف
+                          {t("childStore.addBtn")}
                         </Button>
                       </div>
                     </CardContent>
@@ -625,19 +625,19 @@ export const ChildStore = (): JSX.Element => {
                         <p className="text-sm text-gray-500 dark:text-gray-400 line-clamp-2">{product.description}</p>
                         <div className="flex items-center gap-2 mt-2">
                           {renderStars(product.rating)}
-                          <span className="text-xs text-gray-400">({product.reviewCount || 0} تقييم)</span>
+                          <span className="text-xs text-gray-400">({product.reviewCount || 0} {t("childStore.review")})</span>
                         </div>
                       </div>
                       <div className="flex items-center justify-between mt-4">
                         <div className="flex flex-col">
                           {product.originalPrice && parseFloat(product.originalPrice) > parseFloat(product.price) && (
                             <span className="text-xs text-gray-400 line-through">
-                              {Math.round(parseFloat(product.originalPrice) * 10)} نقطة
+                              {Math.round(parseFloat(product.originalPrice) * 10)} {t("childStore.point")}
                             </span>
                           )}
                           <div className="flex items-center gap-2 bg-yellow-100 text-yellow-700 px-3 py-2 rounded-full">
                             <Star className="w-4 h-4 fill-yellow-500 text-yellow-500" />
-                            <span className="font-bold text-lg">{product.pointsPrice} نقطة</span>
+                            <span className="font-bold text-lg">{product.pointsPrice} {t("childStore.point")}</span>
                           </div>
                         </div>
                         <Button 
@@ -645,7 +645,7 @@ export const ChildStore = (): JSX.Element => {
                           onClick={(e) => { e.stopPropagation(); addToCart(product); }}
                         >
                           <ShoppingCart className="w-4 h-4 ml-2" />
-                          أضف للسلة
+                          {t("childStore.addToCart")}
                         </Button>
                       </div>
                     </CardContent>
@@ -662,14 +662,14 @@ export const ChildStore = (): JSX.Element => {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <ShoppingCart className="w-5 h-5" />
-              سلة التسوق ({cart.length} منتج)
+              {t("childStore.shoppingCart")} ({cart.length} {t("childStore.productUnit")})
             </DialogTitle>
           </DialogHeader>
           
           {cart.length === 0 ? (
             <div className="text-center py-8">
               <ShoppingCart className="w-16 h-16 mx-auto text-gray-300 mb-4" />
-              <p className="text-gray-500 dark:text-gray-400">السلة فارغة</p>
+              <p className="text-gray-500 dark:text-gray-400">{t("childStore.cartEmpty")}</p>
             </div>
           ) : (
             <>
@@ -689,7 +689,7 @@ export const ChildStore = (): JSX.Element => {
                       <h4 className="font-medium text-sm truncate">{item.product.nameAr || item.product.name}</h4>
                       <div className="flex items-center gap-1 text-yellow-600 font-bold">
                         <Star className="w-3 h-3 fill-yellow-500" />
-                        {item.product.pointsPrice} نقطة
+                        {item.product.pointsPrice} {t("childStore.point")}
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
@@ -725,25 +725,25 @@ export const ChildStore = (): JSX.Element => {
 
               <div className="border-t pt-4 mt-4 space-y-3">
                 <div className="flex justify-between items-center">
-                  <span className="text-lg font-bold">المجموع:</span>
+                  <span className="text-lg font-bold">{t("childStore.totalLabel")}</span>
                   <div className="flex items-center gap-2 bg-yellow-100 text-yellow-700 px-4 py-2 rounded-full">
                     <Star className="w-5 h-5 fill-yellow-500 text-yellow-500" />
-                    <span className="font-bold text-xl">{cartTotalPoints} نقطة</span>
+                    <span className="font-bold text-xl">{cartTotalPoints} {t("childStore.point")}</span>
                   </div>
                 </div>
 
                 <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                  <span className="text-sm text-gray-600 dark:text-gray-400">رصيدك الحالي:</span>
+                  <span className="text-sm text-gray-600 dark:text-gray-400">{t("childStore.currentBalance")}</span>
                   <span className={`font-bold ${canAfford ? "text-green-600" : "text-red-600"}`}>
-                    {childInfo?.totalPoints || 0} نقطة
+                    {childInfo?.totalPoints || 0} {t("childStore.point")}
                   </span>
                 </div>
 
                 {!canAfford && (
                   <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-center">
-                    <p className="text-red-600 dark:text-red-400 font-bold mb-2">نقاطك غير كافية!</p>
+                    <p className="text-red-600 dark:text-red-400 font-bold mb-2">{t("childStore.insufficientPoints")}</p>
                     <p className="text-red-500 text-sm mb-3">
-                      تحتاج {cartTotalPoints - (childInfo?.totalPoints || 0)} نقطة إضافية
+                      {t("childStore.needMorePoints", { points: cartTotalPoints - (childInfo?.totalPoints || 0) })}
                     </p>
                     <Button
                       onClick={() => { setShowCart(false); navigate("/child-games"); }}
@@ -751,7 +751,7 @@ export const ChildStore = (): JSX.Element => {
                       data-testid="button-play-games-cart"
                     >
                       <Gamepad2 className="w-4 h-4 ml-2" />
-                      العب لتكسب نقاط
+                      {t("childStore.playToEarn")}
                     </Button>
                   </div>
                 )}
@@ -763,7 +763,7 @@ export const ChildStore = (): JSX.Element => {
                     data-testid="button-proceed-checkout"
                   >
                     <Star className="w-4 h-4 ml-2" />
-                    إتمام الشراء بالنقاط
+                    {t("childStore.completePurchasePoints")}
                   </Button>
                 )}
               </div>

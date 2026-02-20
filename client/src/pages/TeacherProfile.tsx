@@ -326,11 +326,11 @@ export default function TeacherProfile() {
           <div className="flex gap-4 mt-3 text-sm text-muted-foreground">
             <span className="flex items-center gap-1">
               <Users className="h-4 w-4" />
-              {teacher.totalStudents || 0} {t("teacherProfile.student", "طالب")}
+              {teacher.totalStudents || 0} {t("teacherProfile.student")}
             </span>
             <span className="flex items-center gap-1">
               <Briefcase className="h-4 w-4" />
-              {teacher.totalTasksSold || 0} {t("teacherProfile.tasksSold", "مهمة مباعة")}
+              {teacher.totalTasksSold || 0} {t("teacherProfile.tasksSold")}
             </span>
           </div>
         </ProfileHeader>
@@ -347,7 +347,7 @@ export default function TeacherProfile() {
             </TabsTrigger>
             <TabsTrigger value="reviews" className="gap-1">
               <Star className="h-4 w-4" />
-              {t("teacherProfile.reviews", "التقييمات")} ({reviews.length})
+              {t("teacherProfile.reviews")} ({reviews.length})
             </TabsTrigger>
           </TabsList>
 
@@ -378,7 +378,7 @@ export default function TeacherProfile() {
                           {task.pointsReward > 0 && (
                             <Badge variant="secondary" className="text-xs gap-1">
                               <Star className="h-3 w-3" />
-                              {task.pointsReward} {t("teacherProfile.points", "نقطة")}
+                              {task.pointsReward} {t("teacherProfile.points")}
                             </Badge>
                           )}
                         </div>
@@ -386,7 +386,7 @@ export default function TeacherProfile() {
                       <div className="text-left shrink-0">
                         <div className="bg-green-50 dark:bg-green-950 px-3 py-2 rounded-xl text-center">
                           <span className="text-lg font-bold text-green-600">{task.price}</span>
-                          <span className="text-xs text-green-600 block">{t("teacherProfile.currency", "ج.م")}</span>
+                          <span className="text-xs text-green-600 block">{t("teacherProfile.currency")}</span>
                         </div>
                       </div>
                     </div>
@@ -470,7 +470,7 @@ export default function TeacherProfile() {
                         setShowComments(p => ({ ...p, [post.id]: next }));
                         if (next && !postComments[post.id]) fetchComments(post.id);
                       }} className="hover:underline">
-                        {post.commentsCount || 0} {t("teacherProfile.comment", "تعليق")}
+                        {post.commentsCount || 0} {t("teacherProfile.comment")}
                       </button>
                     </div>
 
@@ -497,16 +497,16 @@ export default function TeacherProfile() {
                         className="flex-1 flex items-center justify-center gap-1.5 py-2 text-sm font-medium text-muted-foreground hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
                       >
                         <MessageSquare className="h-5 w-5" />
-                        {t("teacherProfile.commentAction", "تعليق")}
+                        {t("teacherProfile.commentAction")}
                       </button>
                       <div className="flex-1 flex items-center justify-center">
                         <ShareMenu
                           url={typeof window !== "undefined" ? window.location.href : ""}
-                          title={post.content?.substring(0, 60) || t("teacherProfile.post", "منشور")}
+                          title={post.content?.substring(0, 60) || t("teacherProfile.post")}
                           description={post.content?.substring(0, 120) || ""}
                           variant="ghost"
                           size="sm"
-                          buttonLabel={t("teacherProfile.share", "مشاركة")}
+                          buttonLabel={t("teacherProfile.share")}
                           className="text-xs w-full justify-center"
                         />
                       </div>
@@ -578,7 +578,7 @@ export default function TeacherProfile() {
                         <Star key={n} className={`h-4 w-4 ${n <= Math.round(parseFloat(avgRating)) ? "text-yellow-400 fill-yellow-400" : "text-gray-300"}`} />
                       ))}
                     </div>
-                    <p className="text-xs text-muted-foreground mt-1">{reviews.length} {t("teacherProfile.reviewCount", "تقييم")}</p>
+                    <p className="text-xs text-muted-foreground mt-1">{reviews.length} {t("teacherProfile.reviewCount")}</p>
                   </div>
                   <div className="flex-1 space-y-1.5">
                     {[5, 4, 3, 2, 1].map(n => {

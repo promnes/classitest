@@ -125,7 +125,7 @@ export const AssignTask = (): JSX.Element => {
           {/* Wallet Balance */}
           <div className={`flex items-center gap-2 mb-6 p-3 rounded-xl ${isDark ? "bg-gray-700" : "bg-blue-50"}`}>
             <span className="text-xl">💰</span>
-            <span className={`font-bold ${isDark ? "text-white" : "text-gray-800"}`}>رصيدك: {walletBalance}</span>
+            <span className={`font-bold ${isDark ? "text-white" : "text-gray-800"}`}>{t("assignTask.balance")} {walletBalance}</span>
           </div>
 
           <div className="space-y-6">
@@ -366,7 +366,7 @@ export const AssignTask = (): JSX.Element => {
                 <>
                   {insufficientBalance && (
                     <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm text-center">
-                      رصيدك غير كافي لإرسال هذه المهمة. الرصيد الحالي: {walletBalance}، المطلوب: {taskReward}
+                      {t("assignTask.insufficientBalanceDetail", { balance: walletBalance, required: taskReward })}
                     </div>
                   )}
                   <button

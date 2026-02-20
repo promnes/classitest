@@ -155,7 +155,7 @@ export const ChildTasks = (): JSX.Element => {
                                 <span className="text-lg">{task.subject.emoji}</span>
                               )}
                               <span className={`font-medium ${isDark ? "text-gray-300" : "text-gray-600"}`}>
-                                {task.subject?.name || "مهمة"}
+                                {task.subject?.name || t("childTasks.task")}
                               </span>
                             </div>
                             <p className={`font-bold text-lg ${isDark ? "text-white" : "text-gray-800"}`}>
@@ -180,7 +180,7 @@ export const ChildTasks = (): JSX.Element => {
               <div>
                 <h2 className={`text-xl font-bold mb-4 flex items-center gap-2 ${isDark ? "text-white" : "text-gray-800"}`}>
                   <CheckCircle className="h-5 w-5 text-green-500" />
-                  مهام مكتملة ({completedTasks.length})
+                  {t("childTasks.completedTasks")} ({completedTasks.length})
                 </h2>
                 <div className="grid gap-3">
                   {completedTasks.map((task) => (
@@ -263,7 +263,7 @@ export const ChildTasks = (): JSX.Element => {
                     className="flex-1"
                     data-testid="button-submit-answer"
                   >
-                    {submitAnswerMutation.isPending ? t("childTasks.sending") : "إرسال الإجابة"}
+                    {submitAnswerMutation.isPending ? t("childTasks.sending") : t("childTasks.submitAnswer")}
                   </Button>
                   <Button
                     variant="outline"
@@ -273,7 +273,7 @@ export const ChildTasks = (): JSX.Element => {
                     }}
                     data-testid="button-cancel"
                   >
-                    إلغاء
+                    {t("childTasks.cancel")}
                   </Button>
                 </div>
               </motion.div>
@@ -300,14 +300,14 @@ export const ChildTasks = (): JSX.Element => {
                 {showResult.correct ? (
                   <>
                     <CheckCircle className="h-20 w-20 text-white mx-auto mb-4" />
-                    <h3 className="text-3xl font-bold text-white mb-2">أحسنت!</h3>
-                    <p className="text-white text-xl">+{showResult.points} نقطة</p>
+                    <h3 className="text-3xl font-bold text-white mb-2">{t("childTasks.wellDone")}</h3>
+                    <p className="text-white text-xl">+{showResult.points} {t("childTasks.point")}</p>
                   </>
                 ) : (
                   <>
                     <XCircle className="h-20 w-20 text-white mx-auto mb-4" />
-                    <h3 className="text-3xl font-bold text-white mb-2">حاول مرة أخرى</h3>
-                    <p className="text-white text-xl">الإجابة غير صحيحة</p>
+                    <h3 className="text-3xl font-bold text-white mb-2">{t("childTasks.tryAgain")}</h3>
+                    <p className="text-white text-xl">{t("childTasks.incorrectAnswer")}</p>
                   </>
                 )}
               </motion.div>

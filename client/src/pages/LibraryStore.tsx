@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from 'react-i18next';
+import i18next from "i18next";
 import { useLocation } from "wouter";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Store, Star, Package, Search, Filter, ShoppingCart, BookOpen, Plus, Minus, X, CreditCard, MapPin, Check, Bell, Moon, Sun } from "lucide-react";
@@ -50,7 +51,7 @@ interface CartItem {
 const CART_STORAGE_KEY = "parent-store-cart";
 
 const normalizeSharedCartProduct = (product: LibraryProduct): LibraryProduct => {
-  const resolvedName = product.title || product.nameAr || product.name || "منتج";
+  const resolvedName = product.title || product.nameAr || product.name || i18next.t("libraryStore.product");
   const resolvedImage = product.imageUrl || product.image;
 
   return {
@@ -355,7 +356,7 @@ export default function LibraryStore() {
   };
 
   const getProductTitle = (product: LibraryProduct) => {
-    return product.title || product.nameAr || product.name || "منتج";
+    return product.title || product.nameAr || product.name || t("libraryStore.product");
   };
 
   const getProductImage = (product: LibraryProduct) => {
@@ -419,7 +420,7 @@ export default function LibraryStore() {
             </Button>
             <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
               <BookOpen className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" />
-              <h1 className="text-sm sm:text-xl font-bold hidden sm:inline">متجر المكتبات</h1>
+              <h1 className="text-sm sm:text-xl font-bold hidden sm:inline">{t('libraryStore.storeTitle')}</h1>
             </div>
             <div className="flex items-center gap-1 mr-auto">
               <LanguageSelector />
@@ -442,7 +443,7 @@ export default function LibraryStore() {
               data-testid="button-library-cart"
             >
               <ShoppingCart className="h-4 w-4 sm:ml-2" />
-              <span className="hidden sm:inline">السلة</span> ({cartItemsCount})
+              <span className="hidden sm:inline">{t('libraryStore.cartLabel')}</span> ({cartItemsCount})
             </Button>
           </div>
           
@@ -465,7 +466,7 @@ export default function LibraryStore() {
         <section className="mb-8">
           <div className="flex items-center gap-2 mb-4">
             <Store className="h-5 w-5 text-blue-600" />
-            <h2 className="text-lg font-semibold">المكتبات المتاحة</h2>
+            <h2 className="text-lg font-semibold">{t('libraryStore.availableLibraries')}</h2>
             <Badge variant="secondary">{libraries.length}</Badge>
           </div>
           
@@ -476,7 +477,7 @@ export default function LibraryStore() {
               className="flex-shrink-0"
               data-testid="button-all-libraries"
             >
-              الكل
+              {t('libraryStore.all')}
             </Button>
             {libraries.map((library) => (
               <Button
@@ -513,8 +514,8 @@ export default function LibraryStore() {
         ) : products.length === 0 ? (
           <div className="text-center py-12">
             <Package className="h-16 w-16 mx-auto text-gray-400 mb-4" />
-            <h3 className="text-lg font-semibold mb-2">لا توجد منتجات</h3>
-            <p className="text-gray-500">لم يتم العثور على منتجات في هذه المكتبة</p>
+            <h3 className="text-lg font-semibold mb-2">{t('libraryStore.noProducts')}</h3>
+            <p className="text-gray-500">{t('libraryStore.noProductsInLibrary')}</p>
           </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-4">
@@ -547,17 +548,17 @@ export default function LibraryStore() {
                   )}
                   
                   <div className="flex items-center justify-between">
-                    <span className="font-bold text-blue-600">{product.price} ج.م</span>
+                    <span className="font-bold text-blue-600">{product.price} {t('libraryStore.currency')}</span>
                     {product.discountPercent && product.discountPercent > 0 && (
                       <Badge variant="destructive" className="text-xs">
-                        خصم {product.discountPercent}%
+                        {t('libraryStore.discountBadge', { percent: product.discountPercent })}
                       </Badge>
                     )}
                   </div>
                   
                   <div className="mt-2 flex items-center gap-1 text-xs text-gray-500">
                     <Package className="h-3 w-3" />
-                    <span>متوفر: {product.stock}</span>
+                    <span>{t('libraryStore.stockAvailable', { count: product.stock })}</span>
                   </div>
 
                   <div className="mt-3 flex flex-col sm:flex-row items-center gap-1 sm:gap-2" onClick={(e) => e.stopPropagation()}>
@@ -569,7 +570,7 @@ export default function LibraryStore() {
                       disabled={Number(product.stock || 0) <= 0}
                     >
                       <ShoppingCart className="h-3 w-3 sm:h-4 sm:w-4 ml-1" />
-                      أضف
+                      {t('libraryStore.addShort')}
                     </Button>
                     <Button
                       className="flex-1 w-full bg-emerald-600 hover:bg-emerald-700 text-xs sm:text-sm h-8 sm:h-9"
@@ -578,7 +579,7 @@ export default function LibraryStore() {
                       onClick={() => handleBuyNow(product)}
                       disabled={Number(product.stock || 0) <= 0}
                     >
-                      شراء
+                      {t('libraryStore.buyShort')}
                     </Button>
                   </div>
                 </CardContent>
@@ -614,15 +615,15 @@ export default function LibraryStore() {
               
               <div className="flex items-center justify-between p-3 bg-gray-100 dark:bg-gray-800 rounded-lg">
                 <div>
-                  <span className="text-2xl font-bold text-blue-600">{selectedProduct.price} ج.م</span>
+                  <span className="text-2xl font-bold text-blue-600">{selectedProduct.price} {t('libraryStore.currency')}</span>
                 </div>
-                <Badge variant="outline">متوفر: {selectedProduct.stock}</Badge>
+                <Badge variant="outline">{t('libraryStore.stockAvailable', { count: selectedProduct.stock })}</Badge>
               </div>
               
               {selectedProduct.discountPercent && selectedProduct.discountPercent > 0 && (
                 <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
                   <p className="text-sm text-green-700 dark:text-green-400">
-                    خصم {selectedProduct.discountPercent}% عند شراء {selectedProduct.discountMinQuantity || 1} قطع أو أكثر
+                    {t('libraryStore.bulkDiscountNote', { percent: selectedProduct.discountPercent, min: selectedProduct.discountMinQuantity || 1 })}
                   </p>
                 </div>
               )}
@@ -665,7 +666,7 @@ export default function LibraryStore() {
                   }}
                   disabled={Number(selectedProduct.stock || 0) <= 0}
                 >
-                  شراء الآن
+                  {t('libraryStore.buyNow')}
                 </Button>
               </div>
             </div>
@@ -678,14 +679,14 @@ export default function LibraryStore() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <ShoppingCart className="w-5 h-5" />
-              سلة المكتبات ({cartItemsCount} منتج)
+              {t('libraryStore.libraryCartTitle', { count: cartItemsCount })}
             </DialogTitle>
           </DialogHeader>
 
           {cart.length === 0 ? (
             <div className="text-center py-8">
               <ShoppingCart className="w-16 h-16 mx-auto text-gray-300 mb-4" />
-              <p className="text-gray-500">السلة فارغة</p>
+              <p className="text-gray-500">{t('libraryStore.cartEmpty')}</p>
             </div>
           ) : (
             <>
@@ -703,7 +704,7 @@ export default function LibraryStore() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <h4 className="font-medium text-sm truncate">{getProductTitle(item.product)}</h4>
-                      <p className="text-orange-600 font-bold">{item.product.price} ج.م</p>
+                      <p className="text-orange-600 font-bold">{item.product.price} {t('libraryStore.currency')}</p>
                     </div>
                     <div className="flex items-center gap-2">
                       <Button size="sm" variant="outline" className="h-8 w-8 p-0" onClick={() => updateQuantity(item.product.id, item.quantity - 1)}>
@@ -729,8 +730,8 @@ export default function LibraryStore() {
 
               <div className="border-t pt-4 mt-4 space-y-3">
                 <div className="flex justify-between text-lg font-bold">
-                  <span>المجموع:</span>
-                  <span className="text-orange-600">{cartTotal.toFixed(2)} ج.م</span>
+                  <span>{t('libraryStore.totalLabel')}</span>
+                  <span className="text-orange-600">{cartTotal.toFixed(2)} {t('libraryStore.currency')}</span>
                 </div>
                 <Button
                   className="w-full bg-orange-500 hover:bg-orange-600"
@@ -742,7 +743,7 @@ export default function LibraryStore() {
                   disabled={cart.length === 0}
                 >
                   <CreditCard className="w-4 h-4 ml-2" />
-                  إتمام الشراء
+                  {t('libraryStore.completePurchase')}
                 </Button>
               </div>
             </>
@@ -770,7 +771,7 @@ export default function LibraryStore() {
           <div className="space-y-6">
             <div>
               <h3 className="font-bold mb-3 flex items-center gap-2">
-                <MapPin className="w-4 h-4" /> عنوان الشحن
+                <MapPin className="w-4 h-4" /> {t('libraryStore.shippingAddress')}
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <Input placeholder={t('libraryStore.fullName')} value={shippingAddress.name} onChange={(e) => setShippingAddress((prev) => ({ ...prev, name: e.target.value }))} />
@@ -783,11 +784,11 @@ export default function LibraryStore() {
 
             <div>
               <h3 className="font-bold mb-3 flex items-center gap-2">
-                <CreditCard className="w-4 h-4" /> طريقة الدفع
+                <CreditCard className="w-4 h-4" /> {t('libraryStore.paymentMethod')}
               </h3>
               <div className="space-y-2">
                 {paymentMethods.length === 0 ? (
-                  <p className="text-gray-500 text-sm">لا توجد طرق دفع متاحة</p>
+                  <p className="text-gray-500 text-sm">{t('libraryStore.noPaymentMethods')}</p>
                 ) : (
                   paymentMethods.map((method: any) => (
                     <button
@@ -809,23 +810,23 @@ export default function LibraryStore() {
                   <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${selectedPaymentMethod === "wallet" ? "border-orange-500" : "border-gray-300"}`}>
                     {selectedPaymentMethod === "wallet" && <div className="w-3 h-3 bg-orange-500 rounded-full" />}
                   </div>
-                  <span>الدفع من المحفظة (الرصيد: {wallet?.balance || 0} ج.م)</span>
+                  <span>{t('libraryStore.payFromWallet', { balance: wallet?.balance || 0 })}</span>
                 </button>
               </div>
             </div>
 
             <div className="bg-gray-50 p-4 rounded-lg">
-              <h3 className="font-bold mb-3">ملخص الطلب</h3>
+              <h3 className="font-bold mb-3">{t('libraryStore.orderSummary')}</h3>
               <div className="space-y-2 text-sm">
                 {checkoutItems.map((item) => (
                   <div key={item.product.id} className="flex justify-between">
                     <span>{getProductTitle(item.product)} x{item.quantity}</span>
-                    <span>{(parseFloat(item.product.price) * item.quantity).toFixed(2)} ج.م</span>
+                    <span>{(parseFloat(item.product.price) * item.quantity).toFixed(2)} {t('libraryStore.currency')}</span>
                   </div>
                 ))}
                 <div className="border-t pt-2 mt-2 flex justify-between font-bold text-lg">
-                  <span>المجموع:</span>
-                  <span className="text-orange-600">{checkoutTotal.toFixed(2)} ج.م</span>
+                  <span>{t('libraryStore.totalLabel')}</span>
+                  <span className="text-orange-600">{checkoutTotal.toFixed(2)} {t('libraryStore.currency')}</span>
                 </div>
               </div>
             </div>
@@ -838,11 +839,11 @@ export default function LibraryStore() {
               {checkoutMutation.isPending ? (
                 <span className="flex items-center gap-2">
                   <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  جاري المعالجة...
+                  {t('libraryStore.processing')}
                 </span>
               ) : (
                 <span className="flex items-center gap-2">
-                  <Check className="w-5 h-5" /> تأكيد الشراء
+                  <Check className="w-5 h-5" /> {t('libraryStore.confirmPurchase')}
                 </span>
               )}
             </Button>

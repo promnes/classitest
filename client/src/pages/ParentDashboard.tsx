@@ -463,11 +463,11 @@ export const ParentDashboard = (): JSX.Element => {
       setNewChildSchoolId("");
       setNewChildSchoolName("");
       setAddChildStep(1);
-      toast({ title: t("parentDashboard.childAdded"), description: "يمكنه الآن الدخول برمز PIN" });
+      toast({ title: t("parentDashboard.childAdded"), description: t("parentDashboard.canNowLoginWithPin") });
     },
     onError: (err: any) => {
       const msg = extractErrorMessage(err);
-      toast({ title: "خطأ", description: msg || t("parentDashboard.childAddFailed"), variant: "destructive" });
+      toast({ title: t("parentDashboard.error"), description: msg || t("parentDashboard.childAddFailed"), variant: "destructive" });
     },
   });
 
@@ -485,7 +485,7 @@ export const ParentDashboard = (): JSX.Element => {
     },
     onError: (err: any) => {
       const msg = extractErrorMessage(err);
-      toast({ title: "خطأ", description: msg || "فشل تعيين الرمز", variant: "destructive" });
+      toast({ title: t("parentDashboard.error"), description: msg || t("parentDashboard.pinSetFailed"), variant: "destructive" });
     },
   });
 
@@ -502,11 +502,11 @@ export const ParentDashboard = (): JSX.Element => {
       queryClient.invalidateQueries({ queryKey: ["/api/auth/family-pin-status"] });
       setShowSetMyPin(false);
       setMyPinValue("");
-      toast({ title: "تم تعيين رمز PIN الخاص بك ✅" });
+      toast({ title: t("parentDashboard.yourPinSet") });
     },
     onError: (err: any) => {
       const msg = extractErrorMessage(err);
-      toast({ title: "خطأ", description: msg || "فشل تعيين الرمز", variant: "destructive" });
+      toast({ title: t("parentDashboard.error"), description: msg || t("parentDashboard.pinSetFailed"), variant: "destructive" });
     },
   });
 
@@ -809,13 +809,13 @@ export const ParentDashboard = (): JSX.Element => {
         {showSearchResults && dashboardSearch.length >= 2 && (
           <div className={`mt-1 rounded-xl border shadow-2xl max-h-80 overflow-y-auto z-50 relative ${isDark ? "bg-gray-900 border-gray-700" : "bg-white border-gray-200"}`}>
             {searchLoading && (
-              <p className={`text-center py-4 text-sm ${isDark ? "text-gray-400" : "text-gray-500"}`}>جارٍ البحث...</p>
+              <p className={`text-center py-4 text-sm ${isDark ? "text-gray-400" : "text-gray-500"}`}>{t("parentDashboard.searching")}</p>
             )}
 
             {/* Schools */}
             {searchResults?.schools?.length > 0 && (
               <div>
-                <p className={`px-3 pt-2 pb-1 text-xs font-bold ${isDark ? "text-gray-500" : "text-gray-400"}`}>🏫 مدارس</p>
+                <p className={`px-3 pt-2 pb-1 text-xs font-bold ${isDark ? "text-gray-500" : "text-gray-400"}`}>🏫 {t("parentDashboard.schools")}</p>
                 {searchResults.schools.map((s: any) => (
                   <button
                     key={s.id}
@@ -835,7 +835,7 @@ export const ParentDashboard = (): JSX.Element => {
             {/* Teachers */}
             {searchResults?.teachers?.length > 0 && (
               <div>
-                <p className={`px-3 pt-2 pb-1 text-xs font-bold ${isDark ? "text-gray-500" : "text-gray-400"}`}>👨‍🏫 معلمون</p>
+                <p className={`px-3 pt-2 pb-1 text-xs font-bold ${isDark ? "text-gray-500" : "text-gray-400"}`}>👨‍🏫 {t("parentDashboard.teachers")}</p>
                 {searchResults.teachers.map((t: any) => (
                   <button
                     key={t.id}
@@ -855,17 +855,17 @@ export const ParentDashboard = (): JSX.Element => {
             {/* Tasks */}
             {searchResults?.tasks?.length > 0 && (
               <div>
-                <p className={`px-3 pt-2 pb-1 text-xs font-bold ${isDark ? "text-gray-500" : "text-gray-400"}`}>📝 مهام</p>
-                {searchResults.tasks.map((t: any) => (
+                <p className={`px-3 pt-2 pb-1 text-xs font-bold ${isDark ? "text-gray-500" : "text-gray-400"}`}>📝 {t("parentDashboard.tasks")}</p>
+                {searchResults.tasks.map((task: any) => (
                   <button
-                    key={t.id}
-                    onClick={() => { navigate(`/teacher/${t.teacherId}`); setShowSearchResults(false); setDashboardSearch(""); }}
+                    key={task.id}
+                    onClick={() => { navigate(`/teacher/${task.teacherId}`); setShowSearchResults(false); setDashboardSearch(""); }}
                     className={`w-full text-right px-3 py-2.5 flex items-center gap-3 hover:bg-blue-500 hover:text-white transition-colors ${isDark ? "text-gray-200" : "text-gray-700"}`}
                   >
                     <BookOpen className="h-4 w-4 text-amber-500 flex-shrink-0" />
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{t.title}</p>
-                      <p className="text-xs opacity-70">{t.subjectLabel || ""} • {t.price} ر.س</p>
+                      <p className="text-sm font-medium truncate">{task.title}</p>
+                      <p className="text-xs opacity-70">{task.subjectLabel || ""} • {task.price} {t("parentDashboard.currency")}</p>
                     </div>
                     <Heart className="h-3 w-3 opacity-50 flex-shrink-0" />
                   </button>
@@ -874,7 +874,7 @@ export const ParentDashboard = (): JSX.Element => {
             )}
 
             {!searchLoading && searchResults && !searchResults.schools?.length && !searchResults.teachers?.length && !searchResults.tasks?.length && (
-              <p className={`text-center py-4 text-sm ${isDark ? "text-gray-400" : "text-gray-500"}`}>لا توجد نتائج لـ "{dashboardSearch}"</p>
+              <p className={`text-center py-4 text-sm ${isDark ? "text-gray-400" : "text-gray-500"}`}>{t("parentDashboard.noResultsFor", { query: dashboardSearch })}</p>
             )}
           </div>
         )}
@@ -1117,7 +1117,7 @@ export const ParentDashboard = (): JSX.Element => {
                             onClick={() => purchaseDecisionMutation.mutate({ 
                               requestId: request.id, 
                               decision: "approve",
-                              shippingAddress: parentData.address || "منزل"
+                              shippingAddress: parentData.address || t("parentDashboard.home")
                             })}
                             disabled={purchaseDecisionMutation.isPending}
                             data-testid={`button-approve-${request.id}`}
@@ -1202,12 +1202,12 @@ export const ParentDashboard = (): JSX.Element => {
                   <div className="flex items-center gap-2">
                     <KeyRound className="h-5 w-5 text-amber-500" />
                     <span className={`text-sm font-medium ${isDark ? "text-gray-200" : "text-gray-700"}`}>
-                      رمز PIN العائلي
+                      {t("parentDashboard.familyPin")}
                     </span>
                     {pinData?.parentHasPin ? (
-                      <Badge variant="default" className="bg-green-500 text-xs">✓ مفعّل</Badge>
+                      <Badge variant="default" className="bg-green-500 text-xs">{t("parentDashboard.pinActive")}</Badge>
                     ) : (
-                      <Badge variant="secondary" className="text-xs">غير مفعّل</Badge>
+                      <Badge variant="secondary" className="text-xs">{t("parentDashboard.pinInactive")}</Badge>
                     )}
                   </div>
                   <div className="flex gap-2">
@@ -1218,17 +1218,17 @@ export const ParentDashboard = (): JSX.Element => {
                       className="gap-1"
                     >
                       <KeyRound className="h-3 w-3" />
-                      {pinData?.parentHasPin ? "تغيير PIN" : "تعيين PIN"}
+                      {pinData?.parentHasPin ? t("parentDashboard.changePin") : t("parentDashboard.setPin")}
                     </Button>
                     <Button onClick={() => setShowAddChildPin(true)} size="sm" className="gap-1">
                       <Plus className="h-3 w-3" />
-                      إضافة طفل
+                      {t("parentDashboard.addChild")}
                     </Button>
                   </div>
                 </div>
                 {pinData?.familyCode && (
                   <p className={`text-xs mt-2 ${isDark ? "text-gray-500" : "text-gray-400"}`}>
-                    رمز العائلة: {pinData.familyCode}
+                    {t("parentDashboard.familyCodeLabel")}: {pinData.familyCode}
                   </p>
                 )}
               </CardContent>
@@ -1666,7 +1666,7 @@ export const ParentDashboard = (): JSX.Element => {
                   {/* Referral Link - Visible */}
                   {referralData?.shareLink && (
                     <div className="bg-white/10 rounded-lg p-3 mb-3">
-                      <p className="text-xs opacity-70 mb-1">{isRTL ? "رابط الإحالة الخاص بك:" : "Your referral link:"}</p>
+                      <p className="text-xs opacity-70 mb-1">{t("parentDashboard.yourReferralLink")}</p>
                       <div className="flex items-center gap-2">
                         <p className="flex-1 font-mono text-sm break-all select-all text-yellow-200" dir="ltr">
                           {referralData.shareLink}
@@ -1676,7 +1676,7 @@ export const ParentDashboard = (): JSX.Element => {
                           size="sm"
                           onClick={() => {
                             navigator.clipboard.writeText(referralData.shareLink);
-                            toast({ title: t('parentDashboard.linkCopied') || (isRTL ? "تم نسخ الرابط!" : "Link copied!") });
+                            toast({ title: t('parentDashboard.linkCopied') });
                           }}
                           data-testid="button-copy-referral-link"
                         >
@@ -2002,7 +2002,7 @@ export const ParentDashboard = (): JSX.Element => {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
           <div className={`w-full max-w-sm rounded-2xl p-6 shadow-2xl ${isDark ? "bg-gray-900" : "bg-white"}`}>
             <h3 className={`text-lg font-bold mb-4 flex items-center gap-2 ${isDark ? "text-white" : "text-gray-900"}`}>
-              <Plus className="h-5 w-5 text-blue-500" /> إضافة طفل جديد
+              <Plus className="h-5 w-5 text-blue-500" /> {t("parentDashboard.addNewChild")}
             </h3>
 
             {/* Step indicators */}
@@ -2017,22 +2017,22 @@ export const ParentDashboard = (): JSX.Element => {
             {/* Step 1: Basic Info */}
             {addChildStep === 1 && (
               <div className="space-y-4">
-                <p className={`text-sm font-medium ${isDark ? "text-gray-400" : "text-gray-500"}`}>الخطوة 1: البيانات الأساسية</p>
+                <p className={`text-sm font-medium ${isDark ? "text-gray-400" : "text-gray-500"}`}>{t("parentDashboard.step1BasicInfo")}</p>
                 <div>
                   <label className={`block text-sm font-medium mb-1 ${isDark ? "text-gray-300" : "text-gray-700"}`}>
-                    اسم الطفل *
+                    {t("parentDashboard.childName")}
                   </label>
                   <input
                     type="text"
                     value={newChildName}
                     onChange={(e) => setNewChildName(e.target.value)}
-                    placeholder="مثال: أحمد"
+                    placeholder={t("parentDashboard.childNamePlaceholder")}
                     className={`w-full px-4 py-3 rounded-lg border-2 focus:outline-none focus:border-blue-400 ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-white border-gray-300 text-gray-900"}`}
                   />
                 </div>
                 <div>
                   <label className={`block text-sm font-medium mb-1 ${isDark ? "text-gray-300" : "text-gray-700"}`}>
-                    🔑 رمز PIN (4 أرقام) *
+                    {t("parentDashboard.pinCode4Digits")}
                   </label>
                   <input
                     type="tel"
@@ -2044,7 +2044,7 @@ export const ParentDashboard = (): JSX.Element => {
                     className={`w-full px-4 py-3 rounded-lg border-2 focus:outline-none focus:border-blue-400 text-center text-xl tracking-widest font-mono ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-white border-gray-300 text-gray-900"}`}
                   />
                   <p className={`text-xs mt-1 ${isDark ? "text-gray-500" : "text-gray-400"}`}>
-                    سيستخدم الطفل هذا الرمز لدخول حسابه
+                    {t("parentDashboard.childWillUsePin")}
                   </p>
                 </div>
                 <div className="flex gap-2 pt-2">
@@ -2053,10 +2053,10 @@ export const ParentDashboard = (): JSX.Element => {
                     disabled={!newChildName.trim() || newChildPin.length < 4}
                     className="flex-1"
                   >
-                    التالي →
+                    {t("parentDashboard.next")}
                   </Button>
                   <Button variant="outline" onClick={() => { setShowAddChildPin(false); setNewChildName(""); setNewChildPin(""); setAddChildStep(1); }}>
-                    إلغاء
+                    {t("parentDashboard.cancel")}
                   </Button>
                 </div>
               </div>
@@ -2065,10 +2065,10 @@ export const ParentDashboard = (): JSX.Element => {
             {/* Step 2: Academic Info (Optional) */}
             {addChildStep === 2 && (
               <div className="space-y-4">
-                <p className={`text-sm font-medium ${isDark ? "text-gray-400" : "text-gray-500"}`}>الخطوة 2: معلومات إضافية (اختياري)</p>
+                <p className={`text-sm font-medium ${isDark ? "text-gray-400" : "text-gray-500"}`}>{t("parentDashboard.step2OptionalInfo")}</p>
                 <div>
                   <label className={`block text-sm font-medium mb-1 ${isDark ? "text-gray-300" : "text-gray-700"}`}>
-                    🎂 تاريخ الميلاد
+                    {t("parentDashboard.birthday")}
                   </label>
                   <input
                     type="date"
@@ -2079,7 +2079,7 @@ export const ParentDashboard = (): JSX.Element => {
                 </div>
                 <div>
                   <label className={`block text-sm font-medium mb-1 ${isDark ? "text-gray-300" : "text-gray-700"}`}>
-                    🏢 المحافظة
+                    {t("parentDashboard.governorate")}
                   </label>
                   <GovernorateSelect
                     value={newChildGovernorate}
@@ -2089,14 +2089,14 @@ export const ParentDashboard = (): JSX.Element => {
                 </div>
                 <div>
                   <label className={`block text-sm font-medium mb-1 ${isDark ? "text-gray-300" : "text-gray-700"}`}>
-                    🎓 السنة الدراسية
+                    {t("parentDashboard.academicYear")}
                   </label>
                   <select
                     value={newChildGrade}
                     onChange={(e) => setNewChildGrade(e.target.value)}
                     className={`w-full px-4 py-3 rounded-lg border-2 focus:outline-none focus:border-blue-400 ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-white border-gray-300 text-gray-900"}`}
                   >
-                    <option value="">اختر السنة الدراسية</option>
+                    <option value="">{t("parentDashboard.selectGrade")}</option>
                     {ACADEMIC_GRADES.map(g => (
                       <option key={g.value} value={g.value}>{g.label}</option>
                     ))}
@@ -2104,7 +2104,7 @@ export const ParentDashboard = (): JSX.Element => {
                 </div>
                 <div>
                   <label className={`block text-sm font-medium mb-1 ${isDark ? "text-gray-300" : "text-gray-700"}`}>
-                    🏫 المدرسة
+                    {t("parentDashboard.school")}
                   </label>
                   <div className="relative">
                     <input
@@ -2115,7 +2115,7 @@ export const ParentDashboard = (): JSX.Element => {
                         setNewChildSchoolId("");
                         setNewChildSchoolName("");
                       }}
-                      placeholder={newChildGovernorate ? "ابحث عن المدرسة..." : "اختر المحافظة أولاً أو اكتب اسم المدرسة"}
+                      placeholder={newChildGovernorate ? t("parentDashboard.searchSchool") : t("parentDashboard.selectGovernorateFirst")}
                       className={`w-full px-4 py-3 rounded-lg border-2 focus:outline-none focus:border-blue-400 ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-white border-gray-300 text-gray-900"}`}
                     />
                     {newChildSchoolId && (
@@ -2142,7 +2142,7 @@ export const ParentDashboard = (): JSX.Element => {
                     </div>
                   )}
                   <p className={`text-xs mt-1 ${isDark ? "text-gray-500" : "text-gray-400"}`}>
-                    اكتب اسم المدرسة أو اختر من القائمة
+                    {t("parentDashboard.typeSchoolOrSelect")}
                   </p>
                 </div>
                 <div className="flex gap-2 pt-2">
@@ -2151,10 +2151,10 @@ export const ParentDashboard = (): JSX.Element => {
                     disabled={addChildWithPinMutation.isPending}
                     className="flex-1"
                   >
-                    {addChildWithPinMutation.isPending ? "جاري الإضافة..." : "إضافة ✅"}
+                    {addChildWithPinMutation.isPending ? t("parentDashboard.adding") : t("parentDashboard.addConfirm")}
                   </Button>
                   <Button variant="outline" onClick={() => setAddChildStep(1)}>
-                    ← رجوع
+                    {t("parentDashboard.back")}
                   </Button>
                 </div>
               </div>
@@ -2168,12 +2168,12 @@ export const ParentDashboard = (): JSX.Element => {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
           <div className={`w-full max-w-sm rounded-2xl p-6 shadow-2xl ${isDark ? "bg-gray-900" : "bg-white"}`}>
             <h3 className={`text-lg font-bold mb-4 flex items-center gap-2 ${isDark ? "text-white" : "text-gray-900"}`}>
-              <KeyRound className="h-5 w-5 text-amber-500" /> تعيين PIN لـ {pinTargetChild.name}
+              <KeyRound className="h-5 w-5 text-amber-500" /> {t("parentDashboard.setPinFor", { name: pinTargetChild.name })}
             </h3>
             <div className="space-y-4">
               <div>
                 <label className={`block text-sm font-medium mb-1 ${isDark ? "text-gray-300" : "text-gray-700"}`}>
-                  رمز PIN جديد (4 أرقام)
+                  {t("parentDashboard.newPin4Digits")}
                 </label>
                 <input
                   type="tel"
@@ -2191,10 +2191,10 @@ export const ParentDashboard = (): JSX.Element => {
                   disabled={childPinValue.length < 4 || setChildPinMutation.isPending}
                   className="flex-1"
                 >
-                  {setChildPinMutation.isPending ? "جاري التعيين..." : "تعيين ✅"}
+                  {setChildPinMutation.isPending ? t("parentDashboard.setting") : t("parentDashboard.setConfirm")}
                 </Button>
                 <Button variant="outline" onClick={() => { setShowSetPinModal(false); setPinTargetChild(null); setChildPinValue(""); }}>
-                  إلغاء
+                  {t("parentDashboard.cancel")}
                 </Button>
               </div>
             </div>
@@ -2207,15 +2207,15 @@ export const ParentDashboard = (): JSX.Element => {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
           <div className={`w-full max-w-sm rounded-2xl p-6 shadow-2xl ${isDark ? "bg-gray-900" : "bg-white"}`}>
             <h3 className={`text-lg font-bold mb-4 flex items-center gap-2 ${isDark ? "text-white" : "text-gray-900"}`}>
-              <KeyRound className="h-5 w-5 text-amber-500" /> تعيين رمز PIN الخاص بك
+              <KeyRound className="h-5 w-5 text-amber-500" /> {t("parentDashboard.setYourPin")}
             </h3>
             <p className={`text-sm mb-4 ${isDark ? "text-gray-400" : "text-gray-500"}`}>
-              رمز PIN يسمح لك بالدخول لحسابك بسرعة من نفس الجهاز
+              {t("parentDashboard.pinAllowsQuickLogin")}
             </p>
             <div className="space-y-4">
               <div>
                 <label className={`block text-sm font-medium mb-1 ${isDark ? "text-gray-300" : "text-gray-700"}`}>
-                  رمز PIN (4 أرقام)
+                  {t("parentDashboard.pin4Digits")}
                 </label>
                 <input
                   type="tel"
@@ -2233,10 +2233,10 @@ export const ParentDashboard = (): JSX.Element => {
                   disabled={myPinValue.length < 4 || setMyPinMutation.isPending}
                   className="flex-1"
                 >
-                  {setMyPinMutation.isPending ? "جاري التعيين..." : "تعيين ✅"}
+                  {setMyPinMutation.isPending ? t("parentDashboard.setting") : t("parentDashboard.setConfirm")}
                 </Button>
                 <Button variant="outline" onClick={() => { setShowSetMyPin(false); setMyPinValue(""); }}>
-                  إلغاء
+                  {t("parentDashboard.cancel")}
                 </Button>
               </div>
             </div>

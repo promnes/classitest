@@ -300,11 +300,11 @@ export default function LibraryDashboard() {
       return body;
     },
     onSuccess: () => {
-      toast({ title: "تم تحديث الطلب إلى: تم الشحن" });
+      toast({ title: t('libraryDashboard.orderShipped') });
       queryClient.invalidateQueries({ queryKey: ["library-orders"] });
     },
     onError: (err: any) => {
-      toast({ title: err?.message || "فشل تحديث حالة الشحن", variant: "destructive" });
+      toast({ title: err?.message || t('libraryDashboard.shipUpdateFailed'), variant: "destructive" });
     },
   });
 
@@ -323,14 +323,14 @@ export default function LibraryDashboard() {
       return body;
     },
     onSuccess: (_, variables) => {
-      toast({ title: "تم تأكيد التسليم بنجاح" });
+      toast({ title: t('libraryDashboard.deliveryConfirmed') });
       setDeliveryCodes((prev) => ({ ...prev, [variables.orderId]: "" }));
       queryClient.invalidateQueries({ queryKey: ["library-orders"] });
       queryClient.invalidateQueries({ queryKey: ["library-balance"] });
       queryClient.invalidateQueries({ queryKey: ["library-daily-invoices"] });
     },
     onError: (err: any) => {
-      toast({ title: err?.message || "فشل التحقق من كود التسليم", variant: "destructive" });
+      toast({ title: err?.message || t('libraryDashboard.deliveryVerifyFailed'), variant: "destructive" });
     },
   });
 
@@ -362,7 +362,7 @@ export default function LibraryDashboard() {
       queryClient.invalidateQueries({ queryKey: ["library-balance"] });
     },
     onError: (err: any) => {
-      toast({ title: err?.message || "فشل إنشاء طلب السحب", variant: "destructive" });
+      toast({ title: err?.message || t('libraryDashboard.withdrawalRequestFailed'), variant: "destructive" });
     },
   });
 
@@ -424,7 +424,7 @@ export default function LibraryDashboard() {
 
       const presignJson = await presignRes.json();
       if (!presignRes.ok || !presignJson?.data?.uploadURL || !presignJson?.data?.objectPath) {
-        throw new Error(presignJson?.message || "فشل تجهيز رفع الصورة");
+        throw new Error(presignJson?.message || t('libraryDashboard.imagePresignFailed'));
       }
 
       let putRes: Response | null = null;
@@ -458,13 +458,13 @@ export default function LibraryDashboard() {
 
           if (!proxyRes.ok) {
             const proxyJson = await proxyRes.json().catch(() => ({}));
-            throw new Error(proxyJson?.message || "فشل رفع الصورة إلى التخزين");
+            throw new Error(proxyJson?.message || t('libraryDashboard.imageStorageUploadFailed'));
           }
         } else {
           if (putRes) {
-            throw new Error("فشل رفع الصورة إلى التخزين");
+            throw new Error(t('libraryDashboard.imageStorageUploadFailed'));
           }
-          throw new Error((directUploadError as any)?.message || "فشل رفع الصورة إلى التخزين");
+          throw new Error((directUploadError as any)?.message || t('libraryDashboard.imageStorageUploadFailed'));
         }
       }
 
@@ -486,7 +486,7 @@ export default function LibraryDashboard() {
 
       const finalizeJson = await finalizeRes.json();
       if (!finalizeRes.ok || !finalizeJson?.data?.url) {
-        throw new Error(finalizeJson?.message || "فشل تأكيد رفع الصورة");
+        throw new Error(finalizeJson?.message || t('libraryDashboard.imageFinalizeFailed'));
       }
 
       setProductForm((prev) => ({ ...prev, imageUrl: finalizeJson.data.url }));
@@ -524,7 +524,7 @@ export default function LibraryDashboard() {
         headers: { "Content-Type": file.type || "application/octet-stream" },
         body: file,
       });
-      if (!directRes.ok) throw new Error("فشل رفع الصورة إلى التخزين");
+      if (!directRes.ok) throw new Error(t('libraryDashboard.imageStorageUploadFailed'));
     } else {
       const proxyRes = await fetch("/api/library/uploads/proxy", {
         method: "PUT",
@@ -535,7 +535,7 @@ export default function LibraryDashboard() {
         },
         body: file,
       });
-      if (!proxyRes.ok) throw new Error("فشل رفع الصورة إلى التخزين");
+      if (!proxyRes.ok) throw new Error(t('libraryDashboard.imageStorageUploadFailed'));
     }
 
     const finalizeRes = await fetch("/api/library/uploads/finalize", {
@@ -550,7 +550,7 @@ export default function LibraryDashboard() {
       }),
     });
     const finalizeJson = await finalizeRes.json();
-    if (!finalizeRes.ok) throw new Error("فشل تأكيد رفع الصورة");
+    if (!finalizeRes.ok) throw new Error(t('libraryDashboard.imageFinalizeFailed'));
     return finalizeJson.data.url;
   }
 
@@ -558,7 +558,7 @@ export default function LibraryDashboard() {
     const file = e.target.files?.[0];
     if (!file) return;
     if (!file.type.startsWith("image/")) {
-      toast({ title: "يرجى اختيار صورة فقط", variant: "destructive" });
+      toast({ title: t('libraryDashboard.selectImageOnly'), variant: "destructive" });
       return;
     }
     const url = URL.createObjectURL(file);
@@ -585,7 +585,7 @@ export default function LibraryDashboard() {
           [type === "avatar" ? "imageUrl" : "coverImageUrl"]: url,
         }),
       });
-      if (!updateRes.ok) throw new Error("فشل تحديث الملف الشخصي");
+      if (!updateRes.ok) throw new Error(t('libraryDashboard.profileUpdateFailed'));
       queryClient.invalidateQueries({ queryKey: ["library-profile"] });
       toast({ title: type === "avatar" ? t('libraryDashboard.avatarUploaded') : t('libraryDashboard.coverUploaded') });
     } catch (error: any) {
@@ -601,7 +601,7 @@ export default function LibraryDashboard() {
   if (!token) return null;
 
   if (loadingProfile) {
-    return <div className="flex items-center justify-center min-h-screen">جاري التحميل...</div>;
+    return <div className="flex items-center justify-center min-h-screen">{t('libraryDashboard.pageLoading')}</div>;
   }
 
   return (
@@ -618,7 +618,7 @@ export default function LibraryDashboard() {
             )}
             <div>
               <h1 className="font-bold">{profile?.name || libraryData.name}</h1>
-              <p className="text-sm text-muted-foreground">لوحة تحكم المكتبة</p>
+              <p className="text-sm text-muted-foreground">{t('libraryDashboard.title')}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -626,7 +626,7 @@ export default function LibraryDashboard() {
             <LibraryNotificationBell />
             <Button variant="ghost" onClick={handleLogout} data-testid="button-logout">
               <LogOut className="h-4 w-4 ml-2" />
-              تسجيل الخروج
+              {t('libraryDashboard.logout')}
             </Button>
           </div>
         </div>
@@ -642,7 +642,7 @@ export default function LibraryDashboard() {
                 </div>
                 <div>
                   <p className="text-2xl font-bold">{profile?.totalProducts || 0}</p>
-                  <p className="text-muted-foreground">المنتجات</p>
+                  <p className="text-muted-foreground">{t('libraryDashboard.products')}</p>
                 </div>
               </div>
             </CardContent>
@@ -655,7 +655,7 @@ export default function LibraryDashboard() {
                 </div>
                 <div>
                   <p className="text-2xl font-bold">{profile?.totalSales || 0}</p>
-                  <p className="text-muted-foreground">المبيعات</p>
+                  <p className="text-muted-foreground">{t('libraryDashboard.sales')}</p>
                 </div>
               </div>
             </CardContent>
@@ -668,7 +668,7 @@ export default function LibraryDashboard() {
                 </div>
                 <div>
                   <p className="text-2xl font-bold">{referrals?.length || 0}</p>
-                  <p className="text-muted-foreground">الإحالات</p>
+                  <p className="text-muted-foreground">{t('libraryDashboard.referrals')}</p>
                 </div>
               </div>
             </CardContent>
@@ -681,7 +681,7 @@ export default function LibraryDashboard() {
                 </div>
                 <div>
                   <p className="text-2xl font-bold">{profile?.activityScore || 0}</p>
-                  <p className="text-muted-foreground">نقاط النشاط</p>
+                  <p className="text-muted-foreground">{t('libraryDashboard.activityPoints')}</p>
                 </div>
               </div>
             </CardContent>
@@ -692,13 +692,13 @@ export default function LibraryDashboard() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Link className="h-5 w-5" />
-              رابط الإحالة
+              {t('libraryDashboard.referralLink')}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex flex-col sm:flex-row gap-4">
               <div className="flex-1 space-y-2">
-                <Label>رابط الإحالة</Label>
+                <Label>{t('libraryDashboard.referralLinkLabel')}</Label>
                 <div className="flex gap-2">
                   <Input value={referralLink} readOnly className="text-sm" />
                   <Button variant="outline" onClick={() => copyToClipboard(referralLink)} data-testid="button-copy-referral-link">
@@ -707,7 +707,7 @@ export default function LibraryDashboard() {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label>كود الإحالة</Label>
+                <Label>{t('libraryDashboard.referralCode')}</Label>
                 <div className="flex gap-2">
                   <Input value={profile?.referralCode || ""} readOnly className="w-32" />
                   <Button variant="outline" onClick={() => copyToClipboard(profile?.referralCode || "")} data-testid="button-copy-referral-code">
@@ -721,25 +721,25 @@ export default function LibraryDashboard() {
 
         <Tabs defaultValue="products">
           <TabsList>
-            <TabsTrigger value="products">المنتجات</TabsTrigger>
-            <TabsTrigger value="orders">الطلبات</TabsTrigger>
-            <TabsTrigger value="referrals">الإحالات</TabsTrigger>
-            <TabsTrigger value="activity">سجل النشاط</TabsTrigger>
-            <TabsTrigger value="finance">الأرباح والسحب</TabsTrigger>
-            <TabsTrigger value="profile">الملف الشخصي</TabsTrigger>
+            <TabsTrigger value="products">{t('libraryDashboard.tabProducts')}</TabsTrigger>
+            <TabsTrigger value="orders">{t('libraryDashboard.tabOrders')}</TabsTrigger>
+            <TabsTrigger value="referrals">{t('libraryDashboard.tabReferrals')}</TabsTrigger>
+            <TabsTrigger value="activity">{t('libraryDashboard.tabActivity')}</TabsTrigger>
+            <TabsTrigger value="finance">{t('libraryDashboard.tabFinance')}</TabsTrigger>
+            <TabsTrigger value="profile">{t('libraryDashboard.tabProfile')}</TabsTrigger>
           </TabsList>
 
           <TabsContent value="products" className="space-y-4">
             <div className="flex justify-between items-center">
-              <h2 className="text-lg font-semibold">منتجاتي ({products?.length || 0})</h2>
+              <h2 className="text-lg font-semibold">{t('libraryDashboard.myProducts')} ({products?.length || 0})</h2>
               <Button onClick={() => { resetProductForm(); setEditingProduct(null); setShowProductModal(true); }} data-testid="button-add-product">
                 <Plus className="h-4 w-4 ml-2" />
-                إضافة منتج
+                {t('libraryDashboard.addProduct')}
               </Button>
             </div>
 
             {loadingProducts ? (
-              <div className="text-center py-8">جاري التحميل...</div>
+              <div className="text-center py-8">{t('libraryDashboard.loading')}</div>
             ) : products?.length > 0 ? (
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {products.map((product: Product) => (
@@ -755,13 +755,13 @@ export default function LibraryDashboard() {
                         )}
                         <div className="flex-1">
                           <h3 className="font-medium">{product.title}</h3>
-                          <p className="text-lg font-bold text-primary">{product.price} ج.م</p>
+                          <p className="text-lg font-bold text-primary">{product.price} {t('libraryDashboard.currency')}</p>
                           {product.discountPercent > 0 && (
                             <Badge variant="secondary" className="mt-1">
-                              خصم {product.discountPercent}% على {product.discountMinQuantity}+
+                              {t('libraryDashboard.discountBadge', { percent: product.discountPercent, min: product.discountMinQuantity })}
                             </Badge>
                           )}
-                          <p className="text-sm text-muted-foreground mt-1">المخزون: {product.stock}</p>
+                          <p className="text-sm text-muted-foreground mt-1">{t('libraryDashboard.stock')} {product.stock}</p>
                         </div>
                       </div>
                       <div className="flex justify-end gap-1 mt-3">
@@ -789,10 +789,10 @@ export default function LibraryDashboard() {
               <Card>
                 <CardContent className="py-12 text-center">
                   <Package className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                  <p className="text-muted-foreground">لا توجد منتجات بعد</p>
+                  <p className="text-muted-foreground">{t('libraryDashboard.noProducts')}</p>
                   <Button className="mt-4" onClick={() => setShowProductModal(true)}>
                     <Plus className="h-4 w-4 ml-2" />
-                    إضافة أول منتج
+                    {t('libraryDashboard.addFirstProduct')}
                   </Button>
                 </CardContent>
               </Card>
@@ -806,14 +806,14 @@ export default function LibraryDashboard() {
                   <div key={ref.id} className="flex items-center justify-between p-4 border rounded-lg">
                     <div>
                       <Badge variant={ref.status === "purchased" ? "default" : "secondary"}>
-                        {ref.status === "clicked" ? t('libraryDashboard.referralClicked') : ref.status === "registered" ? t('libraryDashboard.referralRegistered') : "شراء"}
+                        {ref.status === "clicked" ? t('libraryDashboard.referralClicked') : ref.status === "registered" ? t('libraryDashboard.referralRegistered') : t('libraryDashboard.referralPurchased')}
                       </Badge>
                       <span className="mr-2 text-sm text-muted-foreground">
                         {new Date(ref.createdAt).toLocaleDateString(getDateLocale())}
                       </span>
                     </div>
                     {ref.pointsAwarded > 0 && (
-                      <Badge variant="outline">+{ref.pointsAwarded} نقطة</Badge>
+                      <Badge variant="outline">+{ref.pointsAwarded} {t('libraryDashboard.point')}</Badge>
                     )}
                   </div>
                 ))}
@@ -822,8 +822,8 @@ export default function LibraryDashboard() {
               <Card>
                 <CardContent className="py-12 text-center">
                   <Share2 className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                  <p className="text-muted-foreground">لا توجد إحالات بعد</p>
-                  <p className="text-sm text-muted-foreground mt-2">شارك رابط الإحالة لكسب النقاط</p>
+                  <p className="text-muted-foreground">{t('libraryDashboard.noReferrals')}</p>
+                  <p className="text-sm text-muted-foreground mt-2">{t('libraryDashboard.shareReferralHint')}</p>
                 </CardContent>
               </Card>
             )}
@@ -838,28 +838,28 @@ export default function LibraryDashboard() {
                       <div className="flex items-start justify-between gap-3">
                         <div>
                           <p className="font-semibold">{order.productTitle || t('libraryDashboard.libraryProduct')}</p>
-                          <p className="text-sm text-muted-foreground">المشتري: {order.buyerName || "-"} ({order.buyerEmail || "-"})</p>
-                          <p className="text-sm text-muted-foreground">الكمية: {order.quantity} • الإجمالي: {order.subtotal}</p>
-                          {order.shippingAddress && <p className="text-sm text-muted-foreground">العنوان: {order.shippingAddress}</p>}
+                          <p className="text-sm text-muted-foreground">{t('libraryDashboard.buyer')} {order.buyerName || "-"} ({order.buyerEmail || "-"})</p>
+                          <p className="text-sm text-muted-foreground">{t('libraryDashboard.quantity')} {order.quantity} • {t('libraryDashboard.total')} {order.subtotal}</p>
+                          {order.shippingAddress && <p className="text-sm text-muted-foreground">{t('libraryDashboard.address')} {order.shippingAddress}</p>}
                         </div>
                         <Badge variant={order.status === "pending_admin" ? "secondary" : "outline"}>{order.status}</Badge>
                       </div>
 
                       {order.status === "pending_admin" && (
                         <div className="text-sm text-muted-foreground p-3 rounded-md bg-muted">
-                          الطلب بانتظار تأكيد الأدمن.
+                          {t('libraryDashboard.orderPendingAdmin')}
                         </div>
                       )}
 
                       {order.status === "admin_confirmed" && (
                         <Button onClick={() => shipOrderMutation.mutate(order.id)} data-testid={`button-ship-${order.id}`}>
-                          <Truck className="h-4 w-4 ml-2" /> تم الشحن
+                          <Truck className="h-4 w-4 ml-2" /> {t('libraryDashboard.markShipped')}
                         </Button>
                       )}
 
                       {order.status === "shipped" && (
                         <div className="space-y-2">
-                          <p className="text-sm">أدخل كود التسليم الذي أعطاه المشتري لرجل التوصيل:</p>
+                          <p className="text-sm">{t('libraryDashboard.enterDeliveryCode')}</p>
                           <div className="flex gap-2">
                             <Input
                               value={deliveryCodes[order.id] || ""}
@@ -870,7 +870,7 @@ export default function LibraryDashboard() {
                               onClick={() => verifyDeliveryMutation.mutate({ orderId: order.id, code: deliveryCodes[order.id] || "" })}
                               data-testid={`button-deliver-${order.id}`}
                             >
-                              <ShieldCheck className="h-4 w-4 ml-2" /> تم التسليم
+                              <ShieldCheck className="h-4 w-4 ml-2" /> {t('libraryDashboard.markDelivered')}
                             </Button>
                           </div>
                         </div>
@@ -878,9 +878,9 @@ export default function LibraryDashboard() {
 
                       {order.status === "delivered" && (
                         <div className="text-sm text-amber-700 bg-amber-50 rounded-md p-3">
-                          تم التسليم، والأرباح معلّقة لمدة {order.holdDays || 15} يوم لحماية المستهلك.
+                          {t('libraryDashboard.deliveredHoldNotice', { days: order.holdDays || 15 })}
                           {order.protectionExpiresAt && (
-                            <span className="block mt-1">تاريخ الإتاحة: {new Date(order.protectionExpiresAt).toLocaleDateString(getDateLocale())}</span>
+                            <span className="block mt-1">{t('libraryDashboard.availabilityDate')} {new Date(order.protectionExpiresAt).toLocaleDateString(getDateLocale())}</span>
                           )}
                         </div>
                       )}
@@ -890,7 +890,7 @@ export default function LibraryDashboard() {
               </div>
             ) : (
               <Card>
-                <CardContent className="py-10 text-center text-muted-foreground">لا توجد طلبات حالياً</CardContent>
+                <CardContent className="py-10 text-center text-muted-foreground">{t('libraryDashboard.noOrders')}</CardContent>
               </Card>
             )}
           </TabsContent>
@@ -917,7 +917,7 @@ export default function LibraryDashboard() {
               <Card>
                 <CardContent className="py-12 text-center">
                   <Activity className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                  <p className="text-muted-foreground">لا يوجد نشاط بعد</p>
+                  <p className="text-muted-foreground">{t('libraryDashboard.noActivity')}</p>
                 </CardContent>
               </Card>
             )}
@@ -927,25 +927,25 @@ export default function LibraryDashboard() {
             <div className="grid gap-4 md:grid-cols-4">
               <Card>
                 <CardContent className="pt-6">
-                  <p className="text-sm text-muted-foreground">الرصيد المتاح</p>
+                  <p className="text-sm text-muted-foreground">{t('libraryDashboard.availableBalance')}</p>
                   <p className="text-2xl font-bold">{balanceData?.availableBalance || "0.00"}</p>
                 </CardContent>
               </Card>
               <Card>
                 <CardContent className="pt-6">
-                  <p className="text-sm text-muted-foreground">الرصيد المعلّق</p>
+                  <p className="text-sm text-muted-foreground">{t('libraryDashboard.pendingBalance')}</p>
                   <p className="text-2xl font-bold">{balanceData?.pendingBalance || "0.00"}</p>
                 </CardContent>
               </Card>
               <Card>
                 <CardContent className="pt-6">
-                  <p className="text-sm text-muted-foreground">إجمالي المبيعات</p>
+                  <p className="text-sm text-muted-foreground">{t('libraryDashboard.totalSales')}</p>
                   <p className="text-2xl font-bold">{balanceData?.totalSalesAmount || "0.00"}</p>
                 </CardContent>
               </Card>
               <Card>
                 <CardContent className="pt-6">
-                  <p className="text-sm text-muted-foreground">إجمالي العمولة</p>
+                  <p className="text-sm text-muted-foreground">{t('libraryDashboard.totalCommission')}</p>
                   <p className="text-2xl font-bold">{balanceData?.totalCommissionAmount || "0.00"}</p>
                 </CardContent>
               </Card>
@@ -953,7 +953,7 @@ export default function LibraryDashboard() {
 
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2"><Wallet className="h-5 w-5" /> طلب سحب أموال</CardTitle>
+                <CardTitle className="flex items-center gap-2"><Wallet className="h-5 w-5" /> {t('libraryDashboard.requestWithdrawal')}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="grid md:grid-cols-3 gap-3">
@@ -964,25 +964,25 @@ export default function LibraryDashboard() {
                     onChange={(e) => setWithdrawAmount(e.target.value)}
                   />
                   <Input
-                    placeholder="وسيلة الدفع (bank_transfer / vodafone_cash ...)"
+                    placeholder={t('libraryDashboard.paymentMethodPlaceholder')}
                     value={withdrawMethod}
                     onChange={(e) => setWithdrawMethod(e.target.value)}
                   />
                   <Input
-                    placeholder="تفاصيل الدفع (رقم الحساب/الهاتف...)"
+                    placeholder={t('libraryDashboard.paymentDetailsPlaceholder')}
                     value={withdrawDetails}
                     onChange={(e) => setWithdrawDetails(e.target.value)}
                   />
                 </div>
                 <Button onClick={() => createWithdrawalMutation.mutate()} disabled={createWithdrawalMutation.isPending}>
-                  {createWithdrawalMutation.isPending ? "جاري الإرسال..." : t('libraryDashboard.confirmWithdrawal')}
+                  {createWithdrawalMutation.isPending ? t('libraryDashboard.sending') : t('libraryDashboard.confirmWithdrawal')}
                 </Button>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader>
-                <CardTitle>سجل طلبات السحب</CardTitle>
+                <CardTitle>{t('libraryDashboard.withdrawalHistory')}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
                 {(withdrawals || []).length > 0 ? (
@@ -996,14 +996,14 @@ export default function LibraryDashboard() {
                     </div>
                   ))
                 ) : (
-                  <p className="text-sm text-muted-foreground text-center py-4">لا توجد طلبات سحب بعد</p>
+                  <p className="text-sm text-muted-foreground text-center py-4">{t('libraryDashboard.noWithdrawals')}</p>
                 )}
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader>
-                <CardTitle>فواتير المبيعات اليومية</CardTitle>
+                <CardTitle>{t('libraryDashboard.dailyInvoices')}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
                 {(invoices || []).length > 0 ? (
@@ -1011,13 +1011,13 @@ export default function LibraryDashboard() {
                     <div key={invoice.id} className="flex items-center justify-between p-3 border rounded-lg">
                       <div>
                         <p className="font-medium">{new Date(invoice.invoiceDate).toLocaleDateString(getDateLocale())}</p>
-                        <p className="text-sm text-muted-foreground">طلبات: {invoice.totalOrders} • إجمالي: {invoice.grossSalesAmount} • صافي: {invoice.netAmount}</p>
+                        <p className="text-sm text-muted-foreground">{t('libraryDashboard.invoiceOrders')} {invoice.totalOrders} • {t('libraryDashboard.invoiceGross')} {invoice.grossSalesAmount} • {t('libraryDashboard.invoiceNet')} {invoice.netAmount}</p>
                       </div>
                       <Badge variant={invoice.status === "pending" ? "secondary" : "outline"}>{invoice.status}</Badge>
                     </div>
                   ))
                 ) : (
-                  <p className="text-sm text-muted-foreground text-center py-4">لا توجد فواتير يومية بعد</p>
+                  <p className="text-sm text-muted-foreground text-center py-4">{t('libraryDashboard.noInvoices')}</p>
                 )}
               </CardContent>
             </Card>
@@ -1084,7 +1084,7 @@ export default function LibraryDashboard() {
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label>العنوان *</Label>
+              <Label>{t('libraryDashboard.productTitleLabel')}</Label>
               <Input
                 value={productForm.title}
                 onChange={(e) => setProductForm({ ...productForm, title: e.target.value })}
@@ -1092,7 +1092,7 @@ export default function LibraryDashboard() {
               />
             </div>
             <div>
-              <Label>الوصف</Label>
+              <Label>{t('libraryDashboard.productDescriptionLabel')}</Label>
               <Textarea
                 value={productForm.description}
                 onChange={(e) => setProductForm({ ...productForm, description: e.target.value })}
@@ -1100,7 +1100,7 @@ export default function LibraryDashboard() {
               />
             </div>
             <div>
-              <Label>رابط الصورة</Label>
+              <Label>{t('libraryDashboard.productImageUrlLabel')}</Label>
               <Input
                 value={productForm.imageUrl}
                 onChange={(e) => setProductForm({ ...productForm, imageUrl: e.target.value })}
@@ -1136,7 +1136,7 @@ export default function LibraryDashboard() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label>السعر *</Label>
+                <Label>{t('libraryDashboard.productPriceLabel')}</Label>
                 <Input
                   type="number"
                   value={productForm.price}
@@ -1145,7 +1145,7 @@ export default function LibraryDashboard() {
                 />
               </div>
               <div>
-                <Label>المخزون</Label>
+                <Label>{t('libraryDashboard.productStockLabel')}</Label>
                 <Input
                   type="number"
                   value={productForm.stock}
@@ -1156,7 +1156,7 @@ export default function LibraryDashboard() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label>نسبة الخصم %</Label>
+                <Label>{t('libraryDashboard.discountPercentLabel')}</Label>
                 <Input
                   type="number"
                   value={productForm.discountPercent}
@@ -1164,7 +1164,7 @@ export default function LibraryDashboard() {
                 />
               </div>
               <div>
-                <Label>الحد الأدنى للخصم</Label>
+                <Label>{t('libraryDashboard.discountMinQuantityLabel')}</Label>
                 <Input
                   type="number"
                   value={productForm.discountMinQuantity}
@@ -1174,7 +1174,7 @@ export default function LibraryDashboard() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowProductModal(false)}>إلغاء</Button>
+            <Button variant="outline" onClick={() => setShowProductModal(false)}>{t('libraryDashboard.cancel')}</Button>
             <Button 
               onClick={() => {
                 if (editingProduct) {

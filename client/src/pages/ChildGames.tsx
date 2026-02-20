@@ -120,12 +120,11 @@ export const ChildGames = (): JSX.Element => {
       setTimeout(() => setShowReward(null), 3000);
     },
     onError: (error: Error) => {
-      const rtl = i18n.language === 'ar';
       const msg = error.message || "";
       if (msg.includes("Daily play limit")) {
-        setMutationError(rtl ? "وصلت للحد اليومي لهذه اللعبة" : "Daily play limit reached for this game");
+        setMutationError(t("childGames.dailyLimitReached"));
       } else {
-        setMutationError(rtl ? "حدث خطأ، حاول مرة أخرى" : "An error occurred, please try again");
+        setMutationError(t("childGames.errorTryAgain"));
       }
       setTimeout(() => setMutationError(null), 4000);
     },
@@ -149,7 +148,7 @@ export const ChildGames = (): JSX.Element => {
       <div className={`min-h-screen flex items-center justify-center ${isDark ? "bg-gray-900" : "bg-gray-100"}`}>
         <div className="text-center">
           <Loader2 className={`w-10 h-10 animate-spin mx-auto mb-3 ${isDark ? "text-purple-300" : "text-purple-600"}`} />
-          <p className={isDark ? "text-gray-300" : "text-gray-600"}>{t("loading") || "جاري التحقق..."}</p>
+          <p className={isDark ? "text-gray-300" : "text-gray-600"}>{t("childGames.checking")}</p>
         </div>
       </div>
     );
@@ -190,7 +189,7 @@ export const ChildGames = (): JSX.Element => {
           </div>
           <div>
             <h1 className="text-xl sm:text-2xl font-bold text-white">
-              {isRTL ? `مرحباً ${childInfo?.name || ""} 👋` : `Hi ${childInfo?.name || ""} 👋`}
+              {t("childGames.greeting", { name: childInfo?.name || "" })}
             </h1>
             <p className="text-white text-opacity-80 flex items-center gap-1.5 text-sm">
               <Star className="w-4 h-4 text-yellow-400" />
@@ -378,7 +377,7 @@ export const ChildGames = (): JSX.Element => {
                 <div className="absolute inset-0 flex items-center justify-center z-10">
                   <div className="text-center">
                     <Loader2 className="w-10 h-10 animate-spin text-purple-400 mx-auto mb-2" />
-                    <p className="text-white/70 text-sm">{isRTL ? "جاري تحميل اللعبة..." : "Loading game..."}</p>
+                    <p className="text-white/70 text-sm">{t("childGames.loadingGame")}</p>
                   </div>
                 </div>
               )}
@@ -400,7 +399,7 @@ export const ChildGames = (): JSX.Element => {
               {gameResult ? (
                 <>
                   <p className={`text-sm font-semibold ${isDark ? "text-gray-300" : "text-gray-600"}`}>
-                    🎯 {isRTL ? `نتيجتك: ${gameResult.score} من ${gameResult.total}` : `Your score: ${gameResult.score}/${gameResult.total}`}
+                    🎯 {t("childGames.yourScore", { score: gameResult.score, total: gameResult.total })}
                   </p>
                   <button
                     onClick={handleCompleteGame}
@@ -420,7 +419,7 @@ export const ChildGames = (): JSX.Element => {
                 </>
               ) : (
                 <p className={`text-sm animate-pulse ${isDark ? "text-gray-400" : "text-gray-500"}`}>
-                  🎮 {isRTL ? "أكمل اللعبة للحصول على النقاط..." : "Complete the game to earn points..."}
+                  🎮 {t("childGames.completeForPoints")}
                 </p>
               )}
           </div>

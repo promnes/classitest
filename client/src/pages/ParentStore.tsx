@@ -347,7 +347,7 @@ export const ParentStore = (): JSX.Element => {
               <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
               <div className="flex items-center gap-1 sm:gap-2">
                 <Sparkles className="w-5 h-5 sm:w-6 sm:h-6" />
-                <span className="text-sm sm:text-xl font-bold hidden sm:inline">كلاسيفاي ستور</span>
+                <span className="text-sm sm:text-xl font-bold hidden sm:inline">{t("parentStore.storeTitle")}</span>
               </div>
             </button>
 
@@ -355,7 +355,7 @@ export const ParentStore = (): JSX.Element => {
               <div className="relative">
                 <Input
                   type="text"
-                  placeholder="ابحث عن منتجات..."
+                  placeholder={t("parentStore.searchProducts")}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className={`w-full pl-10 sm:pl-12 pr-3 sm:pr-4 py-2 rounded-lg border-0 text-sm sm:text-base ${isDark ? "bg-gray-700 text-gray-200 placeholder-gray-400" : "bg-white text-gray-800 placeholder-gray-500"}`}
@@ -367,8 +367,8 @@ export const ParentStore = (): JSX.Element => {
 
             <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
               <div className="text-right hidden md:block">
-                <p className="text-xs opacity-80">رصيد المحفظة</p>
-                <p className="font-bold">{wallet?.balance || 0} ج.م</p>
+                <p className="text-xs opacity-80">{t("parentStore.walletBalance")}</p>
+                <p className="font-bold">{wallet?.balance || 0} {t("parentStore.currency")}</p>
               </div>
               
               <LanguageSelector />
@@ -401,7 +401,7 @@ export const ParentStore = (): JSX.Element => {
                 }`}
                 data-testid="button-category-all"
               >
-                الكل
+                {t("parentStore.allCategories")}
               </button>
               <button
                 onClick={() => navigate("/library-store")}
@@ -409,7 +409,7 @@ export const ParentStore = (): JSX.Element => {
                 data-testid="button-library-store"
               >
                 <BookOpen className="w-4 h-4" />
-                المكتبات
+                {t("parentStore.libraries")}
               </button>
               {categories.map((cat: Category) => {
                 const Icon = getCategoryIcon(cat.icon);
@@ -475,7 +475,7 @@ export const ParentStore = (): JSX.Element => {
                   {inventoryList.length}
                 </span>
               </div>
-              <span>مخزوني</span>
+              <span>{t("parentStore.myInventory")}</span>
             </button>
           </div>
         </div>
@@ -486,7 +486,7 @@ export const ParentStore = (): JSX.Element => {
         <main className="max-w-4xl mx-auto px-4 py-6">
           <h2 className={`text-xl font-bold mb-4 flex items-center gap-2 ${isDark ? "text-white" : "text-gray-800"}`}>
             <Package className="w-6 h-6 text-orange-500" />
-            طلباتي
+            {t("parentStore.myOrdersHeading")}
           </h2>
           {loadingOrders ? (
             <div className="flex items-center justify-center py-16">
@@ -496,10 +496,10 @@ export const ParentStore = (): JSX.Element => {
             <Card className={isDark ? "bg-gray-800 border-gray-700" : ""}>
               <CardContent className="text-center py-16">
                 <Package className={`w-16 h-16 mx-auto mb-4 ${isDark ? "text-gray-600" : "text-gray-300"}`} />
-                <h3 className={`text-xl font-bold mb-2 ${isDark ? "text-gray-300" : "text-gray-600"}`}>لا توجد طلبات بعد</h3>
-                <p className={`mb-6 ${isDark ? "text-gray-500" : "text-gray-400"}`}>تصفح المتجر واشترِ منتجات</p>
+                <h3 className={`text-xl font-bold mb-2 ${isDark ? "text-gray-300" : "text-gray-600"}`}>{t("parentStore.noOrdersYet")}</h3>
+                <p className={`mb-6 ${isDark ? "text-gray-500" : "text-gray-400"}`}>{t("parentStore.browseAndBuy")}</p>
                 <Button onClick={() => setActiveView("store")} className="bg-orange-500 hover:bg-orange-600">
-                  تصفح المتجر
+                  {t("parentStore.browseStore")}
                 </Button>
               </CardContent>
             </Card>
@@ -511,7 +511,7 @@ export const ParentStore = (): JSX.Element => {
                     <div className="flex items-center justify-between mb-3">
                       <div>
                         <p className={`font-bold ${isDark ? "text-white" : "text-gray-800"}`}>
-                          طلب #{order.id?.slice(0, 8)}
+                          {t("parentStore.orderNumber")}{order.id?.slice(0, 8)}
                         </p>
                         <p className={`text-sm ${isDark ? "text-gray-400" : "text-gray-500"}`}>
                           {order.createdAt ? new Date(order.createdAt).toLocaleDateString(getDateLocale(), { 
@@ -531,7 +531,7 @@ export const ParentStore = (): JSX.Element => {
                            order.status === "cancelled" ? t('parentStore.statusCancelled') : order.status}
                         </Badge>
                         <p className={`text-lg font-bold mt-1 ${isDark ? "text-orange-400" : "text-orange-600"}`}>
-                          {order.totalAmount} ج.م
+                          {order.totalAmount} {t("parentStore.currency")}
                         </p>
                       </div>
                     </div>
@@ -556,16 +556,16 @@ export const ParentStore = (): JSX.Element => {
         <main className="max-w-2xl mx-auto px-4 py-6">
           <h2 className={`text-xl font-bold mb-4 flex items-center gap-2 ${isDark ? "text-white" : "text-gray-800"}`}>
             <ShoppingCart className="w-6 h-6 text-orange-500" />
-            سلة التسوق
+            {t("parentStore.shoppingCart")}
           </h2>
           {cart.length === 0 ? (
             <Card className={isDark ? "bg-gray-800 border-gray-700" : ""}>
               <CardContent className="text-center py-16">
                 <ShoppingCart className={`w-16 h-16 mx-auto mb-4 ${isDark ? "text-gray-600" : "text-gray-300"}`} />
-                <h3 className={`text-xl font-bold mb-2 ${isDark ? "text-gray-300" : "text-gray-600"}`}>السلة فارغة</h3>
-                <p className={`mb-6 ${isDark ? "text-gray-500" : "text-gray-400"}`}>أضف منتجات من المتجر</p>
+                <h3 className={`text-xl font-bold mb-2 ${isDark ? "text-gray-300" : "text-gray-600"}`}>{t("parentStore.cartEmpty")}</h3>
+                <p className={`mb-6 ${isDark ? "text-gray-500" : "text-gray-400"}`}>{t("parentStore.addProductsFromStore")}</p>
                 <Button onClick={() => setActiveView("store")} className="bg-orange-500 hover:bg-orange-600">
-                  تصفح المتجر
+                  {t("parentStore.browseStore")}
                 </Button>
               </CardContent>
             </Card>
@@ -589,7 +589,7 @@ export const ParentStore = (): JSX.Element => {
                           {item.product.nameAr || item.product.name}
                         </h4>
                         <p className={`text-sm ${isDark ? "text-orange-400" : "text-orange-600"} font-bold`}>
-                          {item.product.price} ج.م
+                          {item.product.price} {t("parentStore.currency")}
                         </p>
                       </div>
                       <div className="flex items-center gap-2">
@@ -617,8 +617,8 @@ export const ParentStore = (): JSX.Element => {
               <Card className={isDark ? "bg-gray-800 border-gray-700" : ""}>
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between mb-4">
-                    <span className={`font-bold text-lg ${isDark ? "text-white" : "text-gray-800"}`}>المجموع</span>
-                    <span className="text-xl font-bold text-orange-600">{cartTotal.toFixed(2)} ج.م</span>
+                    <span className={`font-bold text-lg ${isDark ? "text-white" : "text-gray-800"}`}>{t("parentStore.total")}</span>
+                    <span className="text-xl font-bold text-orange-600">{cartTotal.toFixed(2)} {t("parentStore.currency")}</span>
                   </div>
                   <Button
                     className="w-full bg-orange-500 hover:bg-orange-600"
@@ -629,7 +629,7 @@ export const ParentStore = (): JSX.Element => {
                     disabled={cart.length === 0}
                   >
                     <CreditCard className="w-4 h-4 ml-2" />
-                    إتمام الشراء
+                    {t("parentStore.completePurchase")}
                   </Button>
                 </CardContent>
               </Card>
@@ -647,15 +647,15 @@ export const ParentStore = (): JSX.Element => {
             <div className="hidden sm:flex items-center gap-4 md:gap-6">
               <div className="flex items-center gap-2">
                 <Truck className="w-4 h-4 text-green-500" />
-                <span>توصيل سريع</span>
+                <span>{t("parentStore.fastDelivery")}</span>
               </div>
               <div className="flex items-center gap-2">
                 <Shield className="w-4 h-4 text-blue-500" />
-                <span>ضمان الجودة</span>
+                <span>{t("parentStore.qualityGuarantee")}</span>
               </div>
               <div className="flex items-center gap-2">
                 <Clock className="w-4 h-4 text-orange-500" />
-                <span>دعم 24/7</span>
+                <span>{t("parentStore.support247")}</span>
               </div>
             </div>
             <div className="flex items-center gap-2 sm:gap-4 w-full sm:w-auto justify-between sm:justify-end">
@@ -664,11 +664,11 @@ export const ParentStore = (): JSX.Element => {
                   <SelectValue placeholder={t('parentStore.sortBy')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="featured">الأكثر مبيعاً</SelectItem>
-                  <SelectItem value="price_asc">السعر: الأقل</SelectItem>
-                  <SelectItem value="price_desc">السعر: الأعلى</SelectItem>
-                  <SelectItem value="newest">الأحدث</SelectItem>
-                  <SelectItem value="rating">التقييم</SelectItem>
+                  <SelectItem value="featured">{t("parentStore.sortFeatured")}</SelectItem>
+                  <SelectItem value="price_asc">{t("parentStore.sortPriceAsc")}</SelectItem>
+                  <SelectItem value="price_desc">{t("parentStore.sortPriceDesc")}</SelectItem>
+                  <SelectItem value="newest">{t("parentStore.sortNewest")}</SelectItem>
+                  <SelectItem value="rating">{t("parentStore.sortRating")}</SelectItem>
                 </SelectContent>
               </Select>
               <div className="flex items-center gap-1 border rounded-lg p-1">
@@ -698,7 +698,7 @@ export const ParentStore = (): JSX.Element => {
             <div className="flex items-center justify-between mb-4">
               <h2 className={`text-xl font-bold flex items-center gap-2 ${isDark ? "text-white" : "text-gray-800"}`}>
                 <Sparkles className="w-5 h-5 text-orange-500" />
-                المنتجات المميزة
+                {t("parentStore.featuredProducts")}
               </h2>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 sm:gap-4">
@@ -756,9 +756,9 @@ export const ParentStore = (): JSX.Element => {
                     </div>
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className={`font-bold ${isDark ? "text-orange-400" : "text-orange-600"}`}>{product.price} ج.م</p>
+                        <p className={`font-bold ${isDark ? "text-orange-400" : "text-orange-600"}`}>{product.price} {t("parentStore.currency")}</p>
                         {product.originalPrice && (
-                          <p className="text-xs text-gray-400 line-through">{product.originalPrice} ج.م</p>
+                          <p className="text-xs text-gray-400 line-through">{product.originalPrice} {t("parentStore.currency")}</p>
                         )}
                       </div>
                       <div className="flex items-center gap-1">
@@ -776,7 +776,7 @@ export const ParentStore = (): JSX.Element => {
                           onClick={(e) => { e.stopPropagation(); handleBuyNow(product); }}
                           data-testid={`button-buy-now-${product.id}`}
                         >
-                          شراء الآن
+                          {t("parentStore.buyNow")}
                         </Button>
                       </div>
                     </div>
@@ -792,10 +792,10 @@ export const ParentStore = (): JSX.Element => {
             <h2 className={`text-xl font-bold ${isDark ? "text-white" : "text-gray-800"}`}>
               {selectedCategory 
                 ? categories.find((c: Category) => c.id === selectedCategory)?.nameAr || t('parentStore.products')
-                : searchQuery ? `نتائج البحث: "${searchQuery}"` : t('parentStore.allProducts')
+                : searchQuery ? `${t('parentStore.searchResults')}: "${searchQuery}"` : t('parentStore.allProducts')
               }
             </h2>
-            <p className={`text-sm ${isDark ? "text-gray-400" : "text-gray-500"}`}>{products.length} منتج</p>
+            <p className={`text-sm ${isDark ? "text-gray-400" : "text-gray-500"}`}>{products.length} {t("parentStore.productCount")}</p>
           </div>
 
           {loadingProducts ? (
@@ -814,8 +814,8 @@ export const ParentStore = (): JSX.Element => {
           ) : products.length === 0 ? (
             <div className="text-center py-16">
               <Package className="w-16 h-16 mx-auto text-gray-300 mb-4" />
-              <h3 className="text-lg font-medium text-gray-600 mb-2">لا توجد منتجات</h3>
-              <p className="text-gray-400">جرب البحث بكلمات أخرى أو اختر فئة مختلفة</p>
+              <h3 className="text-lg font-medium text-gray-600 mb-2">{t("parentStore.noProducts")}</h3>
+              <p className="text-gray-400">{t("parentStore.tryDifferentSearch")}</p>
             </div>
           ) : (
             <div className={viewMode === "grid" 
@@ -885,9 +885,9 @@ export const ParentStore = (): JSX.Element => {
                       </div>
                       <div className="flex flex-col gap-2">
                         <div className="flex items-center justify-between">
-                          <p className={`font-bold text-sm sm:text-lg ${isDark ? "text-orange-400" : "text-orange-600"}`}>{product.price} ج.م</p>
+                          <p className={`font-bold text-sm sm:text-lg ${isDark ? "text-orange-400" : "text-orange-600"}`}>{product.price} {t("parentStore.currency")}</p>
                           {product.originalPrice && (
-                            <p className="text-xs text-gray-400 line-through">{product.originalPrice} ج.م</p>
+                            <p className="text-xs text-gray-400 line-through">{product.originalPrice} {t("parentStore.currency")}</p>
                           )}
                         </div>
                         <div className="flex items-center gap-1">
@@ -898,7 +898,7 @@ export const ParentStore = (): JSX.Element => {
                             data-testid={`button-add-cart-${product.id}`}
                           >
                             <ShoppingCart className="w-3 h-3 sm:w-4 sm:h-4 ml-1" />
-                            أضف
+                            {t("parentStore.addToCart")}
                           </Button>
                           <Button
                             size="sm"
@@ -906,14 +906,14 @@ export const ParentStore = (): JSX.Element => {
                             onClick={(e) => { e.stopPropagation(); handleBuyNow(product); }}
                             data-testid={`button-buy-now-${product.id}`}
                           >
-                            شراء
+                            {t("parentStore.buy")}
                           </Button>
                         </div>
                       </div>
                       <div className={`mt-2 pt-2 border-t ${isDark ? "border-gray-700" : ""}`}>
                         <p className={`text-xs flex items-center gap-1 ${isDark ? "text-gray-400" : "text-gray-500"}`}>
                           <Star className="w-3 h-3 text-yellow-500" />
-                          يحتاج <span className="font-bold text-orange-600">{product.pointsPrice}</span> نقطة
+                          {t("parentStore.needsPoints")} <span className="font-bold text-orange-600">{product.pointsPrice}</span> {t("parentStore.pointsSuffix")}
                         </p>
                       </div>
                     </CardContent>
@@ -970,13 +970,13 @@ export const ParentStore = (): JSX.Element => {
                         <p className={`text-sm line-clamp-2 ${isDark ? "text-gray-400" : "text-gray-500"}`}>{product.description}</p>
                         <div className="flex items-center gap-2 mt-2">
                           {renderStars(product.rating)}
-                          <span className="text-xs text-gray-400">({product.reviewCount || 0} تقييم)</span>
+                          <span className="text-xs text-gray-400">({product.reviewCount || 0} {t("parentStore.reviews")})</span>
                         </div>
                       </div>
                       <div className="flex items-center justify-between mt-4 gap-2">
                         <div>
-                          <p className={`text-xl font-bold ${isDark ? "text-orange-400" : "text-orange-600"}`}>{product.price} ج.م</p>
-                          <p className={`text-xs ${isDark ? "text-gray-400" : "text-gray-500"}`}>النقاط المطلوبة: {product.pointsPrice}</p>
+                          <p className={`text-xl font-bold ${isDark ? "text-orange-400" : "text-orange-600"}`}>{product.price} {t("parentStore.currency")}</p>
+                          <p className={`text-xs ${isDark ? "text-gray-400" : "text-gray-500"}`}>{t("parentStore.requiredPointsLabel")} {product.pointsPrice}</p>
                         </div>
                         <div className="flex items-center gap-2">
                           <Button 
@@ -985,14 +985,14 @@ export const ParentStore = (): JSX.Element => {
                             data-testid={`button-add-cart-list-${product.id}`}
                           >
                             <ShoppingCart className="w-4 h-4 ml-2" />
-                            أضف للسلة
+                            {t("parentStore.addToCartFull")}
                           </Button>
                           <Button
                             className="bg-emerald-600 hover:bg-emerald-700"
                             onClick={(e) => { e.stopPropagation(); handleBuyNow(product); }}
                             data-testid={`button-buy-now-list-${product.id}`}
                           >
-                            شراء الآن
+                            {t("parentStore.buyNow")}
                           </Button>
                         </div>
                       </div>
@@ -1012,14 +1012,14 @@ export const ParentStore = (): JSX.Element => {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <ShoppingCart className="w-5 h-5" />
-              سلة التسوق ({cart.length} منتج)
+              {t("parentStore.cartTitle", { count: cart.length })}
             </DialogTitle>
           </DialogHeader>
           
           {cart.length === 0 ? (
             <div className="text-center py-8">
               <ShoppingCart className="w-16 h-16 mx-auto text-gray-300 mb-4" />
-              <p className="text-gray-500">السلة فارغة</p>
+              <p className="text-gray-500">{t("parentStore.cartEmpty")}</p>
             </div>
           ) : (
             <>
@@ -1037,7 +1037,7 @@ export const ParentStore = (): JSX.Element => {
                     </div>
                     <div className="flex-1 min-w-0">
                       <h4 className="font-medium text-sm truncate">{item.product.nameAr || item.product.name}</h4>
-                      <p className="text-orange-600 font-bold">{item.product.price} ج.م</p>
+                      <p className="text-orange-600 font-bold">{item.product.price} {t("parentStore.currency")}</p>
                     </div>
                     <div className="flex items-center gap-2">
                       <Button 
@@ -1072,8 +1072,8 @@ export const ParentStore = (): JSX.Element => {
 
               <div className="border-t pt-4 mt-4 space-y-3">
                 <div className="flex justify-between text-lg font-bold">
-                  <span>المجموع:</span>
-                  <span className="text-orange-600">{cartTotal.toFixed(2)} ج.م</span>
+                  <span>{t("parentStore.totalLabel")}</span>
+                  <span className="text-orange-600">{cartTotal.toFixed(2)} {t("parentStore.currency")}</span>
                 </div>
                 <Button 
                   className="w-full bg-orange-500 hover:bg-orange-600"
@@ -1085,7 +1085,7 @@ export const ParentStore = (): JSX.Element => {
                   data-testid="button-proceed-checkout"
                 >
                   <CreditCard className="w-4 h-4 ml-2" />
-                  إتمام الشراء
+                  {t("parentStore.completePurchase")}
                 </Button>
               </div>
             </>
@@ -1114,7 +1114,7 @@ export const ParentStore = (): JSX.Element => {
             <div>
               <h3 className="font-bold mb-3 flex items-center gap-2">
                 <MapPin className="w-4 h-4" />
-                عنوان الشحن
+                {t("parentStore.shippingAddress")}
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <Input
@@ -1152,11 +1152,11 @@ export const ParentStore = (): JSX.Element => {
             <div>
               <h3 className="font-bold mb-3 flex items-center gap-2">
                 <CreditCard className="w-4 h-4" />
-                طريقة الدفع
+                {t("parentStore.paymentMethod")}
               </h3>
               <div className="space-y-2">
                 {paymentMethods.length === 0 ? (
-                  <p className="text-gray-500 text-sm">لا توجد طرق دفع متاحة</p>
+                  <p className="text-gray-500 text-sm">{t("parentStore.noPaymentMethods")}</p>
                 ) : (
                   paymentMethods.map((method: any) => (
                     <button
@@ -1191,23 +1191,23 @@ export const ParentStore = (): JSX.Element => {
                       <div className="w-3 h-3 bg-orange-500 rounded-full" />
                     )}
                   </div>
-                  <span>الدفع من المحفظة (الرصيد: {wallet?.balance || 0} ج.م)</span>
+                  <span>{t("parentStore.payFromWallet", { balance: wallet?.balance || 0 })}</span>
                 </button>
               </div>
             </div>
 
             <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
-              <h3 className="font-bold mb-3">ملخص الطلب</h3>
+              <h3 className="font-bold mb-3">{t("parentStore.orderSummary")}</h3>
               <div className="space-y-2 text-sm">
                 {checkoutItems.map(item => (
                   <div key={item.product.id} className="flex justify-between">
                     <span>{item.product.nameAr || item.product.name} x{item.quantity}</span>
-                    <span>{(parseFloat(item.product.price) * item.quantity).toFixed(2)} ج.م</span>
+                    <span>{(parseFloat(item.product.price) * item.quantity).toFixed(2)} {t("parentStore.currency")}</span>
                   </div>
                 ))}
                 <div className="border-t pt-2 mt-2 flex justify-between font-bold text-lg">
-                  <span>المجموع:</span>
-                  <span className="text-orange-600">{checkoutTotal.toFixed(2)} ج.م</span>
+                  <span>{t("parentStore.totalLabel")}</span>
+                  <span className="text-orange-600">{checkoutTotal.toFixed(2)} {t("parentStore.currency")}</span>
                 </div>
               </div>
             </div>
@@ -1221,12 +1221,12 @@ export const ParentStore = (): JSX.Element => {
               {checkoutMutation.isPending ? (
                 <span className="flex items-center gap-2">
                   <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  جاري المعالجة...
+                  {t("parentStore.processing")}
                 </span>
               ) : (
                 <span className="flex items-center gap-2">
                   <Check className="w-5 h-5" />
-                  تأكيد الشراء
+                  {t("parentStore.confirmPurchase")}
                 </span>
               )}
             </Button>

@@ -188,7 +188,7 @@ export default function SubjectTasks() {
             data-testid="button-back"
           >
             <ArrowRight className="h-4 w-4 ml-2" />
-            العودة
+            {t("subjectTasks.back")}
           </Button>
           <LanguageSelector />
         </div>
@@ -212,7 +212,7 @@ export default function SubjectTasks() {
             data-testid="button-classy-tasks"
           >
             <Sparkles className="h-4 w-4 ml-2" />
-            مهام كلاسي
+            {t("subjectTasks.classiTasks")}
           </Button>
           <Button
             variant={activeTab === "mine" ? "default" : "outline"}
@@ -221,7 +221,7 @@ export default function SubjectTasks() {
             data-testid="button-my-tasks"
           >
             <BookOpen className="h-4 w-4 ml-2" />
-            مهامي
+            {t("subjectTasks.myTasks")}
           </Button>
         </div>
 
@@ -231,19 +231,19 @@ export default function SubjectTasks() {
           data-testid="button-create-task"
         >
           <Plus className="h-4 w-4 ml-2" />
-          إنشاء مهمة جديدة
+          {t("subjectTasks.createNewTask")}
         </Button>
 
         {activeTab === "classy" ? (
           <div className="space-y-4">
             <h3 className="text-lg font-bold flex items-center gap-2">
               <Sparkles className="h-5 w-5 text-purple-500" />
-              مهام كلاسي الجاهزة ({templateTasksList.length})
+              {t("subjectTasks.readyClassiTasks")} ({templateTasksList.length})
             </h3>
             {templateTasksList.length === 0 ? (
               <Card className={isDark ? "bg-gray-800 border-gray-700" : ""}>
                 <CardContent className="py-8 text-center">
-                  <p className="text-muted-foreground">لا توجد مهام جاهزة لهذه المادة</p>
+                  <p className="text-muted-foreground">{t("subjectTasks.noReadyTasksForSubject")}</p>
                 </CardContent>
               </Card>
             ) : (
@@ -264,10 +264,10 @@ export default function SubjectTasks() {
                         <div className="flex gap-2">
                           <Badge className="bg-amber-500">
                             <Star className="h-3 w-3 ml-1" />
-                            {task.pointsReward} نقطة
+                            {task.pointsReward} {t("subjectTasks.point")}
                           </Badge>
                           <Badge variant="outline">
-                            {task.difficulty === "easy" ? "سهل" : task.difficulty === "medium" ? "متوسط" : "صعب"}
+                            {task.difficulty === "easy" ? t("subjectTasks.easy") : task.difficulty === "medium" ? t("subjectTasks.medium") : t("subjectTasks.hard")}
                           </Badge>
                         </div>
                       </div>
@@ -291,15 +291,15 @@ export default function SubjectTasks() {
           <div className="space-y-4">
             <h3 className="text-lg font-bold flex items-center gap-2">
               <BookOpen className="h-5 w-5 text-blue-500" />
-              مهامي الخاصة ({myTasksList.length})
+              {t("subjectTasks.myCustomTasks")} ({myTasksList.length})
             </h3>
             {myTasksList.length === 0 ? (
               <Card className={isDark ? "bg-gray-800 border-gray-700" : ""}>
                 <CardContent className="py-8 text-center">
-                  <p className="text-muted-foreground">لم تنشئ أي مهام بعد</p>
+                  <p className="text-muted-foreground">{t("subjectTasks.noTasksYet")}</p>
                   <Button className="mt-4" onClick={() => setShowCreateTask(true)}>
                     <Plus className="h-4 w-4 ml-2" />
-                    إنشاء أول مهمة
+                    {t("subjectTasks.createFirstTask")}
                   </Button>
                 </CardContent>
               </Card>
@@ -320,7 +320,7 @@ export default function SubjectTasks() {
                         <p className="text-muted-foreground mb-3">{task.question}</p>
                         <Badge className="bg-blue-500">
                           <Star className="h-3 w-3 ml-1" />
-                          {task.pointsReward} نقطة
+                          {task.pointsReward} {t("subjectTasks.point")}
                         </Badge>
                       </div>
                       <Button
@@ -346,7 +346,7 @@ export default function SubjectTasks() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Send className="h-5 w-5 text-green-500" />
-                  إرسال المهمة للطفل
+                  {t("subjectTasks.sendTaskToChild")}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -356,7 +356,7 @@ export default function SubjectTasks() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-2">اختر الطفل</label>
+                  <label className="block text-sm font-medium mb-2">{t("subjectTasks.chooseChild")}</label>
                   <select
                     value={selectedChildId}
                     onChange={(e) => setSelectedChildId(e.target.value)}
@@ -365,14 +365,14 @@ export default function SubjectTasks() {
                   >
                     {childrenList.map((child) => (
                       <option key={child.id} value={child.id}>
-                        {child.name} ({child.totalPoints} نقطة)
+                        {child.name} ({child.totalPoints} {t("subjectTasks.point")})
                       </option>
                     ))}
                   </select>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-2">عدد النقاط</label>
+                  <label className="block text-sm font-medium mb-2">{t("subjectTasks.pointsCount")}</label>
                   <input
                     type="number"
                     value={customPoints}
@@ -387,7 +387,7 @@ export default function SubjectTasks() {
                 <div className="flex gap-2">
                   {customPoints > walletBalance && (
                     <div className="w-full p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm text-center mb-2">
-                      رصيدك غير كافي. الرصيد الحالي: {walletBalance}، المطلوب: {customPoints}
+                      {t("subjectTasks.insufficientBalance", { balance: walletBalance, required: customPoints })}
                     </div>
                   )}
                 </div>
@@ -398,14 +398,14 @@ export default function SubjectTasks() {
                     disabled={sendTaskMutation.isPending || customPoints > walletBalance}
                     data-testid="button-send-task"
                   >
-                    {sendTaskMutation.isPending ? "جاري الإرسال..." : "إرسال المهمة"}
+                    {sendTaskMutation.isPending ? t("subjectTasks.sending") : t("subjectTasks.sendTask")}
                   </Button>
                   <Button
                     variant="outline"
                     onClick={() => setSelectedTask(null)}
                     data-testid="button-cancel-send"
                   >
-                    إلغاء
+                    {t("subjectTasks.cancel")}
                   </Button>
                 </div>
               </CardContent>
@@ -419,36 +419,36 @@ export default function SubjectTasks() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Plus className="h-5 w-5 text-green-500" />
-                  إنشاء مهمة جديدة
+                  {t("subjectTasks.createNewTask")}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium mb-1">عنوان المهمة</label>
+                  <label className="block text-sm font-medium mb-1">{t("subjectTasks.taskTitle")}</label>
                   <input
                     type="text"
                     value={newTask.title}
                     onChange={(e) => setNewTask({ ...newTask, title: e.target.value })}
                     className={`w-full p-3 rounded-lg border ${isDark ? "bg-gray-700 border-gray-600" : ""}`}
-                    placeholder="مثال: جمع الأرقام"
+                    placeholder={t("subjectTasks.taskTitlePlaceholder")}
                     data-testid="input-task-title"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-1">السؤال</label>
+                  <label className="block text-sm font-medium mb-1">{t("subjectTasks.question")}</label>
                   <textarea
                     value={newTask.question}
                     onChange={(e) => setNewTask({ ...newTask, question: e.target.value })}
                     className={`w-full p-3 rounded-lg border ${isDark ? "bg-gray-700 border-gray-600" : ""}`}
                     rows={2}
-                    placeholder="مثال: ما ناتج 5 + 3 ؟"
+                    placeholder={t("subjectTasks.questionPlaceholder")}
                     data-testid="input-task-question"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-2">الإجابات</label>
+                  <label className="block text-sm font-medium mb-2">{t("subjectTasks.answers")}</label>
                   {newTask.answers.map((answer, index) => (
                     <div key={answer.id} className="flex items-center gap-2 mb-2">
                       <input
@@ -472,18 +472,18 @@ export default function SubjectTasks() {
                           setNewTask({ ...newTask, answers: updated });
                         }}
                         className={`flex-1 p-2 rounded-lg border ${isDark ? "bg-gray-700 border-gray-600" : ""}`}
-                        placeholder={`الإجابة ${index + 1}`}
+                        placeholder={t("subjectTasks.answerN", { n: index + 1 })}
                         data-testid={`input-answer-${index}`}
                       />
                       {answer.isCorrect && (
-                        <Badge className="bg-green-500">صحيحة</Badge>
+                        <Badge className="bg-green-500">{t("subjectTasks.correct")}</Badge>
                       )}
                     </div>
                   ))}
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-1">النقاط</label>
+                  <label className="block text-sm font-medium mb-1">{t("subjectTasks.pointsLabel")}</label>
                   <input
                     type="number"
                     value={newTask.pointsReward}
@@ -506,14 +506,14 @@ export default function SubjectTasks() {
                     disabled={createTaskMutation.isPending || !newTask.title || !newTask.question}
                     data-testid="button-save-task"
                   >
-                    {createTaskMutation.isPending ? "جاري الحفظ..." : "حفظ المهمة"}
+                    {createTaskMutation.isPending ? t("subjectTasks.saving") : t("subjectTasks.saveTask")}
                   </Button>
                   <Button
                     variant="outline"
                     onClick={() => setShowCreateTask(false)}
                     data-testid="button-cancel-create"
                   >
-                    إلغاء
+                    {t("subjectTasks.cancel")}
                   </Button>
                 </div>
               </CardContent>

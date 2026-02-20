@@ -49,7 +49,7 @@ export const Subjects = (): JSX.Element => {
       return apiRequest("POST", "/api/parent/create-task-from-template", { templateId, childId });
     },
     onSuccess: () => {
-      toast({ title: t("subjects.taskSent", "تم إرسال المهمة بنجاح!") });
+      toast({ title: t("subjects.taskSent") });
       setSelectedTemplate(null);
       setSelectedChild("");
       queryClient.invalidateQueries({ queryKey: ["/api/parent/wallet"] });
@@ -63,10 +63,10 @@ export const Subjects = (): JSX.Element => {
         <div className="flex justify-between items-center mb-8">
           <div>
             <h1 className={`text-4xl font-bold ${isDark ? "text-white" : "text-gray-800"}`}>
-              📚 المواد الدراسية
+              {t("subjects.title")}
             </h1>
             <p className={isDark ? "text-gray-400" : "text-gray-600"}>
-              مهام جاهزة يمكن إرسالها للأطفال
+              {t("subjects.subtitle")}
             </p>
           </div>
           <div className="flex gap-2">
@@ -82,7 +82,7 @@ export const Subjects = (): JSX.Element => {
               onClick={() => window.history.length > 1 ? window.history.back() : navigate("/parent-dashboard")}
               className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white font-bold rounded-lg"
             >
-              ← رجوع
+              {t("subjects.back")}
             </button>
           </div>
         </div>
@@ -91,7 +91,7 @@ export const Subjects = (): JSX.Element => {
           {/* Subjects List */}
           <div className={`lg:col-span-1 ${isDark ? "bg-gray-800" : "bg-white"} rounded-lg p-6 shadow`}>
             <h2 className={`text-2xl font-bold mb-4 ${isDark ? "text-white" : "text-gray-800"}`}>
-              المواد
+              {t("subjects.subjectsLabel")}
             </h2>
             <div className="space-y-2">
               {subjects.map((subject: any) => (
@@ -117,7 +117,7 @@ export const Subjects = (): JSX.Element => {
             {selectedSubject ? (
               <div>
                 <h2 className={`text-2xl font-bold mb-4 ${isDark ? "text-white" : "text-gray-800"}`}>
-                  {selectedSubject.emoji} {selectedSubject.name} - المهام الجاهزة
+                  {selectedSubject.emoji} {selectedSubject.name} - {t("subjects.readyTasks")}
                 </h2>
 
                 {templates.length > 0 ? (
@@ -152,7 +152,7 @@ export const Subjects = (): JSX.Element => {
                             onClick={() => setSelectedTemplate(template)}
                             className="px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white rounded font-bold text-sm"
                           >
-                            إرسال
+                            {t("subjects.send")}
                           </button>
                         </div>
                       </div>
@@ -160,13 +160,13 @@ export const Subjects = (): JSX.Element => {
                   </div>
                 ) : (
                   <p className={isDark ? "text-gray-400" : "text-gray-600"}>
-                    لا توجد مهام جاهزة في هذه المادة
+                    {t("subjects.noReadyTasksInSubject")}
                   </p>
                 )}
               </div>
             ) : (
               <p className={`text-center py-8 ${isDark ? "text-gray-400" : "text-gray-600"}`}>
-                اختر مادة لعرض المهام الجاهزة
+                {t("subjects.selectSubjectPrompt")}
               </p>
             )}
           </div>
@@ -177,18 +177,18 @@ export const Subjects = (): JSX.Element => {
       {selectedTemplate && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 max-w-md w-full">
-            <h2 className="text-2xl font-bold mb-4 dark:text-white">إرسال المهمة</h2>
+            <h2 className="text-2xl font-bold mb-4 dark:text-white">{t("subjects.sendTask")}</h2>
             <p className="text-gray-600 dark:text-gray-400 mb-6">{selectedTemplate.title}</p>
 
             {/* Select Child */}
             <div className="mb-4">
-              <label className="block text-sm font-bold mb-2">اختر الطفل</label>
+              <label className="block text-sm font-bold mb-2">{t("subjects.chooseChild")}</label>
               <select
                 value={selectedChild}
                 onChange={(e) => setSelectedChild(e.target.value)}
                 className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg"
               >
-                <option value="">-- اختر --</option>
+                <option value="">{t("subjects.selectOption")}</option>
                 {children.map((child: any) => (
                   <option key={child.id} value={child.id}>
                     {child.name}
@@ -198,12 +198,12 @@ export const Subjects = (): JSX.Element => {
             </div>
 
             <div className="mb-4 p-3 rounded-lg bg-blue-50 text-sm">
-              💰 رصيدك الحالي: <strong>{walletBalance}</strong>
+              {t("subjects.currentBalance", { balance: walletBalance })}
             </div>
 
             {selectedTemplate.pointsReward > walletBalance && (
               <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm text-center">
-                رصيدك غير كافي. المطلوب: {selectedTemplate.pointsReward}
+                {t("subjects.insufficientBalance", { required: selectedTemplate.pointsReward })}
               </div>
             )}
 
@@ -213,13 +213,13 @@ export const Subjects = (): JSX.Element => {
                 disabled={!selectedChild || sendTaskMutation.isPending || selectedTemplate.pointsReward > walletBalance}
                 className="flex-1 px-4 py-3 bg-blue-500 hover:bg-blue-600 text-white font-bold rounded-lg disabled:opacity-50"
               >
-                {sendTaskMutation.isPending ? "جاري..." : "إرسال"}
+                {sendTaskMutation.isPending ? t("subjects.sending") : t("subjects.send")}
               </button>
               <button
                 onClick={() => setSelectedTemplate(null)}
                 className="flex-1 px-4 py-3 bg-gray-400 hover:bg-gray-500 text-white font-bold rounded-lg"
               >
-                إلغاء
+                {t("subjects.cancel")}
               </button>
             </div>
           </div>

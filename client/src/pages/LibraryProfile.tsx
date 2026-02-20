@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
 import { ProfileHeader } from "@/components/ui/ProfileHeader";
 import { LanguageSelector } from "@/components/LanguageSelector";
+import { getDateLocale } from "@/i18n/config";
 import {
   Star, MessageSquare, BookOpen, Heart,
   Send, ShoppingBag, MapPin, Phone, Mail,
@@ -182,15 +183,15 @@ export default function LibraryProfile() {
           <TabsList className="w-full grid grid-cols-3">
             <TabsTrigger value="products" className="gap-1">
               <ShoppingBag className="h-4 w-4" />
-              {t("libraryProfile.products", "المنتجات")} ({products.length})
+              {t("libraryProfile.products")} ({products.length})
             </TabsTrigger>
             <TabsTrigger value="posts" className="gap-1">
               <MessageSquare className="h-4 w-4" />
-              {t("libraryProfile.posts", "المنشورات")} ({posts.length})
+              {t("libraryProfile.posts")} ({posts.length})
             </TabsTrigger>
             <TabsTrigger value="reviews" className="gap-1">
               <Star className="h-4 w-4" />
-              {t("libraryProfile.reviews", "التقييمات")} ({reviews.length})
+              {t("libraryProfile.reviews")} ({reviews.length})
             </TabsTrigger>
           </TabsList>
 
@@ -211,9 +212,9 @@ export default function LibraryProfile() {
                         <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{product.description}</p>
                       )}
                       <div className="flex items-center justify-between mt-2">
-                        <span className="text-sm font-bold text-green-600">{product.price} {t("libraryProfile.currency", "ج.م")}</span>
+                        <span className="text-sm font-bold text-green-600">{product.price} {t("libraryProfile.currency")}</span>
                         {product.pointsPrice > 0 && (
-                          <Badge variant="secondary" className="text-xs">{product.pointsPrice} {t("libraryProfile.points", "نقطة")}</Badge>
+                          <Badge variant="secondary" className="text-xs">{product.pointsPrice} {t("libraryProfile.points")}</Badge>
                         )}
                       </div>
                     </CardContent>
@@ -238,7 +239,7 @@ export default function LibraryProfile() {
                       <div>
                         <p className="text-sm font-medium">{library.name}</p>
                         <p className="text-xs text-muted-foreground">
-                          {new Date(post.createdAt).toLocaleDateString("ar-EG")}
+                          {new Date(post.createdAt).toLocaleDateString(getDateLocale())}
                         </p>
                       </div>
                       {post.isPinned && (
@@ -302,7 +303,7 @@ export default function LibraryProfile() {
                   {"★".repeat(Math.round(parseFloat(avgRating)))}
                   {"☆".repeat(5 - Math.round(parseFloat(avgRating)))}
                 </div>
-                <p className="text-sm text-muted-foreground">{reviews.length} {t("libraryProfile.reviewCount", "تقييم")}</p>
+                <p className="text-sm text-muted-foreground">{reviews.length} {t("libraryProfile.reviewCount")}</p>
               </CardContent>
             </Card>
 
@@ -355,7 +356,7 @@ export default function LibraryProfile() {
                       <p className="text-sm text-gray-600 dark:text-gray-300">{review.comment}</p>
                     )}
                     <p className="text-xs text-muted-foreground mt-2">
-                      {new Date(review.createdAt).toLocaleDateString("ar-EG")}
+                      {new Date(review.createdAt).toLocaleDateString(getDateLocale())}
                     </p>
                   </CardContent>
                 </Card>

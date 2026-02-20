@@ -607,7 +607,7 @@ export default function ParentTasks() {
           <h1 className="text-2xl font-bold">{t("parentTasks.tasksSection")}</h1>
           <Badge variant="outline" className="mr-auto text-sm px-3 py-1">
             <Wallet className="h-4 w-4 ml-1" />
-            الرصيد: {walletBalance}
+            {t("parentTasks.balanceLabel")} {walletBalance}
           </Badge>
           <LanguageSelector />
           <ParentNotificationBell />
@@ -1137,7 +1137,7 @@ export default function ParentTasks() {
             {selectedTask && walletBalance < (selectedTask.pointsReward || 0) && (
               <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/30 text-destructive text-sm text-center">
                 <Wallet className="h-4 w-4 inline ml-1" />
-                رصيدك غير كافي لإرسال هذه المهمة. الرصيد الحالي: {walletBalance}، المطلوب: {selectedTask.pointsReward}
+                {t("parentTasks.insufficientBalanceDetail", { balance: walletBalance, required: selectedTask.pointsReward })}
               </div>
             )}
 
