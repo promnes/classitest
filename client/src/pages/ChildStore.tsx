@@ -548,7 +548,7 @@ export const ChildStore = (): JSX.Element => {
                     </div>
                     <CardContent className="p-3">
                       <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">{product.brand || "Classify"}</p>
-                      <h3 className="font-medium text-sm text-gray-800 dark:text-white line-clamp-2 mb-2 h-10">{product.nameAr || product.name}</h3>
+                      <h3 className="font-medium text-xs sm:text-sm text-gray-800 dark:text-white line-clamp-2 mb-2 min-h-[2rem] sm:min-h-[2.5rem]">{product.nameAr || product.name}</h3>
                       <div className="flex items-center gap-1 mb-2">
                         {renderStars(product.rating)}
                         <span className="text-xs text-gray-400">({product.reviewCount || 0})</span>
@@ -584,7 +584,7 @@ export const ChildStore = (): JSX.Element => {
                     onClick={() => setSelectedProduct(product)}
                     data-testid={`card-product-list-${product.id}`}
                   >
-                    <div className="relative w-40 h-40 bg-gray-100 dark:bg-gray-700 flex-shrink-0">
+                    <div className="relative w-28 h-28 sm:w-40 sm:h-40 bg-gray-100 dark:bg-gray-700 flex-shrink-0">
                       {(product.images && product.images.length > 1) ? (
                         <ProductImageCarousel
                           images={product.images}

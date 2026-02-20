@@ -340,31 +340,31 @@ export const ParentStore = (): JSX.Element => {
           <div className="flex items-center justify-between py-3">
             <button 
               onClick={() => window.history.length > 1 ? window.history.back() : navigate("/parent-dashboard")}
-              className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+              className="flex items-center gap-1 sm:gap-2 hover:opacity-80 transition-opacity flex-shrink-0"
               data-testid="button-back-dashboard"
             >
-              <ArrowLeft className="w-5 h-5" />
-              <div className="flex items-center gap-2">
-                <Sparkles className="w-6 h-6" />
-                <span className="text-xl font-bold">كلاسيفاي ستور</span>
+              <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
+              <div className="flex items-center gap-1 sm:gap-2">
+                <Sparkles className="w-5 h-5 sm:w-6 sm:h-6" />
+                <span className="text-sm sm:text-xl font-bold hidden sm:inline">كلاسيفاي ستور</span>
               </div>
             </button>
 
-            <div className="flex-1 max-w-2xl mx-8">
+            <div className="flex-1 max-w-2xl mx-2 sm:mx-8">
               <div className="relative">
                 <Input
                   type="text"
                   placeholder="ابحث عن منتجات..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className={`w-full pl-12 pr-4 py-2 rounded-lg border-0 ${isDark ? "bg-gray-700 text-gray-200 placeholder-gray-400" : "bg-white text-gray-800 placeholder-gray-500"}`}
+                  className={`w-full pl-10 sm:pl-12 pr-3 sm:pr-4 py-2 rounded-lg border-0 text-sm sm:text-base ${isDark ? "bg-gray-700 text-gray-200 placeholder-gray-400" : "bg-white text-gray-800 placeholder-gray-500"}`}
                   data-testid="input-search"
                 />
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <Search className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
               </div>
             </div>
 
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
               <div className="text-right hidden md:block">
                 <p className="text-xs opacity-80">رصيد المحفظة</p>
                 <p className="font-bold">{wallet?.balance || 0} ج.م</p>
@@ -642,8 +642,8 @@ export const ParentStore = (): JSX.Element => {
       <>
       <div className={`${isDark ? "bg-gray-800 border-gray-700" : "bg-white border-b"} shadow-sm py-2`}>
         <div className="max-w-7xl mx-auto px-4">
-          <div className={`flex items-center justify-between gap-4 text-xs ${isDark ? "text-gray-400" : "text-gray-600"}`}>
-            <div className="flex items-center gap-6">
+          <div className={`flex items-center justify-between gap-2 sm:gap-4 text-xs ${isDark ? "text-gray-400" : "text-gray-600"}`}>
+            <div className="hidden sm:flex items-center gap-4 md:gap-6">
               <div className="flex items-center gap-2">
                 <Truck className="w-4 h-4 text-green-500" />
                 <span>توصيل سريع</span>
@@ -657,9 +657,9 @@ export const ParentStore = (): JSX.Element => {
                 <span>دعم 24/7</span>
               </div>
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 sm:gap-4 w-full sm:w-auto justify-between sm:justify-end">
               <Select value={sortBy} onValueChange={setSortBy}>
-                <SelectTrigger className="w-40 h-8 text-xs" data-testid="select-sort">
+                <SelectTrigger className="w-32 sm:w-40 h-8 text-xs" data-testid="select-sort">
                   <SelectValue placeholder={t('parentStore.sortBy')} />
                 </SelectTrigger>
                 <SelectContent>
@@ -691,7 +691,7 @@ export const ParentStore = (): JSX.Element => {
         </div>
       </div>
 
-      <main className="max-w-7xl mx-auto px-4 py-6">
+      <main className="max-w-7xl mx-auto px-2 sm:px-4 py-4 sm:py-6">
         {!selectedCategory && !searchQuery && featuredProducts.length > 0 && (
           <section className="mb-8">
             <div className="flex items-center justify-between mb-4">
@@ -700,7 +700,7 @@ export const ParentStore = (): JSX.Element => {
                 المنتجات المميزة
               </h2>
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 sm:gap-4">
               {featuredProducts.map((product: Product) => (
                 <Card 
                   key={product.id} 
@@ -873,14 +873,14 @@ export const ParentStore = (): JSX.Element => {
                     </div>
                     <CardContent className="p-3">
                       <p className={`text-xs mb-1 ${isDark ? "text-gray-400" : "text-gray-500"}`}>{product.brand || "Classify"}</p>
-                      <h3 className={`font-medium text-sm line-clamp-2 mb-2 h-10 ${isDark ? "text-gray-200" : "text-gray-800"}`}>{product.nameAr || product.name}</h3>
+                      <h3 className={`font-medium text-xs sm:text-sm line-clamp-2 mb-2 min-h-[2rem] sm:min-h-[2.5rem] ${isDark ? "text-gray-200" : "text-gray-800"}`}>{product.nameAr || product.name}</h3>
                       <div className="flex items-center gap-1 mb-2">
                         {renderStars(product.rating)}
                         <span className="text-xs text-gray-400">({product.reviewCount || 0})</span>
                       </div>
-                      <div className="flex items-center justify-between gap-2">
-                        <div>
-                          <p className={`font-bold text-lg ${isDark ? "text-orange-400" : "text-orange-600"}`}>{product.price} ج.م</p>
+                      <div className="flex flex-col gap-2">
+                        <div className="flex items-center justify-between">
+                          <p className={`font-bold text-sm sm:text-lg ${isDark ? "text-orange-400" : "text-orange-600"}`}>{product.price} ج.م</p>
                           {product.originalPrice && (
                             <p className="text-xs text-gray-400 line-through">{product.originalPrice} ج.م</p>
                           )}
@@ -888,20 +888,20 @@ export const ParentStore = (): JSX.Element => {
                         <div className="flex items-center gap-1">
                           <Button 
                             size="sm" 
-                            className="bg-orange-500 hover:bg-orange-600"
+                            className="bg-orange-500 hover:bg-orange-600 flex-1 text-xs sm:text-sm h-8 sm:h-9 px-2 sm:px-3"
                             onClick={(e) => { e.stopPropagation(); addToCart(product); }}
                             data-testid={`button-add-cart-${product.id}`}
                           >
-                            <ShoppingCart className="w-4 h-4 ml-1" />
+                            <ShoppingCart className="w-3 h-3 sm:w-4 sm:h-4 ml-1" />
                             أضف
                           </Button>
                           <Button
                             size="sm"
-                            className="bg-emerald-600 hover:bg-emerald-700"
+                            className="bg-emerald-600 hover:bg-emerald-700 flex-1 text-xs sm:text-sm h-8 sm:h-9 px-2 sm:px-3"
                             onClick={(e) => { e.stopPropagation(); handleBuyNow(product); }}
                             data-testid={`button-buy-now-${product.id}`}
                           >
-                            شراء الآن
+                            شراء
                           </Button>
                         </div>
                       </div>
@@ -924,7 +924,7 @@ export const ParentStore = (): JSX.Element => {
                     }}
                     data-testid={`card-product-list-${product.id}`}
                   >
-                    <div className={`relative w-40 h-40 flex-shrink-0 ${isDark ? "bg-gray-700" : "bg-gray-100"}`}>
+                    <div className={`relative w-28 h-28 sm:w-40 sm:h-40 flex-shrink-0 ${isDark ? "bg-gray-700" : "bg-gray-100"}`}>
                       {(product.images && product.images.length > 1) ? (
                         <ProductImageCarousel
                           images={product.images}
@@ -1109,7 +1109,7 @@ export const ParentStore = (): JSX.Element => {
                 <MapPin className="w-4 h-4" />
                 عنوان الشحن
               </h3>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <Input
                   placeholder={t('parentStore.fullName')}
                   value={shippingAddress.name}
@@ -1126,7 +1126,7 @@ export const ParentStore = (): JSX.Element => {
                   placeholder={t('parentStore.detailedAddress')}
                   value={shippingAddress.line1}
                   onChange={(e) => setShippingAddress(prev => ({ ...prev, line1: e.target.value }))}
-                  className="col-span-2"
+                  className="sm:col-span-2"
                   data-testid="input-shipping-address"
                 />
                 <Input

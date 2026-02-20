@@ -407,18 +407,19 @@ export default function LibraryStore() {
     <div className={`min-h-screen ${isDark ? "bg-gray-900 text-white" : "bg-gray-50 text-gray-900"}`}>
       <header className={`sticky top-0 z-50 ${isDark ? "bg-gray-800" : "bg-white"} shadow-sm border-b ${isDark ? "border-gray-700" : "border-gray-200"}`}>
         <div className="container mx-auto px-4 py-3">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 sm:gap-4">
             <Button
               size="icon"
               variant="ghost"
               onClick={() => navigate("/parent-store")}
               data-testid="button-back"
+              className="flex-shrink-0"
             >
               <ArrowLeft className="h-5 w-5" />
             </Button>
-            <div className="flex items-center gap-2">
-              <BookOpen className="h-6 w-6 text-blue-600" />
-              <h1 className="text-xl font-bold">متجر المكتبات</h1>
+            <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
+              <BookOpen className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" />
+              <h1 className="text-sm sm:text-xl font-bold hidden sm:inline">متجر المكتبات</h1>
             </div>
             <div className="flex items-center gap-1 mr-auto">
               <LanguageSelector />
@@ -433,15 +434,15 @@ export default function LibraryStore() {
             </div>
             <Button
               variant="outline"
-              className="mr-3"
+              className="mr-1 sm:mr-3 text-xs sm:text-sm px-2 sm:px-4"
               onClick={() => {
                 if (!requireParentAuth()) return;
                 setShowCart(true);
               }}
               data-testid="button-library-cart"
             >
-              <ShoppingCart className="h-4 w-4 ml-2" />
-              السلة ({cartItemsCount})
+              <ShoppingCart className="h-4 w-4 sm:ml-2" />
+              <span className="hidden sm:inline">السلة</span> ({cartItemsCount})
             </Button>
           </div>
           
@@ -460,7 +461,7 @@ export default function LibraryStore() {
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-6">
+      <main className="container mx-auto px-2 sm:px-4 py-4 sm:py-6">
         <section className="mb-8">
           <div className="flex items-center gap-2 mb-4">
             <Store className="h-5 w-5 text-blue-600" />
@@ -498,11 +499,11 @@ export default function LibraryStore() {
         </section>
 
         {loadingProducts ? (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-4">
             {[1, 2, 3, 4].map((i) => (
               <Card key={i} className="animate-pulse">
-                <CardContent className="p-4">
-                  <div className={`h-32 ${isDark ? "bg-gray-700" : "bg-gray-200"} rounded-lg mb-3`}></div>
+                <CardContent className="p-3 sm:p-4">
+                  <div className={`h-24 sm:h-32 ${isDark ? "bg-gray-700" : "bg-gray-200"} rounded-lg mb-3`}></div>
                   <div className={`h-4 ${isDark ? "bg-gray-700" : "bg-gray-200"} rounded w-3/4 mb-2`}></div>
                   <div className={`h-4 ${isDark ? "bg-gray-700" : "bg-gray-200"} rounded w-1/2`}></div>
                 </CardContent>
@@ -516,7 +517,7 @@ export default function LibraryStore() {
             <p className="text-gray-500">لم يتم العثور على منتجات في هذه المكتبة</p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-4">
             {products.map((product) => (
               <Card 
                 key={product.id} 
@@ -524,15 +525,15 @@ export default function LibraryStore() {
                 onClick={() => openProductDetail(product)}
                 data-testid={`card-product-${product.id}`}
               >
-                <CardContent className="p-4">
+                <CardContent className="p-3 sm:p-4">
                     {getProductImage(product) ? (
                     <img 
                         src={getProductImage(product)} 
                         alt={getProductTitle(product)}
-                      className="w-full h-32 object-cover rounded-lg mb-3"
+                      className="w-full h-24 sm:h-32 object-cover rounded-lg mb-3"
                     />
                   ) : (
-                    <div className={`w-full h-32 ${isDark ? "bg-gray-700" : "bg-gray-100"} rounded-lg mb-3 flex items-center justify-center`}>
+                    <div className={`w-full h-24 sm:h-32 ${isDark ? "bg-gray-700" : "bg-gray-100"} rounded-lg mb-3 flex items-center justify-center`}>
                       <Package className="h-8 w-8 text-gray-400" />
                     </div>
                   )}
@@ -559,25 +560,25 @@ export default function LibraryStore() {
                     <span>متوفر: {product.stock}</span>
                   </div>
 
-                  <div className="mt-3 flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                  <div className="mt-3 flex flex-col sm:flex-row items-center gap-1 sm:gap-2" onClick={(e) => e.stopPropagation()}>
                     <Button
-                      className="flex-1"
+                      className="flex-1 w-full text-xs sm:text-sm h-8 sm:h-9"
                       size="sm"
                       data-testid={`button-add-cart-${product.id}`}
                       onClick={() => addToCart(product)}
                       disabled={Number(product.stock || 0) <= 0}
                     >
-                      <ShoppingCart className="h-4 w-4 ml-1" />
-                      أضف للسلة
+                      <ShoppingCart className="h-3 w-3 sm:h-4 sm:w-4 ml-1" />
+                      أضف
                     </Button>
                     <Button
-                      className="flex-1 bg-emerald-600 hover:bg-emerald-700"
+                      className="flex-1 w-full bg-emerald-600 hover:bg-emerald-700 text-xs sm:text-sm h-8 sm:h-9"
                       size="sm"
                       data-testid={`button-buy-now-${product.id}`}
                       onClick={() => handleBuyNow(product)}
                       disabled={Number(product.stock || 0) <= 0}
                     >
-                      شراء الآن
+                      شراء
                     </Button>
                   </div>
                 </CardContent>
@@ -771,10 +772,10 @@ export default function LibraryStore() {
               <h3 className="font-bold mb-3 flex items-center gap-2">
                 <MapPin className="w-4 h-4" /> عنوان الشحن
               </h3>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <Input placeholder={t('libraryStore.fullName')} value={shippingAddress.name} onChange={(e) => setShippingAddress((prev) => ({ ...prev, name: e.target.value }))} />
                 <Input placeholder={t('libraryStore.city')} value={shippingAddress.city} onChange={(e) => setShippingAddress((prev) => ({ ...prev, city: e.target.value }))} />
-                <Input placeholder={t('libraryStore.detailedAddress')} value={shippingAddress.line1} onChange={(e) => setShippingAddress((prev) => ({ ...prev, line1: e.target.value }))} className="col-span-2" />
+                <Input placeholder={t('libraryStore.detailedAddress')} value={shippingAddress.line1} onChange={(e) => setShippingAddress((prev) => ({ ...prev, line1: e.target.value }))} className="sm:col-span-2" />
                 <Input placeholder={t('libraryStore.district')} value={shippingAddress.state} onChange={(e) => setShippingAddress((prev) => ({ ...prev, state: e.target.value }))} />
                 <Input placeholder={t('libraryStore.postalCode')} value={shippingAddress.postalCode} onChange={(e) => setShippingAddress((prev) => ({ ...prev, postalCode: e.target.value }))} />
               </div>

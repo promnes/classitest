@@ -678,7 +678,7 @@ export function ProductsTab({
             </CardHeader>
             <CardContent className="space-y-5 pt-5">
               {/* Name EN + AR */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div>
                   <label className="flex items-center gap-1.5 text-sm font-semibold mb-2">
                     <Tag className="h-3.5 w-3.5 text-blue-500" />
@@ -709,7 +709,7 @@ export function ProductsTab({
               </div>
 
               {/* Description EN + AR */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div>
                   <label className="text-sm font-semibold mb-2 block">الوصف (EN)</label>
                   <textarea
@@ -736,7 +736,7 @@ export function ProductsTab({
                   <DollarSign className="h-3.5 w-3.5 text-green-500" />
                   التسعير
                 </label>
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div>
                     <label className="text-xs text-muted-foreground mb-1 block">السعر (ج.م) *</label>
                     <input
@@ -776,7 +776,7 @@ export function ProductsTab({
               </div>
 
               {/* Stock + Brand */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div>
                   <label className="flex items-center gap-1.5 text-sm font-semibold mb-2">
                     <Box className="h-3.5 w-3.5 text-orange-500" />
@@ -807,7 +807,7 @@ export function ProductsTab({
               </div>
 
               {/* Category + Product Type */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div>
                   <label className="flex items-center gap-1.5 text-sm font-semibold mb-2">
                     <Layers className="h-3.5 w-3.5 text-indigo-500" />
@@ -977,7 +977,7 @@ export function ProductsTab({
               </div>
 
               {/* Featured + Active toggles */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div className="flex items-center justify-between p-3 rounded-xl bg-muted/50 border">
                   <div className="flex items-center gap-2">
                     <Star className={`h-4 w-4 ${form.isFeatured ? "text-amber-500 fill-amber-500" : "text-muted-foreground"}`} />

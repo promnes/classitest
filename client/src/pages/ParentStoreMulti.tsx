@@ -64,13 +64,13 @@ export default function ParentStoreMulti() {
           <ParentNotificationBell />
         </div>
       </div>
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 sm:gap-4">
         {data?.data?.map((p: any) => (
-          <div key={p.id} className="p-3 border border-gray-200 dark:border-gray-700 rounded bg-white dark:bg-gray-800">
-            <div className="font-semibold">{p.name || p.title || p.productName}</div>
-              <div className="text-sm text-gray-600 dark:text-gray-400">Price: {p.price}</div>
+          <div key={p.id} className="p-2 sm:p-3 border border-gray-200 dark:border-gray-700 rounded bg-white dark:bg-gray-800">
+            <div className="font-semibold text-sm sm:text-base">{p.name || p.title || p.productName}</div>
+              <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Price: {p.price}</div>
             <div className="mt-2">
-              <Button onClick={() => addToCart(p.id)} className="bg-blue-600">Add</Button>
+              <Button onClick={() => addToCart(p.id)} className="bg-blue-600 text-xs sm:text-sm h-8 sm:h-9">Add</Button>
             </div>
           </div>
         ))}
