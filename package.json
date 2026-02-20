@@ -25,7 +25,7 @@
     "admin:reset": "node scripts/manage-admin.js",
     "test:otp-config": "tsx test-otp-config.ts",
     "test": "vitest run",
-    "postinstall": "node scripts/patch-three-types.js"
+    "postinstall": "node -e \"try{require('./scripts/patch-three-types.js')}catch(_){}\""
   },
   "dependencies": {
     "@capacitor/android": "^7.4.4",
