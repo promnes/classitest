@@ -4,9 +4,9 @@
   "webDir": "dist/public",
   "bundledWebRuntime": false,
   "server": {
-    "url": "https://classi-fy.com",
     "androidScheme": "https",
-    "iosScheme": "https"
+    "iosScheme": "https",
+    "hostname": "app.classify.local"
   },
   "android": {
     "allowMixedContent": false,

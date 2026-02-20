@@ -8,6 +8,7 @@ import { ThemeProvider } from "@/contexts/ThemeContext";
 import { SEOProvider } from "@/components/SEOProvider";
 import { ChildAppWrapper } from "@/components/ChildAppWrapper";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { OfflineGuard } from "@/components/OfflineGuard";
 import { RandomAdPopup } from "@/components/RandomAdPopup";
 import { Loader2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -484,20 +485,22 @@ function App() {
       <ThemeProvider>
         <SEOProvider>
           <TooltipProvider>
-            <a
-              href="#main-content"
-              className="sr-only focus:not-sr-only focus:absolute focus:z-[9999] focus:top-4 focus:start-4 focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-foreground focus:rounded-lg focus:shadow-lg"
-            >
-              Skip to content
-            </a>
-            <div className="min-h-screen">
-              <div data-testid="build-marker-2026-02-07" />
-              <main id="main-content">
-                <Router />
-              </main>
-            </div>
-            <Toaster />
-            <RandomAdPopup />
+            <OfflineGuard>
+              <a
+                href="#main-content"
+                className="sr-only focus:not-sr-only focus:absolute focus:z-[9999] focus:top-4 focus:start-4 focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-foreground focus:rounded-lg focus:shadow-lg"
+              >
+                Skip to content
+              </a>
+              <div className="min-h-screen">
+                <div data-testid="build-marker-2026-02-07" />
+                <main id="main-content">
+                  <Router />
+                </main>
+              </div>
+              <Toaster />
+              <RandomAdPopup />
+            </OfflineGuard>
           </TooltipProvider>
         </SEOProvider>
       </ThemeProvider>
