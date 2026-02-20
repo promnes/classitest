@@ -50,6 +50,7 @@ const LibraryLogin = lazy(() => import("@/pages/LibraryLogin"));
 const LibraryDashboard = lazy(() => import("@/pages/LibraryDashboard"));
 const LibraryStore = lazy(() => import("@/pages/LibraryStore"));
 const Match3Page = lazy(() => import("@/games/match3/Match3Page"));
+const MemoryMatchPage = lazy(() => import("@/pages/MemoryMatchPage"));
 const SchoolLogin = lazy(() => import("@/pages/SchoolLogin"));
 const SchoolDashboard = lazy(() => import("@/pages/SchoolDashboard"));
 const TeacherLogin = lazy(() => import("@/pages/TeacherLogin"));
@@ -296,6 +297,9 @@ function Router() {
         </Route>
         <Route path="/match3">
           <ErrorBoundary><Match3Page /></ErrorBoundary>
+        </Route>
+        <Route path="/memory-match">
+          <ErrorBoundary><MemoryMatchPage /></ErrorBoundary>
         </Route>
         <Route path="/school/login" component={SchoolLogin} />
         <Route path="/school/dashboard">

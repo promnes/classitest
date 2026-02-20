@@ -6,7 +6,7 @@ import {
   BookOpen, ChevronDown, ChevronUp, ExternalLink, Download, Globe,
   Code, Upload, CheckCircle2, AlertTriangle, Lightbulb, FolderOpen,
   Eye, Link, FileUp, Search, Filter, CheckSquare, Square, Power,
-  PowerOff, Play, RefreshCw, BarChart3, XCircle
+  PowerOff, Play, RefreshCw, BarChart3, XCircle, Sparkles, Puzzle, Brain
 } from "lucide-react";
 
 interface Game {
@@ -59,6 +59,56 @@ const CATEGORIES = [
   { value: "puzzle", label: "admin.games.catPuzzles", icon: "🧩" },
   { value: "creative", label: "admin.games.catCreative", icon: "🎨" },
   { value: "sport", label: "admin.games.catSports", icon: "⚽" },
+];
+
+// Built-in games that ship with the platform
+interface BuiltinGame {
+  id: string;
+  title: string;
+  titleAr: string;
+  description: string;
+  descriptionAr: string;
+  embedUrl: string;
+  thumbnailEmoji: string;
+  category: string;
+  minAge: number;
+  maxAge: number;
+  pointsPerPlay: number;
+  maxPlaysPerDay: number;
+  gradient: string;
+}
+
+const BUILTIN_GAMES: BuiltinGame[] = [
+  {
+    id: "builtin-memory-match",
+    title: "Memory Match",
+    titleAr: "لعبة الذاكرة",
+    description: "Flip cards and find matching pairs! Train your memory with emoji cards.",
+    descriptionAr: "اقلب البطاقات وجد الأزواج المتطابقة! تدريب الذاكرة مع بطاقات الإيموجي.",
+    embedUrl: "/memory-match",
+    thumbnailEmoji: "🧠",
+    category: "educational",
+    minAge: 4,
+    maxAge: 12,
+    pointsPerPlay: 10,
+    maxPlaysPerDay: 10,
+    gradient: "from-purple-500 to-pink-500",
+  },
+  {
+    id: "builtin-match3-royal",
+    title: "Match-3 Royal Puzzle",
+    titleAr: "لعبة الألغاز الملكية",
+    description: "Swap gems to make matches of 3 or more! 10 levels with special powers.",
+    descriptionAr: "بدّل الجواهر لتجميع 3 أو أكثر! 10 مستويات مع قدرات خاصة.",
+    embedUrl: "/match3",
+    thumbnailEmoji: "💎",
+    category: "puzzle",
+    minAge: 5,
+    maxAge: 14,
+    pointsPerPlay: 15,
+    maxPlaysPerDay: 8,
+    gradient: "from-blue-500 to-cyan-500",
+  },
 ];
 
 export function GamesTab({ token }: { token: string }) {
@@ -207,6 +257,38 @@ export function GamesTab({ token }: { token: string }) {
       setBulkAction(null);
     },
   });
+
+  // Add built-in game to database
+  const addBuiltinMutation = useMutation({
+    mutationFn: async (builtin: BuiltinGame) => {
+      const res = await fetch("/api/admin/games", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          title: builtin.titleAr,
+          description: builtin.descriptionAr,
+          embedUrl: builtin.embedUrl,
+          thumbnailUrl: null,
+          category: builtin.category,
+          minAge: builtin.minAge,
+          maxAge: builtin.maxAge,
+          pointsPerPlay: builtin.pointsPerPlay,
+          maxPlaysPerDay: builtin.maxPlaysPerDay,
+        }),
+      });
+      if (!res.ok) throw new Error("Failed to add built-in game");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-games"] });
+    },
+  });
+
+  // Check which built-in games are already added (by embedUrl)
+  const getBuiltinStatus = (embedUrl: string): "added" | "not-added" => {
+    if (!games) return "not-added";
+    return games.some(g => g.embedUrl === embedUrl) ? "added" : "not-added";
+  };
 
   // Handlers
   const resetForm = () => {
@@ -385,6 +467,127 @@ export function GamesTab({ token }: { token: string }) {
         <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border dark:border-gray-700 text-center">
           <div className="text-3xl font-bold text-cyan-600 dark:text-cyan-400">{externalGames}</div>
           <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">{t("admin.games.external")}</div>
+        </div>
+      </div>
+
+      {/* ========== BUILT-IN GAMES SECTION ========== */}
+      <div className="bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-gray-800 dark:to-gray-800 border-2 border-indigo-200 dark:border-indigo-700/50 rounded-2xl p-5 shadow-lg">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center">
+            <Sparkles className="w-6 h-6 text-white" />
+          </div>
+          <div>
+            <h3 className="text-lg font-bold text-gray-800 dark:text-white">الألعاب المدمجة</h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400">ألعاب مبنية داخل التطبيق — أضفها بنقرة واحدة لتظهر للأطفال</p>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {BUILTIN_GAMES.map((builtin) => {
+            const status = getBuiltinStatus(builtin.embedUrl);
+            const isAdded = status === "added";
+            const existingGame = games?.find(g => g.embedUrl === builtin.embedUrl);
+            return (
+              <div
+                key={builtin.id}
+                className={`relative overflow-hidden rounded-xl border-2 transition-all ${
+                  isAdded
+                    ? "border-green-300 dark:border-green-700 bg-green-50/50 dark:bg-green-900/10"
+                    : "border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700/50 hover:border-indigo-300 dark:hover:border-indigo-600"
+                }`}
+              >
+                <div className={`h-2 bg-gradient-to-r ${builtin.gradient}`} />
+                <div className="p-4">
+                  <div className="flex items-start gap-3">
+                    <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${builtin.gradient} flex items-center justify-center text-2xl shadow-lg flex-shrink-0`}>
+                      {builtin.thumbnailEmoji}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <h4 className="font-bold text-gray-800 dark:text-white truncate">{builtin.titleAr}</h4>
+                        {isAdded && (
+                          <span className="flex items-center gap-1 px-2 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full text-xs font-medium whitespace-nowrap">
+                            <CheckCircle2 className="w-3 h-3" />
+                            مضافة
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-2 line-clamp-2">{builtin.descriptionAr}</p>
+                      <div className="flex flex-wrap gap-2 text-xs">
+                        <span className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full">
+                          {CATEGORIES.find(c => c.value === builtin.category)?.icon} {builtin.category}
+                        </span>
+                        <span className="px-2 py-0.5 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 rounded-full">
+                          ⭐ {builtin.pointsPerPlay} نقطة
+                        </span>
+                        <span className="px-2 py-0.5 bg-gray-100 dark:bg-gray-600 text-gray-600 dark:text-gray-300 rounded-full">
+                          👶 {builtin.minAge}–{builtin.maxAge} سنة
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mt-3 flex items-center gap-2">
+                    {isAdded ? (
+                      <>
+                        <button
+                          onClick={() => setPreviewUrl(builtin.embedUrl)}
+                          className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-lg text-sm font-medium hover:bg-purple-200 dark:hover:bg-purple-900/50 transition"
+                        >
+                          <Eye className="w-4 h-4" />
+                          معاينة
+                        </button>
+                        {existingGame && (
+                          <button
+                            onClick={() => startEdit(existingGame)}
+                            className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-lg text-sm font-medium hover:bg-blue-200 dark:hover:bg-blue-900/50 transition"
+                          >
+                            <Pencil className="w-4 h-4" />
+                            تعديل
+                          </button>
+                        )}
+                        {existingGame && (
+                          <button
+                            onClick={() => toggleMutation.mutate(existingGame.id)}
+                            className={`flex items-center justify-center gap-1 px-3 py-2 rounded-lg text-sm font-medium transition ${
+                              existingGame.isActive
+                                ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 hover:bg-green-200"
+                                : "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 hover:bg-red-200"
+                            }`}
+                          >
+                            {existingGame.isActive ? <ToggleRight className="w-4 h-4" /> : <ToggleLeft className="w-4 h-4" />}
+                            {existingGame.isActive ? "مفعّلة" : "معطّلة"}
+                          </button>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        <button
+                          onClick={() => setPreviewUrl(builtin.embedUrl)}
+                          className="flex items-center justify-center gap-2 px-3 py-2 bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-500 transition"
+                        >
+                          <Eye className="w-4 h-4" />
+                          معاينة
+                        </button>
+                        <button
+                          onClick={() => addBuiltinMutation.mutate(builtin)}
+                          disabled={addBuiltinMutation.isPending}
+                          className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg text-sm font-bold hover:from-indigo-700 hover:to-purple-700 transition shadow-md disabled:opacity-50"
+                        >
+                          {addBuiltinMutation.isPending ? (
+                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          ) : (
+                            <>
+                              <Plus className="w-4 h-4" />
+                              إضافة للقائمة
+                            </>
+                          )}
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
 
