@@ -11,16 +11,16 @@ export default function DownloadApp() {
   const isRTL = i18n.language === "ar";
 
   const features = [
-    { icon: <Shield className="w-8 h-8" />, title: t("downloadAppPage.smartParentalControl"), desc: isRTL ? "تحكم كامل في أنشطة طفلك" : "Full control over your child's activities" },
-    { icon: <Smartphone className="w-8 h-8" />, title: t("downloadAppPage.easyToUse"), desc: isRTL ? "واجهة بسيطة وسهلة للأطفال والآباء" : "Simple interface for kids and parents" },
-    { icon: <Zap className="w-8 h-8" />, title: isRTL ? "مهام وألعاب تعليمية" : "Educational Tasks & Games", desc: isRTL ? "تعلم ممتع مع مكافآت حقيقية" : "Fun learning with real rewards" },
+    { icon: <Shield className="w-8 h-8" />, title: t("downloadAppPage.smartParentalControl"), desc: t("downloadAppPage.smartParentalControlDesc") },
+    { icon: <Smartphone className="w-8 h-8" />, title: t("downloadAppPage.easyToUse"), desc: t("downloadAppPage.easyToUseDesc") },
+    { icon: <Zap className="w-8 h-8" />, title: t("downloadAppPage.educationalTasks"), desc: t("downloadAppPage.educationalTasksDesc") },
   ];
 
   const trustBadges = [
-    { icon: <ShieldCheck className="w-5 h-5 text-green-400" />, text: isRTL ? "خالي من الفيروسات" : "Virus Free" },
-    { icon: <Lock className="w-5 h-5 text-blue-400" />, text: isRTL ? "بيانات مشفرة" : "Encrypted Data" },
-    { icon: <Eye className="w-5 h-5 text-purple-400" />, text: isRTL ? "بدون إعلانات" : "No Ads" },
-    { icon: <BadgeCheck className="w-5 h-5 text-yellow-400" />, text: isRTL ? "موثق ومعتمد" : "Verified & Trusted" },
+    { icon: <ShieldCheck className="w-5 h-5 text-green-400" />, text: t("downloadAppPage.virusFree") },
+    { icon: <Lock className="w-5 h-5 text-blue-400" />, text: t("downloadAppPage.encryptedData") },
+    { icon: <Eye className="w-5 h-5 text-purple-400" />, text: t("downloadAppPage.noAds") },
+    { icon: <BadgeCheck className="w-5 h-5 text-yellow-400" />, text: t("downloadAppPage.verifiedTrusted") },
   ];
 
   return (
@@ -30,7 +30,7 @@ export default function DownloadApp() {
         <div className="max-w-4xl mx-auto flex justify-between items-center">
           <button onClick={() => navigate("/")} className="flex items-center gap-2 text-white hover:text-yellow-300 transition-colors">
             <ChevronRight className={`w-5 h-5 ${isRTL ? "" : "rotate-180"}`} />
-            <span className="font-semibold">{isRTL ? "الرئيسية" : "Home"}</span>
+            <span className="font-semibold">{t("downloadAppPage.home")}</span>
           </button>
           <div className="flex items-center gap-3">
             <LanguageSelector />
@@ -72,7 +72,7 @@ export default function DownloadApp() {
             className="group flex items-center gap-4 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-400 hover:to-emerald-500 text-white px-10 py-5 rounded-2xl shadow-2xl hover:shadow-green-500/30 transition-all hover:-translate-y-1 text-xl font-bold"
           >
             <Download className="w-7 h-7 group-hover:animate-bounce" />
-            <span>📱 {isRTL ? "تحميل APK للأندرويد" : "Download APK for Android"}</span>
+            <span>📱 {t("downloadAppPage.downloadAPK")}</span>
           </a>
         </div>
 
@@ -85,10 +85,10 @@ export default function DownloadApp() {
             </div>
             <div>
               <p className="text-sm font-bold text-green-300">
-                {isRTL ? "مطور موثق" : "Verified Developer"}
+                {t("downloadAppPage.verifiedDeveloper")}
               </p>
               <p className="text-xs text-green-400/70">
-                Classify by Proomnes — {isRTL ? "التطبيق آمن ومعتمد" : "Safe & Trusted App"}
+                Classify by Proomnes — {t("downloadAppPage.safeAndTrusted")}
               </p>
             </div>
           </div>
@@ -99,19 +99,19 @@ export default function DownloadApp() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
             <div>
               <p className="text-2xl font-bold text-yellow-400">16 MB</p>
-              <p className="text-sm text-purple-200">{isRTL ? "حجم التطبيق" : "App Size"}</p>
+              <p className="text-sm text-purple-200">{t("downloadAppPage.appSize")}</p>
             </div>
             <div>
               <p className="text-2xl font-bold text-yellow-400">v1.3</p>
-              <p className="text-sm text-purple-200">{isRTL ? "الإصدار" : "Version"}</p>
+              <p className="text-sm text-purple-200">{t("downloadAppPage.version")}</p>
             </div>
             <div>
               <p className="text-2xl font-bold text-yellow-400">Android 6+</p>
-              <p className="text-sm text-purple-200">{isRTL ? "متطلبات النظام" : "Requirements"}</p>
+              <p className="text-sm text-purple-200">{t("downloadAppPage.requirements")}</p>
             </div>
             <div>
               <p className="text-2xl font-bold text-green-400">✓</p>
-              <p className="text-sm text-purple-200">{isRTL ? "مجاني" : "Free"}</p>
+              <p className="text-sm text-purple-200">{t("downloadAppPage.free")}</p>
             </div>
           </div>
         </div>
@@ -120,16 +120,16 @@ export default function DownloadApp() {
         <div className={`rounded-2xl p-6 mb-8 ${isDark ? "bg-gray-800/50" : "bg-white/10"} backdrop-blur-sm border ${isDark ? "border-green-800/30" : "border-green-400/20"}`}>
           <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
             <Shield className="w-5 h-5 text-green-400" />
-            {isRTL ? "الأمان والخصوصية" : "Security & Privacy"}
+            {t("downloadAppPage.securityPrivacy")}
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {[
-              { icon: "🔒", text: isRTL ? "اتصال HTTPS مشفر بالكامل" : "Fully encrypted HTTPS connection" },
-              { icon: "🛡️", text: isRTL ? "لا نشارك بياناتك مع أطراف ثالثة" : "We never share your data with third parties" },
-              { icon: "👨‍👩‍👧", text: isRTL ? "تحكم كامل للوالدين في كل شيء" : "Full parental control over everything" },
-              { icon: "🔐", text: isRTL ? "كلمات المرور مشفرة ومحمية" : "Passwords are encrypted and protected" },
-              { icon: "📵", text: isRTL ? "لا إعلانات ولا تتبع" : "No ads, no tracking" },
-              { icon: "✅", text: isRTL ? "تطبيق مفتوح المصدر وشفاف" : "Open source and transparent app" },
+              { icon: "🔒", text: t("downloadAppPage.sec1") },
+              { icon: "🛡️", text: t("downloadAppPage.sec2") },
+              { icon: "👨‍👩‍👧", text: t("downloadAppPage.sec3") },
+              { icon: "🔐", text: t("downloadAppPage.sec4") },
+              { icon: "📵", text: t("downloadAppPage.sec5") },
+              { icon: "✅", text: t("downloadAppPage.sec6") },
             ].map((item, i) => (
               <div key={i} className="flex items-center gap-3 p-2">
                 <span className="text-lg">{item.icon}</span>
@@ -146,22 +146,22 @@ export default function DownloadApp() {
               <div className="flex items-center justify-center gap-1 mb-1">
                 <Users className="w-5 h-5 text-blue-400" />
               </div>
-              <p className="text-2xl font-bold text-white">{isRTL ? "آمن" : "Safe"}</p>
-              <p className="text-xs text-purple-200">{isRTL ? "للأطفال والعائلات" : "For Kids & Families"}</p>
+              <p className="text-2xl font-bold text-white">{t("downloadAppPage.safe")}</p>
+              <p className="text-xs text-purple-200">{t("downloadAppPage.forFamilies")}</p>
             </div>
             <div>
               <div className="flex items-center justify-center gap-1 mb-1">
                 <Star className="w-5 h-5 text-yellow-400" />
               </div>
               <p className="text-2xl font-bold text-white">4.8</p>
-              <p className="text-xs text-purple-200">{isRTL ? "تقييم المستخدمين" : "User Rating"}</p>
+              <p className="text-xs text-purple-200">{t("downloadAppPage.userRating")}</p>
             </div>
             <div>
               <div className="flex items-center justify-center gap-1 mb-1">
                 <ShieldCheck className="w-5 h-5 text-green-400" />
               </div>
               <p className="text-2xl font-bold text-white">100%</p>
-              <p className="text-xs text-purple-200">{isRTL ? "آمن ونظيف" : "Safe & Clean"}</p>
+              <p className="text-xs text-purple-200">{t("downloadAppPage.safeClean")}</p>
             </div>
           </div>
         </div>
@@ -182,15 +182,15 @@ export default function DownloadApp() {
         {/* Install Instructions */}
         <div className={`rounded-2xl p-6 ${isDark ? "bg-gray-800/50" : "bg-white/10"} backdrop-blur-sm`}>
           <h3 className="text-xl font-bold text-white mb-4 text-center">
-            {isRTL ? "📋 طريقة التثبيت" : "📋 How to Install"}
+            {t("downloadAppPage.howToInstall")}
           </h3>
           <div className="space-y-3">
             {[
-              isRTL ? "اضغط على زر التحميل أعلاه" : "Click the download button above",
-              isRTL ? "افتح الملف المحمّل من الإشعارات أو مدير الملفات" : "Open the downloaded file from notifications or file manager",
-              isRTL ? "اسمح بالتثبيت من مصادر غير معروفة إذا طُلب ذلك" : "Allow install from unknown sources if prompted",
-              isRTL ? "اضغط 'تثبيت' وانتظر حتى يكتمل" : "Tap 'Install' and wait for completion",
-              isRTL ? "افتح التطبيق وسجّل دخولك!" : "Open the app and log in!",
+              t("downloadAppPage.step1"),
+              t("downloadAppPage.step2"),
+              t("downloadAppPage.step3"),
+              t("downloadAppPage.step4"),
+              t("downloadAppPage.step5"),
             ].map((step, i) => (
               <div key={i} className="flex items-center gap-3">
                 <span className="flex-shrink-0 w-8 h-8 rounded-full bg-purple-500 text-white flex items-center justify-center font-bold text-sm">
@@ -208,7 +208,7 @@ export default function DownloadApp() {
             onClick={() => navigate("/parent-auth")}
             className="inline-flex items-center gap-2 text-purple-200 hover:text-white transition-colors font-semibold"
           >
-            {isRTL ? "أو سجّل من المتصفح" : "Or sign up from the browser"}
+            {t("downloadAppPage.browserSignup")}
             <ArrowRight className={`w-4 h-4 ${isRTL ? "rotate-180" : ""}`} />
           </button>
         </div>

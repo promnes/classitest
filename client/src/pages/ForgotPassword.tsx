@@ -121,7 +121,7 @@ export const ForgotPassword = (): JSX.Element => {
 
     const handleOtpTimeout = () => {
     setStep("email");
-    setError("انتهت صلاحية الرمز، أعد الإرسال");
+    setError(t("forgotPassword.codeExpired"));
     setSuccess("");
     setOtp("");
   };
@@ -204,7 +204,7 @@ export const ForgotPassword = (): JSX.Element => {
                     method === "email" ? "bg-blue-500 text-white" : isDark ? "text-gray-300" : "text-gray-700"
                   }`}
                 >
-                  📧 البريد
+                  {t("forgotPassword.emailLabel")}
                 </button>
                 <button
                   type="button"
@@ -218,13 +218,13 @@ export const ForgotPassword = (): JSX.Element => {
                     method === "sms" ? "bg-green-500 text-white" : isDark ? "text-gray-300" : "text-gray-700"
                   }`}
                 >
-                  📱 SMS
+                  {t("forgotPassword.smsLabel")}
                 </button>
               </div>
               {step === "email" && method === "email" && (
               <div>
                 <label className={`block text-sm font-bold mb-2 ${isDark ? "text-gray-300" : "text-gray-700"}`}>
-                  البريد الإلكتروني
+                  {t("forgotPassword.emailInputLabel")}
                 </label>
                 <input
                   type="email"
@@ -275,7 +275,7 @@ export const ForgotPassword = (): JSX.Element => {
               <>
                 <div>
                   <label className={`block text-sm font-bold mb-2 ${isDark ? "text-gray-300" : "text-gray-700"}`}>
-                    كلمة المرور الجديدة
+                    {t("forgotPassword.newPassword")}
                   </label>
                   <input
                     type="password"
@@ -292,7 +292,7 @@ export const ForgotPassword = (): JSX.Element => {
                 </div>
                 <div>
                   <label className={`block text-sm font-bold mb-2 ${isDark ? "text-gray-300" : "text-gray-700"}`}>
-                    تأكيد كلمة المرور
+                    {t("forgotPassword.confirmPassword")}
                   </label>
                   <input
                     type="password"

@@ -1,104 +1,130 @@
-import React, { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useLocation } from "wouter";
 import { useTheme } from "@/contexts/ThemeContext";
 import { LanguageSelector } from "@/components/LanguageSelector";
-
-const STATIC_TERMS = `
-<section class="mb-8">
-  <h3 class="text-2xl font-bold mb-4">1. Acceptance of Terms</h3>
-  <p class="mb-4">By downloading and using Classify, you agree to these Terms of Service. If you do not agree with any part of these terms, please do not use the App.</p>
-</section>
-<section class="mb-8">
-  <h3 class="text-2xl font-bold mb-4">2. User Responsibilities</h3>
-  <ul class="list-disc pl-6 space-y-2">
-    <li>You are responsible for maintaining account security</li>
-    <li>You must not use the App for illegal purposes</li>
-    <li>You must be at least 18 years old or have parental consent</li>
-    <li>You agree not to transmit harmful or offensive content</li>
-  </ul>
-</section>
-<section class="mb-8">
-  <h3 class="text-2xl font-bold mb-4">3. Parental Control Features</h3>
-  <p class="mb-4">Classify provides tools for parental supervision and control. Parents are responsible for setting appropriate restrictions and monitoring their children's usage. The App is designed to support, not replace, responsible parenting.</p>
-</section>
-<section class="mb-8">
-  <h3 class="text-2xl font-bold mb-4">4. Intellectual Property</h3>
-  <p class="mb-4">All content, features, and functionality of the App are owned by Classify, its licensors, and other providers of such material. You may not reproduce, distribute, or transmit any content without our permission.</p>
-</section>
-<section class="mb-8">
-  <h3 class="text-2xl font-bold mb-4">5. Limitation of Liability</h3>
-  <p class="mb-4">The App is provided "as is" without warranties. We shall not be liable for any indirect, incidental, special, consequential, or punitive damages resulting from your use of or inability to use the App.</p>
-</section>
-<section class="mb-8">
-  <h3 class="text-2xl font-bold mb-4">6. Termination</h3>
-  <p class="mb-4">We may terminate your account and access to the App at any time, for any reason, without notice or liability.</p>
-</section>
-<section class="mb-8">
-  <h3 class="text-2xl font-bold mb-4">7. Changes to Terms</h3>
-  <p class="mb-4">We may update these terms at any time. Continued use of the App constitutes acceptance of updated terms.</p>
-</section>
-`;
+import { FileText, ArrowLeft, ArrowRight, CheckCircle, Users, Shield, Copyright, AlertTriangle, XCircle, RefreshCw, Mail } from "lucide-react";
 
 export const Terms = (): JSX.Element => {
+  const { t, i18n } = useTranslation();
   const [, navigate] = useLocation();
-  const { isDark, toggleTheme } = useTheme();
-  const [content, setContent] = useState("");
-  const [updatedAt, setUpdatedAt] = useState("");
-  const [loading, setLoading] = useState(true);
+  const { isDark } = useTheme();
+  const isRTL = i18n.language === "ar";
+  const BackArrow = isRTL ? ArrowRight : ArrowLeft;
 
-  useEffect(() => {
-    fetch("/api/legal/terms")
-      .then(r => r.json())
-      .then(json => {
-        if (json.success && json.data?.content) {
-          setContent(json.data.content);
-          setUpdatedAt(json.data.updatedAt || "");
-        } else {
-          setContent(STATIC_TERMS);
-        }
-      })
-      .catch(() => setContent(STATIC_TERMS))
-      .finally(() => setLoading(false));
-  }, []);
+  const sections = [
+    {
+      icon: <CheckCircle className="w-5 h-5" />,
+      title: t("legal.terms.acceptTitle"),
+      content: t("legal.terms.acceptText"),
+    },
+    {
+      icon: <Users className="w-5 h-5" />,
+      title: t("legal.terms.responsibilitiesTitle"),
+      items: [
+        t("legal.terms.resp1"),
+        t("legal.terms.resp2"),
+        t("legal.terms.resp3"),
+        t("legal.terms.resp4"),
+      ],
+    },
+    {
+      icon: <Shield className="w-5 h-5" />,
+      title: t("legal.terms.parentalTitle"),
+      content: t("legal.terms.parentalText"),
+    },
+    {
+      icon: <Copyright className="w-5 h-5" />,
+      title: t("legal.terms.ipTitle"),
+      content: t("legal.terms.ipText"),
+    },
+    {
+      icon: <AlertTriangle className="w-5 h-5" />,
+      title: t("legal.terms.liabilityTitle"),
+      content: t("legal.terms.liabilityText"),
+    },
+    {
+      icon: <XCircle className="w-5 h-5" />,
+      title: t("legal.terms.terminationTitle"),
+      content: t("legal.terms.terminationText"),
+    },
+    {
+      icon: <RefreshCw className="w-5 h-5" />,
+      title: t("legal.terms.changesTitle"),
+      content: t("legal.terms.changesText"),
+    },
+    {
+      icon: <Mail className="w-5 h-5" />,
+      title: t("legal.terms.contactTitle"),
+      content: t("legal.terms.contactText"),
+    },
+  ];
 
   return (
-    <div className={isDark ? "bg-gray-900 text-white" : "bg-white text-black"}>
-      <header className={`${isDark ? "bg-gray-800" : "bg-blue-500 text-white"} p-4`}>
-        <div className="max-w-4xl mx-auto flex justify-between items-center">
-          <button onClick={() => {
-            if (window.history.length > 1) {
-              window.history.back();
-            } else {
-              navigate("/settings");
-            }
-          }} className="text-2xl">←</button>
-          <h1 className="text-2xl font-bold">Terms of Service</h1>
-          <div className="flex items-center gap-2">
-            <LanguageSelector />
-            <button onClick={toggleTheme} className="text-2xl">
-              {isDark ? "☀️" : "🌙"}
+    <div className={`min-h-screen ${isDark ? "bg-gray-900" : "bg-gradient-to-b from-purple-50 to-white"}`} dir={isRTL ? "rtl" : "ltr"}>
+      <header className="bg-gradient-to-r from-purple-600 to-indigo-700 text-white">
+        <div className="max-w-4xl mx-auto px-4 py-5 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => window.history.length > 1 ? window.history.back() : navigate("/")}
+              className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors"
+              aria-label={t("common.back")}
+            >
+              <BackArrow className="w-5 h-5" />
             </button>
+            <div className="flex items-center gap-2">
+              <FileText className="w-6 h-6" />
+              <h1 className="text-xl md:text-2xl font-bold">{t("legal.terms.pageTitle")}</h1>
+            </div>
           </div>
+          <LanguageSelector />
         </div>
       </header>
 
-      <main className="max-w-4xl mx-auto p-6 md:p-8">
-        <div className={`${isDark ? "bg-gray-800" : "bg-gray-50"} rounded-lg p-8`}>
-          <h2 className="text-3xl font-bold mb-6">Terms of Service</h2>
-          <p className="text-sm text-gray-500 mb-8">
-            Last Updated: {updatedAt ? new Date(updatedAt).toLocaleDateString() : new Date().toLocaleDateString()}
-          </p>
+      <main className="max-w-4xl mx-auto px-4 py-8">
+        <div className={`rounded-2xl shadow-lg overflow-hidden ${isDark ? "bg-gray-800" : "bg-white"}`}>
+          <div className={`px-6 md:px-8 py-5 ${isDark ? "border-b border-gray-700" : "bg-purple-50 border-b border-purple-100"}`}>
+            <p className={`text-lg font-semibold ${isDark ? "text-white" : "text-gray-900"}`}>
+              Classify — {t("legal.terms.subtitle")}
+            </p>
+            <p className={`text-sm mt-1 ${isDark ? "text-gray-400" : "text-gray-500"}`}>
+              {t("legal.terms.lastUpdated")}: {t("legal.terms.updateDate")}
+            </p>
+          </div>
 
-          {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
-            </div>
-          ) : (
-            <div
-              className="prose dark:prose-invert max-w-none"
-              dangerouslySetInnerHTML={{ __html: content }}
-            />
-          )}
+          <div className="px-6 md:px-8 py-6 space-y-7">
+            {sections.map((section, idx) => (
+              <section key={idx}>
+                <div className="flex items-start gap-3 mb-3">
+                  <div className={`p-2 rounded-lg shrink-0 ${isDark ? "bg-purple-900/30 text-purple-400" : "bg-purple-100 text-purple-600"}`}>
+                    {section.icon}
+                  </div>
+                  <h2 className={`text-lg md:text-xl font-bold pt-0.5 ${isDark ? "text-white" : "text-gray-900"}`}>
+                    {idx + 1}. {section.title}
+                  </h2>
+                </div>
+                <div className={`${isRTL ? "pr-12" : "pl-12"}`}>
+                  {section.content && (
+                    <p className={`leading-relaxed ${isDark ? "text-gray-300" : "text-gray-600"}`}>
+                      {section.content}
+                    </p>
+                  )}
+                  {section.items && (
+                    <ul className="space-y-2">
+                      {section.items.map((item, i) => (
+                        <li key={i} className={`flex items-start gap-2 ${isDark ? "text-gray-300" : "text-gray-600"}`}>
+                          <span className="text-purple-500 mt-1.5 shrink-0">•</span>
+                          <span className="leading-relaxed">{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+                {idx < sections.length - 1 && (
+                  <div className={`mt-6 border-b ${isDark ? "border-gray-700" : "border-gray-100"}`} />
+                )}
+              </section>
+            ))}
+          </div>
         </div>
       </main>
     </div>

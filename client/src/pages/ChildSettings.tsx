@@ -101,8 +101,8 @@ export default function ChildSettings() {
     localStorage.setItem("i18nextLng", lang);
     document.documentElement.dir = lang === "ar" ? "rtl" : "ltr";
     toast({
-      title: lang === "ar" ? "تم تغيير اللغة" : "Language Changed",
-      description: lang === "ar" ? "تم التغيير إلى العربية" : "Changed to English",
+      title: t("childSettings.languageChanged"),
+      description: t("childSettings.languageChangedTo", { lang: lang === "ar" ? "العربية" : lang === "pt" ? "Português" : "English" }),
     });
   };
 
@@ -441,7 +441,7 @@ export default function ChildSettings() {
 
         {/* Footer */}
         <div className={`text-center text-xs py-6 ${isDark ? "text-gray-600" : "text-gray-400"}`}>
-          {isRTL ? `مرحباً ${childInfo?.name || ""} 👋` : `Hello ${childInfo?.name || ""} 👋`}
+          {t("childSettings.footerGreeting", { name: childInfo?.name || "" })}
         </div>
       </main>
     </div>

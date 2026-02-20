@@ -19,7 +19,7 @@ const statusConfig: Record<string, { label: string; color: string; icon: any }> 
   pending_admin_approval: { label: i18next.t("parentInventory.awaitingApproval"), color: "bg-yellow-100 text-yellow-800 border-yellow-200", icon: Clock },
   active: { label: i18next.t("parentInventory.availableToAssign"), color: "bg-green-100 text-green-800 border-green-200", icon: CheckCircle },
   assigned_to_child: { label: i18next.t("parentInventory.assignedToChild"), color: "bg-blue-100 text-blue-800 border-blue-200", icon: Gift },
-  exhausted: { label: "مستخدَم", color: "bg-gray-100 text-gray-500 border-gray-200", icon: Package },
+  exhausted: { label: i18next.t("parentInventory.exhausted"), color: "bg-gray-100 text-gray-500 border-gray-200", icon: Package },
 };
 
 export default function ParentInventory() {
@@ -63,7 +63,7 @@ export default function ParentInventory() {
       <div className={`min-h-screen ${isDark ? "bg-gray-900" : "bg-gray-50"} flex items-center justify-center`}>
         <div className="text-center">
           <div className="w-10 h-10 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-          <p className={isDark ? "text-gray-400" : "text-gray-500"}>جاري تحميل المنتجات...</p>
+          <p className={isDark ? "text-gray-400" : "text-gray-500"}>{t("parentInventory.loadingProducts")}</p>
         </div>
       </div>
     );
@@ -78,10 +78,10 @@ export default function ParentInventory() {
             <div>
               <h1 className="text-2xl font-bold flex items-center gap-2">
                 <Package className="w-7 h-7" />
-                منتجاتي المملوكة
+                {t("parentInventory.myOwnedProducts")}
               </h1>
               <p className="text-white/80 text-sm mt-1">
-                {products.length} منتج{products.length !== 1 ? "ات" : ""}
+                {t("parentInventory.productCount", { count: products.length })}
               </p>
             </div>
             <button
@@ -95,7 +95,7 @@ export default function ParentInventory() {
               className="flex items-center gap-1 px-3 py-2 bg-white/20 hover:bg-white/30 rounded-lg transition"
             >
               <ArrowLeft className="w-4 h-4" />
-              رجوع
+              {t("common.back")}
             </button>
             <LanguageSelector />
             <ParentNotificationBell />
@@ -108,10 +108,10 @@ export default function ParentInventory() {
           <Card className={`text-center py-16 ${isDark ? "bg-gray-800 border-gray-700" : ""}`}>
             <CardContent>
               <Package className={`w-16 h-16 mx-auto mb-4 ${isDark ? "text-gray-600" : "text-gray-300"}`} />
-              <h3 className={`text-xl font-bold mb-2 ${isDark ? "text-gray-300" : "text-gray-600"}`}>لا توجد منتجات بعد</h3>
-              <p className={`mb-6 ${isDark ? "text-gray-500" : "text-gray-400"}`}>اشترِ منتجات من المتجر لتظهر هنا</p>
+              <h3 className={`text-xl font-bold mb-2 ${isDark ? "text-gray-300" : "text-gray-600"}`}>{t("parentInventory.noProducts")}</h3>
+              <p className={`mb-6 ${isDark ? "text-gray-500" : "text-gray-400"}`}>{t("parentInventory.buyFromStore")}</p>
               <Button onClick={() => navigate("/parent-store")} className="bg-orange-500 hover:bg-orange-600">
-                تصفح المتجر
+                {t("parentInventory.browseStore")}
               </Button>
             </CardContent>
           </Card>
@@ -119,7 +119,7 @@ export default function ParentInventory() {
           <div className="space-y-4">
             {products.map((p: any) => {
               const product = p.product || {};
-              const productName = product.nameAr || product.name || "منتج غير معروف";
+              const productName = product.nameAr || product.name || t("parentInventory.unknownProduct");
               const sCfg = statusConfig[p.status] || statusConfig.active;
               const StatusIcon = sCfg.icon;
 
@@ -147,12 +147,12 @@ export default function ParentInventory() {
                         <h3 className={`font-bold text-lg truncate ${isDark ? "text-white" : "text-gray-800"}`}>{productName}</h3>
                         <div className="flex items-center gap-3 mt-1">
                           {product.price && (
-                            <span className="text-orange-600 font-bold">{product.price} ج.م</span>
+                            <span className="text-orange-600 font-bold">{t("parentInventory.price", { amount: product.price })}</span>
                           )}
                           {product.pointsPrice > 0 && (
                             <span className={`text-sm flex items-center gap-1 ${isDark ? "text-gray-400" : "text-gray-500"}`}>
                               <Star className="w-3.5 h-3.5 text-yellow-500 fill-yellow-500" />
-                              {product.pointsPrice} نقطة
+                              {t("parentInventory.pointsPrice", { count: product.pointsPrice })}
                             </span>
                           )}
                         </div>
@@ -170,7 +170,7 @@ export default function ParentInventory() {
                             className="bg-orange-500 hover:bg-orange-600 flex items-center gap-2"
                           >
                             <Gift className="w-4 h-4" />
-                            تعيين كهدية
+                            {t("parentInventory.assignAsGift")}
                           </Button>
                         ) : p.status === "assigned_to_child" ? (
                           <Button
@@ -179,12 +179,12 @@ export default function ParentInventory() {
                             disabled
                           >
                             <Truck className="w-4 h-4 ml-1" />
-                            تم التعيين
+                            {t("parentInventory.assigned")}
                           </Button>
                         ) : p.status === "pending_admin_approval" ? (
                           <Button variant="outline" className="text-yellow-600 border-yellow-200" disabled>
                             <Clock className="w-4 h-4 ml-1" />
-                            بانتظار الموافقة
+                            {t("parentInventory.pendingApproval")}
                           </Button>
                         ) : null}
                       </div>
@@ -203,7 +203,7 @@ export default function ParentInventory() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-right">
               <Gift className="w-5 h-5 text-orange-500" />
-              تعيين كهدية للطفل
+              {t("parentInventory.assignGiftToChild")}
             </DialogTitle>
           </DialogHeader>
 
@@ -222,28 +222,28 @@ export default function ParentInventory() {
                 </div>
                 <div>
                   <h4 className={`font-bold ${isDark ? "text-white" : "text-gray-800"}`}>
-                    {assignDialog.product?.nameAr || assignDialog.product?.name || "منتج"}
+                    {assignDialog.product?.nameAr || assignDialog.product?.name || t("parentInventory.product")}
                   </h4>
                   {assignDialog.product?.price && (
-                    <p className="text-orange-600 font-bold">{assignDialog.product.price} ج.م</p>
+                    <p className="text-orange-600 font-bold">{t("parentInventory.price", { amount: assignDialog.product.price })}</p>
                   )}
                 </div>
               </div>
 
               {/* Child Selection */}
               <div>
-                <label className="block text-sm font-medium mb-2">اختر الطفل</label>
+                <label className="block text-sm font-medium mb-2">{t("parentInventory.selectChild")}</label>
                 {children.length === 0 ? (
-                  <p className="text-sm text-red-500">لا يوجد أطفال مرتبطين بحسابك</p>
+                  <p className="text-sm text-red-500">{t("parentInventory.noLinkedChildren")}</p>
                 ) : (
                   <Select value={selectedChild} onValueChange={setSelectedChild}>
                     <SelectTrigger>
-                      <SelectValue placeholder="اختر طفلاً..." />
+                      <SelectValue placeholder={t("parentInventory.selectChildPlaceholder")} />
                     </SelectTrigger>
                     <SelectContent>
                       {children.map((child: any) => (
                         <SelectItem key={child.id} value={child.id}>
-                          {child.name} ({child.totalPoints || 0} نقطة)
+                          {child.name} ({t("parentInventory.childPoints", { count: child.totalPoints || 0 })})
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -253,16 +253,16 @@ export default function ParentInventory() {
 
               {/* Required Points */}
               <div>
-                <label className="block text-sm font-medium mb-2">النقاط المطلوبة للحصول على الهدية</label>
+                <label className="block text-sm font-medium mb-2">{t("parentInventory.requiredPointsLabel")}</label>
                 <Input
                   type="number"
                   min="1"
                   value={requiredPoints}
                   onChange={(e) => setRequiredPoints(e.target.value)}
-                  placeholder="مثال: 100"
+                  placeholder={t("parentInventory.pointsExample")}
                 />
                 <p className="text-xs text-gray-400 mt-1">
-                  سيحتاج الطفل جمع هذا العدد من النقاط للحصول على الهدية
+                  {t("parentInventory.pointsHint")}
                 </p>
               </div>
 
@@ -282,17 +282,17 @@ export default function ParentInventory() {
                   {assignMutation.isPending ? (
                     <span className="flex items-center gap-2">
                       <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      جاري التعيين...
+                      {t("parentInventory.assigning")}
                     </span>
                   ) : (
                     <span className="flex items-center gap-2">
                       <ArrowRight className="w-4 h-4" />
-                      تعيين كهدية
+                      {t("parentInventory.assignAsGift")}
                     </span>
                   )}
                 </Button>
                 <Button variant="outline" onClick={() => { setAssignDialog(null); setSelectedChild(""); setRequiredPoints(""); }}>
-                  إلغاء
+                  {t("common.cancel")}
                 </Button>
               </div>
             </div>

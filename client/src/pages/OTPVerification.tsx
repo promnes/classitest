@@ -112,7 +112,7 @@ export const OTPVerification = (): JSX.Element => {
       navigate("/parent-dashboard");
     },
     onError: (err: any) => {
-      setError(err.message || "رمز خاطئ أو منتهي الصلاحية");
+      setError(err.message || t("otpVerification.wrongCode"));
     },
   });
 
@@ -152,7 +152,7 @@ export const OTPVerification = (): JSX.Element => {
       setTime(300);
     },
     onError: (err: any) => {
-      setError(err.message || "فشل إعادة الإرسال");
+      setError(err.message || t("otpVerification.resendFailed"));
     },
   });
 
@@ -161,10 +161,10 @@ export const OTPVerification = (): JSX.Element => {
       <div className="absolute top-4 ltr:right-4 rtl:left-4 z-50"><LanguageSelector /></div>
       <div className={`${isDark ? "bg-gray-800" : "bg-white"} rounded-lg shadow-lg p-8 max-w-md w-full`}>
         <h1 className={`text-3xl font-bold text-center mb-2 ${isDark ? "text-white" : "text-gray-800"}`}>
-          🔐 التحقق من الهوية
+          {t("otpVerification.title")}
         </h1>
         <p className={`text-center mb-6 ${isDark ? "text-gray-400" : "text-gray-600"}`}>
-          تم إرسال رمز تحقق إلى {method === "sms" ? `📱 ${phone.slice(-4)}` : `📧 ${email}`}
+          {t("otpVerification.codeSentTo")} {method === "sms" ? `📱 ${phone.slice(-4)}` : `📧 ${email}`}
         </p>
 
         {/* Method Selector if both methods available */}
@@ -185,7 +185,7 @@ export const OTPVerification = (): JSX.Element => {
                   : "text-gray-700 hover:bg-gray-200"
               }`}
             >
-              📧 البريد
+              {t("otpVerification.emailLabel")}
             </button>
             <button
               type="button"
@@ -202,7 +202,7 @@ export const OTPVerification = (): JSX.Element => {
                   : "text-gray-700 hover:bg-gray-200"
               }`}
             >
-              📱 SMS
+              {t("otpVerification.smsLabel")}
             </button>
           </div>
         )}
@@ -216,8 +216,8 @@ export const OTPVerification = (): JSX.Element => {
           maskedPhone={method === "sms" ? `***${phone.slice(-4)}` : email}
           timeoutSeconds={time}
           onTimeout={() => navigate("/parent-auth")}
-          submitText="✅ التحقق"
-          resendText="إعادة إرسال"
+          submitText={t("otpVerification.verifyBtn")}
+          resendText={t("otpVerification.resend")}
           onResend={() => resendOtpMutation.mutate()}
         />
 
@@ -232,7 +232,7 @@ export const OTPVerification = (): JSX.Element => {
             htmlFor="remember-device"
             className={`text-sm cursor-pointer ${isDark ? "text-gray-300" : "text-gray-700"}`}
           >
-            تذكر هذا الجهاز (لا تطلب رمز التحقق مرة أخرى)
+            {t("otpVerification.rememberDevice")}
           </Label>
         </div>
 
@@ -245,7 +245,7 @@ export const OTPVerification = (): JSX.Element => {
               : "border-gray-300 text-gray-700 hover:bg-gray-100"
           } disabled:opacity-50`}
         >
-          ← إلغاء
+          {t("otpVerification.cancel")}
         </button>
       </div>
     </div>

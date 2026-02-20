@@ -98,7 +98,7 @@ export const ChildProgress = (): JSX.Element => {
               data-testid="button-back"
             >
               <ChevronLeft className="w-5 h-5" />
-              رجوع
+              {t("common.back")}
             </button>
           </div>
         </div>
@@ -140,7 +140,7 @@ export const ChildProgress = (): JSX.Element => {
                 <p className={`text-3xl font-bold ${isDark ? "text-white" : "text-gray-800"}`}>
                   {progress.currentPoints}
                 </p>
-                <p className={`text-sm ${isDark ? "text-gray-400" : "text-gray-600"}`}>نقطة</p>
+                <p className={`text-sm ${isDark ? "text-gray-400" : "text-gray-600"}`}>{t("childProgress.points")}</p>
               </div>
               <div className={`${isDark ? "bg-gray-800" : "bg-white"} rounded-2xl p-5 text-center shadow-lg`}>
                 <Trophy className="w-10 h-10 mx-auto mb-2 text-green-500" />
@@ -154,24 +154,24 @@ export const ChildProgress = (): JSX.Element => {
                 <p className={`text-3xl font-bold ${isDark ? "text-white" : "text-gray-800"}`}>
                   {progress.claimedGiftsCount}
                 </p>
-                <p className={`text-sm ${isDark ? "text-gray-400" : "text-gray-600"}`}>هدية مستلمة</p>
+                <p className={`text-sm ${isDark ? "text-gray-400" : "text-gray-600"}`}>{t("childProgress.giftsReceived")}</p>
               </div>
               <div className={`${isDark ? "bg-gray-800" : "bg-white"} rounded-2xl p-5 text-center shadow-lg`}>
                 <Calendar className="w-10 h-10 mx-auto mb-2 text-blue-500" />
                 <p className={`text-3xl font-bold ${isDark ? "text-white" : "text-gray-800"}`}>
                   {progress.daysSinceJoined}
                 </p>
-                <p className={`text-sm ${isDark ? "text-gray-400" : "text-gray-600"}`}>يوم</p>
+                <p className={`text-sm ${isDark ? "text-gray-400" : "text-gray-600"}`}>{t("childProgress.days")}</p>
               </div>
             </div>
 
             <div className={`${isDark ? "bg-gray-800" : "bg-white"} rounded-3xl p-6 shadow-xl`}>
               <div className="flex items-center justify-between mb-4">
                 <h3 className={`text-xl font-bold ${isDark ? "text-white" : "text-gray-800"}`}>
-                  الهدف القادم
+                  {t("childProgress.nextGoal")}
                 </h3>
                 <span className="px-3 py-1 bg-yellow-500 text-white rounded-full text-sm font-bold">
-                  {progress.nextMilestone} نقطة
+                  {t("childProgress.pointsCount", { count: progress.nextMilestone })}
                 </span>
               </div>
               <div className="mb-4">
@@ -191,7 +191,7 @@ export const ChildProgress = (): JSX.Element => {
                 </div>
               </div>
               <p className={`text-center ${isDark ? "text-gray-400" : "text-gray-600"}`}>
-                باقي {progress.nextMilestone - progress.currentPoints} نقطة للوصول للهدف!
+                {t("childProgress.remainingToGoal", { count: progress.nextMilestone - progress.currentPoints })}
               </p>
             </div>
 
@@ -200,7 +200,7 @@ export const ChildProgress = (): JSX.Element => {
                 <div className="flex items-center gap-4 mb-4">
                   <Target className="w-8 h-8 text-purple-500" />
                   <h3 className={`text-xl font-bold ${isDark ? "text-white" : "text-gray-800"}`}>
-                    أقرب هدية
+                    {t("childProgress.closestGift")}
                   </h3>
                 </div>
                 <div className="mb-4">
@@ -212,7 +212,7 @@ export const ChildProgress = (): JSX.Element => {
                   </div>
                 </div>
                 <p className={`text-center ${isDark ? "text-gray-400" : "text-gray-600"}`}>
-                  {progress.closestGoal.progress}% - باقي {progress.closestGoal.pointsNeeded} نقطة
+                  {progress.closestGoal.progress}% - {t("childProgress.remaining", { count: progress.closestGoal.pointsNeeded })}
                 </p>
               </div>
             )}
@@ -224,7 +224,7 @@ export const ChildProgress = (): JSX.Element => {
                 data-testid="button-pending-gifts"
               >
                 <Gift className="w-6 h-6" />
-                لديك {progress.pendingGiftsCount} هدية في انتظارك!
+                {t("childProgress.pendingGifts", { count: progress.pendingGiftsCount })}
               </button>
             )}
 
@@ -235,7 +235,7 @@ export const ChildProgress = (): JSX.Element => {
                 data-testid="button-games"
               >
                 <Gamepad2 className="w-10 h-10" />
-                العب واكسب
+                {t("childProgress.playAndEarn")}
               </button>
               <button
                 onClick={() => navigate("/child-gifts")}
@@ -243,7 +243,7 @@ export const ChildProgress = (): JSX.Element => {
                 data-testid="button-gifts"
               >
                 <Gift className="w-10 h-10" />
-                هداياي
+                {t("childProgress.myGifts")}
               </button>
             </div>
           </div>
@@ -251,17 +251,17 @@ export const ChildProgress = (): JSX.Element => {
           <div className={`${isDark ? "bg-gray-800" : "bg-white"} rounded-2xl p-12 text-center`}>
             <Trophy className={`w-20 h-20 mx-auto mb-4 ${isDark ? "text-gray-600" : "text-gray-300"}`} />
             <h3 className={`text-2xl font-bold mb-2 ${isDark ? "text-white" : "text-gray-800"}`}>
-              ابدأ رحلتك!
+              {t("childProgress.startJourney")}
             </h3>
             <p className={`${isDark ? "text-gray-400" : "text-gray-600"} mb-6`}>
-              العب الألعاب وأنجز المهام لتكسب النقاط!
+              {t("childProgress.emptyMessage")}
             </p>
             <button
               onClick={() => navigate("/child-games")}
               className="px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl font-bold hover:shadow-lg transition-all"
               data-testid="button-start"
             >
-              ابدأ الآن
+              {t("childProgress.startNow")}
             </button>
           </div>
         )}

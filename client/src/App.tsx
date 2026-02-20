@@ -20,7 +20,7 @@ import { ChildLink } from "@/pages/ChildLink";
 
 const ParentDashboard = lazy(() => import("@/pages/ParentDashboard").then(m => ({ default: m.ParentDashboard })));
 const ChildGames = lazy(() => import("@/pages/ChildGames").then(m => ({ default: m.ChildGames })));
-const CreateTask = lazy(() => import("@/pages/CreateTask").then(m => ({ default: m.CreateTask })));
+
 const ParentStore = lazy(() => import("@/pages/ParentStore").then(m => ({ default: m.ParentStore })));
 const ChildStore = lazy(() => import("@/pages/ChildStore").then(m => ({ default: m.ChildStore })));
 const ChildGifts = lazy(() => import("@/pages/ChildGifts").then(m => ({ default: m.ChildGifts })));
@@ -36,13 +36,16 @@ const AdminAuth = lazy(() => import("@/pages/AdminAuth").then(m => ({ default: m
 const OTPVerification = lazy(() => import("@/pages/OTPVerification").then(m => ({ default: m.OTPVerification })));
 const PrivacyPolicy = lazy(() => import("@/pages/PrivacyPolicy").then(m => ({ default: m.PrivacyPolicy })));
 const AccessibilityPolicy = lazy(() => import("@/pages/AccessibilityPolicy").then(m => ({ default: m.AccessibilityPolicy })));
+const AccountDeletion = lazy(() => import("@/pages/AccountDeletion").then(m => ({ default: m.AccountDeletion })));
+const AboutUs = lazy(() => import("@/pages/AboutUs").then(m => ({ default: m.AboutUs })));
+const ContactUs = lazy(() => import("@/pages/ContactUs").then(m => ({ default: m.ContactUs })));
 const AssignTask = lazy(() => import("@/pages/AssignTask").then(m => ({ default: m.AssignTask })));
 const SubjectTasks = lazy(() => import("@/pages/SubjectTasks"));
 const ForgotPassword = lazy(() => import("@/pages/ForgotPassword").then(m => ({ default: m.ForgotPassword })));
 const AdminPurchasesTab = lazy(() => import("@/pages/AdminPurchasesTab"));
 const ParentInventory = lazy(() => import("@/pages/ParentInventory"));
 const ChildRewards = lazy(() => import("@/pages/ChildRewards"));
-const ParentStoreMulti = lazy(() => import("@/pages/ParentStoreMulti"));
+
 const ChildProgress = lazy(() => import("@/pages/ChildProgress"));
 const ChildTasks = lazy(() => import("@/pages/ChildTasks"));
 const ParentTasks = lazy(() => import("@/pages/ParentTasks"));
@@ -222,9 +225,7 @@ function Router() {
         <Route path="/parent-store">
           <ErrorBoundary><ParentStore /></ErrorBoundary>
         </Route>
-        <Route path="/parent-store-multi">
-          <ErrorBoundary><ParentStoreMulti /></ErrorBoundary>
-        </Route>
+
         <Route path="/parent-inventory">
           <ErrorBoundary><ParentInventory /></ErrorBoundary>
         </Route>
@@ -260,7 +261,6 @@ function Router() {
         </Route>
         <Route path="/child-settings" component={WrappedChildSettings} />
         <Route path="/child-discover" component={WrappedChildDiscover} />
-        {/* DEPRECATED: Remove after 2026-02-20 */}
         <Route path="/create-task">
           <Redirect to="/parent-tasks" replace />
         </Route>
@@ -283,6 +283,9 @@ function Router() {
         <Route path="/privacy-policy" component={PrivacyPolicy} />
         <Route path="/accessibility" component={AccessibilityPolicy} />
         <Route path="/terms" component={Terms} />
+        <Route path="/delete-account" component={AccountDeletion} />
+        <Route path="/about" component={AboutUs} />
+        <Route path="/contact" component={ContactUs} />
         <Route path="/settings">
           <ErrorBoundary><Settings /></ErrorBoundary>
         </Route>

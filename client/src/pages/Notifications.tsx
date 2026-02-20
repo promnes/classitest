@@ -84,10 +84,10 @@ export const Notifications = (): JSX.Element => {
       queryClient.invalidateQueries({ queryKey: ["/api/parent/notifications"] });
       queryClient.invalidateQueries({ queryKey: ["/api/parent/notifications/unread-count"] });
       toast({
-        title: variables.action === "approve" ? t("notificationsPage.accepted") : "تم الرفض",
+        title: variables.action === "approve" ? t("notificationsPage.accepted") : t("notificationsPage.rejected"),
         description: variables.action === "approve" 
-          ? "تم إرسال الكود للطفل. أخبره برمز PIN الخاص به."
-          : "تم رفض طلب تسجيل الدخول.",
+          ? t("notificationsPage.codeApprovedDesc")
+          : t("notificationsPage.loginRejectedDesc"),
       });
     },
   });
@@ -101,7 +101,7 @@ export const Notifications = (): JSX.Element => {
       queryClient.invalidateQueries({ queryKey: ["/api/parent/notifications/unread-count"] });
       toast({
         title: t("notificationsPage.markedAsLearned"),
-        description: "تم تعليم جميع الإشعارات كمقروءة",
+        description: t("notificationsPage.allMarkedReadDesc"),
       });
     },
   });
@@ -109,7 +109,7 @@ export const Notifications = (): JSX.Element => {
   const copyCode = (code: string, notificationId: string) => {
     navigator.clipboard.writeText(code);
     setCopiedCode(notificationId);
-    toast({ title: "تم نسخ الكود" });
+    toast({ title: t("notificationsPage.codeCopied") });
     setTimeout(() => setCopiedCode(null), 2000);
   };
 
@@ -211,11 +211,11 @@ export const Notifications = (): JSX.Element => {
         <div className="flex justify-between items-center mb-8">
           <div>
             <h1 className={`text-4xl font-bold ${isDark ? "text-white" : "text-gray-800"}`}>
-              🔔 الإشعارات
+              {t("notificationsPage.title")}
             </h1>
             {unreadCount > 0 && (
               <p className={isDark ? "text-gray-400" : "text-gray-600"}>
-                لديك {unreadCount} إشعارات جديدة
+                {t("notificationsPage.unreadCount", { count: unreadCount })}
               </p>
             )}
           </div>
@@ -227,7 +227,7 @@ export const Notifications = (): JSX.Element => {
                 disabled={markAllReadMutation.isPending}
                 className="px-4 py-2 bg-emerald-600 text-white rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {markAllReadMutation.isPending ? "جارٍ التعليم..." : "تعليم الكل كمقروء"}
+                {markAllReadMutation.isPending ? t("notificationsPage.markingAll") : t("notificationsPage.markAllRead")}
               </button>
             )}
             <button
@@ -240,7 +240,7 @@ export const Notifications = (): JSX.Element => {
               onClick={() => window.history.length > 1 ? window.history.back() : navigate("/parent-dashboard")}
               className="px-4 py-2 bg-gray-500 text-white rounded-lg font-bold"
             >
-              ← رجوع
+              ← {t("common.back")}
             </button>
           </div>
         </div>
@@ -276,7 +276,7 @@ export const Notifications = (): JSX.Element => {
                         </p>
                         {!notification.isRead && (
                           <span className="px-2 py-0.5 text-xs bg-blue-500 text-white rounded-full shrink-0">
-                            جديد
+                            {t("notificationsPage.new")}
                           </span>
                         )}
                       </div>
@@ -298,7 +298,7 @@ export const Notifications = (): JSX.Element => {
                       {isLogin && parentCode && (
                         <div className="mt-4 space-y-3">
                           <div className={`flex items-center gap-2 p-3 rounded-lg ${isDark ? "bg-gray-700" : "bg-gray-100"}`}>
-                            <span className={`text-sm ${isDark ? "text-gray-300" : "text-gray-600"}`}>كود الربط:</span>
+                            <span className={`text-sm ${isDark ? "text-gray-300" : "text-gray-600"}`}>{t("notificationsPage.linkCode")}</span>
                             <span className="font-mono font-bold text-lg text-orange-500">{parentCode}</span>
                             <button
                               onClick={(e) => { e.stopPropagation(); copyCode(parentCode, notification.id); }}
@@ -328,7 +328,7 @@ export const Notifications = (): JSX.Element => {
                               ) : (
                                 <>
                                   <Check className="w-5 h-5" />
-                                  موافقة
+                                  {t("notificationsPage.approve")}
                                 </>
                               )}
                             </button>
@@ -346,7 +346,7 @@ export const Notifications = (): JSX.Element => {
                               ) : (
                                 <>
                                   <X className="w-5 h-5" />
-                                  رفض
+                                  {t("notificationsPage.reject")}
                                 </>
                               )}
                             </button>
@@ -359,7 +359,7 @@ export const Notifications = (): JSX.Element => {
                           onClick={() => handleNotificationClick(notification)}
                           className={`mt-3 text-sm ${isDark ? "text-blue-400 hover:text-blue-300" : "text-blue-600 hover:text-blue-700"}`}
                         >
-                          اضغط للانتقال ←
+                          {t("notificationsPage.clickToNavigate")}
                         </button>
                       )}
                     </div>
@@ -370,7 +370,7 @@ export const Notifications = (): JSX.Element => {
           ) : (
             <div className={`${isDark ? "bg-gray-800" : "bg-white"} rounded-lg p-8 text-center shadow`}>
               <p className={`text-lg ${isDark ? "text-gray-400" : "text-gray-600"}`}>
-                لا توجد إشعارات حالياً ✨
+                {t("notificationsPage.noNotifications")}
               </p>
             </div>
           )}
@@ -383,11 +383,11 @@ export const Notifications = (): JSX.Element => {
               disabled={page <= 1}
               className="px-4 py-2 bg-gray-500 text-white rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              السابق
+              {t("common.previous")}
             </button>
 
             <p className={`${isDark ? "text-gray-300" : "text-gray-700"} font-medium`}>
-              صفحة {page} من {totalPages}
+              {t("common.pageOf", { page, total: totalPages })}
             </p>
 
             <button
@@ -395,7 +395,7 @@ export const Notifications = (): JSX.Element => {
               disabled={page >= totalPages}
               className="px-4 py-2 bg-blue-500 text-white rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              التالي
+              {t("common.next")}
             </button>
           </div>
         )}

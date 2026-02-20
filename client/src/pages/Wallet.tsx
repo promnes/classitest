@@ -137,9 +137,9 @@ export const Wallet = (): JSX.Element => {
         <div className="flex justify-between items-center mb-8">
           <div>
             <h1 className={`text-4xl font-bold ${isDark ? "text-white" : "text-gray-800"}`}>
-              💰 المحفظة
+              {t("wallet.title")}
             </h1>
-            <p className={isDark ? "text-gray-400" : "text-gray-600"}>إدارة الرصيد والإيداعات</p>
+            <p className={isDark ? "text-gray-400" : "text-gray-600"}>{t("wallet.subtitle")}</p>
           </div>
           <div className="flex gap-2">
             <LanguageSelector />
@@ -154,25 +154,25 @@ export const Wallet = (): JSX.Element => {
               onClick={() => window.history.length > 1 ? window.history.back() : navigate("/parent-dashboard")}
               className={`px-4 py-2 rounded-lg font-bold ${isDark ? "bg-gray-700 text-gray-200 hover:bg-gray-600" : "bg-gray-500 text-white hover:bg-gray-600"}`}
             >
-              ← رجوع
+              {t("common.back")}
             </button>
           </div>
         </div>
 
         {/* Wallet Balance */}
         <div className={`${isDark ? "bg-gradient-to-r from-blue-900 to-purple-900" : "bg-gradient-to-r from-blue-500 to-purple-600"} rounded-2xl p-8 text-white mb-8 shadow-lg`}>
-          <p className="text-lg opacity-90">الرصيد الحالي</p>
+          <p className="text-lg opacity-90">{t("wallet.currentBalance")}</p>
           <p className="text-5xl font-bold">₪ {Number(walletData?.balance || 0).toFixed(2)}</p>
           <div className="flex gap-4 mt-6 items-center">
             <button
               onClick={() => setShowDeposit(true)}
               className="px-6 py-3 bg-green-500 hover:bg-green-600 text-white rounded-lg font-bold text-lg"
             >
-              💳 إيداع أموال
+              {t("wallet.depositFunds")}
             </button>
             <div className="text-sm opacity-75">
-              <p>إجمالي الإيداع: ₪{Number(walletData?.totalDeposited || 0).toFixed(2)}</p>
-              <p>إجمالي المصروف: ₪{Number(walletData?.totalSpent || 0).toFixed(2)}</p>
+              <p>{t("wallet.totalDeposited", { amount: Number(walletData?.totalDeposited || 0).toFixed(2) })}</p>
+              <p>{t("wallet.totalSpent", { amount: Number(walletData?.totalSpent || 0).toFixed(2) })}</p>
             </div>
           </div>
         </div>
@@ -183,11 +183,11 @@ export const Wallet = (): JSX.Element => {
         {/* Deposit History */}
         <div className={`${isDark ? "bg-gray-800" : "bg-white"} rounded-lg p-6 shadow`}>
           <h2 className={`text-2xl font-bold mb-4 ${isDark ? "text-white" : "text-gray-800"}`}>
-            📋 سجل الإيداعات
+            {t("wallet.depositHistory")}
           </h2>
           {depositsList.length === 0 ? (
             <p className={isDark ? "text-gray-400" : "text-gray-600"}>
-              لا توجد إيداعات سابقة
+              {t("wallet.noDeposits")}
             </p>
           ) : (
             <div className="space-y-3">
@@ -216,7 +216,7 @@ export const Wallet = (): JSX.Element => {
                       )}
                       {deposit.transactionId && (
                         <p className={`text-xs mt-1 ${isDark ? "text-gray-500" : "text-gray-500"}`}>
-                          🔖 رقم العملية: <span className="font-mono">{deposit.transactionId}</span>
+                          {t("wallet.transactionNumber")} <span className="font-mono">{deposit.transactionId}</span>
                         </p>
                       )}
                       {deposit.receiptUrl && (
@@ -226,7 +226,7 @@ export const Wallet = (): JSX.Element => {
                           rel="noopener noreferrer"
                           className={`text-xs mt-1 inline-block underline ${isDark ? "text-blue-400" : "text-blue-600"}`}
                         >
-                          🧾 عرض إثبات التحويل
+                          {t("wallet.viewReceipt")}
                         </a>
                       )}
                       {deposit.notes && (
@@ -236,7 +236,7 @@ export const Wallet = (): JSX.Element => {
                       )}
                       {deposit.adminNotes && (
                         <p className={`text-xs mt-1 ${isDark ? "text-blue-400" : "text-blue-600"}`}>
-                          💬 ملاحظات الإدارة: {deposit.adminNotes}
+                          {t("wallet.adminNotes")} {deposit.adminNotes}
                         </p>
                       )}
                     </div>
@@ -258,10 +258,10 @@ export const Wallet = (): JSX.Element => {
             {step === "select" && (
               <>
                 <h2 className={`text-2xl font-bold mb-2 ${isDark ? "text-white" : "text-gray-800"}`}>
-                  💳 إيداع أموال
+                  {t("wallet.depositFunds")}
                 </h2>
                 <p className={`text-sm mb-6 ${isDark ? "text-gray-400" : "text-gray-600"}`}>
-                  اختر وسيلة الدفع التي ستستخدمها
+                  {t("wallet.selectPaymentMethod")}
                 </p>
 
                 <div className="space-y-3 mb-6">
@@ -301,7 +301,7 @@ export const Wallet = (): JSX.Element => {
                 </div>
 
                 {paymentMethods.length === 0 && (
-                  <p className="text-center text-gray-500 py-4">لا توجد وسائل دفع متاحة</p>
+                  <p className="text-center text-gray-500 py-4">{t("wallet.noPaymentMethods")}</p>
                 )}
 
                 <div className="flex gap-4">
@@ -310,13 +310,13 @@ export const Wallet = (): JSX.Element => {
                     disabled={!selectedMethod}
                     className="flex-1 px-4 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-bold disabled:opacity-50"
                   >
-                    التالي ←
+                    {t("common.next")}
                   </button>
                   <button
                     onClick={resetDeposit}
                     className={`flex-1 px-4 py-3 rounded-lg font-bold ${isDark ? "bg-gray-600 hover:bg-gray-500 text-gray-200" : "bg-gray-400 hover:bg-gray-500 text-white"}`}
                   >
-                    إلغاء
+                    {t("common.cancel")}
                   </button>
                 </div>
               </>
@@ -325,14 +325,14 @@ export const Wallet = (): JSX.Element => {
             {step === "confirm" && selectedMethod && (
               <>
                 <h2 className={`text-2xl font-bold mb-2 ${isDark ? "text-white" : "text-gray-800"}`}>
-                  تأكيد الإيداع
+                  {t("wallet.confirmDeposit")}
                 </h2>
                 <p className={`text-sm mb-4 ${isDark ? "text-gray-400" : "text-gray-600"}`}>
-                  قم بالتحويل للحساب التالي ثم أدخل المبلغ
+                  {t("wallet.transferInstructions")}
                 </p>
 
                 <p className={`text-xs mb-4 ${isDark ? "text-gray-500" : "text-gray-500"}`}>
-                  ⚠️ رقم العملية مطلوب للمراجعة، ورابط الإثبات يساعد على تسريع قبول الطلب.
+                  {t("wallet.transactionWarning")}
                 </p>
 
                 {/* Payment details card */}
@@ -342,16 +342,16 @@ export const Wallet = (): JSX.Element => {
                   </p>
                   <div className={`space-y-2 text-sm ${isDark ? "text-gray-300" : "text-gray-700"}`}>
                     {selectedMethod.bankName && (
-                      <p>🏦 <strong>البنك:</strong> {selectedMethod.bankName}</p>
+                      <p>🏦 <strong>{t("wallet.bank")}</strong> {selectedMethod.bankName}</p>
                     )}
                     <p className="font-mono text-lg">
-                      🔢 <strong>رقم الحساب:</strong> {selectedMethod.accountNumber}
+                      🔢 <strong>{t("wallet.accountNumber")}</strong> {selectedMethod.accountNumber}
                     </p>
                     {selectedMethod.accountName && (
-                      <p>👤 <strong>باسم:</strong> {selectedMethod.accountName}</p>
+                      <p>👤 <strong>{t("wallet.accountName")}</strong> {selectedMethod.accountName}</p>
                     )}
                     {selectedMethod.phoneNumber && (
-                      <p>📞 <strong>الهاتف:</strong> {selectedMethod.phoneNumber}</p>
+                      <p>📞 <strong>{t("wallet.phone")}</strong> {selectedMethod.phoneNumber}</p>
                     )}
                   </div>
                 </div>
@@ -359,7 +359,7 @@ export const Wallet = (): JSX.Element => {
                 <div className="space-y-4 mb-6">
                   <div>
                     <label className={`block font-bold mb-2 ${isDark ? "text-white" : "text-gray-800"}`}>
-                      المبلغ المحول (بالشيكل) *
+                      {t("wallet.amountLabel")}
                     </label>
                     <input
                       type="number"
@@ -376,7 +376,7 @@ export const Wallet = (): JSX.Element => {
 
                   <div>
                     <label className={`block font-bold mb-2 ${isDark ? "text-white" : "text-gray-800"}`}>
-                      رقم العملية / المرجع البنكي *
+                      {t("wallet.transactionIdLabel")}
                     </label>
                     <input
                       type="text"
@@ -391,7 +391,7 @@ export const Wallet = (): JSX.Element => {
 
                   <div>
                     <label className={`block font-bold mb-2 ${isDark ? "text-white" : "text-gray-800"}`}>
-                      رابط إثبات التحويل (اختياري)
+                      {t("wallet.receiptUrlLabel")}
                     </label>
                     <input
                       type="url"
@@ -406,12 +406,12 @@ export const Wallet = (): JSX.Element => {
 
                   <div>
                     <label className={`block font-bold mb-2 ${isDark ? "text-white" : "text-gray-800"}`}>
-                      ملاحظات (اختياري)
+                      {t("wallet.notesLabel")}
                     </label>
                     <textarea
                       value={depositNotes}
                       onChange={(e) => setDepositNotes(e.target.value)}
-                      placeholder="مثال: تم التحويل من حساب رقم ... أو اسم المحول ..."
+                      placeholder={t("wallet.notesPlaceholder")}
                       rows={2}
                       className={`w-full px-3 py-2 border-2 rounded-lg ${
                         isDark ? "bg-gray-700 border-gray-600 text-white" : "border-gray-300"
@@ -437,13 +437,13 @@ export const Wallet = (): JSX.Element => {
                     onClick={() => setStep("select")}
                     className={`px-4 py-3 rounded-lg font-bold ${isDark ? "bg-gray-600 hover:bg-gray-500 text-gray-200" : "bg-gray-300 hover:bg-gray-400 text-gray-800"}`}
                   >
-                    ← رجوع
+                    {t("common.back")}
                   </button>
                   <button
                     onClick={resetDeposit}
                     className="px-4 py-3 bg-red-400 hover:bg-red-500 text-white rounded-lg font-bold"
                   >
-                    إلغاء
+                    {t("common.cancel")}
                   </button>
                 </div>
               </>

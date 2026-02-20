@@ -170,16 +170,16 @@ export const ChildNotifications = (): JSX.Element => {
           <div>
             <h1 className="text-3xl md:text-4xl font-bold text-white mb-2 flex items-center gap-3">
               <Bell className="w-10 h-10" />
-              الإشعارات
+              {t("childNotifications.title")}
               {unreadCount > 0 && (
                 <span className="bg-red-500 text-white text-sm px-3 py-1 rounded-full">
-                  {unreadCount} جديد
+                  {t("childNotifications.newCount", { count: unreadCount })}
                 </span>
               )}
             </h1>
             <p className="text-white text-opacity-80 flex items-center gap-2">
               <Star className="w-5 h-5 text-yellow-400" />
-              النقاط: {currentPoints}
+              {t("childNotifications.points", { count: currentPoints })}
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -189,7 +189,7 @@ export const ChildNotifications = (): JSX.Element => {
               className={`px-6 py-3 ${isDark ? "bg-gray-700 hover:bg-gray-600" : "bg-white bg-opacity-30 hover:bg-opacity-40"} text-white font-bold rounded-xl transition-all`}
               data-testid="button-back"
             >
-              رجوع
+              {t("common.back")}
             </button>
           </div>
         </div>
@@ -234,17 +234,17 @@ export const ChildNotifications = (): JSX.Element => {
                           <div className="flex flex-wrap gap-2 mb-3">
                             {notification.metadata.pointsEarned && (
                               <span className="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm font-bold">
-                                +{notification.metadata.pointsEarned} نقطة
+                                {t("childNotifications.pointsEarned", { count: notification.metadata.pointsEarned })}
                               </span>
                             )}
                             {notification.metadata.requiredPoints && (
                               <span className="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm font-bold">
-                                الهدف: {notification.metadata.requiredPoints} نقطة
+                                {t("childNotifications.goalTarget", { count: notification.metadata.requiredPoints })}
                               </span>
                             )}
                             {notification.metadata.percentage && (
                               <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-bold">
-                                التقدم: {notification.metadata.percentage}%
+                                {t("childNotifications.progressPercent", { pct: notification.metadata.percentage })}
                               </span>
                             )}
                           </div>
@@ -271,7 +271,7 @@ export const ChildNotifications = (): JSX.Element => {
                               data-testid={`button-mark-read-${notification.id}`}
                             >
                               <CheckCircle className="w-4 h-4" />
-                              تم القراءة
+                              {t("childNotifications.markRead")}
                             </button>
                           )}
                         </div>
@@ -295,10 +295,10 @@ export const ChildNotifications = (): JSX.Element => {
             <div className={`${isDark ? "bg-gray-800" : "bg-white"} rounded-2xl p-12 text-center`}>
               <Bell className={`w-20 h-20 mx-auto mb-4 ${isDark ? "text-gray-600" : "text-gray-300"}`} />
               <h3 className={`text-2xl font-bold mb-2 ${isDark ? "text-white" : "text-gray-800"}`}>
-                لا توجد إشعارات
+                {t("childNotifications.noNotifications")}
               </h3>
               <p className={`${isDark ? "text-gray-400" : "text-gray-600"}`}>
-                ستظهر هنا إشعاراتك عند حصولك على نقاط جديدة أو هدايا
+                {t("childNotifications.emptyMessage")}
               </p>
             </div>
           )}
@@ -310,10 +310,10 @@ export const ChildNotifications = (): JSX.Element => {
               </div>
               <div className="flex-1">
                 <h3 className={`font-bold text-lg ${isDark ? "text-white" : "text-gray-800"}`}>
-                  مرحباً {childInfo?.name || ""}!
+                  {t("childNotifications.hello", { name: childInfo?.name || "" })}
                 </h3>
                 <p className={`${isDark ? "text-gray-400" : "text-gray-600"}`}>
-                  استمر في جمع النقاط للحصول على هدايا رائعة! لديك {currentPoints} نقطة.
+                  {t("childNotifications.encouragement", { count: currentPoints })}
                 </p>
               </div>
             </div>
@@ -327,7 +327,7 @@ export const ChildNotifications = (): JSX.Element => {
             data-testid="button-games"
           >
             <Gamepad2 className="w-8 h-8" />
-            العب
+            {t("childNav.play")}
           </button>
           <button
             onClick={() => navigate("/child-store")}
@@ -335,7 +335,7 @@ export const ChildNotifications = (): JSX.Element => {
             data-testid="button-store"
           >
             <ShoppingBag className="w-8 h-8" />
-            المتجر
+            {t("childNav.store")}
           </button>
           <button
             onClick={() => navigate("/child-gifts")}
@@ -343,7 +343,7 @@ export const ChildNotifications = (): JSX.Element => {
             data-testid="button-gifts"
           >
             <Gift className="w-8 h-8" />
-            الهدايا
+            {t("childNav.gifts")}
           </button>
           <button
             onClick={() => navigate("/child-tasks")}
@@ -351,7 +351,7 @@ export const ChildNotifications = (): JSX.Element => {
             data-testid="button-tasks"
           >
             <Target className="w-8 h-8" />
-            المهام
+            {t("childNav.tasks")}
           </button>
         </div>
       </div>
