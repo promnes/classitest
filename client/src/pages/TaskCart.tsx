@@ -1,16 +1,19 @@
 import { useLocation } from "wouter";
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useToast } from "@/hooks/use-toast";
 import { LanguageSelector } from "@/components/LanguageSelector";
 import { ParentNotificationBell } from "@/components/NotificationBell";
 import {
   ArrowRight, ShoppingCart, Trash2, Loader2, Wallet,
-  BookOpen, Star, CheckCircle, ShoppingBag, AlertCircle
+  BookOpen, Star, CheckCircle, ShoppingBag, AlertCircle, RotateCcw, Infinity
 } from "lucide-react";
 
 interface CartItem {
@@ -39,6 +42,8 @@ export default function TaskCart() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const token = localStorage.getItem("token");
+  const [purchaseType, setPurchaseType] = useState<"one_time" | "limited" | "permanent">("permanent");
+  const [maxUsageCount, setMaxUsageCount] = useState<number>(3);
 
   const { data: cartData, isLoading } = useQuery<CartData>({
     queryKey: ["task-cart"],
@@ -77,6 +82,10 @@ export default function TaskCart() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
+        body: JSON.stringify({
+          purchaseType,
+          ...(purchaseType === "limited" ? { maxUsageCount } : {}),
+        }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.message || "Checkout failed");
@@ -223,13 +232,72 @@ export default function TaskCart() {
         {items.length > 0 && (
           <Card className={`sticky bottom-4 ${isDark ? "bg-gray-900 border-gray-700" : "bg-white border-gray-200"} shadow-lg`}>
             <CardContent className="p-4 space-y-3">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">{t('taskCart.taskCount')}</span>
-                <span className="font-medium">{items.length}</span>
+              {/* Purchase Type Selection */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">{t('taskCart.purchaseType')}</Label>
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    onClick={() => setPurchaseType("one_time")}
+                    className={`flex flex-col items-center gap-1 p-2.5 rounded-lg border-2 transition-all text-center ${
+                      purchaseType === "one_time"
+                        ? "border-primary bg-primary/10 text-primary"
+                        : isDark ? "border-gray-700 hover:border-gray-600" : "border-gray-200 hover:border-gray-300"
+                    }`}
+                  >
+                    <RotateCcw className="h-4 w-4" />
+                    <span className="text-xs font-medium">{t('taskCart.purchaseOnce')}</span>
+                    <span className="text-[10px] text-muted-foreground">{t('taskCart.purchaseOnceDesc')}</span>
+                  </button>
+                  <button
+                    onClick={() => setPurchaseType("limited")}
+                    className={`flex flex-col items-center gap-1 p-2.5 rounded-lg border-2 transition-all text-center ${
+                      purchaseType === "limited"
+                        ? "border-primary bg-primary/10 text-primary"
+                        : isDark ? "border-gray-700 hover:border-gray-600" : "border-gray-200 hover:border-gray-300"
+                    }`}
+                  >
+                    <RotateCcw className="h-4 w-4" />
+                    <span className="text-xs font-medium">{t('taskCart.purchaseLimited')}</span>
+                    <span className="text-[10px] text-muted-foreground">{t('taskCart.purchaseLimitedDesc')}</span>
+                  </button>
+                  <button
+                    onClick={() => setPurchaseType("permanent")}
+                    className={`flex flex-col items-center gap-1 p-2.5 rounded-lg border-2 transition-all text-center ${
+                      purchaseType === "permanent"
+                        ? "border-primary bg-primary/10 text-primary"
+                        : isDark ? "border-gray-700 hover:border-gray-600" : "border-gray-200 hover:border-gray-300"
+                    }`}
+                  >
+                    <Infinity className="h-4 w-4" />
+                    <span className="text-xs font-medium">{t('taskCart.purchasePermanent')}</span>
+                    <span className="text-[10px] text-muted-foreground">{t('taskCart.purchasePermanentDesc')}</span>
+                  </button>
+                </div>
+
+                {purchaseType === "limited" && (
+                  <div className="mt-2">
+                    <Label className="text-xs">{t('taskCart.howManyTimes')}</Label>
+                    <Input
+                      type="number"
+                      min={1}
+                      max={100}
+                      value={maxUsageCount}
+                      onChange={(e) => setMaxUsageCount(Math.max(1, parseInt(e.target.value) || 1))}
+                      className="h-9 mt-1"
+                    />
+                  </div>
+                )}
               </div>
-              <div className="flex items-center justify-between">
-                <span className="font-bold text-lg">{t('taskCart.total')}</span>
-                <span className="font-bold text-lg text-green-600">{totalPrice.toFixed(2)} {t('taskCart.currency')}</span>
+
+              <div className="border-t pt-3 space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">{t('taskCart.taskCount')}</span>
+                  <span className="font-medium">{items.length}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-lg">{t('taskCart.total')}</span>
+                  <span className="font-bold text-lg text-green-600">{totalPrice.toFixed(2)} {t('taskCart.currency')}</span>
+                </div>
               </div>
 
               {!canAfford && (

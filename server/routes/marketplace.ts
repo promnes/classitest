@@ -260,7 +260,16 @@ export function registerMarketplaceRoutes(app: Express) {
   app.post("/api/parent/buy-teacher-task", authMiddleware, async (req: any, res) => {
     try {
       const parentId = req.user.userId;
-      const { teacherTaskId, childId, purchaseType = "permanent" } = req.body;
+      const { teacherTaskId, childId, purchaseType = "permanent", maxUsageCount } = req.body;
+
+      // Validate purchaseType
+      const validTypes = ["one_time", "limited", "permanent"];
+      if (!validTypes.includes(purchaseType)) {
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "نوع الشراء غير صالح"));
+      }
+      if (purchaseType === "limited" && (!maxUsageCount || maxUsageCount < 1)) {
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "يجب تحديد عدد مرات الاستخدام"));
+      }
 
       if (!teacherTaskId) {
         return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "معرّف المهمة مطلوب"));
@@ -358,6 +367,7 @@ export function registerMarketplaceRoutes(app: Express) {
         subjectLabel: task.subjectLabel,
         pointsReward: task.pointsReward,
         purchaseType: purchaseType as string,
+        maxUsageCount: purchaseType === "one_time" ? 1 : purchaseType === "limited" ? (maxUsageCount || 1) : null,
       }).returning();
 
       res.json(successResponse({
@@ -376,7 +386,7 @@ export function registerMarketplaceRoutes(app: Express) {
     try {
       const parentId = req.user.userId;
       const { id } = req.params;
-      const { childId } = req.body;
+      const { childId, pointsReward: customPoints, question: customQuestion, answers: customAnswers, imageUrl: customImage, gifUrl: customGif } = req.body;
 
       if (!childId) {
         return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "معرّف الطفل مطلوب"));
@@ -402,45 +412,60 @@ export function registerMarketplaceRoutes(app: Express) {
         return res.status(404).json(errorResponse(ErrorCode.NOT_FOUND, "المهمة غير موجودة في المكتبة"));
       }
 
+      // Check usage limits for limited purchase type
+      if (item.maxUsageCount !== null && item.usageCount >= item.maxUsageCount) {
+        // Deactivate and return error
+        await db.update(parentTaskLibrary).set({ isActive: false }).where(eq(parentTaskLibrary.id, id));
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "تم استنفاد عدد مرات استخدام هذه المهمة"));
+      }
+
+      // Use custom points or original
+      const finalPoints = (customPoints && customPoints > 0) ? customPoints : item.pointsReward;
+
       // Check wallet for points reward
       const [wallet] = await db.select().from(parentWallet)
         .where(eq(parentWallet.parentId, parentId)).limit(1);
 
       const balance = Number(wallet?.balance || 0);
-      if (balance < item.pointsReward) {
+      if (balance < finalPoints) {
         return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST,
-          `رصيدك غير كافٍ لإرسال المهمة. الرصيد: ${balance}, المطلوب: ${item.pointsReward}`));
+          `رصيدك غير كافٍ لإرسال المهمة. الرصيد: ${balance}, المطلوب: ${finalPoints}`));
       }
 
       // Deduct points
       await db.update(parentWallet).set({
-        balance: sql`${parentWallet.balance} - ${item.pointsReward}`,
+        balance: sql`${parentWallet.balance} - ${finalPoints}`,
       }).where(eq(parentWallet.parentId, parentId));
 
-      // Create actual task for child
+      // Create actual task for child (use custom values if provided, otherwise original)
       const [newTask] = await db.insert(tasks).values({
         parentId,
         childId,
-        question: item.question,
-        answers: item.answers,
-        imageUrl: item.imageUrl,
-        gifUrl: item.gifUrl,
-        pointsReward: item.pointsReward,
+        question: customQuestion || item.question,
+        answers: customAnswers || item.answers,
+        imageUrl: customImage !== undefined ? customImage : item.imageUrl,
+        gifUrl: customGif !== undefined ? customGif : item.gifUrl,
+        pointsReward: finalPoints,
         status: "pending",
       }).returning();
 
       // Update usage count
+      const newUsageCount = item.usageCount + 1;
       await db.update(parentTaskLibrary).set({
         usageCount: sql`${parentTaskLibrary.usageCount} + 1`,
       }).where(eq(parentTaskLibrary.id, id));
 
-      // If one_time, deactivate
-      if (item.purchaseType === "one_time") {
+      // Check if should deactivate (one_time or limited exhausted)
+      if (item.purchaseType === "one_time" || (item.maxUsageCount !== null && newUsageCount >= item.maxUsageCount)) {
         await db.update(parentTaskLibrary).set({ isActive: false })
           .where(eq(parentTaskLibrary.id, id));
       }
 
-      res.json(successResponse({ task: newTask, message: "تم إرسال المهمة للطفل" }));
+      res.json(successResponse({
+        task: newTask,
+        remainingUses: item.maxUsageCount !== null ? Math.max(0, item.maxUsageCount - newUsageCount) : null,
+        message: "تم إرسال المهمة للطفل",
+      }));
     } catch (err: any) {
       console.error("Use library task error:", err);
       res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "خطأ في إرسال المهمة"));
@@ -1013,6 +1038,14 @@ export function registerMarketplaceRoutes(app: Express) {
   app.post("/api/parent/cart/checkout", authMiddleware, async (req: any, res) => {
     try {
       const parentId = req.user.userId;
+      const { purchaseType = "permanent", maxUsageCount } = req.body || {};
+
+      // Validate purchaseType
+      const validTypes = ["one_time", "limited", "permanent"];
+      const finalPurchaseType = validTypes.includes(purchaseType) ? purchaseType : "permanent";
+      if (finalPurchaseType === "limited" && (!maxUsageCount || maxUsageCount < 1)) {
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "يجب تحديد عدد مرات الاستخدام للشراء المحدود"));
+      }
 
       // Get cart items
       const items = await db.select({
@@ -1117,7 +1150,8 @@ export function registerMarketplaceRoutes(app: Express) {
           gifUrl: task.gifUrl,
           subjectLabel: task.subjectLabel,
           pointsReward: task.pointsReward,
-          purchaseType: "permanent",
+          purchaseType: finalPurchaseType,
+          maxUsageCount: finalPurchaseType === "one_time" ? 1 : finalPurchaseType === "limited" ? (maxUsageCount || 1) : null,
         }).returning();
         libraryItems.push(libItem);
       }

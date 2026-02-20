@@ -2109,7 +2109,8 @@ export const parentTaskLibrary = pgTable("parent_task_library", {
   gifUrl: text("gif_url"),
   subjectLabel: text("subject_label"),
   pointsReward: integer("points_reward").default(10).notNull(),
-  purchaseType: varchar("purchase_type", { length: 20 }).default("permanent").notNull(), // "one_time" | "permanent"
+  purchaseType: varchar("purchase_type", { length: 20 }).default("permanent").notNull(), // "one_time" | "limited" | "permanent"
+  maxUsageCount: integer("max_usage_count"), // null = unlimited (permanent), number for limited uses
   usageCount: integer("usage_count").default(0).notNull(),
   isActive: boolean("is_active").default(true).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),

@@ -1685,7 +1685,24 @@
     "taskCreatedAndSent": "تم إنشاء وإرسال المهمة للطفل",
     "templateSaved": "تم حفظ المهمة كقالب أيضاً",
     "balanceLabel": "الرصيد:",
-    "insufficientBalance": "رصيدك غير كافي"
+    "insufficientBalance": "رصيدك غير كافي",
+    "tabLibrary": "مكتبتي",
+    "libraryEmpty": "مكتبة المهام فارغة",
+    "libraryEmptyDesc": "اشترِ مهام من سوق المهام وستظهر هنا",
+    "purchaseOnce": "مرة واحدة",
+    "purchaseLimited": "عدد محدد",
+    "purchasePermanent": "دائمًا",
+    "remainingUses": "المتبقي: {{count}} استخدام",
+    "usageExhausted": "مستنفدة",
+    "usageCount": "{{used}} / {{total}} استخدام",
+    "usageUnlimited": "غير محدود",
+    "sendAsIs": "إرسال كما هي",
+    "customizeTask": "تخصيص المهمة",
+    "customPoints": "تحديد النقاط",
+    "sendFromLibrary": "إرسال من المكتبة",
+    "customizeBeforeSend": "تخصيص قبل الإرسال",
+    "libraryTaskSent": "تم إرسال المهمة من المكتبة بنجاح",
+    "libraryTaskSendFailed": "فشل إرسال المهمة"
   },
   "parentStore": {
     "searchProducts": "ابحث عن منتجات...",
@@ -2660,7 +2677,15 @@
     "removedFromCart": "تم الحذف من السلة",
     "purchaseSuccess": "تم الشراء بنجاح!",
     "purchasedCount": "تم شراء {{count}} مهمة",
-    "purchaseFailed": "فشل الشراء"
+    "purchaseFailed": "فشل الشراء",
+    "purchaseType": "نوع الشراء",
+    "purchaseOnce": "مرة واحدة",
+    "purchaseOnceDesc": "استخدام المهمة مرة واحدة فقط",
+    "purchaseLimited": "عدد محدد",
+    "purchaseLimitedDesc": "حدد عدد مرات الاستخدام",
+    "purchasePermanent": "دائمًا",
+    "purchasePermanentDesc": "استخدام غير محدود",
+    "howManyTimes": "عدد مرات الاستخدام"
   },
   "schoolDashboard": {
     "dashboardTitle": "لوحة تحكم المدرسة",

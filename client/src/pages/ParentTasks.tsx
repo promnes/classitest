@@ -17,7 +17,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { ArrowRight, Plus, Star, Users, BookOpen, Send, Coins, Loader2, Calendar, Clock, X, Pencil, Wallet, ShoppingCart, Heart, Sparkles, Search, ShoppingBag } from "lucide-react";
+import { ArrowRight, Plus, Star, Users, BookOpen, Send, Coins, Loader2, Calendar, Clock, X, Pencil, Wallet, ShoppingCart, Heart, Sparkles, Search, ShoppingBag, Library, Infinity, RotateCcw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { TaskForm, type TaskFormValue } from "@/components/forms/TaskForm";
 
@@ -44,6 +44,11 @@ export default function ParentTasks() {
   const [createFormKey, setCreateFormKey] = useState(0);
   const [selectedChildForCreate, setSelectedChildForCreate] = useState<string>("");
   const [saveAsTemplate, setSaveAsTemplate] = useState(false);
+  const [showLibrarySendDialog, setShowLibrarySendDialog] = useState(false);
+  const [selectedLibraryTask, setSelectedLibraryTask] = useState<any>(null);
+  const [libraryCustomize, setLibraryCustomize] = useState(false);
+  const [libraryChildId, setLibraryChildId] = useState<string>("");
+  const [libraryCustomPoints, setLibraryCustomPoints] = useState<number>(0);
   const NO_CHILD_VALUE = "__none__";
 
   const { data: subjectsData } = useQuery<any>({
@@ -97,6 +102,19 @@ export default function ParentTasks() {
 
   const { data: walletData } = useQuery<any>({
     queryKey: ["/api/parent/wallet"],
+  });
+
+  const { data: libraryData, isLoading: loadingLibrary } = useQuery<any>({
+    queryKey: ["/api/parent/task-library"],
+    queryFn: async () => {
+      const res = await fetch("/api/parent/task-library", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error("Failed");
+      const json = await res.json();
+      return json.data || [];
+    },
+    enabled: activeTab === "library" && !!token,
   });
 
   // Marketplace state & queries
@@ -340,6 +358,43 @@ export default function ParentTasks() {
     },
   });
 
+  const libraryUseMutation = useMutation({
+    mutationFn: async (data: { libraryId: string; childId: string; pointsReward?: number; question?: string; answers?: any[]; imageUrl?: string; gifUrl?: string }) => {
+      const res = await fetch(`/api/parent/task-library/${data.libraryId}/use`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          childId: data.childId,
+          pointsReward: data.pointsReward,
+          question: data.question,
+          answers: data.answers,
+          imageUrl: data.imageUrl,
+          gifUrl: data.gifUrl,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.message || "Failed");
+      return json.data;
+    },
+    onSuccess: (data) => {
+      toast({ title: t("parentTasks.libraryTaskSent") });
+      setShowLibrarySendDialog(false);
+      setSelectedLibraryTask(null);
+      setLibraryChildId("");
+      setLibraryCustomize(false);
+      setLibraryCustomPoints(0);
+      queryClient.invalidateQueries({ queryKey: ["/api/parent/task-library"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/parent/wallet"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/parent/children"] });
+    },
+    onError: (error: any) => {
+      toast({ title: error?.message || t("parentTasks.libraryTaskSendFailed"), variant: "destructive" });
+    },
+  });
+
   const handleCreateTaskSubmit = async (form: TaskFormValue) => {
     const subjectId = form.subjectId || (selectedSubject && selectedSubject !== "all" ? selectedSubject : "");
 
@@ -443,6 +498,52 @@ export default function ParentTasks() {
     setSelectedTask(task);
     setShowSendDialog(true);
   };
+
+  const openLibrarySendDialog = (item: any) => {
+    setSelectedLibraryTask(item);
+    setLibraryChildId("");
+    setLibraryCustomize(false);
+    setLibraryCustomPoints(item.pointsReward || 10);
+    setShowLibrarySendDialog(true);
+  };
+
+  const handleLibrarySend = async (form?: TaskFormValue) => {
+    if (!selectedLibraryTask || !libraryChildId) {
+      toast({ title: t("parentTasks.selectChildRequired"), variant: "destructive" });
+      return;
+    }
+    const payload: any = {
+      libraryId: selectedLibraryTask.id,
+      childId: libraryChildId,
+    };
+    if (libraryCustomize && form) {
+      payload.pointsReward = form.pointsReward;
+      payload.question = form.question;
+      payload.answers = form.answers.map((a: any) => ({ id: a.id, text: a.text, isCorrect: a.isCorrect, imageUrl: a.imageUrl }));
+    } else {
+      payload.pointsReward = libraryCustomPoints || selectedLibraryTask.pointsReward;
+    }
+    libraryUseMutation.mutate(payload);
+  };
+
+  const mapLibraryToFormValue = (item: any): TaskFormValue => ({
+    title: item.title || "",
+    question: item.question || "",
+    answers: (item.answers || []).map((a: any, idx: number) => ({
+      id: a.id || String(idx + 1),
+      text: a.text || "",
+      isCorrect: !!a.isCorrect,
+      imageUrl: a.imageUrl,
+    })),
+    pointsReward: item.pointsReward || 10,
+    difficulty: "medium",
+    subjectId: "",
+    isPublic: false,
+    pointsCost: 0,
+    taskMedia: null,
+  });
+
+  const libraryTasks = libraryData || [];
 
   const TaskCard = ({ task, showCost = false, showCreator = false, showEdit = false }: any) => (
     <Card className={`${isDark ? "bg-gray-800 border-gray-700" : "bg-white"} hover:shadow-md transition-shadow`}>
@@ -611,7 +712,7 @@ export default function ParentTasks() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="classy" data-testid="tab-classy">
               <BookOpen className="h-4 w-4 ml-2" />
               {t("parentTasks.tabClassy")}
@@ -619,6 +720,10 @@ export default function ParentTasks() {
             <TabsTrigger value="my" data-testid="tab-my">
               <Star className="h-4 w-4 ml-2" />
               {t("parentTasks.tabMy")}
+            </TabsTrigger>
+            <TabsTrigger value="library" data-testid="tab-library">
+              <Library className="h-4 w-4 ml-2" />
+              {t("parentTasks.tabLibrary")}
             </TabsTrigger>
             <TabsTrigger value="public" data-testid="tab-public">
               <Users className="h-4 w-4 ml-2" />
@@ -686,6 +791,93 @@ export default function ParentTasks() {
                     <TaskCard key={task.id} task={task} showEdit />
                   ))
                 )}
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="library" className="mt-4">
+            {loadingLibrary ? (
+              <div className="flex justify-center p-8">
+                <Loader2 className="h-8 w-8 animate-spin" />
+              </div>
+            ) : libraryTasks.length === 0 ? (
+              <Card className={isDark ? "bg-gray-800" : ""}>
+                <CardContent className="p-8 text-center">
+                  <Library className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                  <p className="font-bold mb-2">{t("parentTasks.libraryEmpty")}</p>
+                  <p className="text-sm text-muted-foreground mb-4">{t("parentTasks.libraryEmptyDesc")}</p>
+                  <Button onClick={() => setActiveTab("marketplace")}>
+                    <Sparkles className="h-4 w-4 ml-2" />
+                    {t("parentTasks.tabMarketplace")}
+                  </Button>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid gap-3">
+                {libraryTasks.map((item: any) => {
+                  const isExhausted = item.maxUsageCount !== null && item.usageCount >= item.maxUsageCount;
+                  const purchaseLabel = item.purchaseType === "one_time"
+                    ? t("parentTasks.purchaseOnce")
+                    : item.purchaseType === "limited"
+                    ? t("parentTasks.purchaseLimited")
+                    : t("parentTasks.purchasePermanent");
+                  
+                  return (
+                    <Card key={item.id} className={`${isDark ? "bg-gray-800 border-gray-700" : "bg-white"} hover:shadow-md transition-shadow ${isExhausted ? "opacity-60" : ""}`}>
+                      <CardContent className="p-4">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-bold text-sm mb-1 truncate">{item.title}</h3>
+                            <p className="text-xs text-muted-foreground line-clamp-2">{item.question}</p>
+                            
+                            <div className="flex flex-wrap gap-1.5 mt-2">
+                              <Badge variant={item.purchaseType === "permanent" ? "default" : "secondary"} className="text-[10px]">
+                                {item.purchaseType === "permanent" ? <Infinity className="h-2.5 w-2.5 ml-0.5" /> : <RotateCcw className="h-2.5 w-2.5 ml-0.5" />}
+                                {purchaseLabel}
+                              </Badge>
+                              
+                              {item.maxUsageCount !== null ? (
+                                <Badge variant={isExhausted ? "destructive" : "outline"} className="text-[10px]">
+                                  {isExhausted 
+                                    ? t("parentTasks.usageExhausted")
+                                    : t("parentTasks.usageCount", { used: item.usageCount, total: item.maxUsageCount })
+                                  }
+                                </Badge>
+                              ) : (
+                                <Badge variant="outline" className="text-[10px]">
+                                  {t("parentTasks.usageUnlimited")}
+                                </Badge>
+                              )}
+
+                              {item.subjectLabel && (
+                                <Badge variant="outline" className="text-[10px]">{item.subjectLabel}</Badge>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex flex-col items-end gap-2">
+                            <Badge variant="secondary" className="shrink-0">
+                              <Star className="h-3 w-3 ml-1" />
+                              {item.pointsReward} {t("parentTasks.points")}
+                            </Badge>
+                            {!isExhausted && item.isActive && (
+                              <Button 
+                                size="sm" 
+                                onClick={() => openLibrarySendDialog(item)}
+                                data-testid={`send-library-${item.id}`}
+                              >
+                                <Send className="h-3 w-3 ml-1" />
+                                {t("parentTasks.send")}
+                              </Button>
+                            )}
+                            {isExhausted && (
+                              <Badge variant="destructive" className="text-xs">{t("parentTasks.usageExhausted")}</Badge>
+                            )}
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
               </div>
             )}
           </TabsContent>
@@ -1053,6 +1245,125 @@ export default function ParentTasks() {
               submitLabel={t("parentTasks.saveChanges")}
             />
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Library Send Dialog */}
+      <Dialog open={showLibrarySendDialog} onOpenChange={(open: boolean) => {
+        if (!open) {
+          setShowLibrarySendDialog(false);
+          setSelectedLibraryTask(null);
+          setLibraryChildId("");
+          setLibraryCustomize(false);
+          setLibraryCustomPoints(0);
+        }
+      }}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{t("parentTasks.sendFromLibrary")}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            {selectedLibraryTask && (
+              <Card className={isDark ? "bg-gray-800" : "bg-muted"}>
+                <CardContent className="p-3">
+                  <p className="font-bold">{selectedLibraryTask.title}</p>
+                  <p className="text-sm text-muted-foreground">{selectedLibraryTask.question}</p>
+                  <div className="flex gap-2 mt-2">
+                    <Badge variant="secondary">
+                      <Star className="h-3 w-3 ml-1" />
+                      {selectedLibraryTask.pointsReward} {t("parentTasks.points")}
+                    </Badge>
+                    {selectedLibraryTask.maxUsageCount !== null && (
+                      <Badge variant="outline" className="text-xs">
+                        {t("parentTasks.remainingUses", { count: Math.max(0, selectedLibraryTask.maxUsageCount - selectedLibraryTask.usageCount) })}
+                      </Badge>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            <div>
+              <Label>{t("parentTasks.chooseSendChild")}</Label>
+              <Select value={libraryChildId} onValueChange={setLibraryChildId}>
+                <SelectTrigger data-testid="select-library-child">
+                  <SelectValue placeholder={t("parentTasks.selectChild")} />
+                </SelectTrigger>
+                <SelectContent>
+                  {children.map((c: any) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.name} ({c.totalPoints} {t("parentTasks.points")})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {!libraryCustomize && (
+              <div>
+                <Label>{t("parentTasks.customPoints")}</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  value={libraryCustomPoints || ""}
+                  onChange={(e: ChangeEvent<HTMLInputElement>) => setLibraryCustomPoints(parseInt(e.target.value) || 0)}
+                  data-testid="library-custom-points"
+                />
+              </div>
+            )}
+
+            <div className="flex items-center gap-2">
+              <Switch
+                checked={libraryCustomize}
+                onCheckedChange={setLibraryCustomize}
+                data-testid="toggle-library-customize"
+              />
+              <Label className="flex items-center gap-2 cursor-pointer">
+                <Pencil className="h-4 w-4" />
+                {t("parentTasks.customizeBeforeSend")}
+              </Label>
+            </div>
+
+            {libraryCustomize && selectedLibraryTask ? (
+              <TaskForm
+                key={`library-${selectedLibraryTask.id}`}
+                mode="parent"
+                initialValue={mapLibraryToFormValue(selectedLibraryTask)}
+                subjects={subjects}
+                showSubject={false}
+                allowPublic={false}
+                allowDifficulty={false}
+                onSubmit={(form) => handleLibrarySend(form)}
+                submitting={libraryUseMutation.isPending}
+                submitLabel={t("parentTasks.sendTask")}
+              />
+            ) : (
+              <>
+                {selectedLibraryTask && walletBalance < (libraryCustomPoints || selectedLibraryTask.pointsReward || 0) && (
+                  <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/30 text-destructive text-sm text-center">
+                    <Wallet className="h-4 w-4 inline ml-1" />
+                    {t("parentTasks.insufficientBalance")}
+                  </div>
+                )}
+
+                <Button
+                  onClick={() => handleLibrarySend()}
+                  className="w-full"
+                  disabled={libraryUseMutation.isPending || !libraryChildId || (!!selectedLibraryTask && walletBalance < (libraryCustomPoints || selectedLibraryTask.pointsReward || 0))}
+                  data-testid="confirm-library-send"
+                >
+                  {libraryUseMutation.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <>
+                      <Send className="h-4 w-4 ml-2" />
+                      {t("parentTasks.sendAsIs")}
+                    </>
+                  )}
+                </Button>
+              </>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
     </div>

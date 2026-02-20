@@ -1685,7 +1685,24 @@
     "taskCreatedAndSent": "Task created and sent to child",
     "templateSaved": "Task saved as template too",
     "balanceLabel": "Balance:",
-    "insufficientBalance": "Insufficient balance"
+    "insufficientBalance": "Insufficient balance",
+    "tabLibrary": "My Library",
+    "libraryEmpty": "Task library is empty",
+    "libraryEmptyDesc": "Buy tasks from the marketplace and they will appear here",
+    "purchaseOnce": "One-time",
+    "purchaseLimited": "Limited",
+    "purchasePermanent": "Permanent",
+    "remainingUses": "Remaining: {{count}} uses",
+    "usageExhausted": "Exhausted",
+    "usageCount": "{{used}} / {{total}} uses",
+    "usageUnlimited": "Unlimited",
+    "sendAsIs": "Send as-is",
+    "customizeTask": "Customize Task",
+    "customPoints": "Set Points",
+    "sendFromLibrary": "Send from Library",
+    "customizeBeforeSend": "Customize before sending",
+    "libraryTaskSent": "Library task sent to child successfully",
+    "libraryTaskSendFailed": "Failed to send task"
   },
   "parentStore": {
     "searchProducts": "Search for products...",
@@ -2660,7 +2677,15 @@
     "removedFromCart": "Removed from cart",
     "purchaseSuccess": "Purchase successful!",
     "purchasedCount": "Purchased {{count}} tasks",
-    "purchaseFailed": "Purchase failed"
+    "purchaseFailed": "Purchase failed",
+    "purchaseType": "Purchase Type",
+    "purchaseOnce": "One-time",
+    "purchaseOnceDesc": "Use task once only",
+    "purchaseLimited": "Limited",
+    "purchaseLimitedDesc": "Specify number of uses",
+    "purchasePermanent": "Permanent",
+    "purchasePermanentDesc": "Unlimited uses",
+    "howManyTimes": "Number of uses"
   },
   "schoolDashboard": {
     "dashboardTitle": "School Dashboard",
