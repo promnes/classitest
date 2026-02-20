@@ -527,6 +527,83 @@ export async function registerAdminRoutes(app: Express) {
     }
   });
 
+  // Upload product images (multiple files)
+  app.post("/api/admin/products/upload-images", adminMiddleware, async (req: any, res) => {
+    try {
+      const multer = await import("multer");
+      const path = await import("path");
+      const fs = await import("fs");
+
+      const uploadDir = path.join(process.cwd(), "uploads", "product-images");
+      if (!fs.existsSync(uploadDir)) {
+        fs.mkdirSync(uploadDir, { recursive: true });
+      }
+
+      const imgStorage = multer.default.diskStorage({
+        destination: (_req: any, _file: any, cb: any) => {
+          cb(null, uploadDir);
+        },
+        filename: (_req: any, file: any, cb: any) => {
+          const ext = path.extname(file.originalname).toLowerCase();
+          const uniqueSuffix = Date.now().toString(36) + "-" + Math.random().toString(36).substring(2, 8);
+          cb(null, `product-${uniqueSuffix}${ext}`);
+        },
+      });
+
+      const fileFilter = (_req: any, file: any, cb: any) => {
+        const allowed = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+        if (allowed.includes(file.mimetype)) {
+          cb(null, true);
+        } else {
+          cb(new Error("Only image files (JPEG, PNG, WebP, GIF) are allowed"));
+        }
+      };
+
+      const upload = multer.default({
+        storage: imgStorage,
+        limits: { fileSize: 5 * 1024 * 1024 }, // 5MB per image
+        fileFilter,
+      }).array("images", 10); // max 10 images
+
+      upload(req, res, async (err: any) => {
+        if (err) {
+          console.error("Product image upload error:", err);
+          return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, `Upload failed: ${err.message}`));
+        }
+
+        if (!req.files || req.files.length === 0) {
+          return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "No files uploaded"));
+        }
+
+        const urls = (req.files as any[]).map((f: any) => `/uploads/product-images/${f.filename}`);
+        res.json(successResponse({ urls }, `${urls.length} image(s) uploaded`));
+      });
+    } catch (error: any) {
+      console.error("Product image upload error:", error);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to upload product images"));
+    }
+  });
+
+  // Delete a product image file
+  app.delete("/api/admin/products/delete-image", adminMiddleware, async (req: any, res) => {
+    try {
+      const { url } = req.body;
+      if (!url || !url.startsWith("/uploads/product-images/")) {
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Invalid image URL"));
+      }
+      const path = await import("path");
+      const fs = await import("fs");
+      const filePath = path.join(process.cwd(), url);
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+      }
+      res.json(successResponse(undefined, "Image deleted"));
+    } catch (error: any) {
+      console.error("Delete product image error:", error);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to delete image"));
+    }
+  });
+
   // ===== STORE CATEGORIES MANAGEMENT =====
 
   // Get all categories

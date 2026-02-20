@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import i18next from "i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -11,7 +11,7 @@ import {
   Plus, Edit, Trash2, Package, Eye, Search, Star,
   Image, Tag, BarChart3, X, Copy, ShoppingCart,
   ArrowUpDown, Globe, Layers, Sparkles, Box,
-  TrendingUp, DollarSign, Filter, Grid3X3, List,
+  TrendingUp, DollarSign, Filter, Grid3X3, List, Upload, ChevronLeft, ChevronRight, GripVertical,
 } from "lucide-react";
 
 interface Product {
@@ -73,12 +73,15 @@ export function ProductsTab({
     pointsPrice: "",
     stock: "999",
     image: "",
+    images: [] as string[],
     categoryId: "",
     productType: "digital",
     brand: "",
     isFeatured: false,
     isActive: true,
   });
+  const [uploadingImages, setUploadingImages] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: products, isLoading } = useQuery<Product[]>({
     queryKey: ["admin-products"],
@@ -176,11 +179,68 @@ export function ProductsTab({
     setShowModal(false);
     setEditingProduct(null);
     setPreviewImage(false);
+    setUploadingImages(false);
     setForm({
       name: "", nameAr: "", description: "", descriptionAr: "",
       price: "", originalPrice: "", pointsPrice: "", stock: "999",
-      image: "", categoryId: "", productType: "digital", brand: "",
+      image: "", images: [], categoryId: "", productType: "digital", brand: "",
       isFeatured: false, isActive: true,
+    });
+  };
+
+  const handleImageUpload = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    setUploadingImages(true);
+    try {
+      const formData = new FormData();
+      Array.from(files).forEach((f) => formData.append("images", f));
+      const res = await fetch("/api/admin/products/upload-images", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json?.message || "Upload failed");
+      const urls: string[] = json?.data?.urls || [];
+      setForm((prev) => {
+        const newImages = [...prev.images, ...urls];
+        return { ...prev, images: newImages, image: prev.image || newImages[0] || "" };
+      });
+      toast({ title: `تم رفع ${urls.length} صور بنجاح` });
+    } catch (err: any) {
+      toast({ title: err.message || "فشل رفع الصور", variant: "destructive" });
+    } finally {
+      setUploadingImages(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  const removeImage = (idx: number) => {
+    setForm((prev) => {
+      const newImages = prev.images.filter((_, i) => i !== idx);
+      const removedUrl = prev.images[idx];
+      // If removed image was the main image, set next one
+      const newMainImage = prev.image === removedUrl ? (newImages[0] || "") : prev.image;
+      // Try to delete file from server (best effort)
+      fetch("/api/admin/products/delete-image", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ url: removedUrl }),
+      }).catch(() => {});
+      return { ...prev, images: newImages, image: newMainImage };
+    });
+  };
+
+  const setMainImage = (url: string) => {
+    setForm((prev) => ({ ...prev, image: url }));
+  };
+
+  const moveImage = (fromIdx: number, toIdx: number) => {
+    setForm((prev) => {
+      const newImages = [...prev.images];
+      const [moved] = newImages.splice(fromIdx, 1);
+      newImages.splice(toIdx, 0, moved);
+      return { ...prev, images: newImages };
     });
   };
 
@@ -196,6 +256,7 @@ export function ProductsTab({
       pointsPrice: p.pointsPrice.toString(),
       stock: p.stock.toString(),
       image: p.image || "",
+      images: p.images || [],
       categoryId: p.categoryId || "",
       productType: p.productType || "digital",
       brand: p.brand || "",
@@ -216,7 +277,8 @@ export function ProductsTab({
       originalPrice: form.originalPrice ? parseFloat(form.originalPrice) : null,
       pointsPrice: parseInt(form.pointsPrice),
       stock: parseInt(form.stock) || 999,
-      image: form.image || null,
+      image: form.image || (form.images.length > 0 ? form.images[0] : null),
+      images: form.images,
       categoryId: form.categoryId || null,
       productType: form.productType,
       brand: form.brand || null,
@@ -433,6 +495,14 @@ export function ProductsTab({
                   ) : (
                     <div className="flex items-center justify-center h-full">
                       <Package className="h-12 w-12 text-muted-foreground/30" />
+                    </div>
+                  )}
+                  {/* Images count badge */}
+                  {p.images && p.images.length > 1 && (
+                    <div className="absolute bottom-2 left-2">
+                      <Badge className="bg-black/60 text-white text-[10px] gap-0.5">
+                        <Image className="h-2.5 w-2.5" /> {p.images.length}
+                      </Badge>
                     </div>
                   )}
                   {/* Badges overlay */}
@@ -778,32 +848,132 @@ export function ProductsTab({
                 </div>
               </div>
 
-              {/* Image URL with Preview */}
+              {/* Product Images — Upload from device */}
               <div>
                 <label className="flex items-center gap-1.5 text-sm font-semibold mb-2">
                   <Image className="h-3.5 w-3.5 text-pink-500" />
-                  رابط الصورة
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    type="url"
-                    value={form.image}
-                    onChange={(e) => setForm({ ...form, image: e.target.value })}
-                    className="flex-1 px-4 py-2.5 border rounded-xl text-sm bg-background"
-                    placeholder="https://example.com/product.jpg"
-                    dir="ltr"
-                  />
-                  {form.image && (
-                    <Button type="button" size="sm" variant="outline" className="shrink-0" onClick={() => setPreviewImage(!previewImage)}>
-                      {previewImage ? "إخفاء" : "معاينة"}
-                    </Button>
+                  صور المنتج
+                  {form.images.length > 0 && (
+                    <Badge variant="secondary" className="text-[10px] mr-1">{form.images.length} صور</Badge>
                   )}
-                </div>
-                {previewImage && form.image && (
-                  <div className="mt-2 rounded-xl overflow-hidden ring-1 ring-gray-200 dark:ring-gray-700">
-                    <img src={form.image} alt="معاينة" className="w-full h-40 object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                </label>
+
+                {/* Upload button */}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/gif"
+                  multiple
+                  className="hidden"
+                  onChange={(e) => handleImageUpload(e.target.files)}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full gap-2 border-dashed border-2 py-6 mb-3"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploadingImages}
+                >
+                  {uploadingImages ? (
+                    <span className="animate-pulse">جاري الرفع...</span>
+                  ) : (
+                    <>
+                      <Upload className="h-5 w-5 text-pink-500" />
+                      <span>اختر صور من الجهاز (حتى 10 صور)</span>
+                    </>
+                  )}
+                </Button>
+
+                {/* Image gallery */}
+                {form.images.length > 0 && (
+                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                    {form.images.map((url, idx) => (
+                      <div
+                        key={idx}
+                        className={`relative group aspect-square rounded-lg overflow-hidden ring-2 transition-all ${
+                          form.image === url
+                            ? "ring-blue-500 shadow-lg"
+                            : "ring-gray-200 dark:ring-gray-700 hover:ring-blue-300"
+                        }`}
+                      >
+                        <img
+                          src={url}
+                          alt={`صورة ${idx + 1}`}
+                          className="w-full h-full object-cover cursor-pointer"
+                          onClick={() => setMainImage(url)}
+                          onError={(e) => { (e.target as HTMLImageElement).src = ""; }}
+                        />
+                        {form.image === url && (
+                          <div className="absolute top-1 right-1">
+                            <Badge className="bg-blue-500 text-white text-[9px] px-1">رئيسية</Badge>
+                          </div>
+                        )}
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100">
+                          {idx > 0 && (
+                            <Button
+                              type="button"
+                              size="icon"
+                              variant="secondary"
+                              className="h-6 w-6"
+                              onClick={(e) => { e.stopPropagation(); moveImage(idx, idx - 1); }}
+                            >
+                              <ChevronRight className="h-3 w-3" />
+                            </Button>
+                          )}
+                          {idx < form.images.length - 1 && (
+                            <Button
+                              type="button"
+                              size="icon"
+                              variant="secondary"
+                              className="h-6 w-6"
+                              onClick={(e) => { e.stopPropagation(); moveImage(idx, idx + 1); }}
+                            >
+                              <ChevronLeft className="h-3 w-3" />
+                            </Button>
+                          )}
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="destructive"
+                            className="h-6 w-6"
+                            onClick={(e) => { e.stopPropagation(); removeImage(idx); }}
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 )}
+
+                {/* Also support URL entry */}
+                <div className="mt-3">
+                  <label className="text-xs text-muted-foreground mb-1 block">أو أضف رابط صورة</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="url"
+                      value={form.image && !form.images.includes(form.image) ? form.image : ""}
+                      onChange={(e) => setForm({ ...form, image: e.target.value })}
+                      className="flex-1 px-3 py-2 border rounded-xl text-xs bg-background"
+                      placeholder="https://example.com/product.jpg"
+                      dir="ltr"
+                    />
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="shrink-0 text-xs"
+                      onClick={() => {
+                        if (form.image && !form.images.includes(form.image)) {
+                          setForm((prev) => ({ ...prev, images: [...prev.images, prev.image] }));
+                        }
+                      }}
+                      disabled={!form.image || form.images.includes(form.image)}
+                    >
+                      أضف
+                    </Button>
+                  </div>
+                </div>
               </div>
 
               {/* Featured + Active toggles */}

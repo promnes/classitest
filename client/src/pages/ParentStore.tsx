@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ProductImageCarousel } from "@/components/ProductImageCarousel";
 import { useTheme } from "@/contexts/ThemeContext";
 import { ParentNotificationBell } from "@/components/NotificationBell";
 import { LanguageSelector } from "@/components/LanguageSelector";
@@ -32,6 +33,7 @@ interface Product {
   originalPrice?: string;
   pointsPrice: number;
   image?: string;
+  images?: string[];
   stock: number;
   brand?: string;
   rating?: string;
@@ -711,7 +713,16 @@ export const ParentStore = (): JSX.Element => {
                   data-testid={`card-featured-product-${product.id}`}
                 >
                   <div className={`relative aspect-square overflow-hidden ${isDark ? "bg-gray-700" : "bg-gray-100"}`}>
-                    {product.image ? (
+                    {(product.images && product.images.length > 1) ? (
+                      <ProductImageCarousel
+                        images={product.images}
+                        mainImage={product.image}
+                        alt={product.name}
+                        className="w-full h-full"
+                        compact
+                        hoverArrows
+                      />
+                    ) : product.image ? (
                       <img src={product.image} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
@@ -823,7 +834,16 @@ export const ParentStore = (): JSX.Element => {
                         setRequiredPoints(product.pointsPrice.toString());
                       }}
                     >
-                      {product.image ? (
+                      {(product.images && product.images.length > 1) ? (
+                        <ProductImageCarousel
+                          images={product.images}
+                          mainImage={product.image}
+                          alt={product.name}
+                          className="w-full h-full"
+                          compact
+                          hoverArrows
+                        />
+                      ) : product.image ? (
                         <img src={product.image} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center">
@@ -905,7 +925,16 @@ export const ParentStore = (): JSX.Element => {
                     data-testid={`card-product-list-${product.id}`}
                   >
                     <div className={`relative w-40 h-40 flex-shrink-0 ${isDark ? "bg-gray-700" : "bg-gray-100"}`}>
-                      {product.image ? (
+                      {(product.images && product.images.length > 1) ? (
+                        <ProductImageCarousel
+                          images={product.images}
+                          mainImage={product.image}
+                          alt={product.name}
+                          className="w-full h-full"
+                          compact
+                          hoverArrows
+                        />
+                      ) : product.image ? (
                         <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center">
@@ -1211,7 +1240,15 @@ export const ParentStore = (): JSX.Element => {
             <div className="space-y-6">
               <div className="flex items-center gap-4 p-4 bg-gradient-to-r from-orange-50 to-yellow-50 rounded-xl">
                 <div className="w-20 h-20 bg-white dark:bg-gray-800 rounded-lg overflow-hidden shadow-sm">
-                  {selectedProduct.image ? (
+                  {(selectedProduct.images && selectedProduct.images.length > 1) ? (
+                    <ProductImageCarousel
+                      images={selectedProduct.images}
+                      mainImage={selectedProduct.image}
+                      alt={selectedProduct.name}
+                      className="w-full h-full"
+                      compact
+                    />
+                  ) : selectedProduct.image ? (
                     <img src={selectedProduct.image} alt={selectedProduct.name} className="w-full h-full object-cover" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">

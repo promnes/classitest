@@ -1,0 +1,196 @@
+import { useState, useCallback } from "react";
+import { ChevronLeft, ChevronRight, Package } from "lucide-react";
+
+interface ProductImageCarouselProps {
+  images: string[];
+  mainImage?: string;
+  alt: string;
+  className?: string;
+  /** Compact mode for product cards (no dots, small arrows) */
+  compact?: boolean;
+  /** Whether to show arrows on hover only */
+  hoverArrows?: boolean;
+  onImageClick?: () => void;
+}
+
+export function ProductImageCarousel({
+  images,
+  mainImage,
+  alt,
+  className = "",
+  compact = false,
+  hoverArrows = false,
+  onImageClick,
+}: ProductImageCarouselProps) {
+  // Build the final ordered list: mainImage first, then the rest
+  const allImages = (() => {
+    if (!images || images.length === 0) {
+      return mainImage ? [mainImage] : [];
+    }
+    if (mainImage && !images.includes(mainImage)) {
+      return [mainImage, ...images];
+    }
+    if (mainImage && images.includes(mainImage)) {
+      return [mainImage, ...images.filter((img) => img !== mainImage)];
+    }
+    return images;
+  })();
+
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  const goNext = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      e.preventDefault();
+      setCurrentIndex((prev) => (prev + 1) % allImages.length);
+    },
+    [allImages.length]
+  );
+
+  const goPrev = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      e.preventDefault();
+      setCurrentIndex((prev) => (prev - 1 + allImages.length) % allImages.length);
+    },
+    [allImages.length]
+  );
+
+  const goToIndex = useCallback((idx: number, e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    e?.preventDefault();
+    setCurrentIndex(idx);
+  }, []);
+
+  if (allImages.length === 0) {
+    return (
+      <div className={`flex items-center justify-center bg-gray-100 dark:bg-gray-700 ${className}`} onClick={onImageClick}>
+        <Package className="w-12 h-12 text-gray-300" />
+      </div>
+    );
+  }
+
+  if (allImages.length === 1) {
+    return (
+      <div className={`relative overflow-hidden ${className}`} onClick={onImageClick}>
+        <img
+          src={allImages[0]}
+          alt={alt}
+          className="w-full h-full object-cover"
+          onError={(e) => {
+            (e.target as HTMLImageElement).style.display = "none";
+          }}
+        />
+      </div>
+    );
+  }
+
+  const arrowSize = compact ? "h-6 w-6" : "h-8 w-8";
+  const arrowIconSize = compact ? "h-3 w-3" : "h-4 w-4";
+  const arrowVisibility = hoverArrows ? "opacity-0 group-hover:opacity-100" : "opacity-80 hover:opacity-100";
+
+  return (
+    <div
+      className={`relative overflow-hidden group ${className}`}
+      onClick={onImageClick}
+    >
+      {/* Current Image */}
+      <img
+        src={allImages[currentIndex]}
+        alt={`${alt} (${currentIndex + 1}/${allImages.length})`}
+        className="w-full h-full object-cover transition-opacity duration-200"
+        onError={(e) => {
+          (e.target as HTMLImageElement).style.display = "none";
+        }}
+      />
+
+      {/* Arrows */}
+      <button
+        onClick={goPrev}
+        className={`absolute right-1 top-1/2 -translate-y-1/2 ${arrowSize} rounded-full bg-black/40 text-white flex items-center justify-center transition-all ${arrowVisibility} hover:bg-black/60 backdrop-blur-sm`}
+        aria-label="الصورة السابقة"
+      >
+        <ChevronRight className={arrowIconSize} />
+      </button>
+      <button
+        onClick={goNext}
+        className={`absolute left-1 top-1/2 -translate-y-1/2 ${arrowSize} rounded-full bg-black/40 text-white flex items-center justify-center transition-all ${arrowVisibility} hover:bg-black/60 backdrop-blur-sm`}
+        aria-label="الصورة التالية"
+      >
+        <ChevronLeft className={arrowIconSize} />
+      </button>
+
+      {/* Image counter */}
+      <div className={`absolute top-2 left-2 px-1.5 py-0.5 rounded-full bg-black/50 text-white text-[10px] font-medium backdrop-blur-sm ${arrowVisibility}`}>
+        {currentIndex + 1}/{allImages.length}
+      </div>
+
+      {/* Dots (only in non-compact mode and <= 8 images) */}
+      {!compact && allImages.length <= 8 && (
+        <div className="absolute bottom-2 inset-x-0 flex justify-center gap-1.5">
+          {allImages.map((_, idx) => (
+            <button
+              key={idx}
+              onClick={(e) => goToIndex(idx, e)}
+              className={`rounded-full transition-all ${
+                idx === currentIndex
+                  ? "w-4 h-1.5 bg-white"
+                  : "w-1.5 h-1.5 bg-white/50 hover:bg-white/80"
+              }`}
+              aria-label={`صورة ${idx + 1}`}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Thumbnail strip for detail view (non-compact, >1 image) */}
+      {!compact && allImages.length > 1 && allImages.length <= 8 && (
+        <div className="absolute bottom-8 inset-x-0 flex justify-center gap-1 px-2">
+          {/* Hidden on mobile, visible on larger screens */}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Thumbnail strip for detail dialogs — separate component for below the main image
+ */
+export function ProductImageThumbnails({
+  images,
+  mainImage,
+  currentIndex,
+  onSelect,
+}: {
+  images: string[];
+  mainImage?: string;
+  currentIndex: number;
+  onSelect: (idx: number) => void;
+}) {
+  const allImages = (() => {
+    if (!images || images.length === 0) return mainImage ? [mainImage] : [];
+    if (mainImage && !images.includes(mainImage)) return [mainImage, ...images];
+    if (mainImage && images.includes(mainImage)) return [mainImage, ...images.filter((img) => img !== mainImage)];
+    return images;
+  })();
+
+  if (allImages.length <= 1) return null;
+
+  return (
+    <div className="flex gap-2 overflow-x-auto pb-1 mt-2">
+      {allImages.map((url, idx) => (
+        <button
+          key={idx}
+          onClick={() => onSelect(idx)}
+          className={`shrink-0 w-14 h-14 rounded-lg overflow-hidden ring-2 transition-all ${
+            idx === currentIndex
+              ? "ring-blue-500 scale-105"
+              : "ring-transparent hover:ring-blue-300 opacity-70 hover:opacity-100"
+          }`}
+        >
+          <img src={url} alt={`${idx + 1}`} className="w-full h-full object-cover" />
+        </button>
+      ))}
+    </div>
+  );
+}
