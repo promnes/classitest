@@ -77,6 +77,9 @@ import {
   childWateringLog,
   childGrowthTrees,
   childGrowthEvents,
+  orderItems,
+  transactions,
+  childPurchases,
 } from "../../shared/schema";
 import { createNotification } from "../notifications";
 import { emitGiftEvent } from "../giftEvents";
@@ -6235,6 +6238,183 @@ export async function registerAdminRoutes(app: Express) {
       res.json({ success: true });
     } catch (error: any) {
       res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to mark as read"));
+    }
+  });
+
+  // ===== Store Analytics Endpoint =====
+  app.get("/api/admin/store/analytics", adminMiddleware, async (req: any, res) => {
+    try {
+      // Time range filter
+      const days = parseInt(req.query.days as string) || 30;
+      const sinceDate = new Date();
+      sinceDate.setDate(sinceDate.getDate() - days);
+
+      // 1. Overview stats
+      const [totalProducts] = await db.select({ count: sql<number>`count(*)::int` }).from(products);
+      const [activeProducts] = await db.select({ count: sql<number>`count(*)::int` }).from(products).where(eq(products.isActive, true));
+      const [featuredProducts] = await db.select({ count: sql<number>`count(*)::int` }).from(products).where(eq(products.isFeatured, true));
+      const [outOfStock] = await db.select({ count: sql<number>`count(*)::int` }).from(products).where(eq(products.stock, 0));
+
+      // 2. Revenue from parent purchases
+      const [parentRevenue] = await db.select({
+        total: sql<number>`COALESCE(sum(${parentPurchases.totalAmount}::numeric), 0)`,
+        count: sql<number>`count(*)::int`,
+      }).from(parentPurchases).where(
+        and(
+          eq(parentPurchases.paymentStatus, "paid"),
+          sql`${parentPurchases.createdAt} >= ${sinceDate}`
+        )
+      );
+
+      // 3. Revenue from store orders (Stripe)
+      const [storeRevenue] = await db.select({
+        total: sql<number>`COALESCE(sum(${storeOrders.totalAmount}::numeric), 0)`,
+        count: sql<number>`count(*)::int`,
+      }).from(storeOrders).where(
+        and(
+          eq(storeOrders.status, "PAID"),
+          sql`${storeOrders.createdAt} >= ${sinceDate}`
+        )
+      );
+
+      // 4. Child purchases (points-based)
+      const [childPurchaseStats] = await db.select({
+        totalPoints: sql<number>`COALESCE(sum(${childPurchases.pointsSpent}), 0)::int`,
+        count: sql<number>`count(*)::int`,
+      }).from(childPurchases).where(sql`${childPurchases.purchasedAt} >= ${sinceDate}`);
+
+      // 5. Top selling products (by parent purchase items)
+      const topProducts = await db.select({
+        productId: parentPurchaseItems.productId,
+        name: products.name,
+        nameAr: products.nameAr,
+        image: products.image,
+        totalQuantity: sql<number>`COALESCE(sum(${parentPurchaseItems.quantity}), 0)::int`,
+        totalRevenue: sql<number>`COALESCE(sum(${parentPurchaseItems.subtotal}::numeric), 0)`,
+      })
+        .from(parentPurchaseItems)
+        .innerJoin(products, eq(parentPurchaseItems.productId, products.id))
+        .innerJoin(parentPurchases, eq(parentPurchaseItems.purchaseId, parentPurchases.id))
+        .where(sql`${parentPurchaseItems.createdAt} >= ${sinceDate}`)
+        .groupBy(parentPurchaseItems.productId, products.name, products.nameAr, products.image)
+        .orderBy(sql`sum(${parentPurchaseItems.quantity}) DESC`)
+        .limit(10);
+
+      // 6. Category breakdown
+      const categoryBreakdown = await db.select({
+        categoryId: products.categoryId,
+        categoryName: productCategories.name,
+        categoryNameAr: productCategories.nameAr,
+        productCount: sql<number>`count(DISTINCT ${products.id})::int`,
+      })
+        .from(products)
+        .leftJoin(productCategories, eq(products.categoryId, productCategories.id))
+        .where(eq(products.isActive, true))
+        .groupBy(products.categoryId, productCategories.name, productCategories.nameAr);
+
+      // 7. Recent orders (last 20)
+      const recentOrders = await db.select({
+        id: parentPurchases.id,
+        parentId: parentPurchases.parentId,
+        totalAmount: parentPurchases.totalAmount,
+        paymentStatus: parentPurchases.paymentStatus,
+        createdAt: parentPurchases.createdAt,
+      })
+        .from(parentPurchases)
+        .orderBy(desc(parentPurchases.createdAt))
+        .limit(20);
+
+      // 8. Daily revenue trend (last N days)
+      const dailyRevenue = await db.select({
+        date: sql<string>`DATE(${parentPurchases.createdAt})`,
+        revenue: sql<number>`COALESCE(sum(${parentPurchases.totalAmount}::numeric), 0)`,
+        orders: sql<number>`count(*)::int`,
+      })
+        .from(parentPurchases)
+        .where(
+          and(
+            eq(parentPurchases.paymentStatus, "paid"),
+            sql`${parentPurchases.createdAt} >= ${sinceDate}`
+          )
+        )
+        .groupBy(sql`DATE(${parentPurchases.createdAt})`)
+        .orderBy(sql`DATE(${parentPurchases.createdAt})`);
+
+      // 9. Gift assignments stats
+      const [giftStats] = await db.select({
+        totalAssigned: sql<number>`count(*)::int`,
+        completed: sql<number>`count(*) FILTER (WHERE ${childAssignedProducts.status} = 'completed')::int`,
+        active: sql<number>`count(*) FILTER (WHERE ${childAssignedProducts.status} = 'active')::int`,
+      }).from(childAssignedProducts);
+
+      // 10. Active buyers count
+      const [activeBuyers] = await db.select({
+        count: sql<number>`count(DISTINCT ${parentPurchases.parentId})::int`,
+      }).from(parentPurchases).where(sql`${parentPurchases.createdAt} >= ${sinceDate}`);
+
+      // 11. Average order value
+      const [avgOrder] = await db.select({
+        avg: sql<number>`COALESCE(avg(${parentPurchases.totalAmount}::numeric), 0)`,
+      }).from(parentPurchases).where(
+        and(
+          eq(parentPurchases.paymentStatus, "paid"),
+          sql`${parentPurchases.createdAt} >= ${sinceDate}`
+        )
+      );
+
+      // 12. Low stock products
+      const lowStockProducts = await db.select({
+        id: products.id,
+        name: products.name,
+        nameAr: products.nameAr,
+        stock: products.stock,
+        image: products.image,
+      })
+        .from(products)
+        .where(and(eq(products.isActive, true), sql`${products.stock} <= 5`))
+        .orderBy(products.stock)
+        .limit(10);
+
+      res.json(successResponse({
+        overview: {
+          totalProducts: totalProducts?.count || 0,
+          activeProducts: activeProducts?.count || 0,
+          featuredProducts: featuredProducts?.count || 0,
+          outOfStock: outOfStock?.count || 0,
+        },
+        revenue: {
+          parentPurchases: {
+            total: Number(parentRevenue?.total || 0),
+            count: parentRevenue?.count || 0,
+          },
+          storeOrders: {
+            total: Number(storeRevenue?.total || 0),
+            count: storeRevenue?.count || 0,
+          },
+          totalRevenue: Number(parentRevenue?.total || 0) + Number(storeRevenue?.total || 0),
+          totalOrders: (parentRevenue?.count || 0) + (storeRevenue?.count || 0),
+          averageOrderValue: Number(Number(avgOrder?.avg || 0).toFixed(2)),
+        },
+        childPurchases: {
+          totalPointsSpent: childPurchaseStats?.totalPoints || 0,
+          count: childPurchaseStats?.count || 0,
+        },
+        topProducts,
+        categoryBreakdown,
+        recentOrders,
+        dailyRevenue,
+        gifts: {
+          totalAssigned: giftStats?.totalAssigned || 0,
+          completed: giftStats?.completed || 0,
+          active: giftStats?.active || 0,
+        },
+        activeBuyers: activeBuyers?.count || 0,
+        lowStockProducts,
+        period: { days, since: sinceDate.toISOString() },
+      }));
+    } catch (error: any) {
+      console.error("Store analytics error:", error);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "فشل في جلب تحليلات المتجر"));
     }
   });
 }

@@ -409,6 +409,8 @@ export const ChildStore = (): JSX.Element => {
                         className="w-full h-full"
                         compact
                         hoverArrows
+                        autoSlide
+                        autoSlideInterval={2000}
                       />
                     ) : product.image ? (
                       <img src={product.image} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
@@ -522,6 +524,8 @@ export const ChildStore = (): JSX.Element => {
                           className="w-full h-full"
                           compact
                           hoverArrows
+                          autoSlide
+                          autoSlideInterval={2000}
                         />
                       ) : product.image ? (
                         <img src={product.image} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
@@ -593,6 +597,8 @@ export const ChildStore = (): JSX.Element => {
                           className="w-full h-full"
                           compact
                           hoverArrows
+                          autoSlide
+                          autoSlideInterval={2000}
                         />
                       ) : product.image ? (
                         <img src={product.image} alt={product.name} className="w-full h-full object-cover" />

@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { ChevronLeft, ChevronRight, Package } from "lucide-react";
 
 interface ProductImageCarouselProps {
@@ -11,6 +11,10 @@ interface ProductImageCarouselProps {
   /** Whether to show arrows on hover only */
   hoverArrows?: boolean;
   onImageClick?: () => void;
+  /** Auto-slide through images */
+  autoSlide?: boolean;
+  /** Auto-slide interval in ms (default: 2000) */
+  autoSlideInterval?: number;
 }
 
 export function ProductImageCarousel({
@@ -21,6 +25,8 @@ export function ProductImageCarousel({
   compact = false,
   hoverArrows = false,
   onImageClick,
+  autoSlide = false,
+  autoSlideInterval = 2000,
 }: ProductImageCarouselProps) {
   // Build the final ordered list: mainImage first, then the rest
   const allImages = (() => {
@@ -62,6 +68,21 @@ export function ProductImageCarousel({
     setCurrentIndex(idx);
   }, []);
 
+  // Auto-slide logic
+  const pauseRef = useRef(false);
+  useEffect(() => {
+    if (!autoSlide || allImages.length <= 1) return;
+    const timer = setInterval(() => {
+      if (!pauseRef.current) {
+        setCurrentIndex((prev) => (prev + 1) % allImages.length);
+      }
+    }, autoSlideInterval);
+    return () => clearInterval(timer);
+  }, [autoSlide, autoSlideInterval, allImages.length]);
+
+  const handleMouseEnter = useCallback(() => { pauseRef.current = true; }, []);
+  const handleMouseLeave = useCallback(() => { pauseRef.current = false; }, []);
+
   if (allImages.length === 0) {
     return (
       <div className={`flex items-center justify-center bg-gray-100 dark:bg-gray-700 ${className}`} onClick={onImageClick}>
@@ -93,35 +114,42 @@ export function ProductImageCarousel({
     <div
       className={`relative overflow-hidden group ${className}`}
       onClick={onImageClick}
+      onMouseEnter={autoSlide ? handleMouseEnter : undefined}
+      onMouseLeave={autoSlide ? handleMouseLeave : undefined}
     >
-      {/* Current Image */}
-      <img
-        src={allImages[currentIndex]}
-        alt={`${alt} (${currentIndex + 1}/${allImages.length})`}
-        className="w-full h-full object-cover transition-opacity duration-200"
-        onError={(e) => {
-          (e.target as HTMLImageElement).style.display = "none";
-        }}
-      />
+      {/* Current Image with crossfade */}
+      {allImages.map((src, idx) => (
+        <img
+          key={src}
+          src={src}
+          alt={`${alt} (${idx + 1}/${allImages.length})`}
+          className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ${
+            idx === currentIndex ? "opacity-100 z-10" : "opacity-0 z-0"
+          }`}
+          onError={(e) => {
+            (e.target as HTMLImageElement).style.display = "none";
+          }}
+        />
+      ))}
 
       {/* Arrows */}
       <button
         onClick={goPrev}
-        className={`absolute right-1 top-1/2 -translate-y-1/2 ${arrowSize} rounded-full bg-black/40 text-white flex items-center justify-center transition-all ${arrowVisibility} hover:bg-black/60 backdrop-blur-sm`}
+        className={`absolute right-1 top-1/2 -translate-y-1/2 ${arrowSize} rounded-full bg-black/40 text-white flex items-center justify-center transition-all ${arrowVisibility} hover:bg-black/60 backdrop-blur-sm z-20`}
         aria-label="الصورة السابقة"
       >
         <ChevronRight className={arrowIconSize} />
       </button>
       <button
         onClick={goNext}
-        className={`absolute left-1 top-1/2 -translate-y-1/2 ${arrowSize} rounded-full bg-black/40 text-white flex items-center justify-center transition-all ${arrowVisibility} hover:bg-black/60 backdrop-blur-sm`}
+        className={`absolute left-1 top-1/2 -translate-y-1/2 ${arrowSize} rounded-full bg-black/40 text-white flex items-center justify-center transition-all ${arrowVisibility} hover:bg-black/60 backdrop-blur-sm z-20`}
         aria-label="الصورة التالية"
       >
         <ChevronLeft className={arrowIconSize} />
       </button>
 
       {/* Image counter */}
-      <div className={`absolute top-2 left-2 px-1.5 py-0.5 rounded-full bg-black/50 text-white text-[10px] font-medium backdrop-blur-sm ${arrowVisibility}`}>
+      <div className={`absolute top-2 left-2 px-1.5 py-0.5 rounded-full bg-black/50 text-white text-[10px] font-medium backdrop-blur-sm ${arrowVisibility} z-20`}>
         {currentIndex + 1}/{allImages.length}
       </div>
 

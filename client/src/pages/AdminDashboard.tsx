@@ -39,8 +39,9 @@ import { TaskNotificationLevelsTab } from "@/components/admin/TaskNotificationLe
 import { LegalTab } from "@/components/admin/LegalTab";
 import { MobileAppSettingsTab } from "@/components/admin/MobileAppSettingsTab";
 import { GrowthTreeSettingsTab } from "@/components/admin/GrowthTreeSettingsTab";
+import { StoreAnalyticsTab } from "@/components/admin/StoreAnalyticsTab";
 
-type TabType = "dashboard" | "products" | "categories" | "symbols" | "users" | "settings" | "wallets" | "orders" | "deposits" | "activity" | "analytics" | "payment-methods" | "subjects" | "notifications" | "notification-settings" | "task-notification-levels" | "gifts" | "referrals" | "ads" | "parents" | "profits" | "libraries" | "schools" | "games" | "tasks" | "social-login" | "otp-providers" | "seo" | "support" | "legal" | "mobile-app" | "growth-tree";
+type TabType = "dashboard" | "products" | "categories" | "symbols" | "users" | "settings" | "wallets" | "orders" | "deposits" | "activity" | "analytics" | "payment-methods" | "subjects" | "notifications" | "notification-settings" | "task-notification-levels" | "gifts" | "referrals" | "ads" | "parents" | "profits" | "libraries" | "schools" | "games" | "tasks" | "social-login" | "otp-providers" | "seo" | "support" | "legal" | "mobile-app" | "growth-tree" | "store-analytics";
 
 export const AdminDashboard = (): JSX.Element => {
   const { t, i18n } = useTranslation();
@@ -71,6 +72,7 @@ export const AdminDashboard = (): JSX.Element => {
     { id: "categories", labelKey: "admin.storeCategories", icon: "📁" },
     { id: "symbols", labelKey: "admin.symbolsLibrary", icon: "⭐" },
     { id: "products", labelKey: "admin.products.title", icon: "🛍️" },
+    { id: "store-analytics", labelKey: "admin.storeAnalytics", icon: "📊" },
     { id: "users", labelKey: "admin.children", icon: "👥" },
     { id: "games", labelKey: "admin.games.title", icon: "🎮" },
     { id: "tasks", labelKey: "admin.tasks", icon: "📝" },
@@ -166,6 +168,7 @@ export const AdminDashboard = (): JSX.Element => {
           {activeTab === "categories" && <CategoriesTab token={token} />}
           {activeTab === "symbols" && <SymbolsTab token={token} />}
           {activeTab === "products" && <ProductsTab token={token} />}
+          {activeTab === "store-analytics" && <StoreAnalyticsTab token={token} />}
           {activeTab === "users" && <UsersTab token={token} />}
           {activeTab === "wallets" && <WalletsTab token={token} />}
           {activeTab === "orders" && <OrdersTab token={token} />}

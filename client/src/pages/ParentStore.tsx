@@ -95,6 +95,7 @@ export const ParentStore = (): JSX.Element => {
   const [showCheckout, setShowCheckout] = useState(false);
   const [buyNowProduct, setBuyNowProduct] = useState<Product | null>(null);
   const [showAssign, setShowAssign] = useState(false);
+  const [showDetail, setShowDetail] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [selectedChild, setSelectedChild] = useState("");
   const [requiredPoints, setRequiredPoints] = useState("");
@@ -707,7 +708,7 @@ export const ParentStore = (): JSX.Element => {
                   className="group cursor-pointer hover:shadow-xl transition-all duration-300 overflow-hidden border-0 bg-white dark:bg-gray-800"
                   onClick={() => {
                     setSelectedProduct(product);
-                    setShowAssign(true);
+                    setShowDetail(true);
                     setRequiredPoints(product.pointsPrice.toString());
                   }}
                   data-testid={`card-featured-product-${product.id}`}
@@ -721,6 +722,8 @@ export const ParentStore = (): JSX.Element => {
                         className="w-full h-full"
                         compact
                         hoverArrows
+                        autoSlide
+                        autoSlideInterval={2000}
                       />
                     ) : product.image ? (
                       <img src={product.image} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
@@ -830,7 +833,7 @@ export const ParentStore = (): JSX.Element => {
                       className={`relative aspect-square overflow-hidden ${isDark ? "bg-gray-700" : "bg-gray-100"}`}
                       onClick={() => {
                         setSelectedProduct(product);
-                        setShowAssign(true);
+                        setShowDetail(true);
                         setRequiredPoints(product.pointsPrice.toString());
                       }}
                     >
@@ -842,6 +845,8 @@ export const ParentStore = (): JSX.Element => {
                           className="w-full h-full"
                           compact
                           hoverArrows
+                          autoSlide
+                          autoSlideInterval={2000}
                         />
                       ) : product.image ? (
                         <img src={product.image} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
@@ -919,7 +924,7 @@ export const ParentStore = (): JSX.Element => {
                     className={`flex overflow-hidden hover:shadow-lg transition-shadow cursor-pointer ${isDark ? "bg-gray-800 border-gray-700" : ""}`}
                     onClick={() => {
                       setSelectedProduct(product);
-                      setShowAssign(true);
+                      setShowDetail(true);
                       setRequiredPoints(product.pointsPrice.toString());
                     }}
                     data-testid={`card-product-list-${product.id}`}
@@ -933,6 +938,8 @@ export const ParentStore = (): JSX.Element => {
                           className="w-full h-full"
                           compact
                           hoverArrows
+                          autoSlide
+                          autoSlideInterval={2000}
                         />
                       ) : product.image ? (
                         <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
@@ -1224,6 +1231,149 @@ export const ParentStore = (): JSX.Element => {
               )}
             </Button>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Product Detail Modal */}
+      <Dialog open={showDetail} onOpenChange={setShowDetail}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Package className="w-5 h-5 text-blue-500" />
+              تفاصيل المنتج
+            </DialogTitle>
+          </DialogHeader>
+
+          {selectedProduct && (
+            <div className="space-y-4">
+              {/* Product Images */}
+              <div className="aspect-square bg-gray-100 dark:bg-gray-700 rounded-xl overflow-hidden">
+                {(selectedProduct.images && selectedProduct.images.length > 1) ? (
+                  <ProductImageCarousel
+                    images={selectedProduct.images}
+                    mainImage={selectedProduct.image}
+                    alt={selectedProduct.name}
+                    className="w-full h-full"
+                    autoSlide
+                    autoSlideInterval={2000}
+                  />
+                ) : selectedProduct.image ? (
+                  <img src={selectedProduct.image} alt={selectedProduct.name} className="w-full h-full object-cover rounded-xl" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <Package className="w-16 h-16 text-gray-300" />
+                  </div>
+                )}
+              </div>
+
+              {/* Product Info */}
+              <div>
+                {selectedProduct.brand && (
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">{selectedProduct.brand}</p>
+                )}
+                <h3 className="font-bold text-xl text-gray-800 dark:text-white">
+                  {selectedProduct.nameAr || selectedProduct.name}
+                </h3>
+                {selectedProduct.category && (
+                  <Badge variant="outline" className="mt-1 text-xs">
+                    {selectedProduct.category.nameAr || selectedProduct.category.name}
+                  </Badge>
+                )}
+              </div>
+
+              {/* Description */}
+              {selectedProduct.description && (
+                <p className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed">
+                  {selectedProduct.description}
+                </p>
+              )}
+
+              {/* Rating */}
+              <div className="flex items-center gap-2">
+                {Array.from({ length: 5 }, (_, i) => (
+                  <Star
+                    key={i}
+                    className={`w-4 h-4 ${
+                      i < Math.round(parseFloat(selectedProduct.rating || "0"))
+                        ? "fill-yellow-400 text-yellow-400"
+                        : "text-gray-300"
+                    }`}
+                  />
+                ))}
+                <span className="text-xs text-gray-400">({selectedProduct.reviewCount || 0} تقييم)</span>
+              </div>
+
+              {/* Price & Stock */}
+              <div className={`p-4 rounded-xl ${isDark ? "bg-gray-700" : "bg-gradient-to-r from-blue-50 to-indigo-50"}`}>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">السعر</p>
+                    <div className="flex items-center gap-2">
+                      <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">{selectedProduct.price} ج.م</span>
+                      {selectedProduct.originalPrice && parseFloat(selectedProduct.originalPrice) > parseFloat(selectedProduct.price) && (
+                        <span className="text-sm text-gray-400 line-through">{selectedProduct.originalPrice} ج.م</span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm text-gray-500 dark:text-gray-400">المخزون</p>
+                    <p className={`font-bold ${selectedProduct.stock > 0 ? "text-green-600" : "text-red-600"}`}>
+                      {selectedProduct.stock > 0 ? `${selectedProduct.stock} متاح` : "نفذ"}
+                    </p>
+                  </div>
+                </div>
+                {selectedProduct.pointsPrice > 0 && (
+                  <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-600">
+                    <p className="text-xs flex items-center gap-1 text-orange-600">
+                      <Star className="w-3 h-3 fill-yellow-500 text-yellow-500" />
+                      يحتاج <span className="font-bold">{selectedProduct.pointsPrice}</span> نقطة كهدية
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Action Buttons */}
+              <div className="space-y-2 pt-2">
+                <div className="flex gap-2">
+                  <Button
+                    className="flex-1 bg-blue-600 hover:bg-blue-700 py-5"
+                    onClick={() => {
+                      setBuyNowProduct(selectedProduct);
+                      setShowDetail(false);
+                      setShowCheckout(true);
+                    }}
+                    disabled={selectedProduct.stock <= 0}
+                  >
+                    <CreditCard className="w-4 h-4 ml-2" />
+                    شراء الآن
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="flex-1 py-5 border-blue-200 hover:bg-blue-50 dark:border-gray-600 dark:hover:bg-gray-700"
+                    onClick={() => {
+                      addToCart(selectedProduct);
+                      setShowDetail(false);
+                    }}
+                    disabled={selectedProduct.stock <= 0}
+                  >
+                    <ShoppingCart className="w-4 h-4 ml-2" />
+                    أضف للسلة
+                  </Button>
+                </div>
+                <Button
+                  variant="outline"
+                  className="w-full py-5 border-orange-200 text-orange-600 hover:bg-orange-50 dark:border-gray-600 dark:hover:bg-gray-700"
+                  onClick={() => {
+                    setShowDetail(false);
+                    setShowAssign(true);
+                  }}
+                >
+                  <Gift className="w-4 h-4 ml-2" />
+                  تعيين كهدية لطفل
+                </Button>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
 
