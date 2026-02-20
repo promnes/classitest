@@ -19,8 +19,6 @@ import React, {
   useRef,
   useEffect,
   useMemo,
-  Suspense,
-  lazy,
 } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
@@ -49,8 +47,8 @@ import {
   GripVertical,
 } from "lucide-react";
 
-// Lazy-load the heavy R3F scene (code-split Three.js)
-const Scene3D = lazy(() => import("./Scene3D"));
+// Scene3D removed — Three.js crashed in production minified builds.
+// The 3D header is replaced with a CSS-animated emoji banner below.
 
 // ─── types ────────────────────────────────────────────────────────────
 type SymbolCategory = {
@@ -300,15 +298,9 @@ export function SymbolLibrary3D({
     return fuse.search(q).map((r) => r.item);
   }, [fuse, search, rawSymbols]);
 
-  // symbols for the 3D scene (first 15 of current view)
-  const sceneSymbols = useMemo(
-    () =>
-      filteredSymbols.slice(0, 15).map((s) => ({
-        id: s.id,
-        char: s.char,
-        nameAr: s.nameAr,
-        nameEn: s.nameEn,
-      })),
+  // preview emojis for the animated banner (first 12)
+  const bannerEmojis = useMemo(
+    () => filteredSymbols.slice(0, 12).map((s) => s.char),
     [filteredSymbols],
   );
 
@@ -360,14 +352,6 @@ export function SymbolLibrary3D({
     });
     onOpenChange(false);
   }, [selectedSymbol, onSelect, onOpenChange]);
-
-  const handleScene3DClick = useCallback(
-    (sym: { id: string; char: string; nameAr: string; nameEn: string }) => {
-      const full = rawSymbols.find((s) => s.id === sym.id);
-      if (full) handleSelect(full);
-    },
-    [rawSymbols, handleSelect],
-  );
 
   const handleCategoryChange = useCallback((catId: string) => {
     setActiveCategory(catId);

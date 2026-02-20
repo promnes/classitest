@@ -57,8 +57,6 @@ export default defineConfig({
           ],
           // Charts — heavy, loaded only when needed
           "vendor-charts": ["recharts"],
-          // 3D engine — lazy-loaded with symbol library
-          "vendor-three": ["three", "@react-three/fiber", "@react-three/drei"],
           // i18n runtime
           "vendor-i18n": [
             "i18next",
