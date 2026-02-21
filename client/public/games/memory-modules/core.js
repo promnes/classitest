@@ -672,10 +672,11 @@ export function flipCard(id) {
     const cooldown = phase ? phase.cooldown : 4;
     if (moves % cooldown === 0) {
       if (shieldActive) {
-      shieldActive = false;
-      showPowerMsg(t.shieldMsg || '🛡️ Blocked!');
-    } else {
-      setTimeout(() => { bossAction(); sfxBossAttack(); }, 500);
+        shieldActive = false;
+        showPowerMsg(t.shieldMsg || '🛡️ Blocked!');
+      } else {
+        setTimeout(() => { bossAction(); sfxBossAttack(); }, 500);
+      }
     }
   }
 }

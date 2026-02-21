@@ -76,4 +76,8 @@ export default defineConfig({
       deny: ["**/.*"],
     },
   },
+  optimizeDeps: {
+    entries: ["index.html"],
+    exclude: ["memory-modules"],
+  },
 });
