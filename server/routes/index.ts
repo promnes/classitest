@@ -76,6 +76,28 @@ async function seedDefaultGames() {
       });
       console.log("✅ Seeded default game: Match 3 Education");
     }
+
+    // Seed Memory Match game
+    const existingMemory = await db.select({ id: flashGames.id })
+      .from(flashGames)
+      .where(eq(flashGames.embedUrl, "/games/memory-match.html"))
+      .limit(1);
+
+    if (existingMemory.length === 0) {
+      await db.insert(flashGames).values({
+        title: "لعبة الذاكرة - Memory Match 🧠",
+        description: "لعبة ذاكرة تعليمية مع 20 مستوى! بطاقات متحركة، ضباب، أقنعة، وتحدي الزعيم. نظام ذكاء تكيّفي ومتجر مكافآت!",
+        embedUrl: "/games/memory-match.html",
+        thumbnailUrl: "",
+        category: "puzzle",
+        minAge: 4,
+        maxAge: 14,
+        pointsPerPlay: 10,
+        maxPlaysPerDay: 0,
+        isActive: true,
+      });
+      console.log("✅ Seeded default game: Memory Match");
+    }
   } catch (err) {
     console.warn("⚠️ Could not seed default games:", (err as Error).message);
   }
