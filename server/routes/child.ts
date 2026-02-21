@@ -2090,8 +2090,8 @@ export async function registerChildRoutes(app: Express) {
         return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Child not found"));
       }
 
-      // Create login request (expires in 15 minutes)
-      const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
+      // Create login request (expires in 5 minutes)
+      const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
       const generatedDeviceId = deviceId || crypto.randomUUID();
 
       // Reuse an existing pending request for same child/device to avoid notification spam
@@ -2328,7 +2328,7 @@ export async function registerChildRoutes(app: Express) {
       }
 
       const generatedDeviceId = deviceId || crypto.randomUUID();
-      const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
+      const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
 
       // Create login request
       const loginRequest = await db.insert(childLoginRequests).values({

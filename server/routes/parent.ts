@@ -963,6 +963,55 @@ export async function registerParentRoutes(app: Express) {
     }
   });
 
+  // Enrich login request notifications with current status from childLoginRequests table
+  async function enrichLoginRequestStatus(items: any[]): Promise<any[]> {
+    const loginNotifications = items.filter(
+      (n: any) => n.type === "login_code_request" && n.metadata?.loginRequestId
+    );
+    if (loginNotifications.length === 0) return items;
+
+    const loginRequestIds = loginNotifications.map((n: any) => n.metadata.loginRequestId);
+    const loginRequests = await db
+      .select()
+      .from(childLoginRequests)
+      .where(inArray(childLoginRequests.id, loginRequestIds));
+
+    const loginRequestMap = new Map(loginRequests.map((lr: any) => [lr.id, lr]));
+
+    const now = new Date();
+    const EXPIRY_MINUTES = 5;
+
+    return items.map((n: any) => {
+      if (n.type !== "login_code_request" || !n.metadata?.loginRequestId) return n;
+
+      const lr = loginRequestMap.get(n.metadata.loginRequestId);
+      if (!lr) {
+        return { ...n, loginRequestStatus: "expired" };
+      }
+
+      let resolvedStatus = lr.status;
+      // Auto-expire pending requests older than 5 minutes
+      if (lr.status === "pending") {
+        const ageMs = now.getTime() - new Date(lr.createdAt).getTime();
+        if (ageMs > EXPIRY_MINUTES * 60 * 1000) {
+          resolvedStatus = "expired";
+          // Fire-and-forget: update the DB record
+          db.update(childLoginRequests)
+            .set({ status: "expired" })
+            .where(eq(childLoginRequests.id, lr.id))
+            .then(() => {})
+            .catch(() => {});
+        }
+      }
+
+      return {
+        ...n,
+        loginRequestStatus: resolvedStatus,
+        loginRequestRespondedAt: lr.respondedAt,
+      };
+    });
+  }
+
   // Get Notifications (ordered: unread first, then newest)
   app.get("/api/parent/notifications", authMiddleware, async (req: any, res) => {
     try {
@@ -990,7 +1039,8 @@ export async function registerParentRoutes(app: Express) {
           .where(eq(notifications.parentId, parentId))
           .orderBy(sql`${notifications.isRead} ASC, ${notifications.createdAt} DESC`);
 
-        return res.json(successResponse(result, "Notifications retrieved"));
+        const enriched = await enrichLoginRequestStatus(result);
+        return res.json(successResponse(enriched, "Notifications retrieved"));
       }
 
       const items = await db.select()
@@ -1000,8 +1050,10 @@ export async function registerParentRoutes(app: Express) {
         .limit(limit)
         .offset(offset);
 
+      const enrichedItems = await enrichLoginRequestStatus(items);
+
       if (!includeMeta) {
-        return res.json(successResponse(items, "Notifications retrieved"));
+        return res.json(successResponse(enrichedItems, "Notifications retrieved"));
       }
 
       const [{ total }] = await db
@@ -1011,11 +1063,11 @@ export async function registerParentRoutes(app: Express) {
 
       const totalCount = Number(total || 0);
       return res.json(successResponse({
-        items,
+        items: enrichedItems,
         total: totalCount,
         limit,
         offset,
-        hasMore: offset + items.length < totalCount,
+        hasMore: offset + enrichedItems.length < totalCount,
       }, "Notifications retrieved"));
     } catch (error: any) {
       console.error("Fetch notifications error:", error);

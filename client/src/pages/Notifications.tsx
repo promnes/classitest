@@ -1,13 +1,11 @@
 import React, { useEffect, useState } from "react";
-import { useTranslation } from "react-i18next";
 import { useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTheme } from "@/contexts/ThemeContext";
-import { getDateLocale } from "@/i18n/config";
 import { apiRequest, authenticatedFetch } from "@/lib/queryClient";
-import { Check, X, Copy, Loader2 } from "lucide-react";
+import { getRelativeTimeAr, getLoginRequestStatusInfo } from "@/lib/relativeTime";
+import { Check, X, Copy, Loader2, ChevronRight, ArrowRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { LanguageSelector } from "@/components/LanguageSelector";
 
 type NotificationItem = {
   id: string;
@@ -17,6 +15,7 @@ type NotificationItem = {
   isRead: boolean;
   createdAt: string;
   metadata?: Record<string, any> | null;
+  loginRequestStatus?: string;
 };
 
 type NotificationPage = {
@@ -27,15 +26,77 @@ type NotificationPage = {
   hasMore: boolean;
 };
 
+/* ─── Icon config ─── */
+const ICON_CONFIG: Record<string, { emoji: string; bg: string }> = {
+  deposit_approved: { emoji: "💳", bg: "bg-emerald-500" },
+  deposit_rejected: { emoji: "💳", bg: "bg-red-500" },
+  deposit_request: { emoji: "💳", bg: "bg-yellow-500" },
+  purchase_request: { emoji: "🛍️", bg: "bg-purple-500" },
+  purchase_approved: { emoji: "🛍️", bg: "bg-emerald-500" },
+  purchase_rejected: { emoji: "🛍️", bg: "bg-red-500" },
+  purchase_paid: { emoji: "🛍️", bg: "bg-emerald-500" },
+  task: { emoji: "📝", bg: "bg-blue-500" },
+  task_assigned: { emoji: "📝", bg: "bg-blue-500" },
+  task_completed: { emoji: "✅", bg: "bg-emerald-500" },
+  task_reminder: { emoji: "⏰", bg: "bg-orange-500" },
+  points_earned: { emoji: "⭐", bg: "bg-yellow-500" },
+  points_adjustment: { emoji: "⭐", bg: "bg-yellow-500" },
+  referral_reward: { emoji: "🎉", bg: "bg-pink-500" },
+  order_placed: { emoji: "📦", bg: "bg-blue-500" },
+  order_confirmed: { emoji: "📦", bg: "bg-emerald-500" },
+  order_shipped: { emoji: "🚚", bg: "bg-indigo-500" },
+  order_delivered: { emoji: "📦", bg: "bg-emerald-500" },
+  order_rejected: { emoji: "📦", bg: "bg-red-500" },
+  shipment_requested: { emoji: "📦", bg: "bg-indigo-500" },
+  shipping_update: { emoji: "🚚", bg: "bg-indigo-500" },
+  security_alert: { emoji: "🛡️", bg: "bg-red-500" },
+  login_code_request: { emoji: "🔐", bg: "bg-amber-500" },
+  login_rejected: { emoji: "🚫", bg: "bg-red-500" },
+  gift_unlocked: { emoji: "🎁", bg: "bg-pink-500" },
+  gift_activated: { emoji: "🎁", bg: "bg-pink-500" },
+  product_assigned: { emoji: "🎁", bg: "bg-purple-500" },
+  reward: { emoji: "🏆", bg: "bg-yellow-500" },
+  reward_unlocked: { emoji: "🏆", bg: "bg-yellow-500" },
+  child_linked: { emoji: "👨‍👩‍👧", bg: "bg-blue-500" },
+  child_activity: { emoji: "👧", bg: "bg-cyan-500" },
+  child_logout: { emoji: "👋", bg: "bg-gray-500" },
+  broadcast: { emoji: "📢", bg: "bg-blue-600" },
+  system_alert: { emoji: "⚙️", bg: "bg-gray-600" },
+  new_referral: { emoji: "👥", bg: "bg-teal-500" },
+  withdrawal_approved: { emoji: "💰", bg: "bg-emerald-500" },
+  withdrawal_rejected: { emoji: "💰", bg: "bg-red-500" },
+  low_points_warning: { emoji: "⚠️", bg: "bg-orange-500" },
+};
+const getIconConfig = (type: string) => ICON_CONFIG[type] || { emoji: "🔔", bg: "bg-gray-500" };
+
+const NAV_MAP: Record<string, string> = {
+  deposit_approved: "/wallet", deposit_rejected: "/wallet", deposit_request: "/wallet",
+  withdrawal_approved: "/wallet", withdrawal_rejected: "/wallet",
+  purchase_request: "/parent-store", purchase_approved: "/parent-store", purchase_rejected: "/parent-store",
+  purchase_paid: "/parent-store", order_placed: "/parent-store", order_confirmed: "/parent-store",
+  order_shipped: "/parent-store", order_delivered: "/parent-store", order_rejected: "/parent-store",
+  shipment_requested: "/parent-store", shipping_update: "/parent-store",
+  task: "/parent-tasks", task_assigned: "/parent-tasks", task_completed: "/parent-tasks",
+  task_reminder: "/parent-tasks",
+  points_earned: "/parent-dashboard", points_adjustment: "/parent-dashboard",
+  referral_reward: "/parent-dashboard", new_referral: "/parent-dashboard",
+  child_linked: "/parent-dashboard", child_activity: "/parent-dashboard",
+  child_logout: "/parent-dashboard", low_points_warning: "/parent-dashboard",
+  gift_unlocked: "/parent-dashboard", gift_activated: "/parent-dashboard",
+  product_assigned: "/parent-dashboard", reward: "/parent-dashboard",
+  reward_unlocked: "/parent-dashboard",
+  security_alert: "/settings", login_rejected: "/settings",
+};
+
 export const Notifications = (): JSX.Element => {
-  const { t } = useTranslation();
   const [, navigate] = useLocation();
-  const { isDark, toggleTheme } = useTheme();
+  const { isDark } = useTheme();
   const token = localStorage.getItem("token");
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [page, setPage] = useState(1);
+  const [filter, setFilter] = useState<"all" | "unread">("all");
   const pageSize = 20;
   const offset = (page - 1) * pageSize;
 
@@ -56,20 +117,20 @@ export const Notifications = (): JSX.Element => {
     refetchInterval: token ? 5000 : false,
   });
 
-  const notifications = Array.isArray(notificationsPage?.items) ? notificationsPage!.items : [];
+  const allNotifications = Array.isArray(notificationsPage?.items) ? notificationsPage!.items : [];
+  const displayNotifications = filter === "unread"
+    ? allNotifications.filter(n => !n.isRead)
+    : allNotifications;
   const total = notificationsPage?.total || 0;
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const unreadCount = unreadCountData?.count || 0;
 
   useEffect(() => {
-    if (page > totalPages) {
-      setPage(totalPages);
-    }
+    if (page > totalPages) setPage(totalPages);
   }, [page, totalPages]);
 
   const markReadMutation = useMutation({
-    mutationFn: async (notificationId: string) => {
-      return apiRequest("POST", `/api/parent/notifications/${notificationId}/read`);
-    },
+    mutationFn: (id: string) => apiRequest("POST", `/api/parent/notifications/${id}/read`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/parent/notifications"] });
       queryClient.invalidateQueries({ queryKey: ["/api/parent/notifications/unread-count"] });
@@ -77,325 +138,262 @@ export const Notifications = (): JSX.Element => {
   });
 
   const respondToLoginMutation = useMutation({
-    mutationFn: async ({ notificationId, action }: { notificationId: string; action: "approve" | "reject" }) => {
-      return apiRequest("POST", `/api/parent/notifications/${notificationId}/respond-login`, { action });
-    },
+    mutationFn: ({ notificationId, action }: { notificationId: string; action: "approve" | "reject" }) =>
+      apiRequest("POST", `/api/parent/notifications/${notificationId}/respond-login`, { action }),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["/api/parent/notifications"] });
       queryClient.invalidateQueries({ queryKey: ["/api/parent/notifications/unread-count"] });
       toast({
-        title: variables.action === "approve" ? t("notificationsPage.accepted") : t("notificationsPage.rejected"),
-        description: variables.action === "approve" 
-          ? t("notificationsPage.codeApprovedDesc")
-          : t("notificationsPage.loginRejectedDesc"),
+        title: variables.action === "approve" ? "تمت الموافقة ✅" : "تم الرفض ❌",
+        description: variables.action === "approve" ? "تم تسجيل دخول الطفل بنجاح" : "تم رفض طلب تسجيل الدخول",
       });
+    },
+    onError: () => {
+      toast({ title: "حدث خطأ", description: "يرجى المحاولة مرة أخرى", variant: "destructive" });
     },
   });
 
   const markAllReadMutation = useMutation({
-    mutationFn: async () => {
-      return apiRequest("POST", "/api/parent/notifications/read-all");
-    },
+    mutationFn: () => apiRequest("POST", "/api/parent/notifications/read-all"),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/parent/notifications"] });
       queryClient.invalidateQueries({ queryKey: ["/api/parent/notifications/unread-count"] });
-      toast({
-        title: t("notificationsPage.markedAsLearned"),
-        description: t("notificationsPage.allMarkedReadDesc"),
-      });
+      toast({ title: "تم تعليم الكل كمقروء ✅" });
     },
   });
 
   const copyCode = (code: string, notificationId: string) => {
     navigator.clipboard.writeText(code);
     setCopiedCode(notificationId);
-    toast({ title: t("notificationsPage.codeCopied") });
+    toast({ title: "تم نسخ الكود" });
     setTimeout(() => setCopiedCode(null), 2000);
   };
 
-
-  const getNotificationIcon = (type: string) => {
-    switch (type) {
-      case "deposit_approved":
-      case "deposit_rejected":
-      case "deposit_request":
-        return "💳";
-      case "purchase_request":
-      case "purchase_approved":
-      case "purchase_rejected":
-      case "purchase_paid":
-        return "🛍️";
-      case "task":
-      case "task_assigned":
-      case "task_completed":
-      case "task_reminder":
-        return "📝";
-      case "points_earned":
-      case "points_adjustment":
-      case "referral_reward":
-        return "⭐";
-      case "order_placed":
-      case "order_confirmed":
-      case "order_shipped":
-      case "order_delivered":
-      case "order_rejected":
-      case "shipment_requested":
-      case "shipping_update":
-        return "📦";
-      case "security_alert":
-      case "login_code_request":
-      case "login_rejected":
-        return "🔐";
-      case "gift_unlocked":
-      case "gift_activated":
-      case "product_assigned":
-      case "reward":
-      case "reward_unlocked":
-        return "🎁";
-      case "child_linked":
-      case "child_activity":
-      case "child_logout":
-        return "👨‍👩‍👧";
-      default:
-        return "🔔";
-    }
+  const handleNotificationClick = (notification: NotificationItem) => {
+    if (!notification.isRead) markReadMutation.mutate(notification.id);
+    const target = NAV_MAP[notification.type];
+    if (target) navigate(target);
   };
-
-  const isLoginRequest = (type: string) => type === "login_code_request";
-
-  const handleNotificationClick = (notification: any) => {
-    markReadMutation.mutate(notification.id);
-    switch (notification.type) {
-      case "deposit_approved":
-      case "deposit_rejected":
-      case "deposit_request":
-        navigate("/wallet");
-        break;
-      case "purchase_request":
-      case "purchase_approved":
-      case "purchase_rejected":
-      case "purchase_paid":
-      case "order_placed":
-      case "order_confirmed":
-      case "order_shipped":
-      case "order_delivered":
-      case "order_rejected":
-      case "shipment_requested":
-      case "shipping_update":
-        navigate("/parent-store");
-        break;
-      case "task":
-      case "task_assigned":
-      case "task_completed":
-      case "task_reminder":
-        navigate("/parent-tasks");
-        break;
-      case "points_earned":
-      case "points_adjustment":
-      case "referral_reward":
-        navigate("/parent-dashboard");
-        break;
-      default:
-        break;
-    }
-  };
-
-  const unreadCount = typeof unreadCountData?.count === "number"
-    ? unreadCountData.count
-    : notifications.filter((n: any) => !n.isRead).length;
 
   return (
-    <div className={`min-h-screen p-6 ${isDark ? "bg-gray-900" : "bg-gray-50"}`}>
-      <div className="max-w-4xl mx-auto">
+    <div className={`min-h-screen ${isDark ? "bg-[#18191a]" : "bg-gray-100"}`}>
+      <div className="max-w-2xl mx-auto px-4 py-6">
         {/* Header */}
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className={`text-4xl font-bold ${isDark ? "text-white" : "text-gray-800"}`}>
-              {t("notificationsPage.title")}
-            </h1>
-            {unreadCount > 0 && (
-              <p className={isDark ? "text-gray-400" : "text-gray-600"}>
-                {t("notificationsPage.unreadCount", { count: unreadCount })}
-              </p>
-            )}
-          </div>
-          <div className="flex gap-2">
-            <LanguageSelector />
-            {unreadCount > 0 && (
-              <button
-                onClick={() => markAllReadMutation.mutate()}
-                disabled={markAllReadMutation.isPending}
-                className="px-4 py-2 bg-emerald-600 text-white rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {markAllReadMutation.isPending ? t("notificationsPage.markingAll") : t("notificationsPage.markAllRead")}
-              </button>
-            )}
-            <button
-              onClick={toggleTheme}
-              className="px-4 py-2 bg-blue-500 text-white rounded-lg font-bold"
-            >
-              {isDark ? "☀️" : "🌙"}
-            </button>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
             <button
               onClick={() => window.history.length > 1 ? window.history.back() : navigate("/parent-dashboard")}
-              className="px-4 py-2 bg-gray-500 text-white rounded-lg font-bold"
+              className={`p-2 rounded-full transition-colors ${isDark ? "hover:bg-[#3a3b3c]" : "hover:bg-gray-200"}`}
             >
-              ← {t("common.back")}
+              <ArrowRight className="h-5 w-5" />
             </button>
+            <h1 className={`text-2xl font-bold ${isDark ? "text-white" : "text-gray-900"}`}>
+              الإشعارات
+            </h1>
           </div>
+          {unreadCount > 0 && (
+            <button
+              onClick={() => markAllReadMutation.mutate()}
+              disabled={markAllReadMutation.isPending}
+              className={`text-sm font-semibold px-4 py-2 rounded-lg transition-colors ${
+                isDark ? "text-blue-400 hover:bg-[#3a3b3c]" : "text-blue-600 hover:bg-blue-50"
+              }`}
+            >
+              {markAllReadMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "قراءة الكل"}
+            </button>
+          )}
         </div>
 
-        {/* Notifications List */}
-        <div className="space-y-4">
-          {notifications && notifications.length > 0 ? (
-            notifications.map((notification: any) => {
-              const metadata = notification.metadata || {};
-              const isLogin = isLoginRequest(notification.type);
-              const parentCode = metadata.parentCode;
-              
+        {/* Filter tabs */}
+        <div className="flex gap-2 mb-4">
+          <button
+            onClick={() => { setFilter("all"); setPage(1); }}
+            className={`px-4 py-2 rounded-full text-sm font-semibold transition-colors ${
+              filter === "all"
+                ? isDark ? "bg-blue-600 text-white" : "bg-blue-500 text-white"
+                : isDark ? "bg-[#3a3b3c] text-gray-300 hover:bg-[#4e4f50]" : "bg-gray-200 text-gray-600 hover:bg-gray-300"
+            }`}
+          >
+            الكل
+          </button>
+          <button
+            onClick={() => { setFilter("unread"); setPage(1); }}
+            className={`px-4 py-2 rounded-full text-sm font-semibold transition-colors ${
+              filter === "unread"
+                ? isDark ? "bg-blue-600 text-white" : "bg-blue-500 text-white"
+                : isDark ? "bg-[#3a3b3c] text-gray-300 hover:bg-[#4e4f50]" : "bg-gray-200 text-gray-600 hover:bg-gray-300"
+            }`}
+          >
+            غير المقروء {unreadCount > 0 && `(${unreadCount})`}
+          </button>
+        </div>
+
+        {/* Notifications list */}
+        <div className={`rounded-xl overflow-hidden ${isDark ? "bg-[#242526]" : "bg-white"} shadow-sm`}>
+          {displayNotifications.length === 0 ? (
+            <div className="py-20 text-center">
+              <div className="text-5xl mb-4">🔔</div>
+              <p className={`text-base font-medium ${isDark ? "text-gray-400" : "text-gray-500"}`}>
+                {filter === "unread" ? "لا توجد إشعارات غير مقروءة" : "لا توجد إشعارات حالياً"}
+              </p>
+            </div>
+          ) : (
+            displayNotifications.map((notification) => {
+              const isLogin = notification.type === "login_code_request";
+              const loginStatus = notification.loginRequestStatus || "pending";
+              const canRespond = isLogin && loginStatus === "pending";
+              const parentCode = notification.metadata?.parentCode;
+              const iconCfg = getIconConfig(notification.type);
+              const navTarget = NAV_MAP[notification.type];
+              const isClickable = !isLogin && !!navTarget;
+
               return (
                 <div
                   key={notification.id}
-                  className={`${
-                    isDark ? "bg-gray-800" : "bg-white"
-                  } rounded-lg p-4 shadow transition-all ${
-                    !notification.isRead ? (isDark ? "border-r-4 border-blue-500" : "border-r-4 border-blue-500") : ""
+                  className={`flex items-start gap-3 px-4 py-3 transition-colors duration-150 border-b last:border-b-0 ${
+                    isDark ? "border-gray-700/50" : "border-gray-100"
+                  } ${!notification.isRead
+                    ? isDark ? "bg-[#263951]" : "bg-blue-50/60"
+                    : ""
+                  } ${isClickable ? "cursor-pointer" : ""} ${
+                    isDark ? "hover:bg-[#3a3b3c]" : "hover:bg-gray-50"
                   }`}
-                  data-testid={`notification-item-${notification.id}`}
+                  onClick={() => isClickable && handleNotificationClick(notification)}
                 >
-                  <div className="flex gap-3 sm:gap-4">
-                    <span className="text-2xl sm:text-3xl">{getNotificationIcon(notification.type)}</span>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-2 mb-2">
-                        <p
-                          className={`font-bold text-sm sm:text-base ${
-                            isDark ? "text-white" : "text-gray-800"
-                          }`}
-                        >
-                          {notification.title || notification.message?.split('\n')[0]}
-                        </p>
-                        {!notification.isRead && (
-                          <span className="px-2 py-0.5 text-xs bg-blue-500 text-white rounded-full shrink-0">
-                            {t("notificationsPage.new")}
-                          </span>
-                        )}
-                      </div>
-                      
-                      <p className={`text-sm ${isDark ? "text-gray-300" : "text-gray-600"} whitespace-pre-line`}>
+                  {/* Avatar icon */}
+                  <div className={`shrink-0 w-12 h-12 rounded-full flex items-center justify-center text-xl ${iconCfg.bg}`}>
+                    {iconCfg.emoji}
+                  </div>
+
+                  {/* Content */}
+                  <div className="flex-1 min-w-0">
+                    <p className={`text-sm leading-relaxed ${
+                      !notification.isRead ? "font-semibold" : "font-normal"
+                    } ${isDark ? "text-gray-200" : "text-gray-800"}`}>
+                      {notification.title && (
+                        <span className={`${isDark ? "text-white" : "text-gray-900"}`}>
+                          {notification.title}
+                        </span>
+                      )}
+                      {notification.title && " — "}
+                      <span className={isDark ? "text-gray-300" : "text-gray-600"}>
                         {notification.message}
-                      </p>
-                      
-                      <p className={`text-xs ${isDark ? "text-gray-500" : "text-gray-400"} mt-2`}>
-                        {new Date(notification.createdAt).toLocaleDateString(getDateLocale(), {
-                          year: "numeric",
-                          month: "long",
-                          day: "numeric",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </p>
-                      
-                      {isLogin && parentCode && (
-                        <div className="mt-4 space-y-3">
-                          <div className={`flex items-center gap-2 p-3 rounded-lg ${isDark ? "bg-gray-700" : "bg-gray-100"}`}>
-                            <span className={`text-sm ${isDark ? "text-gray-300" : "text-gray-600"}`}>{t("notificationsPage.linkCode")}</span>
+                      </span>
+                    </p>
+
+                    {/* Relative time */}
+                    <p className={`text-xs mt-1 ${
+                      !notification.isRead
+                        ? "text-blue-500 font-semibold"
+                        : isDark ? "text-gray-500" : "text-gray-400"
+                    }`}>
+                      {getRelativeTimeAr(notification.createdAt)}
+                    </p>
+
+                    {/* Login request status badge */}
+                    {isLogin && loginStatus !== "pending" && (
+                      <div className="mt-2">
+                        {(() => {
+                          const statusInfo = getLoginRequestStatusInfo(loginStatus);
+                          return (
+                            <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold ${statusInfo.color} ${statusInfo.bgColor}`}>
+                              {statusInfo.icon} {statusInfo.label}
+                            </span>
+                          );
+                        })()}
+                      </div>
+                    )}
+
+                    {/* Login request: approve/reject buttons (only when pending) */}
+                    {isLogin && canRespond && (
+                      <div className="mt-3 space-y-2">
+                        {parentCode && (
+                          <div className={`flex items-center gap-2 px-3 py-2 rounded-lg ${
+                            isDark ? "bg-[#3a3b3c]" : "bg-gray-100"
+                          }`}>
+                            <span className={`text-xs ${isDark ? "text-gray-400" : "text-gray-500"}`}>كود الربط:</span>
                             <span className="font-mono font-bold text-lg text-orange-500">{parentCode}</span>
                             <button
                               onClick={(e) => { e.stopPropagation(); copyCode(parentCode, notification.id); }}
-                              className={`p-2 rounded-lg transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center ${
-                                copiedCode === notification.id 
-                                  ? "bg-green-500 text-white" 
-                                  : isDark ? "bg-gray-600 hover:bg-gray-500" : "bg-gray-200 hover:bg-gray-300"
+                              className={`p-1.5 rounded-lg transition-colors ${
+                                copiedCode === notification.id
+                                  ? "bg-green-500 text-white"
+                                  : isDark ? "bg-gray-600 hover:bg-gray-500 text-gray-300" : "bg-gray-200 hover:bg-gray-300"
                               }`}
-                              data-testid={`button-copy-code-${notification.id}`}
                             >
                               {copiedCode === notification.id ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                             </button>
                           </div>
-                          
-                          <div className="flex gap-2 flex-wrap">
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                respondToLoginMutation.mutate({ notificationId: notification.id, action: "approve" });
-                              }}
-                              disabled={respondToLoginMutation.isPending}
-                              className="flex-1 min-h-[48px] flex items-center justify-center gap-2 px-4 py-3 bg-green-500 hover:bg-green-600 text-white rounded-lg font-bold transition-colors disabled:opacity-50"
-                              data-testid={`button-approve-${notification.id}`}
-                            >
-                              {respondToLoginMutation.isPending ? (
-                                <Loader2 className="w-5 h-5 animate-spin" />
-                              ) : (
-                                <>
-                                  <Check className="w-5 h-5" />
-                                  {t("notificationsPage.approve")}
-                                </>
-                              )}
-                            </button>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                respondToLoginMutation.mutate({ notificationId: notification.id, action: "reject" });
-                              }}
-                              disabled={respondToLoginMutation.isPending}
-                              className="flex-1 min-h-[48px] flex items-center justify-center gap-2 px-4 py-3 bg-red-500 hover:bg-red-600 text-white rounded-lg font-bold transition-colors disabled:opacity-50"
-                              data-testid={`button-reject-${notification.id}`}
-                            >
-                              {respondToLoginMutation.isPending ? (
-                                <Loader2 className="w-5 h-5 animate-spin" />
-                              ) : (
-                                <>
-                                  <X className="w-5 h-5" />
-                                  {t("notificationsPage.reject")}
-                                </>
-                              )}
-                            </button>
-                          </div>
+                        )}
+                        <div className="flex gap-2">
+                          <button
+                            onClick={(e) => { e.stopPropagation(); respondToLoginMutation.mutate({ notificationId: notification.id, action: "approve" }); }}
+                            disabled={respondToLoginMutation.isPending}
+                            className="flex-1 py-2.5 bg-green-500 hover:bg-green-600 text-white rounded-lg text-sm font-bold flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50"
+                          >
+                            {respondToLoginMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Check className="w-4 h-4" /> موافقة</>}
+                          </button>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); respondToLoginMutation.mutate({ notificationId: notification.id, action: "reject" }); }}
+                            disabled={respondToLoginMutation.isPending}
+                            className="flex-1 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm font-bold flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50"
+                          >
+                            {respondToLoginMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <><X className="w-4 h-4" /> رفض</>}
+                          </button>
                         </div>
-                      )}
-                      
-                      {!isLogin && (
-                        <button
-                          onClick={() => handleNotificationClick(notification)}
-                          className={`mt-3 text-sm ${isDark ? "text-blue-400 hover:text-blue-300" : "text-blue-600 hover:text-blue-700"}`}
-                        >
-                          {t("notificationsPage.clickToNavigate")}
-                        </button>
-                      )}
-                    </div>
+                      </div>
+                    )}
+
+                    {/* Navigation hint */}
+                    {isClickable && (
+                      <div className={`flex items-center gap-1 mt-1 text-xs ${isDark ? "text-blue-400" : "text-blue-500"}`}>
+                        <ChevronRight className="w-3 h-3 rtl:rotate-180" />
+                        <span>اضغط للانتقال</span>
+                      </div>
+                    )}
                   </div>
+
+                  {/* Unread blue dot */}
+                  {!notification.isRead && (
+                    <div className="shrink-0 mt-5">
+                      <div className="w-3 h-3 rounded-full bg-blue-500" />
+                    </div>
+                  )}
                 </div>
               );
             })
-          ) : (
-            <div className={`${isDark ? "bg-gray-800" : "bg-white"} rounded-lg p-8 text-center shadow`}>
-              <p className={`text-lg ${isDark ? "text-gray-400" : "text-gray-600"}`}>
-                {t("notificationsPage.noNotifications")}
-              </p>
-            </div>
           )}
         </div>
 
+        {/* Pagination */}
         {total > pageSize && (
-          <div className="mt-6 flex items-center justify-between">
+          <div className="mt-6 flex items-center justify-center gap-4">
             <button
               onClick={() => setPage((prev) => Math.max(1, prev - 1))}
               disabled={page <= 1}
-              className="px-4 py-2 bg-gray-500 text-white rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed"
+              className={`px-5 py-2.5 rounded-lg font-semibold text-sm transition-colors disabled:opacity-40 ${
+                isDark
+                  ? "bg-[#3a3b3c] text-white hover:bg-[#4e4f50]"
+                  : "bg-white text-gray-700 hover:bg-gray-50 shadow-sm"
+              }`}
             >
-              {t("common.previous")}
+              السابق
             </button>
 
-            <p className={`${isDark ? "text-gray-300" : "text-gray-700"} font-medium`}>
-              {t("common.pageOf", { page, total: totalPages })}
-            </p>
+            <span className={`text-sm font-medium ${isDark ? "text-gray-400" : "text-gray-600"}`}>
+              {page} / {totalPages}
+            </span>
 
             <button
               onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
               disabled={page >= totalPages}
-              className="px-4 py-2 bg-blue-500 text-white rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed"
+              className={`px-5 py-2.5 rounded-lg font-semibold text-sm transition-colors disabled:opacity-40 ${
+                isDark
+                  ? "bg-blue-600 text-white hover:bg-blue-700"
+                  : "bg-blue-500 text-white hover:bg-blue-600 shadow-sm"
+              }`}
             >
-              {t("common.next")}
+              التالي
             </button>
           </div>
         )}
