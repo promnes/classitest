@@ -250,6 +250,36 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',Tahoma,G
 .badge-popup .bp-name{font-size:16px;color:#e9d5ff;margin-top:4px;font-weight:700}
 .badge-popup .bp-close{margin-top:12px;border:none;background:rgba(255,255,255,.15);color:#fff;border-radius:10px;padding:6px 24px;font-size:14px;font-weight:700;cursor:pointer}
 
+/* === BADGE PROGRESS BAR === */
+.bc-progress{width:80%;margin:6px auto 0;height:5px;background:rgba(255,255,255,.15);border-radius:4px;overflow:hidden}
+.bc-prog-fill{height:100%;background:linear-gradient(90deg,#fbbf24,#f59e0b);border-radius:4px;transition:width .4s ease}
+
+/* === XP BAR === */
+.xp-bar-wrap{display:flex;align-items:center;gap:6px;width:100%;max-width:320px;padding:0 4px}
+.xp-level{font-size:clamp(12px,2.2vmin,16px);font-weight:900;color:#fef08a;text-shadow:0 1px 4px rgba(0,0,0,.3);white-space:nowrap;min-width:fit-content}
+.xp-bar{flex:1;height:clamp(8px,1.5vmin,12px);background:rgba(0,0,0,.2);border-radius:8px;overflow:hidden;border:1px solid rgba(255,255,255,.15)}
+.xp-fill{height:100%;background:linear-gradient(90deg,#34d399,#10b981,#059669);border-radius:8px;transition:width .5s ease;box-shadow:0 0 8px rgba(52,211,153,.4)}
+.xp-text{font-size:clamp(9px,1.6vmin,12px);color:rgba(255,255,255,.8);font-weight:600;white-space:nowrap}
+
+/* === STREAK DISPLAY === */
+.streak-display{font-size:clamp(12px,2.2vmin,16px);font-weight:800;color:#fbbf24;text-shadow:0 1px 4px rgba(0,0,0,.3);text-align:center;animation:streakPulse 2s ease-in-out infinite}
+@keyframes streakPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
+
+/* === XP LEVEL-UP POPUP === */
+.xp-levelup-popup{position:fixed;top:15%;left:50%;transform:translateX(-50%) scale(0);z-index:9999;background:linear-gradient(135deg,#065f46,#047857);border:3px solid #34d399;border-radius:20px;padding:18px 28px;text-align:center;animation:xpLevelIn .5s cubic-bezier(.34,1.56,.64,1) forwards;box-shadow:0 0 40px rgba(52,211,153,.3),0 15px 30px rgba(0,0,0,.3)}
+@keyframes xpLevelIn{0%{transform:translateX(-50%) scale(0) rotate(-8deg);opacity:0}100%{transform:translateX(-50%) scale(1) rotate(0);opacity:1}}
+.xp-lu-icon{font-size:42px}
+.xp-lu-title{font-size:16px;font-weight:900;color:#34d399;margin-top:4px}
+.xp-lu-name{font-size:14px;color:#a7f3d0;font-weight:700;margin-top:2px}
+
+/* === DONE SCREEN XP/STREAK ROWS === */
+.d-xp{font-size:clamp(14px,2.5vmin,18px);font-weight:800;color:#34d399;text-shadow:0 1px 4px rgba(0,0,0,.3);display:none}
+.d-streak{font-size:clamp(13px,2.2vmin,16px);font-weight:800;color:#fbbf24;text-shadow:0 1px 4px rgba(0,0,0,.3);display:none}
+
+/* === PRESTIGE BADGE === */
+.prestige-badge{display:inline-flex;align-items:center;gap:3px;background:linear-gradient(135deg,#b45309,#f59e0b);border-radius:8px;padding:2px 8px;font-size:clamp(10px,1.8vmin,13px);font-weight:900;color:#fff;box-shadow:0 2px 8px rgba(180,83,9,.3)}
+.prestige-badge.hidden{display:none}
+
 /* === FOOTER & MISC === */
 .g-foot{display:flex;gap:clamp(4px,1vmin,8px);flex-shrink:0;flex-wrap:wrap;justify-content:center}
 .f-btn{background:rgba(255,255,255,.25);border:none;border-radius:12px;padding:clamp(7px,1.8vmin,12px) clamp(14px,3.5vmin,24px);font-size:clamp(14px,2.5vmin,18px);font-weight:800;color:#fff;cursor:pointer;transition:all .2s;text-shadow:0 1px 3px rgba(0,0,0,.3)}
@@ -456,9 +486,16 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',Tahoma,G
   </div>
   <div class="coins-bar">
     <div class="coin-display"><span class="coin-icon">🪙</span> <span id="coin-count">0</span></div>
+    <span class="prestige-badge hidden" id="prestige-badge">♻️ P0</span>
     <button class="nav-btn shop" id="nav-shop-btn">🛒 <span id="nav-shop-txt">المتجر</span></button>
     <button class="nav-btn badges" id="nav-badge-btn">🏅 <span id="nav-badge-txt">الإنجازات</span></button>
   </div>
+  <div class="xp-bar-wrap">
+    <span class="xp-level" id="xp-level">🐣</span>
+    <div class="xp-bar"><div class="xp-fill" id="xp-fill" style="width:0%"></div></div>
+    <span class="xp-text" id="xp-text">0/50 XP</span>
+  </div>
+  <div class="streak-display" id="streak-display" style="display:none">🔥 Streak: 0</div>
   <div class="ws-sub" id="ws-s">اختر عالمك وانطلق في المغامرة!</div>
   <div class="world-grid" id="world-grid"></div>
 </div>
@@ -485,7 +522,7 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',Tahoma,G
 <!-- BADGES -->
 <div id="badge-screen" class="screen">
   <div class="badge-title" id="badge-t">🏅 الإنجازات</div>
-  <div class="badge-sub" id="badge-sub">0/10</div>
+  <div class="badge-sub" id="badge-sub">0/30</div>
   <div class="badge-grid" id="badge-grid"></div>
   <div class="g-foot"><button class="f-btn" id="badge-back">🗺️ رجوع</button></div>
 </div>
@@ -539,6 +576,8 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',Tahoma,G
     <div class="d-st"><div class="d-st-e">⏱️</div><div class="d-st-v" id="d-tm">0:00</div><div class="d-st-l" id="d-tml">الوقت</div></div>
   </div>
   <div class="coin-earned" id="d-coins" style="display:none"><span class="coin-icon">🪙</span> +<span id="d-coins-val">0</span></div>
+  <div class="d-xp" id="d-xp" style="display:none">+0 XP</div>
+  <div class="d-streak" id="d-streak" style="display:none">🔥 Streak</div>
   <div class="pu-award" id="d-powers" style="display:none"></div>
   <div class="d-btns">
     <button class="d-btn pri" id="d-nx">➡️ التالي</button>
@@ -558,11 +597,12 @@ import {
   soundMuted, initMute, toggleMute,
   renderWorldMap, enterWorld, renderLevelSelect,
   startLevel, flipCard, clearFog,
-  earnCoins, updateCoinDisplays,
+  earnCoins, updateCoinDisplays, updateXPDisplay, updateStreakDisplay,
   renderShop, renderBadges,
   endGame, nextLevel, replayLevel, shareResult,
   goToWorldMap, goToLevels, renderCardsNow,
-  usePower, updatePowerBar, powers
+  usePower, updatePowerBar, powers,
+  xpData, streakData, prestigeData, canPrestige, doPrestige
 } from './memory-modules/core.js';
 
 // Wire sound mute getter
@@ -628,7 +668,16 @@ window.addEventListener('resize', () => {
 // ===== INIT =====
 initMute();
 updateCoinDisplays();
+updateXPDisplay();
+updateStreakDisplay();
 renderWorldMap();
+
+// Prestige badge
+const pBadge = document.getElementById('prestige-badge');
+if (prestigeData.level > 0 && pBadge) {
+  pBadge.textContent = '♻️ P' + prestigeData.level;
+  pBadge.classList.remove('hidden');
+}
 
 // Build power-up bar buttons
 const puBar = document.getElementById('pu-bar');
@@ -637,7 +686,7 @@ POWER_UPS.forEach(pu => {
   btn.className = 'pu-btn';
   btn.id = 'pu-' + pu.id;
   btn.dataset.pu = pu.id;
-  btn.innerHTML = pu.emoji + ' <span class="pu-count">' + (powers[pu.id] || 0) + '</span>';
+  btn.innerHTML = pu.icon + ' <span class="pu-count">' + (powers[pu.id] || 0) + '</span>';
   btn.title = (t.puNames && t.puNames[pu.id]) || pu.id;
   btn.onclick = () => usePower(pu.id);
   puBar.appendChild(btn);

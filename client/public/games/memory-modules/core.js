@@ -3,7 +3,7 @@
 // Game State, Progress, Card Engine, Mechanics, DDA
 // ═══════════════════════════════════════════════════════════════
 
-import { KEYS, MECH, SHOP_ITEMS, BADGE_DEFS, POWER_UPS, t } from './config.js';
+import { KEYS, MECH, SHOP_ITEMS, BADGE_DEFS, POWER_UPS, XP_TABLE, STREAK_CONFIG, PRESTIGE_CONFIG, t } from './config.js';
 import {
   WORLDS, LEVELS, BOSS_CATALOG,
   pickEmoji, pickFrontIcon, shuffleArr,
@@ -85,6 +85,28 @@ export let wallet = JSON.parse(localStorage.getItem(KEYS.WALLET) || '{"coins":0,
 export let badgeData = JSON.parse(localStorage.getItem(KEYS.BADGES) || '{"unlocked":[],"dates":{}}');
 export let ddaProfile = JSON.parse(localStorage.getItem(KEYS.DDA) || '{"skill":50,"gamesPlayed":0,"totalStars":0,"avgMoveRatio":1.0}');
 export let powers = JSON.parse(localStorage.getItem(KEYS.POWERS) || '{"peek":3,"freeze":2,"hint":3,"shield":2,"shuffle":2}');
+
+// ===== XP & LEVELING =====
+function defaultXP() { return { total: 0, level: 1 }; }
+export let xpData = JSON.parse(localStorage.getItem(KEYS.XP) || 'null') || defaultXP();
+export function saveXP() { localStorage.setItem(KEYS.XP, JSON.stringify(xpData)); }
+
+// ===== STREAK =====
+function defaultStreak() { return { current: 0, best: 0, lastDate: null }; }
+export let streakData = JSON.parse(localStorage.getItem(KEYS.STREAK) || 'null') || defaultStreak();
+export function saveStreak() { localStorage.setItem(KEYS.STREAK, JSON.stringify(streakData)); }
+
+// ===== PRESTIGE =====
+function defaultPrestige() { return { level: 0 }; }
+export let prestigeData = JSON.parse(localStorage.getItem(KEYS.PRESTIGE) || 'null') || defaultPrestige();
+export function savePrestige() { localStorage.setItem(KEYS.PRESTIGE, JSON.stringify(prestigeData)); }
+
+// ===== GAMEPLAY STATS =====
+function defaultStats() { return { puUsed: 0, mechsPlayed: [], fastestTime: 9999, gamesPlayed: 0 }; }
+export let gameStats = JSON.parse(localStorage.getItem(KEYS.STATS) || 'null') || defaultStats();
+// Migrate: ensure arrays exist
+if (!Array.isArray(gameStats.mechsPlayed)) gameStats.mechsPlayed = [];
+export function saveStats() { localStorage.setItem(KEYS.STATS, JSON.stringify(gameStats)); }
 
 // DDA v2: per-mechanic skill profiles
 function defaultDDAv2() {
@@ -748,6 +770,7 @@ export function usePower(puId) {
   powers[puId]--;
   savePowers();
   sfxPowerUp();
+  trackPUUsed();
 
   switch (puId) {
     case 'peek':
@@ -1185,17 +1208,157 @@ export function earnCoins(stars, isFirstTime) {
   const base = stars === 3 ? 50 : stars === 2 ? 25 : 10;
   const bonus = isFirstTime ? 20 : 0;
   const mechBonus = mechanic === MECH.BOSS ? 15 : mechanic === MECH.CLASSIC ? 0 : 5;
-  const worldBonus = Math.floor(currentWorld * 2); // harder worlds reward more
-  const total = base + bonus + mechBonus + worldBonus;
+  const worldBonus = Math.floor(currentWorld * 2);
+  // Prestige multiplier
+  const prestigeMult = 1 + (prestigeData.level * PRESTIGE_CONFIG.coinMultiplier);
+  // Streak multiplier
+  const streakIdx = Math.min(streakData.current, STREAK_CONFIG.coinBonus.length - 1);
+  const streakBonus = STREAK_CONFIG.coinBonus[streakIdx];
+  const total = Math.round((base + bonus + mechBonus + worldBonus) * prestigeMult) + streakBonus;
   wallet.coins += total;
   wallet.totalEarned += total;
   saveWallet();
   return total;
 }
 
+// ===== XP ENGINE =====
+export function earnXP(stars) {
+  if (stars <= 0) return 0;
+  const base = stars === 3 ? 30 : stars === 2 ? 15 : 8;
+  const worldXP = Math.floor(currentWorld * 1.5);
+  const prestigeMult = 1 + (prestigeData.level * PRESTIGE_CONFIG.xpMultiplier);
+  const streakIdx = Math.min(streakData.current, STREAK_CONFIG.xpMultiplier.length - 1);
+  const streakMult = STREAK_CONFIG.xpMultiplier[streakIdx];
+  const total = Math.round((base + worldXP) * prestigeMult * streakMult);
+  xpData.total += total;
+  // Level up check
+  let leveled = false;
+  for (let i = XP_TABLE.length - 1; i >= 0; i--) {
+    if (xpData.total >= XP_TABLE[i].xp) {
+      if (xpData.level < XP_TABLE[i].level) {
+        xpData.level = XP_TABLE[i].level;
+        leveled = true;
+      }
+      break;
+    }
+  }
+  saveXP();
+  if (leveled) {
+    sfxLevelUp();
+    showXPLevelUp(xpData.level);
+  }
+  return total;
+}
+
+export function getXPForNextLevel() {
+  for (let i = 0; i < XP_TABLE.length; i++) {
+    if (XP_TABLE[i].level > xpData.level) return XP_TABLE[i].xp;
+  }
+  return XP_TABLE[XP_TABLE.length - 1].xp;
+}
+
+export function getXPForCurrentLevel() {
+  for (let i = XP_TABLE.length - 1; i >= 0; i--) {
+    if (XP_TABLE[i].level <= xpData.level) return XP_TABLE[i].xp;
+  }
+  return 0;
+}
+
+function showXPLevelUp(level) {
+  const title = (t.xpTitles || [])[level - 1] || ('Level ' + level);
+  const popup = document.createElement('div');
+  popup.className = 'xp-levelup-popup';
+  popup.innerHTML = `<div class="xp-lu-icon">🎉</div><div class="xp-lu-title">${t.xpLevel ? t.xpLevel.replace('{n}', level) : 'Level ' + level}</div><div class="xp-lu-name">${title}</div>`;
+  document.body.appendChild(popup);
+  sfxStar();
+  spawnConfetti(innerWidth / 2, innerHeight * 0.35, 20);
+  setTimeout(() => { if (popup.parentElement) popup.remove(); }, 3500);
+}
+
+// ===== STREAK ENGINE =====
+export function updateStreak() {
+  const today = new Date().toDateString();
+  if (streakData.lastDate === today) return; // already counted today
+  const yesterday = new Date(Date.now() - 86400000).toDateString();
+  if (streakData.lastDate === yesterday) {
+    streakData.current += 1;
+  } else if (streakData.lastDate !== today) {
+    streakData.current = 1; // reset if gap
+  }
+  if (streakData.current > streakData.best) streakData.best = streakData.current;
+  streakData.lastDate = today;
+  saveStreak();
+}
+
+// ===== PRESTIGE ENGINE =====
+export function canPrestige() {
+  const completed = Object.keys(progress.stars).filter(k => progress.stars[k] >= 1).length;
+  return completed >= PRESTIGE_CONFIG.requirement;
+}
+
+export function doPrestige() {
+  if (!canPrestige()) return false;
+  prestigeData.level += 1;
+  savePrestige();
+  // Reset progress (keep wallet, badges, stats, xp, streak, powers)
+  progress.stars = {};
+  progress.scores = {};
+  progress.worldsBeaten = {};
+  progress.unlocked = 1;
+  saveProgress();
+  return true;
+}
+
+// ===== TRACK MECHANIC USAGE =====
+export function trackMechPlayed(mech) {
+  if (!gameStats.mechsPlayed.includes(mech)) {
+    gameStats.mechsPlayed.push(mech);
+    saveStats();
+  }
+}
+
+// ===== TRACK POWER-UP USAGE =====
+export function trackPUUsed() {
+  gameStats.puUsed = (gameStats.puUsed || 0) + 1;
+  saveStats();
+}
+
 export function updateCoinDisplays() {
   const el = document.getElementById('coin-count'); if (el) el.textContent = wallet.coins;
   const el2 = document.getElementById('shop-coins'); if (el2) el2.textContent = wallet.coins;
+  // XP bar
+  updateXPDisplay();
+  // Streak
+  updateStreakDisplay();
+}
+
+export function updateXPDisplay() {
+  const bar = document.getElementById('xp-fill');
+  const txt = document.getElementById('xp-text');
+  const lvl = document.getElementById('xp-level');
+  if (!bar) return;
+  const curLevelXP = getXPForCurrentLevel();
+  const nextLevelXP = getXPForNextLevel();
+  const range = nextLevelXP - curLevelXP;
+  const prog = xpData.total - curLevelXP;
+  const pct = range > 0 ? Math.min(100, Math.round((prog / range) * 100)) : 100;
+  bar.style.width = pct + '%';
+  if (txt) txt.textContent = (t.xpProgress || '{cur}/{next} XP').replace('{cur}', xpData.total).replace('{next}', nextLevelXP);
+  if (lvl) {
+    const title = (t.xpTitles || [])[xpData.level - 1] || ('Lv.' + xpData.level);
+    lvl.textContent = title;
+  }
+}
+
+export function updateStreakDisplay() {
+  const el = document.getElementById('streak-display');
+  if (!el) return;
+  if (streakData.current > 0) {
+    el.textContent = (t.streak || '🔥 Streak: {n} days').replace('{n}', streakData.current);
+    el.style.display = '';
+  } else {
+    el.style.display = 'none';
+  }
 }
 
 // ===== SHOP =====
@@ -1241,7 +1404,7 @@ function buyItem(item) {
   updateCoinDisplays();
 }
 
-// ===== BADGES =====
+// ===== BADGES (30 achievements) =====
 export function renderBadges() {
   const grid = document.getElementById('badge-grid');
   if (!grid) return;
@@ -1254,23 +1417,60 @@ export function renderBadges() {
     const isUnlocked = badgeData.unlocked.includes(b.id);
     const card = document.createElement('div');
     card.className = 'badge-card' + (isUnlocked ? ' unlocked' : ' locked');
-    card.innerHTML = `<div class="bc-emoji">${b.emoji}</div><div class="bc-name">${names[i] || b.id}</div><div class="bc-desc">${descs[i] || ''}</div>${isUnlocked && badgeData.dates[b.id] ? '<div class="bc-date">' + badgeData.dates[b.id] + '</div>' : ''}`;
+    const progress_pct = getBadgeProgress(b);
+    card.innerHTML = `<div class="bc-emoji">${b.emoji}</div><div class="bc-name">${names[i] || b.id}</div><div class="bc-desc">${descs[i] || ''}</div>${isUnlocked && badgeData.dates[b.id] ? '<div class="bc-date">' + badgeData.dates[b.id] + '</div>' : ''}${!isUnlocked ? '<div class="bc-progress"><div class="bc-prog-fill" style="width:' + progress_pct + '%"></div></div>' : ''}`;
     grid.appendChild(card);
   });
+}
+
+function getBadgeProgress(b) {
+  const totalStarsVal = getTotalStars(progress);
+  const completedLevels = Object.keys(progress.stars).filter(k => progress.stars[k] >= 1).length;
+  const perfectLevels = Object.values(progress.stars).filter(s => s >= 3).length;
+
+  let current = 0, goal = b.goal;
+  if (b.type === 'levels') current = completedLevels;
+  else if (b.type === 'stars') current = totalStarsVal;
+  else if (b.type === 'perfect') current = perfectLevels > 0 ? 1 : 0;
+  else if (b.type === 'perfectN') current = perfectLevels;
+  else if (b.type === 'world') current = getWorldCompleted(progress, b.goal);
+  else if (b.type === 'allWorlds') { const done = WORLDS.every((_, idx) => getWorldCompleted(progress, idx) >= 10); current = done ? 1 : 0; goal = 1; }
+  else if (b.type === 'speed') current = gameStats.fastestTime <= b.goal ? 1 : 0;
+  else if (b.type === 'totalCoins') current = wallet.totalEarned;
+  else if (b.type === 'ownedThemes') current = wallet.owned.length;
+  else if (b.type === 'streak') current = streakData.best;
+  else if (b.type === 'mechMaster') { const max = Math.max(...Object.values(ddaV2.mechSkills)); current = max; }
+  else if (b.type === 'allMechs') current = gameStats.mechsPlayed.length >= 10 ? 1 : 0;
+  else if (b.type === 'puUsed') current = gameStats.puUsed || 0;
+  else if (b.type === 'prestige') current = prestigeData.level;
+
+  if (goal <= 0) return 100;
+  return Math.min(100, Math.round((current / goal) * 100));
 }
 
 function checkBadges() {
   const newBadges = [];
   const totalStarsVal = getTotalStars(progress);
+  const completedLevels = Object.keys(progress.stars).filter(k => progress.stars[k] >= 1).length;
+  const perfectLevels = Object.values(progress.stars).filter(s => s >= 3).length;
 
   BADGE_DEFS.forEach(b => {
     if (badgeData.unlocked.includes(b.id)) return;
     let earned = false;
-    if (b.type === 'levels') earned = Object.keys(progress.stars).filter(k => progress.stars[k] >= 1).length >= b.goal;
+    if (b.type === 'levels') earned = completedLevels >= b.goal;
     else if (b.type === 'stars') earned = totalStarsVal >= b.goal;
-    else if (b.type === 'perfect') earned = Object.values(progress.stars).some(s => s >= 3);
+    else if (b.type === 'perfect') earned = perfectLevels >= 1;
+    else if (b.type === 'perfectN') earned = perfectLevels >= b.goal;
     else if (b.type === 'world') earned = getWorldCompleted(progress, b.goal) >= 10;
     else if (b.type === 'allWorlds') earned = WORLDS.every((_, idx) => getWorldCompleted(progress, idx) >= 10);
+    else if (b.type === 'speed') earned = gameStats.fastestTime <= b.goal;
+    else if (b.type === 'totalCoins') earned = wallet.totalEarned >= b.goal;
+    else if (b.type === 'ownedThemes') earned = wallet.owned.length >= b.goal;
+    else if (b.type === 'streak') earned = streakData.best >= b.goal;
+    else if (b.type === 'mechMaster') earned = Object.values(ddaV2.mechSkills).some(s => s >= b.goal);
+    else if (b.type === 'allMechs') earned = gameStats.mechsPlayed.length >= 10;
+    else if (b.type === 'puUsed') earned = (gameStats.puUsed || 0) >= b.goal;
+    else if (b.type === 'prestige') earned = prestigeData.level >= b.goal;
 
     if (earned) {
       badgeData.unlocked.push(b.id);
@@ -1281,7 +1481,10 @@ function checkBadges() {
 
   if (newBadges.length > 0) {
     saveBadges();
-    showBadgePopup(newBadges[0]);
+    // Show badges one by one with delay
+    newBadges.forEach((badge, idx) => {
+      setTimeout(() => showBadgePopup(badge), idx * 2500);
+    });
   }
 }
 
@@ -1346,6 +1549,34 @@ export function endGame() {
       setTimeout(() => spawnCoinFly(coinsGained), 300);
     } else if (dCoins) dCoins.style.display = 'none';
 
+    // XP
+    const xpGained = earnXP(stars);
+    const dXP = document.getElementById('d-xp');
+    if (xpGained > 0 && dXP) {
+      dXP.style.display = '';
+      dXP.textContent = (t.xpGained || '+{n} XP').replace('{n}', xpGained);
+    } else if (dXP) dXP.style.display = 'none';
+
+    // Streak
+    updateStreak();
+    const streakIdx = Math.min(streakData.current, STREAK_CONFIG.coinBonus.length - 1);
+    const dStreak = document.getElementById('d-streak');
+    if (streakData.current > 1 && dStreak) {
+      dStreak.style.display = '';
+      dStreak.textContent = (t.streak || '🔥 Streak: {n} days').replace('{n}', streakData.current);
+    } else if (dStreak) dStreak.style.display = 'none';
+
+    // Track fastest time
+    if (!isPartial && dur < gameStats.fastestTime) {
+      gameStats.fastestTime = dur;
+      saveStats();
+    }
+    // Track mechanic played
+    trackMechPlayed(mechanic);
+    // Track games played
+    gameStats.gamesPlayed = (gameStats.gamesPlayed || 0) + 1;
+    saveStats();
+
     // Award power-ups based on stars
     const puAwarded = awardPowerUps(stars);
     const dPu = document.getElementById('d-powers');
@@ -1353,7 +1584,7 @@ export function endGame() {
       dPu.style.display = '';
       dPu.innerHTML = '<span class="pu-award-icon">🎁</span> ' +
         puAwarded.map(p => POWER_UPS.find(x => x.id === p)).filter(Boolean)
-          .map(p => p.emoji).join(' ');
+          .map(p => p.icon).join(' ');
       sfxPowerUp();
     } else if (dPu) dPu.style.display = 'none';
 

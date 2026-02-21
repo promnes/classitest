@@ -30,6 +30,9 @@ export const KEYS = {
   STREAK:   'classify_memPro_streak',
   POWERS:   'classify_memPro_powers',
   DDA_V2:   'classify_memPro_ddav2',
+  XP:       'classify_memPro_xp',
+  PRESTIGE: 'classify_memPro_prestige',
+  STATS:    'classify_memPro_stats',
   // Migration from old format
   OLD_PROGRESS: 'classify_memory_progress',
   OLD_WALLET:   'classify_memory_wallet',
@@ -126,19 +129,75 @@ export const POWER_UPS = [
   { id:'shuffle', icon:'🔄', price:20 },
 ];
 
-// ===== BADGE DEFINITIONS (10 base — Phase E will expand to 30) =====
+// ===== BADGE DEFINITIONS (30 achievements) =====
 export const BADGE_DEFS = [
-  { id:'first',     emoji:'🐣', type:'levels',  goal:1    },
-  { id:'stars10',   emoji:'⭐', type:'stars',   goal:10   },
-  { id:'stars30',   emoji:'🌟', type:'stars',   goal:30   },
-  { id:'stars100',  emoji:'💫', type:'stars',   goal:100  },
-  { id:'perfect',   emoji:'🏆', type:'perfect', goal:1    },
-  { id:'world1',    emoji:'🌿', type:'world',   goal:0    },
-  { id:'world3',    emoji:'🍕', type:'world',   goal:2    },
-  { id:'world5',    emoji:'🎵', type:'world',   goal:4    },
-  { id:'world8',    emoji:'🎨', type:'world',   goal:7    },
-  { id:'champion',  emoji:'👑', type:'allWorlds',goal:10  },
+  // — Progress —
+  { id:'first',       emoji:'🐣', type:'levels',     goal:1    },
+  { id:'levels25',    emoji:'📖', type:'levels',     goal:25   },
+  { id:'levels50',    emoji:'📚', type:'levels',     goal:50   },
+  { id:'levels100',   emoji:'🎓', type:'levels',     goal:100  },
+  // — Stars —
+  { id:'stars10',     emoji:'⭐', type:'stars',      goal:10   },
+  { id:'stars30',     emoji:'🌟', type:'stars',      goal:30   },
+  { id:'stars100',    emoji:'💫', type:'stars',      goal:100  },
+  { id:'stars200',    emoji:'🌠', type:'stars',      goal:200  },
+  { id:'stars300',    emoji:'☀️', type:'stars',      goal:300  },
+  // — Perfection —
+  { id:'perfect',     emoji:'🏆', type:'perfect',    goal:1    },
+  { id:'perfect10',   emoji:'💎', type:'perfectN',   goal:10   },
+  { id:'perfect50',   emoji:'👑', type:'perfectN',   goal:50   },
+  // — Worlds —
+  { id:'world1',      emoji:'🌿', type:'world',      goal:0    },
+  { id:'world3',      emoji:'🍕', type:'world',      goal:2    },
+  { id:'world5',      emoji:'🎵', type:'world',      goal:4    },
+  { id:'world8',      emoji:'🎨', type:'world',      goal:7    },
+  { id:'champion',    emoji:'🏅', type:'allWorlds',  goal:10   },
+  // — Speed —
+  { id:'speed30',     emoji:'⚡', type:'speed',      goal:30   },
+  { id:'speed15',     emoji:'🚀', type:'speed',      goal:15   },
+  // — Economy —
+  { id:'rich',        emoji:'🪙', type:'totalCoins', goal:1000 },
+  { id:'wealthy',     emoji:'💰', type:'totalCoins', goal:5000 },
+  { id:'shopaholic',  emoji:'🛍️', type:'ownedThemes',goal:5   },
+  { id:'collector',   emoji:'🎭', type:'ownedThemes',goal:8   },
+  // — Streak —
+  { id:'streak3',     emoji:'🔥', type:'streak',     goal:3    },
+  { id:'streak7',     emoji:'🔥', type:'streak',     goal:7    },
+  { id:'streak30',    emoji:'🔥', type:'streak',     goal:30   },
+  // — Mastery —
+  { id:'mechMaster',  emoji:'🧠', type:'mechMaster', goal:90   },
+  { id:'allMechs',    emoji:'🌀', type:'allMechs',   goal:1    },
+  // — Power-ups & Prestige —
+  { id:'powerUser',   emoji:'⚡', type:'puUsed',     goal:50   },
+  { id:'prestige1',   emoji:'♻️', type:'prestige',   goal:1    },
 ];
+
+// ===== XP TABLE (level → cumulative XP needed) =====
+export const XP_TABLE = [
+  { level:1,  xp:0,     title:'🐣' },
+  { level:2,  xp:50,    title:'🌱' },
+  { level:3,  xp:150,   title:'🌿' },
+  { level:4,  xp:300,   title:'🌳' },
+  { level:5,  xp:500,   title:'⭐' },
+  { level:6,  xp:800,   title:'🌟' },
+  { level:7,  xp:1200,  title:'💫' },
+  { level:8,  xp:1800,  title:'🔥' },
+  { level:9,  xp:2600,  title:'💎' },
+  { level:10, xp:3600,  title:'👑' },
+];
+
+// ===== STREAK CONFIG =====
+export const STREAK_CONFIG = {
+  coinBonus:   [0, 5, 10, 15, 20, 30, 40, 50],  // index = min(streakDays, 7)
+  xpMultiplier:[1, 1, 1.1, 1.2, 1.3, 1.5, 1.7, 2.0],
+};
+
+// ===== PRESTIGE CONFIG =====
+export const PRESTIGE_CONFIG = {
+  coinMultiplier: 0.1,   // +10% coins per prestige level
+  xpMultiplier:   0.05,  // +5% XP per prestige level
+  requirement: 80,        // min levels completed (with ≥1 star) to prestige
+};
 
 // ===== i18n =====
 const I18N = {
@@ -221,10 +280,29 @@ ar: {
   lvNamesW8:['بوابة القلعة','قاعة العرش','مكتبة السحر','سرداب الأسرار','برج الساعة','حديقة التماثيل','جسر المعلق','غرفة المرايا','قمة البرج','🎭 قاعة المخادع'],
   lvNamesW9:['تصفيات أولى','ربع النهائي','نصف النهائي','الدور الذهبي','كأس الفضة','كأس الذهب','تحدي الأبطال','نهائي العالم','المواجهة الكبرى','👑 عرش الملك'],
 
-  // Badge names & descriptions
-  badgeNames:['🐣 أول خطوة','⭐ جامع النجوم','🌟 سيد النجوم','💫 أسطورة النجوم','🏆 جولة مثالية','🌿 حارس الغابة','🍕 شيف ماهر','🎵 عازف محترف','🎨 فنان مبدع','👑 بطل العالم'],
-  badgeDescs:['أكمل أول مستوى','اجمع 10 نجوم','اجمع 30 نجمة','اجمع 100 نجمة','احصل على 3 نجوم','أكمل عالم الغابة','أكمل عالم المطبخ','أكمل عالم الموسيقى','أكمل عالم الألوان','أكمل كل العوالم'],
+  // Badge names & descriptions (30 badges)
+  badgeNames:['🐣 أول خطوة','📖 مستكشف','📚 مثابر','🎓 خريج','⭐ جامع النجوم','🌟 سيد النجوم','💫 أسطورة النجوم','🌠 حصّاد النجوم','☀️ شمس النجوم','🏆 جولة مثالية','💎 عاشق الكمال','👑 ملك الكمال','🌿 حارس الغابة','🍕 شيف ماهر','🎵 عازف محترف','🎨 فنان مبدع','🏅 بطل العالم','⚡ سريع البرق','🚀 خاطف','🪙 ثري','💰 مليونير','🛍️ متسوّق','🎭 جامع الكل','🔥 حماس ×3','🔥 حماس ×7','🔥 حماس ×30','🧠 خبير آلية','🌀 متعدد المواهب','⚡ محترف القدرات','♻️ أسطورة متجدد'],
+  badgeDescs:['أكمل أول مستوى','أكمل 25 مستوى','أكمل 50 مستوى','أكمل كل 100 مستوى','اجمع 10 نجوم','اجمع 30 نجمة','اجمع 100 نجمة','اجمع 200 نجمة','اجمع 300 نجمة','احصل على 3 نجوم','3 نجوم في 10 مستويات','3 نجوم في 50 مستوى','أكمل عالم الغابة','أكمل عالم المطبخ','أكمل عالم الموسيقى','أكمل عالم الألوان','أكمل كل العوالم','أنهِ مستوى في 30 ثانية','أنهِ مستوى في 15 ثانية','اجمع 1000 عملة','اجمع 5000 عملة','اشترِ 5 ثيمات','اشترِ كل الثيمات','العب 3 أيام متتالية','العب 7 أيام متتالية','العب 30 يوم متتالي','أتقن آلية (مهارة ≥90)','جرّب كل الآليات','استخدم 50 قدرة','حقق أول برستيج'],
   themeNames:['افتراضي','✨ مجرّة','🍬 حلوى','💎 ألماس','🔥 نار','🌈 قوس قزح','⚡ نيون','👑 ملكي'],
+  // XP level titles
+  xpTitles:['🐣 مبتدئ','🌱 ناشئ','🌿 متعلم','🌳 ماهر','⭐ نجم','🌟 متألق','💫 خبير','🔥 أسطوري','💎 ألماسي','👑 أسطورة'],
+  // Streak & Prestige
+  streak:'🔥 سلسلة: {n} يوم',
+  streakBonus:'+{n} عملة سلسلة!',
+  xpGained:'+{n} XP',
+  xpLevel:'المستوى {n}',
+  xpProgress:'{cur}/{next} XP',
+  prestige:'♻️ البرستيج',
+  prestigeLevel:'برستيج {n}',
+  prestigeConfirm:'هل تريد البرستيج؟ سيُعاد تعيين تقدمك مع مضاعف دائم +{n}%!',
+  prestigeYes:'نعم!',
+  prestigeNo:'لا',
+  profile:'👤 الملف',
+  totalPlayed:'مستويات مكتملة',
+  totalCoins:'عملات مكتملة',
+  puUsedTotal:'قدرات مستخدمة',
+  dailyBonus:'🎁 مكافأة يومية!',
+  mechsPlayed:'آليات مُجربة',
 },
 en: {
   title:'🧠 Memory Kingdom',
@@ -290,9 +368,26 @@ en: {
   lvNamesW8:['Castle Gate','Throne Room','Magic Library','Secret Dungeon','Clock Tower','Statue Garden','Hanging Bridge','Mirror Room','Tower Peak','🎭 Trickster Hall'],
   lvNamesW9:['Qualifiers','Quarter Final','Semi Final','Golden Round','Silver Cup','Gold Cup','Champion Trial','World Final','Grand Clash','👑 King\'s Throne'],
 
-  badgeNames:['🐣 First Steps','⭐ Star Collector','🌟 Star Master','💫 Star Legend','🏆 Perfect Round','🌿 Forest Guardian','🍕 Master Chef','🎵 Pro Musician','🎨 Creative Artist','👑 World Champion'],
-  badgeDescs:['Complete first level','Earn 10 stars','Earn 30 stars','Earn 100 stars','Get 3 stars on any level','Complete Dream Forest','Complete Magic Kitchen','Complete Music City','Complete Color Island','Complete all worlds'],
+  badgeNames:['🐣 First Steps','📖 Explorer','📚 Persistent','🎓 Graduate','⭐ Star Collector','🌟 Star Master','💫 Star Legend','🌠 Star Harvester','☀️ Star Sun','🏆 Perfect Round','💎 Perfection Lover','👑 Perfection King','🌿 Forest Guardian','🍕 Master Chef','🎵 Pro Musician','🎨 Creative Artist','🏅 World Champion','⚡ Lightning Fast','🚀 Speed Demon','🪙 Rich','💰 Millionaire','🛍️ Shopaholic','🎭 Full Collector','🔥 Streak ×3','🔥 Streak ×7','🔥 Streak ×30','🧠 Mechanic Master','🌀 Multi-talented','⚡ Power User','♻️ Prestige Legend'],
+  badgeDescs:['Complete first level','Complete 25 levels','Complete 50 levels','Complete all 100 levels','Earn 10 stars','Earn 30 stars','Earn 100 stars','Earn 200 stars','Earn 300 stars','Get 3 stars on any level','3 stars on 10 levels','3 stars on 50 levels','Complete Dream Forest','Complete Magic Kitchen','Complete Music City','Complete Color Island','Complete all worlds','Finish a level in 30s','Finish a level in 15s','Earn 1000 total coins','Earn 5000 total coins','Own 5 themes','Own all themes','Play 3 days in a row','Play 7 days in a row','Play 30 days in a row','Master a mechanic (skill ≥90)','Try all mechanics','Use 50 power-ups','Reach Prestige 1'],
   themeNames:['Default','✨ Galaxy','🍬 Candy','💎 Diamond','🔥 Fire','🌈 Rainbow','⚡ Neon','👑 Royal'],
+  xpTitles:['🐣 Novice','🌱 Seedling','🌿 Learner','🌳 Skilled','⭐ Star','🌟 Brilliant','💫 Expert','🔥 Legendary','💎 Diamond','👑 Legend'],
+  streak:'🔥 Streak: {n} days',
+  streakBonus:'+{n} streak coins!',
+  xpGained:'+{n} XP',
+  xpLevel:'Level {n}',
+  xpProgress:'{cur}/{next} XP',
+  prestige:'♻️ Prestige',
+  prestigeLevel:'Prestige {n}',
+  prestigeConfirm:'Prestige? Your progress resets but you get a permanent +{n}% bonus!',
+  prestigeYes:'Yes!',
+  prestigeNo:'No',
+  profile:'👤 Profile',
+  totalPlayed:'Levels completed',
+  totalCoins:'Total coins earned',
+  puUsedTotal:'Powers used',
+  dailyBonus:'🎁 Daily Bonus!',
+  mechsPlayed:'Mechanics tried',
 },
 pt: {
   title:'🧠 Reino da Memória',
@@ -358,9 +453,26 @@ pt: {
   lvNamesW8:['Portão do Castelo','Sala do Trono','Biblioteca Mágica','Masmorra Secreta','Torre do Relógio','Jardim de Estátuas','Ponte Suspensa','Sala dos Espelhos','Topo da Torre','🎭 Salão do Trapaceiro'],
   lvNamesW9:['Classificatórias','Quartas de Final','Semifinal','Rodada Dourada','Taça de Prata','Taça de Ouro','Desafio dos Campeões','Final Mundial','Grande Confronto','👑 Trono do Rei'],
 
-  badgeNames:['🐣 Primeiros Passos','⭐ Coletor de Estrelas','🌟 Mestre Estelar','💫 Lenda Estelar','🏆 Rodada Perfeita','🌿 Guardião da Floresta','🍕 Chef Mestre','🎵 Músico Profissional','🎨 Artista Criativo','👑 Campeão Mundial'],
-  badgeDescs:['Complete o primeiro nível','Ganhe 10 estrelas','Ganhe 30 estrelas','Ganhe 100 estrelas','3 estrelas em um nível','Complete Floresta dos Sonhos','Complete Cozinha Mágica','Complete Cidade da Música','Complete Ilha das Cores','Complete todos os mundos'],
+  badgeNames:['🐣 Primeiros Passos','📖 Explorador','📚 Persistente','🎓 Graduado','⭐ Coletor de Estrelas','🌟 Mestre Estelar','💫 Lenda Estelar','🌠 Ceifador de Estrelas','☀️ Sol de Estrelas','🏆 Rodada Perfeita','💎 Amante da Perfeição','👑 Rei da Perfeição','🌿 Guardião da Floresta','🍕 Chef Mestre','🎵 Músico Profissional','🎨 Artista Criativo','🏅 Campeão Mundial','⚡ Relâmpago','🚀 Demônio da Velocidade','🪙 Rico','💰 Milionário','🛍️ Comprador','🎭 Colecionador Total','🔥 Sequência ×3','🔥 Sequência ×7','🔥 Sequência ×30','🧠 Mestre Mecânico','🌀 Multi-talento','⚡ Usuário de Poderes','♻️ Lenda Prestígio'],
+  badgeDescs:['Complete o primeiro nível','Complete 25 níveis','Complete 50 níveis','Complete todos 100 níveis','Ganhe 10 estrelas','Ganhe 30 estrelas','Ganhe 100 estrelas','Ganhe 200 estrelas','Ganhe 300 estrelas','3 estrelas em um nível','3 estrelas em 10 níveis','3 estrelas em 50 níveis','Complete Floresta dos Sonhos','Complete Cozinha Mágica','Complete Cidade da Música','Complete Ilha das Cores','Complete todos os mundos','Termine em 30 segundos','Termine em 15 segundos','Ganhe 1000 moedas','Ganhe 5000 moedas','Compre 5 temas','Compre todos os temas','Jogue 3 dias seguidos','Jogue 7 dias seguidos','Jogue 30 dias seguidos','Domine mecânica (≥90)','Tente todas as mecânicas','Use 50 poderes','Alcance Prestígio 1'],
   themeNames:['Padrão','✨ Galáxia','🍬 Doce','💎 Diamante','🔥 Fogo','🌈 Arco-íris','⚡ Neon','👑 Real'],
+  xpTitles:['🐣 Novato','🌱 Broto','🌿 Aprendiz','🌳 Habilidoso','⭐ Estrela','🌟 Brilhante','💫 Especialista','🔥 Lendário','💎 Diamante','👑 Lenda'],
+  streak:'🔥 Sequência: {n} dias',
+  streakBonus:'+{n} moedas de sequência!',
+  xpGained:'+{n} XP',
+  xpLevel:'Nível {n}',
+  xpProgress:'{cur}/{next} XP',
+  prestige:'♻️ Prestígio',
+  prestigeLevel:'Prestígio {n}',
+  prestigeConfirm:'Prestígio? Progresso reseta mas ganha +{n}% permanente!',
+  prestigeYes:'Sim!',
+  prestigeNo:'Não',
+  profile:'👤 Perfil',
+  totalPlayed:'Níveis completados',
+  totalCoins:'Total moedas',
+  puUsedTotal:'Poderes usados',
+  dailyBonus:'🎁 Bônus Diário!',
+  mechsPlayed:'Mecânicas tentadas',
 }
 };
 
