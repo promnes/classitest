@@ -13,9 +13,15 @@ import {
 } from './worlds.js';
 import {
   sfxFlip, sfxMatch, sfxNoMatch, sfxComplete, sfxStar, sfxCoin, sfxBadge,
+  sfxComboUp, sfxBossHit, sfxBossAttack, sfxTap, sfxLevelUp, sfxWhoosh,
+  startMusic, stopMusic, updateMusicIntensity, cardPanX,
+  detectPerformance,
   initBg, stopBg, spawnConfetti, royalCelebration, spawnMatchParticles, spawnCoinFly,
   showScreen, updateCountdownDisplay, renderCards as uiRenderCards
 } from './ui.js';
+
+// Detect low-performance devices on load
+detectPerformance();
 
 // ===== MIGRATE OLD DATA =====
 function migrateOldData() {
@@ -106,6 +112,7 @@ let timerInterval = null, elapsedSeconds = 0;
 let currentLevel = -1, currentGridCols = 4, currentGridRows = 4;
 let currentEmoji = [], currentFrontIcon = '❓', currentGroup = 0;
 let currentWorld = 0;
+let comboStreak = 0; // Phase B: consecutive match streak
 
 // Mechanic state
 let mechanic = MECH.CLASSIC, matchCount = 2;
@@ -199,6 +206,7 @@ export function renderWorldMap() {
 // ===== ENTER WORLD → SHOW LEVEL SELECT =====
 export function enterWorld(worldIdx) {
   currentWorld = worldIdx;
+  sfxTap();
   renderLevelSelect(worldIdx);
   showScreen('lvl-screen');
 }
@@ -308,8 +316,10 @@ export function startLevel(globalIdx) {
   }
 
   initBg(currentGroup);
+  startMusic(currentGroup);
   resetGame();
   showScreen('game-screen');
+  sfxWhoosh();
 
   // Render cards via ResizeObserver
   const wrap = document.querySelector('.grid-wrap');
@@ -341,7 +351,7 @@ function resetGame() {
   peekInProgress = false; movesSinceShuffle = 0;
   fogSet = new Set(); maskedMap = {};
   bossCountdownSec = 0; levelTimerSec = 0; levelTimerMax = 0;
-  bossState = null;
+  bossState = null; comboStreak = 0;
 
   const cfg = LEVELS[currentLevel];
   mechanic = cfg ? cfg.mechanic || MECH.CLASSIC : MECH.CLASSIC;
@@ -447,7 +457,8 @@ export function flipCard(id) {
 
   card.flipped = true;
   updateCardDOM(id, true, false);
-  sfxFlip();
+  const pan = cardPanX(id);
+  sfxFlip(pan);
   picks.push(id);
 
   if (picks.length < matchCount) return;
@@ -460,13 +471,18 @@ export function flipCard(id) {
     picks.forEach(pid => { cards[pid].matched = true; updateCardDOM(pid, true, true); });
     matchedPairs++;
     document.getElementById('g-pr').textContent = matchedPairs + '/' + totalPairs;
-    sfxMatch();
+    comboStreak++;
+    const matchPan = cardPanX(picks[0]);
+    sfxMatch(matchPan);
+    if (comboStreak > 1) sfxComboUp(comboStreak);
+    updateMusicIntensity(comboStreak);
     spawnMatchParticles(picks[0], picks[picks.length - 1]);
     ddaOnMatch();
 
     // Boss damage
     if (bossState && !bossState.defeated) {
       bossState.hp--;
+      sfxBossHit();
       updateBossHP();
       if (bossState.hp <= 0) {
         bossState.defeated = true;
@@ -479,6 +495,8 @@ export function flipCard(id) {
   } else {
     isChecking = true;
     sfxNoMatch();
+    comboStreak = 0;
+    updateMusicIntensity(0);
     ddaOnMismatch();
     setTimeout(() => {
       picks.forEach(pid => { cards[pid].flipped = false; updateCardDOM(pid, false, false); });
@@ -496,7 +514,7 @@ export function flipCard(id) {
 
   // Boss periodic action
   if (bossState && !bossState.defeated && moves % 4 === 0) {
-    setTimeout(() => bossAction(), 500);
+    setTimeout(() => { bossAction(); sfxBossAttack(); }, 500);
   }
 }
 
@@ -885,6 +903,7 @@ export function endGame() {
   if (bossTimerId) { clearInterval(bossTimerId); bossTimerId = null; }
   stopLevelTimer();
   ddaClearHintTimer();
+  stopMusic();
   peekInProgress = false;
   const dur = Math.floor((Date.now() - startTime) / 1000);
   const isPartial = matchedPairs < totalPairs;
@@ -961,6 +980,7 @@ export function endGame() {
 
   sfxComplete();
   if (stars > 0) sfxStar();
+  if (bossState && bossState.defeated) sfxLevelUp();
   showScreen('done-screen');
   if (royalCelebration && !isPartial) royalCelebration(stars);
 
@@ -1026,8 +1046,10 @@ export function shareResult() {
 // ===== GO BACK TO WORLD MAP =====
 export function goToWorldMap() {
   stopBg();
+  stopMusic();
   ddaClearHintTimer();
   stopLevelTimer();
+  sfxWhoosh();
   showScreen('world-screen');
   renderWorldMap();
   updateCoinDisplays();
@@ -1036,8 +1058,10 @@ export function goToWorldMap() {
 // ===== GO BACK TO LEVELS =====
 export function goToLevels() {
   stopBg();
+  stopMusic();
   ddaClearHintTimer();
   stopLevelTimer();
+  sfxWhoosh();
   renderLevelSelect(currentWorld);
   showScreen('lvl-screen');
   updateCoinDisplays();

@@ -502,7 +502,7 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',Tahoma,G
 <script type="module">
 import { LANG, t } from './memory-modules/config.js';
 import { WORLDS, LEVELS } from './memory-modules/worlds.js';
-import { setSoundMuteGetter, showScreen } from './memory-modules/ui.js';
+import { setSoundMuteGetter, showScreen, sfxTap } from './memory-modules/ui.js';
 import {
   soundMuted, initMute, toggleMute,
   renderWorldMap, enterWorld, renderLevelSelect,
@@ -544,8 +544,8 @@ if (t.badges) {
 // ===== Button wiring (no inline onclick) =====
 // World screen
 document.getElementById('ws-mute').onclick = toggleMute;
-document.getElementById('nav-shop-btn').onclick = () => { renderShop(); showScreen('shop-screen'); };
-document.getElementById('nav-badge-btn').onclick = () => { renderBadges(); showScreen('badge-screen'); };
+document.getElementById('nav-shop-btn').onclick = () => { sfxTap(); renderShop(); showScreen('shop-screen'); };
+document.getElementById('nav-badge-btn').onclick = () => { sfxTap(); renderBadges(); showScreen('badge-screen'); };
 
 // Level screen
 document.getElementById('ls-mute').onclick = toggleMute;

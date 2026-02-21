@@ -1,9 +1,20 @@
 // ═══════════════════════════════════════════════════════════════
 // Memory Match Pro — ui.js
-// Sound Engine, Background Animations, Particles, Card Rendering
+// Sound Engine, World Music, Particles, Background, Card Rendering
 // ═══════════════════════════════════════════════════════════════
 
 import { MECH, t } from './config.js';
+
+// ===== PERFORMANCE MODE =====
+let lowPerfMode = false;
+export function isLowPerf() { return lowPerfMode; }
+export function detectPerformance() {
+  if (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 2) lowPerfMode = true;
+  if (navigator.deviceMemory && navigator.deviceMemory <= 2) lowPerfMode = true;
+}
+export function getParticleCount(base) {
+  return lowPerfMode ? Math.max(1, Math.floor(base / 3)) : base;
+}
 
 // ===== AUDIO ENGINE (Childlike Joyful Sounds) =====
 let audioCtx = null;
@@ -13,11 +24,11 @@ function ctx() {
   return audioCtx;
 }
 
-// Low-level primitives: references soundMuted via getter
 let _getMuted = () => false;
 export function setSoundMuteGetter(fn) { _getMuted = fn; }
 
-function tone(f, d, tp, v, atk) {
+// Core tone with optional stereo panning
+function tone(f, d, tp, v, atk, panX) {
   if (_getMuted()) return;
   try {
     const c = ctx(), o = c.createOscillator(), g = c.createGain();
@@ -27,29 +38,36 @@ function tone(f, d, tp, v, atk) {
     g.gain.setValueAtTime(0, c.currentTime);
     g.gain.linearRampToValueAtTime(v || .08, c.currentTime + a);
     g.gain.exponentialRampToValueAtTime(.001, c.currentTime + (d || .15));
-    o.connect(g); g.connect(c.destination);
+    o.connect(g);
+    // Spatial panning
+    if (panX !== undefined && c.createStereoPanner) {
+      const pan = c.createStereoPanner();
+      pan.pan.setValueAtTime(Math.max(-1, Math.min(1, panX)), c.currentTime);
+      g.connect(pan); pan.connect(c.destination);
+    } else { g.connect(c.destination); }
     o.start(); o.stop(c.currentTime + (d || .15) + .01);
   } catch (e) {}
 }
 
-function bell(f, d, v) {
+function bell(f, d, v, panX) {
   if (_getMuted()) return;
-  tone(f, d || .25, 'sine', v || .09, .003);
-  tone(f * 2, (d || .25) * .6, 'sine', (v || .09) * .3, .003);
-  tone(f * 3, (d || .25) * .35, 'triangle', (v || .09) * .12, .003);
+  tone(f, d || .25, 'sine', v || .09, .003, panX);
+  tone(f * 2, (d || .25) * .6, 'sine', (v || .09) * .3, .003, panX);
+  tone(f * 3, (d || .25) * .35, 'triangle', (v || .09) * .12, .003, panX);
 }
 
-function sparkle(f, v) {
+function sparkle(f, v, panX) {
   if (_getMuted()) return;
-  tone(f, .08, 'sine', v || .06, .002);
-  tone(f * 1.5, .06, 'sine', (v || .06) * .4, .002);
+  tone(f, .08, 'sine', v || .06, .002, panX);
+  tone(f * 1.5, .06, 'sine', (v || .06) * .4, .002, panX);
 }
 
-export function sfxFlip() { bell(659, .1, .07); sparkle(1319, .03); }
-export function sfxMatch() {
-  bell(784, .15, .11);
-  setTimeout(() => bell(988, .18, .12), 70);
-  setTimeout(() => { sparkle(1568, .05); sparkle(2093, .03); }, 130);
+// ===== CORE SFX =====
+export function sfxFlip(panX) { bell(659, .1, .07, panX); sparkle(1319, .03, panX); }
+export function sfxMatch(panX) {
+  bell(784, .15, .11, panX);
+  setTimeout(() => bell(988, .18, .12, panX), 70);
+  setTimeout(() => { sparkle(1568, .05, panX); sparkle(2093, .03, panX); }, 130);
 }
 export function sfxNoMatch() {
   tone(330, .18, 'sine', .06, .01);
@@ -72,6 +90,148 @@ export function sfxCoin() {
 }
 export function sfxBadge() {
   [880, 1047, 1319, 1568, 1760].forEach((f, i) => setTimeout(() => bell(f, .18, .1), i * 90));
+}
+
+// ===== PHASE B: NEW SFX =====
+const PENTA = [523, 587, 659, 784, 880, 1047, 1175, 1319, 1568, 1760];
+
+export function sfxComboUp(streak) {
+  const idx = Math.min(streak, PENTA.length - 1);
+  bell(PENTA[idx], .12, .08);
+  setTimeout(() => sparkle(PENTA[idx] * 1.5, .04), 50);
+}
+
+export function sfxBossHit() {
+  tone(180, .12, 'triangle', .12, .003);
+  setTimeout(() => tone(260, .1, 'sine', .09, .005), 50);
+  setTimeout(() => sparkle(880, .06), 100);
+}
+
+export function sfxBossAttack() {
+  tone(160, .25, 'triangle', .1, .01);
+  setTimeout(() => tone(100, .2, 'sine', .08, .01), 100);
+  setTimeout(() => tone(80, .15, 'triangle', .05, .01), 200);
+}
+
+export function sfxTap() {
+  tone(660, .04, 'sine', .05, .002);
+}
+
+export function sfxTick() {
+  tone(880, .025, 'triangle', .04, .001);
+}
+
+export function sfxLevelUp() {
+  const fanfare = [523, 659, 784, 1047, 784, 1047, 1319, 1568];
+  fanfare.forEach((f, i) => setTimeout(() => bell(f, .25, .12), i * 110));
+  setTimeout(() => { sparkle(2093, .06); sparkle(2349, .05); }, fanfare.length * 110);
+}
+
+export function sfxWhoosh() {
+  if (_getMuted()) return;
+  try {
+    const c = ctx(), o = c.createOscillator(), g = c.createGain();
+    o.type = 'sine';
+    o.frequency.setValueAtTime(600, c.currentTime);
+    o.frequency.exponentialRampToValueAtTime(200, c.currentTime + .15);
+    g.gain.setValueAtTime(.04, c.currentTime);
+    g.gain.exponentialRampToValueAtTime(.001, c.currentTime + .18);
+    o.connect(g); g.connect(c.destination);
+    o.start(); o.stop(c.currentTime + .2);
+  } catch (e) {}
+}
+
+// ===== WORLD-SPECIFIC AMBIENT MUSIC =====
+const WORLD_SCALES = [
+  [262, 294, 330, 392, 440],    // W0 Nature: C Pentatonic (cheerful, pastoral)
+  [220, 262, 294, 349, 392],    // W1 Ocean: A Min Pentatonic (flowing, calm)
+  [294, 330, 370, 440, 494],    // W2 City: D Major (bright, upbeat)
+  [330, 392, 440, 494, 587],    // W3 Adventure: E Pentatonic (heroic, bold)
+  [349, 392, 466, 523, 587],    // W4 Tech: F Scale (futuristic, digital)
+  [392, 440, 523, 587, 659],    // W5 Desert: G Pentatonic (warm, exotic)
+  [262, 311, 349, 415, 466],    // W6 Fantasy: C Minor (mysterious, magical)
+  [523, 587, 659, 784, 880],    // W7 Candy: C High (playful, bouncy)
+  [196, 233, 262, 311, 349],    // W8 Arctic: G Low (cool, serene)
+  [440, 523, 587, 659, 784],    // W9 Royal: A Pentatonic (majestic, grand)
+];
+
+const WORLD_BPM = [90, 72, 110, 100, 95, 80, 85, 120, 70, 105];
+const WORLD_DRONE = [131, 110, 147, 165, 175, 196, 131, 262, 98, 220];
+
+let musicPlaying = false, musicNodes = [], melodyTimer = null, melodyStep = 0;
+let currentMusicWorld = -1, melodyBaseGain = null;
+
+function fadeGain(gn, target, dur) {
+  try {
+    const c = ctx();
+    gn.gain.cancelScheduledValues(c.currentTime);
+    gn.gain.setValueAtTime(gn.gain.value, c.currentTime);
+    gn.gain.linearRampToValueAtTime(target, c.currentTime + dur);
+  } catch (e) {}
+}
+
+function createDrone(freq, type, vol) {
+  try {
+    const c = ctx(), o = c.createOscillator(), g = c.createGain();
+    o.type = type; o.frequency.setValueAtTime(freq, c.currentTime);
+    g.gain.setValueAtTime(0, c.currentTime);
+    o.connect(g); g.connect(c.destination); o.start();
+    return { osc: o, gain: g };
+  } catch (e) { return null; }
+}
+
+export function startMusic(worldGroup) {
+  if (musicPlaying || lowPerfMode || _getMuted()) return;
+  if (worldGroup < 0 || worldGroup > 9) return;
+  musicPlaying = true; currentMusicWorld = worldGroup; melodyStep = 0;
+
+  // Root drone — very quiet
+  const rootFreq = WORLD_DRONE[worldGroup] || 131;
+  const drone = createDrone(rootFreq, 'sine');
+  if (drone) { melodyBaseGain = drone.gain; fadeGain(drone.gain, .018, 1.5); musicNodes.push(drone); }
+  // Fifth drone for warmth
+  const fifth = createDrone(rootFreq * 1.5, 'triangle');
+  if (fifth) { fadeGain(fifth.gain, .008, 2); musicNodes.push(fifth); }
+
+  // Pentatonic melody tick
+  const scale = WORLD_SCALES[worldGroup] || WORLD_SCALES[0];
+  const interval = 60000 / (WORLD_BPM[worldGroup] || 90);
+  melodyTimer = setInterval(() => {
+    if (_getMuted() || !musicPlaying) return;
+    const note = scale[melodyStep % scale.length];
+    tone(note, .3, 'sine', .025, .01);
+    // Every 5th step: high shimmer
+    if (melodyStep % 5 === 4) tone(note * 2, .15, 'sine', .012, .01);
+    // Every 8th step: bass pulse
+    if (melodyStep % 8 === 0) tone(rootFreq, .4, 'triangle', .015, .02);
+    melodyStep++;
+  }, interval);
+}
+
+export function stopMusic() {
+  musicPlaying = false; currentMusicWorld = -1;
+  clearInterval(melodyTimer); melodyTimer = null;
+  musicNodes.forEach(n => { try { if (n && n.osc) n.osc.stop(); } catch (e) {} });
+  musicNodes = []; melodyBaseGain = null;
+}
+
+export function updateMusicIntensity(combo) {
+  if (!musicPlaying || !melodyBaseGain) return;
+  const vol = .018 + Math.min(combo, 10) * .002;
+  fadeGain(melodyBaseGain, vol, .5);
+}
+
+// ===== CARD POSITION → PAN VALUE =====
+export function cardPanX(cardId) {
+  try {
+    const el = document.getElementById('grid');
+    if (!el) return 0;
+    const card = el.querySelector(`[data-id="${cardId}"]`);
+    if (!card) return 0;
+    const r = card.getBoundingClientRect();
+    const cx = r.left + r.width / 2;
+    return ((cx / window.innerWidth) - .5) * 1.6; // range -0.8 to +0.8
+  } catch (e) { return 0; }
 }
 
 // ===== PARTICLE SYSTEM (Royal Match 3D) =====
