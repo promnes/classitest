@@ -1,5 +1,5 @@
 import { useEffect, useState, lazy, Suspense } from "react";
-import { Switch, Route, Redirect } from "wouter";
+import { Switch, Route, Redirect, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -329,8 +329,16 @@ function Router() {
   );
 }
 
+const GAME_ROUTES = ["/child-games", "/match3", "/memory-match"];
+
 function useSwipeBackGesture() {
+  const [location] = useLocation();
+
   useEffect(() => {
+    // Disable swipe-back on game pages so it doesn't interfere with gameplay
+    const isGamePage = GAME_ROUTES.some((r) => location.startsWith(r));
+    if (isGamePage) return;
+
     let startX = 0;
     let startY = 0;
     let isTracking = false;
@@ -380,7 +388,7 @@ function useSwipeBackGesture() {
       window.removeEventListener("touchstart", onTouchStart);
       window.removeEventListener("touchend", onTouchEnd);
     };
-  }, []);
+  }, [location]);
 }
 
 function useMobileAppBranding() {
