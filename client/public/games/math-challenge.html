@@ -103,6 +103,19 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',Tahoma,s
 .ans-btn:disabled{cursor:default;opacity:.7}
 @keyframes correct3D{0%{transform:scale(1)}40%{transform:scale(1.12) rotateZ(-3deg)}70%{transform:scale(.95) rotateZ(2deg)}100%{transform:scale(1) rotateZ(0)}}
 
+/* NUMPAD */
+.numpad-wrap{display:none;width:100%;max-width:300px;margin:0 auto}
+.numpad-display{font-size:clamp(36px,8vmin,52px);font-weight:900;color:#111827;text-align:center;background:rgba(255,255,255,.6);border-radius:16px;padding:8px 16px;margin-bottom:8px;min-height:clamp(48px,10vmin,64px);border:3px solid var(--accent,#8b5cf6);box-shadow:inset 0 2px 4px rgba(0,0,0,.1);direction:ltr;transition:background .3s,border-color .3s}
+.numpad-display.np-correct{background:#d1fae5;border-color:#059669}
+.numpad-display.np-wrong{background:#fee2e2;border-color:#dc2626}
+.numpad-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(6px,1.2vmin,8px)}
+.np-btn{padding:clamp(10px,2.2vmin,16px);font-size:clamp(24px,5vmin,34px);font-weight:900;border:none;border-radius:clamp(14px,2.8vmin,20px);background:linear-gradient(180deg,#fff,#faf5ff,#f3e8ff);cursor:pointer;transition:all .15s cubic-bezier(.34,1.56,.64,1);color:#111827;box-shadow:0 5px 0 #c4b5fd,0 7px 0 #a78bfa,0 10px 20px rgba(0,0,0,.08),inset 0 2px 0 rgba(255,255,255,.8)}
+.np-btn:hover{transform:translateY(-3px) scale(1.05)}
+.np-btn:active{transform:translateY(3px) scale(.96);box-shadow:0 2px 0 #c4b5fd}
+.np-btn:disabled{opacity:.5;cursor:default;transform:none}
+.np-del{background:linear-gradient(180deg,#fff1f2,#fee2e2);color:#dc2626;box-shadow:0 5px 0 #fca5a5,0 7px 0 #f87171,0 10px 20px rgba(0,0,0,.08)}
+.np-ok{background:linear-gradient(180deg,#ecfdf5,#d1fae5);color:#059669;box-shadow:0 5px 0 #6ee7b7,0 7px 0 #34d399,0 10px 20px rgba(0,0,0,.08)}
+
 /* BOOSTERS */
 .boosters{display:flex;justify-content:center;gap:clamp(8px,2vmin,14px);margin-top:6px}
 .bst-btn{border:none;background:rgba(255,255,255,.15);border-radius:14px;padding:6px 14px;font-size:clamp(18px,3.5vmin,26px);cursor:pointer;transition:all .2s cubic-bezier(.34,1.56,.64,1);display:flex;align-items:center;gap:4px;box-shadow:0 4px 0 rgba(0,0,0,.12),0 6px 12px rgba(0,0,0,.08),inset 0 1px 0 rgba(255,255,255,.3)}
@@ -253,6 +266,23 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',Tahoma,s
       <div class="q-feedback" id="q-feedback"></div>
     </div>
     <div class="ans-grid" id="answers"></div>
+    <div class="numpad-wrap" id="numpad-wrap">
+      <div class="numpad-display" id="numpad-display">_</div>
+      <div class="numpad-grid">
+        <button class="np-btn" onclick="numpadPress(1)">1</button>
+        <button class="np-btn" onclick="numpadPress(2)">2</button>
+        <button class="np-btn" onclick="numpadPress(3)">3</button>
+        <button class="np-btn" onclick="numpadPress(4)">4</button>
+        <button class="np-btn" onclick="numpadPress(5)">5</button>
+        <button class="np-btn" onclick="numpadPress(6)">6</button>
+        <button class="np-btn" onclick="numpadPress(7)">7</button>
+        <button class="np-btn" onclick="numpadPress(8)">8</button>
+        <button class="np-btn" onclick="numpadPress(9)">9</button>
+        <button class="np-btn np-del" onclick="numpadDel()">⌫</button>
+        <button class="np-btn" onclick="numpadPress(0)">0</button>
+        <button class="np-btn np-ok" onclick="numpadConfirm()">✅</button>
+      </div>
+    </div>
     <div class="boosters" id="boosters"></div>
   </div>
 </div>
@@ -406,6 +436,7 @@ let questions = [], timerInterval = null, timeLeft = 0, answering = false, start
 let usedHintThisLevel = false, bossState = null, dailyMode = false, questionStartTime = 0;
 let totalCorrect = 0, totalQ = 10, currentTimerMax = 0;
 let challengeTracker;
+let numpadValue = '';
 
 function el(id) { return document.getElementById(id); }
 
@@ -611,57 +642,134 @@ function pickMultiCatEmoji(cats) {
   return shuffle([...new Set(pool)]);
 }
 
-function genQuestion(ops, range, emojiPool, difficulty, isBoss) {
-  const effRange = Intel.getDifficultyRange(range, difficulty);
-  let op = ops[Math.floor(Math.random() * ops.length)];
-  // Handle special ops as add/sub fallback
-  if (['count','fraction','decimal','pattern','geometry','algebra'].includes(op)) {
-    if (op === 'count') op = 'add';
-    else if (op === 'fraction') op = 'add';
-    else if (op === 'decimal') op = 'add';
-    else if (op === 'pattern') op = 'add';
-    else if (op === 'geometry') op = 'mul';
-    else if (op === 'algebra') op = 'add';
+function rnd(n){return Math.floor(Math.random()*n)}
+function genArith(ops, effR) {
+  let op=ops[rnd(ops.length)];
+  if(['count','fraction','decimal','pattern','geometry','algebra'].includes(op))op=['add','sub','mul'][rnd(3)]||'add';
+  let a,b,ans;
+  switch(op){
+    case'sub':a=rnd(effR)+2;b=rnd(a)+1;ans=a-b;return{a,b,ans,sym:'-',text:`${a} - ${b} = ?`};
+    case'mul':a=rnd(Math.min(effR,12))+1;b=rnd(Math.min(effR,12))+1;ans=a*b;return{a,b,ans,sym:'×',text:`${a} × ${b} = ?`};
+    case'div':{b=rnd(Math.min(effR,12))+1;const q=rnd(Math.min(effR,12))+1;a=b*q;ans=q;return{a,b,ans,sym:'÷',text:`${a} ÷ ${b} = ?`};}
+    default:a=rnd(effR)+1;b=rnd(effR)+1;ans=a+b;return{a,b,ans,sym:'+',text:`${a} + ${b} = ?`};
   }
-  let a, b, answer, text, visual = '';
-  const em = emojiPool[Math.floor(Math.random() * emojiPool.length)];
-  switch(op) {
-    case 'add':
-      a = Math.floor(Math.random() * effRange) + 1;
-      b = Math.floor(Math.random() * effRange) + 1;
-      answer = a + b; text = `${a} + ${b} = ?`;
-      if (a <= 6 && b <= 6) visual = em.repeat(a) + ' + ' + em.repeat(b);
-      break;
-    case 'sub':
-      a = Math.floor(Math.random() * effRange) + 2;
-      b = Math.floor(Math.random() * a) + 1;
-      answer = a - b; text = `${a} - ${b} = ?`;
-      if (a <= 8) visual = em.repeat(a) + ' - ' + em.repeat(b);
-      break;
-    case 'mul':
-      a = Math.floor(Math.random() * Math.min(effRange, 12)) + 1;
-      b = Math.floor(Math.random() * Math.min(effRange, 12)) + 1;
-      answer = a * b; text = `${a} × ${b} = ?`;
-      if (a <= 4 && b <= 4) { const rows = []; for (let r = 0; r < a; r++) rows.push(em.repeat(b)); visual = rows.join(' '); }
-      break;
-    case 'div':
-      b = Math.floor(Math.random() * Math.min(effRange, 12)) + 1;
-      const q = Math.floor(Math.random() * Math.min(effRange, 12)) + 1;
-      a = b * q; answer = q; text = `${a} ÷ ${b} = ?`;
-      if (a <= 12) visual = em.repeat(a) + ' ÷ ' + b;
-      break;
-    default:
-      a = Math.floor(Math.random() * effRange) + 1;
-      b = Math.floor(Math.random() * effRange) + 1;
-      answer = a + b; text = `${a} + ${b} = ?`;
+}
+function wrongOpts(correct, count, lo, hi) {
+  const s=new Set();let t=0;
+  while(s.size<count&&t++<60){const off=rnd(10)+1;const w=Math.random()<.5?correct+off:correct-off;if(w!==correct&&w>=(lo||0)&&!s.has(w))s.add(w)}
+  while(s.size<count)s.add(correct+s.size+1);
+  return shuffle([correct,...s]);
+}
+
+function genTypedQuestion(typeId, ops, range, pool, difficulty) {
+  const effR=Intel.getDifficultyRange(range,difficulty);
+  const em=pool[rnd(pool.length)];
+  let text,answer,options,visual='',inputMode='choice';
+  switch(typeId){
+    case'visualCount':{
+      const n=rnd(Math.min(effR,12))+1;text=T.howMany;answer=n;
+      visual=em.repeat(n);options=wrongOpts(n,3,1,20);break;
+    }
+    case'compare':{
+      const a=rnd(effR*2)+1,b=rnd(effR*2)+1;
+      text=`${a}  ⬜  ${b}`;answer=a>b?'>':a<b?'<':'=';
+      options=['>','<','='];inputMode='choice3';
+      if(a<=6&&b<=6)visual=em.repeat(a)+' ? '+em.repeat(b);break;
+    }
+    case'trueFalse':{
+      const ar=genArith(ops,effR);const isTrue=Math.random()>.4;
+      const shown=isTrue?ar.ans:ar.ans+(rnd(5)+1)*(Math.random()>.5?1:-1);
+      text=ar.text.replace('= ?','= '+shown);visual=T.isCorrect;
+      answer=isTrue?T.yes:T.no;options=[T.yes,T.no];inputMode='choice2';break;
+    }
+    case'missingNumber':{
+      const ar=genArith(ops,effR);
+      if(rnd(2)===0){text=`_ ${ar.sym} ${ar.b} = ${ar.ans}`;answer=ar.a;}
+      else{text=`${ar.a} ${ar.sym} _ = ${ar.ans}`;answer=ar.b;}
+      visual=T.findMissing;inputMode='numpad';break;
+    }
+    case'placeValue':{
+      const num=rnd(effR*10)+10;let lbl,ans;
+      if(num>=100&&rnd(3)===0){lbl=T.hundredsDigit;ans=Math.floor(num/100)%10;}
+      else if(num>=10&&rnd(2)===0){lbl=T.tensDigit;ans=Math.floor(num/10)%10;}
+      else{lbl=T.onesDigit;ans=num%10;}
+      text=lbl+' '+num+'?';answer=ans;options=wrongOpts(ans,3,0,9);break;
+    }
+    case'sequence':{
+      const start=rnd(effR)+1,step=rnd(Math.min(effR,5))+1;
+      const seq=[];for(let i=0;i<4;i++)seq.push(start+step*i);
+      answer=start+step*4;text=seq.join(', ')+', _';visual=T.whatNext;inputMode='numpad';break;
+    }
+    case'fractionVisual':{
+      const ds=[2,3,4,5];const d=ds[rnd(ds.length)];const n=rnd(d-1)+1;
+      const whole=(rnd(Math.min(effR,4))+1)*d;answer=Math.round(whole*n/d);
+      text=T.fractionOf+' '+n+'/'+d+' '+(T.of||'of')+' '+whole+'?';
+      visual=em.repeat(Math.min(whole,10));options=wrongOpts(answer,3,1,whole);break;
+    }
+    case'geometry':{
+      const shape=rnd(2),calc=rnd(2);
+      if(shape===0){const s=rnd(effR)+2;
+        text=calc===0?T.perimeter+': '+T.squareSide+' '+s:T.area+': '+T.squareSide+' '+s;
+        answer=calc===0?s*4:s*s;
+      }else{let w=rnd(effR)+2,h=rnd(effR)+2;if(w===h)h++;
+        text=calc===0?T.perimeter+': '+T.rectSides+' '+w+'×'+h:T.area+': '+T.rectSides+' '+w+'×'+h;
+        answer=calc===0?(w+h)*2:w*h;}
+      inputMode='numpad';break;
+    }
+    case'algebra':{
+      const x=rnd(effR)+2,b=rnd(Math.min(x-1,effR))+1;
+      if(rnd(2)===0){text='x + '+b+' = '+(x+b);}else{text='x - '+b+' = '+(x-b);}
+      answer=x;visual=T.solveFor;inputMode='numpad';break;
+    }
+    case'wordProblem':{
+      const tpls=T.wordProblemTemplates,names=T.names;
+      const name=names[rnd(names.length)];
+      let a=rnd(effR)+2,b=rnd(Math.min(a-1,effR))+1;const ti=rnd(tpls.length);
+      if(ti===0)answer=a+b;
+      else if(ti===1)answer=a-b;
+      else if(ti===2){a=rnd(5)+2;b=rnd(5)+2;answer=a*b;}
+      else{b=rnd(4)+2;a=b*(rnd(4)+1);answer=a/b;}
+      text=tpls[ti].replace('{name}',name).replace('{a}',a).replace('{b}',b).replace(/{emoji}/g,em);
+      options=wrongOpts(answer,3,1,Math.max(answer+10,effR*2));break;
+    }
+    case'speedRound':{
+      const ar=genArith(ops,Math.max(2,Math.round(effR*.5)));
+      text=ar.text;answer=ar.ans;
+      const w=ar.ans+(rnd(5)+1)*(Math.random()>.5?1:-1);
+      options=shuffle([ar.ans,w<0?ar.ans+rnd(5)+1:w]);inputMode='choice2';break;
+    }
+    case'estimation':{
+      const ar=genArith(ops,effR);text=ar.text.replace('= ?','≈ ?');
+      visual=T.whichClosest||'';answer=ar.ans;
+      const opts=new Set([ar.ans]);
+      [rnd(3)+1,rnd(10)+5,rnd(15)+8].forEach(off=>opts.add(Math.max(0,ar.ans+off*(Math.random()>.5?1:-1))));
+      let ex=1;while(opts.size<4)opts.add(ar.ans+ex++*5);
+      options=shuffle([...opts]);break;
+    }
+    case'doubles':{
+      const base=rnd(Math.min(effR,20))+1;
+      if(Math.random()>.4){text=(T.double||'Double')+' '+base+' = ?';answer=base*2;
+        visual=em.repeat(Math.min(base,6))+' × 2';}
+      else{const ev=base*2;text=(T.half||'Half')+' '+ev+' = ?';answer=base;
+        visual=em.repeat(Math.min(ev,8))+' ÷ 2';}
+      options=wrongOpts(answer,3,1,Math.max(answer+10,effR));break;
+    }
+    case'ordering':{
+      const hi=Math.max(effR*3,15);const nums=new Set();
+      while(nums.size<4)nums.add(rnd(hi)+1);const arr=[...nums];
+      const big=Math.random()>.5;text=big?(T.biggest||T.whichBigger):(T.smallest||'?');
+      answer=big?Math.max(...arr):Math.min(...arr);options=shuffle(arr);break;
+    }
+    default:{
+      const ar=genArith(ops,effR);text=ar.text;answer=ar.ans;
+      if(ar.sym==='+'&&ar.a<=6&&ar.b<=6)visual=em.repeat(ar.a)+' + '+em.repeat(ar.b);
+      else if(ar.sym==='-'&&ar.a<=8)visual=em.repeat(ar.a)+' - '+em.repeat(ar.b);
+      else if(ar.sym==='×'&&ar.a<=4&&ar.b<=4){const rows=[];for(let i=0;i<ar.a;i++)rows.push(em.repeat(ar.b));visual=rows.join(' ');}
+      else if(ar.sym==='÷'&&ar.a<=12)visual=em.repeat(ar.a)+' ÷ '+ar.b;
+      options=wrongOpts(ar.ans,3,0,ar.ans+effR+5);break;
+    }
   }
-  const wrongs = new Set();
-  while (wrongs.size < 3) {
-    const off = Math.floor(Math.random() * 10) + 1;
-    const w = Math.random() < .5 ? answer + off : answer - off;
-    if (w !== answer && w >= 0 && !wrongs.has(w)) wrongs.add(w);
-  }
-  return { text, answer, options: shuffle([answer, ...wrongs]), visual };
+  return{text,answer,options:options||[],visual,inputMode};
 }
 
 function genAllQuestions(cfg, isBoss) {
@@ -669,12 +777,14 @@ function genAllQuestions(cfg, isBoss) {
   const adjustedRange = Intel.adjustRange(cfg.range, skill);
   currentTimerMax = cfg.timer;
   const pool = pickMultiCatEmoji(cfg.cats);
+  const types = cfg.questionTypes || ['classic'];
   const qs = [];
   for (let i = 0; i < cfg.questions; i++) {
     const diff = Intel.getQuestionDifficulty(i, cfg.questions, isBoss);
     let ops = cfg.ops;
     if (isBoss && bossState) ops = Boss.getCurrentPhaseOps(bossState);
-    qs.push(genQuestion(ops, adjustedRange, pool, diff, isBoss));
+    const type = types[i % types.length] || 'classic';
+    qs.push(genTypedQuestion(type, ops, adjustedRange, pool, diff));
   }
   return qs;
 }
@@ -742,11 +852,15 @@ function genBossQuestions(cfg) {
   const phases = Boss.getPhases(bossState);
   const skill = Intel.getSmoothedSkill(progress.skillData || {});
   const pool = pickMultiCatEmoji(cfg.cats);
+  const types = cfg.questionTypes || ['classic'];
   const qs = [];
+  let qi = 0;
   for (const phase of phases) {
     for (let i = 0; i < phase.questions; i++) {
       const diff = Intel.getQuestionDifficulty(i, phase.questions, true);
-      qs.push(genQuestion(phase.ops, Intel.adjustRange(cfg.range, skill), pool, diff, true));
+      const type = types[qi % types.length] || 'classic';
+      qs.push(genTypedQuestion(type, phase.ops, Intel.adjustRange(cfg.range, skill), pool, diff));
+      qi++;
     }
   }
   return qs;
@@ -777,10 +891,12 @@ function startDaily() {
   challengeTracker = Engage.createChallengeTracker();
 
   const pool = pickMultiCatEmoji(dailyCfg.cats);
+  const types = dailyCfg.questionTypes || ['classic'];
   questions = [];
   for (let i = 0; i < totalQ; i++) {
     const diff = Intel.getQuestionDifficulty(i, totalQ, false);
-    questions.push(genQuestion(dailyCfg.ops, dailyCfg.range, pool, diff, false));
+    const type = types[i % types.length] || 'classic';
+    questions.push(genTypedQuestion(type, dailyCfg.ops, dailyCfg.range, pool, diff));
   }
 
   el('g-sc').textContent = '0';
@@ -816,14 +932,32 @@ function showQuestion() {
   el('g-sc').textContent = totalScore;
   el('pfill').style.width = ((currentQ + 1) / totalQ * 100) + '%';
 
-  const ans = el('answers'); ans.innerHTML = '';
-  q.options.forEach(opt => {
-    const btn = document.createElement('button');
-    btn.className = 'ans-btn';
-    btn.textContent = opt;
-    btn.onclick = () => selectAnswer(opt, btn);
-    ans.appendChild(btn);
-  });
+  const mode = q.inputMode || 'choice';
+  const ans = el('answers');
+  const np = el('numpad-wrap');
+
+  if (mode === 'numpad') {
+    ans.style.display = 'none';
+    np.style.display = '';
+    numpadValue = '';
+    el('numpad-display').textContent = '_';
+    el('numpad-display').className = 'numpad-display';
+    document.querySelectorAll('.np-btn').forEach(b => b.disabled = false);
+  } else {
+    ans.style.display = '';
+    np.style.display = 'none';
+    ans.innerHTML = '';
+    if (mode === 'choice2') ans.style.gridTemplateColumns = '1fr 1fr';
+    else if (mode === 'choice3') ans.style.gridTemplateColumns = '1fr 1fr 1fr';
+    else ans.style.gridTemplateColumns = '1fr 1fr';
+    q.options.forEach(opt => {
+      const btn = document.createElement('button');
+      btn.className = 'ans-btn';
+      btn.textContent = opt;
+      btn.onclick = () => selectAnswer(opt, btn);
+      ans.appendChild(btn);
+    });
+  }
 
   clearInterval(timerInterval);
   if (currentTimerMax > 0) {
@@ -848,95 +982,122 @@ function updateTimerUI() {
   tEl.className = timeLeft <= 5 ? 'timer urgent' : 'timer';
 }
 
-// ===== SELECT ANSWER =====
-function selectAnswer(selected, btn) {
+// ===== ANSWER PROCESSING (shared) =====
+function processAnswer(selected, visualCallback) {
   if (answering) return;
   answering = true;
   clearInterval(timerInterval);
-
   const q = questions[currentQ];
   const responseTime = (Date.now() - questionStartTime) / 1000;
-  const correct = selected === q.answer;
+  const correct = (typeof q.answer === 'number') ? Number(selected) === q.answer : String(selected) === String(q.answer);
 
-  document.querySelectorAll('.ans-btn').forEach(b => b.disabled = true);
+  visualCallback(correct, q);
 
   if (correct) {
-    btn.classList.add('correct');
     totalCorrect++;
     streak++;
     if (streak > highStreak) highStreak = streak;
-
     const comboMult = Core.getComboMultiplier(streak);
     const qScore = Core.calculateScore(true, timeLeft, currentTimerMax || 15, comboMult, usedHintThisLevel);
     totalScore += qScore;
-
     const streakMsg = Engage.getStreakMessage(streak);
     if (streakMsg) el('q-feedback').textContent = streakMsg;
-
     UI.sfxCorrect();
     if (streak > 1) UI.sfxComboUp(streak);
-    const rect = btn.getBoundingClientRect();
-    const pStyle = levelConfig ? levelConfig.particleStyle : '⭐';
-    UI.spawnParticles(rect.left + rect.width / 2, rect.top, 4, pStyle);
-
-    if (bossState) {
-      Boss.hitBoss(bossState);
-      UI.sfxBossHit();
-      renderBossHP();
-    }
-
+    if (bossState) { Boss.hitBoss(bossState); UI.sfxBossHit(); renderBossHP(); }
     Intel.updateSkillData(progress.skillData, true, responseTime);
-
   } else {
-    btn.classList.add('wrong');
-    document.querySelectorAll('.ans-btn').forEach(b => {
-      if (+b.textContent === q.answer) b.classList.add('correct');
-    });
-
-    if (streak >= 3) {
-      el('q-feedback').textContent = Engage.getWrongAfterStreakMessage(streak);
-    }
+    if (streak >= 3) el('q-feedback').textContent = Engage.getWrongAfterStreakMessage(streak);
     streak = 0;
-
     Core.loseLife(progress);
     renderLives();
     UI.sfxWrong();
     UI.vibrate(100);
     UI.shakeElement(el('gc'));
-
     if (bossState) {
       const atk = Boss.bossAttack(bossState);
       UI.sfxBossAttack();
       if (atk.gameOver) { setTimeout(() => endGame(), 800); return; }
     }
-
-    if (Core.getLives(progress) <= 0 && !bossState) {
-      setTimeout(() => endGame(), 800);
-      return;
-    }
-
+    if (Core.getLives(progress) <= 0 && !bossState) { setTimeout(() => endGame(), 800); return; }
     Intel.updateSkillData(progress.skillData, false, responseTime);
   }
 
   Engage.trackAnswer(challengeTracker, correct, responseTime, false);
   updateCombo();
   UI.updateMusicLayers(streak, !!bossState);
-
   currentQ++;
-  const delay = Intel.getTransitionDelay(responseTime);
-  setTimeout(showQuestion, delay);
+  setTimeout(showQuestion, Intel.getTransitionDelay(responseTime));
 }
+
+// ===== SELECT ANSWER (choice buttons) =====
+function selectAnswer(selected, btn) {
+  processAnswer(selected, (correct, q) => {
+    document.querySelectorAll('.ans-btn').forEach(b => b.disabled = true);
+    if (correct) {
+      btn.classList.add('correct');
+      const rect = btn.getBoundingClientRect();
+      UI.spawnParticles(rect.left + rect.width / 2, rect.top, 4, levelConfig ? levelConfig.particleStyle : '⭐');
+    } else {
+      btn.classList.add('wrong');
+      document.querySelectorAll('.ans-btn').forEach(b => {
+        if (String(b.textContent) === String(q.answer)) b.classList.add('correct');
+      });
+    }
+  });
+}
+
+// ===== NUMPAD INPUT =====
+function numpadPress(n) {
+  if (answering) return;
+  if (numpadValue.length >= 6) return;
+  numpadValue += String(n);
+  el('numpad-display').textContent = numpadValue;
+  UI.sfxTap();
+}
+window.numpadPress = numpadPress;
+
+function numpadDel() {
+  if (answering) return;
+  numpadValue = numpadValue.slice(0, -1);
+  el('numpad-display').textContent = numpadValue || '_';
+  UI.sfxTap();
+}
+window.numpadDel = numpadDel;
+
+function numpadConfirm() {
+  if (!numpadValue) return;
+  processAnswer(Number(numpadValue), (correct, q) => {
+    document.querySelectorAll('.np-btn').forEach(b => b.disabled = true);
+    const d = el('numpad-display');
+    if (correct) {
+      d.classList.add('np-correct');
+      UI.spawnParticles(innerWidth / 2, innerHeight * 0.4, 4, levelConfig ? levelConfig.particleStyle : '⭐');
+    } else {
+      d.classList.add('np-wrong');
+      d.textContent = numpadValue + ' → ' + q.answer;
+    }
+  });
+}
+window.numpadConfirm = numpadConfirm;
 
 function timeUp() {
   if (answering) return;
   answering = true;
   const q = questions[currentQ];
-  document.querySelectorAll('.ans-btn').forEach(b => {
-    b.disabled = true;
-    if (+b.textContent === q.answer) b.classList.add('correct');
-  });
-  el('q-feedback').textContent = T.timeUp;
 
+  if (q.inputMode === 'numpad') {
+    document.querySelectorAll('.np-btn').forEach(b => b.disabled = true);
+    el('numpad-display').textContent = '→ ' + q.answer;
+    el('numpad-display').classList.add('np-wrong');
+  } else {
+    document.querySelectorAll('.ans-btn').forEach(b => {
+      b.disabled = true;
+      if (String(b.textContent) === String(q.answer)) b.classList.add('correct');
+    });
+  }
+
+  el('q-feedback').textContent = T.timeUp;
   if (streak >= 3) el('q-feedback').textContent = T.timeUp + ' ' + Engage.getWrongAfterStreakMessage(streak);
   streak = 0;
   Core.loseLife(progress);
@@ -1013,23 +1174,25 @@ function renderBoosters() {
 
 function useHint() {
   if (answering) return;
+  const q = questions[currentQ];
+  if (q.inputMode === 'numpad') return; // hint not available for numpad
   if (!Econ.useBooster(progress, 'hint')) return;
   usedHintThisLevel = true;
   Core.saveProgress(progress);
-  const q = questions[currentQ];
   const btns = [...document.querySelectorAll('.ans-btn')];
-  const wrongBtns = btns.filter(b => +b.textContent !== q.answer);
+  const wrongBtns = btns.filter(b => String(b.textContent) !== String(q.answer));
   shuffle(wrongBtns).slice(0, 2).forEach(b => { b.disabled = true; b.style.opacity = '.2'; });
   renderBoosters();
 }
 
 function useHammer() {
   if (answering) return;
+  const q = questions[currentQ];
+  if (q.inputMode === 'numpad') return; // hammer not available for numpad
   if (!Econ.useBooster(progress, 'hammer')) return;
   Core.saveProgress(progress);
-  const q = questions[currentQ];
   const btns = [...document.querySelectorAll('.ans-btn')];
-  const wrongBtns = btns.filter(b => +b.textContent !== q.answer && !b.disabled);
+  const wrongBtns = btns.filter(b => String(b.textContent) !== String(q.answer) && !b.disabled);
   if (wrongBtns.length > 0) { wrongBtns[0].disabled = true; wrongBtns[0].style.opacity = '.2'; }
   renderBoosters();
 }
@@ -1041,7 +1204,9 @@ function useShuffle() {
   if (!levelConfig) return;
   const pool = pickMultiCatEmoji(levelConfig.cats);
   const diff = Intel.getQuestionDifficulty(currentQ, totalQ, !!bossState);
-  questions[currentQ] = genQuestion(levelConfig.ops, levelConfig.range, pool, diff, !!bossState);
+  const types = levelConfig.questionTypes || ['classic'];
+  const type = types[currentQ % types.length] || 'classic';
+  questions[currentQ] = genTypedQuestion(type, levelConfig.ops, levelConfig.range, pool, diff);
   showQuestion();
 }
 

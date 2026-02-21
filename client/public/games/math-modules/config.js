@@ -40,6 +40,9 @@ export const QUESTION_TYPES = {
   algebra:       { id: 'algebra',       inputMode: 'numpad',  minAge: 11 },
   wordProblem:   { id: 'wordProblem',   inputMode: 'choice',  minAge: 7 },
   speedRound:    { id: 'speedRound',    inputMode: 'choice2', minAge: 6 },
+  estimation:    { id: 'estimation',    inputMode: 'choice',  minAge: 6 },
+  doubles:       { id: 'doubles',       inputMode: 'choice',  minAge: 5 },
+  ordering:      { id: 'ordering',      inputMode: 'choice',  minAge: 5 },
 };
 
 // ===== LANGUAGE DETECTION =====
@@ -79,6 +82,8 @@ export const I18N = {
     whatIs: 'ما هو', tensDigit: 'ما رقم العشرات في', onesDigit: 'ما رقم الآحاد في', hundredsDigit: 'ما رقم المئات في',
     perimeter: 'محيط', area: 'مساحة', squareSide: 'مربع ضلعه', rectSides: 'مستطيل أبعاده',
     solveFor: 'أوجد قيمة x', fractionOf: 'كم يساوي',
+    double: 'ما ضعف', half: 'ما نصف', of: 'من',
+    whichClosest: 'أي إجابة أقرب؟', biggest: 'ما الأكبر؟', smallest: 'ما الأصغر؟',
     mastery: { none: '', bronze: '🥉 برونزي', silver: '🥈 فضي', gold: '🥇 ذهبي', diamond: '💎 ماسي' },
     worldNames: {
       forest: '🌿 غابة الأعداد', orchard: '🍎 بستان الجمع', ocean: '🌊 محيط الطرح',
@@ -131,6 +136,8 @@ export const I18N = {
     whatIs: 'What is', tensDigit: 'What is the tens digit in', onesDigit: 'What is the ones digit in', hundredsDigit: 'What is the hundreds digit in',
     perimeter: 'Perimeter', area: 'Area', squareSide: 'Square with side', rectSides: 'Rectangle with sides',
     solveFor: 'Solve for x', fractionOf: 'What is',
+    double: 'What is double', half: 'What is half of', of: 'of',
+    whichClosest: 'Which is closest?', biggest: 'Which is the biggest?', smallest: 'Which is the smallest?',
     mastery: { none: '', bronze: '🥉 Bronze', silver: '🥈 Silver', gold: '🥇 Gold', diamond: '💎 Diamond' },
     worldNames: {
       forest: '🌿 Number Forest', orchard: '🍎 Addition Orchard', ocean: '🌊 Subtraction Ocean',
@@ -183,6 +190,8 @@ export const I18N = {
     whatIs: 'Quanto é', tensDigit: 'Dígito das dezenas em', onesDigit: 'Dígito das unidades em', hundredsDigit: 'Dígito das centenas em',
     perimeter: 'Perímetro', area: 'Área', squareSide: 'Quadrado com lado', rectSides: 'Retângulo com lados',
     solveFor: 'Resolva para x', fractionOf: 'Quanto é',
+    double: 'Qual o dobro de', half: 'Qual a metade de', of: 'de',
+    whichClosest: 'Qual é mais perto?', biggest: 'Qual é o maior?', smallest: 'Qual é o menor?',
     mastery: { none: '', bronze: '🥉 Bronze', silver: '🥈 Prata', gold: '🥇 Ouro', diamond: '💎 Diamante' },
     worldNames: {
       forest: '🌿 Floresta dos Números', orchard: '🍎 Pomar da Adição', ocean: '🌊 Oceano da Subtração',
