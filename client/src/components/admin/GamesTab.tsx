@@ -82,34 +82,55 @@ const BUILTIN_GAMES: BuiltinGame[] = [
   {
     id: "builtin-memory-match",
     title: "Memory Match",
-    titleAr: "لعبة الذاكرة",
+    titleAr: "لعبة الذاكرة 🧠",
     description: "Flip cards and find matching pairs! Train your memory with emoji cards.",
-    descriptionAr: "اقلب البطاقات وجد الأزواج المتطابقة! تدريب الذاكرة مع بطاقات الإيموجي.",
-    embedUrl: "/memory-match",
+    descriptionAr: "اقلب البطاقات وجد الأزواج المتطابقة! تدريب الذاكرة مع بطاقات الإيموجي. 20 مستوى مع أنظمة لعب متنوعة!",
+    embedUrl: "/games/memory-match.html",
     thumbnailEmoji: "🧠",
-    category: "educational",
+    category: "puzzle",
     minAge: 4,
-    maxAge: 12,
+    maxAge: 14,
     pointsPerPlay: 10,
-    maxPlaysPerDay: 10,
+    maxPlaysPerDay: 0,
     gradient: "from-purple-500 to-pink-500",
   },
   {
-    id: "builtin-match3-royal",
-    title: "Match-3 Royal Puzzle",
-    titleAr: "لعبة الألغاز الملكية",
+    id: "builtin-match3-education",
+    title: "Educational Match 3",
+    titleAr: "مطابقة ثلاثية تعليمية",
     description: "Swap gems to make matches of 3 or more! 10 levels with special powers.",
-    descriptionAr: "بدّل الجواهر لتجميع 3 أو أكثر! 10 مستويات مع قدرات خاصة.",
-    embedUrl: "/match3",
+    descriptionAr: "لعبة مطابقة ثلاثية تعليمية! طابق الألوان أو الأشكال أو الحروف أو الأرقام.",
+    embedUrl: "/games/match3-education.html",
     thumbnailEmoji: "💎",
     category: "puzzle",
-    minAge: 5,
+    minAge: 4,
     maxAge: 14,
-    pointsPerPlay: 15,
-    maxPlaysPerDay: 8,
+    pointsPerPlay: 10,
+    maxPlaysPerDay: 5,
     gradient: "from-blue-500 to-cyan-500",
   },
+  {
+    id: "builtin-math-challenge",
+    title: "Math Challenge",
+    titleAr: "تحدي الرياضيات",
+    description: "Fun educational game to improve math skills. Answer as many problems as you can!",
+    descriptionAr: "لعبة تعليمية ممتعة لتحسين مهارات الحساب. أجب على أكبر عدد من المسائل قبل انتهاء الوقت!",
+    embedUrl: "/games/math-challenge.html",
+    thumbnailEmoji: "🔢",
+    category: "math",
+    minAge: 5,
+    maxAge: 14,
+    pointsPerPlay: 10,
+    maxPlaysPerDay: 5,
+    gradient: "from-green-500 to-emerald-500",
+  },
 ];
+
+// Legacy URL mappings for backwards compatibility
+const LEGACY_URL_MAP: Record<string, string[]> = {
+  "/games/memory-match.html": ["/memory-match"],
+  "/games/match3-education.html": ["/match3"],
+};
 
 export function GamesTab({ token }: { token: string }) {
   const { t } = useTranslation();
@@ -284,10 +305,12 @@ export function GamesTab({ token }: { token: string }) {
     },
   });
 
-  // Check which built-in games are already added (by embedUrl)
+  // Check which built-in games are already added (by embedUrl, including legacy URLs)
   const getBuiltinStatus = (embedUrl: string): "added" | "not-added" => {
     if (!games) return "not-added";
-    return games.some(g => g.embedUrl === embedUrl) ? "added" : "not-added";
+    const legacyUrls = LEGACY_URL_MAP[embedUrl] || [];
+    const allUrls = [embedUrl, ...legacyUrls];
+    return games.some(g => allUrls.includes(g.embedUrl)) ? "added" : "not-added";
   };
 
   // Handlers
