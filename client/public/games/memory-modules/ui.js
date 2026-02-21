@@ -141,6 +141,39 @@ export function sfxWhoosh() {
   } catch (e) {}
 }
 
+// ===== PHASE C: MECHANIC & POWER-UP SFX =====
+export function sfxBomb() {
+  tone(100, .3, 'triangle', .14, .005);
+  setTimeout(() => tone(60, .4, 'sine', .1, .01), 80);
+  setTimeout(() => { sparkle(440, .04); sparkle(330, .03); }, 180);
+}
+
+export function sfxMirror() {
+  [880, 660, 880, 1100].forEach((f, i) => setTimeout(() => tone(f, .08, 'sine', .05, .003), i * 60));
+}
+
+export function sfxChain() {
+  bell(1047, .12, .09);
+  setTimeout(() => sparkle(1568, .04), 60);
+}
+
+export function sfxChainFail() {
+  tone(220, .15, 'triangle', .07, .005);
+  setTimeout(() => tone(196, .18, 'sine', .05, .005), 70);
+}
+
+export function sfxRainbow() {
+  const notes = [523, 659, 784, 988, 1175];
+  notes.forEach((f, i) => setTimeout(() => { sparkle(f, .06); sparkle(f * 1.5, .03); }, i * 50));
+}
+
+export function sfxPowerUp() {
+  bell(784, .15, .1);
+  setTimeout(() => bell(988, .15, .1), 80);
+  setTimeout(() => bell(1175, .2, .12), 160);
+  setTimeout(() => sparkle(1568, .05), 240);
+}
+
 // ===== WORLD-SPECIFIC AMBIENT MUSIC =====
 const WORLD_SCALES = [
   [262, 294, 330, 392, 440],    // W0 Nature: C Pentatonic (cheerful, pastoral)
@@ -494,7 +527,7 @@ export function updateCountdownDisplay(mechanic, levelTimerSec, levelTimerMax, b
 }
 
 // ===== CARD RENDERING =====
-export function renderCards(cards, gridCols, gridRows, frontIcon, mechanic, fogSet, group, onFlip, onClearFog) {
+export function renderCards(cards, gridCols, gridRows, frontIcon, mechanic, fogSet, group, onFlip, onClearFog, bombMap, rainbowSet, chainOrder, chainStep) {
   const g = document.getElementById('grid');
   const wrap = document.querySelector('.grid-wrap');
   const wW = wrap.clientWidth, wH = wrap.clientHeight;
@@ -511,11 +544,13 @@ export function renderCards(cards, gridCols, gridRows, frontIcon, mechanic, fogS
   g.innerHTML = '';
 
   cards.forEach(card => {
+    const isRainbow = rainbowSet && rainbowSet.has(card.id) && !card.matched;
     const btn = document.createElement('button');
-    btn.className = 'card' + (card.flipped ? ' flipped' : '') + (card.matched ? ' matched flipped' : '');
+    btn.className = 'card' + (card.flipped ? ' flipped' : '') + (card.matched ? ' matched flipped' : '') + (isRainbow ? ' rainbow-card' : '');
     btn.disabled = card.flipped || card.matched;
     btn.setAttribute('data-id', card.id);
-    btn.innerHTML = `<div class="card-inner"><div class="card-front"><span class="icon">${frontIcon}</span></div><div class="card-back"><span class="sym">${card.symbol}</span></div></div>`;
+    const fIcon = isRainbow ? '🌈' : frontIcon;
+    btn.innerHTML = `<div class="card-inner"><div class="card-front"><span class="icon">${fIcon}</span></div><div class="card-back"><span class="sym">${card.symbol}</span></div></div>`;
 
     // Fog overlay
     if ((mechanic === MECH.FOG || mechanic === MECH.BOSS) && fogSet.has(card.id) && !card.matched && !card.flipped) {
@@ -525,8 +560,29 @@ export function renderCards(cards, gridCols, gridRows, frontIcon, mechanic, fogS
       btn.querySelector('.card-inner').appendChild(fog);
     }
 
+    // Bomb overlay
+    if (bombMap && bombMap[card.id] !== undefined && bombMap[card.id].active && !card.matched) {
+      const bomb = document.createElement('div');
+      bomb.className = 'bomb-ov';
+      bomb.textContent = '💣' + bombMap[card.id].countdown;
+      btn.querySelector('.card-inner').appendChild(bomb);
+    }
+
     btn.style.width = sz + 'px'; btn.style.height = sz + 'px';
     btn.addEventListener('click', () => onFlip(card.id));
     g.appendChild(btn);
   });
+
+  // Chain indicator update
+  const chainEl = document.getElementById('chain-indicator');
+  if (chainEl) {
+    if (chainOrder && chainOrder.length > 0 && chainStep < chainOrder.length) {
+      chainEl.style.display = '';
+      chainEl.innerHTML = chainOrder.map((sym, i) =>
+        `<span class="chain-step${i < chainStep ? ' done' : i === chainStep ? ' current' : ''}">${i < chainStep ? '✅' : sym}</span>`
+      ).join('');
+    } else {
+      chainEl.style.display = 'none';
+    }
+  }
 }

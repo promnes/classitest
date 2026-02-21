@@ -3,7 +3,7 @@
 // Game State, Progress, Card Engine, Mechanics, DDA
 // ═══════════════════════════════════════════════════════════════
 
-import { KEYS, MECH, SHOP_ITEMS, BADGE_DEFS, t } from './config.js';
+import { KEYS, MECH, SHOP_ITEMS, BADGE_DEFS, POWER_UPS, t } from './config.js';
 import {
   WORLDS, LEVELS, BOSS_CATALOG,
   pickEmoji, pickFrontIcon, shuffleArr,
@@ -14,6 +14,7 @@ import {
 import {
   sfxFlip, sfxMatch, sfxNoMatch, sfxComplete, sfxStar, sfxCoin, sfxBadge,
   sfxComboUp, sfxBossHit, sfxBossAttack, sfxTap, sfxLevelUp, sfxWhoosh,
+  sfxBomb, sfxMirror, sfxChain, sfxChainFail, sfxRainbow, sfxPowerUp,
   startMusic, stopMusic, updateMusicIntensity, cardPanX,
   detectPerformance,
   initBg, stopBg, spawnConfetti, royalCelebration, spawnMatchParticles, spawnCoinFly,
@@ -83,11 +84,13 @@ export let progress = JSON.parse(localStorage.getItem(KEYS.PROGRESS) || 'null') 
 export let wallet = JSON.parse(localStorage.getItem(KEYS.WALLET) || '{"coins":0,"owned":["default"],"equipped":"default","totalEarned":0}');
 export let badgeData = JSON.parse(localStorage.getItem(KEYS.BADGES) || '{"unlocked":[],"dates":{}}');
 export let ddaProfile = JSON.parse(localStorage.getItem(KEYS.DDA) || '{"skill":50,"gamesPlayed":0,"totalStars":0,"avgMoveRatio":1.0}');
+export let powers = JSON.parse(localStorage.getItem(KEYS.POWERS) || '{"peek":3,"freeze":2,"hint":3,"shield":2,"shuffle":2}');
 
 export function saveProgress() { localStorage.setItem(KEYS.PROGRESS, JSON.stringify(progress)); }
 export function saveWallet() { localStorage.setItem(KEYS.WALLET, JSON.stringify(wallet)); }
 export function saveBadges() { localStorage.setItem(KEYS.BADGES, JSON.stringify(badgeData)); }
 export function saveDDA() { localStorage.setItem(KEYS.DDA, JSON.stringify(ddaProfile)); }
+export function savePowers() { localStorage.setItem(KEYS.POWERS, JSON.stringify(powers)); }
 
 // ===== MUTE =====
 export let soundMuted = false;
@@ -121,6 +124,14 @@ let peekInProgress = false, movesSinceShuffle = 0;
 let bossCountdownSec = 0, bossTimerId = null;
 let levelTimerSec = 0, levelTimerMax = 0, levelTimerId = null;
 
+// Phase C: New mechanic state
+let chainOrder = [], chainStep = 0;
+let bombMap = {};
+let rainbowSet = new Set();
+
+// Phase C: Power-up state
+let shieldActive = false, freezeActive = false, freezeTimeout = null;
+
 // Boss state
 let bossState = null;
 
@@ -135,7 +146,8 @@ export function getState() {
     currentEmoji, currentFrontIcon, currentGroup, currentWorld,
     mechanic, matchCount, picks, fogSet, maskedMap, peekInProgress,
     movesSinceShuffle, bossCountdownSec, bossState,
-    levelTimerSec, levelTimerMax, dda
+    levelTimerSec, levelTimerMax, dda,
+    chainOrder, chainStep, bombMap, rainbowSet, shieldActive, freezeActive
   };
 }
 
@@ -352,6 +364,10 @@ function resetGame() {
   fogSet = new Set(); maskedMap = {};
   bossCountdownSec = 0; levelTimerSec = 0; levelTimerMax = 0;
   bossState = null; comboStreak = 0;
+  chainOrder = []; chainStep = 0;
+  bombMap = {}; rainbowSet = new Set();
+  shieldActive = false; freezeActive = false;
+  if (freezeTimeout) { clearTimeout(freezeTimeout); freezeTimeout = null; }
 
   const cfg = LEVELS[currentLevel];
   mechanic = cfg ? cfg.mechanic || MECH.CLASSIC : MECH.CLASSIC;
@@ -407,7 +423,7 @@ function createDeck() {
 }
 
 export function renderCardsNow() {
-  uiRenderCards(cards, currentGridCols, currentGridRows, currentFrontIcon, mechanic, fogSet, currentGroup, flipCard, clearFog);
+  uiRenderCards(cards, currentGridCols, currentGridRows, currentFrontIcon, mechanic, fogSet, currentGroup, flipCard, clearFog, bombMap, rainbowSet, chainOrder, chainStep);
 }
 
 // ===== FLIP CARD =====
@@ -466,14 +482,53 @@ export function flipCard(id) {
   moves++; movesSinceShuffle++;
   document.getElementById('g-mv').textContent = moves;
   const allMatch = picks.every(pid => cards[pid].symbol === cards[picks[0]].symbol);
+  const hasRainbow = matchCount === 2 && picks.some(pid => rainbowSet.has(pid));
+  const isMatch = allMatch || hasRainbow;
 
-  if (allMatch) {
+  // CHAIN: must match in correct order
+  if (isMatch && mechanic === MECH.CHAIN && chainOrder.length > 0) {
+    // Find the actual symbol (ignoring rainbow)
+    const matchSym = cards[picks.find(pid => !rainbowSet.has(pid)) || picks[0]].symbol;
+    if (matchSym !== chainOrder[chainStep]) {
+      // Correct match but wrong chain order — flip back as penalty
+      isChecking = true;
+      sfxChainFail();
+      comboStreak = 0;
+      updateMusicIntensity(0);
+      const chainInfo = document.getElementById('mech-info');
+      if (chainInfo) { chainInfo.textContent = t.chainWrong || '❌ Wrong order!'; chainInfo.style.display = ''; }
+      setTimeout(() => {
+        picks.forEach(pid => { cards[pid].flipped = false; updateCardDOM(pid, false, false); });
+        picks = []; isChecking = false;
+        if (t.mech && t.mech[mechanic]) {
+          const hint = t.mechHint ? t.mechHint[mechanic] : '';
+          if (chainInfo) chainInfo.textContent = t.mech[mechanic] + (hint ? ' — ' + hint : '');
+        }
+        renderCardsNow();
+      }, 900);
+      // Tick bombs on move even if chain fails
+      if (Object.keys(bombMap).length > 0) tickBombs();
+      return;
+    }
+    chainStep++;
+    sfxChain();
+  }
+
+  if (isMatch) {
     picks.forEach(pid => { cards[pid].matched = true; updateCardDOM(pid, true, true); });
+    // Remove rainbow cards from set
+    picks.forEach(pid => rainbowSet.delete(pid));
+    // Remove bomb entries for matched cards
+    picks.forEach(pid => { if (bombMap[pid]) delete bombMap[pid]; });
     matchedPairs++;
     document.getElementById('g-pr').textContent = matchedPairs + '/' + totalPairs;
     comboStreak++;
     const matchPan = cardPanX(picks[0]);
-    sfxMatch(matchPan);
+    if (hasRainbow && !allMatch) {
+      sfxRainbow();
+    } else {
+      sfxMatch(matchPan);
+    }
     if (comboStreak > 1) sfxComboUp(comboStreak);
     updateMusicIntensity(comboStreak);
     spawnMatchParticles(picks[0], picks[picks.length - 1]);
@@ -486,7 +541,6 @@ export function flipCard(id) {
       updateBossHP();
       if (bossState.hp <= 0) {
         bossState.defeated = true;
-        // Boss defeated celebration happens in endGame
       }
     }
 
@@ -504,17 +558,32 @@ export function flipCard(id) {
     }, 800);
   }
 
+  // Tick bombs on every move
+  if (Object.keys(bombMap).length > 0) tickBombs();
+
   // Moving/Boss shuffle
   const shuffleInterval = dda.diff === 'easy' ? 4 : dda.diff === 'hard' ? 2 : 3;
   if ((mechanic === MECH.MOVING || mechanic === MECH.BOSS) &&
       movesSinceShuffle >= shuffleInterval && matchedPairs < totalPairs) {
     movesSinceShuffle = 0;
-    setTimeout(() => shufflePositions(), allMatch ? 600 : 1000);
+    setTimeout(() => shufflePositions(), isMatch ? 600 : 1000);
+  }
+
+  // Mirror: flip grid positions every N moves
+  const mirrorInterval = dda.diff === 'easy' ? 4 : dda.diff === 'hard' ? 2 : 3;
+  if (mechanic === MECH.MIRROR && movesSinceShuffle >= mirrorInterval && matchedPairs < totalPairs) {
+    movesSinceShuffle = 0;
+    setTimeout(() => mirrorGrid(), isMatch ? 700 : 1100);
   }
 
   // Boss periodic action
   if (bossState && !bossState.defeated && moves % 4 === 0) {
-    setTimeout(() => { bossAction(); sfxBossAttack(); }, 500);
+    if (shieldActive) {
+      shieldActive = false;
+      showPowerMsg(t.shieldMsg || '🛡️ Blocked!');
+    } else {
+      setTimeout(() => { bossAction(); sfxBossAttack(); }, 500);
+    }
   }
 }
 
@@ -549,6 +618,157 @@ export function clearFog(id) {
     if (fog) { fog.style.opacity = '0'; fog.style.transform = 'scale(.5)'; setTimeout(() => fog.remove(), 400); }
   }
   sfxFlip();
+}
+
+// ===== MIRROR GRID (Phase C) =====
+function mirrorGrid() {
+  if (matchedPairs >= totalPairs) return;
+  const unmatched = cards.filter(c => !c.matched);
+  if (unmatched.length < 4) return;
+  // Reverse the symbol positions of unmatched cards
+  const syms = unmatched.map(c => ({ symbol: c.symbol, unmasked: c.unmasked }));
+  syms.reverse();
+  unmatched.forEach((c, i) => { c.symbol = syms[i].symbol; c.flipped = false; c.unmasked = syms[i].unmasked; });
+  sfxMirror();
+  renderCardsNow();
+  // Visual mirror animation
+  const grid = document.getElementById('grid');
+  if (grid) { grid.classList.add('mirror-anim'); setTimeout(() => grid.classList.remove('mirror-anim'), 600); }
+  showPowerMsg(t.mirrorFlip || '🪞 Mirror!');
+}
+
+// ===== BOMB SYSTEM (Phase C) =====
+function tickBombs() {
+  const toExplode = [];
+  Object.keys(bombMap).forEach(idStr => {
+    const id = parseInt(idStr);
+    const b = bombMap[id];
+    if (!b || !b.active || cards[id].matched) { delete bombMap[id]; return; }
+    b.countdown--;
+    if (b.countdown <= 0) toExplode.push(id);
+  });
+  // Update bomb visuals
+  renderCardsNow();
+  // Explode any that hit zero
+  toExplode.forEach(id => explodeBomb(id));
+}
+
+function explodeBomb(id) {
+  const card = cards[id];
+  if (!card || card.matched) { delete bombMap[id]; return; }
+  // Find the card's pair
+  const pair = cards.find(c => c.id !== id && c.symbol === card.symbol && !c.matched);
+  sfxBomb();
+  // Brief visual explosion
+  const btn = document.getElementById('grid').querySelector(`[data-id="${id}"]`);
+  if (btn) btn.classList.add('bomb-explode');
+  setTimeout(() => {
+    // Reshuffle the exploded card(s) into new positions among unmatched
+    const unmatchedOthers = cards.filter(c => !c.matched && c.id !== id && (!pair || c.id !== pair.id));
+    if (unmatchedOthers.length >= 2) {
+      const targets = shuffleArr(unmatchedOthers).slice(0, 2);
+      [card, pair].filter(Boolean).forEach((c, i) => {
+        if (targets[i]) {
+          const tmp = c.symbol; c.symbol = targets[i].symbol; targets[i].symbol = tmp;
+        }
+      });
+    }
+    delete bombMap[id];
+    if (pair && bombMap[pair.id]) delete bombMap[pair.id];
+    renderCardsNow();
+  }, 600);
+}
+
+// ===== POWER-UP SYSTEM (Phase C) =====
+function showPowerMsg(msg) {
+  const el = document.getElementById('mech-info');
+  if (!el) return;
+  const prev = el.textContent;
+  el.textContent = msg;
+  el.style.display = '';
+  setTimeout(() => {
+    if (el.textContent === msg) {
+      if (t.mech && t.mech[mechanic]) {
+        const hint = t.mechHint ? t.mechHint[mechanic] : '';
+        el.textContent = t.mech[mechanic] + (hint ? ' — ' + hint : '');
+      } else {
+        el.style.display = 'none';
+      }
+    }
+  }, 2000);
+}
+
+export function updatePowerBar() {
+  const bar = document.getElementById('pu-bar');
+  if (!bar) return;
+  const hasPowers = POWER_UPS.some(pu => (powers[pu.id] || 0) > 0);
+  bar.style.display = hasPowers ? 'flex' : 'none';
+  POWER_UPS.forEach(pu => {
+    const btn = bar.querySelector(`[data-pu="${pu.id}"]`);
+    if (btn) {
+      const count = powers[pu.id] || 0;
+      const span = btn.querySelector('.pu-count');
+      if (span) span.textContent = count;
+      btn.disabled = count <= 0 || !gameStarted;
+      btn.classList.toggle('disabled', count <= 0);
+    }
+  });
+}
+
+export function usePower(puId) {
+  if (!gameStarted || isChecking || peekInProgress) return;
+  if (!powers[puId] || powers[puId] <= 0) {
+    showPowerMsg(t.noPower || 'No powers!');
+    return;
+  }
+  powers[puId]--;
+  savePowers();
+  sfxPowerUp();
+
+  switch (puId) {
+    case 'peek':
+      doTimedPeek();
+      break;
+    case 'freeze':
+      if (freezeActive) break;
+      freezeActive = true;
+      showPowerMsg(t.frozenMsg || '🧊 Frozen!');
+      // Pause all timers
+      if (levelTimerId) { clearInterval(levelTimerId); levelTimerId = null; }
+      if (bossTimerId) { clearInterval(bossTimerId); bossTimerId = null; }
+      freezeTimeout = setTimeout(() => {
+        freezeActive = false;
+        // Resume timers
+        if (levelTimerMax > 0 && levelTimerSec > 0) startLevelTimer();
+        if (mechanic === MECH.BOSS && bossCountdownSec > 0) startBossCountdown();
+      }, 10000);
+      break;
+    case 'hint':
+      ddaShowHint();
+      break;
+    case 'shield':
+      shieldActive = true;
+      showPowerMsg(t.shieldMsg || '🛡️ Shielded!');
+      break;
+    case 'shuffle':
+      shufflePositions();
+      break;
+  }
+  updatePowerBar();
+}
+
+function awardPowerUps(stars) {
+  if (stars <= 0) return [];
+  const count = stars >= 3 ? 2 : 1;
+  const available = POWER_UPS.map(pu => pu.id);
+  const awarded = [];
+  for (let i = 0; i < count; i++) {
+    const puId = available[Math.floor(Math.random() * available.length)];
+    powers[puId] = (powers[puId] || 0) + 1;
+    awarded.push(puId);
+  }
+  savePowers();
+  return awarded;
 }
 
 // ===== MECHANIC SETUP =====
@@ -607,6 +827,43 @@ function setupMechanic() {
       updateBossHP();
     }
   }
+
+  // ===== MIRROR MECHANIC =====
+  if (mechanic === MECH.MIRROR) {
+    // Brief peek then cards mirror after N moves
+    setTimeout(() => doTimedPeek(), 400);
+  }
+
+  // ===== CHAIN MECHANIC =====
+  if (mechanic === MECH.CHAIN) {
+    // Generate ordered sequence of unique symbols
+    const uniqueSyms = [...new Set(cards.map(c => c.symbol))];
+    chainOrder = shuffleArr(uniqueSyms);
+    chainStep = 0;
+    // Brief peek to show chain order
+    setTimeout(() => doTimedPeek(), 400);
+  }
+
+  // ===== BOMB MECHANIC =====
+  if (mechanic === MECH.BOMB) {
+    const bombPct = dda.diff === 'easy' ? 0.2 : dda.diff === 'hard' ? 0.35 : 0.25;
+    const nBombs = Math.max(2, Math.floor(cards.length * bombPct));
+    const bombIds = shuffleArr(cards.map(c => c.id)).slice(0, nBombs);
+    const countBase = dda.diff === 'easy' ? 8 : dda.diff === 'hard' ? 5 : 6;
+    bombIds.forEach(id => {
+      bombMap[id] = { countdown: countBase + Math.floor(Math.random() * 3), active: true };
+    });
+  }
+
+  // ===== RAINBOW MECHANIC =====
+  if (mechanic === MECH.RAINBOW) {
+    const nRainbow = dda.diff === 'easy' ? 4 : dda.diff === 'hard' ? 2 : 3;
+    const ids = shuffleArr(cards.map(c => c.id)).slice(0, nRainbow);
+    ids.forEach(id => rainbowSet.add(id));
+  }
+
+  // Show power-up bar if any powers available
+  updatePowerBar();
 }
 
 // ===== TIMED PEEK =====
@@ -669,7 +926,7 @@ function startBossCountdown() {
 
 // ===== LEVEL TIMER =====
 function computeLevelTimer(lvl, pairs, mech) {
-  const mechMult = { classic: 0, timed: 8, moving: 7, masked: 7.5, fog: 7, triple: 9, boss: 0 };
+  const mechMult = { classic: 0, timed: 8, moving: 7, masked: 7.5, fog: 7, triple: 9, boss: 0, mirror: 7, chain: 9, bomb: 0, rainbow: 6 };
   const mult = mechMult[mech] || 8;
   if (mech === MECH.CLASSIC || mech === MECH.BOSS) return 0;
   let base = pairs * mult;
@@ -946,6 +1203,17 @@ export function endGame() {
       sfxCoin();
       setTimeout(() => spawnCoinFly(coinsGained), 300);
     } else if (dCoins) dCoins.style.display = 'none';
+
+    // Award power-ups based on stars
+    const puAwarded = awardPowerUps(stars);
+    const dPu = document.getElementById('d-powers');
+    if (puAwarded.length > 0 && dPu) {
+      dPu.style.display = '';
+      dPu.innerHTML = '<span class="pu-award-icon">🎁</span> ' +
+        puAwarded.map(p => POWER_UPS.find(x => x.id === p)).filter(Boolean)
+          .map(p => p.emoji).join(' ');
+      sfxPowerUp();
+    } else if (dPu) dPu.style.display = 'none';
 
     setTimeout(() => checkBadges(), 1200);
   }

@@ -14,7 +14,10 @@ export const MECH = {
   FOG:     'fog',
   TRIPLE:  'triple',
   BOSS:    'boss',
-  // Phase C will add: MIRROR, CHAIN, BOMB, RAINBOW
+  MIRROR:  'mirror',
+  CHAIN:   'chain',
+  BOMB:    'bomb',
+  RAINBOW: 'rainbow',
 };
 
 // ===== STORAGE KEYS =====
@@ -25,6 +28,7 @@ export const KEYS = {
   DDA:      'classify_memPro_dda',
   MUTE:     'classify_memPro_muted',
   STREAK:   'classify_memPro_streak',
+  POWERS:   'classify_memPro_powers',
   // Migration from old format
   OLD_PROGRESS: 'classify_memory_progress',
   OLD_WALLET:   'classify_memory_wallet',
@@ -112,6 +116,15 @@ export const SHOP_ITEMS = [
   { id:'royal',    icon:'👑',  price:500, cf1:'#b45309', cf2:'#78350f', frontIcon:'👑' },
 ];
 
+// ===== POWER-UPS =====
+export const POWER_UPS = [
+  { id:'peek',    icon:'👁️', price:30 },
+  { id:'freeze',  icon:'🧊', price:40 },
+  { id:'hint',    icon:'💡', price:25 },
+  { id:'shield',  icon:'🛡️', price:35 },
+  { id:'shuffle', icon:'🔄', price:20 },
+];
+
 // ===== BADGE DEFINITIONS (10 base — Phase E will expand to 30) =====
 export const BADGE_DEFS = [
   { id:'first',     emoji:'🐣', type:'levels',  goal:1    },
@@ -140,13 +153,27 @@ ar: {
   boss:'👑 معركة الزعيم!', bossDefeated:'🎉 هزمت الزعيم!',
   mech:{
     timed:'⏱️ تذكّر!', moving:'🔀 متحركة!', masked:'🎭 مُقنّعة!',
-    fog:'🌫️ ضباب!', triple:'🔱 ثلاثي!', boss:'👑 الزعيم!'
+    fog:'🌫️ ضباب!', triple:'🔱 ثلاثي!', boss:'👑 الزعيم!',
+    mirror:'🪞 مرآة!', chain:'🔗 سلسلة!', bomb:'💣 قنابل!', rainbow:'🌈 قوس قزح!'
   },
   mechHint:{
     timed:'تذكر مواقع البطاقات!', moving:'البطاقات تتبدل كل ٣ محاولات!',
     masked:'بعض البطاقات تخدعك!', fog:'اضغط الضباب أولاً!',
-    triple:'طابق ٣ بطاقات متشابهة!', boss:'كل التحديات + مؤقت!'
+    triple:'طابق ٣ بطاقات متشابهة!', boss:'كل التحديات + مؤقت!',
+    mirror:'البطاقات تنعكس!', chain:'طابق بالترتيب!', bomb:'طابق قبل الانفجار!', rainbow:'بطاقات سحرية تطابق أي شيء!'
   },
+  powerUps:'⚡ القدرات',
+  puNames:['👁️ كشف','🧊 تجميد','💡 تلميح','🛡️ درع','🔄 خلط'],
+  chainNext:'🔗 التالي: {e}',
+  bombWarn:'💣 {n}',
+  frozenMsg:'🧊 مجمّد!',
+  shieldMsg:'🛡️ محمي!',
+  puUsed:'تم استخدام {p}!',
+  noPower:'لا توجد قدرات!',
+  puEarned:'+{n} قدرة!',
+  rainbow:'🌈',
+  chainWrong:'❌ الترتيب خاطئ!',
+  mirrorFlip:'🪞 انعكاس!',
   timeUp:'⏰ انتهى الوقت!', remember:'👀 تذكّر!', shuffling:'🔀 تبديل...',
   shareText:'حققت {score} نقطة في المستوى {level} من مملكة الذاكرة! ⭐{stars}',
   dda:{ easy:'🟢 سهل', normal:'🔵 عادي', hard:'🔴 صعب' },
@@ -206,13 +233,27 @@ en: {
   boss:'👑 Boss Battle!', bossDefeated:'🎉 Boss Defeated!',
   mech:{
     timed:'⏱️ Peek!', moving:'🔀 Moving!', masked:'🎭 Masked!',
-    fog:'🌫️ Fog!', triple:'🔱 Triple!', boss:'👑 Boss!'
+    fog:'🌫️ Fog!', triple:'🔱 Triple!', boss:'👑 Boss!',
+    mirror:'🪞 Mirror!', chain:'🔗 Chain!', bomb:'💣 Bombs!', rainbow:'🌈 Rainbow!'
   },
   mechHint:{
     timed:'Memorize the cards!', moving:'Cards shuffle every 3 moves!',
     masked:'Some cards trick you first!', fog:'Tap fog to reveal!',
-    triple:'Match 3 cards!', boss:'All challenges + timer!'
+    triple:'Match 3 cards!', boss:'All challenges + timer!',
+    mirror:'Cards get mirrored!', chain:'Match in order!', bomb:'Match before explosion!', rainbow:'Wild cards match anything!'
   },
+  powerUps:'⚡ Powers',
+  puNames:['👁️ Peek','🧊 Freeze','💡 Hint','🛡️ Shield','🔄 Shuffle'],
+  chainNext:'🔗 Next: {e}',
+  bombWarn:'💣 {n}',
+  frozenMsg:'🧊 Frozen!',
+  shieldMsg:'🛡️ Shielded!',
+  puUsed:'{p} used!',
+  noPower:'No powers!',
+  puEarned:'+{n} power!',
+  rainbow:'🌈',
+  chainWrong:'❌ Wrong order!',
+  mirrorFlip:'🪞 Mirror!',
   timeUp:'⏰ Time\'s up!', remember:'👀 Remember!', shuffling:'🔀 Shuffling...',
   shareText:'I scored {score} on Level {level} in Memory Kingdom! ⭐{stars}',
   dda:{ easy:'🟢 Easy', normal:'🔵 Normal', hard:'🔴 Hard' },
@@ -256,13 +297,27 @@ pt: {
   boss:'👑 Batalha do Chefe!', bossDefeated:'🎉 Chefe Derrotado!',
   mech:{
     timed:'⏱️ Memorize!', moving:'🔀 Mover!', masked:'🎭 Mascarado!',
-    fog:'🌫️ Névoa!', triple:'🔱 Triplo!', boss:'👑 Chefe!'
+    fog:'🌫️ Névoa!', triple:'🔱 Triplo!', boss:'👑 Chefe!',
+    mirror:'🪞 Espelho!', chain:'🔗 Corrente!', bomb:'💣 Bombas!', rainbow:'🌈 Arco-íris!'
   },
   mechHint:{
     timed:'Memorize as cartas!', moving:'Cartas mudam a cada 3!',
     masked:'Algumas enganam primeiro!', fog:'Toque a névoa primeiro!',
-    triple:'Combine 3 cartas!', boss:'Todos desafios + tempo!'
+    triple:'Combine 3 cartas!', boss:'Todos desafios + tempo!',
+    mirror:'Cartas espelham!', chain:'Combine na ordem!', bomb:'Combine antes de explodir!', rainbow:'Cartas mágicas combinam tudo!'
   },
+  powerUps:'⚡ Poderes',
+  puNames:['👁️ Espiar','🧊 Congelar','💡 Dica','🛡️ Escudo','🔄 Embaralhar'],
+  chainNext:'🔗 Próximo: {e}',
+  bombWarn:'💣 {n}',
+  frozenMsg:'🧊 Congelado!',
+  shieldMsg:'🛡️ Protegido!',
+  puUsed:'{p} usado!',
+  noPower:'Sem poderes!',
+  puEarned:'+{n} poder!',
+  rainbow:'🌈',
+  chainWrong:'❌ Ordem errada!',
+  mirrorFlip:'🪞 Espelho!',
   timeUp:'⏰ Tempo esgotado!', remember:'👀 Lembre-se!', shuffling:'🔀 Movendo...',
   shareText:'Fiz {score} pontos no Nível {level} do Reino da Memória! ⭐{stars}',
   dda:{ easy:'🟢 Fácil', normal:'🔵 Normal', hard:'🔴 Difícil' },
