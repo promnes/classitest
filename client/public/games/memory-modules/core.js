@@ -86,6 +86,26 @@ export let badgeData = JSON.parse(localStorage.getItem(KEYS.BADGES) || '{"unlock
 export let ddaProfile = JSON.parse(localStorage.getItem(KEYS.DDA) || '{"skill":50,"gamesPlayed":0,"totalStars":0,"avgMoveRatio":1.0}');
 export let powers = JSON.parse(localStorage.getItem(KEYS.POWERS) || '{"peek":3,"freeze":2,"hint":3,"shield":2,"shuffle":2}');
 
+// DDA v2: per-mechanic skill profiles
+function defaultDDAv2() {
+  const mechSkills = {};
+  Object.values(MECH).forEach(m => { mechSkills[m] = 50; });
+  return {
+    mechSkills,           // per-mechanic skill (0-100)
+    sessionHistory: [],   // rolling window of last 20 results {match:bool, responseMs:int, mechanic:str}
+    avgResponseMs: 2000,  // avg response time in ms
+    hintLevel: 0,         // current hint escalation (0=none, 1=glow, 2=pair, 3=peek)
+    consecutiveFails: 0,  // consecutive mismatches in session
+    consecutiveWins: 0,   // consecutive matches in session
+    totalSessions: 0,
+  };
+}
+export let ddaV2 = JSON.parse(localStorage.getItem(KEYS.DDA_V2) || 'null') || defaultDDAv2();
+// Ensure new mechanic keys exist on load
+Object.values(MECH).forEach(m => { if (ddaV2.mechSkills[m] === undefined) ddaV2.mechSkills[m] = 50; });
+
+export function saveDDAv2() { localStorage.setItem(KEYS.DDA_V2, JSON.stringify(ddaV2)); }
+
 export function saveProgress() { localStorage.setItem(KEYS.PROGRESS, JSON.stringify(progress)); }
 export function saveWallet() { localStorage.setItem(KEYS.WALLET, JSON.stringify(wallet)); }
 export function saveBadges() { localStorage.setItem(KEYS.BADGES, JSON.stringify(badgeData)); }
@@ -137,6 +157,10 @@ let bossState = null;
 
 // DDA state
 let dda = { skill: 50, streak: 0, failStreak: 0, lastMoveTime: 0, hintTimer: null, diff: 'normal' };
+// DDA v2 session state
+let ddaLastFlipTime = 0;        // timestamp of last card flip
+let ddaHintEscalation = 0;      // 0=none, 1=glow, 2=highlight-pair, 3=brief-peek
+let ddaMechSkill = 50;          // current mechanic's skill (cached from ddaV2)
 
 // ===== ACCESSORS =====
 export function getState() {
@@ -146,7 +170,7 @@ export function getState() {
     currentEmoji, currentFrontIcon, currentGroup, currentWorld,
     mechanic, matchCount, picks, fogSet, maskedMap, peekInProgress,
     movesSinceShuffle, bossCountdownSec, bossState,
-    levelTimerSec, levelTimerMax, dda,
+    levelTimerSec, levelTimerMax, dda, ddaMechSkill, ddaHintEscalation,
     chainOrder, chainStep, bombMap, rainbowSet, shieldActive, freezeActive
   };
 }
@@ -776,6 +800,7 @@ function setupMechanic() {
   const infoEl = document.getElementById('mech-info');
   const cdWrap = document.getElementById('cd-wrap');
   const bossHP = document.getElementById('boss-hp');
+  const ap = ddaAdaptiveParams(); // DDA v2 adaptive parameters
 
   if (bossHP) bossHP.style.display = 'none';
 
@@ -785,7 +810,7 @@ function setupMechanic() {
     updateCountdownDisplay(mechanic, levelTimerSec, levelTimerMax, bossCountdownSec);
   }
 
-  if (mechanic === MECH.CLASSIC) return;
+  if (mechanic === MECH.CLASSIC) { updatePowerBar(); return; }
 
   if (t.mech && t.mech[mechanic]) {
     const hint = t.mechHint ? t.mechHint[mechanic] : '';
@@ -793,17 +818,14 @@ function setupMechanic() {
     infoEl.style.display = '';
   }
 
-  const fogPct = dda.diff === 'easy' ? 0.3 : dda.diff === 'hard' ? 0.5 : 0.4;
-  const maskPct = dda.diff === 'easy' ? 0.25 : dda.diff === 'hard' ? 0.45 : 0.35;
-
   if (mechanic === MECH.FOG) {
-    const nFog = Math.floor(cards.length * fogPct);
+    const nFog = Math.floor(cards.length * ap.fogPct);
     const idxs = shuffleArr(cards.map(c => c.id)).slice(0, nFog);
     idxs.forEach(i => fogSet.add(i));
   }
 
   if (mechanic === MECH.MASKED) {
-    const nMask = Math.floor(cards.length * maskPct);
+    const nMask = Math.floor(cards.length * ap.maskPct);
     const idxs = shuffleArr(cards.map(c => c.id)).slice(0, nMask);
     idxs.forEach(i => {
       let decoy;
@@ -813,12 +835,11 @@ function setupMechanic() {
   }
 
   if (mechanic === MECH.BOSS) {
-    const bossFogPct = dda.diff === 'easy' ? 0.2 : dda.diff === 'hard' ? 0.35 : 0.25;
-    const nFog = Math.floor(cards.length * bossFogPct);
+    const nFog = Math.floor(cards.length * ap.bossFogPct);
     const idxs = shuffleArr(cards.map(c => c.id)).slice(0, nFog);
     idxs.forEach(i => fogSet.add(i));
 
-    bossCountdownSec = dda.diff === 'easy' ? 150 : dda.diff === 'hard' ? 100 : 120;
+    bossCountdownSec = ap.bossCd;
     cdWrap.style.display = '';
     updateCountdownDisplay(mechanic, levelTimerSec, levelTimerMax, bossCountdownSec);
 
@@ -830,35 +851,29 @@ function setupMechanic() {
 
   // ===== MIRROR MECHANIC =====
   if (mechanic === MECH.MIRROR) {
-    // Brief peek then cards mirror after N moves
     setTimeout(() => doTimedPeek(), 400);
   }
 
   // ===== CHAIN MECHANIC =====
   if (mechanic === MECH.CHAIN) {
-    // Generate ordered sequence of unique symbols
     const uniqueSyms = [...new Set(cards.map(c => c.symbol))];
     chainOrder = shuffleArr(uniqueSyms);
     chainStep = 0;
-    // Brief peek to show chain order
     setTimeout(() => doTimedPeek(), 400);
   }
 
   // ===== BOMB MECHANIC =====
   if (mechanic === MECH.BOMB) {
-    const bombPct = dda.diff === 'easy' ? 0.2 : dda.diff === 'hard' ? 0.35 : 0.25;
-    const nBombs = Math.max(2, Math.floor(cards.length * bombPct));
+    const nBombs = Math.max(2, Math.floor(cards.length * ap.bombPct));
     const bombIds = shuffleArr(cards.map(c => c.id)).slice(0, nBombs);
-    const countBase = dda.diff === 'easy' ? 8 : dda.diff === 'hard' ? 5 : 6;
     bombIds.forEach(id => {
-      bombMap[id] = { countdown: countBase + Math.floor(Math.random() * 3), active: true };
+      bombMap[id] = { countdown: ap.bombCountBase + Math.floor(Math.random() * 3), active: true };
     });
   }
 
   // ===== RAINBOW MECHANIC =====
   if (mechanic === MECH.RAINBOW) {
-    const nRainbow = dda.diff === 'easy' ? 4 : dda.diff === 'hard' ? 2 : 3;
-    const ids = shuffleArr(cards.map(c => c.id)).slice(0, nRainbow);
+    const ids = shuffleArr(cards.map(c => c.id)).slice(0, ap.rainbowCount);
     ids.forEach(id => rainbowSet.add(id));
   }
 
@@ -930,8 +945,10 @@ function computeLevelTimer(lvl, pairs, mech) {
   const mult = mechMult[mech] || 8;
   if (mech === MECH.CLASSIC || mech === MECH.BOSS) return 0;
   let base = pairs * mult;
-  if (ddaProfile.skill < 35) base *= 1.25;
-  else if (ddaProfile.skill > 70) base *= 0.85;
+  // DDA v2: use per-mechanic skill
+  const sk = ddaMechSkill;
+  if (sk < 35) base *= 1.3;
+  else if (sk > 70) base *= 0.8;
   return Math.round(base);
 }
 
@@ -962,9 +979,43 @@ function updateCardDOM(id, flipped, matched) {
   btn.disabled = flipped || matched;
 }
 
-// ===== DDA ENGINE =====
+// ===== DDA ENGINE v2 =====
+
+// Get the effective skill for the current mechanic
+function ddaGetMechSkill() {
+  return ddaV2.mechSkills[mechanic] || ddaProfile.skill || 50;
+}
+
+// Compute difficulty tier from skill
+function ddaGetDiff(skill) {
+  if (skill < 35) return 'easy';
+  if (skill > 70) return 'hard';
+  return 'normal';
+}
+
+// Adaptive parameters based on per-mechanic skill
+function ddaAdaptiveParams() {
+  const sk = ddaMechSkill;
+  return {
+    fogPct:       sk < 35 ? 0.25 : sk > 70 ? 0.5  : 0.38,
+    maskPct:      sk < 35 ? 0.2  : sk > 70 ? 0.45 : 0.32,
+    bombCountBase:sk < 35 ? 9    : sk > 70 ? 5    : 7,
+    bombPct:      sk < 35 ? 0.18 : sk > 70 ? 0.35 : 0.25,
+    rainbowCount: sk < 35 ? 4    : sk > 70 ? 2    : 3,
+    mirrorEvery:  sk < 35 ? 5    : sk > 70 ? 3    : 4,
+    peekDuration: sk < 35 ? 2200 : sk > 70 ? 1200 : 1600,
+    bossCd:       sk < 35 ? 160  : sk > 70 ? 90   : 120,
+    bossFogPct:   sk < 35 ? 0.18 : sk > 70 ? 0.35 : 0.25,
+    hintDelay:    sk < 35 ? 3000 : sk > 70 ? 8000 : 5500,
+  };
+}
+
 function ddaInit() {
-  dda = { skill: ddaProfile.skill, streak: 0, failStreak: 0, lastMoveTime: Date.now(), hintTimer: null, diff: 'normal' };
+  ddaMechSkill = ddaGetMechSkill();
+  const diff = ddaGetDiff(ddaMechSkill);
+  dda = { skill: ddaMechSkill, streak: 0, failStreak: 0, lastMoveTime: Date.now(), hintTimer: null, diff: diff };
+  ddaHintEscalation = 0;
+  ddaLastFlipTime = Date.now();
   ddaUpdateBadge();
 }
 
@@ -974,35 +1025,83 @@ function ddaUpdateBadge() {
   if (mechanic === MECH.CLASSIC && currentLevel < 3) { badge.style.display = 'none'; return; }
   badge.style.display = '';
   let diff, cls;
-  if (dda.skill < 35) { diff = t.dda ? t.dda.easy : '🟢 Easy'; cls = 'easy'; }
-  else if (dda.skill > 70) { diff = t.dda ? t.dda.hard : '🔴 Hard'; cls = 'hard'; }
+  const sk = ddaMechSkill;
+  if (sk < 35) { diff = t.dda ? t.dda.easy : '🟢 Easy'; cls = 'easy'; }
+  else if (sk > 70) { diff = t.dda ? t.dda.hard : '🔴 Hard'; cls = 'hard'; }
   else { diff = t.dda ? t.dda.normal : '🔵 Normal'; cls = 'normal'; }
-  badge.textContent = diff;
+
+  // Show session streak indicator
+  const sessIcon = dda.streak >= 3 ? '🔥' : dda.failStreak >= 3 ? '❄️' : '';
+  badge.textContent = diff + (sessIcon ? ' ' + sessIcon : '');
   badge.className = 'dda-badge ' + cls;
   dda.diff = cls;
 }
 
+// Record a result in the session rolling window
+function ddaRecordResult(isMatch) {
+  const now = Date.now();
+  const responseMs = now - ddaLastFlipTime;
+  ddaLastFlipTime = now;
+
+  ddaV2.sessionHistory.push({ match: isMatch, responseMs, mechanic });
+  if (ddaV2.sessionHistory.length > 20) ddaV2.sessionHistory.shift();
+
+  // Update avg response time (exponential moving avg)
+  ddaV2.avgResponseMs = Math.round(ddaV2.avgResponseMs * 0.85 + responseMs * 0.15);
+}
+
+// Get recent accuracy (last N moves)
+function ddaRecentAccuracy(n) {
+  const recent = ddaV2.sessionHistory.slice(-n);
+  if (recent.length === 0) return 0.5;
+  return recent.filter(r => r.match).length / recent.length;
+}
+
 function ddaOnMatch() {
-  dda.streak++; dda.failStreak = 0;
-  dda.skill = Math.min(100, dda.skill + 2);
+  dda.streak++;
+  dda.failStreak = 0;
+  ddaHintEscalation = Math.max(0, ddaHintEscalation - 1);
+
+  // Skill adjustment: more for fast matches, less for slow ones
+  const speedBonus = ddaV2.avgResponseMs < 2000 ? 1.0 : ddaV2.avgResponseMs < 4000 ? 0.5 : 0;
+  const gain = 2 + speedBonus + (dda.streak >= 3 ? 1 : 0);
+  ddaMechSkill = Math.min(100, ddaMechSkill + gain);
+  dda.skill = ddaMechSkill;
+
+  ddaRecordResult(true);
   ddaClearHintTimer();
   ddaUpdateBadge();
 }
 
 function ddaOnMismatch() {
-  dda.failStreak++; dda.streak = 0;
-  dda.skill = Math.max(0, dda.skill - 1.5);
+  dda.failStreak++;
+  dda.streak = 0;
+
+  // Skill drops more for high-skill players, less for low-skill
+  const penaltyMult = ddaMechSkill > 70 ? 1.5 : ddaMechSkill < 35 ? 0.5 : 1.0;
+  const loss = 1.5 * penaltyMult;
+  ddaMechSkill = Math.max(0, ddaMechSkill - loss);
+  dda.skill = ddaMechSkill;
+
+  ddaRecordResult(false);
   ddaUpdateBadge();
-  if (dda.failStreak >= 3) ddaStartHintTimer();
+
+  // Escalate hints based on consecutive fails
+  if (dda.failStreak >= 2) {
+    ddaHintEscalation = Math.min(3, ddaHintEscalation + 1);
+    ddaStartHintTimer();
+  }
 }
 
 function ddaStartHintTimer() {
   ddaClearHintTimer();
-  const delay = dda.diff === 'easy' ? 4000 : dda.diff === 'hard' ? 8000 : 6000;
+  const params = ddaAdaptiveParams();
+  // Faster hints for lower hint levels, slower for stronger hints
+  const levelDelay = [params.hintDelay, params.hintDelay * 0.7, params.hintDelay * 0.5][Math.min(ddaHintEscalation - 1, 2)];
   dda.hintTimer = setTimeout(() => {
     if (matchedPairs >= totalPairs || !gameStarted) return;
     ddaShowHint();
-  }, delay);
+  }, Math.max(2000, levelDelay));
 }
 
 function ddaClearHintTimer() {
@@ -1014,18 +1113,52 @@ function ddaShowHint() {
   if (unmatched.length < 2) return;
   const symCount = {};
   unmatched.forEach(c => { symCount[c.symbol] = (symCount[c.symbol] || 0) + 1; });
-  const hintSym = Object.keys(symCount).find(s => symCount[s] >= 2);
+  const hintSym = Object.keys(symCount).find(s => symCount[s] >= (matchCount === 3 ? 3 : 2));
   if (!hintSym) return;
   const hintCards = unmatched.filter(c => c.symbol === hintSym);
-  const btn = document.getElementById('grid').querySelector(`[data-id="${hintCards[0].id}"]`);
-  if (btn) {
-    btn.classList.add('dda-hint');
-    setTimeout(() => btn.classList.remove('dda-hint'), 3600);
+  const grid = document.getElementById('grid');
+
+  // 3-Level Progressive Hint System
+  const level = Math.max(1, Math.min(3, ddaHintEscalation));
+
+  if (level === 1) {
+    // Level 1: Gentle glow — highlight ONE card faintly
+    const btn = grid.querySelector(`[data-id="${hintCards[0].id}"]`);
+    if (btn) {
+      btn.classList.add('dda-hint-l1');
+      setTimeout(() => btn.classList.remove('dda-hint-l1'), 3000);
+    }
+  } else if (level === 2) {
+    // Level 2: Highlight pair — both cards glow stronger  
+    const maxShow = matchCount === 3 ? 3 : 2;
+    hintCards.slice(0, maxShow).forEach(c => {
+      const btn = grid.querySelector(`[data-id="${c.id}"]`);
+      if (btn) {
+        btn.classList.add('dda-hint-l2');
+        setTimeout(() => btn.classList.remove('dda-hint-l2'), 4000);
+      }
+    });
+  } else {
+    // Level 3: Quick peek — briefly flip both cards face-up
+    const maxShow = matchCount === 3 ? 3 : 2;
+    hintCards.slice(0, maxShow).forEach(c => {
+      const btn = grid.querySelector(`[data-id="${c.id}"]`);
+      if (btn) {
+        btn.classList.add('flipped', 'dda-hint-l3');
+        setTimeout(() => {
+          btn.classList.remove('flipped', 'dda-hint-l3');
+        }, 1200);
+      }
+    });
   }
+
+  // After showing hint, reduce escalation and reset fail streak
   dda.failStreak = 0;
+  ddaHintEscalation = Math.max(0, ddaHintEscalation - 1);
 }
 
 function ddaEndLevel(score, stars) {
+  // Legacy profile update
   ddaProfile.gamesPlayed++;
   ddaProfile.totalStars += stars;
   const perfScore = Math.min(100, score + (stars * 5));
@@ -1034,6 +1167,15 @@ function ddaEndLevel(score, stars) {
     ? ddaProfile.avgMoveRatio * 0.8 + (moves / (totalPairs || 1)) * 0.2
     : moves / (totalPairs || 1);
   saveDDA();
+
+  // DDA v2: Per-mechanic skill update
+  const accuracy = ddaRecentAccuracy(20);
+  const speedFactor = ddaV2.avgResponseMs < 2500 ? 1.1 : ddaV2.avgResponseMs > 5000 ? 0.9 : 1.0;
+  const mechPerfScore = Math.min(100, (score * speedFactor + accuracy * 20));
+  ddaV2.mechSkills[mechanic] = Math.round(ddaMechSkill * 0.6 + mechPerfScore * 0.4);
+  ddaV2.totalSessions++;
+  saveDDAv2();
+
   ddaClearHintTimer();
 }
 
