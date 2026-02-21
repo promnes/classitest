@@ -448,9 +448,22 @@ function resetGame() {
         hp: bossInfo.hp,
         maxHp: bossInfo.hp,
         defeated: false,
-        ability: bossInfo.ability,
-        actionTimer: null,
+        phases: bossInfo.phases || [],
+        color: bossInfo.color || '#ef4444',
+        aura: bossInfo.aura || 'rgba(239,68,68,.3)',
+        movesSinceAttack: 0,
+        frozenCards: new Set(),   // for freezeCards ability
+        burnedPairs: new Set(),   // for burnCard ability
+        introShown: false,
       };
+      // Set boss HP bar color
+      const hpFill = document.getElementById('boss-hp-fill');
+      if (hpFill) hpFill.style.background = `linear-gradient(90deg, ${bossState.color}, ${bossState.color}88)`;
+      // Set boss emoji
+      const hpEmoji = document.getElementById('boss-hp-emoji');
+      if (hpEmoji) hpEmoji.textContent = bossInfo.emoji;
+      // Show boss intro overlay
+      setTimeout(() => showBossIntro(cfg2.bossType, bossInfo), 300);
     }
   }
 
@@ -478,6 +491,8 @@ export function flipCard(id) {
   const card = cards[id];
   if (!card || card.flipped || card.matched) return;
   if (fogSet.has(id)) return;
+  // Boss freeze: can't flip frozen cards
+  if (bossState && bossState.frozenCards && bossState.frozenCards.has(id)) return;
 
   if (!gameStarted) {
     gameStarted = true;
@@ -587,6 +602,7 @@ export function flipCard(id) {
       updateBossHP();
       if (bossState.hp <= 0) {
         bossState.defeated = true;
+        bossDefeated();
       }
     }
 
@@ -603,6 +619,9 @@ export function flipCard(id) {
       picks = []; isChecking = false;
     }, 800);
   }
+
+  // Tick boss freeze countdown
+  if (bossState) tickBossFreeze();
 
   // Tick bombs on every move
   if (Object.keys(bombMap).length > 0) tickBombs();
@@ -622,9 +641,12 @@ export function flipCard(id) {
     setTimeout(() => mirrorGrid(), isMatch ? 700 : 1100);
   }
 
-  // Boss periodic action
-  if (bossState && !bossState.defeated && moves % 4 === 0) {
-    if (shieldActive) {
+  // Boss periodic action — use phase cooldown
+  if (bossState && !bossState.defeated) {
+    const phase = getBossCurrentPhase();
+    const cooldown = phase ? phase.cooldown : 4;
+    if (moves % cooldown === 0) {
+      if (shieldActive) {
       shieldActive = false;
       showPowerMsg(t.shieldMsg || '🛡️ Blocked!');
     } else {
@@ -633,26 +655,334 @@ export function flipCard(id) {
   }
 }
 
-// ===== BOSS ACTION =====
-function bossAction() {
-  if (!bossState || bossState.defeated) return;
-  // Simple boss action: add random fog to 1-2 unmatched cards
-  const unmatched = cards.filter(c => !c.matched && !c.flipped && !fogSet.has(c.id));
-  if (unmatched.length < 2) return;
-  const count = Math.min(2, Math.floor(unmatched.length * 0.15));
-  const targets = shuffleArr(unmatched).slice(0, count);
-  targets.forEach(c => fogSet.add(c.id));
-  renderCardsNow();
+// ===== BOSS INTRO OVERLAY =====
+function showBossIntro(bossType, bossInfo) {
+  if (!bossState || bossState.introShown) return;
+  bossState.introShown = true;
+  const bossName = t.bossNames ? t.bossNames[bossInfo.idx] : bossType;
+  const overlay = document.getElementById('boss-intro-overlay');
+  if (!overlay) return;
+  overlay.querySelector('.bi-emoji').textContent = bossInfo.emoji;
+  overlay.querySelector('.bi-name').textContent = bossName;
+  const taunt = t.bossTaunts ? t.bossTaunts[bossInfo.idx] : (t.boss || 'Boss Battle!');
+  overlay.querySelector('.bi-taunt').textContent = taunt;
+  overlay.querySelector('.bi-hp').textContent = `❤️ ${bossInfo.hp}`;
+  overlay.classList.add('show');
+  sfxBossAttack();
+  setTimeout(() => overlay.classList.remove('show'), 2200);
 }
 
+// ===== BOSS PHASE RESOLVER =====
+function getBossCurrentPhase() {
+  if (!bossState || !bossState.phases || !bossState.phases.length) return null;
+  // Pick the first phase whose hpAbove threshold is below current HP
+  for (const phase of bossState.phases) {
+    if (bossState.hp > phase.hpAbove) return phase;
+  }
+  // Fallback to last phase (lowest HP threshold)
+  return bossState.phases[bossState.phases.length - 1];
+}
+
+// ===== BOSS ACTION DISPATCHER =====
+function bossAction() {
+  if (!bossState || bossState.defeated) return;
+  const phase = getBossCurrentPhase();
+  if (!phase) return;
+
+  // Check cooldown
+  bossState.movesSinceAttack = (bossState.movesSinceAttack || 0) + 1;
+  // phase.cooldown ignored here since caller handles frequency, but we use it
+  // The caller (flipCard) triggers every 4 moves; we add phase cooldown variance
+  
+  const abilityName = phase.ability;
+  showBossAttackFlash(abilityName);
+  
+  switch (abilityName) {
+    case 'hideEdge':    bossAbility_hideEdge(); break;
+    case 'inkWrap':     bossAbility_inkWrap(); break;
+    case 'swapSymbols': bossAbility_swapSymbols(); break;
+    case 'fogZone':     bossAbility_fogZone(); break;
+    case 'shuffleAll':  bossAbility_shuffleAll(); break;
+    case 'burnCard':    bossAbility_burnCard(); break;
+    case 'reverseFlip': bossAbility_reverseFlip(); break;
+    case 'freezeCards': bossAbility_freezeCards(); break;
+    default:            bossAbility_fogZone(); break; // fallback
+  }
+}
+
+// ===== BOSS ATTACK FLASH =====
+function showBossAttackFlash(abilityName) {
+  const flash = document.getElementById('boss-attack-flash');
+  if (!flash) return;
+  const abilityLabels = t.bossAbilities || {};
+  const label = abilityLabels[abilityName] || abilityName;
+  const bossInfo = BOSS_CATALOG[bossState.type];
+  flash.textContent = `${bossInfo ? bossInfo.emoji : '👹'} ${label}`;
+  flash.classList.add('show');
+  setTimeout(() => flash.classList.remove('show'), 1200);
+}
+
+// ═══════════════════════════════════════
+// 10 UNIQUE BOSS ABILITIES
+// ═══════════════════════════════════════
+
+// 1. hideEdge — Temporarily hides edge cards (border row/col)
+function bossAbility_hideEdge() {
+  const grid = document.getElementById('grid');
+  if (!grid) return;
+  const cols = currentGridCols;
+  const rows = currentGridRows;
+  const edgeIds = [];
+  cards.forEach(c => {
+    if (c.matched) return;
+    const col = c.id % cols;
+    const row = Math.floor(c.id / cols);
+    if (col === 0 || col === cols - 1 || row === 0 || row === rows - 1) edgeIds.push(c.id);
+  });
+  if (edgeIds.length === 0) return;
+  // Hide 2-4 random edge cards temporarily
+  const targets = shuffleArr(edgeIds).slice(0, Math.min(4, edgeIds.length));
+  targets.forEach(id => {
+    const btn = grid.querySelector(`[data-id="${id}"]`);
+    if (btn) {
+      btn.classList.add('boss-hidden');
+      setTimeout(() => btn.classList.remove('boss-hidden'), 2000);
+    }
+  });
+  showPowerMsg(t.bossAbilities?.hideEdge || '🦊 Hide!');
+}
+
+// 2. inkWrap — Covers 2-3 cards with ink overlay (like temporary mask)
+function bossAbility_inkWrap() {
+  const unmatched = cards.filter(c => !c.matched && !c.flipped && !fogSet.has(c.id));
+  if (unmatched.length < 2) return;
+  const count = Math.min(3, Math.ceil(unmatched.length * 0.2));
+  const targets = shuffleArr(unmatched).slice(0, count);
+  const grid = document.getElementById('grid');
+  targets.forEach(c => {
+    const btn = grid?.querySelector(`[data-id="${c.id}"]`);
+    if (btn) {
+      btn.classList.add('boss-inked');
+      // Ink wears off after 3 seconds  
+      setTimeout(() => btn.classList.remove('boss-inked'), 3000);
+    }
+  });
+  showPowerMsg(t.bossAbilities?.inkWrap || '🦑 Ink!');
+}
+
+// 3. swapSymbols — Swaps the symbols of 2 unmatched cards  
+function bossAbility_swapSymbols() {
+  const unmatched = cards.filter(c => !c.matched && !c.flipped);
+  if (unmatched.length < 4) return;
+  const pair = shuffleArr(unmatched).slice(0, 2);
+  const temp = pair[0].symbol;
+  pair[0].symbol = pair[1].symbol;
+  pair[1].symbol = temp;
+  // Brief flash to show swap happened
+  const grid = document.getElementById('grid');
+  pair.forEach(c => {
+    const btn = grid?.querySelector(`[data-id="${c.id}"]`);
+    if (btn) {
+      btn.classList.add('boss-swap');
+      setTimeout(() => btn.classList.remove('boss-swap'), 800);
+    }
+  });
+  renderCardsNow();
+  showPowerMsg(t.bossAbilities?.swapSymbols || '👻 Swap!');
+}
+
+// 4. fogZone — Adds fog to a zone of 3-5 adjacent cards
+function bossAbility_fogZone() {
+  const unmatched = cards.filter(c => !c.matched && !c.flipped && !fogSet.has(c.id));
+  if (unmatched.length < 2) return;
+  // Pick a seed card and find its neighbors
+  const seed = shuffleArr(unmatched)[0];
+  const cols = currentGridCols;
+  const seedCol = seed.id % cols;
+  const seedRow = Math.floor(seed.id / cols);
+  const zone = [seed.id];
+  // Add orthogonal neighbors
+  const neighbors = [
+    seed.id - cols, seed.id + cols,
+    seedCol > 0 ? seed.id - 1 : -1,
+    seedCol < cols - 1 ? seed.id + 1 : -1
+  ].filter(id => id >= 0 && id < cards.length && !cards[id].matched && !cards[id].flipped && !fogSet.has(id));
+  zone.push(...neighbors.slice(0, 3));
+  zone.forEach(id => fogSet.add(id));
+  renderCardsNow();
+  showPowerMsg(t.bossAbilities?.fogZone || '👾 Fog Zone!');
+}
+
+// 5. shuffleAll — Shuffles ALL unmatched card positions
+function bossAbility_shuffleAll() {
+  if (matchedPairs >= totalPairs) return;
+  const unmatched = cards.filter(c => !c.matched);
+  if (unmatched.length < 4) return;
+  const syms = unmatched.map(c => c.symbol);
+  const shuffled = shuffleArr([...syms]);
+  unmatched.forEach((c, i) => { c.symbol = shuffled[i]; c.flipped = false; });
+  renderCardsNow();
+  const grid = document.getElementById('grid');
+  if (grid) { grid.classList.add('boss-shuffle-anim'); setTimeout(() => grid.classList.remove('boss-shuffle-anim'), 700); }
+  showPowerMsg(t.bossAbilities?.shuffleAll || '🌪️ Shuffle!');
+}
+
+// 6. burnCard — "Burns" a matched pair, un-matching them (need to re-match)
+function bossAbility_burnCard() {
+  // Find a matched pair that hasn't been burned yet
+  const matchedCards = cards.filter(c => c.matched && !bossState.burnedPairs.has(c.id));
+  if (matchedCards.length < 2) { bossAbility_fogZone(); return; } // fallback
+  // Find two cards with the same symbol
+  const symbolMap = {};
+  matchedCards.forEach(c => { 
+    if (!symbolMap[c.symbol]) symbolMap[c.symbol] = [];
+    symbolMap[c.symbol].push(c);
+  });
+  const burnableSymbols = Object.keys(symbolMap).filter(s => symbolMap[s].length >= 2);
+  if (burnableSymbols.length === 0) { bossAbility_fogZone(); return; }
+  const sym = shuffleArr(burnableSymbols)[0];
+  const pair = symbolMap[sym].slice(0, 2);
+  pair.forEach(c => {
+    c.matched = false;
+    bossState.burnedPairs.add(c.id);
+  });
+  matchedPairs--;
+  document.getElementById('g-pr').textContent = matchedPairs + '/' + totalPairs;
+  // Burn animation
+  const grid = document.getElementById('grid');
+  pair.forEach(c => {
+    const btn = grid?.querySelector(`[data-id="${c.id}"]`);
+    if (btn) {
+      btn.classList.remove('flip');
+      btn.classList.add('boss-burn');
+      setTimeout(() => btn.classList.remove('boss-burn'), 1200);
+    }
+  });
+  renderCardsNow();
+  showPowerMsg(t.bossAbilities?.burnCard || '🐉 Burn!');
+}
+
+// 7. reverseFlip — Briefly reveals then re-hides 3-4 random cards (confusion)
+function bossAbility_reverseFlip() {
+  const unmatched = cards.filter(c => !c.matched && !c.flipped);
+  if (unmatched.length < 3) return;
+  const targets = shuffleArr(unmatched).slice(0, Math.min(4, unmatched.length));
+  const grid = document.getElementById('grid');
+  // Briefly flip them face-up
+  targets.forEach(c => {
+    c.flipped = true;
+    updateCardDOM(c.id, true, false);
+    const btn = grid?.querySelector(`[data-id="${c.id}"]`);
+    if (btn) btn.classList.add('boss-glitch');
+  });
+  // Then hide them after a brief flash
+  setTimeout(() => {
+    targets.forEach(c => {
+      c.flipped = false;
+      updateCardDOM(c.id, false, false);
+      const btn = grid?.querySelector(`[data-id="${c.id}"]`);
+      if (btn) btn.classList.remove('boss-glitch');
+    });
+  }, 600);
+  showPowerMsg(t.bossAbilities?.reverseFlip || '🤖 Glitch!');
+}
+
+// 8. freezeCards — Locks 2-3 cards, can't be flipped for a few moves
+function bossAbility_freezeCards() {
+  const unmatched = cards.filter(c => !c.matched && !c.flipped && !bossState.frozenCards.has(c.id));
+  if (unmatched.length < 2) return;
+  const count = Math.min(3, Math.ceil(unmatched.length * 0.2));
+  const targets = shuffleArr(unmatched).slice(0, count);
+  const grid = document.getElementById('grid');
+  targets.forEach(c => {
+    bossState.frozenCards.add(c.id);
+    const btn = grid?.querySelector(`[data-id="${c.id}"]`);
+    if (btn) btn.classList.add('boss-frozen');
+  });
+  // Unfreeze after 3 moves (tracked via a counter)
+  bossState._freezeMovesLeft = 3;
+  showPowerMsg(t.bossAbilities?.freezeCards || '❄️ Freeze!');
+}
+
+// Helper: tick freeze countdown on every move
+function tickBossFreeze() {
+  if (!bossState || !bossState.frozenCards || bossState.frozenCards.size === 0) return;
+  if (bossState._freezeMovesLeft !== undefined) {
+    bossState._freezeMovesLeft--;
+    if (bossState._freezeMovesLeft <= 0) {
+      // Unfreeze all
+      const grid = document.getElementById('grid');
+      bossState.frozenCards.forEach(id => {
+        const btn = grid?.querySelector(`[data-id="${id}"]`);
+        if (btn) btn.classList.remove('boss-frozen');
+      });
+      bossState.frozenCards.clear();
+      delete bossState._freezeMovesLeft;
+    }
+  }
+}
+
+// ===== BOSS HP UPDATE =====
 function updateBossHP() {
   const el = document.getElementById('boss-hp');
   if (!el || !bossState) return;
   el.style.display = 'flex';
   const fill = el.querySelector('.boss-hp-fill');
-  if (fill) fill.style.width = (bossState.hp / bossState.maxHp * 100) + '%';
+  const ratio = bossState.hp / bossState.maxHp;
+  if (fill) {
+    fill.style.width = (ratio * 100) + '%';
+    // Color shifts as HP decreases
+    if (ratio > 0.5) fill.style.background = `linear-gradient(90deg, ${bossState.color}, ${bossState.color}88)`;
+    else if (ratio > 0.25) fill.style.background = 'linear-gradient(90deg, #f59e0b, #ef4444)';
+    else fill.style.background = 'linear-gradient(90deg, #ef4444, #7f1d1d)';
+  }
   const text = el.querySelector('.boss-hp-text');
   if (text) text.textContent = `${bossState.hp}/${bossState.maxHp}`;
+  // Shake HP bar on hit
+  el.classList.add('boss-hp-shake');
+  setTimeout(() => el.classList.remove('boss-hp-shake'), 400);
+  // Phase transition visual
+  const phaseNow = getBossCurrentPhase();
+  if (phaseNow && bossState._lastPhaseAbility !== phaseNow.ability) {
+    bossState._lastPhaseAbility = phaseNow.ability;
+    showBossPhaseChange(phaseNow.ability);
+  }
+}
+
+// ===== BOSS PHASE CHANGE VISUAL =====
+function showBossPhaseChange(ability) {
+  const flash = document.getElementById('boss-attack-flash');
+  if (!flash) return;
+  const bossInfo = BOSS_CATALOG[bossState.type];
+  const label = t.bossAbilities?.[ability] || ability;
+  flash.textContent = `⚠️ ${bossInfo ? bossInfo.emoji : ''} ${t.bossPhaseChange || 'New phase!'} → ${label}`;
+  flash.classList.add('show', 'phase-change');
+  setTimeout(() => flash.classList.remove('show', 'phase-change'), 2000);
+}
+
+// ===== BOSS DEFEAT CELEBRATION =====
+function bossDefeated() {
+  if (!bossState) return;
+  const bossInfo = BOSS_CATALOG[bossState.type];
+  // Clear all boss effects
+  bossState.frozenCards?.forEach(id => {
+    const btn = document.getElementById('grid')?.querySelector(`[data-id="${id}"]`);
+    if (btn) btn.classList.remove('boss-frozen');
+  });
+  fogSet.clear();
+  renderCardsNow();
+  // Celebration
+  const overlay = document.getElementById('boss-intro-overlay');
+  if (overlay && bossInfo) {
+    overlay.querySelector('.bi-emoji').textContent = '🎉';
+    overlay.querySelector('.bi-name').textContent = t.bossDefeated || 'Boss Defeated!';
+    overlay.querySelector('.bi-taunt').textContent = t.bossDefeatTaunts?.[bossInfo.idx] || '⭐';
+    overlay.querySelector('.bi-hp').textContent = '';
+    overlay.classList.add('show', 'defeat');
+    setTimeout(() => overlay.classList.remove('show', 'defeat'), 2000);
+  }
+  sfxStar();
+  spawnConfetti();
 }
 
 // ===== CLEAR FOG =====

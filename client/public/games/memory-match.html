@@ -442,6 +442,44 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',Tahoma,G
 .boss-hp-text{font-size:clamp(11px,2vmin,14px);font-weight:900;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.4);min-width:40px;text-align:center}
 .boss-hp-emoji{font-size:clamp(18px,3.5vmin,24px)}
 
+/* ===== BOSS HP SHAKE ===== */
+@keyframes bossHpShake{0%,100%{transform:translateX(0)}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+.boss-hp-shake{animation:bossHpShake .3s ease}
+
+/* ===== BOSS INTRO OVERLAY ===== */
+.boss-intro-overlay{position:fixed;inset:0;z-index:2000;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(0,0,0,.85);opacity:0;pointer-events:none;transition:opacity .4s}
+.boss-intro-overlay.show{opacity:1;pointer-events:auto}
+.boss-intro-overlay.defeat .bi-emoji{animation:bossDefeatBounce 1s ease}
+.bi-emoji{font-size:clamp(60px,15vmin,100px);animation:bossIntroPulse 1.2s ease-in-out infinite}
+.bi-name{font-size:clamp(24px,5vmin,38px);font-weight:900;color:#fff;margin:8px 0;text-shadow:0 2px 10px rgba(0,0,0,.5)}
+.bi-taunt{font-size:clamp(14px,3vmin,20px);color:rgba(255,255,255,.8);font-weight:600;margin-bottom:6px}
+.bi-hp{font-size:clamp(16px,3vmin,22px);color:#ef4444;font-weight:900}
+@keyframes bossIntroPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.15)}}
+@keyframes bossDefeatBounce{0%{transform:scale(1)}30%{transform:scale(1.4)}60%{transform:scale(.8)}100%{transform:scale(1) rotate(360deg)}}
+
+/* ===== BOSS ATTACK FLASH ===== */
+.boss-attack-flash{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(.5);z-index:1500;font-size:clamp(18px,4vmin,28px);font-weight:900;color:#fff;background:rgba(239,68,68,.85);padding:8px 24px;border-radius:16px;opacity:0;pointer-events:none;transition:all .3s ease;text-shadow:0 2px 8px rgba(0,0,0,.4);backdrop-filter:blur(8px);white-space:nowrap}
+.boss-attack-flash.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
+.boss-attack-flash.phase-change{background:rgba(245,158,11,.9);border:2px solid #fbbf24;box-shadow:0 0 20px rgba(245,158,11,.4)}
+
+/* ===== BOSS ABILITY CARD EFFECTS ===== */
+@keyframes bossHidePulse{0%,100%{opacity:0.15}50%{opacity:0.35}}
+.boss-hidden{animation:bossHidePulse .6s ease-in-out infinite;filter:brightness(.3);pointer-events:none}
+.boss-inked{position:relative;overflow:hidden}
+.boss-inked::after{content:'🦑';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:clamp(20px,4vmin,32px);background:rgba(6,182,212,.7);border-radius:inherit;animation:inkDrip .8s ease;pointer-events:none}
+@keyframes inkDrip{0%{transform:translateY(-100%);opacity:0}100%{transform:translateY(0);opacity:1}}
+@keyframes swapFlash{0%{box-shadow:0 0 0 0 rgba(168,85,247,.7)}50%{box-shadow:0 0 20px 4px rgba(168,85,247,.5)}100%{box-shadow:0 0 0 0 rgba(168,85,247,0)}}
+.boss-swap{animation:swapFlash .8s ease}
+@keyframes shuffleWiggle{0%,100%{transform:rotate(0)}25%{transform:rotate(-5deg)}75%{transform:rotate(5deg)}}
+.boss-shuffle-anim .card-btn{animation:shuffleWiggle .3s ease 2}
+@keyframes burnGlow{0%{box-shadow:0 0 0 0 rgba(239,68,68,.8)}50%{box-shadow:0 0 25px 6px rgba(239,68,68,.6);filter:brightness(1.5)}100%{box-shadow:0 0 0 0 rgba(239,68,68,0);filter:brightness(1)}}
+.boss-burn{animation:burnGlow 1.2s ease}
+@keyframes glitchFlicker{0%,100%{filter:none}20%{filter:hue-rotate(90deg) brightness(2)}40%{filter:hue-rotate(180deg)}60%{filter:hue-rotate(270deg) brightness(1.5)}80%{filter:hue-rotate(360deg)}}
+.boss-glitch{animation:glitchFlicker .5s ease}
+.boss-frozen{position:relative;pointer-events:none;filter:brightness(1.3) saturate(.4)}
+.boss-frozen::after{content:'❄️';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:clamp(18px,3.5vmin,28px);background:rgba(14,165,233,.3);border-radius:inherit;backdrop-filter:blur(2px);animation:frozenShimmer 1.5s ease-in-out infinite}
+@keyframes frozenShimmer{0%,100%{background:rgba(14,165,233,.2)}50%{background:rgba(14,165,233,.45)}}
+
 /* ===== POWER-UP BAR ===== */
 .pu-bar{display:none;align-items:center;justify-content:center;gap:clamp(4px,1vmin,8px);width:100%;max-width:540px;flex-shrink:0;position:relative;z-index:12;flex-wrap:wrap}
 .pu-btn{display:inline-flex;align-items:center;gap:3px;background:rgba(255,255,255,.18);border:2px solid rgba(255,255,255,.3);border-radius:12px;padding:3px 10px;font-size:clamp(12px,2.2vmin,15px);font-weight:800;color:#fff;cursor:pointer;transition:all .2s;backdrop-filter:blur(4px);text-shadow:0 1px 3px rgba(0,0,0,.2)}
@@ -545,6 +583,15 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',Tahoma,G
     <span class="boss-hp-emoji" id="boss-hp-emoji">👹</span>
     <div class="boss-hp-bar"><div class="boss-hp-fill" id="boss-hp-fill" style="width:100%"></div></div>
     <span class="boss-hp-text" id="boss-hp-text">3/3</span>
+  </div>
+  <!-- Boss attack flash -->
+  <div class="boss-attack-flash" id="boss-attack-flash"></div>
+  <!-- Boss intro overlay -->
+  <div class="boss-intro-overlay" id="boss-intro-overlay">
+    <div class="bi-emoji">👹</div>
+    <div class="bi-name">Boss</div>
+    <div class="bi-taunt">...</div>
+    <div class="bi-hp">❤️ 5</div>
   </div>
   <div class="pu-bar" id="pu-bar"></div>
   <div class="chain-indicator" id="chain-indicator"></div>

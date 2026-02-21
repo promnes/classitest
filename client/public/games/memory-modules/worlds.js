@@ -161,18 +161,107 @@ export const WORLDS = [
 
 export const WORLD_MAP = Object.fromEntries(WORLDS.map(w => [w.id, w]));
 
-// ===== BOSS CATALOG =====
+// ===== BOSS CATALOG (10 unique bosses with phased abilities) =====
 export const BOSS_CATALOG = {
-  shadow:    { emoji:'🦊', hp:3, ability:'hideEdge',    label:'bossNames',idx:0 },
-  kraken:    { emoji:'🦑', hp:4, ability:'inkWrap',     label:'bossNames',idx:1 },
-  ghost:     { emoji:'👻', hp:4, ability:'swapSymbols',  label:'bossNames',idx:2 },
-  alien:     { emoji:'👾', hp:5, ability:'fogZone',      label:'bossNames',idx:3 },
-  storm:     { emoji:'🌪️',hp:5, ability:'shuffleAll',   label:'bossNames',idx:4 },
-  dragon:    { emoji:'🐉', hp:6, ability:'burnCard',     label:'bossNames',idx:5 },
-  glitch:    { emoji:'🤖', hp:6, ability:'reverseFlip',  label:'bossNames',idx:6 },
-  ice:       { emoji:'❄️', hp:7, ability:'freezeCards',  label:'bossNames',idx:7 },
-  trickster: { emoji:'🎭', hp:7, ability:'copyAbility',  label:'bossNames',idx:8 },
-  king:      { emoji:'👑', hp:8, ability:'allAbilities',  label:'bossNames',idx:9 },
+  shadow: {
+    emoji:'🦊', hp:3, idx:0,
+    phases:[ // abilities at different HP thresholds
+      { hpAbove:2, ability:'hideEdge',   cooldown:3 },
+      { hpAbove:0, ability:'hideEdge',   cooldown:2 },
+    ],
+    intro:'bossIntro', defeat:'bossDefeat',
+    color:'#16a34a', aura:'rgba(34,197,94,.3)',
+  },
+  kraken: {
+    emoji:'🦑', hp:4, idx:1,
+    phases:[
+      { hpAbove:2, ability:'inkWrap',    cooldown:4 },
+      { hpAbove:0, ability:'inkWrap',    cooldown:2 },
+    ],
+    intro:'bossIntro', defeat:'bossDefeat',
+    color:'#0891b2', aura:'rgba(6,182,212,.3)',
+  },
+  ghost: {
+    emoji:'👻', hp:4, idx:2,
+    phases:[
+      { hpAbove:2, ability:'swapSymbols',cooldown:4 },
+      { hpAbove:0, ability:'swapSymbols',cooldown:3 },
+    ],
+    intro:'bossIntro', defeat:'bossDefeat',
+    color:'#a8a29e', aura:'rgba(168,162,158,.3)',
+  },
+  alien: {
+    emoji:'👾', hp:5, idx:3,
+    phases:[
+      { hpAbove:3, ability:'fogZone',    cooldown:4 },
+      { hpAbove:1, ability:'fogZone',    cooldown:3 },
+      { hpAbove:0, ability:'shuffleAll', cooldown:3 },
+    ],
+    intro:'bossIntro', defeat:'bossDefeat',
+    color:'#7c3aed', aura:'rgba(124,58,237,.3)',
+  },
+  storm: {
+    emoji:'🌪️', hp:5, idx:4,
+    phases:[
+      { hpAbove:3, ability:'shuffleAll', cooldown:4 },
+      { hpAbove:1, ability:'shuffleAll', cooldown:2 },
+      { hpAbove:0, ability:'fogZone',    cooldown:2 },
+    ],
+    intro:'bossIntro', defeat:'bossDefeat',
+    color:'#ec4899', aura:'rgba(236,72,153,.3)',
+  },
+  dragon: {
+    emoji:'🐉', hp:6, idx:5,
+    phases:[
+      { hpAbove:4, ability:'burnCard',   cooldown:4 },
+      { hpAbove:2, ability:'burnCard',   cooldown:3 },
+      { hpAbove:0, ability:'shuffleAll', cooldown:2 },
+    ],
+    intro:'bossIntro', defeat:'bossDefeat',
+    color:'#d97706', aura:'rgba(217,119,6,.3)',
+  },
+  glitch: {
+    emoji:'🤖', hp:6, idx:6,
+    phases:[
+      { hpAbove:4, ability:'reverseFlip',cooldown:4 },
+      { hpAbove:2, ability:'reverseFlip',cooldown:3 },
+      { hpAbove:0, ability:'swapSymbols',cooldown:2 },
+    ],
+    intro:'bossIntro', defeat:'bossDefeat',
+    color:'#a855f7', aura:'rgba(168,85,247,.3)',
+  },
+  ice: {
+    emoji:'❄️', hp:7, idx:7,
+    phases:[
+      { hpAbove:5, ability:'freezeCards',cooldown:4 },
+      { hpAbove:3, ability:'freezeCards',cooldown:3 },
+      { hpAbove:0, ability:'inkWrap',    cooldown:2 },
+    ],
+    intro:'bossIntro', defeat:'bossDefeat',
+    color:'#0ea5e9', aura:'rgba(14,165,233,.3)',
+  },
+  trickster: {
+    emoji:'🎭', hp:7, idx:8,
+    phases:[
+      { hpAbove:5, ability:'swapSymbols',cooldown:4 },
+      { hpAbove:3, ability:'hideEdge',   cooldown:3 },
+      { hpAbove:1, ability:'reverseFlip',cooldown:2 },
+      { hpAbove:0, ability:'shuffleAll', cooldown:2 },
+    ],
+    intro:'bossIntro', defeat:'bossDefeat',
+    color:'#6b7280', aura:'rgba(107,114,128,.3)',
+  },
+  king: {
+    emoji:'👑', hp:8, idx:9,
+    phases:[
+      { hpAbove:6, ability:'fogZone',    cooldown:4 },
+      { hpAbove:4, ability:'burnCard',   cooldown:3 },
+      { hpAbove:2, ability:'freezeCards',cooldown:2 },
+      { hpAbove:0, ability:'shuffleAll', cooldown:2 },
+    ],
+    intro:'bossIntro', defeat:'bossDefeat',
+    color:'#b45309', aura:'rgba(180,83,9,.3)',
+  },
 };
 
 // ===== GENERATE 100 LEVELS =====

@@ -303,6 +303,11 @@ ar: {
   puUsedTotal:'قدرات مستخدمة',
   dailyBonus:'🎁 مكافأة يومية!',
   mechsPlayed:'آليات مُجربة',
+  // Boss system
+  bossAbilities:{ hideEdge:'🦊 إخفاء!', inkWrap:'🦑 حبر!', swapSymbols:'👻 تبديل!', fogZone:'👾 ضباب!', shuffleAll:'🌪️ خلط!', burnCard:'🐉 حرق!', reverseFlip:'🤖 عكس!', freezeCards:'❄️ تجميد!' },
+  bossTaunts:['🦊 لن تجدني!','🦑 أغرقك بالحبر!','👻 بوو!','👾 خذوهم!','🌪️ اختلطت الأمور!','🐉 احترق!','🤖 خلل في النظام!','❄️ تجمّد!','🎭 من أنا حقاً؟','👑 اركع للملك!'],
+  bossDefeatTaunts:['🦊 كيف وجدتني؟!','🦑 حبري نفد!','👻 أختفي...','👾 مستحيل!','🌪️ هدأت العاصفة!','🐉 نار!','🤖 أحتاج صيانة!','❄️ ذبت!','🎭 كشفتني!','👑 أنت الملك الجديد!'],
+  bossPhaseChange:'⚠️ مرحلة جديدة!',
 },
 en: {
   title:'🧠 Memory Kingdom',
@@ -388,6 +393,10 @@ en: {
   puUsedTotal:'Powers used',
   dailyBonus:'🎁 Daily Bonus!',
   mechsPlayed:'Mechanics tried',
+  bossAbilities:{ hideEdge:'🦊 Hide!', inkWrap:'🦑 Ink!', swapSymbols:'👻 Swap!', fogZone:'👾 Fog Zone!', shuffleAll:'🌪️ Shuffle!', burnCard:'🐉 Burn!', reverseFlip:'🤖 Glitch!', freezeCards:'❄️ Freeze!' },
+  bossTaunts:['🦊 You can\'t find me!','🦑 Ink everywhere!','👻 Boo!','👾 Take them!','🌪️ All mixed up!','🐉 Burn!','🤖 System error!','❄️ Freeze!','🎭 Who am I really?','👑 Bow to the King!'],
+  bossDefeatTaunts:['🦊 How?!','🦑 Out of ink!','👻 I vanish...','👾 Impossible!','🌪️ Storm over!','🐉 Ugh!','🤖 Need repair!','❄️ I melt!','🎭 Unmasked!','👑 You are the new King!'],
+  bossPhaseChange:'⚠️ New phase!',
 },
 pt: {
   title:'🧠 Reino da Memória',
@@ -473,6 +482,10 @@ pt: {
   puUsedTotal:'Poderes usados',
   dailyBonus:'🎁 Bônus Diário!',
   mechsPlayed:'Mecânicas tentadas',
+  bossAbilities:{ hideEdge:'🦊 Esconder!', inkWrap:'🦑 Tinta!', swapSymbols:'👻 Trocar!', fogZone:'👾 Zona de Névoa!', shuffleAll:'🌪️ Misturar!', burnCard:'🐉 Queimar!', reverseFlip:'🤖 Falha!', freezeCards:'❄️ Congelar!' },
+  bossTaunts:['🦊 Não me acha!','🦑 Tinta por toda parte!','👻 Buuu!','👾 Peguem!','🌪️ Tudo misturado!','🐉 Queime!','🤖 Erro no sistema!','❄️ Congele!','🎭 Quem sou eu?','👑 Curvem-se ao Rei!'],
+  bossDefeatTaunts:['🦊 Como?!','🦑 Sem tinta!','👻 Sumir...','👾 Impossível!','🌪️ Tempestade acabou!','🐉 Arg!','🤖 Preciso de reparo!','❄️ Derretendo!','🎭 Desmascarado!','👑 Você é o novo Rei!'],
+  bossPhaseChange:'⚠️ Nova fase!',
 }
 };
 
