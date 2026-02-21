@@ -144,6 +144,26 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',Tahoma,G
   0%,100%{box-shadow:0 0 4px rgba(168,85,247,.4),0 0 8px rgba(168,85,247,.15)}
   50%{box-shadow:0 0 14px rgba(168,85,247,.7),0 0 28px rgba(168,85,247,.25),0 0 56px rgba(168,85,247,.08)}}
 
+/* === MECHANIC OVERLAYS === */
+.card .fog-ov{position:absolute;inset:0;background:rgba(180,190,220,.88);border-radius:inherit;display:flex;align-items:center;justify-content:center;z-index:10;font-size:clamp(1.4rem,4.5vmin,2.2rem);cursor:pointer;transition:all .4s;backdrop-filter:blur(10px);border:2px solid rgba(255,255,255,.15)}
+.card .fog-ov:active{transform:scale(.9)}
+.card.decoy-show .card-back .sym{animation:decoyShake .3s ease 2}
+@keyframes decoyShake{0%,100%{transform:rotate(0) scale(1)}25%{transform:rotate(-12deg) scale(1.1)}75%{transform:rotate(12deg) scale(1.1)}}
+.card.shuffle-anim{animation:shuffleCard .5s cubic-bezier(.34,1.56,.64,1)}
+@keyframes shuffleCard{0%{transform:scale(.6) rotate(20deg);opacity:.3}60%{transform:scale(1.08) rotate(-3deg);opacity:1}100%{transform:scale(1) rotate(0);opacity:1}}
+.mech-info{position:relative;z-index:12;text-align:center;background:rgba(0,0,0,.35);color:#fff;font-size:clamp(11px,2.2vmin,14px);padding:3px 14px;border-radius:16px;font-weight:700;backdrop-filter:blur(4px);flex-shrink:0;max-width:90%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cd-wrap{position:relative;z-index:12;width:100%;max-width:540px;flex-shrink:0}
+.cd-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:2px}
+.cd-bar{width:100%;height:6px;background:rgba(255,255,255,.15);border-radius:3px;overflow:hidden}
+.cd-fill{height:100%;background:linear-gradient(90deg,#22c55e,#f59e0b,#ef4444);transition:width 1s linear;border-radius:3px}
+.cd-txt{font-size:clamp(11px,2vmin,14px);font-weight:900;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.4)}
+.cd-txt.urgent{color:#ef4444;animation:urgPulse .5s ease-in-out infinite}
+@keyframes urgPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(1.15)}}
+.peek-banner{position:absolute;inset:0;z-index:20;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(0,0,0,.35);pointer-events:none;border-radius:8px;opacity:0;transition:opacity .3s}
+.peek-banner.show{opacity:1}
+.peek-banner span{color:#fff;font-size:clamp(18px,5vmin,28px);font-weight:900;text-shadow:0 2px 8px rgba(0,0,0,.5);animation:peekPulse 1s ease-in-out infinite}
+@keyframes peekPulse{0%,100%{opacity:.7;transform:scale(1)}50%{opacity:1;transform:scale(1.1)}}
+
 /* === FOOTER & MISC === */
 .g-foot{display:flex;gap:clamp(4px,1vmin,8px);flex-shrink:0;flex-wrap:wrap;justify-content:center}
 .f-btn{background:rgba(255,255,255,.25);border:none;border-radius:12px;padding:clamp(7px,1.8vmin,12px) clamp(14px,3.5vmin,24px);font-size:clamp(14px,2.5vmin,18px);font-weight:800;color:#fff;cursor:pointer;transition:all .2s;text-shadow:0 1px 3px rgba(0,0,0,.3)}
@@ -237,7 +257,15 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',Tahoma,G
       <div class="g-stat"><div class="g-sv" id="g-tm">0:00</div><div class="g-sl" id="g-tml">الوقت</div></div>
     </div>
   </div>
-  <div class="grid-wrap"><div class="grid" id="grid"></div></div>
+  <div class="mech-info" id="mech-info" style="display:none"></div>
+  <div class="cd-wrap" id="cd-wrap" style="display:none">
+    <div class="cd-hdr"><span class="cd-txt" id="cd-text">⏱️ 2:00</span><span class="cd-txt" id="cd-label"></span></div>
+    <div class="cd-bar"><div class="cd-fill" id="cd-fill" style="width:100%"></div></div>
+  </div>
+  <div class="grid-wrap">
+    <div class="peek-banner" id="peek-banner"><span id="peek-text">👀</span></div>
+    <div class="grid" id="grid"></div>
+  </div>
   <p class="hint" id="hint">اضغط على أي بطاقة للبدء!</p>
   <div class="g-foot">
     <button class="f-btn" onclick="showScreen('lvl-screen')">🏠 رجوع</button>
@@ -459,13 +487,13 @@ addEventListener('resize',function(){
 const LANG=new URLSearchParams(location.search).get('lang')||'ar';
 document.documentElement.lang=LANG;document.documentElement.dir=LANG==='ar'?'rtl':'ltr';
 const I={
-ar:{title:'🧠 لعبة الذاكرة',sub:'اختر المستوى لتبدأ!',moves:'المحاولات',pairs:'الأزواج',time:'الوقت',hint:'اضغط على أي بطاقة للبدء!',score:'النقاط',congrats:'مبروك!',excellent:'🌟 ممتاز!',great:'🎉 أحسنت!',good:'👍 جيد!',tryMore:'💪 حاول أكثر!',done:'أتممت المستوى!',next:'➡️ التالي',share:'📤 مشاركة',again:'🔄 إعادة',levels:'🏠 المستويات',back:'🏠 رجوع',locked:'🔒',
+ar:{title:'🧠 لعبة الذاكرة',sub:'اختر المستوى لتبدأ!',moves:'المحاولات',pairs:'الأزواج',sets:'المجموعات',time:'الوقت',hint:'اضغط على أي بطاقة للبدء!',score:'النقاط',congrats:'مبروك!',excellent:'🌟 ممتاز!',great:'🎉 أحسنت!',good:'👍 جيد!',tryMore:'💪 حاول أكثر!',done:'أتممت المستوى!',next:'➡️ التالي',share:'📤 مشاركة',again:'🔄 إعادة',levels:'🏠 المستويات',back:'🏠 رجوع',locked:'🔒',mech:{timed:'⏱️ تذكّر!',moving:'🔀 متحركة!',masked:'🎭 مُقنّعة!',fog:'🌫️ ضباب!',triple:'🔱 ثلاثي!',boss:'👑 الزعيم!'},mechHint:{timed:'تذكر مواقع البطاقات!',moving:'البطاقات تتبدل كل ٣ محاولات!',masked:'بعض البطاقات تخدعك!',fog:'اضغط الضباب أولاً!',triple:'طابق ٣ بطاقات متشابهة!',boss:'كل التحديات + مؤقت!'},timeUp:'⏰ انتهى الوقت!',remember:'👀 تذكّر!',shuffling:'🔀 تبديل...',
 shareText:'حققت {score} نقطة في المستوى {level} من لعبة الذاكرة! ⭐{stars}',
 lvNames:['مزرعة الحيوانات','سلة الفواكه','عالم البحار','حديقة الحشرات','سماء وطقس','حديقة الورد','وادي الخضار','مطبخ لذيذ','عالم المركبات','استكشاف الفضاء','ملعب الرياضة','عالم الموسيقى','رحلة السفاري','عالم الطيور','ورشة الأدوات','عالم الأزياء','مدينة المباني','يوم المدرسة','عالم التقنية','🌍 بطل العالم']},
-en:{title:'🧠 Memory Match',sub:'Choose a level to start!',moves:'Moves',pairs:'Pairs',time:'Time',hint:'Tap any card to start!',score:'Score',congrats:'Congrats!',excellent:'🌟 Excellent!',great:'🎉 Great!',good:'👍 Good!',tryMore:'💪 Try More!',done:'Level complete!',next:'➡️ Next',share:'📤 Share',again:'🔄 Replay',levels:'🏠 Levels',back:'🏠 Back',locked:'🔒',
+en:{title:'🧠 Memory Match',sub:'Choose a level to start!',moves:'Moves',pairs:'Pairs',sets:'Sets',time:'Time',hint:'Tap any card to start!',score:'Score',congrats:'Congrats!',excellent:'🌟 Excellent!',great:'🎉 Great!',good:'👍 Good!',tryMore:'💪 Try More!',done:'Level complete!',next:'➡️ Next',share:'📤 Share',again:'🔄 Replay',levels:'🏠 Levels',back:'🏠 Back',locked:'🔒',mech:{timed:'⏱️ Peek!',moving:'🔀 Moving!',masked:'🎭 Masked!',fog:'🌫️ Fog!',triple:'🔱 Triple!',boss:'👑 Boss!'},mechHint:{timed:'Memorize the cards!',moving:'Cards shuffle every 3 moves!',masked:'Some cards trick you first!',fog:'Tap fog to reveal!',triple:'Match 3 cards!',boss:'All challenges + timer!'},timeUp:'⏰ Time\'s up!',remember:'👀 Remember!',shuffling:'🔀 Shuffling...',
 shareText:'I scored {score} on Level {level} in Memory Match! ⭐{stars}',
 lvNames:['Farm Friends','Fruit Basket','Ocean World','Bug Garden','Sky Watch','Flower Garden','Veggie Valley','Yummy Kitchen','On the Move','Space Quest','Sports Arena','Music Studio','Wild Safari','Bird Paradise','Tool Workshop','Fashion Show','City Builder','School Days','Tech World','🌍 World Champion']},
-pt:{title:'🧠 Jogo da Memória',sub:'Escolha um nível!',moves:'Jogadas',pairs:'Pares',time:'Tempo',hint:'Toque para começar!',score:'Pontos',congrats:'Parabéns!',excellent:'🌟 Excelente!',great:'🎉 Muito Bem!',good:'👍 Bom!',tryMore:'💪 Tente Mais!',done:'Nível completo!',next:'➡️ Próximo',share:'📤 Compartilhar',again:'🔄 Repetir',levels:'🏠 Níveis',back:'🏠 Voltar',locked:'🔒',
+pt:{title:'🧠 Jogo da Memória',sub:'Escolha um nível!',moves:'Jogadas',pairs:'Pares',sets:'Conjuntos',time:'Tempo',hint:'Toque para começar!',score:'Pontos',congrats:'Parabéns!',excellent:'🌟 Excelente!',great:'🎉 Muito Bem!',good:'👍 Bom!',tryMore:'💪 Tente Mais!',done:'Nível completo!',next:'➡️ Próximo',share:'📤 Compartilhar',again:'🔄 Repetir',levels:'🏠 Níveis',back:'🏠 Voltar',locked:'🔒',mech:{timed:'⏱️ Memorize!',moving:'🔀 Mover!',masked:'🎭 Mascarado!',fog:'🌫️ Névoa!',triple:'🔱 Triplo!',boss:'👑 Chefe!'},mechHint:{timed:'Memorize as cartas!',moving:'Cartas mudam a cada 3!',masked:'Algumas enganam primeiro!',fog:'Toque a névoa primeiro!',triple:'Combine 3 cartas!',boss:'Todos desafios + tempo!'},timeUp:'⏰ Tempo esgotado!',remember:'👀 Lembre-se!',shuffling:'🔀 Movendo...',
 shareText:'Fiz {score} pontos no Nível {level} do Jogo da Memória! ⭐{stars}',
 lvNames:['Amigos da Fazenda','Cesta de Frutas','Mundo do Mar','Jardim de Insetos','Céu e Clima','Jardim de Flores','Vale dos Vegetais','Cozinha Gostosa','Em Movimento','Missão Espacial','Arena Esportiva','Estúdio Musical','Safari Selvagem','Paraíso dos Pássaros','Oficina de Ferramentas','Desfile de Moda','Construtor de Cidades','Dia Escolar','Mundo Tech','🌍 Campeão Mundial']}
 };
@@ -564,26 +592,26 @@ const FRONT_ICONS=[
 
 // ===== LEVEL CONFIG: 20 levels, increasing grid & pairs =====
 const LEVELS=[
-  {cat:'farm',    gridCols:3,gridRows:2,pairs:3, emoji:'🐄'},
-  {cat:'fruit',   gridCols:4,gridRows:2,pairs:4, emoji:'🍎'},
-  {cat:'sea',     gridCols:4,gridRows:3,pairs:6, emoji:'🐠'},
-  {cat:'bug',     gridCols:4,gridRows:3,pairs:6, emoji:'🦋'},
-  {cat:'weather', gridCols:4,gridRows:4,pairs:8, emoji:'🌤'},
-  {cat:'flower',  gridCols:4,gridRows:4,pairs:8, emoji:'🌸'},
-  {cat:'veggie',  gridCols:4,gridRows:4,pairs:8, emoji:'🥕'},
-  {cat:'food',    gridCols:5,gridRows:4,pairs:10,emoji:'🍕'},
-  {cat:'vehicle', gridCols:5,gridRows:4,pairs:10,emoji:'🚗'},
-  {cat:'space',   gridCols:4,gridRows:5,pairs:10,emoji:'🚀'},
-  {cat:'sport',   gridCols:6,gridRows:4,pairs:12,emoji:'⚽'},
-  {cat:'music',   gridCols:6,gridRows:4,pairs:12,emoji:'🎵'},
-  {cat:'wild',    gridCols:5,gridRows:5,pairs:12,emoji:'🦁'},
-  {cat:'bird',    gridCols:6,gridRows:5,pairs:15,emoji:'🦅'},
-  {cat:'tool',    gridCols:6,gridRows:5,pairs:15,emoji:'🔨'},
-  {cat:'fashion', gridCols:6,gridRows:5,pairs:15,emoji:'👗'},
-  {cat:'building',gridCols:6,gridRows:6,pairs:18,emoji:'🏠'},
-  {cat:'school',  gridCols:6,gridRows:6,pairs:18,emoji:'📚'},
-  {cat:'tech',    gridCols:6,gridRows:6,pairs:18,emoji:'💻'},
-  {cat:'mix',     gridCols:6,gridRows:6,pairs:18,emoji:'🌍'},
+  {cat:'farm',    gridCols:3,gridRows:2,pairs:3, emoji:'🐄',mechanic:'classic'},
+  {cat:'fruit',   gridCols:4,gridRows:2,pairs:4, emoji:'🍎',mechanic:'classic'},
+  {cat:'sea',     gridCols:4,gridRows:3,pairs:6, emoji:'🐠',mechanic:'classic'},
+  {cat:'bug',     gridCols:4,gridRows:3,pairs:6, emoji:'🦋',mechanic:'classic'},
+  {cat:'weather', gridCols:4,gridRows:4,pairs:8, emoji:'🌤',mechanic:'classic'},
+  {cat:'flower',  gridCols:4,gridRows:4,pairs:8, emoji:'🌸',mechanic:'timed'},
+  {cat:'veggie',  gridCols:4,gridRows:4,pairs:8, emoji:'🥕',mechanic:'timed'},
+  {cat:'food',    gridCols:5,gridRows:4,pairs:10,emoji:'🍕',mechanic:'timed'},
+  {cat:'vehicle', gridCols:5,gridRows:4,pairs:10,emoji:'🚗',mechanic:'moving'},
+  {cat:'space',   gridCols:4,gridRows:5,pairs:10,emoji:'🚀',mechanic:'moving'},
+  {cat:'sport',   gridCols:6,gridRows:4,pairs:12,emoji:'⚽',mechanic:'moving'},
+  {cat:'music',   gridCols:6,gridRows:4,pairs:12,emoji:'🎵',mechanic:'masked'},
+  {cat:'wild',    gridCols:5,gridRows:5,pairs:12,emoji:'🦁',mechanic:'masked'},
+  {cat:'bird',    gridCols:6,gridRows:5,pairs:15,emoji:'🦅',mechanic:'masked'},
+  {cat:'tool',    gridCols:6,gridRows:5,pairs:15,emoji:'🔨',mechanic:'fog'},
+  {cat:'fashion', gridCols:6,gridRows:5,pairs:15,emoji:'👗',mechanic:'fog'},
+  {cat:'building',gridCols:6,gridRows:6,pairs:18,emoji:'🏠',mechanic:'fog'},
+  {cat:'school',  gridCols:6,gridRows:6,pairs:12,emoji:'📚',mechanic:'triple'},
+  {cat:'tech',    gridCols:6,gridRows:6,pairs:12,emoji:'💻',mechanic:'triple'},
+  {cat:'mix',     gridCols:6,gridRows:6,pairs:18,emoji:'🌍',mechanic:'boss'},
 ];
 
 // ===== AUDIO =====
@@ -597,12 +625,23 @@ function sfxComplete(){[523,659,784,988,1175,1319].forEach((f,i)=>setTimeout(()=
 function sfxStar(){[880,1100,1320].forEach((f,i)=>setTimeout(()=>tone(f,.15,'sine',.1),i*120))}
 
 // ===== GAME STATE =====
-let cards=[],moves=0,matchedPairs=0,totalPairs=8,firstPick=null,secondPick=null,isChecking=false;
+let cards=[],moves=0,matchedPairs=0,totalPairs=8,isChecking=false;
 let gameStarted=false,startTime=null,timerInterval=null,elapsedSeconds=0;
 let currentLevel=-1,currentGridCols=4,currentGridRows=4;
 let currentEmoji=[];
 let currentFrontIcon='❓';
 let currentGroup=0;
+
+// ===== MECHANIC STATE =====
+let mechanic='classic';
+let matchCount=2;
+let picks=[];
+let fogSet=new Set();
+let maskedMap={};
+let peekInProgress=false;
+let movesSinceShuffle=0;
+let bossCountdownSec=0;
+let bossTimerId=null;
 
 let progress=JSON.parse(localStorage.getItem('classify_memory_progress')||'{"unlocked":1,"scores":{},"stars":{}}');
 function saveProgress(){localStorage.setItem('classify_memory_progress',JSON.stringify(progress))}
@@ -613,14 +652,17 @@ function fmtTime(s){return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')}
 function pickEmoji(cat,n){const pool=POOL[cat]||POOL.mix;const unique=[...new Set(shuffle(pool))];return unique.slice(0,n)}
 function getGroup(idx){return Math.min(4,Math.floor(idx/4))}
 
-function calcScore(moves,pairs,duration){
-  const perfect=pairs;
+function calcScore(moves,pairs,duration,matched){
+  matched=matched||pairs;
+  const ratio=matched/pairs;
+  const perfect=matched;
   const extraMoves=Math.max(0,moves-perfect);
   const movePenalty=extraMoves*3;
   const graceSec=pairs*5;
   const extraSec=Math.max(0,duration-graceSec);
   const timePenalty=extraSec*0.3;
-  return Math.max(10,Math.min(100,Math.round(100-movePenalty-timePenalty)));
+  const mechBonus=mechanic==='classic'?0:mechanic==='boss'?10:5;
+  return Math.max(0,Math.min(100,Math.round((100-movePenalty-timePenalty)*ratio+mechBonus)));
 }
 
 // ===== SCREENS =====
@@ -689,23 +731,56 @@ function startLevel(idx){
 
   // Re-init bg after screen shown (ensures canvas is visible and sized)
   requestAnimationFrame(()=>{if(window.initBg)initBg(currentGroup)});
+
+  // Timed mechanic: peek all cards briefly
+  if(mechanic==='timed'){
+    setTimeout(()=>doTimedPeek(),400);
+  }
 }
 
 function resetGame(){
   clearInterval(timerInterval);
-  cards=createDeck();moves=0;matchedPairs=0;firstPick=null;secondPick=null;isChecking=false;
+  if(bossTimerId){clearInterval(bossTimerId);bossTimerId=null}
+  picks=[];isChecking=false;
   gameStarted=false;startTime=null;elapsedSeconds=0;
+  peekInProgress=false;movesSinceShuffle=0;
+  fogSet=new Set();maskedMap={};
+  bossCountdownSec=0;
+
+  // Setup mechanic from current level
+  const cfg=LEVELS[currentLevel];
+  mechanic=cfg?cfg.mechanic||'classic':'classic';
+  matchCount=(mechanic==='triple')?3:2;
+
+  cards=createDeck();moves=0;matchedPairs=0;
   document.getElementById('g-mv').textContent='0';
   document.getElementById('g-pr').textContent='0/'+totalPairs;
+  document.getElementById('g-prl').textContent=(matchCount===3&&t.sets)?t.sets:t.pairs;
   document.getElementById('g-tm').textContent='0:00';
   document.getElementById('hint').style.display='';
+
+  // Hide mechanic UI
+  const mechInfo=document.getElementById('mech-info');
+  const cdWrap=document.getElementById('cd-wrap');
+  const peekBanner=document.getElementById('peek-banner');
+  if(mechInfo)mechInfo.style.display='none';
+  if(cdWrap)cdWrap.style.display='none';
+  if(peekBanner)peekBanner.classList.remove('show');
+
+  // Setup mechanic-specific state
+  setupMechanic();
   renderCards();
 }
 
 function createDeck(){
   const chosen=currentEmoji.slice(0,totalPairs);
-  const doubled=[...chosen,...chosen];
-  return shuffle(doubled).map((s,i)=>({id:i,symbol:s,flipped:false,matched:false}));
+  let deck=[];
+  if(matchCount===3){
+    chosen.forEach(s=>{deck.push(s,s,s)});
+  } else {
+    deck=[...chosen,...chosen];
+  }
+  return shuffle(deck).map((s,i)=>({id:i,symbol:s,flipped:false,matched:false,unmasked:false}));
 }
 
 function renderCards(){
@@ -726,6 +801,13 @@ function renderCards(){
     btn.disabled=card.flipped||card.matched;
     btn.setAttribute('data-id',card.id);
     btn.innerHTML=`<div class="card-inner"><div class="card-front"><span class="icon">${currentFrontIcon}</span></div><div class="card-back"><span class="sym">${card.symbol}</span></div></div>`;
+    // Fog overlay
+    if((mechanic==='fog'||mechanic==='boss')&&fogSet.has(card.id)&&!card.matched&&!card.flipped){
+      const fog=document.createElement('div');
+      fog.className='fog-ov';fog.textContent='🌫️';
+      fog.addEventListener('click',function(e){e.stopPropagation();clearFog(card.id)});
+      btn.querySelector('.card-inner').appendChild(fog);
+    }
     btn.style.width=sz+'px';btn.style.height=sz+'px';
     btn.addEventListener('click',()=>flipCard(card.id));
     g.appendChild(btn);
@@ -733,29 +815,80 @@ function renderCards(){
 }
 
 function flipCard(id){
-  if(isChecking)return;
+  if(isChecking||peekInProgress)return;
   const card=cards[id];
   if(!card||card.flipped||card.matched)return;
-  if(!gameStarted){gameStarted=true;startTime=Date.now();document.getElementById('hint').style.display='none';timerInterval=setInterval(()=>{elapsedSeconds=Math.floor((Date.now()-startTime)/1000);document.getElementById('g-tm').textContent=fmtTime(elapsedSeconds)},1000)}
+
+  // Fog: can't flip fogged cards (must tap fog first)
+  if(fogSet.has(id))return;
+
+  // Start timer on first real flip
+  if(!gameStarted){
+    gameStarted=true;startTime=Date.now();
+    document.getElementById('hint').style.display='none';
+    timerInterval=setInterval(()=>{elapsedSeconds=Math.floor((Date.now()-startTime)/1000);document.getElementById('g-tm').textContent=fmtTime(elapsedSeconds)},1000);
+    // Boss countdown
+    if(mechanic==='boss'&&bossCountdownSec>0)startBossCountdown();
+  }
+
+  // Masked: first flip shows decoy, then auto-hides
+  if(mechanic==='masked'&&maskedMap[id]!==undefined&&!card.unmasked){
+    card.flipped=true;card.unmasked=true;
+    const btn=document.getElementById('grid').querySelector(`[data-id="${id}"]`);
+    if(btn){
+      btn.classList.add('flipped','decoy-show');
+      const sym=btn.querySelector('.sym');
+      if(sym)sym.textContent=maskedMap[id];
+    }
+    sfxFlip();
+    isChecking=true;
+    setTimeout(()=>{
+      card.flipped=false;
+      const btn2=document.getElementById('grid').querySelector(`[data-id="${id}"]`);
+      if(btn2){
+        btn2.classList.remove('flipped','decoy-show');
+        btn2.disabled=false;
+        const sym2=btn2.querySelector('.sym');
+        if(sym2)sym2.textContent=card.symbol;
+      }
+      delete maskedMap[id];
+      isChecking=false;
+    },900);
+    return;
+  }
+
   card.flipped=true;
   updateCardDOM(id,true,false);
   sfxFlip();
-  if(firstPick===null){firstPick=id;return}
-  secondPick=id;moves++;
+  picks.push(id);
+
+  if(picks.length<matchCount)return;
+
+  // All picks made — check match
+  moves++;movesSinceShuffle++;
   document.getElementById('g-mv').textContent=moves;
-  const first=cards[firstPick],second=cards[secondPick];
-  if(first.symbol===second.symbol){
-    first.matched=true;second.matched=true;matchedPairs++;
+  const allMatch=picks.every(pid=>cards[pid].symbol===cards[picks[0]].symbol);
+
+  if(allMatch){
+    picks.forEach(pid=>{cards[pid].matched=true;updateCardDOM(pid,true,true)});
+    matchedPairs++;
     document.getElementById('g-pr').textContent=matchedPairs+'/'+totalPairs;
-    updateCardDOM(first.id,true,true);updateCardDOM(second.id,true,true);
     sfxMatch();
-    // Spawn mini particles on match
-    spawnMatchParticles(first.id,second.id);
-    firstPick=null;secondPick=null;
+    spawnMatchParticles(picks[0],picks[picks.length-1]);
+    picks=[];
     if(matchedPairs===totalPairs)setTimeout(()=>endGame(),400);
   } else {
     isChecking=true;sfxNoMatch();
-    setTimeout(()=>{first.flipped=false;second.flipped=false;updateCardDOM(first.id,false,false);updateCardDOM(second.id,false,false);firstPick=null;secondPick=null;isChecking=false},800);
+    setTimeout(()=>{
+      picks.forEach(pid=>{cards[pid].flipped=false;updateCardDOM(pid,false,false)});
+      picks=[];isChecking=false;
+    },800);
+  }
+
+  // Moving / Boss: shuffle after every 3 moves
+  if((mechanic==='moving'||mechanic==='boss')&&movesSinceShuffle>=3&&matchedPairs<totalPairs){
+    movesSinceShuffle=0;
+    setTimeout(()=>shufflePositions(),allMatch?600:1000);
   }
 }
 
@@ -780,6 +913,132 @@ function spawnMatchParticles(id1,id2){
   }catch(e){}
 }
 
+// ===== MECHANIC SETUP =====
+function setupMechanic(){
+  const infoEl=document.getElementById('mech-info');
+  const cdWrap=document.getElementById('cd-wrap');
+  if(mechanic==='classic'){return}
+
+  // Show mechanic name + hint
+  if(t.mech&&t.mech[mechanic]){
+    const hint=t.mechHint?t.mechHint[mechanic]:'';
+    infoEl.textContent=t.mech[mechanic]+(hint?' — '+hint:'');
+    infoEl.style.display='';
+  }
+
+  // Fog: mark ~40% of cards
+  if(mechanic==='fog'){
+    const nFog=Math.floor(cards.length*0.4);
+    const idxs=shuffle(cards.map(c=>c.id)).slice(0,nFog);
+    idxs.forEach(i=>fogSet.add(i));
+  }
+
+  // Masked: assign decoys to ~35% of cards
+  if(mechanic==='masked'){
+    const nMask=Math.floor(cards.length*0.35);
+    const idxs=shuffle(cards.map(c=>c.id)).slice(0,nMask);
+    idxs.forEach(i=>{
+      let decoy;
+      do{decoy=currentEmoji[Math.floor(Math.random()*currentEmoji.length)]}while(decoy===cards[i].symbol);
+      maskedMap[i]=decoy;
+    });
+  }
+
+  // Boss: fog + countdown
+  if(mechanic==='boss'){
+    const nFog=Math.floor(cards.length*0.25);
+    const idxs=shuffle(cards.map(c=>c.id)).slice(0,nFog);
+    idxs.forEach(i=>fogSet.add(i));
+    bossCountdownSec=120;
+    cdWrap.style.display='';
+    updateCountdownDisplay();
+  }
+}
+
+// ===== CLEAR FOG =====
+function clearFog(id){
+  fogSet.delete(id);
+  const btn=document.getElementById('grid').querySelector(`[data-id="${id}"]`);
+  if(btn){
+    const fog=btn.querySelector('.fog-ov');
+    if(fog){fog.style.opacity='0';fog.style.transform='scale(.5)';setTimeout(()=>fog.remove(),400)}
+  }
+  sfxFlip();
+}
+
+// ===== TIMED PEEK =====
+function doTimedPeek(){
+  peekInProgress=true;
+  const grid=document.getElementById('grid');
+  const btns=grid.querySelectorAll('.card');
+  btns.forEach(b=>b.classList.add('flipped'));
+  const banner=document.getElementById('peek-banner');
+  const peekText=document.getElementById('peek-text');
+  if(peekText)peekText.textContent=t.remember||'👀 Remember!';
+  if(banner)banner.classList.add('show');
+  setTimeout(()=>{
+    btns.forEach(b=>{
+      if(!b.classList.contains('matched')){
+        b.classList.remove('flipped');
+        b.disabled=false;
+      }
+    });
+    if(banner)banner.classList.remove('show');
+    peekInProgress=false;
+  },2500);
+}
+
+// ===== SHUFFLE POSITIONS =====
+function shufflePositions(){
+  if(matchedPairs>=totalPairs)return;
+  const unmatched=cards.filter(c=>!c.matched);
+  if(unmatched.length<4)return;
+
+  // Unflip any picked cards first
+  picks.forEach(pid=>{cards[pid].flipped=false});
+  picks=[];isChecking=false;
+
+  // Shuffle symbols among unmatched cards
+  const syms=unmatched.map(c=>({symbol:c.symbol,unmasked:c.unmasked}));
+  const shuffled=shuffle(syms);
+  unmatched.forEach((c,i)=>{
+    c.symbol=shuffled[i].symbol;
+    c.flipped=false;
+    c.unmasked=shuffled[i].unmasked;
+  });
+
+  // Re-render and animate
+  renderCards();
+  setTimeout(()=>{
+    const grid=document.getElementById('grid');
+    grid.querySelectorAll('.card:not(.matched)').forEach(b=>b.classList.add('shuffle-anim'));
+    setTimeout(()=>grid.querySelectorAll('.shuffle-anim').forEach(b=>b.classList.remove('shuffle-anim')),600);
+  },50);
+}
+
+// ===== BOSS COUNTDOWN =====
+function startBossCountdown(){
+  updateCountdownDisplay();
+  bossTimerId=setInterval(()=>{
+    bossCountdownSec--;
+    updateCountdownDisplay();
+    if(bossCountdownSec<=0){
+      clearInterval(bossTimerId);bossTimerId=null;
+      endGame();
+    }
+  },1000);
+}
+
+function updateCountdownDisplay(){
+  const fill=document.getElementById('cd-fill');
+  const text=document.getElementById('cd-text');
+  if(!fill||!text)return;
+  const pct=Math.max(0,(bossCountdownSec/120)*100);
+  fill.style.width=pct+'%';
+  text.textContent='⏱️ '+fmtTime(bossCountdownSec);
+  text.className='cd-txt'+(bossCountdownSec<=20?' urgent':'');
+}
+
 function updateCardDOM(id,flipped,matched){
   const btn=document.getElementById('grid').querySelector(`[data-id="${id}"]`);
   if(!btn)return;
@@ -789,9 +1048,13 @@ function updateCardDOM(id,flipped,matched){
 
 function endGame(){
   clearInterval(timerInterval);
+  if(bossTimerId){clearInterval(bossTimerId);bossTimerId=null}
+  peekInProgress=false;
   const dur=Math.floor((Date.now()-startTime)/1000);
-  const sc=calcScore(moves,totalPairs,dur);
+  const isPartial=matchedPairs<totalPairs;
+  const sc=calcScore(moves,totalPairs,dur,matchedPairs);
   let stars=0;if(sc>=50)stars=1;if(sc>=75)stars=2;if(sc>=90)stars=3;
+  if(isPartial){stars=0}
   if(currentLevel>=0){
     const prev=progress.stars[currentLevel]||0;if(stars>prev)progress.stars[currentLevel]=stars;
     const prevSc=progress.scores[currentLevel]||0;if(sc>prevSc)progress.scores[currentLevel]=sc;
@@ -799,21 +1062,22 @@ function endGame(){
     saveProgress();
   }
   let title,emoji;
-  if(stars>=3){title=t.excellent;emoji='🏆'}else if(stars>=2){title=t.great;emoji='🎉'}else if(stars>=1){title=t.good;emoji='👍'}else{title=t.tryMore;emoji='💪'}
+  if(isPartial){title=t.timeUp||'⏰ Time\'s up!';emoji='⏰'}
+  else if(stars>=3){title=t.excellent;emoji='🏆'}else if(stars>=2){title=t.great;emoji='🎉'}else if(stars>=1){title=t.good;emoji='👍'}else{title=t.tryMore;emoji='💪'}
   document.getElementById('d-e').textContent=emoji;
   document.getElementById('d-t').textContent=title;
-  document.getElementById('d-sub').textContent=t.done;
+  document.getElementById('d-sub').textContent=isPartial?(matchedPairs+'/'+totalPairs):t.done;
   document.getElementById('d-sc').textContent=sc+'/100';
   document.getElementById('d-mv2').textContent=moves;
   document.getElementById('d-tm').textContent=fmtTime(dur);
   const starsEl=document.getElementById('d-st');starsEl.innerHTML='';
   for(let i=0;i<3;i++){const sp=document.createElement('span');sp.textContent=i<stars?'⭐':'☆';sp.style.opacity=i<stars?'1':'.3';starsEl.appendChild(sp)}
-  document.getElementById('d-nx').style.display=(currentLevel>=0&&currentLevel<LEVELS.length-1)?'':'none';
+  document.getElementById('d-nx').style.display=(currentLevel>=0&&currentLevel<LEVELS.length-1&&!isPartial)?'':'none';
   sfxComplete();if(stars>0)sfxStar();
   showScreen('done-screen');
-  if(window.royalCelebration) window.royalCelebration(stars);
+  if(window.royalCelebration&&!isPartial) window.royalCelebration(stars);
   // Particles
-  for(let i=0;i<stars*6;i++){setTimeout(()=>{const p=document.createElement('div');p.className='particle';p.textContent=['⭐','✨','🌟','🎉','💎'][Math.floor(Math.random()*5)];p.style.left=(Math.random()*innerWidth)+'px';p.style.top=(innerHeight*.6+Math.random()*80)+'px';p.style.fontSize='22px';document.body.appendChild(p);setTimeout(()=>p.remove(),1200)},i*70)}
+  if(!isPartial){for(let i=0;i<stars*6;i++){setTimeout(()=>{const p=document.createElement('div');p.className='particle';p.textContent=['⭐','✨','🌟','🎉','💎'][Math.floor(Math.random()*5)];p.style.left=(Math.random()*innerWidth)+'px';p.style.top=(innerHeight*.6+Math.random()*80)+'px';p.style.fontSize='22px';document.body.appendChild(p);setTimeout(()=>p.remove(),1200)},i*70)}}
   // PostMessage
   try{window.parent.postMessage({type:'GAME_COMPLETE',score:sc,total:100,timeElapsed:dur,moves:moves,level:currentLevel>=0?currentLevel+1:0,stars:stars},'*')}catch(e){}
 }
