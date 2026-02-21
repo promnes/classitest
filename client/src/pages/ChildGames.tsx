@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { MandatoryTaskModal } from "@/components/MandatoryTaskModal";
@@ -12,6 +12,7 @@ import { Gamepad2, Star, Gift, Bell, ShoppingBag, X, Trophy, Play, BookOpen, Tre
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useToast } from "@/hooks/use-toast";
 
 interface Game {
   id: string;
@@ -28,6 +29,7 @@ export const ChildGames = (): JSX.Element => {
   const [, navigate] = useLocation();
   const { isDark } = useTheme();
   const { logout, isLoggingOut, handleAuthError } = useChildAuth();
+  const { toast } = useToast();
   const token = localStorage.getItem("childToken");
   const queryClient = useQueryClient();
   const [selectedGame, setSelectedGame] = useState<Game | null>(null);
@@ -36,6 +38,12 @@ export const ChildGames = (): JSX.Element => {
   const [gameResult, setGameResult] = useState<{ score: number; total: number } | null>(null);
   const [iframeLoading, setIframeLoading] = useState(false);
   const [mutationError, setMutationError] = useState<string | null>(null);
+
+  // Refs for stable access in postMessage handler
+  const selectedGameRef = useRef<Game | null>(null);
+  useEffect(() => { selectedGameRef.current = selectedGame; }, [selectedGame]);
+  const langRef = useRef(i18n.language);
+  useEffect(() => { langRef.current = i18n.language; }, [i18n.language]);
 
   const { data: games, isLoading } = useQuery<Game[]>({
     queryKey: ["games"],
@@ -80,20 +88,85 @@ export const ChildGames = (): JSX.Element => {
         const total = Math.max(1, Math.min(e.data.total || 10, 10000));
         setGameResult({ score, total });
       }
-      // Handle achievement sharing to child profile
+      // Handle achievement sharing to child profile — rich game card post
       if (e.data?.type === 'SHARE_ACHIEVEMENT' && token) {
-        const { game, level, score, stars, text } = e.data;
-        const content = text || `🏆 ${game} - Level ${level} - Score: ${score} ${'⭐'.repeat(stars || 0)}`;
-        fetch("/api/child/posts", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ content, mediaUrls: [], mediaTypes: [] }),
-        }).catch(() => {});
+        const { game, level, score, stars, world } = e.data;
+        const currentGame = selectedGameRef.current;
+        if (!currentGame) return;
+
+        (async () => {
+          try {
+            // Determine game emoji
+            const gameEmoji = currentGame.embedUrl.includes('memory') ? '🧠' :
+                              currentGame.embedUrl.includes('math') ? '🔢' : '🎮';
+
+            // Generate motivational text
+            const isAr = langRef.current === 'ar';
+            let motivationalText = '';
+            if ((stars || 0) >= 3) motivationalText = isAr ? 'ممتاز! أداء رائع! 🏆' : 'Excellent! Amazing performance! 🏆';
+            else if ((stars || 0) >= 2) motivationalText = isAr ? 'عمل رائع! استمر! 🎉' : 'Great job! Keep going! 🎉';
+            else if ((stars || 0) >= 1) motivationalText = isAr ? 'جيد! حاول مرة أخرى للأفضل 💪' : 'Good! Try again for better! 💪';
+            else motivationalText = isAr ? 'لا تستسلم! حاول مرة أخرى 💪' : "Don't give up! Try again! 💪";
+
+            // Check for previous score from earlier game share posts
+            let previousScore: number | null = null;
+            try {
+              const postsRes = await fetch("/api/child/posts", {
+                headers: { Authorization: `Bearer ${token}` },
+              });
+              if (postsRes.ok) {
+                const postsJson = await postsRes.json();
+                const posts = postsJson.data || postsJson || [];
+                for (const p of posts) {
+                  if (p.content?.startsWith('###GAME_SHARE###')) {
+                    try {
+                      const jsonStr = p.content.replace('###GAME_SHARE###', '').replace('###END_GAME_SHARE###', '');
+                      const shareData = JSON.parse(jsonStr);
+                      if (shareData.gameUrl === currentGame.embedUrl) {
+                        previousScore = shareData.score;
+                        break;
+                      }
+                    } catch {}
+                  }
+                }
+              }
+            } catch {}
+
+            // Build rich post content
+            const gameShareData = {
+              gameId: currentGame.id,
+              gameName: currentGame.title,
+              gameEmoji,
+              gameUrl: currentGame.embedUrl,
+              thumbnailUrl: currentGame.thumbnailUrl,
+              score: score || 0,
+              stars: stars || 0,
+              level: level || 1,
+              world: world || 1,
+              previousScore,
+              motivationalText,
+            };
+
+            const content = `###GAME_SHARE###${JSON.stringify(gameShareData)}###END_GAME_SHARE###`;
+
+            await fetch("/api/child/posts", {
+              method: "POST",
+              headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+              body: JSON.stringify({ content, mediaUrls: [], mediaTypes: [] }),
+            });
+
+            // Show success toast
+            toast({
+              title: isAr ? '✅ تم النشر!' : '✅ Posted!',
+              description: isAr ? 'تم مشاركة إنجازك على صفحتك الشخصية' : 'Your achievement was shared to your profile',
+            });
+          } catch {}
+        })();
       }
     };
     window.addEventListener('message', handler);
     return () => window.removeEventListener('message', handler);
-  }, [token]);
+  }, [token, toast]);
 
   const completeGameMutation = useMutation({
     mutationFn: async ({ gameId, score, totalQuestions }: { gameId: string; score?: number; totalQuestions?: number }) => {
@@ -142,6 +215,23 @@ export const ChildGames = (): JSX.Element => {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [selectedGame]);
+
+  // Auto-play game from URL params (from shared game post play button)
+  useEffect(() => {
+    if (!games || games.length === 0) return;
+    const params = new URLSearchParams(window.location.search);
+    const autoPlayUrl = params.get('autoPlay');
+    if (autoPlayUrl) {
+      const game = games.find(g => g.embedUrl === autoPlayUrl || g.embedUrl.includes(autoPlayUrl));
+      if (game) {
+        setSelectedGame(game);
+        setGameResult(null);
+        setMutationError(null);
+        setIframeLoading(true);
+      }
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, [games]);
 
   if (!token || isChildInfoLoading) {
     return (

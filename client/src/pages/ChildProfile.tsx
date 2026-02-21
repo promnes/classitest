@@ -7,7 +7,7 @@ import {
   Save, Loader2, Star, Trophy, Sparkles, Share2, Users, Bell, UserPlus,
   Check, X, MapPin, Award, Flame, Gamepad2, Droplets, TreePine,
   Copy, ImagePlus, Settings, Search, UserCheck, Send, ThumbsUp,
-  MessageCircle, Trash2, Image as ImageIcon, Info, Clock, PenSquare,
+  MessageCircle, Trash2, Image as ImageIcon, Info, Clock, PenSquare, Play,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -73,6 +73,105 @@ interface PostComment {
 
 type TabType = "showcase" | "posts" | "about" | "friends" | "notifications" | "edit";
 
+// ======= GAME SHARE DATA =======
+interface GameShareData {
+  gameId: string;
+  gameName: string;
+  gameEmoji: string;
+  gameUrl: string;
+  thumbnailUrl?: string | null;
+  score: number;
+  stars: number;
+  level: number;
+  world: number;
+  previousScore: number | null;
+  motivationalText: string;
+}
+
+function parseGameShare(content: string): GameShareData | null {
+  if (!content?.startsWith('###GAME_SHARE###')) return null;
+  try {
+    const jsonStr = content.replace('###GAME_SHARE###', '').replace('###END_GAME_SHARE###', '');
+    return JSON.parse(jsonStr);
+  } catch { return null; }
+}
+
+// ======= GAME SHARE CARD COMPONENT =======
+function GameShareCard({ data, isDark, isRTL }: { data: GameShareData; isDark: boolean; isRTL: boolean }) {
+  const [, navigate] = useLocation();
+
+  const gradientMap: Record<string, string> = {
+    '🧠': 'from-purple-600 via-purple-500 to-pink-500',
+    '🔢': 'from-emerald-600 via-green-500 to-teal-500',
+    '🎮': 'from-blue-600 via-indigo-500 to-violet-500',
+  };
+  const gradient = gradientMap[data.gameEmoji] || gradientMap['🎮'];
+
+  return (
+    <div className={`rounded-2xl overflow-hidden bg-gradient-to-br ${gradient} p-[1px]`}>
+      <div className="rounded-2xl bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-sm p-4 text-white space-y-3">
+        {/* Game Header */}
+        <div className="flex items-center gap-3">
+          <div className="w-14 h-14 rounded-xl bg-white/20 flex items-center justify-center text-3xl shadow-lg">
+            {data.gameEmoji}
+          </div>
+          <div className="flex-1 min-w-0">
+            <h3 className="font-bold text-lg leading-tight truncate">{data.gameName}</h3>
+            <div className="flex gap-0.5 mt-0.5">
+              {[0, 1, 2].map(i => (
+                <span key={i} className={`text-lg ${i < data.stars ? 'drop-shadow-[0_0_4px_rgba(255,215,0,0.8)]' : 'opacity-30'}`}>
+                  {i < data.stars ? '⭐' : '☆'}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Score Section */}
+        <div className="bg-white/15 rounded-xl p-3 space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-white/70 text-sm font-medium">{isRTL ? 'النتيجة' : 'Score'}</span>
+            <span className="font-bold text-2xl tabular-nums">{data.score}<span className="text-base text-white/60">/100</span></span>
+          </div>
+          {data.previousScore !== null && data.previousScore !== undefined && (
+            <div className="flex items-center justify-between pt-2 border-t border-white/15">
+              <span className="text-white/60 text-xs">{isRTL ? 'النتيجة السابقة' : 'Previous'}</span>
+              <div className="flex items-center gap-2">
+                <span className="text-white/50 text-sm line-through">{data.previousScore}</span>
+                <span className="text-white/40">→</span>
+                <span className="font-bold text-sm">{data.score}</span>
+                {data.score > data.previousScore ? (
+                  <span className="bg-green-400/30 text-green-200 text-xs px-1.5 py-0.5 rounded-full font-bold">
+                    ↑{data.score - data.previousScore}
+                  </span>
+                ) : data.score < data.previousScore ? (
+                  <span className="bg-red-400/30 text-red-200 text-xs px-1.5 py-0.5 rounded-full font-bold">
+                    ↓{data.previousScore - data.score}
+                  </span>
+                ) : (
+                  <span className="bg-white/20 text-white/70 text-xs px-1.5 py-0.5 rounded-full font-bold">=</span>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Motivational Text */}
+        <p className="text-center text-white/90 font-semibold text-sm">{data.motivationalText}</p>
+
+        {/* Play Button */}
+        <button
+          onClick={() => navigate(`/child-games?autoPlay=${encodeURIComponent(data.gameUrl)}`)}
+          className="w-full py-2.5 bg-white/20 hover:bg-white/30 active:bg-white/40 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all shadow-lg border border-white/10"
+        >
+          <Play className="w-4 h-4 fill-current" />
+          {isRTL ? 'العب الآن!' : 'Play Now!'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ======= POST CARD COMPONENT =======
 function PostCard({ post, isDark, isRTL, token, t, isLiked, expanded, commentOpen, commentInput,
   onToggleExpand, onLike, onDelete, onToggleComments, onCommentChange, onSubmitComment, isSubmittingComment,
@@ -93,7 +192,8 @@ function PostCard({ post, isDark, isRTL, token, t, isLiked, expanded, commentOpe
     enabled: commentOpen,
   });
 
-  const needsTruncate = post.content && post.content.length > 200;
+  const gameShareData = parseGameShare(post.content);
+  const needsTruncate = !gameShareData && post.content && post.content.length > 200;
   const displayContent = needsTruncate && !expanded ? post.content.slice(0, 200) + "..." : post.content;
   const timeAgo = (dateStr: string) => {
     const diff = Date.now() - new Date(dateStr).getTime();
@@ -126,8 +226,10 @@ function PostCard({ post, isDark, isRTL, token, t, isLiked, expanded, commentOpe
           </button>
         </div>
 
-        {/* Content */}
-        {post.content && (
+        {/* Content — Game Share Card or Regular Text */}
+        {gameShareData ? (
+          <GameShareCard data={gameShareData} isDark={isDark} isRTL={isRTL} />
+        ) : post.content ? (
           <div>
             <p className={`text-sm leading-relaxed whitespace-pre-wrap ${isDark ? "text-gray-300" : "text-gray-700"}`}>{displayContent}</p>
             {needsTruncate && (
@@ -136,7 +238,7 @@ function PostCard({ post, isDark, isRTL, token, t, isLiked, expanded, commentOpe
               </button>
             )}
           </div>
-        )}
+        ) : null}
 
         {/* Media Gallery */}
         {post.mediaUrls && post.mediaUrls.length > 0 && (

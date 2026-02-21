@@ -1615,14 +1615,12 @@ window.exitGame = exitGame;
 
 // ===== SHARE =====
 function shareResult() {
-  const worldName = currentWorld ? (T.worldNames[currentWorld] || currentWorld) : T.daily;
   const starsCount = currentWorld && currentLevelIndex >= 0 ? (Core.getWorldProgress(progress, currentWorld).stars[currentLevelIndex] || 0) : 0;
-  const text = T.shareText.replace('{score}', totalScore).replace('{world}', worldName).replace('{stars}', '⭐'.repeat(starsCount));
-  try { if (navigator.share) navigator.share({ title: T.title, text }); } catch(e) {}
   try {
     window.parent.postMessage({
       type: 'SHARE_ACHIEVEMENT', game: 'math', world: currentWorld,
-      level: currentLevelIndex, score: totalScore, stars: starsCount, text
+      level: currentLevelIndex >= 0 ? currentLevelIndex + 1 : 1,
+      score: totalScore, stars: starsCount
     }, '*');
   } catch(e) {}
   el('d-sh').textContent = '✅';

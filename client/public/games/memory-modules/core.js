@@ -2151,13 +2151,12 @@ export function replayLevel() { if (currentLevel >= 0) startLevel(currentLevel);
 export function shareResult() {
   const lvl = currentLevel >= 0 ? currentLevel + 1 : 0;
   const stars = currentLevel >= 0 ? (progress.stars[currentLevel] || 0) : 0;
-  const text = t.shareText.replace('{score}', progress.scores[currentLevel] || 0)
-    .replace('{level}', lvl).replace('{stars}', '⭐'.repeat(stars));
-  try { if (navigator.share) navigator.share({ title: t.title, text: text }); } catch(e) {}
+  const score = progress.scores[currentLevel] || 0;
   try {
     window.parent.postMessage({
       type: 'SHARE_ACHIEVEMENT', game: 'memory', level: lvl,
-      score: progress.scores[currentLevel] || 0, stars: stars, text: text
+      score: score, stars: stars,
+      world: currentWorld >= 0 ? currentWorld + 1 : 1
     }, '*');
   } catch(e) {}
   const btn = document.getElementById('d-sh');
