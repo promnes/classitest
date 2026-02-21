@@ -1011,16 +1011,18 @@ function startLevel(idx){
   resetGame();
   showScreen('game-screen');
 
-  // Render cards AFTER screen is visible so grid-wrap has real dimensions
-  // Use double-rAF for reliable layout + setTimeout fallback
-  requestAnimationFrame(()=>requestAnimationFrame(()=>{
-    renderCards();
-    if(window.initBg)initBg(currentGroup);
-  }));
-  setTimeout(()=>{
-    const g=document.getElementById('grid');
-    if(!g.children.length||g.children[0].offsetWidth<2)renderCards();
-  },200);
+  // Render cards AFTER screen visible — poll until grid-wrap has real dimensions
+  function tryRender(attempt){
+    const wrap=document.querySelector('.grid-wrap');
+    const w=wrap?wrap.clientWidth:0, h=wrap?wrap.clientHeight:0;
+    if(w>30&&h>30){
+      renderCards();
+      if(window.initBg)initBg(currentGroup);
+    } else if(attempt<20){
+      setTimeout(()=>tryRender(attempt+1),50);
+    }
+  }
+  setTimeout(()=>tryRender(0),30);
 
   // Timed mechanic: peek all cards briefly
   if(mechanic==='timed'){
@@ -1083,14 +1085,12 @@ function createDeck(){
 function renderCards(){
   const g=document.getElementById('grid');
   const wrap=document.querySelector('.grid-wrap');
-  const maxW=wrap.clientWidth-8,maxH=wrap.clientHeight-8;
-  // Guard: skip if container not yet visible
-  if(maxW<20||maxH<20)return;
+  const maxW=Math.max(wrap.clientWidth-8,60),maxH=Math.max(wrap.clientHeight-8,60);
   const gap=Math.max(3,Math.min(6,maxW*.01));
   const sW=(maxW-gap*(currentGridCols-1))/currentGridCols;
   const sH=(maxH-gap*(currentGridRows-1))/currentGridRows;
   const maxSz=Math.min(Math.max(80,Math.min(maxW,maxH)*.22),160);
-  const sz=Math.max(30,Math.floor(Math.min(sW,sH,maxSz)));
+  const sz=Math.max(40,Math.floor(Math.min(sW,sH,maxSz)));
   g.style.gridTemplateColumns=`repeat(${currentGridCols},${sz}px)`;
   g.style.gridTemplateRows=`repeat(${currentGridRows},${sz}px)`;
   g.style.gap=gap+'px';
