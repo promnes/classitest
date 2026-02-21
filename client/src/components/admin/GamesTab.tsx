@@ -95,21 +95,6 @@ const BUILTIN_GAMES: BuiltinGame[] = [
     gradient: "from-purple-500 to-pink-500",
   },
   {
-    id: "builtin-match3-education",
-    title: "Educational Match 3",
-    titleAr: "مطابقة ثلاثية تعليمية",
-    description: "Swap gems to make matches of 3 or more! 10 levels with special powers.",
-    descriptionAr: "لعبة مطابقة ثلاثية تعليمية! طابق الألوان أو الأشكال أو الحروف أو الأرقام.",
-    embedUrl: "/games/match3-education.html",
-    thumbnailEmoji: "💎",
-    category: "puzzle",
-    minAge: 4,
-    maxAge: 14,
-    pointsPerPlay: 10,
-    maxPlaysPerDay: 5,
-    gradient: "from-blue-500 to-cyan-500",
-  },
-  {
     id: "builtin-math-challenge",
     title: "Math Challenge",
     titleAr: "تحدي الرياضيات",
@@ -129,7 +114,6 @@ const BUILTIN_GAMES: BuiltinGame[] = [
 // Legacy URL mappings for backwards compatibility
 const LEGACY_URL_MAP: Record<string, string[]> = {
   "/games/memory-match.html": ["/memory-match"],
-  "/games/match3-education.html": ["/match3"],
 };
 
 export function GamesTab({ token }: { token: string }) {
