@@ -1011,8 +1011,11 @@ function startLevel(idx){
   resetGame();
   showScreen('game-screen');
 
-  // Re-init bg after screen shown (ensures canvas is visible and sized)
-  requestAnimationFrame(()=>{if(window.initBg)initBg(currentGroup)});
+  // Re-render cards after screen is visible (grid-wrap has real dimensions now)
+  requestAnimationFrame(()=>{
+    renderCards();
+    if(window.initBg)initBg(currentGroup);
+  });
 
   // Timed mechanic: peek all cards briefly
   if(mechanic==='timed'){
@@ -1079,7 +1082,8 @@ function renderCards(){
   const gap=Math.max(3,Math.min(6,maxW*.01));
   const sW=(maxW-gap*(currentGridCols-1))/currentGridCols;
   const sH=(maxH-gap*(currentGridRows-1))/currentGridRows;
-  const sz=Math.floor(Math.min(sW,sH,80));
+  const maxSz=Math.min(Math.max(80,Math.min(maxW,maxH)*.22),160);
+  const sz=Math.floor(Math.min(sW,sH,maxSz));
   g.style.gridTemplateColumns=`repeat(${currentGridCols},${sz}px)`;
   g.style.gridTemplateRows=`repeat(${currentGridRows},${sz}px)`;
   g.style.gap=gap+'px';
