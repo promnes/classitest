@@ -211,7 +211,9 @@ export function renderWorldMap() {
 
     const card = document.createElement('div');
     card.className = 'wc' + (unlocked ? '' : ' locked') + (completed >= 10 ? ' complete' : '');
-    if (unlocked) card.style.background = world.gradient;
+    card.setAttribute('role', 'listitem');
+    card.setAttribute('aria-label', (t.worldNames[idx] || 'World ' + (idx + 1)) + (unlocked ? '' : ' (locked)'));
+    if (unlocked) { card.style.background = world.gradient; card.setAttribute('tabindex', '0'); }
 
     const worldNum = document.createElement('div');
     worldNum.className = 'wc-num';
@@ -297,7 +299,9 @@ export function renderLevelSelect(worldIdx) {
 
     const card = document.createElement('div');
     card.className = 'lc' + (unlocked ? '' : ' locked') + (isCurrent ? ' current' : '');
+    card.setAttribute('role', 'listitem');
     card.setAttribute('data-grp', world.group);
+    if (unlocked) card.setAttribute('tabindex', '0');
 
     if (unlocked) {
       const lvlName = getLevelNameLocal(worldIdx, i);

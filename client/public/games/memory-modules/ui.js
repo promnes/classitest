@@ -508,9 +508,9 @@ addEventListener('resize', () => {
 
 // ===== SCREEN MANAGEMENT =====
 export function showScreen(id) {
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.screen').forEach(s => { s.classList.remove('active', 'fade-in'); });
   const el = document.getElementById(id);
-  if (el) el.classList.add('active');
+  if (el) { el.classList.add('active', 'fade-in'); }
 }
 
 // ===== COUNTDOWN DISPLAY =====
@@ -549,6 +549,7 @@ export function renderCards(cards, gridCols, gridRows, frontIcon, mechanic, fogS
     btn.className = 'card' + (card.flipped ? ' flipped' : '') + (card.matched ? ' matched flipped' : '') + (isRainbow ? ' rainbow-card' : '');
     btn.disabled = card.flipped || card.matched;
     btn.setAttribute('data-id', card.id);
+    btn.setAttribute('aria-label', card.matched ? 'Matched card' : card.flipped ? 'Card ' + (card.id + 1) : 'Card ' + (card.id + 1) + ' face down');
     const fIcon = isRainbow ? '🌈' : frontIcon;
     btn.innerHTML = `<div class="card-inner"><div class="card-front"><span class="icon">${fIcon}</span></div><div class="card-back"><span class="sym">${card.symbol}</span></div></div>`;
 
