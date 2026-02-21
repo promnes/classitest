@@ -59,7 +59,7 @@ import {
 } from "../../shared/schema";
 import jwt from "jsonwebtoken";
 import { JWT_SECRET } from "./middleware";
-import { createNotification } from "../notifications";
+import { createNotification, notifyAllAdmins } from "../notifications";
 import { emitGiftEvent } from "../giftEvents";
 import { eq, and, sql, isNull, inArray, or, desc, gte, count } from "drizzle-orm";
 import bcrypt from "bcrypt";
@@ -910,9 +910,8 @@ export async function registerParentRoutes(app: Express) {
       const parent = await db.select({ name: parents.name, email: parents.email }).from(parents).where(eq(parents.id, req.user.userId));
       const parentName = parent[0]?.name || "مستخدم";
 
-      // Notify admin (parentId: null = admin notification)
-      await createNotification({
-        parentId: null,
+      // Notify admin (all admins receive real-time notifications)
+      await notifyAllAdmins({
         type: NOTIFICATION_TYPES.DEPOSIT_REQUEST,
         title: "طلب إيداع جديد",
         message: `${parentName} طلب إيداع ₪${amount} عبر ${method[0].type} (Ref: ${normalizedTransactionId})${notes ? ` — "${notes}"` : ""}`,
@@ -1718,10 +1717,10 @@ export async function registerParentRoutes(app: Express) {
         await db.insert(parentOwnedProducts).values({ parentId: req.user.userId, productId: p[0].id, sourcePurchaseId: purchaseId, status: 'pending_admin_approval' });
       }
 
-      // Notify admins (create notification for admins via notifications table with no parentId)
+      // Notify admins (all admins receive real-time notifications)
       const buyerParent = await db.select({ name: parents.name }).from(parents).where(eq(parents.id, req.user.userId));
       const buyerName = buyerParent[0]?.name || "مستخدم";
-      await createNotification({ type: NOTIFICATION_TYPES.PURCHASE_PAID, title: "💳 طلب شراء جديد", message: `${buyerName} قام بالدفع لطلب الشراء وينتظر الموافقة`, relatedId: purchaseId, metadata: { parentName: buyerName, purchaseId } });
+      await notifyAllAdmins({ type: NOTIFICATION_TYPES.PURCHASE_PAID, title: "💳 طلب شراء جديد", message: `${buyerName} قام بالدفع لطلب الشراء وينتظر الموافقة`, relatedId: purchaseId, metadata: { parentName: buyerName, purchaseId }, style: NOTIFICATION_STYLES.TOAST, priority: NOTIFICATION_PRIORITIES.URGENT, soundAlert: true });
 
       res.status(201).json({ success: true, data: { purchaseId, message: 'Purchase recorded and pending admin approval' } });
     } catch (error: any) {
@@ -1831,10 +1830,10 @@ export async function registerParentRoutes(app: Express) {
       // update assigned product status
       await db.update(childAssignedProducts).set({ status: 'shipment_requested', shipmentRequestedAt: new Date() }).where(eq(childAssignedProducts.id, id));
 
-      // notify admin (with child name + product info)
+      // notify admin (all admins receive real-time notifications)
       const shippedChild = await db.select({ name: children.name }).from(children).where(eq(children.id, assigned[0].childId));
       const shippedChildName = shippedChild[0]?.name || "طفل";
-      await createNotification({ type: NOTIFICATION_TYPES.SHIPMENT_REQUESTED, title: "📦 طلب شحن جديد", message: `طلب شحن جديد لـ ${shippedChildName} — المنتج: ${id}`, relatedId: sr[0].id, metadata: { childName: shippedChildName, assignedProductId: id } });
+      await notifyAllAdmins({ type: NOTIFICATION_TYPES.SHIPMENT_REQUESTED, title: "📦 طلب شحن جديد", message: `طلب شحن جديد لـ ${shippedChildName} — المنتج: ${id}`, relatedId: sr[0].id, metadata: { childName: shippedChildName, assignedProductId: id }, style: NOTIFICATION_STYLES.TOAST, priority: NOTIFICATION_PRIORITIES.URGENT, soundAlert: true });
 
       res.json({ success: true, data: sr[0] });
     } catch (error: any) {

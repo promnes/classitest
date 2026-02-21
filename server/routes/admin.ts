@@ -81,8 +81,9 @@ import {
   transactions,
   childPurchases,
 } from "../../shared/schema";
-import { createNotification } from "../notifications";
+import { createNotification, notifyAllAdmins } from "../notifications";
 import { emitGiftEvent } from "../giftEvents";
+import { notificationBus } from "../services/notificationBus";
 import { eq, sum, and, isNull, not, or, sql, desc, inArray, count } from "drizzle-orm";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
@@ -6249,6 +6250,47 @@ export async function registerAdminRoutes(app: Express) {
       res.json({ success: true });
     } catch (error: any) {
       res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to mark as read"));
+    }
+  });
+
+  // ===== Admin Notifications SSE Stream (Real-time) =====
+  app.get("/api/admin/own-notifications/stream", async (req: any, res) => {
+    try {
+      const token = typeof req.query.token === "string" ? req.query.token : "";
+      if (!token) {
+        return res.status(401).json(errorResponse(ErrorCode.UNAUTHORIZED, "Missing token"));
+      }
+
+      const payload = jwt.verify(token, JWT_SECRET) as { adminId?: string; type?: string };
+      if (!payload?.adminId || payload?.type !== "admin") {
+        return res.status(401).json(errorResponse(ErrorCode.UNAUTHORIZED, "Invalid admin token"));
+      }
+
+      const adminId = payload.adminId;
+
+      res.writeHead(200, {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache, no-transform",
+        Connection: "keep-alive",
+      });
+
+      res.write(`event: ready\ndata: ${JSON.stringify({ success: true })}\n\n`);
+
+      const heartbeat = setInterval(() => {
+        res.write(`event: heartbeat\ndata: ${JSON.stringify({ ts: Date.now() })}\n\n`);
+      }, 25000);
+
+      const unsubscribe = notificationBus.subscribeAdmin(adminId, (notification) => {
+        res.write(`event: notification\ndata: ${JSON.stringify(notification)}\n\n`);
+      });
+
+      req.on("close", () => {
+        clearInterval(heartbeat);
+        unsubscribe();
+        res.end();
+      });
+    } catch {
+      return res.status(401).json(errorResponse(ErrorCode.UNAUTHORIZED, "Invalid token"));
     }
   });
 

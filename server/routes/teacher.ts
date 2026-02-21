@@ -29,6 +29,8 @@ import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import { createPresignedUpload, finalizeUpload } from "../services/uploadService";
 import { finalizeUploadSchema } from "../../shared/media";
+import { notifyAllAdmins } from "../notifications";
+import { NOTIFICATION_TYPES, NOTIFICATION_STYLES, NOTIFICATION_PRIORITIES } from "../../shared/notificationTypes";
 
 const db = storage.db;
 const JWT_SECRET = process.env["JWT_SECRET"] ?? "";
@@ -720,6 +722,24 @@ export async function registerTeacherRoutes(app: Express) {
 
         return inserted[0];
       });
+
+      // Notify admins about new teacher withdrawal request
+      try {
+        const teacherInfo = await db.select({ name: schoolTeachers.name }).from(schoolTeachers).where(eq(schoolTeachers.id, teacherId)).limit(1);
+        const teacherName = teacherInfo[0]?.name || "معلم";
+        await notifyAllAdmins({
+          type: NOTIFICATION_TYPES.WITHDRAWAL_APPROVED,
+          title: "💰 طلب سحب معلم",
+          message: `${teacherName} طلب سحب ₪${requestedAmount.toFixed(2)} عبر ${paymentMethod}`,
+          style: NOTIFICATION_STYLES.TOAST,
+          priority: NOTIFICATION_PRIORITIES.URGENT,
+          soundAlert: true,
+          relatedId: created.id,
+          metadata: { teacherId, teacherName, amount: requestedAmount, paymentMethod },
+        });
+      } catch (err) {
+        console.error("Failed to notify admins about teacher withdrawal:", err);
+      }
 
       res.json({ success: true, data: created, message: "تم إرسال طلب السحب" });
     } catch (error: any) {

@@ -7,7 +7,7 @@ import { eq } from "drizzle-orm";
 
 const db = storage.db;
 
-type RecipientType = "child" | "parent";
+type RecipientType = "child" | "parent" | "admin";
 
 type NotificationChannel = "in_app" | "email";
 
@@ -77,6 +77,7 @@ class NotificationOrchestrator {
       .values({
         parentId: input.recipientType === "parent" ? input.recipientId : null,
         childId: input.recipientType === "child" ? input.recipientId : null,
+        adminId: input.recipientType === "admin" ? input.recipientId : null,
         type: input.type,
         title: input.title ?? null,
         message: input.message,
@@ -93,8 +94,14 @@ class NotificationOrchestrator {
 
     const created = result[0];
 
+    // Real-time push for children
     if (created && input.recipientType === "child" && created.childId) {
       notificationBus.publishToChild(created.childId, created as Record<string, any>);
+    }
+
+    // Real-time push for admins
+    if (created && input.recipientType === "admin" && created.adminId) {
+      notificationBus.publishToAdmin(created.adminId, created as Record<string, any>);
     }
 
     try {

@@ -1,5 +1,5 @@
 import { storage } from "./storage";
-import { children, products } from "../shared/schema";
+import { children, products, admins } from "../shared/schema";
 import { eq } from "drizzle-orm";
 import { notificationOrchestrator } from "./services/notificationOrchestrator";
 import {
@@ -16,6 +16,7 @@ const db = storage.db;
 interface NotificationParams {
   parentId?: string | null;
   childId?: string | null;
+  adminId?: string | null;
   type: NotificationType;
   title?: string | null;
   message: string;
@@ -34,6 +35,7 @@ export async function createNotification(params: NotificationParams) {
   const {
     parentId = null,
     childId = null,
+    adminId = null,
     type,
     title = null,
     message,
@@ -49,12 +51,12 @@ export async function createNotification(params: NotificationParams) {
   } = params;
 
   try {
-    if (!parentId && !childId) {
+    if (!parentId && !childId && !adminId) {
       throw new Error("NOTIFICATION_RECIPIENT_REQUIRED");
     }
 
-    const recipientType = childId ? "child" : "parent";
-    const recipientId = childId || (parentId as string);
+    const recipientType = childId ? "child" : adminId ? "admin" : "parent";
+    const recipientId = childId || adminId || (parentId as string);
 
     return await notificationOrchestrator.send({
       recipientType,
@@ -75,6 +77,29 @@ export async function createNotification(params: NotificationParams) {
   } catch (err) {
     console.error('createNotification error:', err);
     throw err;
+  }
+}
+
+/**
+ * Send a notification to ALL admins in the system.
+ * This creates one notification row per admin and pushes via SSE.
+ */
+export async function notifyAllAdmins(params: Omit<NotificationParams, "parentId" | "childId" | "adminId">) {
+  try {
+    const allAdmins = await db.select({ id: admins.id }).from(admins);
+    const results = [];
+    for (const admin of allAdmins) {
+      try {
+        const result = await createNotification({ ...params, adminId: admin.id });
+        results.push(result);
+      } catch (err) {
+        console.error(`notifyAllAdmins: failed for admin ${admin.id}:`, err);
+      }
+    }
+    return results;
+  } catch (err) {
+    console.error("notifyAllAdmins error:", err);
+    return [];
   }
 }
 
@@ -239,6 +264,7 @@ export async function notifyParentLowPoints(parentId: string, childId: string, c
 
 export default {
   createNotification,
+  notifyAllAdmins,
   notifyChildPointsEarned,
   notifyChildRewardUnlocked,
   notifyChildProductAssigned,

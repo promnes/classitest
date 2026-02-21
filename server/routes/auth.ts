@@ -315,6 +315,23 @@ export async function registerAuthRoutes(app: Express) {
         console.error("Failed to send linking code notification:", err);
       }
 
+      // Notify all admins about new registration
+      try {
+        const { notifyAllAdmins } = await import("../notifications");
+        await notifyAllAdmins({
+          type: NOTIFICATION_TYPES.NEW_REGISTRATION,
+          title: "👤 مستخدم جديد",
+          message: `تسجيل جديد: ${name} (${normalizedEmail})`,
+          style: NOTIFICATION_STYLES.TOAST,
+          priority: NOTIFICATION_PRIORITIES.NORMAL,
+          soundAlert: true,
+          relatedId: result[0].id,
+          metadata: { parentId: result[0].id, parentName: name, email: normalizedEmail },
+        });
+      } catch (err) {
+        console.error("Failed to send admin registration notification:", err);
+      }
+
       res.json(successResponse({ token, userId: result[0].id, uniqueCode, hasPin: !!hashedPin }, "Registration successful"));
     } catch (error: any) {
       console.error("Registration error:", error);
@@ -1332,6 +1349,23 @@ export async function registerAuthRoutes(app: Express) {
         });
       } catch (err) {
         console.error("Failed to send linking code notification:", err);
+      }
+
+      // Notify all admins about new phone registration
+      try {
+        const { notifyAllAdmins } = await import("../notifications");
+        await notifyAllAdmins({
+          type: NOTIFICATION_TYPES.NEW_REGISTRATION,
+          title: "👤 مستخدم جديد (هاتف)",
+          message: `تسجيل جديد بالهاتف: ${name} (${normalizedEmail})`,
+          style: NOTIFICATION_STYLES.TOAST,
+          priority: NOTIFICATION_PRIORITIES.NORMAL,
+          soundAlert: true,
+          relatedId: result[0].id,
+          metadata: { parentId: result[0].id, parentName: name, email: normalizedEmail, phoneNumber },
+        });
+      } catch (err) {
+        console.error("Failed to send admin registration notification:", err);
       }
 
       const ipAddress = req.ip || "0.0.0.0";
