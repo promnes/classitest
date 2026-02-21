@@ -9,7 +9,7 @@ import { PinEntry } from "@/components/PinEntry";
 import { Download, Gamepad2, Star, Sparkles, BookOpen, Trophy } from "lucide-react";
 
 export const Home = (): JSX.Element => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [, navigate] = useLocation();
   const { isDark, toggleTheme } = useTheme();
   const [familyCode, setFamilyCode] = useState<string | null>(null);
@@ -198,15 +198,16 @@ export const Home = (): JSX.Element => {
 
       {/* Footer */}
       <footer className="text-center py-6 text-purple-600/70 relative z-10">
-        <div className="flex justify-center gap-6 mb-4">
-          <button onClick={() => navigate("/privacy")} className="hover:underline text-sm">
-            🔒 {t("home.privacy")}
-          </button>
-          <button onClick={() => navigate("/terms")} className="hover:underline text-sm">
-            📋 {t("home.terms")}
-          </button>
+        <div className="flex flex-wrap justify-center gap-4 mb-3">
+          <button onClick={() => navigate("/privacy-policy")} className="hover:underline text-sm">🔒 {t("home.privacy")}</button>
+          <button onClick={() => navigate("/terms")} className="hover:underline text-sm">📋 {t("home.terms")}</button>
+          <button onClick={() => navigate("/child-safety")} className="hover:underline text-sm">👶 {i18n.language === "ar" ? "سلامة الأطفال" : "Child Safety"}</button>
+          <button onClick={() => navigate("/refund-policy")} className="hover:underline text-sm">💰 {i18n.language === "ar" ? "الاسترداد" : "Refunds"}</button>
         </div>
-        <p className="text-xs opacity-70">© 2025 Classify by Proomnes. {t("home.allRightsReserved")}</p>
+        <div className="mb-3">
+          <button onClick={() => navigate("/legal")} className="text-xs hover:underline opacity-80">⚖️ {i18n.language === "ar" ? "المركز القانوني" : "Legal Center"}</button>
+        </div>
+        <p className="text-xs opacity-70">© {new Date().getFullYear()} Classify by Proomnes. {t("home.allRightsReserved")}</p>
       </footer>
     </div>
   );

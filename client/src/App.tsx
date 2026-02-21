@@ -38,6 +38,11 @@ const AccessibilityPolicy = lazy(() => import("@/pages/AccessibilityPolicy").the
 const AccountDeletion = lazy(() => import("@/pages/AccountDeletion").then(m => ({ default: m.AccountDeletion })));
 const AboutUs = lazy(() => import("@/pages/AboutUs").then(m => ({ default: m.AboutUs })));
 const ContactUs = lazy(() => import("@/pages/ContactUs").then(m => ({ default: m.ContactUs })));
+const CookiePolicy = lazy(() => import("@/pages/CookiePolicy").then(m => ({ default: m.CookiePolicy })));
+const ChildSafety = lazy(() => import("@/pages/ChildSafety").then(m => ({ default: m.ChildSafety })));
+const RefundPolicy = lazy(() => import("@/pages/RefundPolicy").then(m => ({ default: m.RefundPolicy })));
+const AcceptableUse = lazy(() => import("@/pages/AcceptableUse").then(m => ({ default: m.AcceptableUse })));
+const LegalCenter = lazy(() => import("@/pages/LegalCenter").then(m => ({ default: m.LegalCenter })));
 const AssignTask = lazy(() => import("@/pages/AssignTask").then(m => ({ default: m.AssignTask })));
 const SubjectTasks = lazy(() => import("@/pages/SubjectTasks"));
 const ForgotPassword = lazy(() => import("@/pages/ForgotPassword").then(m => ({ default: m.ForgotPassword })));
@@ -275,6 +280,11 @@ function Router() {
         <Route path="/delete-account" component={AccountDeletion} />
         <Route path="/about" component={AboutUs} />
         <Route path="/contact" component={ContactUs} />
+        <Route path="/cookie-policy" component={CookiePolicy} />
+        <Route path="/child-safety" component={ChildSafety} />
+        <Route path="/refund-policy" component={RefundPolicy} />
+        <Route path="/acceptable-use" component={AcceptableUse} />
+        <Route path="/legal" component={LegalCenter} />
         <Route path="/settings">
           <ErrorBoundary><Settings /></ErrorBoundary>
         </Route>

@@ -25,7 +25,7 @@ export const AccountDeletion = (): JSX.Element => {
     if (!email || !password || !confirmed) return;
     setLoading(true);
     try {
-      const res = await apiRequest("DELETE", "/api/parent/delete-account", { email, password });
+      const res = await apiRequest("POST", "/api/parent/delete-account", { confirmPassword: password });
       if (res.ok) {
         setDeleted(true);
       } else {
