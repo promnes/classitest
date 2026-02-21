@@ -1829,6 +1829,143 @@ function showBadgePopup(badge) {
   setTimeout(() => { if (popup.parentElement) popup.remove(); }, 5000);
 }
 
+// ═══════════════════════════════════════════════════════════════
+// PHASE G — SCIENTIFIC PARENT REPORT
+// Computes cognitive skill metrics from gameplay data
+// ═══════════════════════════════════════════════════════════════
+
+export function renderReport() {
+  const el = document.getElementById('report-content');
+  if (!el) return;
+
+  const totalStarsVal = getTotalStars(progress);
+  const completedLevels = Object.keys(progress.stars).filter(k => progress.stars[k] >= 1).length;
+  const perfectLevels = Object.values(progress.stars).filter(s => s >= 3).length;
+  const totalLevels = LEVELS.length;
+  const worldsDone = WORLDS.filter((_, i) => progress.worldsBeaten[i]).length;
+
+  // ── Per-mechanic skill radar data ──
+  const mechNames = {
+    classic: t.mech?.timed ? '🧩' : '🧩',
+    timed: '⏱️', moving: '🔀', masked: '🎭', fog: '🌫️',
+    triple: '🔱', boss: '👑', mirror: '🪞', chain: '🔗',
+    bomb: '💣', rainbow: '🌈'
+  };
+  const mechSkillEntries = Object.entries(ddaV2.mechSkills)
+    .filter(([k, v]) => v !== 50 || gameStats.mechsPlayed.includes(k))
+    .sort((a, b) => b[1] - a[1]);
+
+  // ── Cognitive dimensions ──
+  const avgSkill = mechSkillEntries.length > 0
+    ? Math.round(mechSkillEntries.reduce((s, [, v]) => s + v, 0) / mechSkillEntries.length) : 50;
+  const spatialMemory = Math.round((ddaV2.mechSkills.moving || 50) * 0.4 + (ddaV2.mechSkills.mirror || 50) * 0.3 + (ddaV2.mechSkills.classic || 50) * 0.3);
+  const workingMemory = Math.round((ddaV2.mechSkills.chain || 50) * 0.35 + (ddaV2.mechSkills.triple || 50) * 0.3 + (ddaV2.mechSkills.masked || 50) * 0.35);
+  const focusAttn = Math.round((ddaV2.mechSkills.bomb || 50) * 0.3 + (ddaV2.mechSkills.fog || 50) * 0.3 + (ddaV2.mechSkills.boss || 50) * 0.4);
+  const adaptability = Math.round(Math.min(100, (gameStats.mechsPlayed.length / 10) * 60 + avgSkill * 0.4));
+  const speed = ddaV2.avgResponseMs > 0 ? Math.round(Math.min(100, Math.max(10, 100 - (ddaV2.avgResponseMs - 1000) / 60))) : 50;
+  const persistence = Math.round(Math.min(100, (streakData.best || 0) * 8 + (gameStats.gamesPlayed || 0) * 0.5));
+
+  const dims = [
+    { key: 'spatial',     emoji: '🗺️', val: spatialMemory },
+    { key: 'working',     emoji: '🧠', val: workingMemory },
+    { key: 'focus',       emoji: '🎯', val: focusAttn },
+    { key: 'adaptability', emoji: '🔄', val: adaptability },
+    { key: 'speed',       emoji: '⚡', val: speed },
+    { key: 'persistence', emoji: '💪', val: persistence },
+  ];
+
+  // ── Overall cognitive score ──
+  const overallScore = Math.round(dims.reduce((s, d) => s + d.val, 0) / dims.length);
+
+  // ── Strengths & Growth areas ──
+  const sorted = [...dims].sort((a, b) => b.val - a.val);
+  const strengths = sorted.slice(0, 2);
+  const growth = sorted.slice(-2).reverse();
+
+  // ── Skill level label ──
+  const levelLabels = t.reportLevels || ['🌱 Beginner', '🌿 Developing', '⭐ Competent', '🌟 Proficient', '👑 Expert'];
+  const overallLabel = overallScore >= 85 ? levelLabels[4] : overallScore >= 70 ? levelLabels[3] : overallScore >= 50 ? levelLabels[2] : overallScore >= 30 ? levelLabels[1] : levelLabels[0];
+
+  // ── Age estimate from performance patterns ──
+  const dimNames = t.reportDims || { spatial:'Spatial Memory', working:'Working Memory', focus:'Focus & Attention', adaptability:'Adaptability', speed:'Processing Speed', persistence:'Persistence' };
+
+  // ── Build HTML ──
+  let html = '';
+
+  // Header with overall score
+  html += `<div class="rpt-header">`;
+  html += `<div class="rpt-score-ring"><svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="42" fill="none" stroke="rgba(255,255,255,.15)" stroke-width="8"/><circle cx="50" cy="50" r="42" fill="none" stroke="${overallScore>=70?'#22c55e':overallScore>=40?'#f59e0b':'#ef4444'}" stroke-width="8" stroke-dasharray="${overallScore*2.64} 264" stroke-linecap="round" transform="rotate(-90 50 50)"/><text x="50" y="48" text-anchor="middle" fill="#fff" font-size="22" font-weight="900">${overallScore}</text><text x="50" y="62" text-anchor="middle" fill="rgba(255,255,255,.7)" font-size="8">/100</text></svg></div>`;
+  html += `<div class="rpt-label">${overallLabel}</div>`;
+  html += `</div>`;
+
+  // Stats summary bar
+  html += `<div class="rpt-stats-bar">`;
+  html += `<div class="rpt-stat"><span class="rpt-stat-v">${completedLevels}</span><span class="rpt-stat-l">${t.reportTotalLevels || 'Levels'}</span></div>`;
+  html += `<div class="rpt-stat"><span class="rpt-stat-v">⭐ ${totalStarsVal}</span><span class="rpt-stat-l">${t.reportTotalStars || 'Stars'}</span></div>`;
+  html += `<div class="rpt-stat"><span class="rpt-stat-v">${worldsDone}/10</span><span class="rpt-stat-l">${t.reportWorlds || 'Worlds'}</span></div>`;
+  html += `<div class="rpt-stat"><span class="rpt-stat-v">${gameStats.gamesPlayed || 0}</span><span class="rpt-stat-l">${t.reportGames || 'Games'}</span></div>`;
+  html += `</div>`;
+
+  // Cognitive dimensions
+  html += `<div class="rpt-section"><div class="rpt-sec-title">${t.reportCognitive || '🧠 Cognitive Skills'}</div>`;
+  dims.forEach(d => {
+    const color = d.val >= 70 ? '#22c55e' : d.val >= 40 ? '#f59e0b' : '#ef4444';
+    html += `<div class="rpt-dim"><span class="rpt-dim-icon">${d.emoji}</span><span class="rpt-dim-name">${dimNames[d.key] || d.key}</span><div class="rpt-dim-bar"><div class="rpt-dim-fill" style="width:${d.val}%;background:${color}"></div></div><span class="rpt-dim-val">${d.val}</span></div>`;
+  });
+  html += `</div>`;
+
+  // Strengths & Growth
+  html += `<div class="rpt-section"><div class="rpt-sec-title">${t.reportStrengths || '💪 Strengths'}</div>`;
+  strengths.forEach(s => {
+    html += `<div class="rpt-highlight strength">${s.emoji} ${dimNames[s.key] || s.key} <span class="rpt-hl-val">${s.val}</span></div>`;
+  });
+  html += `</div>`;
+  html += `<div class="rpt-section"><div class="rpt-sec-title">${t.reportGrowth || '🌱 Growth Areas'}</div>`;
+  growth.forEach(g => {
+    html += `<div class="rpt-highlight growth">${g.emoji} ${dimNames[g.key] || g.key} <span class="rpt-hl-val">${g.val}</span></div>`;
+  });
+  html += `</div>`;
+
+  // Mechanic skills breakdown
+  if (mechSkillEntries.length > 0) {
+    html += `<div class="rpt-section"><div class="rpt-sec-title">${t.reportMechanics || '🎮 Mechanic Skills'}</div>`;
+    mechSkillEntries.forEach(([mech, skill]) => {
+      const color = skill >= 70 ? '#22c55e' : skill >= 40 ? '#f59e0b' : '#ef4444';
+      const name = t.mech?.[mech] || mech;
+      html += `<div class="rpt-dim"><span class="rpt-dim-icon">${mechNames[mech] || '🎮'}</span><span class="rpt-dim-name">${name}</span><div class="rpt-dim-bar"><div class="rpt-dim-fill" style="width:${skill}%;background:${color}"></div></div><span class="rpt-dim-val">${skill}</span></div>`;
+    });
+    html += `</div>`;
+  }
+
+  // Session stats
+  html += `<div class="rpt-section"><div class="rpt-sec-title">${t.reportSession || '📊 Session Data'}</div>`;
+  html += `<div class="rpt-kv"><span>${t.reportAvgResponse || 'Avg Response'}</span><span>${ddaV2.avgResponseMs > 0 ? (ddaV2.avgResponseMs / 1000).toFixed(1) + 's' : '—'}</span></div>`;
+  html += `<div class="rpt-kv"><span>${t.reportFastestLevel || 'Fastest Level'}</span><span>${gameStats.fastestTime < 9999 ? gameStats.fastestTime + 's' : '—'}</span></div>`;
+  html += `<div class="rpt-kv"><span>${t.reportBestStreak || 'Best Streak'}</span><span>${streakData.best || 0} ${t.reportDays || 'days'}</span></div>`;
+  html += `<div class="rpt-kv"><span>${t.reportPerfectLevels || 'Perfect (3★)'}</span><span>${perfectLevels}</span></div>`;
+  html += `<div class="rpt-kv"><span>${t.reportPowerUps || 'Power-ups Used'}</span><span>${gameStats.puUsed || 0}</span></div>`;
+  html += `<div class="rpt-kv"><span>${t.reportXPLevel || 'XP Level'}</span><span>${xpData.level || 1}</span></div>`;
+  if (prestigeData.level > 0) {
+    html += `<div class="rpt-kv"><span>${t.reportPrestige || 'Prestige'}</span><span>♻️ P${prestigeData.level}</span></div>`;
+  }
+  html += `</div>`;
+
+  // Recommendations
+  html += `<div class="rpt-section"><div class="rpt-sec-title">${t.reportRecommend || '💡 Recommendations'}</div>`;
+  const recs = [];
+  if (focusAttn < 50) recs.push(t.reportRecFocus || '🎯 Practice fog & bomb levels to improve focus');
+  if (spatialMemory < 50) recs.push(t.reportRecSpatial || '🗺️ Try moving & mirror levels for spatial skills');
+  if (workingMemory < 50) recs.push(t.reportRecWorking || '🧠 Chain & triple levels strengthen working memory');
+  if (speed < 50) recs.push(t.reportRecSpeed || '⚡ Timed levels help increase processing speed');
+  if (persistence < 50) recs.push(t.reportRecPersist || '💪 Play daily to build consistency');
+  if (adaptability < 50) recs.push(t.reportRecAdapt || '🔄 Try different mechanics to improve adaptability');
+  if (recs.length === 0) recs.push(t.reportRecGreat || '🌟 Excellent performance! Keep exploring new worlds!');
+  recs.forEach(r => { html += `<div class="rpt-rec">${r}</div>`; });
+  html += `</div>`;
+
+  el.innerHTML = html;
+}
+
 // ===== END GAME =====
 export function endGame() {
   clearInterval(timerInterval);

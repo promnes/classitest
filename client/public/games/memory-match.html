@@ -250,6 +250,34 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',Tahoma,G
 .badge-popup .bp-name{font-size:16px;color:#e9d5ff;margin-top:4px;font-weight:700}
 .badge-popup .bp-close{margin-top:12px;border:none;background:rgba(255,255,255,.15);color:#fff;border-radius:10px;padding:6px 24px;font-size:14px;font-weight:700;cursor:pointer}
 
+/* ===== PARENT REPORT SCREEN ===== */
+#report-screen{flex-direction:column;align-items:center;padding:clamp(8px,2vmin,16px);gap:clamp(8px,2vmin,14px);overflow-y:auto;background:linear-gradient(135deg,#0f172a,#1e293b,#334155);background-size:300% 300%;animation:royalBG 15s ease infinite}
+.report-scroll{width:100%;max-width:540px;overflow-y:auto;display:flex;flex-direction:column;gap:clamp(10px,2vmin,16px);padding-bottom:20px;-webkit-overflow-scrolling:touch}
+.nav-btn.report{background:rgba(99,102,241,.25);border-color:rgba(99,102,241,.5)}
+.rpt-header{display:flex;flex-direction:column;align-items:center;gap:8px}
+.rpt-score-ring{width:clamp(100px,20vmin,140px);height:clamp(100px,20vmin,140px)}
+.rpt-score-ring svg{width:100%;height:100%}
+.rpt-label{font-size:clamp(16px,3vmin,22px);font-weight:900;color:#fef08a;text-shadow:0 2px 8px rgba(0,0,0,.4)}
+.rpt-stats-bar{display:flex;justify-content:space-around;width:100%;background:rgba(255,255,255,.08);border-radius:14px;padding:10px 8px;backdrop-filter:blur(4px)}
+.rpt-stat{display:flex;flex-direction:column;align-items:center;gap:2px}
+.rpt-stat-v{font-size:clamp(14px,2.5vmin,18px);font-weight:900;color:#fff}
+.rpt-stat-l{font-size:clamp(10px,1.8vmin,12px);color:rgba(255,255,255,.6);font-weight:600}
+.rpt-section{background:rgba(255,255,255,.06);border-radius:14px;padding:clamp(10px,2vmin,16px);display:flex;flex-direction:column;gap:8px}
+.rpt-sec-title{font-size:clamp(14px,2.5vmin,18px);font-weight:900;color:#e2e8f0;margin-bottom:4px}
+.rpt-dim{display:flex;align-items:center;gap:6px}
+.rpt-dim-icon{font-size:clamp(16px,2.5vmin,20px);min-width:24px;text-align:center}
+.rpt-dim-name{font-size:clamp(11px,2vmin,14px);color:rgba(255,255,255,.85);font-weight:700;min-width:clamp(70px,15vmin,100px)}
+.rpt-dim-bar{flex:1;height:clamp(8px,1.5vmin,12px);background:rgba(255,255,255,.1);border-radius:6px;overflow:hidden}
+.rpt-dim-fill{height:100%;border-radius:6px;transition:width .6s ease}
+.rpt-dim-val{font-size:clamp(12px,2vmin,15px);font-weight:900;color:#fff;min-width:30px;text-align:right}
+.rpt-highlight{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:10px;font-size:clamp(12px,2.2vmin,15px);font-weight:700;color:#fff}
+.rpt-highlight.strength{background:rgba(34,197,94,.15);border:1px solid rgba(34,197,94,.3)}
+.rpt-highlight.growth{background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.25)}
+.rpt-hl-val{margin-inline-start:auto;font-weight:900;font-size:clamp(13px,2.2vmin,16px)}
+.rpt-kv{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.08);font-size:clamp(12px,2vmin,14px);color:rgba(255,255,255,.85);font-weight:600}
+.rpt-kv span:last-child{font-weight:900;color:#fff}
+.rpt-rec{padding:8px 12px;background:rgba(99,102,241,.12);border-radius:10px;font-size:clamp(12px,2vmin,14px);color:rgba(255,255,255,.9);font-weight:600;border:1px solid rgba(99,102,241,.2)}
+
 /* === BADGE PROGRESS BAR === */
 .bc-progress{width:80%;margin:6px auto 0;height:5px;background:rgba(255,255,255,.15);border-radius:4px;overflow:hidden}
 .bc-prog-fill{height:100%;background:linear-gradient(90deg,#fbbf24,#f59e0b);border-radius:4px;transition:width .4s ease}
@@ -527,6 +555,7 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',Tahoma,G
     <span class="prestige-badge hidden" id="prestige-badge">♻️ P0</span>
     <button class="nav-btn shop" id="nav-shop-btn">🛒 <span id="nav-shop-txt">المتجر</span></button>
     <button class="nav-btn badges" id="nav-badge-btn">🏅 <span id="nav-badge-txt">الإنجازات</span></button>
+    <button class="nav-btn report" id="nav-report-btn">📊 <span id="nav-report-txt">التقرير</span></button>
   </div>
   <div class="xp-bar-wrap">
     <span class="xp-level" id="xp-level">🐣</span>
@@ -611,6 +640,15 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',Tahoma,G
   </div>
 </div>
 
+<!-- PARENT REPORT -->
+<div id="report-screen" class="screen">
+  <div style="display:flex;align-items:center;justify-content:space-between;width:100%;max-width:540px;flex-shrink:0">
+    <div class="ws-title" id="rpt-title">📊 تقرير الأداء</div>
+    <button class="d-btn sec" id="report-back">🏠 رجوع</button>
+  </div>
+  <div class="report-scroll" id="report-content"></div>
+</div>
+
 <!-- COMPLETE -->
 <div id="done-screen" class="screen">
   <div class="d-emoji" id="d-e">🎉</div>
@@ -645,7 +683,7 @@ import {
   renderWorldMap, enterWorld, renderLevelSelect,
   startLevel, flipCard, clearFog,
   earnCoins, updateCoinDisplays, updateXPDisplay, updateStreakDisplay,
-  renderShop, renderBadges,
+  renderShop, renderBadges, renderReport,
   endGame, nextLevel, replayLevel, shareResult,
   goToWorldMap, goToLevels, renderCardsNow,
   usePower, updatePowerBar, powers,
@@ -679,20 +717,24 @@ if (t.badges) {
   document.getElementById('nav-badge-txt').textContent = t.badges.replace(/🏅\s*/, '');
   document.getElementById('badge-t').textContent = t.badges;
 }
+document.getElementById('nav-report-txt').textContent = (t.report || '📊 Report').replace(/📊\s*/, '');
+document.getElementById('rpt-title').textContent = t.reportTitle || '📊 تقرير الأداء';
 
 // ===== Button wiring (no inline onclick) =====
 // World screen
 document.getElementById('ws-mute').onclick = toggleMute;
 document.getElementById('nav-shop-btn').onclick = () => { sfxTap(); renderShop(); showScreen('shop-screen'); };
 document.getElementById('nav-badge-btn').onclick = () => { sfxTap(); renderBadges(); showScreen('badge-screen'); };
+document.getElementById('nav-report-btn').onclick = () => { sfxTap(); renderReport(); showScreen('report-screen'); };
 
 // Level screen
 document.getElementById('ls-mute').onclick = toggleMute;
 document.getElementById('ls-back').onclick = goToWorldMap;
 
-// Shop / Badge back
+// Shop / Badge / Report back
 document.getElementById('shop-back').onclick = goToWorldMap;
 document.getElementById('badge-back').onclick = goToWorldMap;
+document.getElementById('report-back').onclick = goToWorldMap;
 
 // Game screen
 document.getElementById('game-mute').onclick = toggleMute;
