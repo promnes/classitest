@@ -102,9 +102,12 @@ app.use(helmet({
       ],
       connectSrc: [
         "'self'",
+        "blob:",
         "https://fonts.googleapis.com",
         "https://storage.googleapis.com",
       ],
+      manifestSrc: ["'self'", "blob:"],
+      workerSrc: ["'self'", "blob:"],
       frameSrc: ["'self'"],
       objectSrc: ["'none'"],
       // Note: upgradeInsecureRequests removed - causes ERR_SSL_PROTOCOL_ERROR when serving over HTTP
