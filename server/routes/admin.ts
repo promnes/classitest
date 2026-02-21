@@ -2663,6 +2663,17 @@ export async function registerAdminRoutes(app: Express) {
           .json(errorResponse(ErrorCode.BAD_REQUEST, "Title and embed URL are required"));
       }
 
+      // Prevent duplicate games with the same embed URL
+      const [existingGame] = await db.select({ id: flashGames.id })
+        .from(flashGames)
+        .where(eq(flashGames.embedUrl, embedUrl))
+        .limit(1);
+      if (existingGame) {
+        return res
+          .status(409)
+          .json(errorResponse(ErrorCode.BAD_REQUEST, "A game with this URL already exists"));
+      }
+
       const [game] = await db.insert(flashGames).values({
         title,
         description: description || null,

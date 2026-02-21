@@ -315,6 +315,14 @@ export const ChildGames = (): JSX.Element => {
               <div className={`aspect-[4/3] ${isDark ? "bg-gray-700" : "bg-purple-100"} flex items-center justify-center relative overflow-hidden`}>
                 {game.thumbnailUrl ? (
                   <img src={game.thumbnailUrl} alt={game.title} className="w-full h-full object-cover" />
+                ) : game.embedUrl === "/games/memory-match.html" ? (
+                  <div className="w-full h-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+                    <span className="text-5xl drop-shadow-lg">🧠</span>
+                  </div>
+                ) : game.embedUrl === "/games/math-challenge.html" ? (
+                  <div className="w-full h-full bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center">
+                    <span className="text-5xl drop-shadow-lg">🔢</span>
+                  </div>
                 ) : (
                   <Gamepad2 className="w-12 h-12 text-purple-400" />
                 )}

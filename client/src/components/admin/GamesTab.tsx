@@ -81,10 +81,10 @@ interface BuiltinGame {
 const BUILTIN_GAMES: BuiltinGame[] = [
   {
     id: "builtin-memory-match",
-    title: "Memory Match",
-    titleAr: "لعبة الذاكرة 🧠",
-    description: "Flip cards and find matching pairs! Train your memory with emoji cards.",
-    descriptionAr: "اقلب البطاقات وجد الأزواج المتطابقة! تدريب الذاكرة مع بطاقات الإيموجي. 20 مستوى مع أنظمة لعب متنوعة!",
+    title: "Memory Kingdom",
+    titleAr: "مملكة الذاكرة 🧠",
+    description: "100 levels across 10 worlds! 11 mechanics, 10 bosses, power-ups, shop, XP, daily streak, and cognitive report for parents!",
+    descriptionAr: "100 مستوى عبر 10 عوالم! 11 نوع لعب، 10 زعماء، 5 قدرات خارقة، متجر سمات، نظام XP وسلسلة يومية، تقرير ذكاء معرفي للوالدين!",
     embedUrl: "/games/memory-match.html",
     thumbnailEmoji: "🧠",
     category: "puzzle",
@@ -97,9 +97,9 @@ const BUILTIN_GAMES: BuiltinGame[] = [
   {
     id: "builtin-math-challenge",
     title: "Math Challenge",
-    titleAr: "تحدي الرياضيات",
-    description: "Fun educational game to improve math skills. Answer as many problems as you can!",
-    descriptionAr: "لعبة تعليمية ممتعة لتحسين مهارات الحساب. أجب على أكبر عدد من المسائل قبل انتهاء الوقت!",
+    titleAr: "تحدي الرياضيات 🔢",
+    description: "Fun educational game to improve math skills with adaptive difficulty and parent reports!",
+    descriptionAr: "لعبة تعليمية ممتعة لتحسين مهارات الحساب — 10 عوالم، نظام ذكاء تكيّفي، وتقرير أداء للوالدين!",
     embedUrl: "/games/math-challenge.html",
     thumbnailEmoji: "🔢",
     category: "math",
@@ -266,6 +266,10 @@ export function GamesTab({ token }: { token: string }) {
   // Add built-in game to database
   const addBuiltinMutation = useMutation({
     mutationFn: async (builtin: BuiltinGame) => {
+      // Check if already added (client-side guard)
+      if (games?.some(g => g.embedUrl === builtin.embedUrl)) {
+        throw new Error("هذه اللعبة مضافة بالفعل");
+      }
       const res = await fetch("/api/admin/games", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
@@ -281,6 +285,11 @@ export function GamesTab({ token }: { token: string }) {
           maxPlaysPerDay: builtin.maxPlaysPerDay,
         }),
       });
+      if (res.status === 409) {
+        // Already exists on server — just refresh the list
+        queryClient.invalidateQueries({ queryKey: ["admin-games"] });
+        return;
+      }
       if (!res.ok) throw new Error("Failed to add built-in game");
       return res.json();
     },

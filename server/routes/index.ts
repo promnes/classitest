@@ -34,47 +34,75 @@ import { ensureOtpProviders } from "../providers/otp/bootstrap";
 async function seedDefaultGames() {
   const db = storage.db;
   try {
-    const existing = await db.select({ id: flashGames.id })
-      .from(flashGames)
-      .where(eq(flashGames.embedUrl, "/games/math-challenge.html"))
-      .limit(1);
-    
-    if (existing.length === 0) {
-      await db.insert(flashGames).values({
-        title: "تحدي الرياضيات - Math Challenge",
-        description: "لعبة تعليمية ممتعة لتحسين مهارات الحساب. أجب على أكبر عدد من المسائل قبل انتهاء الوقت!",
+    // ── Built-in game definitions ──
+    const builtinGames = [
+      {
+        title: "تحدي الرياضيات - Math Challenge 🔢",
+        description: "لعبة تعليمية ممتعة لتحسين مهارات الحساب — 10 عوالم، نظام ذكاء تكيّفي، وتقرير أداء للوالدين!",
         embedUrl: "/games/math-challenge.html",
-        thumbnailUrl: "",
         category: "math",
         minAge: 5,
         maxAge: 14,
         pointsPerPlay: 10,
         maxPlaysPerDay: 5,
-        isActive: true,
-      });
-      console.log("✅ Seeded default game: Math Challenge");
-    }
-
-    // Seed Memory Match game
-    const existingMemory = await db.select({ id: flashGames.id })
-      .from(flashGames)
-      .where(eq(flashGames.embedUrl, "/games/memory-match.html"))
-      .limit(1);
-
-    if (existingMemory.length === 0) {
-      await db.insert(flashGames).values({
-        title: "لعبة الذاكرة - Memory Match 🧠",
-        description: "لعبة ذاكرة تعليمية مع 20 مستوى! بطاقات متحركة، ضباب، أقنعة، وتحدي الزعيم. نظام ذكاء تكيّفي ومتجر مكافآت!",
+      },
+      {
+        title: "مملكة الذاكرة - Memory Kingdom 🧠",
+        description: "100 مستوى عبر 10 عوالم! 11 نوع لعب، 10 زعماء، 5 قدرات خارقة، متجر سمات، نظام XP وسلسلة يومية، تقرير ذكاء معرفي للوالدين!",
         embedUrl: "/games/memory-match.html",
-        thumbnailUrl: "",
         category: "puzzle",
         minAge: 4,
         maxAge: 14,
         pointsPerPlay: 10,
         maxPlaysPerDay: 0,
-        isActive: true,
-      });
-      console.log("✅ Seeded default game: Memory Match");
+      },
+    ];
+
+    for (const game of builtinGames) {
+      // Remove duplicates: keep only the first row per embedUrl
+      const rows = await db.select({ id: flashGames.id })
+        .from(flashGames)
+        .where(eq(flashGames.embedUrl, game.embedUrl));
+
+      if (rows.length > 1) {
+        // Keep first, delete rest
+        const idsToDelete = rows.slice(1).map(r => r.id);
+        for (const dupId of idsToDelete) {
+          await db.delete(flashGames).where(eq(flashGames.id, dupId));
+        }
+        console.log(`🧹 Removed ${idsToDelete.length} duplicate(s) for ${game.embedUrl}`);
+        // Update the surviving record with latest info
+        await db.update(flashGames)
+          .set({ title: game.title, description: game.description })
+          .where(eq(flashGames.id, rows[0].id));
+      } else if (rows.length === 1) {
+        // Update title/description to latest
+        await db.update(flashGames)
+          .set({ title: game.title, description: game.description })
+          .where(eq(flashGames.id, rows[0].id));
+      } else {
+        // Insert new
+        await db.insert(flashGames).values({
+          ...game,
+          thumbnailUrl: "",
+          isActive: true,
+        });
+        console.log(`✅ Seeded default game: ${game.title}`);
+      }
+    }
+
+    // Remove any legacy duplicates with old embed URLs (e.g. "/memory-match")
+    const legacyUrls = ["/memory-match", "/math-challenge"];
+    for (const url of legacyUrls) {
+      const legacy = await db.select({ id: flashGames.id })
+        .from(flashGames)
+        .where(eq(flashGames.embedUrl, url));
+      if (legacy.length > 0) {
+        for (const row of legacy) {
+          await db.delete(flashGames).where(eq(flashGames.id, row.id));
+        }
+        console.log(`🧹 Removed ${legacy.length} legacy game record(s) with URL: ${url}`);
+      }
     }
   } catch (err) {
     console.warn("⚠️ Could not seed default games:", (err as Error).message);
