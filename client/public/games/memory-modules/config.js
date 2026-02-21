@@ -1,0 +1,303 @@
+// ═══════════════════════════════════════════════════════════════
+// Memory Match Pro — config.js
+// Constants, i18n, Emoji Pools, Grid Tables
+// ═══════════════════════════════════════════════════════════════
+
+export const LANG = new URLSearchParams(location.search).get('lang') || 'ar';
+
+// ===== MECHANIC TYPES =====
+export const MECH = {
+  CLASSIC: 'classic',
+  TIMED:   'timed',
+  MOVING:  'moving',
+  MASKED:  'masked',
+  FOG:     'fog',
+  TRIPLE:  'triple',
+  BOSS:    'boss',
+  // Phase C will add: MIRROR, CHAIN, BOMB, RAINBOW
+};
+
+// ===== STORAGE KEYS =====
+export const KEYS = {
+  PROGRESS: 'classify_memPro_progress',
+  WALLET:   'classify_memPro_wallet',
+  BADGES:   'classify_memPro_badges',
+  DDA:      'classify_memPro_dda',
+  MUTE:     'classify_memPro_muted',
+  STREAK:   'classify_memPro_streak',
+  // Migration from old format
+  OLD_PROGRESS: 'classify_memory_progress',
+  OLD_WALLET:   'classify_memory_wallet',
+  OLD_BADGES:   'classify_memory_badges',
+  OLD_DDA:      'classify_memory_dda',
+  OLD_MUTE:     'classify_memory_muted',
+};
+
+// ===== GRID SIZE TABLE (11 difficulty steps) =====
+export const GRID_TABLE = [
+  { cols:3, rows:2, pairs:3  },  // d0  — 6 cards
+  { cols:4, rows:2, pairs:4  },  // d1  — 8 cards
+  { cols:4, rows:3, pairs:6  },  // d2  — 12 cards
+  { cols:4, rows:4, pairs:8  },  // d3  — 16 cards
+  { cols:5, rows:4, pairs:10 },  // d4  — 20 cards
+  { cols:6, rows:4, pairs:12 },  // d5  — 24 cards
+  { cols:6, rows:5, pairs:15 },  // d6  — 30 cards
+  { cols:6, rows:6, pairs:18 },  // d7  — 36 cards
+  { cols:7, rows:6, pairs:21 },  // d8  — 42 cards
+  { cols:8, rows:6, pairs:24 },  // d9  — 48 cards
+  { cols:8, rows:7, pairs:28 },  // d10 — 56 cards (prestige)
+];
+
+// Triple-mode grids (total must be divisible by 3)
+export const GRID_TABLE_TRIPLE = [
+  { cols:3, rows:2, sets:2  },  // 6 cards
+  { cols:3, rows:3, sets:3  },  // 9 cards
+  { cols:4, rows:3, sets:4  },  // 12 cards
+  { cols:5, rows:3, sets:5  },  // 15 cards
+  { cols:6, rows:3, sets:6  },  // 18 cards
+  { cols:6, rows:4, sets:8  },  // 24 cards
+  { cols:6, rows:5, sets:10 },  // 30 cards
+  { cols:6, rows:6, sets:12 },  // 36 cards
+];
+
+// ===== 2000+ EDUCATIONAL EMOJI POOL =====
+export const POOL = {
+  farm:     ['🐄','🐷','🐑','🐐','🐴','🐔','🐓','🦃','🐤','🐣','🦆','🐕','🐈','🐰','🐇','🐹','🐭','🐿','🦔','🐶','🐱','🐮','🐖','🐗','🐽','🐏','🐪','🐫','🦙','🐎','🐥','🕊','🐩','🐾','🦝','🦡','🦨','🦥','🦦','🐻','🐨','🐼','🦊','🐺','🦫','🐂','🐃','🦄','🐁','🐀'],
+  fruit:    ['🍎','🍏','🍐','🍊','🍋','🍌','🍉','🍇','🍓','🍈','🍑','🍒','🥝','🥥','🍍','🥭','🍅','🥑','🫐','🫒','🥕','🍆','🌶','🌽','🥒','🥬','🧅','🧄','🥜','🌰','🍄','🍠','🥦','🥗','🥣','🫙','🥫','🥔','🫑','🧆','🥙','🫓','🥯','🍞','🥖','🥨','🧀','🥚','🧈','🍋‍🟩'],
+  sea:      ['🐟','🐠','🐡','🦈','🐬','🐳','🐋','🦭','🐙','🦑','🦐','🦀','🦞','🐚','🪸','🪼','🐊','🐢','🐍','🦎','🐸','🐲','🐉','🦕','🦖','🐳','🐋','🦈','🐬','🐙','🦑','🐠','🐟','🐡','🦐','🦀','🦞','🐚','🐢','🐊','🐍','🐸','🦎','🪸','🪼','🦭','🐉','🐲','🦕','🦖'],
+  bug:      ['🦋','🐛','🐝','🐞','🦗','🕷','🦂','🐜','🪲','🪳','🦟','🪰','🐌','🪱','🌿','🍀','🍁','🍂','🍃','🌱','🌲','🌳','🌴','🌵','🌾','🪴','🎋','🎍','🍄','🌻','🌸','🌹','🌺','🌼','🌷','💐','🪻','🪷','🐦','🕊','🦋','🐛','🐝','🐞','🦗','🐜','🪲','🐌','🪱','🕷'],
+  weather:  ['☀️','🌤','⛅','🌥','☁️','🌦','🌧','⛈','🌩','🌨','❄️','☃️','⛄','🌬','💨','🌊','🌈','🌪','🌫','💧','💦','🌡','🔥','⭐','🌟','💫','✨','☄️','🌙','🌛','🌜','🌚','🌝','🌞','🌕','🌖','🌗','🌘','🌑','🌒','🌓','🌔','🌅','🌄','🌇','🌆','🏙','🌃','🌌','🌠'],
+  flower:   ['🌸','🌹','🌺','🌻','🌼','🌷','💐','🪻','🪷','🌱','🌲','🌳','🌴','🌵','🌾','🍀','☘️','🍁','🍂','🍃','🪴','🎋','🎍','🪹','🪺','🍄','🌿','🎄','💮','🏵','🌸','🌹','🌺','🌻','🌼','🌷','💐','🪻','🪷','🌱','🌲','🌳','🌴','🌵','🍀','☘️','🍁','🍂','🍃','🪴'],
+  veggie:   ['🥕','🥦','🌽','🥒','🥬','🧅','🧄','🥔','🍆','🌶','🫑','🥜','🌰','🍄','🍠','🫘','🫛','🥗','🧆','🥙','🌱','🥕','🥦','🌽','🥒','🥬','🧅','🧄','🥔','🍆','🌶','🫑','🥜','🌰','🍄','🍠','🫘','🫛','🥗','🧆','🌿','🍀','🌾','🌻','🌼','🪴','🧂','🫙','🥫','🧈'],
+  food:     ['🍕','🍔','🌮','🌯','🥚','🍳','🥘','🍲','🍿','🍱','🍘','🍙','🍚','🍛','🍜','🍝','🍠','🍢','🍣','🍤','🍥','🥮','🍡','🥟','🥠','🥡','🧁','🍰','🎂','🍮','🍭','🍬','🍫','🍩','🍪','🍯','🥐','🥖','🧇','🥞','🧈','🫕','🫔','🥣','🫗','🍿','🍱','🧆','🥙','🫓'],
+  vehicle:  ['🚗','🚕','🚙','🚌','🚎','🏎','🚓','🚑','🚒','🚐','🛻','🚚','🚛','🚜','🏍','🛵','🚲','🛴','🛹','🛼','🚁','🛸','🚀','🛩','✈️','🛫','🛬','🚢','⛵','🛶','🚤','🛥','🛳','⛴','🚂','🚃','🚄','🚅','🚆','🚇','🚈','🚉','🚊','🚝','🚞','🚋','🚠','🚡','🛰','🚏'],
+  space:    ['🌍','🌎','🌏','🌑','🌒','🌓','🌔','🌕','🌖','🌗','🌘','🌙','🌚','🌛','🌜','🌝','🌞','☀️','⭐','🌟','💫','✨','☄️','🪐','🔭','🔬','🧲','🧪','🧫','🧬','💡','🔦','🕯','🪔','🔋','⚡','🛸','🚀','🛰','📡','🌌','🌠','🎆','🎇','💥','🔥','💧','🌊','🌀','🌈'],
+  sport:    ['⚽','🏀','🏈','⚾','🥎','🎾','🏐','🏉','🥏','🎱','🏓','🏸','🏒','🥍','🏏','🥅','⛳','🪁','🏹','🎯','🥊','🥋','🎿','⛷','🏂','🏋️','🤸','🤺','🤾','🏌️','🏇','🧘','🧗','🤿','🏄','🏊','🚣','🎽','🏅','🥇','🥈','🥉','🏆','🎖','🎪','🎠','🎡','🎢','🛝','⛺'],
+  music:    ['🎵','🎶','🎼','🎹','🎸','🎺','🎻','🥁','🪘','🪗','🎷','🎤','🎧','📯','🪈','🎬','🎭','🎨','🖌','🖍','✏️','🖊','🖋','📝','🎪','🎠','🎲','🎯','🎳','🎰','🎮','🕹','📺','📻','📸','🎥','📹','📽','🎞','🎟','💿','📀','💽','📱','🖥','⌨️','🖱','🖨','📢','📣'],
+  wild:     ['🦁','🐯','🐅','🐆','🦒','🦓','🐘','🦛','🦏','🐻','🦊','🐺','🦌','🦬','🦣','🦧','🦍','🐒','🐵','🙈','🙉','🙊','🦘','🦥','🦨','🦡','🦝','🦦','🐻‍❄️','🐼','🐨','🐾','🐊','🐢','🐍','🦎','🐸','🐲','🐉','🦕','🦖','🦋','🐝','🐞','🦅','🦉','🐧','🦜','🦚','🦩'],
+  bird:     ['🦅','🦆','🦉','🦜','🐧','🦚','🦢','🦩','🦤','🪶','🐦','🕊','🦃','🐔','🐓','🐤','🐣','🐥','🦅','🦆','🦉','🦜','🐧','🦚','🦢','🦩','🪶','🐦','🕊','🦃','🐔','🐓','🐤','🐣','🐥','🦤','🪹','🪺','🥚','🐾','🌿','🍀','🌲','🌳','☁️','🌤','⛅','🌈','🌅','🏔'],
+  tool:     ['🔨','🪓','⛏','🔧','🪛','🔩','⚙️','🗜','🪚','📏','📐','✂️','🖊','🖋','✒️','🔑','🗝','🔒','🔓','🪤','🧲','🪝','🧰','🪜','🪣','🧹','🧺','🧻','🪠','🧼','🧽','🪥','🪒','🔋','🔌','💡','🔦','🕯','🪔','🧯','🪤','📌','📍','🗂','📁','📂','🗃','📎','🖇','🗑'],
+  fashion:  ['👕','👖','🧣','🧤','🧥','🧦','👗','👘','🥻','🩱','🩲','🩳','👙','👚','👛','👜','👝','🎒','🩴','👞','👟','🥾','🥿','👠','👡','🩰','👢','👑','👒','🎩','🪖','⛑️','💄','💍','💎','👓','🕶','🥽','📿','🧢','👕','👖','🧣','🧥','👗','👘','🎒','👟','🥾','👠'],
+  building: ['🏠','🏡','🏢','🏣','🏤','🏥','🏦','🏨','🏩','🏪','🏫','🏬','🏭','🏯','🏰','🕌','🕍','⛪','🕋','🛕','⛩','🏗','🏚','🗼','🗽','🗾','🎑','⛲','⛺','🏛','🏟','🗺','🏖','🏜','🏝','🏞','🏔','⛰','🌋','🌁','🌉','🌅','🌄','🌇','🌆','🏙','🌃','🗻','🎪','🎡'],
+  school:   ['📚','📖','📝','📒','📓','📔','📕','📗','📘','📙','📄','📃','📋','📎','📏','📐','✂️','✏️','🖊','🖋','🖍','🔗','📌','📍','🗂','📁','📂','🗃','🗄','🗑','📰','🗞','📊','📈','📉','🗒','🗓','📆','📅','🔖','📮','📬','📭','📪','📫','✉️','📩','📨','📧','💌'],
+  tech:     ['💻','🖥','🖨','⌨️','🖱','💽','💾','💿','📱','📲','📷','📸','📹','📺','📻','📡','🔌','🔋','💡','📟','📠','🕹','🎮','🎧','🔬','🔭','📡','🛰','💻','🖥','⌨️','🖱','📱','📲','📷','📹','📺','📻','🔌','🔋','💡','🕹','🎮','🎧','🔬','🔭','🛰','📡','⌚','🤖'],
+  fantasy:  ['🧙','🧙‍♀️','🧝','🧝‍♀️','🧛','🧛‍♀️','🧜','🧜‍♀️','🧚','🧚‍♀️','🧞','🧞‍♀️','🦸','🦹','🧟','👸','🤴','👑','🏰','🗡️','🛡️','🏹','⚔️','🔮','💎','✨','🌟','💫','🌈','🦄','🐉','🐲','🧿','🪬','🎭','🎪','🎩','🪄','📜','🗝️','🔒','🔓','🏺','⚱️','🗿','🪨','💀','👻','🎃','🕯'],
+  candy:    ['🍬','🍭','🍫','🍩','🍪','🧁','🍰','🎂','🍮','🍡','🍧','🍨','🍦','🥧','🍯','🥐','🥖','🧇','🥞','🍺','🧃','🥤','☕','🍵','🧋','🍹','🍸','🥂','🍷','🫖','🍼','🥛','🧊','🫧','🎈','🎉','🎊','🎀','🎁','🎗','🎇','🎆','🎏','🎐','🎑','🪅','🪆','🎄','🎃','🧸'],
+  mix:      ['🐄','🍎','🐟','🦋','☀️','🌸','🥕','🍕','🚗','🌍','⚽','🎵','🦁','🦅','🔨','👕','🏠','📚','💻','🎉','🐷','🍊','🐬','🐝','🌈','🌹','🌽','🍔','🚌','🪐','🏀','🎸','🐯','🦉','🔧','👗','🏫','📖','📱','🎊','🐴','🍇','🐙','🐞','⭐','🌻','🍆','🍰','✈️','🚀'],
+};
+
+// ===== CARD FRONT ICONS PER GROUP =====
+export const FRONT_ICONS = [
+  ['❓','🌿','🍀','🌱','🌻','☘️'],       // Group 0: Nature
+  ['❓','🌊','💧','🐚','🫧','🪸'],       // Group 1: Ocean
+  ['❓','✨','🌟','🔥','⭐','💫'],       // Group 2: Kitchen/Food
+  ['❓','🚀','🪐','⭐','☄️','💫'],       // Group 3: Space
+  ['❓','🎵','🎶','🎼','🎤','🎸'],       // Group 4: Music
+  ['❓','🗺️','⚔️','🏹','🛡️','🧭'],     // Group 5: Adventure
+  ['❓','💠','🔮','⚡','🤖','💎'],       // Group 6: Tech
+  ['❓','🎨','🖌','🌈','✨','💫'],       // Group 7: Colors
+  ['❓','🏰','🗝️','🔮','🧙','📜'],     // Group 8: Castle
+  ['❓','👑','🏆','⭐','💎','🌟'],       // Group 9: Championship
+];
+
+// ===== SHOP ITEMS =====
+export const SHOP_ITEMS = [
+  { id:'default',  icon:'❓',  price:0,   cf1:'#6366f1', cf2:'#4f46e5', frontIcon:'❓' },
+  { id:'galaxy',   icon:'✨',  price:100, cf1:'#312e81', cf2:'#1e1b4b', frontIcon:'✨' },
+  { id:'candy',    icon:'🍬',  price:150, cf1:'#ec4899', cf2:'#be185d', frontIcon:'🍬' },
+  { id:'diamond',  icon:'💎',  price:200, cf1:'#0ea5e9', cf2:'#0369a1', frontIcon:'💎' },
+  { id:'fire',     icon:'🔥',  price:250, cf1:'#ef4444', cf2:'#b91c1c', frontIcon:'🔥' },
+  { id:'rainbow',  icon:'🌈',  price:300, cf1:'#a855f7', cf2:'#6d28d9', frontIcon:'🌈' },
+  { id:'neon',     icon:'⚡',  price:400, cf1:'#06b6d4', cf2:'#0e7490', frontIcon:'⚡' },
+  { id:'royal',    icon:'👑',  price:500, cf1:'#b45309', cf2:'#78350f', frontIcon:'👑' },
+];
+
+// ===== BADGE DEFINITIONS (10 base — Phase E will expand to 30) =====
+export const BADGE_DEFS = [
+  { id:'first',     emoji:'🐣', type:'levels',  goal:1    },
+  { id:'stars10',   emoji:'⭐', type:'stars',   goal:10   },
+  { id:'stars30',   emoji:'🌟', type:'stars',   goal:30   },
+  { id:'stars100',  emoji:'💫', type:'stars',   goal:100  },
+  { id:'perfect',   emoji:'🏆', type:'perfect', goal:1    },
+  { id:'world1',    emoji:'🌿', type:'world',   goal:0    },
+  { id:'world3',    emoji:'🍕', type:'world',   goal:2    },
+  { id:'world5',    emoji:'🎵', type:'world',   goal:4    },
+  { id:'world8',    emoji:'🎨', type:'world',   goal:7    },
+  { id:'champion',  emoji:'👑', type:'allWorlds',goal:10  },
+];
+
+// ===== i18n =====
+const I18N = {
+ar: {
+  title:'🧠 مملكة الذاكرة',
+  selectWorld:'اختر العالم لتبدأ المغامرة!',
+  selectLevel:'اختر المستوى',
+  moves:'المحاولات', pairs:'الأزواج', sets:'المجموعات', time:'الوقت',
+  hint:'اضغط على أي بطاقة للبدء!', score:'النقاط',
+  congrats:'مبروك!', excellent:'🌟 ممتاز!', great:'🎉 أحسنت!', good:'👍 جيد!', tryMore:'💪 حاول أكثر!',
+  done:'أتممت المستوى!', next:'➡️ التالي', share:'📤 مشاركة', again:'🔄 إعادة',
+  levels:'🏠 المستويات', worlds:'🗺️ العوالم', back:'🏠 رجوع', locked:'🔒',
+  boss:'👑 معركة الزعيم!', bossDefeated:'🎉 هزمت الزعيم!',
+  mech:{
+    timed:'⏱️ تذكّر!', moving:'🔀 متحركة!', masked:'🎭 مُقنّعة!',
+    fog:'🌫️ ضباب!', triple:'🔱 ثلاثي!', boss:'👑 الزعيم!'
+  },
+  mechHint:{
+    timed:'تذكر مواقع البطاقات!', moving:'البطاقات تتبدل كل ٣ محاولات!',
+    masked:'بعض البطاقات تخدعك!', fog:'اضغط الضباب أولاً!',
+    triple:'طابق ٣ بطاقات متشابهة!', boss:'كل التحديات + مؤقت!'
+  },
+  timeUp:'⏰ انتهى الوقت!', remember:'👀 تذكّر!', shuffling:'🔀 تبديل...',
+  shareText:'حققت {score} نقطة في المستوى {level} من مملكة الذاكرة! ⭐{stars}',
+  dda:{ easy:'🟢 سهل', normal:'🔵 عادي', hard:'🔴 صعب' },
+  hintMsg:'💡 تلميح!',
+  shop:'🛒 المتجر', badges:'🏅 الإنجازات',
+  coinsEarned:'+{n} عملة', buy:'شراء', equip:'تجهيز',
+  equipped:'✅ مجهز', cantAfford:'لا يكفي', owned:'مملوك',
+  newBadge:'🎉 إنجاز جديد!', badgeCount:'{n}/{total} إنجاز',
+  starsCount:'⭐ {n}/{total}',
+  worldProgress:'{n}/{total} مستوى',
+  bossLabel:'زعيم',
+
+  // World names
+  worldNames:[
+    '🌿 غابة الأحلام',
+    '🌊 أعماق المحيط',
+    '🍕 مطبخ سحري',
+    '🚀 رحلة الفضاء',
+    '🎵 مدينة الموسيقى',
+    '⚔️ أرض المغامرات',
+    '💻 عالم التقنية',
+    '🎨 جزيرة الألوان',
+    '🏰 قلعة الأسرار',
+    '👑 بطولة الذاكرة'
+  ],
+  // World characters
+  worldChars:['🦊 ثعلب الغابة','🐬 دولفي','👨‍🍳 الشيف','👨‍🚀 رائد','🎵 نغمة','🗡️ المحارب','🤖 روبوتي','🎨 فنّان','🧙 الساحر','👑 الملك'],
+  // Boss names
+  bossNames:['🦊 ثعلب الظل','🦑 الأخطبوط','👻 شبح المطبخ','👾 القائد الفضائي','🌪️ عاصفة DJ','🐉 التنين','🤖 الروبوت المعطل','❄️ ملكة الجليد','🎭 المخادع','👑 ملك الذاكرة'],
+
+  // Level names per world (10 per world)
+  lvNamesW0:['مرج الحيوانات','حديقة الفراشات','بستان الزهور','غابة العجائب','ممر الأشجار','نهر الأسماك','كهف الأسرار','قمة التل','وادي الألوان','🦊 وكر الثعلب'],
+  lvNamesW1:['شاطئ المرجان','خليج الدلافين','أعماق الأسماك','كهف اللؤلؤ','حطام السفينة','حديقة المرجان','ممر القناديل','واحة الأصداف','خندق المحيط','🦑 عرين الأخطبوط'],
+  lvNamesW2:['مطبخ الحلويات','سوق الخضار','فرن الخبز','مائدة الفواكه','ركن المشروبات','مطعم البيتزا','حانوت التوابل','مخبز الكعك','وليمة الطباخ','👻 مطبخ الأشباح'],
+  lvNamesW3:['منصة الإطلاق','مدار القمر','حزام الكويكبات','محطة الفضاء','سديم الألوان','حلقات زحل','مجرة درب التبانة','ثقب أسود','نجم عملاق','👾 قاعدة القائد'],
+  lvNamesW4:['استوديو الغناء','قاعة البيانو','حديقة الآلات','مسرح الأوركسترا','نادي الإيقاع','شارع الموسيقى','برج النغمات','ساحة الحفل','قمة الأداء','🌪️ حلبة DJ'],
+  lvNamesW5:['بوابة المغامرة','غابة الأمازون','صحراء الرمال','جبال الثلج','معبد قديم','جسر المخاطر','نهر الحمم','قلعة محصنة','قمة التنين','🐉 عرين التنين'],
+  lvNamesW6:['مختبر الذكاء','غرفة الخوادم','شبكة البيانات','روبوت المصنع','محطة الطاقة','مركز التحكم','فضاء سيبراني','قاعدة رقمية','نظام الدفاع','🤖 معركة الروبوت'],
+  lvNamesW7:['لوحة الألوان','متحف الفن','حديقة النحت','ورشة الرسم','معرض الصور','مسرح الألوان','جسر قوس قزح','بحيرة البلورات','قصر الألوان','❄️ قصر الجليد'],
+  lvNamesW8:['بوابة القلعة','قاعة العرش','مكتبة السحر','سرداب الأسرار','برج الساعة','حديقة التماثيل','جسر المعلق','غرفة المرايا','قمة البرج','🎭 قاعة المخادع'],
+  lvNamesW9:['تصفيات أولى','ربع النهائي','نصف النهائي','الدور الذهبي','كأس الفضة','كأس الذهب','تحدي الأبطال','نهائي العالم','المواجهة الكبرى','👑 عرش الملك'],
+
+  // Badge names & descriptions
+  badgeNames:['🐣 أول خطوة','⭐ جامع النجوم','🌟 سيد النجوم','💫 أسطورة النجوم','🏆 جولة مثالية','🌿 حارس الغابة','🍕 شيف ماهر','🎵 عازف محترف','🎨 فنان مبدع','👑 بطل العالم'],
+  badgeDescs:['أكمل أول مستوى','اجمع 10 نجوم','اجمع 30 نجمة','اجمع 100 نجمة','احصل على 3 نجوم','أكمل عالم الغابة','أكمل عالم المطبخ','أكمل عالم الموسيقى','أكمل عالم الألوان','أكمل كل العوالم'],
+  themeNames:['افتراضي','✨ مجرّة','🍬 حلوى','💎 ألماس','🔥 نار','🌈 قوس قزح','⚡ نيون','👑 ملكي'],
+},
+en: {
+  title:'🧠 Memory Kingdom',
+  selectWorld:'Choose a world to begin!',
+  selectLevel:'Choose a level',
+  moves:'Moves', pairs:'Pairs', sets:'Sets', time:'Time',
+  hint:'Tap any card to start!', score:'Score',
+  congrats:'Congrats!', excellent:'🌟 Excellent!', great:'🎉 Great!', good:'👍 Good!', tryMore:'💪 Try More!',
+  done:'Level complete!', next:'➡️ Next', share:'📤 Share', again:'🔄 Replay',
+  levels:'🏠 Levels', worlds:'🗺️ Worlds', back:'🏠 Back', locked:'🔒',
+  boss:'👑 Boss Battle!', bossDefeated:'🎉 Boss Defeated!',
+  mech:{
+    timed:'⏱️ Peek!', moving:'🔀 Moving!', masked:'🎭 Masked!',
+    fog:'🌫️ Fog!', triple:'🔱 Triple!', boss:'👑 Boss!'
+  },
+  mechHint:{
+    timed:'Memorize the cards!', moving:'Cards shuffle every 3 moves!',
+    masked:'Some cards trick you first!', fog:'Tap fog to reveal!',
+    triple:'Match 3 cards!', boss:'All challenges + timer!'
+  },
+  timeUp:'⏰ Time\'s up!', remember:'👀 Remember!', shuffling:'🔀 Shuffling...',
+  shareText:'I scored {score} on Level {level} in Memory Kingdom! ⭐{stars}',
+  dda:{ easy:'🟢 Easy', normal:'🔵 Normal', hard:'🔴 Hard' },
+  hintMsg:'💡 Hint!',
+  shop:'🛒 Shop', badges:'🏅 Badges',
+  coinsEarned:'+{n} coins', buy:'Buy', equip:'Equip',
+  equipped:'✅ Equipped', cantAfford:'Not enough', owned:'Owned',
+  newBadge:'🎉 New Badge!', badgeCount:'{n}/{total} badges',
+  starsCount:'⭐ {n}/{total}',
+  worldProgress:'{n}/{total} levels',
+  bossLabel:'Boss',
+
+  worldNames:['🌿 Dream Forest','🌊 Ocean Depths','🍕 Magic Kitchen','🚀 Space Journey','🎵 Music City','⚔️ Adventure Land','💻 Tech World','🎨 Color Island','🏰 Castle of Secrets','👑 Memory Championship'],
+  worldChars:['🦊 Forest Fox','🐬 Dolphy','👨‍🍳 Chef','👨‍🚀 Astronaut','🎵 Melody','🗡️ Warrior','🤖 Roboti','🎨 Artist','🧙 Wizard','👑 King'],
+  bossNames:['🦊 Shadow Fox','🦑 Kraken','👻 Chef Ghost','👾 Alien Commander','🌪️ DJ Storm','🐉 Dragon','🤖 Glitch Bot','❄️ Ice Queen','🎭 Trickster','👑 Memory King'],
+
+  lvNamesW0:['Animal Meadow','Butterfly Garden','Flower Orchard','Wonder Forest','Tree Path','Fish River','Secret Cave','Hilltop','Color Valley','🦊 Fox Den'],
+  lvNamesW1:['Coral Beach','Dolphin Bay','Fish Depths','Pearl Cave','Shipwreck','Coral Garden','Jellyfish Lane','Shell Oasis','Ocean Trench','🦑 Kraken Lair'],
+  lvNamesW2:['Sweet Kitchen','Veggie Market','Bread Oven','Fruit Table','Drink Corner','Pizza Place','Spice Shop','Cake Bakery','Chef Feast','👻 Ghost Kitchen'],
+  lvNamesW3:['Launch Pad','Moon Orbit','Asteroid Belt','Space Station','Color Nebula','Saturn Rings','Milky Way','Black Hole','Giant Star','👾 Commander Base'],
+  lvNamesW4:['Singing Studio','Piano Hall','Music Garden','Orchestra Stage','Rhythm Club','Music Street','Melody Tower','Concert Square','Peak Show','🌪️ DJ Arena'],
+  lvNamesW5:['Adventure Gate','Amazon Forest','Sand Desert','Snow Mountains','Ancient Temple','Danger Bridge','Lava River','Fortified Castle','Dragon Peak','🐉 Dragon Lair'],
+  lvNamesW6:['AI Lab','Server Room','Data Network','Robot Factory','Power Station','Control Center','Cyberspace','Digital Base','Defense Grid','🤖 Robot Battle'],
+  lvNamesW7:['Color Palette','Art Museum','Sculpture Garden','Drawing Workshop','Photo Gallery','Color Theater','Rainbow Bridge','Crystal Lake','Color Palace','❄️ Ice Palace'],
+  lvNamesW8:['Castle Gate','Throne Room','Magic Library','Secret Dungeon','Clock Tower','Statue Garden','Hanging Bridge','Mirror Room','Tower Peak','🎭 Trickster Hall'],
+  lvNamesW9:['Qualifiers','Quarter Final','Semi Final','Golden Round','Silver Cup','Gold Cup','Champion Trial','World Final','Grand Clash','👑 King\'s Throne'],
+
+  badgeNames:['🐣 First Steps','⭐ Star Collector','🌟 Star Master','💫 Star Legend','🏆 Perfect Round','🌿 Forest Guardian','🍕 Master Chef','🎵 Pro Musician','🎨 Creative Artist','👑 World Champion'],
+  badgeDescs:['Complete first level','Earn 10 stars','Earn 30 stars','Earn 100 stars','Get 3 stars on any level','Complete Dream Forest','Complete Magic Kitchen','Complete Music City','Complete Color Island','Complete all worlds'],
+  themeNames:['Default','✨ Galaxy','🍬 Candy','💎 Diamond','🔥 Fire','🌈 Rainbow','⚡ Neon','👑 Royal'],
+},
+pt: {
+  title:'🧠 Reino da Memória',
+  selectWorld:'Escolha um mundo para começar!',
+  selectLevel:'Escolha um nível',
+  moves:'Jogadas', pairs:'Pares', sets:'Conjuntos', time:'Tempo',
+  hint:'Toque para começar!', score:'Pontos',
+  congrats:'Parabéns!', excellent:'🌟 Excelente!', great:'🎉 Muito Bem!', good:'👍 Bom!', tryMore:'💪 Tente Mais!',
+  done:'Nível completo!', next:'➡️ Próximo', share:'📤 Compartilhar', again:'🔄 Repetir',
+  levels:'🏠 Níveis', worlds:'🗺️ Mundos', back:'🏠 Voltar', locked:'🔒',
+  boss:'👑 Batalha do Chefe!', bossDefeated:'🎉 Chefe Derrotado!',
+  mech:{
+    timed:'⏱️ Memorize!', moving:'🔀 Mover!', masked:'🎭 Mascarado!',
+    fog:'🌫️ Névoa!', triple:'🔱 Triplo!', boss:'👑 Chefe!'
+  },
+  mechHint:{
+    timed:'Memorize as cartas!', moving:'Cartas mudam a cada 3!',
+    masked:'Algumas enganam primeiro!', fog:'Toque a névoa primeiro!',
+    triple:'Combine 3 cartas!', boss:'Todos desafios + tempo!'
+  },
+  timeUp:'⏰ Tempo esgotado!', remember:'👀 Lembre-se!', shuffling:'🔀 Movendo...',
+  shareText:'Fiz {score} pontos no Nível {level} do Reino da Memória! ⭐{stars}',
+  dda:{ easy:'🟢 Fácil', normal:'🔵 Normal', hard:'🔴 Difícil' },
+  hintMsg:'💡 Dica!',
+  shop:'🛒 Loja', badges:'🏅 Conquistas',
+  coinsEarned:'+{n} moedas', buy:'Comprar', equip:'Equipar',
+  equipped:'✅ Equipado', cantAfford:'Sem moedas', owned:'Comprado',
+  newBadge:'🎉 Nova Conquista!', badgeCount:'{n}/{total} conquistas',
+  starsCount:'⭐ {n}/{total}',
+  worldProgress:'{n}/{total} níveis',
+  bossLabel:'Chefe',
+
+  worldNames:['🌿 Floresta dos Sonhos','🌊 Profundezas do Oceano','🍕 Cozinha Mágica','🚀 Jornada Espacial','🎵 Cidade da Música','⚔️ Terra da Aventura','💻 Mundo Tech','🎨 Ilha das Cores','🏰 Castelo dos Segredos','👑 Campeonato da Memória'],
+  worldChars:['🦊 Raposa','🐬 Golfinho','👨‍🍳 Chef','👨‍🚀 Astronauta','🎵 Melodia','🗡️ Guerreiro','🤖 Robô','🎨 Artista','🧙 Mago','👑 Rei'],
+  bossNames:['🦊 Raposa Sombra','🦑 Kraken','👻 Chef Fantasma','👾 Comandante Alien','🌪️ DJ Tempestade','🐉 Dragão','🤖 Robô Defeituoso','❄️ Rainha do Gelo','🎭 Trapaceiro','👑 Rei da Memória'],
+
+  lvNamesW0:['Prado Animal','Jardim Borboleta','Pomar de Flores','Floresta Mágica','Caminho das Árvores','Rio dos Peixes','Caverna Secreta','Topo da Colina','Vale das Cores','🦊 Toca da Raposa'],
+  lvNamesW1:['Praia de Coral','Baía dos Golfinhos','Profundezas','Caverna de Pérolas','Naufrágio','Jardim de Coral','Corredor de Águas-vivas','Oásis de Conchas','Fossa Oceânica','🦑 Covil do Kraken'],
+  lvNamesW2:['Cozinha Doce','Mercado de Vegetais','Forno de Pão','Mesa de Frutas','Cantinho das Bebidas','Pizzaria','Loja de Especiarias','Padaria de Bolos','Banquete do Chef','👻 Cozinha Fantasma'],
+  lvNamesW3:['Plataforma de Lançamento','Órbita Lunar','Cinturão de Asteroides','Estação Espacial','Nebulosa Colorida','Anéis de Saturno','Via Láctea','Buraco Negro','Estrela Gigante','👾 Base do Comandante'],
+  lvNamesW4:['Estúdio de Canto','Salão do Piano','Jardim Musical','Palco da Orquestra','Clube de Ritmo','Rua da Música','Torre da Melodia','Praça do Concerto','Show Principal','🌪️ Arena DJ'],
+  lvNamesW5:['Portão da Aventura','Floresta Amazônica','Deserto de Areia','Montanhas de Neve','Templo Antigo','Ponte Perigosa','Rio de Lava','Castelo Fortificado','Pico do Dragão','🐉 Covil do Dragão'],
+  lvNamesW6:['Laboratório IA','Sala de Servidores','Rede de Dados','Fábrica de Robôs','Usina de Energia','Centro de Controle','Ciberespaço','Base Digital','Grade de Defesa','🤖 Batalha Robô'],
+  lvNamesW7:['Paleta de Cores','Museu de Arte','Jardim de Esculturas','Oficina de Desenho','Galeria de Fotos','Teatro de Cores','Ponte Arco-íris','Lago de Cristal','Palácio de Cores','❄️ Palácio de Gelo'],
+  lvNamesW8:['Portão do Castelo','Sala do Trono','Biblioteca Mágica','Masmorra Secreta','Torre do Relógio','Jardim de Estátuas','Ponte Suspensa','Sala dos Espelhos','Topo da Torre','🎭 Salão do Trapaceiro'],
+  lvNamesW9:['Classificatórias','Quartas de Final','Semifinal','Rodada Dourada','Taça de Prata','Taça de Ouro','Desafio dos Campeões','Final Mundial','Grande Confronto','👑 Trono do Rei'],
+
+  badgeNames:['🐣 Primeiros Passos','⭐ Coletor de Estrelas','🌟 Mestre Estelar','💫 Lenda Estelar','🏆 Rodada Perfeita','🌿 Guardião da Floresta','🍕 Chef Mestre','🎵 Músico Profissional','🎨 Artista Criativo','👑 Campeão Mundial'],
+  badgeDescs:['Complete o primeiro nível','Ganhe 10 estrelas','Ganhe 30 estrelas','Ganhe 100 estrelas','3 estrelas em um nível','Complete Floresta dos Sonhos','Complete Cozinha Mágica','Complete Cidade da Música','Complete Ilha das Cores','Complete todos os mundos'],
+  themeNames:['Padrão','✨ Galáxia','🍬 Doce','💎 Diamante','🔥 Fogo','🌈 Arco-íris','⚡ Neon','👑 Real'],
+}
+};
+
+export const t = I18N[LANG] || I18N.en;
+
+// Apply HTML dir/lang
+document.documentElement.lang = LANG;
+document.documentElement.dir = LANG === 'ar' ? 'rtl' : 'ltr';

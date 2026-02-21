@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>لعبة الذاكرة - Memory Match</title>
+<title>مملكة الذاكرة - Memory Kingdom</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;user-select:none;-webkit-tap-highlight-color:transparent}
@@ -303,23 +303,127 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',Tahoma,G
 .card.flipped .card-inner{transition:transform .5s cubic-bezier(.34,1.56,.64,1) !important}
 .grid{filter:drop-shadow(0 4px 16px rgba(0,0,0,.1))}
 /* ===== END ROYAL MATCH 3D ===== */
+
+/* ===== WORLD MAP SCREEN ===== */
+#world-screen{flex-direction:column;align-items:center;padding:clamp(8px,2vmin,16px);gap:clamp(8px,2vmin,14px);overflow-y:auto;background:linear-gradient(135deg,#1e1b4b,#312e81,#4338ca);background-size:300% 300%;animation:royalBG 15s ease infinite}
+.ws-title{font-size:clamp(28px,8vmin,44px);font-weight:900;color:#fff;text-shadow:0 3px 16px rgba(0,0,0,.5);text-align:center;flex-shrink:0}
+.ws-sub{font-size:clamp(14px,2.8vmin,18px);color:rgba(255,255,255,.85);text-align:center;font-weight:600;flex-shrink:0}
+.world-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:clamp(8px,2vmin,12px);width:100%;max-width:500px;padding:clamp(4px,1vmin,8px) 0}
+.wc{position:relative;border:3px solid rgba(255,255,255,.4);border-radius:clamp(16px,4vmin,26px);padding:clamp(10px,2.5vmin,18px) clamp(6px,1.5vmin,10px);text-align:center;cursor:pointer;transition:all .35s cubic-bezier(.34,1.56,.64,1);backdrop-filter:blur(6px);box-shadow:0 6px 0 rgba(0,0,0,.18),0 12px 24px rgba(0,0,0,.12),inset 0 1px 0 rgba(255,255,255,.3);transform-style:preserve-3d;animation:cardFloat 3s ease-in-out infinite;overflow:hidden}
+.wc:nth-child(even){animation-delay:.5s}.wc:nth-child(3n){animation-delay:1s}
+.wc:hover{transform:translateY(-6px) scale(1.06);box-shadow:0 12px 0 rgba(0,0,0,.1),0 20px 40px rgba(0,0,0,.15)}
+.wc:active{transform:translateY(2px) scale(.96)}
+.wc.locked{opacity:.5;cursor:not-allowed;animation:none;background:rgba(255,255,255,.08) !important}
+.wc.locked:hover{transform:none}
+.wc.complete{border-color:#fbbf24;box-shadow:0 0 16px rgba(251,191,36,.4),0 6px 0 rgba(0,0,0,.15)}
+.wc-num{position:absolute;top:6px;left:8px;font-size:clamp(11px,2vmin,14px);font-weight:900;color:rgba(255,255,255,.6);background:rgba(0,0,0,.15);border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center}
+[dir="rtl"] .wc-num{left:auto;right:8px}
+.wc-emoji{font-size:clamp(36px,9vmin,54px);filter:drop-shadow(0 2px 4px rgba(0,0,0,.2));animation:emojiWiggle 2.5s ease-in-out infinite}
+.wc-name{font-size:clamp(12px,2.4vmin,16px);font-weight:800;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.3);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wc-char{font-size:clamp(10px,1.8vmin,13px);color:rgba(255,255,255,.75);font-weight:600}
+.wc-prog{margin-top:4px}
+.wc-bar{width:100%;height:5px;background:rgba(255,255,255,.15);border-radius:3px;overflow:hidden}
+.wc-fill{height:100%;background:linear-gradient(90deg,#fbbf24,#f59e0b);border-radius:3px;transition:width .5s}
+.wc-info{font-size:clamp(9px,1.6vmin,12px);color:rgba(255,255,255,.7);font-weight:600;margin-top:2px}
+.wc-lock{font-size:clamp(28px,7vmin,42px);filter:drop-shadow(0 2px 6px rgba(0,0,0,.4))}
+
+/* ===== GROUP 5: Desert/Sand — Wavy warm ===== */
+[data-group="5"] .card-inner,
+[data-group="5"] .card-front,
+[data-group="5"] .card-back{border-radius:clamp(12px,3vmin,18px) !important}
+[data-group="5"] .card-front{border:3px solid rgba(217,119,6,.4) !important}
+[data-group="5"] .card.matched .card-back{
+  background:linear-gradient(145deg,#fef3c7,#fde68a) !important;
+  border-color:rgba(217,119,6,.4) !important;
+  animation:matchAdventure 1.5s ease-in-out infinite !important}
+
+/* ===== GROUP 6: Fantasy/Magic — Ethereal glow ===== */
+[data-group="6"] .card-inner,
+[data-group="6"] .card-front,
+[data-group="6"] .card-back{border-radius:clamp(10px,2.5vmin,16px) !important}
+[data-group="6"] .card-front{border:3px solid rgba(139,92,246,.4) !important;box-shadow:0 0 8px rgba(139,92,246,.2),0 5px 0 rgba(0,0,0,.2),0 8px 16px rgba(0,0,0,.12) !important}
+[data-group="6"] .card.matched .card-back{
+  background:linear-gradient(145deg,#ede9fe,#ddd6fe) !important;
+  border-color:rgba(139,92,246,.5) !important;
+  animation:matchTech 1s ease-in-out infinite !important}
+
+/* ===== GROUP 7: Candy/Sweet — Rounded bouncy ===== */
+[data-group="7"] .card-inner,
+[data-group="7"] .card-front,
+[data-group="7"] .card-back{border-radius:clamp(18px,4.5vmin,28px) !important}
+[data-group="7"] .card-inner{transition:transform .5s cubic-bezier(.34,1.8,.64,1) !important}
+[data-group="7"] .card-front{border:3px solid rgba(236,72,153,.4) !important}
+[data-group="7"] .card.matched .card-back{
+  background:linear-gradient(145deg,#fce7f3,#fbcfe8) !important;
+  border-color:rgba(236,72,153,.4) !important;
+  animation:matchNature 1.5s ease-in-out infinite !important}
+
+/* ===== GROUP 8: Arctic/Ice — Crystalline ===== */
+[data-group="8"] .card-inner,
+[data-group="8"] .card-front,
+[data-group="8"] .card-back{border-radius:12% 30% 12% 30% / 30% 12% 30% 12% !important}
+[data-group="8"] .card-front{border:3px solid rgba(6,182,212,.4) !important}
+[data-group="8"] .card.matched .card-back{
+  background:linear-gradient(145deg,#ecfeff,#cffafe) !important;
+  border-color:rgba(6,182,212,.4) !important;
+  animation:matchOcean 1.3s ease-in-out infinite !important}
+
+/* ===== GROUP 9: Royal/Final — Crown glow ===== */
+[data-group="9"] .card-inner,
+[data-group="9"] .card-front,
+[data-group="9"] .card-back{border-radius:clamp(6px,1.5vmin,10px) !important}
+[data-group="9"] .card-front{border:3px solid rgba(251,191,36,.5) !important;box-shadow:0 0 10px rgba(251,191,36,.25),0 5px 0 rgba(0,0,0,.2),0 8px 16px rgba(0,0,0,.12) !important}
+[data-group="9"] .card.matched .card-back{
+  background:linear-gradient(145deg,#fef9c3,#fde68a) !important;
+  border-color:rgba(251,191,36,.55) !important;
+  animation:matchAdventure 1.5s ease-in-out infinite !important}
+
+/* Level card group color hints (expanded to 10) */
+.lc[data-grp="0"]{border-left:3px solid rgba(34,197,94,.6)}
+.lc[data-grp="1"]{border-left:3px solid rgba(14,165,233,.6)}
+.lc[data-grp="2"]{border-left:3px solid rgba(249,115,22,.6)}
+.lc[data-grp="3"]{border-left:3px solid rgba(99,102,241,.6)}
+.lc[data-grp="4"]{border-left:3px solid rgba(168,85,247,.6)}
+.lc[data-grp="5"]{border-left:3px solid rgba(217,119,6,.6)}
+.lc[data-grp="6"]{border-left:3px solid rgba(139,92,246,.6)}
+.lc[data-grp="7"]{border-left:3px solid rgba(236,72,153,.6)}
+.lc[data-grp="8"]{border-left:3px solid rgba(6,182,212,.6)}
+.lc[data-grp="9"]{border-left:3px solid rgba(251,191,36,.6)}
+
+/* ===== BOSS HP BAR ===== */
+.boss-hp{display:none;align-items:center;gap:6px;width:100%;max-width:540px;flex-shrink:0;position:relative;z-index:12}
+.boss-hp-bar{flex:1;height:8px;background:rgba(255,255,255,.15);border-radius:4px;overflow:hidden}
+.boss-hp-fill{height:100%;background:linear-gradient(90deg,#ef4444,#f59e0b,#22c55e);transition:width .5s;border-radius:4px}
+.boss-hp-text{font-size:clamp(11px,2vmin,14px);font-weight:900;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.4);min-width:40px;text-align:center}
+.boss-hp-emoji{font-size:clamp(18px,3.5vmin,24px)}
 </style>
 </head>
 <body>
 
-<!-- LEVEL SELECT -->
-<div id="lvl-screen" class="screen active">
-  <div style="display:flex;align-items:center;justify-content:space-between;width:100%;max-width:540px">
-    <div class="ls-title" id="ls-t">🧠 لعبة الذاكرة</div>
-    <button class="mute-btn" onclick="toggleMute()" style="background:rgba(255,255,255,.2);border:none;border-radius:12px;padding:8px 12px;font-size:clamp(18px,3.5vmin,24px);cursor:pointer;backdrop-filter:blur(4px);box-shadow:0 3px 0 rgba(0,0,0,.12)">🔊</button>
+<!-- WORLD MAP -->
+<div id="world-screen" class="screen active">
+  <div style="display:flex;align-items:center;justify-content:space-between;width:100%;max-width:540px;flex-shrink:0">
+    <div class="ws-title" id="ws-t">🧠 مملكة الذاكرة</div>
+    <button class="mute-btn" id="ws-mute" style="background:rgba(255,255,255,.2);border:none;border-radius:12px;padding:8px 12px;font-size:clamp(18px,3.5vmin,24px);cursor:pointer;backdrop-filter:blur(4px);box-shadow:0 3px 0 rgba(0,0,0,.12)">🔊</button>
   </div>
   <div class="coins-bar">
     <div class="coin-display"><span class="coin-icon">🪙</span> <span id="coin-count">0</span></div>
-    <button class="nav-btn shop" onclick="showScreen('shop-screen')">🛒 <span id="nav-shop-txt">المتجر</span></button>
-    <button class="nav-btn badges" onclick="showScreen('badge-screen')">🏅 <span id="nav-badge-txt">الإنجازات</span></button>
+    <button class="nav-btn shop" id="nav-shop-btn">🛒 <span id="nav-shop-txt">المتجر</span></button>
+    <button class="nav-btn badges" id="nav-badge-btn">🏅 <span id="nav-badge-txt">الإنجازات</span></button>
+  </div>
+  <div class="ws-sub" id="ws-s">اختر عالمك وانطلق في المغامرة!</div>
+  <div class="world-grid" id="world-grid"></div>
+</div>
+
+<!-- LEVEL SELECT -->
+<div id="lvl-screen" class="screen">
+  <div style="display:flex;align-items:center;justify-content:space-between;width:100%;max-width:540px">
+    <div class="ls-title" id="ls-t">🧠 مملكة الذاكرة</div>
+    <button class="mute-btn" id="ls-mute" style="background:rgba(255,255,255,.2);border:none;border-radius:12px;padding:8px 12px;font-size:clamp(18px,3.5vmin,24px);cursor:pointer;backdrop-filter:blur(4px);box-shadow:0 3px 0 rgba(0,0,0,.12)">🔊</button>
   </div>
   <div class="ls-sub" id="ls-s">اختر المستوى لتبدأ!</div>
   <div class="ls-grid" id="ls-g"></div>
+  <div class="g-foot"><button class="f-btn" id="ls-back">🗺️ الخريطة</button></div>
 </div>
 
 <!-- SHOP -->
@@ -327,7 +431,7 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',Tahoma,G
   <div class="shop-title" id="shop-t">🛒 المتجر</div>
   <div class="shop-coins"><span class="coin-icon">🪙</span> <span id="shop-coins">0</span></div>
   <div class="shop-grid" id="shop-grid"></div>
-  <div class="g-foot"><button class="f-btn" onclick="showScreen('lvl-screen')">🏠 رجوع</button></div>
+  <div class="g-foot"><button class="f-btn" id="shop-back">🗺️ رجوع</button></div>
 </div>
 
 <!-- BADGES -->
@@ -335,7 +439,7 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',Tahoma,G
   <div class="badge-title" id="badge-t">🏅 الإنجازات</div>
   <div class="badge-sub" id="badge-sub">0/10</div>
   <div class="badge-grid" id="badge-grid"></div>
-  <div class="g-foot"><button class="f-btn" onclick="showScreen('lvl-screen')">🏠 رجوع</button></div>
+  <div class="g-foot"><button class="f-btn" id="badge-back">🗺️ رجوع</button></div>
 </div>
 
 <!-- GAME -->
@@ -352,6 +456,11 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',Tahoma,G
       <div class="g-stat"><div class="g-sv" id="g-tm">0:00</div><div class="g-sl" id="g-tml">الوقت</div></div>
     </div>
   </div>
+  <div class="boss-hp" id="boss-hp">
+    <span class="boss-hp-emoji" id="boss-hp-emoji">👹</span>
+    <div class="boss-hp-bar"><div class="boss-hp-fill" id="boss-hp-fill" style="width:100%"></div></div>
+    <span class="boss-hp-text" id="boss-hp-text">3/3</span>
+  </div>
   <div style="display:flex;gap:6px;align-items:center;flex-shrink:0;position:relative;z-index:12"><div class="mech-info" id="mech-info" style="display:none"></div><div class="dda-badge normal" id="dda-badge" style="display:none"></div></div>
   <div class="cd-wrap" id="cd-wrap" style="display:none">
     <div class="cd-hdr"><span class="cd-txt" id="cd-text">⏱️ 2:00</span><span class="cd-txt" id="cd-label"></span></div>
@@ -363,8 +472,8 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',Tahoma,G
   </div>
   <p class="hint" id="hint">اضغط على أي بطاقة للبدء!</p>
   <div class="g-foot">
-    <button class="mute-btn" onclick="toggleMute()" style="background:none;border:none;font-size:clamp(20px,4vmin,28px);cursor:pointer;padding:4px 8px;color:rgba(255,255,255,.85);border-radius:8px">🔊</button>
-    <button class="f-btn" onclick="showScreen('lvl-screen')">🏠 رجوع</button>
+    <button class="mute-btn" id="game-mute" style="background:none;border:none;font-size:clamp(20px,4vmin,28px);cursor:pointer;padding:4px 8px;color:rgba(255,255,255,.85);border-radius:8px">🔊</button>
+    <button class="f-btn" id="game-back">🗺️ رجوع</button>
   </div>
 </div>
 
@@ -381,1222 +490,93 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',Tahoma,G
   </div>
   <div class="coin-earned" id="d-coins" style="display:none"><span class="coin-icon">🪙</span> +<span id="d-coins-val">0</span></div>
   <div class="d-btns">
-    <button class="d-btn pri" id="d-nx" onclick="nextLevel()">➡️ التالي</button>
-    <button class="d-btn shr" id="d-sh" onclick="shareResult()">📤 مشاركة</button>
-    <button class="d-btn sec" onclick="replayLevel()">🔄 إعادة</button>
-    <button class="d-btn sec" onclick="showScreen('lvl-screen')">🏠 المستويات</button>
+    <button class="d-btn pri" id="d-nx">➡️ التالي</button>
+    <button class="d-btn shr" id="d-sh">📤 مشاركة</button>
+    <button class="d-btn sec" id="d-rp">🔄 إعادة</button>
+    <button class="d-btn sec" id="d-wm">🗺️ الخريطة</button>
+    <button class="d-btn sec" id="d-lv">📋 المستويات</button>
   </div>
 </div>
 
-<!-- ===== ROYAL MATCH 3D PARTICLE SYSTEM ===== -->
-<script>
-(function(){
-const c=document.createElement('canvas');
-c.style.cssText='position:fixed;inset:0;pointer-events:none;z-index:9999';
-document.body.appendChild(c);
-const ctx=c.getContext('2d');
-let P=[],raf=null;
-function resize(){c.width=innerWidth;c.height=innerHeight}
-addEventListener('resize',resize);resize();
+<!-- ===== MODULE BOOTSTRAP ===== -->
+<script type="module">
+import { LANG, t } from './memory-modules/config.js';
+import { WORLDS, LEVELS } from './memory-modules/worlds.js';
+import { setSoundMuteGetter, showScreen } from './memory-modules/ui.js';
+import {
+  soundMuted, initMute, toggleMute,
+  renderWorldMap, enterWorld, renderLevelSelect,
+  startLevel, flipCard, clearFog,
+  earnCoins, updateCoinDisplays,
+  renderShop, renderBadges,
+  endGame, nextLevel, replayLevel, shareResult,
+  goToWorldMap, goToLevels, renderCardsNow
+} from './memory-modules/core.js';
 
-window.spawnConfetti=function(x,y,n){
-  n=n||40;
-  const cols=['#FF6B6B','#4ECDC4','#45B7D1','#FFEAA7','#DDA0DD','#FF69B4','#98D8C8','#F7DC6F','#BB8FCE','#85C1E9','#F8C471','#82E0AA'];
-  for(let i=0;i<n;i++){
-    P.push({x:x||Math.random()*c.width,y:y||c.height*.3,
-      vx:(Math.random()-.5)*14,vy:-Math.random()*16-3,
-      w:Math.random()*10+4,h:Math.random()*6+3,
-      color:cols[Math.floor(Math.random()*cols.length)],
-      rot:Math.random()*360,rs:(Math.random()-.5)*15,
-      g:.25+Math.random()*.2,life:1,d:.006+Math.random()*.007})}
-  if(!raf)loop()};
+// Wire sound mute getter
+setSoundMuteGetter(() => soundMuted);
 
-window.spawnFirework=function(x,y){
-  const cols=['#FFD700','#FF4500','#00FF7F','#1E90FF','#FF69B4','#FFA500','#E74C3C','#2ECC71','#9B59B6','#F39C12'];
-  const col=cols[Math.floor(Math.random()*cols.length)];
-  for(let i=0;i<50;i++){
-    const a=(i/50)*Math.PI*2,sp=2+Math.random()*6;
-    P.push({t:'fw',x:x,y:y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,
-      r:1.5+Math.random()*3,color:col,life:1,d:.012+Math.random()*.012,g:.06})}
-  if(!raf)loop()};
-
-window.spawn3DStars=function(x,y,n){
-  const em=['\u2b50','\ud83c\udf1f','\u2728','\ud83d\udcab','\ud83c\udf86','\ud83d\udc8e','\ud83c\udfc6','\ud83c\udf89','\ud83c\udf8a','\ud83d\udc51'];
-  for(let i=0;i<(n||8);i++){
-    P.push({t:'em',x:x+(Math.random()-.5)*100,y:y,
-      vx:(Math.random()-.5)*6,vy:-Math.random()*10-3,
-      em:em[Math.floor(Math.random()*em.length)],
-      sz:18+Math.random()*24,life:1,d:.009,g:.12,rot:0,rs:(Math.random()-.5)*10})}
-  if(!raf)loop()};
-
-window.royalCelebration=function(stars){
-  stars=stars||1;
-  for(let w=0;w<Math.min(stars+1,4);w++)
-    setTimeout(()=>{
-      spawnConfetti(c.width*(.2+Math.random()*.6),c.height*(.2+Math.random()*.2),25+stars*10);
-    },w*350);
-  for(let f=0;f<Math.min(stars,3);f++)
-    setTimeout(()=>{
-      spawnFirework(c.width*(.15+Math.random()*.7),c.height*(.1+Math.random()*.25));
-    },200+f*600);
-  setTimeout(()=>spawn3DStars(c.width/2,c.height*.45,stars*4),100);
-};
-
-function loop(){
-  ctx.clearRect(0,0,c.width,c.height);
-  for(let i=P.length-1;i>=0;i--){
-    const p=P[i];
-    p.life-=p.d;
-    if(p.life<=0){P.splice(i,1);continue}
-    p.vy+=(p.g||.2);p.x+=p.vx;p.y+=p.vy;p.rot=(p.rot||0)+(p.rs||0);
-    ctx.save();ctx.globalAlpha=Math.min(1,p.life*1.5);
-    ctx.translate(p.x,p.y);ctx.rotate((p.rot||0)*Math.PI/180);
-    if(p.t==='fw'){
-      ctx.beginPath();ctx.arc(0,0,p.r*p.life,0,Math.PI*2);ctx.fillStyle=p.color;ctx.fill();
-      ctx.globalAlpha=p.life*.3;ctx.beginPath();ctx.arc(-p.vx*.5,-p.vy*.5,p.r*p.life*.6,0,Math.PI*2);ctx.fill();
-    } else if(p.t==='em'){
-      ctx.font=p.sz+'px serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(p.em,0,0);
-    } else {
-      ctx.fillStyle=p.color;ctx.fillRect(-p.w/2,-p.h/2,p.w,p.h);
-    }
-    ctx.restore()}
-  raf=P.length>0?requestAnimationFrame(loop):null}
-})();
-</script>
-
-<!-- ===== DYNAMIC BACKGROUND ANIMATION SYSTEM ===== -->
-<script>
-(function(){
-const bgC=document.getElementById('bg-canvas');
-if(!bgC)return;
-const bgX=bgC.getContext('2d');
-let parts=[],grp=-1,raf=null,active=false;
-
-const FX=[
-  // Group 0: Nature — floating leaves, butterflies
-  {e:['🍃','🌿','🦋','🐝','🌸','☘️','🌻','🍀','🌺','🐞'],n:22,sp:0.35,t:'float'},
-  // Group 1: Ocean — rising bubbles, fish
-  {e:['🫧','💧','🐟','🐠','🐚','🌊','🪸','🐬','🐡','🦈'],n:26,sp:0.5,t:'rise'},
-  // Group 2: City/Food — twinkling sparkles
-  {e:['✨','⭐','🌟','💫','🎆','🎇','🎪','🎠','🎡','🎢'],n:20,sp:0.25,t:'twinkle'},
-  // Group 3: Adventure — shooting stars, meteors
-  {e:['⭐','💫','☄️','✨','🌟','🔥','💥','🌠','🏹','⚔️'],n:14,sp:1.2,t:'shoot'},
-  // Group 4: Tech — matrix falling code
-  {e:['⚡','💎','🔮','💠','🤖','⚙️','📡','💾','🔬','💻'],n:32,sp:0.45,t:'fall'},
-];
-
-function resize(){
-  const p=bgC.parentElement;
-  if(p){bgC.width=p.clientWidth;bgC.height=p.clientHeight}
+// ===== i18n static text =====
+document.getElementById('ws-t').textContent = t.title || '🧠 مملكة الذاكرة';
+document.getElementById('ws-s').textContent = t.selectWorld || 'اختر العالم لتبدأ المغامرة!';
+document.getElementById('ls-t').textContent = t.title || '🧠 مملكة الذاكرة';
+document.getElementById('ls-s').textContent = t.selectLevel || 'اختر المستوى';
+document.getElementById('g-mvl').textContent = t.moves || 'المحاولات';
+document.getElementById('g-prl').textContent = t.pairs || 'الأزواج';
+document.getElementById('g-tml').textContent = t.time || 'الوقت';
+document.getElementById('d-scl').textContent = t.score || 'النقاط';
+document.getElementById('d-mvl2').textContent = t.moves || 'المحاولات';
+document.getElementById('d-tml').textContent = t.time || 'الوقت';
+document.getElementById('d-nx').textContent = t.next || '➡️ التالي';
+document.getElementById('d-sh').textContent = t.share || '📤 مشاركة';
+document.getElementById('d-rp').textContent = t.again || '🔄 إعادة';
+document.getElementById('d-wm').textContent = t.worlds || '🗺️ العوالم';
+document.getElementById('d-lv').textContent = t.levels || '🏠 المستويات';
+if (t.shop) {
+  document.getElementById('nav-shop-txt').textContent = t.shop.replace(/🛒\s*/, '');
+  document.getElementById('shop-t').textContent = t.shop;
+}
+if (t.badges) {
+  document.getElementById('nav-badge-txt').textContent = t.badges.replace(/🏅\s*/, '');
+  document.getElementById('badge-t').textContent = t.badges;
 }
 
-function mkP(fx,init){
-  const w=bgC.width||innerWidth,h=bgC.height||innerHeight;
-  const p={
-    x:Math.random()*w,
-    y:init?Math.random()*h:(fx.t==='fall'||fx.t==='shoot'?-30:h+30),
-    e:fx.e[Math.floor(Math.random()*fx.e.length)],
-    sz:10+Math.random()*16,
-    sp:fx.sp*(0.4+Math.random()*0.8),
-    op:0.12+Math.random()*0.35,
-    ph:Math.random()*Math.PI*2,
-    dr:(Math.random()-0.5)*0.25,
-    rot:0,rs:(Math.random()-0.5)*0.5
-  };
-  if(fx.t==='shoot'){p.vx=-0.8-Math.random()*1.5;p.vy=0.4+Math.random()*1.2}
-  return p;
-}
+// ===== Button wiring (no inline onclick) =====
+// World screen
+document.getElementById('ws-mute').onclick = toggleMute;
+document.getElementById('nav-shop-btn').onclick = () => { renderShop(); showScreen('shop-screen'); };
+document.getElementById('nav-badge-btn').onclick = () => { renderBadges(); showScreen('badge-screen'); };
 
-function loop(){
-  if(!active){raf=null;return}
-  const w=bgC.width,h=bgC.height;
-  bgX.clearRect(0,0,w,h);
-  const fx=FX[grp];
-  if(!fx){raf=requestAnimationFrame(loop);return}
+// Level screen
+document.getElementById('ls-mute').onclick = toggleMute;
+document.getElementById('ls-back').onclick = goToWorldMap;
 
-  for(let i=0;i<parts.length;i++){
-    const p=parts[i];
-    p.ph+=0.015;
-    p.rot+=p.rs;
+// Shop / Badge back
+document.getElementById('shop-back').onclick = goToWorldMap;
+document.getElementById('badge-back').onclick = goToWorldMap;
 
-    if(fx.t==='float'){
-      p.y-=p.sp;p.x+=Math.sin(p.ph)*0.4+p.dr;
-      if(p.y<-40){Object.assign(p,mkP(fx,false));p.y=h+30}
-    } else if(fx.t==='rise'){
-      p.y-=p.sp;p.x+=Math.sin(p.ph)*0.55;
-      p.sz+=Math.sin(p.ph*2)*0.03;
-      if(p.y<-40){Object.assign(p,mkP(fx,false));p.y=h+30}
-    } else if(fx.t==='twinkle'){
-      p.op=0.08+Math.abs(Math.sin(p.ph))*0.45;
-      p.sz=10+Math.sin(p.ph*1.3)*5;
-      p.y-=p.sp*0.15;
-      if(p.y<-40){Object.assign(p,mkP(fx,false));p.y=h+30;p.x=Math.random()*w}
-    } else if(fx.t==='shoot'){
-      p.x+=p.vx;p.y+=p.vy;
-      if(p.x<-50||p.y>h+50){Object.assign(p,mkP(fx,false));p.y=-30;p.x=Math.random()*w}
-    } else if(fx.t==='fall'){
-      p.y+=p.sp;
-      p.op=0.08+Math.abs(Math.sin(p.ph))*0.3;
-      if(p.y>h+40){Object.assign(p,mkP(fx,false));p.y=-30;p.x=Math.random()*w}
-    }
+// Game screen
+document.getElementById('game-mute').onclick = toggleMute;
+document.getElementById('game-back').onclick = goToLevels;
 
-    bgX.save();
-    bgX.globalAlpha=p.op;
-    bgX.translate(p.x,p.y);
-    bgX.rotate(p.rot*Math.PI/180);
-    bgX.font=Math.round(p.sz)+'px serif';
-    bgX.textAlign='center';bgX.textBaseline='middle';
-    bgX.fillText(p.e,0,0);
-    bgX.restore();
-  }
-  raf=requestAnimationFrame(loop);
-}
+// Done screen buttons
+document.getElementById('d-nx').onclick = nextLevel;
+document.getElementById('d-sh').onclick = shareResult;
+document.getElementById('d-rp').onclick = replayLevel;
+document.getElementById('d-wm').onclick = goToWorldMap;
+document.getElementById('d-lv').onclick = goToLevels;
 
-window.initBg=function(g){
-  grp=g;parts=[];active=true;
-  resize();
-  const fx=FX[g];
-  if(fx){for(let i=0;i<fx.n;i++)parts.push(mkP(fx,true))}
-  if(!raf)loop();
-};
-
-window.stopBg=function(){
-  active=false;grp=-1;
-  if(bgC.width)bgX.clearRect(0,0,bgC.width,bgC.height);
-};
-
-addEventListener('resize',function(){
-  resize();
-  if(active&&grp>=0){
-    const fx=FX[grp];
-    if(fx){
-      parts=[];
-      for(let i=0;i<fx.n;i++)parts.push(mkP(fx,true));
-    }
+// Resize handler
+window.addEventListener('resize', () => {
+  if (document.getElementById('game-screen').classList.contains('active')) {
+    renderCardsNow();
   }
 });
-})();
-</script>
-
-<!-- ===== MAIN GAME ===== -->
-<script>
-// ===== i18n =====
-const LANG=new URLSearchParams(location.search).get('lang')||'ar';
-document.documentElement.lang=LANG;document.documentElement.dir=LANG==='ar'?'rtl':'ltr';
-const I={
-ar:{title:'🧠 لعبة الذاكرة',sub:'اختر المستوى لتبدأ!',moves:'المحاولات',pairs:'الأزواج',sets:'المجموعات',time:'الوقت',hint:'اضغط على أي بطاقة للبدء!',score:'النقاط',congrats:'مبروك!',excellent:'🌟 ممتاز!',great:'🎉 أحسنت!',good:'👍 جيد!',tryMore:'💪 حاول أكثر!',done:'أتممت المستوى!',next:'➡️ التالي',share:'📤 مشاركة',again:'🔄 إعادة',levels:'🏠 المستويات',back:'🏠 رجوع',locked:'🔒',mech:{timed:'⏱️ تذكّر!',moving:'🔀 متحركة!',masked:'🎭 مُقنّعة!',fog:'🌫️ ضباب!',triple:'🔱 ثلاثي!',boss:'👑 الزعيم!'},mechHint:{timed:'تذكر مواقع البطاقات!',moving:'البطاقات تتبدل كل ٣ محاولات!',masked:'بعض البطاقات تخدعك!',fog:'اضغط الضباب أولاً!',triple:'طابق ٣ بطاقات متشابهة!',boss:'كل التحديات + مؤقت!'},timeUp:'⏰ انتهى الوقت!',remember:'👀 تذكّر!',shuffling:'🔀 تبديل...',
-shareText:'حققت {score} نقطة في المستوى {level} من لعبة الذاكرة! ⭐{stars}',dda:{easy:'🟢 سهل',normal:'🔵 عادي',hard:'🔴 صعب'},hintMsg:'💡 تلميح!',
-shop:'🛒 المتجر',badges:'🏅 الإنجازات',coinsEarned:'+{n} عملة',buy:'شراء',equip:'تجهيز',equipped:'✅ مجهز',cantAfford:'لا يكفي',owned:'مملوك',newBadge:'🎉 إنجاز جديد!',badgeCount:'{n}/{total} إنجاز',
-badgeNames:['🐣 أول خطوة','⭐ جامع النجوم','🌟 سيد النجوم','🏆 جولة مثالية','🌿 مستكشف الطبيعة','🌊 غواص المحيط','🏙️ متجول المدينة','⚔️ المغامر','🤖 عبقري التقنية','👑 بطل العالم'],
-badgeDescs:['أكمل أول مستوى','اجمع 10 نجوم','اجمع 30 نجمة','احصل على 3 نجوم','أكمل مستويات 1-4','أكمل مستويات 5-8','أكمل مستويات 9-12','أكمل مستويات 13-16','أكمل مستويات 17-20','أكمل كل المستويات'],
-themeNames:['افتراضي','✨ مجرّة','🍬 حلوى','💎 ألماس','🔥 نار','🌈 قوس قزح'],
-lvNames:['مزرعة الحيوانات','سلة الفواكه','عالم البحار','حديقة الحشرات','سماء وطقس','حديقة الورد','وادي الخضار','مطبخ لذيذ','عالم المركبات','استكشاف الفضاء','ملعب الرياضة','عالم الموسيقى','رحلة السفاري','عالم الطيور','ورشة الأدوات','عالم الأزياء','مدينة المباني','يوم المدرسة','عالم التقنية','🌍 بطل العالم']},
-en:{title:'🧠 Memory Match',sub:'Choose a level to start!',moves:'Moves',pairs:'Pairs',sets:'Sets',time:'Time',hint:'Tap any card to start!',score:'Score',congrats:'Congrats!',excellent:'🌟 Excellent!',great:'🎉 Great!',good:'👍 Good!',tryMore:'💪 Try More!',done:'Level complete!',next:'➡️ Next',share:'📤 Share',again:'🔄 Replay',levels:'🏠 Levels',back:'🏠 Back',locked:'🔒',mech:{timed:'⏱️ Peek!',moving:'🔀 Moving!',masked:'🎭 Masked!',fog:'🌫️ Fog!',triple:'🔱 Triple!',boss:'👑 Boss!'},mechHint:{timed:'Memorize the cards!',moving:'Cards shuffle every 3 moves!',masked:'Some cards trick you first!',fog:'Tap fog to reveal!',triple:'Match 3 cards!',boss:'All challenges + timer!'},timeUp:'⏰ Time\'s up!',remember:'👀 Remember!',shuffling:'🔀 Shuffling...',
-shareText:'I scored {score} on Level {level} in Memory Match! ⭐{stars}',dda:{easy:'🟢 Easy',normal:'🔵 Normal',hard:'🔴 Hard'},hintMsg:'💡 Hint!',
-shop:'🛒 Shop',badges:'🏅 Badges',coinsEarned:'+{n} coins',buy:'Buy',equip:'Equip',equipped:'✅ Equipped',cantAfford:'Not enough',owned:'Owned',newBadge:'🎉 New Badge!',badgeCount:'{n}/{total} badges',
-badgeNames:['🐣 First Steps','⭐ Star Collector','🌟 Star Master','🏆 Perfect Round','🌿 Nature Explorer','🌊 Ocean Diver','🏙️ City Walker','⚔️ Adventurer','🤖 Tech Wizard','👑 World Champion'],
-badgeDescs:['Complete first level','Earn 10 stars','Earn 30 stars','Get 3 stars on any level','Complete levels 1-4','Complete levels 5-8','Complete levels 9-12','Complete levels 13-16','Complete levels 17-20','Complete all 20 levels'],
-themeNames:['Default','✨ Galaxy','🍬 Candy','💎 Diamond','🔥 Fire','🌈 Rainbow'],
-lvNames:['Farm Friends','Fruit Basket','Ocean World','Bug Garden','Sky Watch','Flower Garden','Veggie Valley','Yummy Kitchen','On the Move','Space Quest','Sports Arena','Music Studio','Wild Safari','Bird Paradise','Tool Workshop','Fashion Show','City Builder','School Days','Tech World','🌍 World Champion']},
-pt:{title:'🧠 Jogo da Memória',sub:'Escolha um nível!',moves:'Jogadas',pairs:'Pares',sets:'Conjuntos',time:'Tempo',hint:'Toque para começar!',score:'Pontos',congrats:'Parabéns!',excellent:'🌟 Excelente!',great:'🎉 Muito Bem!',good:'👍 Bom!',tryMore:'💪 Tente Mais!',done:'Nível completo!',next:'➡️ Próximo',share:'📤 Compartilhar',again:'🔄 Repetir',levels:'🏠 Níveis',back:'🏠 Voltar',locked:'🔒',mech:{timed:'⏱️ Memorize!',moving:'🔀 Mover!',masked:'🎭 Mascarado!',fog:'🌫️ Névoa!',triple:'🔱 Triplo!',boss:'👑 Chefe!'},mechHint:{timed:'Memorize as cartas!',moving:'Cartas mudam a cada 3!',masked:'Algumas enganam primeiro!',fog:'Toque a névoa primeiro!',triple:'Combine 3 cartas!',boss:'Todos desafios + tempo!'},timeUp:'⏰ Tempo esgotado!',remember:'👀 Lembre-se!',shuffling:'🔀 Movendo...',
-shareText:'Fiz {score} pontos no Nível {level} do Jogo da Memória! ⭐{stars}',dda:{easy:'🟢 Fácil',normal:'🔵 Normal',hard:'🔴 Difícil'},hintMsg:'💡 Dica!',
-shop:'🛒 Loja',badges:'🏅 Conquistas',coinsEarned:'+{n} moedas',buy:'Comprar',equip:'Equipar',equipped:'✅ Equipado',cantAfford:'Sem moedas',owned:'Comprado',newBadge:'🎉 Nova Conquista!',badgeCount:'{n}/{total} conquistas',
-badgeNames:['🐣 Primeiros Passos','⭐ Coletor de Estrelas','🌟 Mestre Estelar','🏆 Rodada Perfeita','🌿 Explorador Natural','🌊 Mergulhador','🏙️ Caminhante Urbano','⚔️ Aventureiro','🤖 Gênio Tech','👑 Campeão Mundial'],
-badgeDescs:['Complete o primeiro nível','Ganhe 10 estrelas','Ganhe 30 estrelas','3 estrelas em um nível','Complete níveis 1-4','Complete níveis 5-8','Complete níveis 9-12','Complete níveis 13-16','Complete níveis 17-20','Complete todos 20 níveis'],
-themeNames:['Padrão','✨ Galáxia','🍬 Doce','💎 Diamante','🔥 Fogo','🌈 Arco-íris'],
-lvNames:['Amigos da Fazenda','Cesta de Frutas','Mundo do Mar','Jardim de Insetos','Céu e Clima','Jardim de Flores','Vale dos Vegetais','Cozinha Gostosa','Em Movimento','Missão Espacial','Arena Esportiva','Estúdio Musical','Safari Selvagem','Paraíso dos Pássaros','Oficina de Ferramentas','Desfile de Moda','Construtor de Cidades','Dia Escolar','Mundo Tech','🌍 Campeão Mundial']}
-};
-const t=I[LANG]||I.en;
-
-// ===== 1000+ EDUCATIONAL SYMBOLS =====
-const POOL={
-farm:['🐄','🐷','🐑','🐐','🐴','🐔','🐓','🦃','🐤','🐣','🦆','🐕','🐈','🐰','🐇','🐹','🐭','🐿','🦔','🐶','🐱','🐮','🐖','🐗','🐽','🐏','🐪','🐫','🦙','🐎','🐥','🕊','🐩','🐾','🦝','🦡','🦨','🦥','🦦','🐻','🐨','🐼','🦊','🐺','🦫','🐂','🐃','🦄','🐁','🐀'],
-fruit:['🍎','🍏','🍐','🍊','🍋','🍌','🍉','🍇','🍓','🍈','🍑','🍒','🥝','🥥','🍍','🥭','🍅','🥑','🫐','🫒','🥕','🍆','🌶','🌽','🥒','🥬','🧅','🧄','🥜','🌰','🍄','🍠','🥦','🥗','🥣','🫙','🥫','🥔','🫑','🧆','🥙','🫓','🥯','🍞','🥖','🥨','🧀','🥚','🧈','🍋‍🟩'],
-sea:['🐟','🐠','🐡','🦈','🐬','🐳','🐋','🦭','🐙','🦑','🦐','🦀','🦞','🐚','🪸','🪼','🐊','🐢','🐍','🦎','🐸','🐲','🐉','🦕','🦖','🐳','🐋','🦈','🐬','🐙','🦑','🐠','🐟','🐡','🦐','🦀','🦞','🐚','🐢','🐊','🐍','🐸','🦎','🪸','🪼','🦭','🐉','🐲','🦕','🦖'],
-bug:['🦋','🐛','🐝','🐞','🦗','🕷','🦂','🐜','🪲','🪳','🦟','🪰','🐌','🪱','🌿','🍀','🍁','🍂','🍃','🌱','🌲','🌳','🌴','🌵','🌾','🪴','🎋','🎍','🍄','🌻','🌸','🌹','🌺','🌼','🌷','💐','🪻','🪷','🐦','🕊','🦋','🐛','🐝','🐞','🦗','🐜','🪲','🐌','🪱','🕷'],
-weather:['☀️','🌤','⛅','🌥','☁️','🌦','🌧','⛈','🌩','🌨','❄️','☃️','⛄','🌬','💨','🌊','🌈','🌪','🌫','💧','💦','🌡','🔥','⭐','🌟','💫','✨','☄️','🌙','🌛','🌜','🌚','🌝','🌞','🌕','🌖','🌗','🌘','🌑','🌒','🌓','🌔','🌅','🌄','🌇','🌆','🏙','🌃','🌌','🌠'],
-flower:['🌸','🌹','🌺','🌻','🌼','🌷','💐','🪻','🪷','🌱','🌲','🌳','🌴','🌵','🌾','🍀','☘️','🍁','🍂','🍃','🪴','🎋','🎍','🪹','🪺','🍄','🌿','🎄','💮','🏵','🌸','🌹','🌺','🌻','🌼','🌷','💐','🪻','🪷','🌱','🌲','🌳','🌴','🌵','🍀','☘️','🍁','🍂','🍃','🪴'],
-veggie:['🥕','🥦','🌽','🥒','🥬','🧅','🧄','🥔','🍆','🌶','🫑','🥜','🌰','🍄','🍠','🫘','🫛','🥗','🧆','🥙','🌱','🥕','🥦','🌽','🥒','🥬','🧅','🧄','🥔','🍆','🌶','🫑','🥜','🌰','🍄','🍠','🫘','🫛','🥗','🧆','🌿','🍀','🌾','🌻','🌼','🪴','🧂','🫙','🥫','🧈'],
-food:['🍕','🍔','🌮','🌯','🥚','🍳','🥘','🍲','🍿','🍱','🍘','🍙','🍚','🍛','🍜','🍝','🍠','🍢','🍣','🍤','🍥','🥮','🍡','🥟','🥠','🥡','🧁','🍰','🎂','🍮','🍭','🍬','🍫','🍩','🍪','🍯','🥐','🥖','🧇','🥞','🧈','🫕','🫔','🥣','🫗','🍿','🍱','🧆','🥙','🫓'],
-vehicle:['🚗','🚕','🚙','🚌','🚎','🏎','🚓','🚑','🚒','🚐','🛻','🚚','🚛','🚜','🏍','🛵','🚲','🛴','🛹','🛼','🚁','🛸','🚀','🛩','✈️','🛫','🛬','🚢','⛵','🛶','🚤','🛥','🛳','⛴','🚂','🚃','🚄','🚅','🚆','🚇','🚈','🚉','🚊','🚝','🚞','🚋','🚠','🚡','🛰','🚏'],
-space:['🌍','🌎','🌏','🌑','🌒','🌓','🌔','🌕','🌖','🌗','🌘','🌙','🌚','🌛','🌜','🌝','🌞','☀️','⭐','🌟','💫','✨','☄️','🪐','🔭','🔬','🧲','🧪','🧫','🧬','💡','🔦','🕯','🪔','🔋','⚡','🛸','🚀','🛰','📡','🌌','🌠','🎆','🎇','💥','🔥','💧','🌊','🌀','🌈'],
-sport:['⚽','🏀','🏈','⚾','🥎','🎾','🏐','🏉','🥏','🎱','🏓','🏸','🏒','🥍','🏏','🥅','⛳','🪁','🏹','🎯','🥊','🥋','🎿','⛷','🏂','🏋️','🤸','🤺','🤾','🏌️','🏇','🧘','🧗','🤿','🏄','🏊','🚣','🎽','🏅','🥇','🥈','🥉','🏆','🎖','🎪','🎠','🎡','🎢','🛝','⛺'],
-music:['🎵','🎶','🎼','🎹','🎸','🎺','🎻','🥁','🪘','🪗','🎷','🎤','🎧','📯','🪈','🎬','🎭','🎨','🖌','🖍','✏️','🖊','🖋','📝','🎪','🎠','🎲','🎯','🎳','🎰','🎮','🕹','📺','📻','📸','🎥','📹','📽','🎞','🎟','💿','📀','💽','📱','🖥','⌨️','🖱','🖨','📢','📣'],
-wild:['🦁','🐯','🐅','🐆','🦒','🦓','🐘','🦛','🦏','🐻','🦊','🐺','🦌','🦬','🦣','🦧','🦍','🐒','🐵','🙈','🙉','🙊','🦘','🦥','🦨','🦡','🦝','🦦','🐻‍❄️','🐼','🐨','🐾','🐊','🐢','🐍','🦎','🐸','🐲','🐉','🦕','🦖','🦋','🐝','🐞','🦅','🦉','🐧','🦜','🦚','🦩'],
-bird:['🦅','🦆','🦉','🦜','🐧','🦚','🦢','🦩','🦤','🪶','🐦','🕊','🦃','🐔','🐓','🐤','🐣','🐥','🦅','🦆','🦉','🦜','🐧','🦚','🦢','🦩','🪶','🐦','🕊','🦃','🐔','🐓','🐤','🐣','🐥','🦤','🪹','🪺','🥚','🐾','🌿','🍀','🌲','🌳','☁️','🌤','⛅','🌈','🌅','🏔'],
-tool:['🔨','🪓','⛏','🔧','🪛','🔩','⚙️','🗜','🪚','📏','📐','✂️','🖊','🖋','✒️','🔑','🗝','🔒','🔓','🪤','🧲','🪝','🧰','🪜','🪣','🧹','🧺','🧻','🪠','🧼','🧽','🪥','🪒','🔋','🔌','💡','🔦','🕯','🪔','🧯','🪤','📌','📍','🗂','📁','📂','🗃','📎','🖇','🗑'],
-fashion:['👕','👖','🧣','🧤','🧥','🧦','👗','👘','🥻','🩱','🩲','🩳','👙','👚','👛','👜','👝','🎒','🩴','👞','👟','🥾','🥿','👠','👡','🩰','👢','👑','👒','🎩','🪖','⛑️','💄','💍','💎','👓','🕶','🥽','📿','🧢','👕','👖','🧣','🧥','👗','👘','🎒','👟','🥾','👠'],
-building:['🏠','🏡','🏢','🏣','🏤','🏥','🏦','🏨','🏩','🏪','🏫','🏬','🏭','🏯','🏰','🕌','🕍','⛪','🕋','🛕','⛩','🏗','🏚','🗼','🗽','🗾','🎑','⛲','⛺','🏛','🏟','🗺','🏖','🏜','🏝','🏞','🏔','⛰','🌋','🌁','🌉','🌅','🌄','🌇','🌆','🏙','🌃','🗻','🎪','🎡'],
-school:['📚','📖','📝','📒','📓','📔','📕','📗','📘','📙','📄','📃','📋','📎','📏','📐','✂️','✏️','🖊','🖋','🖍','🔗','📌','📍','🗂','📁','📂','🗃','🗄','🗑','📰','🗞','📊','📈','📉','🗒','🗓','📆','📅','🔖','📮','📬','📭','📪','📫','✉️','📩','📨','📧','💌'],
-tech:['💻','🖥','🖨','⌨️','🖱','💽','💾','💿','📱','📲','📷','📸','📹','📺','📻','📡','🔌','🔋','💡','📟','📠','🕹','🎮','🎧','🔬','🔭','📡','🛰','💻','🖥','⌨️','🖱','📱','📲','📷','📹','📺','📻','🔌','🔋','💡','🕹','🎮','🎧','🔬','🔭','🛰','📡','⌚','🤖'],
-mix:['🐄','🍎','🐟','🦋','☀️','🌸','🥕','🍕','🚗','🌍','⚽','🎵','🦁','🦅','🔨','👕','🏠','📚','💻','🎉','🐷','🍊','🐬','🐝','🌈','🌹','🌽','🍔','🚌','🪐','🏀','🎸','🐯','🦉','🔧','👗','🏫','📖','📱','🎊','🐴','🍇','🐙','🐞','⭐','🌻','🍆','🍰','✈️','🚀']
-};
-
-// ===== THEMES (base per level) =====
-const THEMES=[
-  {bg:'linear-gradient(135deg,#86efac,#22c55e)',cf1:'#16a34a',cf2:'#15803d'},
-  {bg:'linear-gradient(135deg,#fca5a5,#ef4444)',cf1:'#dc2626',cf2:'#b91c1c'},
-  {bg:'linear-gradient(135deg,#67e8f9,#0891b2)',cf1:'#0891b2',cf2:'#0e7490'},
-  {bg:'linear-gradient(135deg,#a3e635,#65a30d)',cf1:'#65a30d',cf2:'#4d7c0f'},
-  {bg:'linear-gradient(135deg,#93c5fd,#3b82f6)',cf1:'#3b82f6',cf2:'#2563eb'},
-  {bg:'linear-gradient(135deg,#f9a8d4,#ec4899)',cf1:'#ec4899',cf2:'#be185d'},
-  {bg:'linear-gradient(135deg,#86efac,#16a34a)',cf1:'#16a34a',cf2:'#15803d'},
-  {bg:'linear-gradient(135deg,#fdba74,#ea580c)',cf1:'#ea580c',cf2:'#c2410c'},
-  {bg:'linear-gradient(135deg,#cbd5e1,#475569)',cf1:'#475569',cf2:'#334155'},
-  {bg:'linear-gradient(135deg,#c4b5fd,#7c3aed)',cf1:'#7c3aed',cf2:'#6d28d9'},
-  {bg:'linear-gradient(135deg,#6ee7b7,#059669)',cf1:'#059669',cf2:'#047857'},
-  {bg:'linear-gradient(135deg,#d8b4fe,#9333ea)',cf1:'#9333ea',cf2:'#7e22ce'},
-  {bg:'linear-gradient(135deg,#fde68a,#d97706)',cf1:'#d97706',cf2:'#b45309'},
-  {bg:'linear-gradient(135deg,#7dd3fc,#0284c7)',cf1:'#0284c7',cf2:'#0369a1'},
-  {bg:'linear-gradient(135deg,#fb923c,#c2410c)',cf1:'#c2410c',cf2:'#9a3412'},
-  {bg:'linear-gradient(135deg,#f0abfc,#a855f7)',cf1:'#a855f7',cf2:'#9333ea'},
-  {bg:'linear-gradient(135deg,#a8a29e,#57534e)',cf1:'#57534e',cf2:'#44403c'},
-  {bg:'linear-gradient(135deg,#60a5fa,#2563eb)',cf1:'#2563eb',cf2:'#1d4ed8'},
-  {bg:'linear-gradient(135deg,#22d3ee,#0e7490)',cf1:'#0e7490',cf2:'#0891b2'},
-  {bg:'linear-gradient(135deg,#fb7185,#be123c)',cf1:'#be123c',cf2:'#9f1239'},
-];
-
-// ===== SUB-THEME VARIANTS (per group — randomly selected each play) =====
-const VARIANTS=[
-  // Group 0: Nature greens/springs
-  [
-    {bg:'linear-gradient(150deg,#bbf7d0,#4ade80)',cf1:'#22c55e',cf2:'#16a34a'},
-    {bg:'linear-gradient(120deg,#d9f99d,#84cc16)',cf1:'#65a30d',cf2:'#4d7c0f'},
-    {bg:'linear-gradient(160deg,#a7f3d0,#34d399)',cf1:'#059669',cf2:'#047857'},
-  ],
-  // Group 1: Ocean blues/teals
-  [
-    {bg:'linear-gradient(150deg,#a5f3fc,#22d3ee)',cf1:'#06b6d4',cf2:'#0891b2'},
-    {bg:'linear-gradient(120deg,#bfdbfe,#60a5fa)',cf1:'#2563eb',cf2:'#1d4ed8'},
-    {bg:'linear-gradient(160deg,#99f6e4,#14b8a6)',cf1:'#0d9488',cf2:'#0f766e'},
-  ],
-  // Group 2: City/Food warm
-  [
-    {bg:'linear-gradient(150deg,#fecaca,#f87171)',cf1:'#ef4444',cf2:'#dc2626'},
-    {bg:'linear-gradient(120deg,#fed7aa,#fb923c)',cf1:'#ea580c',cf2:'#c2410c'},
-    {bg:'linear-gradient(160deg,#fde68a,#f59e0b)',cf1:'#d97706',cf2:'#b45309'},
-  ],
-  // Group 3: Adventure golds/coppers
-  [
-    {bg:'linear-gradient(150deg,#fef08a,#eab308)',cf1:'#ca8a04',cf2:'#a16207'},
-    {bg:'linear-gradient(120deg,#fbbf24,#b45309)',cf1:'#92400e',cf2:'#78350f'},
-    {bg:'linear-gradient(160deg,#fed7aa,#ea580c)',cf1:'#c2410c',cf2:'#9a3412'},
-  ],
-  // Group 4: Tech purples/neons
-  [
-    {bg:'linear-gradient(150deg,#e9d5ff,#a855f7)',cf1:'#9333ea',cf2:'#7e22ce'},
-    {bg:'linear-gradient(120deg,#c7d2fe,#818cf8)',cf1:'#6366f1',cf2:'#4f46e5'},
-    {bg:'linear-gradient(160deg,#fbcfe8,#ec4899)',cf1:'#db2777',cf2:'#be185d'},
-  ],
-];
-
-// ===== CARD FRONT ICONS (per group — randomly selected each play) =====
-const FRONT_ICONS=[
-  ['❓','🌿','🍀','🌱','🌻','☘️'],
-  ['❓','🌊','💧','🐚','🫧','🪸'],
-  ['❓','✨','🌟','🔥','⭐','💫'],
-  ['❓','🗺️','⚔️','🏹','🛡️','🧭'],
-  ['❓','💠','🔮','⚡','🤖','💎'],
-];
-
-// ===== LEVEL CONFIG: 20 levels, increasing grid & pairs =====
-const LEVELS=[
-  {cat:'farm',    gridCols:3,gridRows:2,pairs:3, emoji:'🐄',mechanic:'classic'},
-  {cat:'fruit',   gridCols:4,gridRows:2,pairs:4, emoji:'🍎',mechanic:'classic'},
-  {cat:'sea',     gridCols:4,gridRows:3,pairs:6, emoji:'🐠',mechanic:'classic'},
-  {cat:'bug',     gridCols:4,gridRows:3,pairs:6, emoji:'🦋',mechanic:'classic'},
-  {cat:'weather', gridCols:4,gridRows:4,pairs:8, emoji:'🌤',mechanic:'classic'},
-  {cat:'flower',  gridCols:4,gridRows:4,pairs:8, emoji:'🌸',mechanic:'timed'},
-  {cat:'veggie',  gridCols:4,gridRows:4,pairs:8, emoji:'🥕',mechanic:'timed'},
-  {cat:'food',    gridCols:5,gridRows:4,pairs:10,emoji:'🍕',mechanic:'timed'},
-  {cat:'vehicle', gridCols:5,gridRows:4,pairs:10,emoji:'🚗',mechanic:'moving'},
-  {cat:'space',   gridCols:4,gridRows:5,pairs:10,emoji:'🚀',mechanic:'moving'},
-  {cat:'sport',   gridCols:6,gridRows:4,pairs:12,emoji:'⚽',mechanic:'moving'},
-  {cat:'music',   gridCols:6,gridRows:4,pairs:12,emoji:'🎵',mechanic:'masked'},
-  {cat:'wild',    gridCols:5,gridRows:5,pairs:12,emoji:'🦁',mechanic:'masked'},
-  {cat:'bird',    gridCols:6,gridRows:5,pairs:15,emoji:'🦅',mechanic:'masked'},
-  {cat:'tool',    gridCols:6,gridRows:5,pairs:15,emoji:'🔨',mechanic:'fog'},
-  {cat:'fashion', gridCols:6,gridRows:5,pairs:15,emoji:'👗',mechanic:'fog'},
-  {cat:'building',gridCols:6,gridRows:6,pairs:18,emoji:'🏠',mechanic:'fog'},
-  {cat:'school',  gridCols:6,gridRows:6,pairs:12,emoji:'📚',mechanic:'triple'},
-  {cat:'tech',    gridCols:6,gridRows:6,pairs:12,emoji:'💻',mechanic:'triple'},
-  {cat:'mix',     gridCols:6,gridRows:6,pairs:18,emoji:'🌍',mechanic:'boss'},
-];
-
-// ===== SOUND MUTE =====
-const MUTE_KEY='classify_memory_muted';
-let soundMuted=false;
-function initMute(){try{const v=localStorage.getItem(MUTE_KEY);if(v!=null)soundMuted=v==='true'}catch(e){}updateMuteBtns()}
-function toggleMute(){soundMuted=!soundMuted;try{localStorage.setItem(MUTE_KEY,soundMuted?'true':'false')}catch(e){}updateMuteBtns()}
-function updateMuteBtns(){const icon=soundMuted?'🔇':'🔊';document.querySelectorAll('.mute-btn').forEach(b=>b.textContent=icon)}
-
-// ===== AUDIO — Childlike Joyful Sounds =====
-let audioCtx=null;
-function ctx(){if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended')audioCtx.resume();return audioCtx}
-function tone(f,d,tp,v,atk){if(soundMuted)return;try{const c=ctx(),o=c.createOscillator(),g=c.createGain();const a=atk||.005;o.type=tp||'sine';o.frequency.setValueAtTime(f,c.currentTime);g.gain.setValueAtTime(0,c.currentTime);g.gain.linearRampToValueAtTime(v||.08,c.currentTime+a);g.gain.exponentialRampToValueAtTime(.001,c.currentTime+(d||.15));o.connect(g);g.connect(c.destination);o.start();o.stop(c.currentTime+(d||.15)+.01)}catch(e){}}
-function bell(f,d,v){if(soundMuted)return;tone(f,d||.25,'sine',v||.09,.003);tone(f*2,(d||.25)*.6,'sine',(v||.09)*.3,.003);tone(f*3,(d||.25)*.35,'triangle',(v||.09)*.12,.003)}
-function sparkle(f,v){if(soundMuted)return;tone(f,.08,'sine',v||.06,.002);tone(f*1.5,.06,'sine',(v||.06)*.4,.002)}
-function sfxFlip(){bell(659,.1,.07);sparkle(1319,.03)}
-function sfxMatch(){bell(784,.15,.11);setTimeout(()=>bell(988,.18,.12),70);setTimeout(()=>{sparkle(1568,.05);sparkle(2093,.03)},130)}
-function sfxNoMatch(){tone(330,.18,'sine',.06,.01);setTimeout(()=>tone(262,.2,'triangle',.04,.01),80)}
-function sfxComplete(){const n=[523,659,784,988,1175,1319,1568];n.forEach((f,i)=>setTimeout(()=>bell(f,.22,.1),i*90));setTimeout(()=>sparkle(2093,.06),n.length*90)}
-function sfxStar(){[880,1175,1568].forEach((f,i)=>setTimeout(()=>{bell(f,.2,.1);sparkle(f*2,.04)},i*130))}
-function sfxCoin(){tone(1319,.06,'sine',.09,.002);setTimeout(()=>tone(1760,.08,'sine',.1,.002),50);setTimeout(()=>sparkle(2637,.04),90)}
-function sfxBadge(){[880,1047,1319,1568,1760].forEach((f,i)=>setTimeout(()=>bell(f,.18,.1),i*90))}
-
-// ===== GAME STATE =====
-let cards=[],moves=0,matchedPairs=0,totalPairs=8,isChecking=false;
-let gameStarted=false,startTime=null,timerInterval=null,elapsedSeconds=0;
-let currentLevel=-1,currentGridCols=4,currentGridRows=4;
-let currentEmoji=[];
-let currentFrontIcon='❓';
-let currentGroup=0;
-
-// ===== MECHANIC STATE =====
-let mechanic='classic';
-let matchCount=2;
-let picks=[];
-let fogSet=new Set();
-let maskedMap={};
-let peekInProgress=false;
-let movesSinceShuffle=0;
-let bossCountdownSec=0;
-let bossTimerId=null;
-
-// ===== DDA (Dynamic Difficulty Adjustment) STATE =====
-let dda={skill:50,streak:0,failStreak:0,lastMoveTime:0,hintTimer:null,diff:'normal'};
-let levelTimerSec=0;
-let levelTimerMax=0;
-let levelTimerId=null;
-
-// Load persistent DDA profile
-let ddaProfile=JSON.parse(localStorage.getItem('classify_memory_dda')||'{"skill":50,"gamesPlayed":0,"totalStars":0,"avgMoveRatio":1.0}');
-function saveDDA(){localStorage.setItem('classify_memory_dda',JSON.stringify(ddaProfile))}
-
-let progress=JSON.parse(localStorage.getItem('classify_memory_progress')||'{"unlocked":1,"scores":{},"stars":{}}');
-function saveProgress(){localStorage.setItem('classify_memory_progress',JSON.stringify(progress))}
-
-// ===== WALLET (Coins) =====
-let wallet=JSON.parse(localStorage.getItem('classify_memory_wallet')||'{"coins":0,"owned":["default"],"equipped":"default","totalEarned":0}');
-function saveWallet(){localStorage.setItem('classify_memory_wallet',JSON.stringify(wallet))}
-
-// ===== SHOP THEMES =====
-const SHOP_ITEMS=[
-  {id:'default',icon:'❓',price:0,cf1:'#6366f1',cf2:'#4f46e5',frontIcon:'❓'},
-  {id:'galaxy',icon:'✨',price:100,cf1:'#312e81',cf2:'#1e1b4b',frontIcon:'✨'},
-  {id:'candy',icon:'🍬',price:150,cf1:'#ec4899',cf2:'#be185d',frontIcon:'🍬'},
-  {id:'diamond',icon:'💎',price:200,cf1:'#0ea5e9',cf2:'#0369a1',frontIcon:'💎'},
-  {id:'fire',icon:'🔥',price:250,cf1:'#ef4444',cf2:'#b91c1c',frontIcon:'🔥'},
-  {id:'rainbow',icon:'🌈',price:300,cf1:'#a855f7',cf2:'#6d28d9',frontIcon:'🌈'},
-];
-
-// ===== BADGES =====
-let badgeData=JSON.parse(localStorage.getItem('classify_memory_badges')||'{"unlocked":[],"dates":{}}');
-function saveBadges(){localStorage.setItem('classify_memory_badges',JSON.stringify(badgeData))}
-
-const BADGE_DEFS=[
-  {id:'first',emoji:'🐣',check:()=>Object.keys(progress.stars).length>=1},
-  {id:'stars10',emoji:'⭐',check:()=>totalStarsEarned()>=10},
-  {id:'stars30',emoji:'🌟',check:()=>totalStarsEarned()>=30},
-  {id:'perfect',emoji:'🏆',check:()=>Object.values(progress.stars).some(s=>s>=3)},
-  {id:'nature',emoji:'🌿',check:()=>[0,1,2,3].every(i=>progress.stars[i]>=1)},
-  {id:'ocean',emoji:'🌊',check:()=>[4,5,6,7].every(i=>progress.stars[i]>=1)},
-  {id:'city',emoji:'🏙️',check:()=>[8,9,10,11].every(i=>progress.stars[i]>=1)},
-  {id:'adventure',emoji:'⚔️',check:()=>[12,13,14,15].every(i=>progress.stars[i]>=1)},
-  {id:'tech',emoji:'🤖',check:()=>[16,17,18,19].every(i=>progress.stars[i]>=1)},
-  {id:'champion',emoji:'👑',check:()=>progress.unlocked>20},
-];
-function totalStarsEarned(){return Object.values(progress.stars).reduce((s,v)=>s+(v||0),0)}
-
-// ===== RENDER SHOP =====
-function renderShop(){
-  const grid=document.getElementById('shop-grid');
-  if(!grid)return;
-  grid.innerHTML='';
-  document.getElementById('shop-coins').textContent=wallet.coins;
-  const names=t.themeNames||[];
-  SHOP_ITEMS.forEach((item,i)=>{
-    const isOwned=wallet.owned.includes(item.id);
-    const isEquipped=wallet.equipped===item.id;
-    const canBuy=wallet.coins>=item.price;
-    const card=document.createElement('div');
-    card.className='shop-item'+(isEquipped?' equipped':isOwned?' owned':canBuy?'':' locked');
-    const preview=document.createElement('div');
-    preview.className='si-preview';
-    preview.style.background=`linear-gradient(145deg,${item.cf1},${item.cf2})`;
-    preview.textContent=item.frontIcon;
-    card.appendChild(preview);
-    const name=document.createElement('div');name.className='si-name';name.textContent=names[i]||item.id;card.appendChild(name);
-    if(!isOwned){
-      const price=document.createElement('div');price.className='si-price';price.textContent='🪙 '+item.price;card.appendChild(price);
-    }
-    const btn=document.createElement('button');btn.className='si-btn';
-    if(isEquipped){btn.className+=' equipped';btn.textContent=t.equipped||'✅ Equipped';btn.disabled=true}
-    else if(isOwned){btn.className+=' equip';btn.textContent=t.equip||'Equip';btn.onclick=()=>{wallet.equipped=item.id;saveWallet();renderShop()}}
-    else if(canBuy){btn.className+=' buy';btn.textContent=(t.buy||'Buy')+' 🪙'+item.price;btn.onclick=()=>{buyItem(item)}}
-    else{btn.className+=' cant';btn.textContent=t.cantAfford||'Not enough';btn.disabled=true}
-    card.appendChild(btn);
-    grid.appendChild(card);
-  });
-}
-
-function buyItem(item){
-  if(wallet.coins<item.price)return;
-  wallet.coins-=item.price;
-  wallet.owned.push(item.id);
-  wallet.equipped=item.id;
-  saveWallet();
-  sfxCoin();
-  renderShop();
-  updateCoinDisplays();
-}
-
-// ===== RENDER BADGES =====
-function renderBadges(){
-  const grid=document.getElementById('badge-grid');
-  if(!grid)return;
-  grid.innerHTML='';
-  const unlockedCount=badgeData.unlocked.length;
-  document.getElementById('badge-sub').textContent=(t.badgeCount||'{n}/{total}').replace('{n}',unlockedCount).replace('{total}',BADGE_DEFS.length);
-  const names=t.badgeNames||[];
-  const descs=t.badgeDescs||[];
-  BADGE_DEFS.forEach((b,i)=>{
-    const isUnlocked=badgeData.unlocked.includes(b.id);
-    const card=document.createElement('div');
-    card.className='badge-card'+(isUnlocked?' unlocked':' locked');
-    card.innerHTML=`<div class="bc-emoji">${b.emoji}</div><div class="bc-name">${names[i]||b.id}</div><div class="bc-desc">${descs[i]||''}</div>${isUnlocked&&badgeData.dates[b.id]?'<div class="bc-date">'+badgeData.dates[b.id]+'</div>':''}`;
-    grid.appendChild(card);
-  });
-}
-
-// ===== CHECK BADGES =====
-function checkBadges(){
-  const newBadges=[];
-  BADGE_DEFS.forEach(b=>{
-    if(!badgeData.unlocked.includes(b.id)&&b.check()){
-      badgeData.unlocked.push(b.id);
-      badgeData.dates[b.id]=new Date().toLocaleDateString();
-      newBadges.push(b);
-    }
-  });
-  if(newBadges.length>0){
-    saveBadges();
-    showBadgePopup(newBadges[0]);
-  }
-}
-
-function showBadgePopup(badge){
-  const idx=BADGE_DEFS.indexOf(badge);
-  const name=(t.badgeNames||[])[idx]||badge.id;
-  const popup=document.createElement('div');popup.className='badge-popup';
-  popup.innerHTML=`<div class="bp-emoji">${badge.emoji}</div><div class="bp-title">${t.newBadge||'🎉 New Badge!'}</div><div class="bp-name">${name}</div><button class="bp-close" onclick="this.parentElement.remove()">OK</button>`;
-  document.body.appendChild(popup);
-  sfxBadge();
-  if(window.spawnConfetti)spawnConfetti(innerWidth/2,innerHeight*.3,30);
-  setTimeout(()=>{if(popup.parentElement)popup.remove()},5000);
-}
-
-// ===== EARN COINS =====
-function earnCoins(stars,isFirstTime){
-  if(stars<=0)return 0;
-  const base=stars===3?50:stars===2?25:10;
-  const bonus=isFirstTime?20:0;
-  const mechBonus=mechanic==='boss'?15:mechanic==='classic'?0:5;
-  const total=base+bonus+mechBonus;
-  wallet.coins+=total;
-  wallet.totalEarned+=total;
-  saveWallet();
-  return total;
-}
-
-function spawnCoinFly(n){
-  const count=Math.min(n>30?8:n>15?5:3,8);
-  for(let i=0;i<count;i++){
-    setTimeout(()=>{
-      const el=document.createElement('div');el.className='coin-fly';el.textContent='🪙';
-      el.style.left=(innerWidth*.3+Math.random()*innerWidth*.4)+'px';
-      el.style.top=(innerHeight*.45+Math.random()*40)+'px';
-      document.body.appendChild(el);
-      setTimeout(()=>el.remove(),1300);
-    },i*120);
-  }
-}
-
-function updateCoinDisplays(){
-  const el=document.getElementById('coin-count');if(el)el.textContent=wallet.coins;
-  const el2=document.getElementById('shop-coins');if(el2)el2.textContent=wallet.coins;
-}
-
-// ===== HELPERS =====
-function shuffle(arr){const a=[...arr];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
-function fmtTime(s){return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')}
-function pickEmoji(cat,n){const pool=POOL[cat]||POOL.mix;const unique=[...new Set(shuffle(pool))];return unique.slice(0,n)}
-function getGroup(idx){return Math.min(4,Math.floor(idx/4))}
-
-function calcScore(moves,pairs,duration,matched){
-  matched=matched||pairs;
-  const ratio=matched/pairs;
-  const perfect=matched;
-  const extraMoves=Math.max(0,moves-perfect);
-  const movePenalty=extraMoves*3;
-  const graceSec=pairs*5;
-  const extraSec=Math.max(0,duration-graceSec);
-  const timePenalty=extraSec*0.3;
-  const mechBonus=mechanic==='classic'?0:mechanic==='boss'?10:5;
-  return Math.max(0,Math.min(100,Math.round((100-movePenalty-timePenalty)*ratio+mechBonus)));
-}
-
-// ===== SCREENS =====
-function showScreen(id){
-  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
-  if(id==='lvl-screen'){renderLevelSelect();updateCoinDisplays();if(window.stopBg)stopBg();ddaClearHintTimer();stopLevelTimer()}
-  if(id==='done-screen'){if(window.stopBg)stopBg()}
-  if(id==='shop-screen'){renderShop()}
-  if(id==='badge-screen'){renderBadges()}
-}
-
-function renderLevelSelect(){
-  const g=document.getElementById('ls-g');g.innerHTML='';
-  for(let i=0;i<LEVELS.length;i++){
-    const cfg=LEVELS[i];
-    const grp=getGroup(i);
-    const unlocked=i<progress.unlocked;
-    const stars=progress.stars[i]||0;
-    const isCurr=i===progress.unlocked-1;
-    const card=document.createElement('div');
-    card.className='lc'+(unlocked?'':' locked')+(isCurr?' current':'');
-    card.setAttribute('data-grp',grp);
-    if(unlocked){
-      card.innerHTML=`<div class="lc-num">${i+1}</div><div class="lc-emoji">${cfg.emoji}</div><div class="lc-name">${t.lvNames[i]}</div><div class="lc-stars">${stars>=1?'⭐':'☆'}${stars>=2?'⭐':'☆'}${stars>=3?'⭐':'☆'}</div>`;
-      card.onclick=()=>startLevel(i);
-    } else {
-      card.innerHTML=`<div class="lc-num" style="opacity:.4">${i+1}</div><div class="lc-lock">${t.locked}</div><div class="lc-name" style="opacity:.4">${t.lvNames[i]}</div>`;
-    }
-    g.appendChild(card);
-  }
-}
-
-// ===== START LEVEL =====
-function startLevel(idx){
-  currentLevel=idx;
-  const cfg=LEVELS[idx];
-  currentGroup=getGroup(idx);
-  currentGridCols=cfg.gridCols;currentGridRows=cfg.gridRows;totalPairs=cfg.pairs;
-  currentEmoji=pickEmoji(cfg.cat,totalPairs);
-
-  // Pick theme: 50% base, 50% random variant
-  const baseTheme=THEMES[idx];
-  const groupVariants=VARIANTS[currentGroup];
-  const allThemes=[baseTheme,...groupVariants];
-  const theme=allThemes[Math.floor(Math.random()*allThemes.length)];
-
-  // Pick random front icon for this group (or use shop theme)
-  const equipped=SHOP_ITEMS.find(si=>si.id===wallet.equipped);
-  if(equipped&&equipped.id!=='default'){
-    currentFrontIcon=equipped.frontIcon;
-  } else {
-    const icons=FRONT_ICONS[currentGroup];
-    currentFrontIcon=icons[Math.floor(Math.random()*icons.length)];
-  }
-
-  // Apply theme
-  const gs=document.getElementById('game-screen');
-  gs.dataset.group=currentGroup;
-  gs.style.background=theme.bg;
-  // Apply shop theme card colors if non-default equipped
-  if(equipped&&equipped.id!=='default'){
-    gs.style.setProperty('--cf1',equipped.cf1);
-    gs.style.setProperty('--cf2',equipped.cf2);
-  } else {
-    gs.style.setProperty('--cf1',theme.cf1);
-    gs.style.setProperty('--cf2',theme.cf2);
-  }
-  document.getElementById('done-screen').style.background=theme.bg;
-
-  document.getElementById('g-t').textContent=t.lvNames[idx];
-  document.getElementById('g-b').textContent=''+(idx+1);
-
-  // Start dynamic background
-  if(window.initBg)initBg(currentGroup);
-
-  resetGame();
-  showScreen('game-screen');
-
-  // Render cards using ResizeObserver — fires once grid-wrap has real dimensions
-  const _wrap=document.querySelector('.grid-wrap');
-  if(window._cardRO)window._cardRO.disconnect();
-  window._cardRO=new ResizeObserver(function(entries){
-    const r=entries[0].contentRect;
-    if(r.width>50&&r.height>50){
-      window._cardRO.disconnect();
-      renderCards();
-      if(window.initBg)initBg(currentGroup);
-    }
-  });
-  window._cardRO.observe(_wrap);
-  // Fallback: force render after 500ms regardless
-  setTimeout(function(){
-    if(window._cardRO){window._cardRO.disconnect();window._cardRO=null}
-    var g=document.getElementById('grid');
-    if(!g.children.length)renderCards();
-  },500);
-
-  // Timed mechanic: peek all cards briefly
-  if(mechanic==='timed'){
-    setTimeout(()=>doTimedPeek(),400);
-  }
-}
-
-function resetGame(){
-  clearInterval(timerInterval);
-  if(bossTimerId){clearInterval(bossTimerId);bossTimerId=null}
-  stopLevelTimer();
-  picks=[];isChecking=false;
-  gameStarted=false;startTime=null;elapsedSeconds=0;
-  peekInProgress=false;movesSinceShuffle=0;
-  fogSet=new Set();maskedMap={};
-  bossCountdownSec=0;levelTimerSec=0;levelTimerMax=0;
-
-  // Setup mechanic from current level
-  const cfg=LEVELS[currentLevel];
-  mechanic=cfg?cfg.mechanic||'classic':'classic';
-  matchCount=(mechanic==='triple')?3:2;
-
-  // Compute level timer
-  levelTimerMax=computeLevelTimer(currentLevel,cfg?cfg.pairs:8,mechanic);
-
-  // Init DDA
-  ddaInit();
-
-  cards=createDeck();moves=0;matchedPairs=0;
-  document.getElementById('g-mv').textContent='0';
-  document.getElementById('g-pr').textContent='0/'+totalPairs;
-  document.getElementById('g-prl').textContent=(matchCount===3&&t.sets)?t.sets:t.pairs;
-  document.getElementById('g-tm').textContent='0:00';
-  document.getElementById('hint').style.display='';
-
-  // Hide mechanic UI
-  const mechInfo=document.getElementById('mech-info');
-  const cdWrap=document.getElementById('cd-wrap');
-  const peekBanner=document.getElementById('peek-banner');
-  if(mechInfo)mechInfo.style.display='none';
-  if(cdWrap)cdWrap.style.display='none';
-  if(peekBanner)peekBanner.classList.remove('show');
-
-  // Setup mechanic-specific state
-  setupMechanic();
-  // NOTE: renderCards() is called after showScreen() in startLevel()
-}
-
-function createDeck(){
-  const chosen=currentEmoji.slice(0,totalPairs);
-  let deck=[];
-  if(matchCount===3){
-    chosen.forEach(s=>{deck.push(s,s,s)});
-  } else {
-    deck=[...chosen,...chosen];
-  }
-  return shuffle(deck).map((s,i)=>({id:i,symbol:s,flipped:false,matched:false,unmasked:false}));
-}
-
-function renderCards(){
-  const g=document.getElementById('grid');
-  const wrap=document.querySelector('.grid-wrap');
-  const wW=wrap.clientWidth, wH=wrap.clientHeight;
-  // Use available space, fallback to viewport if container is collapsed
-  const maxW=(wW>50?wW:window.innerWidth)-16;
-  const maxH=(wH>50?wH:window.innerHeight*0.65)-16;
-  const gap=Math.max(4,Math.min(8,maxW*.01));
-  const sW=Math.floor((maxW-gap*(currentGridCols-1))/currentGridCols);
-  const sH=Math.floor((maxH-gap*(currentGridRows-1))/currentGridRows);
-  const sz=Math.max(48,Math.min(sW,sH,200));
-  g.style.gridTemplateColumns=`repeat(${currentGridCols},${sz}px)`;
-  g.style.gridTemplateRows=`repeat(${currentGridRows},${sz}px)`;
-  g.style.gap=gap+'px';
-  g.innerHTML='';
-  cards.forEach(card=>{
-    const btn=document.createElement('button');
-    btn.className='card'+(card.flipped?' flipped':'')+(card.matched?' matched flipped':'');
-    btn.disabled=card.flipped||card.matched;
-    btn.setAttribute('data-id',card.id);
-    btn.innerHTML=`<div class="card-inner"><div class="card-front"><span class="icon">${currentFrontIcon}</span></div><div class="card-back"><span class="sym">${card.symbol}</span></div></div>`;
-    // Fog overlay
-    if((mechanic==='fog'||mechanic==='boss')&&fogSet.has(card.id)&&!card.matched&&!card.flipped){
-      const fog=document.createElement('div');
-      fog.className='fog-ov';fog.textContent='🌫️';
-      fog.addEventListener('click',function(e){e.stopPropagation();clearFog(card.id)});
-      btn.querySelector('.card-inner').appendChild(fog);
-    }
-    btn.style.width=sz+'px';btn.style.height=sz+'px';
-    btn.addEventListener('click',()=>flipCard(card.id));
-    g.appendChild(btn);
-  });
-}
-
-function flipCard(id){
-  if(isChecking||peekInProgress)return;
-  const card=cards[id];
-  if(!card||card.flipped||card.matched)return;
-
-  // Fog: can't flip fogged cards (must tap fog first)
-  if(fogSet.has(id))return;
-
-  // Start timer on first real flip
-  if(!gameStarted){
-    gameStarted=true;startTime=Date.now();
-    document.getElementById('hint').style.display='none';
-    timerInterval=setInterval(()=>{elapsedSeconds=Math.floor((Date.now()-startTime)/1000);document.getElementById('g-tm').textContent=fmtTime(elapsedSeconds)},1000);
-    // Boss countdown
-    if(mechanic==='boss'&&bossCountdownSec>0)startBossCountdown();
-    // Level timer (non-classic, non-boss)
-    if(levelTimerMax>0)startLevelTimer();
-  }
-
-  // Masked: first flip shows decoy, then auto-hides
-  if(mechanic==='masked'&&maskedMap[id]!==undefined&&!card.unmasked){
-    card.flipped=true;card.unmasked=true;
-    const btn=document.getElementById('grid').querySelector(`[data-id="${id}"]`);
-    if(btn){
-      btn.classList.add('flipped','decoy-show');
-      const sym=btn.querySelector('.sym');
-      if(sym)sym.textContent=maskedMap[id];
-    }
-    sfxFlip();
-    isChecking=true;
-    setTimeout(()=>{
-      card.flipped=false;
-      const btn2=document.getElementById('grid').querySelector(`[data-id="${id}"]`);
-      if(btn2){
-        btn2.classList.remove('flipped','decoy-show');
-        btn2.disabled=false;
-        const sym2=btn2.querySelector('.sym');
-        if(sym2)sym2.textContent=card.symbol;
-      }
-      delete maskedMap[id];
-      isChecking=false;
-    },900);
-    return;
-  }
-
-  card.flipped=true;
-  updateCardDOM(id,true,false);
-  sfxFlip();
-  picks.push(id);
-
-  if(picks.length<matchCount)return;
-
-  // All picks made — check match
-  moves++;movesSinceShuffle++;
-  document.getElementById('g-mv').textContent=moves;
-  const allMatch=picks.every(pid=>cards[pid].symbol===cards[picks[0]].symbol);
-
-  if(allMatch){
-    picks.forEach(pid=>{cards[pid].matched=true;updateCardDOM(pid,true,true)});
-    matchedPairs++;
-    document.getElementById('g-pr').textContent=matchedPairs+'/'+totalPairs;
-    sfxMatch();
-    spawnMatchParticles(picks[0],picks[picks.length-1]);
-    ddaOnMatch();
-    picks=[];
-    if(matchedPairs===totalPairs)setTimeout(()=>endGame(),400);
-  } else {
-    isChecking=true;sfxNoMatch();
-    ddaOnMismatch();
-    setTimeout(()=>{
-      picks.forEach(pid=>{cards[pid].flipped=false;updateCardDOM(pid,false,false)});
-      picks=[];isChecking=false;
-    },800);
-  }
-
-  // Moving / Boss: shuffle based on DDA-adjusted interval
-  const shuffleInterval=dda.diff==='easy'?4:dda.diff==='hard'?2:3;
-  if((mechanic==='moving'||mechanic==='boss')&&movesSinceShuffle>=shuffleInterval&&matchedPairs<totalPairs){
-    movesSinceShuffle=0;
-    setTimeout(()=>shufflePositions(),allMatch?600:1000);
-  }
-}
-
-function spawnMatchParticles(id1,id2){
-  try{
-    [id1,id2].forEach(id=>{
-      const el=document.getElementById('grid').querySelector(`[data-id="${id}"]`);
-      if(!el)return;
-      const r=el.getBoundingClientRect();
-      const cx=r.left+r.width/2,cy=r.top+r.height/2;
-      for(let i=0;i<4;i++){
-        const p=document.createElement('div');p.className='particle';
-        const emojis=['⭐','✨','🌟','💫','💎','🎉'];
-        p.textContent=emojis[Math.floor(Math.random()*emojis.length)];
-        p.style.left=(cx-10+Math.random()*20)+'px';
-        p.style.top=(cy-10+Math.random()*20)+'px';
-        p.style.fontSize='18px';
-        document.body.appendChild(p);
-        setTimeout(()=>p.remove(),1200);
-      }
-    });
-  }catch(e){}
-}
-
-// ===== MECHANIC SETUP =====
-function setupMechanic(){
-  const infoEl=document.getElementById('mech-info');
-  const cdWrap=document.getElementById('cd-wrap');
-
-  // Show countdown bar for any level with a timer
-  if(levelTimerMax>0){
-    cdWrap.style.display='';
-    levelTimerSec=levelTimerMax;
-    updateCountdownDisplay();
-  }
-
-  if(mechanic==='classic'){return}
-
-  // Show mechanic name + hint
-  if(t.mech&&t.mech[mechanic]){
-    const hint=t.mechHint?t.mechHint[mechanic]:'';
-    infoEl.textContent=t.mech[mechanic]+(hint?' — '+hint:'');
-    infoEl.style.display='';
-  }
-
-  // DDA-adjusted fog percentage
-  const fogPct=dda.diff==='easy'?0.3:dda.diff==='hard'?0.5:0.4;
-  const maskPct=dda.diff==='easy'?0.25:dda.diff==='hard'?0.45:0.35;
-
-  // Fog: mark cards
-  if(mechanic==='fog'){
-    const nFog=Math.floor(cards.length*fogPct);
-    const idxs=shuffle(cards.map(c=>c.id)).slice(0,nFog);
-    idxs.forEach(i=>fogSet.add(i));
-  }
-
-  // Masked: assign decoys
-  if(mechanic==='masked'){
-    const nMask=Math.floor(cards.length*maskPct);
-    const idxs=shuffle(cards.map(c=>c.id)).slice(0,nMask);
-    idxs.forEach(i=>{
-      let decoy;
-      do{decoy=currentEmoji[Math.floor(Math.random()*currentEmoji.length)]}while(decoy===cards[i].symbol);
-      maskedMap[i]=decoy;
-    });
-  }
-
-  // Boss: fog + countdown
-  if(mechanic==='boss'){
-    const bossFogPct=dda.diff==='easy'?0.2:dda.diff==='hard'?0.35:0.25;
-    const nFog=Math.floor(cards.length*bossFogPct);
-    const idxs=shuffle(cards.map(c=>c.id)).slice(0,nFog);
-    idxs.forEach(i=>fogSet.add(i));
-    // DDA-adjusted boss timer
-    bossCountdownSec=dda.diff==='easy'?150:dda.diff==='hard'?100:120;
-    cdWrap.style.display='';
-    updateCountdownDisplay();
-  }
-}
-
-// ===== CLEAR FOG =====
-function clearFog(id){
-  fogSet.delete(id);
-  const btn=document.getElementById('grid').querySelector(`[data-id="${id}"]`);
-  if(btn){
-    const fog=btn.querySelector('.fog-ov');
-    if(fog){fog.style.opacity='0';fog.style.transform='scale(.5)';setTimeout(()=>fog.remove(),400)}
-  }
-  sfxFlip();
-}
-
-// ===== TIMED PEEK =====
-function doTimedPeek(){
-  peekInProgress=true;
-  const grid=document.getElementById('grid');
-  const btns=grid.querySelectorAll('.card');
-  btns.forEach(b=>b.classList.add('flipped'));
-  const banner=document.getElementById('peek-banner');
-  const peekText=document.getElementById('peek-text');
-  if(peekText)peekText.textContent=t.remember||'👀 Remember!';
-  if(banner)banner.classList.add('show');
-  // DDA: easy gets longer peek, hard gets shorter
-  const peekMs=dda.diff==='easy'?3500:dda.diff==='hard'?1800:2500;
-  setTimeout(()=>{
-    btns.forEach(b=>{
-      if(!b.classList.contains('matched')){
-        b.classList.remove('flipped');
-        b.disabled=false;
-      }
-    });
-    if(banner)banner.classList.remove('show');
-    peekInProgress=false;
-  },peekMs);
-}
-
-// ===== SHUFFLE POSITIONS =====
-function shufflePositions(){
-  if(matchedPairs>=totalPairs)return;
-  const unmatched=cards.filter(c=>!c.matched);
-  if(unmatched.length<4)return;
-
-  // Unflip any picked cards first
-  picks.forEach(pid=>{cards[pid].flipped=false});
-  picks=[];isChecking=false;
-
-  // Shuffle symbols among unmatched cards
-  const syms=unmatched.map(c=>({symbol:c.symbol,unmasked:c.unmasked}));
-  const shuffled=shuffle(syms);
-  unmatched.forEach((c,i)=>{
-    c.symbol=shuffled[i].symbol;
-    c.flipped=false;
-    c.unmasked=shuffled[i].unmasked;
-  });
-
-  // Re-render and animate
-  renderCards();
-  setTimeout(()=>{
-    const grid=document.getElementById('grid');
-    grid.querySelectorAll('.card:not(.matched)').forEach(b=>b.classList.add('shuffle-anim'));
-    setTimeout(()=>grid.querySelectorAll('.shuffle-anim').forEach(b=>b.classList.remove('shuffle-anim')),600);
-  },50);
-}
-
-// ===== BOSS COUNTDOWN =====
-function startBossCountdown(){
-  updateCountdownDisplay();
-  bossTimerId=setInterval(()=>{
-    bossCountdownSec--;
-    updateCountdownDisplay();
-    if(bossCountdownSec<=0){
-      clearInterval(bossTimerId);bossTimerId=null;
-      endGame();
-    }
-  },1000);
-}
-
-function updateCountdownDisplay(){
-  const fill=document.getElementById('cd-fill');
-  const text=document.getElementById('cd-text');
-  if(!fill||!text)return;
-  const max=mechanic==='boss'?120:levelTimerMax;
-  const sec=mechanic==='boss'?bossCountdownSec:levelTimerSec;
-  const pct=max>0?Math.max(0,(sec/max)*100):100;
-  fill.style.width=pct+'%';
-  text.textContent='⏱️ '+fmtTime(sec);
-  text.className='cd-txt'+(sec<=Math.min(20,max*0.15)?' urgent':'');
-}
-
-// ===== DDA ENGINE =====
-function computeLevelTimer(lvl,pairs,mech){
-  // Base: pairs × 8s for classic, less for harder mechanics
-  const mechMult={classic:0,timed:8,moving:7,masked:7.5,fog:7,triple:9,boss:0};
-  const mult=mechMult[mech]||8;
-  if(mech==='classic')return 0; // no timer for classic
-  if(mech==='boss')return 0; // boss uses its own countdown
-
-  let base=pairs*mult;
-  // DDA adjustment: struggling players get +25% time, skilled get -15%
-  if(ddaProfile.skill<35) base*=1.25;
-  else if(ddaProfile.skill>70) base*=0.85;
-  return Math.round(base);
-}
-
-function ddaInit(){
-  dda={skill:ddaProfile.skill,streak:0,failStreak:0,lastMoveTime:Date.now(),hintTimer:null,diff:'normal'};
-  ddaUpdateBadge();
-}
-
-function ddaUpdateBadge(){
-  const badge=document.getElementById('dda-badge');
-  if(!badge)return;
-  if(mechanic==='classic'&&currentLevel<3){badge.style.display='none';return}
-  badge.style.display='';
-  let diff,cls;
-  if(dda.skill<35){diff=t.dda?t.dda.easy:'🟢 Easy';cls='easy'}
-  else if(dda.skill>70){diff=t.dda?t.dda.hard:'🔴 Hard';cls='hard'}
-  else{diff=t.dda?t.dda.normal:'🔵 Normal';cls='normal'}
-  badge.textContent=diff;
-  badge.className='dda-badge '+cls;
-  dda.diff=cls;
-}
-
-function ddaOnMatch(){
-  dda.streak++;dda.failStreak=0;
-  dda.skill=Math.min(100,dda.skill+2);
-  ddaClearHintTimer();
-  ddaUpdateBadge();
-}
-
-function ddaOnMismatch(){
-  dda.failStreak++;dda.streak=0;
-  dda.skill=Math.max(0,dda.skill-1.5);
-  ddaUpdateBadge();
-  // If 3+ consecutive fails, start hint timer
-  if(dda.failStreak>=3) ddaStartHintTimer();
-}
-
-function ddaStartHintTimer(){
-  ddaClearHintTimer();
-  // After a pause, glow-hint one of the correct cards
-  const delay=dda.diff==='easy'?4000:dda.diff==='hard'?8000:6000;
-  dda.hintTimer=setTimeout(()=>{
-    if(matchedPairs>=totalPairs||!gameStarted)return;
-    ddaShowHint();
-  },delay);
-}
-
-function ddaClearHintTimer(){
-  if(dda.hintTimer){clearTimeout(dda.hintTimer);dda.hintTimer=null}
-}
-
-function ddaShowHint(){
-  // Find an unmatched pair and glow one of its cards
-  const unmatched=cards.filter(c=>!c.matched&&!c.flipped);
-  if(unmatched.length<2)return;
-  // Find a symbol that appears at least twice in unmatched
-  const symCount={};
-  unmatched.forEach(c=>{symCount[c.symbol]=(symCount[c.symbol]||0)+1});
-  const hintSym=Object.keys(symCount).find(s=>symCount[s]>=2);
-  if(!hintSym)return;
-  const hintCards=unmatched.filter(c=>c.symbol===hintSym);
-  const hintCard=hintCards[0];
-  const btn=document.getElementById('grid').querySelector(`[data-id="${hintCard.id}"]`);
-  if(btn){
-    btn.classList.add('dda-hint');
-    setTimeout(()=>btn.classList.remove('dda-hint'),3600);
-  }
-  dda.failStreak=0; // reset after giving hint
-}
-
-function ddaEndLevel(score,stars){
-  // Update persistent profile
-  ddaProfile.gamesPlayed++;
-  ddaProfile.totalStars+=stars;
-  // Weighted skill update: 70% current + 30% from this game's performance
-  const perfScore=Math.min(100,score+(stars*5));
-  ddaProfile.skill=Math.round(ddaProfile.skill*0.7+perfScore*0.3);
-  ddaProfile.avgMoveRatio=ddaProfile.gamesPlayed>1?
-    ddaProfile.avgMoveRatio*0.8+(moves/(totalPairs||1))*0.2:
-    moves/(totalPairs||1);
-  saveDDA();
-  ddaClearHintTimer();
-}
-
-// ===== LEVEL TIMER (non-classic, non-boss) =====
-function startLevelTimer(){
-  if(levelTimerMax<=0)return;
-  levelTimerSec=levelTimerMax;
-  const cdWrap=document.getElementById('cd-wrap');
-  if(cdWrap)cdWrap.style.display='';
-  updateCountdownDisplay();
-  levelTimerId=setInterval(()=>{
-    levelTimerSec--;
-    updateCountdownDisplay();
-    if(levelTimerSec<=0){
-      clearInterval(levelTimerId);levelTimerId=null;
-      endGame();
-    }
-  },1000);
-}
-
-function stopLevelTimer(){
-  if(levelTimerId){clearInterval(levelTimerId);levelTimerId=null}
-}
-
-function updateCardDOM(id,flipped,matched){
-  const btn=document.getElementById('grid').querySelector(`[data-id="${id}"]`);
-  if(!btn)return;
-  btn.className='card'+(flipped?' flipped':'')+(matched?' matched':'');
-  btn.disabled=flipped||matched;
-}
-
-function endGame(){
-  clearInterval(timerInterval);
-  if(bossTimerId){clearInterval(bossTimerId);bossTimerId=null}
-  stopLevelTimer();
-  ddaClearHintTimer();
-  peekInProgress=false;
-  const dur=Math.floor((Date.now()-startTime)/1000);
-  const isPartial=matchedPairs<totalPairs;
-  const sc=calcScore(moves,totalPairs,dur,matchedPairs);
-  let stars=0;if(sc>=50)stars=1;if(sc>=75)stars=2;if(sc>=90)stars=3;
-  if(isPartial){stars=0}
-
-  // DDA: update persistent profile
-  ddaEndLevel(sc,stars);
-
-  if(currentLevel>=0){
-    const prev=progress.stars[currentLevel]||0;
-    const isFirstTime=prev===0&&stars>=1;
-    if(stars>prev)progress.stars[currentLevel]=stars;
-    const prevSc=progress.scores[currentLevel]||0;if(sc>prevSc)progress.scores[currentLevel]=sc;
-    if(stars>=1&&currentLevel+1>=progress.unlocked)progress.unlocked=currentLevel+2;
-    saveProgress();
-
-    // Earn coins
-    const coinsGained=earnCoins(stars,isFirstTime);
-    const dCoins=document.getElementById('d-coins');
-    const dCoinsVal=document.getElementById('d-coins-val');
-    if(coinsGained>0&&dCoins&&dCoinsVal){
-      dCoinsVal.textContent=coinsGained;
-      dCoins.style.display='';
-      sfxCoin();
-      setTimeout(()=>spawnCoinFly(coinsGained),300);
-    } else if(dCoins){dCoins.style.display='none'}
-
-    // Check badges
-    setTimeout(()=>checkBadges(),1200);
-  }
-  let title,emoji;
-  if(isPartial){title=t.timeUp||'⏰ Time\'s up!';emoji='⏰'}
-  else if(stars>=3){title=t.excellent;emoji='🏆'}else if(stars>=2){title=t.great;emoji='🎉'}else if(stars>=1){title=t.good;emoji='👍'}else{title=t.tryMore;emoji='💪'}
-  document.getElementById('d-e').textContent=emoji;
-  document.getElementById('d-t').textContent=title;
-  document.getElementById('d-sub').textContent=isPartial?(matchedPairs+'/'+totalPairs):t.done;
-  document.getElementById('d-sc').textContent=sc+'/100';
-  document.getElementById('d-mv2').textContent=moves;
-  document.getElementById('d-tm').textContent=fmtTime(dur);
-  const starsEl=document.getElementById('d-st');starsEl.innerHTML='';
-  for(let i=0;i<3;i++){const sp=document.createElement('span');sp.textContent=i<stars?'⭐':'☆';sp.style.opacity=i<stars?'1':'.3';starsEl.appendChild(sp)}
-  document.getElementById('d-nx').style.display=(currentLevel>=0&&currentLevel<LEVELS.length-1&&!isPartial)?'':'none';
-  sfxComplete();if(stars>0)sfxStar();
-  showScreen('done-screen');
-  if(window.royalCelebration&&!isPartial) window.royalCelebration(stars);
-  // Particles
-  if(!isPartial){for(let i=0;i<stars*6;i++){setTimeout(()=>{const p=document.createElement('div');p.className='particle';p.textContent=['⭐','✨','🌟','🎉','💎'][Math.floor(Math.random()*5)];p.style.left=(Math.random()*innerWidth)+'px';p.style.top=(innerHeight*.6+Math.random()*80)+'px';p.style.fontSize='22px';document.body.appendChild(p);setTimeout(()=>p.remove(),1200)},i*70)}}
-  // PostMessage
-  try{window.parent.postMessage({type:'GAME_COMPLETE',score:sc,total:100,timeElapsed:dur,moves:moves,level:currentLevel>=0?currentLevel+1:0,stars:stars},'*')}catch(e){}
-}
-
-function nextLevel(){if(currentLevel>=0&&currentLevel<LEVELS.length-1)startLevel(currentLevel+1)}
-function replayLevel(){if(currentLevel>=0)startLevel(currentLevel)}
-function shareResult(){
-  const lvl=currentLevel>=0?currentLevel+1:0;const stars=currentLevel>=0?(progress.stars[currentLevel]||0):0;
-  const text=t.shareText.replace('{score}',progress.scores[currentLevel]||0).replace('{level}',lvl).replace('{stars}','⭐'.repeat(stars));
-  try{if(navigator.share)navigator.share({title:t.title,text:text})}catch(e){}
-  try{window.parent.postMessage({type:'SHARE_ACHIEVEMENT',game:'memory',level:lvl,score:progress.scores[currentLevel]||0,stars:stars,text:text},'*')}catch(e){}
-  const btn=document.getElementById('d-sh');const o=btn.textContent;btn.textContent='✅';setTimeout(()=>{btn.textContent=o},2000);
-}
-
-// ===== i18n APPLY =====
-document.getElementById('ls-t').textContent=t.title;
-document.getElementById('ls-s').textContent=t.sub;
-document.getElementById('g-mvl').textContent=t.moves;
-document.getElementById('g-prl').textContent=t.pairs;
-document.getElementById('g-tml').textContent=t.time;
-document.getElementById('hint').textContent=t.hint;
-document.getElementById('d-scl').textContent=t.score;
-document.getElementById('d-mvl2').textContent=t.moves;
-document.getElementById('d-tml').textContent=t.time;
-document.getElementById('d-nx').textContent=t.next;
-document.getElementById('d-sh').textContent=t.share;
-// Phase D i18n
-if(t.shop)document.getElementById('nav-shop-txt').textContent=t.shop.replace(/🛒\s*/,'');
-if(t.badges)document.getElementById('nav-badge-txt').textContent=t.badges.replace(/🏅\s*/,'');
-if(t.shop)document.getElementById('shop-t').textContent=t.shop;
-if(t.badges)document.getElementById('badge-t').textContent=t.badges;
 
 // ===== INIT =====
 initMute();
-window.addEventListener('resize',()=>{if(document.getElementById('game-screen').classList.contains('active'))renderCards()});
 updateCoinDisplays();
-renderLevelSelect();
+renderWorldMap();
 </script>
 </body>
 </html>
