@@ -1,12 +1,13 @@
-import React, { useEffect, useRef, useCallback, useState } from "react";
+import React, { useEffect, useRef, useCallback, useState, lazy, Suspense } from "react";
 import { useTranslation } from "react-i18next";
 import { useLocation } from "wouter";
 import { useTheme } from "@/contexts/ThemeContext";
 import { LanguageSelector } from "@/components/LanguageSelector";
 import { PWAInstallButton } from "@/components/PWAInstallButton";
-import { SlidingAdsCarousel } from "@/components/SlidingAdsCarousel";
-import { PinEntry } from "@/components/PinEntry";
 import { Download, Gamepad2, Star, Sparkles, BookOpen, Trophy } from "lucide-react";
+
+const SlidingAdsCarousel = lazy(() => import("@/components/SlidingAdsCarousel").then(m => ({ default: m.SlidingAdsCarousel })));
+const PinEntry = lazy(() => import("@/components/PinEntry").then(m => ({ default: m.PinEntry })));
 
 export const Home = (): JSX.Element => {
   const { t, i18n } = useTranslation();
@@ -81,20 +82,22 @@ export const Home = (): JSX.Element => {
   // If familyCode exists, show PIN entry screen
   if (familyCode) {
     return (
-      <PinEntry
-        familyCode={familyCode}
-        onSwitchAccount={() => {
-          // Clear all session data when switching accounts
-          localStorage.removeItem("familyCode");
-          localStorage.removeItem("token");
-          localStorage.removeItem("userId");
-          localStorage.removeItem("childToken");
-          localStorage.removeItem("childId");
-          localStorage.removeItem("deviceTrusted");
-          setFamilyCode(null);
-          setShowLanding(true);
-        }}
-      />
+      <Suspense fallback={<div className="min-h-screen bg-gradient-to-b from-purple-400 via-pink-300 to-yellow-200" />}>
+        <PinEntry
+          familyCode={familyCode}
+          onSwitchAccount={() => {
+            // Clear all session data when switching accounts
+            localStorage.removeItem("familyCode");
+            localStorage.removeItem("token");
+            localStorage.removeItem("userId");
+            localStorage.removeItem("childToken");
+            localStorage.removeItem("childId");
+            localStorage.removeItem("deviceTrusted");
+            setFamilyCode(null);
+            setShowLanding(true);
+          }}
+        />
+      </Suspense>
     );
   }
 
@@ -147,7 +150,7 @@ export const Home = (): JSX.Element => {
           type="button"
         >
           <img 
-            src="/logo.jpg" 
+            src="/logo.webp" 
             alt="Classify" 
             width={128}
             height={128}
@@ -194,7 +197,9 @@ export const Home = (): JSX.Element => {
       </main>
 
       {/* Ads Section */}
-      <SlidingAdsCarousel audience="all" variant="home" isDark={isDark} />
+      <Suspense fallback={null}>
+        <SlidingAdsCarousel audience="all" variant="home" isDark={isDark} />
+      </Suspense>
 
       {/* Footer */}
       <footer className="text-center py-6 text-purple-600/70 relative z-10">

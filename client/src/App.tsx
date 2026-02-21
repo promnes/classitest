@@ -9,13 +9,15 @@ import { SEOProvider } from "@/components/SEOProvider";
 import { ChildAppWrapper } from "@/components/ChildAppWrapper";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { OfflineGuard } from "@/components/OfflineGuard";
-import { RandomAdPopup } from "@/components/RandomAdPopup";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import NotFound from "@/pages/not-found";
 
+const RandomAdPopup = lazy(() => import("@/components/RandomAdPopup").then(m => ({ default: m.RandomAdPopup })));
+
 import { Home } from "@/pages/Home";
-import { ParentAuth } from "@/pages/ParentAuth";
-import { ChildLink } from "@/pages/ChildLink";
+
+const ParentAuth = lazy(() => import("@/pages/ParentAuth").then(m => ({ default: m.ParentAuth })));
+const ChildLink = lazy(() => import("@/pages/ChildLink").then(m => ({ default: m.ChildLink })));
 
 const ParentDashboard = lazy(() => import("@/pages/ParentDashboard").then(m => ({ default: m.ParentDashboard })));
 const ChildGames = lazy(() => import("@/pages/ChildGames").then(m => ({ default: m.ChildGames })));
@@ -523,7 +525,9 @@ function App() {
                 </main>
               </div>
               <Toaster />
-              <RandomAdPopup />
+              <Suspense fallback={null}>
+                <RandomAdPopup />
+              </Suspense>
             </OfflineGuard>
           </TooltipProvider>
         </SEOProvider>

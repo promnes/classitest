@@ -63,6 +63,8 @@ export default defineConfig({
             "react-i18next",
             "i18next-browser-languagedetector",
           ],
+          // Icons — extracted to allow caching independently
+          "vendor-lucide": ["lucide-react"],
         },
       },
     },

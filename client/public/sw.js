@@ -1,4 +1,4 @@
-const CACHE_NAME = 'classify-v3';
+const CACHE_NAME = 'classify-v4';
 const STATIC_ASSETS = [
   '/icons/icon-72.png',
   '/icons/icon-96.png',
@@ -11,6 +11,7 @@ const STATIC_ASSETS = [
   '/icons/icon-512.png',
   '/icons/icon-maskable-192.png',
   '/icons/icon-maskable-512.png',
+  '/logo.webp',
   '/logo.jpg'
 ];
 
