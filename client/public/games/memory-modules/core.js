@@ -377,29 +377,39 @@ export function startLevel(globalIdx) {
     }
   }
 
-  initBg(currentGroup);
-  startMusic(currentGroup);
   resetGame();
   showScreen('game-screen');
   sfxWhoosh();
 
-  // Render cards via ResizeObserver
+  // Clear old cards and render new ones reliably
+  const g = document.getElementById('grid');
+  g.innerHTML = '';
+
+  // Init background AFTER screen is visible so canvas gets real dimensions
+  requestAnimationFrame(() => { initBg(currentGroup); });
+  startMusic(currentGroup);
+
+  // Render cards via ResizeObserver with robust fallback
   const wrap = document.querySelector('.grid-wrap');
   if (window._cardRO) window._cardRO.disconnect();
+  let rendered = false;
   window._cardRO = new ResizeObserver(entries => {
+    if (rendered) return;
     const r = entries[0].contentRect;
     if (r.width > 50 && r.height > 50) {
+      rendered = true;
       window._cardRO.disconnect();
+      window._cardRO = null;
       renderCardsNow();
       initBg(currentGroup);
     }
   });
   window._cardRO.observe(wrap);
+  // Fallback: force render after animation completes (covers slow devices)
   setTimeout(() => {
     if (window._cardRO) { window._cardRO.disconnect(); window._cardRO = null; }
-    const g = document.getElementById('grid');
-    if (!g.children.length) renderCardsNow();
-  }, 500);
+    if (!rendered) { rendered = true; renderCardsNow(); initBg(currentGroup); }
+  }, 600);
 
   if (mechanic === MECH.TIMED) setTimeout(() => doTimedPeek(), 400);
 }
