@@ -7,8 +7,12 @@
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;user-select:none;-webkit-tap-highlight-color:transparent}
-.screen{display:none;width:100%;height:100%;position:absolute;top:0;left:0}
+.screen{display:none;width:100%;height:100%;position:absolute;top:0;left:0;z-index:1}
 .screen.active{display:flex}
+
+/* === DYNAMIC BACKGROUND CANVAS === */
+#bg-canvas{position:absolute;inset:0;pointer-events:none;z-index:0;width:100%;height:100%}
+.g-hdr,.grid-wrap,.hint,.g-foot{position:relative;z-index:1}
 
 /* === LEVEL SELECT === */
 #lvl-screen{flex-direction:column;align-items:center;padding:clamp(8px,2vmin,16px);gap:clamp(6px,1.5vmin,12px);overflow-y:auto;background:var(--bg,linear-gradient(135deg,#667eea,#764ba2))}
@@ -29,8 +33,15 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',Tahoma,G
 .lc-stars{font-size:clamp(14px,2.8vmin,18px);margin-top:3px}
 .lc-lock{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:clamp(32px,7vmin,46px);filter:drop-shadow(0 2px 6px rgba(0,0,0,.4))}
 
+/* Level card group color hints */
+.lc[data-grp="0"]{border-left:3px solid rgba(34,197,94,.6)}
+.lc[data-grp="1"]{border-left:3px solid rgba(14,165,233,.6)}
+.lc[data-grp="2"]{border-left:3px solid rgba(249,115,22,.6)}
+.lc[data-grp="3"]{border-left:3px solid rgba(245,158,11,.6)}
+.lc[data-grp="4"]{border-left:3px solid rgba(168,85,247,.6)}
+
 /* === GAME === */
-#game-screen{flex-direction:column;align-items:center;padding:clamp(4px,1vmin,10px);gap:clamp(3px,.8vmin,6px);background:var(--bg,linear-gradient(135deg,#667eea,#764ba2));transition:background .5s}
+#game-screen{flex-direction:column;align-items:center;padding:clamp(4px,1vmin,10px);gap:clamp(3px,.8vmin,6px);background:var(--bg,linear-gradient(135deg,#667eea,#764ba2));transition:background .5s;position:relative}
 .g-hdr{width:100%;max-width:540px;display:flex;align-items:center;justify-content:space-between;gap:6px;flex-shrink:0}
 .g-title{font-size:clamp(16px,3.2vmin,22px);font-weight:900;color:#fff;text-shadow:0 2px 8px rgba(0,0,0,.3)}
 .g-badge{font-size:clamp(12px,2.2vmin,16px);background:rgba(255,255,255,.3);color:#fff;border-radius:20px;padding:3px 10px;font-weight:800}
@@ -40,6 +51,8 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',Tahoma,G
 .g-sl{font-size:clamp(10px,1.8vmin,12px);color:rgba(255,255,255,.8);text-transform:uppercase;font-weight:600}
 .grid-wrap{flex:1;display:flex;align-items:center;justify-content:center;width:100%;min-height:0}
 .grid{display:grid;gap:clamp(3px,1vmin,6px);perspective:1000px}
+
+/* === BASE CARD STYLES === */
 .card{aspect-ratio:1;border:none;background:transparent;cursor:pointer;padding:0;outline:none;-webkit-tap-highlight-color:transparent}
 .card:disabled{cursor:default}
 .card-inner{position:relative;width:100%;height:100%;transition:transform .45s ease;transform-style:preserve-3d;border-radius:clamp(8px,2vmin,14px)}
@@ -54,6 +67,84 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',Tahoma,G
 .card.matched .card-inner{transform:rotateY(180deg)}
 .card.matched .card-back{background:linear-gradient(145deg,#d1fae5,#a7f3d0);border-color:rgba(16,185,129,.3);box-shadow:0 0 16px rgba(16,185,129,.25);animation:mpop .4s ease}
 @keyframes mpop{0%{transform:rotateY(180deg) scale(1)}50%{transform:rotateY(180deg) scale(1.12)}100%{transform:rotateY(180deg) scale(1)}}
+
+/* ===== GROUP 0: NATURE (Levels 1-4) — Soft Rounded, Gentle ===== */
+[data-group="0"] .card-inner,
+[data-group="0"] .card-front,
+[data-group="0"] .card-back{border-radius:clamp(16px,4vmin,24px) !important}
+[data-group="0"] .card-inner{transition:transform .5s ease !important}
+[data-group="0"] .card.matched .card-back{
+  background:linear-gradient(145deg,#dcfce7,#bbf7d0) !important;
+  border-color:rgba(34,197,94,.4) !important;
+  animation:matchNature 1.5s ease-in-out infinite !important}
+@keyframes matchNature{
+  0%,100%{box-shadow:0 0 8px rgba(34,197,94,.25),0 4px 0 rgba(16,185,129,.15)}
+  50%{box-shadow:0 0 22px rgba(34,197,94,.55),0 0 44px rgba(34,197,94,.15),0 4px 0 rgba(16,185,129,.15)}}
+
+/* ===== GROUP 1: OCEAN (Levels 5-8) — Organic Blob, Wavy ===== */
+[data-group="1"] .card-inner,
+[data-group="1"] .card-front,
+[data-group="1"] .card-back{border-radius:30% 70% 60% 40% / 55% 35% 65% 45% !important}
+[data-group="1"] .card-inner{transition:transform .55s cubic-bezier(.25,.8,.25,1) !important}
+[data-group="1"] .card-front{border:3px solid rgba(14,165,233,.4) !important}
+[data-group="1"] .card.matched .card-back{
+  background:linear-gradient(145deg,#e0f2fe,#bae6fd) !important;
+  border-color:rgba(14,165,233,.4) !important;
+  animation:matchOcean 1.3s ease-in-out infinite !important}
+@keyframes matchOcean{
+  0%,100%{transform:rotateY(180deg) scale(1);box-shadow:0 0 8px rgba(14,165,233,.2),0 4px 0 rgba(14,165,233,.15)}
+  50%{transform:rotateY(180deg) scale(1.05);box-shadow:0 0 24px rgba(14,165,233,.5),0 0 48px rgba(14,165,233,.12),0 4px 0 rgba(14,165,233,.15)}}
+
+/* ===== GROUP 2: CITY/FOOD (Levels 9-12) — Circle, Bouncy ===== */
+[data-group="2"] .card-inner,
+[data-group="2"] .card-front,
+[data-group="2"] .card-back{border-radius:50% !important}
+[data-group="2"] .card-inner{transition:transform .45s cubic-bezier(.34,1.8,.64,1) !important}
+[data-group="2"] .card.flipped .card-inner{transform:rotateY(180deg) scale(1.03) !important}
+[data-group="2"] .card.matched .card-inner{transform:rotateY(180deg) scale(1) !important}
+[data-group="2"] .card.matched .card-back{
+  background:linear-gradient(145deg,#fff7ed,#fed7aa) !important;
+  animation:matchCity 2.2s linear infinite !important}
+@keyframes matchCity{
+  0%{border-color:rgba(239,68,68,.5);box-shadow:0 0 12px rgba(239,68,68,.3)}
+  25%{border-color:rgba(245,158,11,.5);box-shadow:0 0 12px rgba(245,158,11,.3)}
+  50%{border-color:rgba(34,197,94,.5);box-shadow:0 0 12px rgba(34,197,94,.3)}
+  75%{border-color:rgba(59,130,246,.5);box-shadow:0 0 12px rgba(59,130,246,.3)}
+  100%{border-color:rgba(239,68,68,.5);box-shadow:0 0 12px rgba(239,68,68,.3)}}
+
+/* ===== GROUP 3: ADVENTURE (Levels 13-16) — Sharp + Gold Border ===== */
+[data-group="3"] .card-inner,
+[data-group="3"] .card-front,
+[data-group="3"] .card-back{border-radius:clamp(5px,1.2vmin,8px) !important}
+[data-group="3"] .card-inner{transition:transform .4s cubic-bezier(.4,0,.2,1) !important}
+[data-group="3"] .card.flipped .card-inner{transform:rotateY(180deg) rotateZ(2deg) !important}
+[data-group="3"] .card.matched .card-inner{transform:rotateY(180deg) rotateZ(0deg) !important}
+[data-group="3"] .card-front{border:3px solid rgba(245,158,11,.5) !important}
+[data-group="3"] .card.matched .card-back{
+  background:linear-gradient(145deg,#fef9c3,#fde68a) !important;
+  border-color:rgba(245,158,11,.5) !important;
+  animation:matchAdventure 1.5s ease-in-out infinite !important}
+@keyframes matchAdventure{
+  0%,100%{box-shadow:0 0 6px rgba(245,158,11,.3)}
+  30%{box-shadow:0 0 18px rgba(245,158,11,.6),0 0 36px rgba(245,158,11,.15)}
+  60%{box-shadow:0 0 10px rgba(234,88,12,.4)}}
+
+/* ===== GROUP 4: TECH/BOSS (Levels 17-20) — Sharp Neon ===== */
+[data-group="4"] .card-inner,
+[data-group="4"] .card-front,
+[data-group="4"] .card-back{border-radius:3px !important}
+[data-group="4"] .card-inner{transition:transform .22s cubic-bezier(.7,0,.3,1) !important}
+[data-group="4"] .card-front{border:2px solid rgba(168,85,247,.5) !important;box-shadow:0 0 8px rgba(168,85,247,.2),0 5px 0 rgba(0,0,0,.2),0 8px 16px rgba(0,0,0,.12) !important}
+[data-group="4"] .card:not(.flipped):not(.matched):hover .card-front{box-shadow:0 0 14px rgba(168,85,247,.4),0 8px 0 rgba(0,0,0,.15),0 12px 24px rgba(0,0,0,.15) !important}
+[data-group="4"] .card.matched .card-back{
+  background:linear-gradient(145deg,#f3e8ff,#e9d5ff) !important;
+  border-color:rgba(168,85,247,.5) !important;
+  animation:matchTech 1s ease-in-out infinite !important}
+@keyframes matchTech{
+  0%,100%{box-shadow:0 0 4px rgba(168,85,247,.4),0 0 8px rgba(168,85,247,.15)}
+  50%{box-shadow:0 0 14px rgba(168,85,247,.7),0 0 28px rgba(168,85,247,.25),0 0 56px rgba(168,85,247,.08)}}
+
+/* === FOOTER & MISC === */
 .g-foot{display:flex;gap:clamp(4px,1vmin,8px);flex-shrink:0;flex-wrap:wrap;justify-content:center}
 .f-btn{background:rgba(255,255,255,.25);border:none;border-radius:12px;padding:clamp(7px,1.8vmin,12px) clamp(14px,3.5vmin,24px);font-size:clamp(14px,2.5vmin,18px);font-weight:800;color:#fff;cursor:pointer;transition:all .2s;text-shadow:0 1px 3px rgba(0,0,0,.3)}
 .f-btn:hover{background:rgba(255,255,255,.35);transform:scale(1.04)}
@@ -86,67 +177,40 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',Tahoma,G
 @keyframes emojiBreath{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}
 
 /* ===== ROYAL MATCH 3D VISUAL SYSTEM ===== */
-
-/* Animated gradient backgrounds */
 #lvl-screen{background-size:300% 300%;animation:royalBG 15s ease infinite}
 #done-screen{background-size:300% 300%;animation:royalBG 15s ease infinite}
 @keyframes royalBG{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
-
-/* Screen transitions */
 .screen.active{animation:screenIn .4s cubic-bezier(.34,1.56,.64,1)}
 @keyframes screenIn{0%{opacity:0;transform:scale(.93) translateY(12px)}100%{opacity:1;transform:scale(1) translateY(0)}}
-
-/* 3D Level Cards */
 .lc{transform-style:preserve-3d;box-shadow:0 6px 0 rgba(0,0,0,.18),0 10px 0 rgba(0,0,0,.08),0 20px 40px rgba(0,0,0,.12),inset 0 1px 0 rgba(255,255,255,.4) !important;background:linear-gradient(160deg,rgba(255,255,255,.5) 0%,rgba(255,255,255,.2) 40%,rgba(255,255,255,.05) 100%) !important;border:2px solid rgba(255,255,255,.55) !important;transition:all .35s cubic-bezier(.34,1.56,.64,1) !important}
 .lc:hover{transform:translateY(-8px) scale(1.1) rotateX(5deg) !important;box-shadow:0 12px 0 rgba(0,0,0,.12),0 20px 0 rgba(0,0,0,.05),0 32px 60px rgba(0,0,0,.15),inset 0 1px 0 rgba(255,255,255,.6) !important}
 .lc:active{transform:translateY(2px) scale(.96) !important}
 .lc.current{animation:currentGlow 2.5s ease-in-out infinite,cardFloat 3s ease-in-out infinite !important;border-color:#fbbf24 !important}
 @keyframes currentGlow{0%,100%{box-shadow:0 0 15px rgba(251,191,36,.4),0 6px 0 rgba(0,0,0,.15)}50%{box-shadow:0 0 30px rgba(251,191,36,.7),0 0 60px rgba(251,191,36,.2),0 6px 0 rgba(0,0,0,.12)}}
-
-/* 3D Memory Cards */
 .card-front{box-shadow:0 6px 0 rgba(0,0,0,.2),0 8px 0 rgba(0,0,0,.1),0 14px 28px rgba(0,0,0,.15),inset 0 2px 0 rgba(255,255,255,.35) !important;background:linear-gradient(165deg,var(--cf1,#6366f1),var(--cf2,#4f46e5),rgba(0,0,0,.15)) !important}
 .card:not(.flipped):not(.matched):hover .card-front{box-shadow:0 10px 0 rgba(0,0,0,.15),0 14px 0 rgba(0,0,0,.08),0 20px 36px rgba(0,0,0,.18),inset 0 2px 0 rgba(255,255,255,.4) !important;transform:scale(1.08) !important}
 .card:not(.flipped):not(.matched):active .card-front{transform:scale(.94) !important;box-shadow:0 2px 0 rgba(0,0,0,.2),0 3px 6px rgba(0,0,0,.1) !important}
 .card-back{box-shadow:0 6px 0 rgba(99,102,241,.2),0 8px 0 rgba(99,102,241,.1),0 14px 24px rgba(0,0,0,.1),inset 0 -2px 0 rgba(0,0,0,.04),inset 0 2px 0 rgba(255,255,255,.6) !important;background:linear-gradient(180deg,#fff,#f5f3ff,#ede9fe) !important}
-.card.matched .card-back{background:linear-gradient(180deg,#d1fae5,#a7f3d0,#6ee7b7) !important;border-color:rgba(16,185,129,.4) !important;box-shadow:0 0 20px rgba(16,185,129,.3),0 6px 0 rgba(16,185,129,.2),inset 0 2px 0 rgba(255,255,255,.4) !important;animation:matchedGlow 1.5s ease-in-out infinite}
-@keyframes matchedGlow{0%,100%{box-shadow:0 0 10px rgba(16,185,129,.2),0 6px 0 rgba(16,185,129,.2),inset 0 2px 0 rgba(255,255,255,.4)}50%{box-shadow:0 0 25px rgba(16,185,129,.4),0 0 50px rgba(16,185,129,.15),0 6px 0 rgba(16,185,129,.2),inset 0 2px 0 rgba(255,255,255,.4)}}
-
-/* 3D Game Header */
 .g-stat{box-shadow:0 3px 0 rgba(0,0,0,.1),0 4px 8px rgba(0,0,0,.06),inset 0 1px 0 rgba(255,255,255,.2) !important;transition:all .2s}
-
-/* 3D Footer Buttons */
 .f-btn{box-shadow:0 4px 0 rgba(0,0,0,.12),0 6px 10px rgba(0,0,0,.06),inset 0 1px 0 rgba(255,255,255,.2) !important;transition:all .2s cubic-bezier(.34,1.56,.64,1) !important}
 .f-btn:hover{transform:translateY(-3px) scale(1.05) !important;box-shadow:0 7px 0 rgba(0,0,0,.1),0 10px 16px rgba(0,0,0,.08) !important}
 .f-btn:active{transform:translateY(2px) scale(.96) !important;box-shadow:0 1px 0 rgba(0,0,0,.12) !important}
-
-/* 3D Done Screen Stars */
 .d-stars span{display:inline-block;animation:starPop3D .6s cubic-bezier(.34,1.56,.64,1) both}
 .d-stars span:nth-child(1){animation-delay:.1s}
 .d-stars span:nth-child(2){animation-delay:.3s}
 .d-stars span:nth-child(3){animation-delay:.5s}
 @keyframes starPop3D{0%{transform:scale(0) rotateY(180deg);opacity:0}60%{transform:scale(1.3) rotateY(45deg);opacity:1}100%{transform:scale(1) rotateY(0deg);opacity:1}}
-
-/* Done Screen Stat Cards 3D */
 .d-st{box-shadow:0 4px 0 rgba(0,0,0,.1),0 8px 16px rgba(0,0,0,.08),inset 0 1px 0 rgba(255,255,255,.2) !important;transition:all .3s cubic-bezier(.34,1.56,.64,1)}
 .d-st:hover{transform:translateY(-3px) scale(1.05)}
-
-/* 3D Done Buttons */
 .d-btn.pri{box-shadow:0 6px 0 #c2410c,0 8px 0 #9a3412,0 14px 24px rgba(249,115,22,.3) !important}
 .d-btn.pri:hover{transform:translateY(-3px) scale(1.06) !important;box-shadow:0 9px 0 #c2410c,0 12px 0 #9a3412,0 20px 32px rgba(249,115,22,.35) !important}
 .d-btn.pri:active{transform:translateY(3px) scale(.96) !important;box-shadow:0 2px 0 #c2410c !important}
 .d-btn.shr{box-shadow:0 6px 0 #1d4ed8,0 8px 0 #1e40af,0 14px 24px rgba(37,99,235,.3) !important}
 .d-btn.sec{box-shadow:0 4px 0 rgba(0,0,0,.15),0 6px 12px rgba(0,0,0,.08) !important}
-
-/* Done Emoji Bounce */
 .d-emoji{animation:doneBounce3D 1.5s cubic-bezier(.34,1.56,.64,1) infinite !important;filter:drop-shadow(0 8px 20px rgba(0,0,0,.3)) !important}
 @keyframes doneBounce3D{0%,100%{transform:translateY(0) scale(1) rotateZ(0)}25%{transform:translateY(-12px) scale(1.05) rotateZ(-3deg)}50%{transform:translateY(-6px) scale(1.02) rotateZ(0)}75%{transform:translateY(-12px) scale(1.05) rotateZ(3deg)}}
-
-/* Card flip enhanced */
-.card.flipped .card-inner{transform:rotateY(180deg);transition:transform .5s cubic-bezier(.34,1.56,.64,1) !important}
-
-/* Grid glow */
+.card.flipped .card-inner{transition:transform .5s cubic-bezier(.34,1.56,.64,1) !important}
 .grid{filter:drop-shadow(0 4px 16px rgba(0,0,0,.1))}
-
 /* ===== END ROYAL MATCH 3D ===== */
 </style>
 </head>
@@ -161,6 +225,7 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',Tahoma,G
 
 <!-- GAME -->
 <div id="game-screen" class="screen">
+  <canvas id="bg-canvas"></canvas>
   <div class="g-hdr">
     <div style="display:flex;align-items:center;gap:5px">
       <span class="g-title" id="g-t">Memory</span>
@@ -198,8 +263,8 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',Tahoma,G
   </div>
 </div>
 
+<!-- ===== ROYAL MATCH 3D PARTICLE SYSTEM ===== -->
 <script>
-// ===== ROYAL MATCH 3D PARTICLE SYSTEM =====
 (function(){
 const c=document.createElement('canvas');
 c.style.cssText='position:fixed;inset:0;pointer-events:none;z-index:9999';
@@ -274,6 +339,121 @@ function loop(){
 })();
 </script>
 
+<!-- ===== DYNAMIC BACKGROUND ANIMATION SYSTEM ===== -->
+<script>
+(function(){
+const bgC=document.getElementById('bg-canvas');
+if(!bgC)return;
+const bgX=bgC.getContext('2d');
+let parts=[],grp=-1,raf=null,active=false;
+
+const FX=[
+  // Group 0: Nature — floating leaves, butterflies
+  {e:['🍃','🌿','🦋','🐝','🌸','☘️','🌻','🍀','🌺','🐞'],n:22,sp:0.35,t:'float'},
+  // Group 1: Ocean — rising bubbles, fish
+  {e:['🫧','💧','🐟','🐠','🐚','🌊','🪸','🐬','🐡','🦈'],n:26,sp:0.5,t:'rise'},
+  // Group 2: City/Food — twinkling sparkles
+  {e:['✨','⭐','🌟','💫','🎆','🎇','🎪','🎠','🎡','🎢'],n:20,sp:0.25,t:'twinkle'},
+  // Group 3: Adventure — shooting stars, meteors
+  {e:['⭐','💫','☄️','✨','🌟','🔥','💥','🌠','🏹','⚔️'],n:14,sp:1.2,t:'shoot'},
+  // Group 4: Tech — matrix falling code
+  {e:['⚡','💎','🔮','💠','🤖','⚙️','📡','💾','🔬','💻'],n:32,sp:0.45,t:'fall'},
+];
+
+function resize(){
+  const p=bgC.parentElement;
+  if(p){bgC.width=p.clientWidth;bgC.height=p.clientHeight}
+}
+
+function mkP(fx,init){
+  const w=bgC.width||innerWidth,h=bgC.height||innerHeight;
+  const p={
+    x:Math.random()*w,
+    y:init?Math.random()*h:(fx.t==='fall'||fx.t==='shoot'?-30:h+30),
+    e:fx.e[Math.floor(Math.random()*fx.e.length)],
+    sz:10+Math.random()*16,
+    sp:fx.sp*(0.4+Math.random()*0.8),
+    op:0.12+Math.random()*0.35,
+    ph:Math.random()*Math.PI*2,
+    dr:(Math.random()-0.5)*0.25,
+    rot:0,rs:(Math.random()-0.5)*0.5
+  };
+  if(fx.t==='shoot'){p.vx=-0.8-Math.random()*1.5;p.vy=0.4+Math.random()*1.2}
+  return p;
+}
+
+function loop(){
+  if(!active){raf=null;return}
+  const w=bgC.width,h=bgC.height;
+  bgX.clearRect(0,0,w,h);
+  const fx=FX[grp];
+  if(!fx){raf=requestAnimationFrame(loop);return}
+
+  for(let i=0;i<parts.length;i++){
+    const p=parts[i];
+    p.ph+=0.015;
+    p.rot+=p.rs;
+
+    if(fx.t==='float'){
+      p.y-=p.sp;p.x+=Math.sin(p.ph)*0.4+p.dr;
+      if(p.y<-40){Object.assign(p,mkP(fx,false));p.y=h+30}
+    } else if(fx.t==='rise'){
+      p.y-=p.sp;p.x+=Math.sin(p.ph)*0.55;
+      p.sz+=Math.sin(p.ph*2)*0.03;
+      if(p.y<-40){Object.assign(p,mkP(fx,false));p.y=h+30}
+    } else if(fx.t==='twinkle'){
+      p.op=0.08+Math.abs(Math.sin(p.ph))*0.45;
+      p.sz=10+Math.sin(p.ph*1.3)*5;
+      p.y-=p.sp*0.15;
+      if(p.y<-40){Object.assign(p,mkP(fx,false));p.y=h+30;p.x=Math.random()*w}
+    } else if(fx.t==='shoot'){
+      p.x+=p.vx;p.y+=p.vy;
+      if(p.x<-50||p.y>h+50){Object.assign(p,mkP(fx,false));p.y=-30;p.x=Math.random()*w}
+    } else if(fx.t==='fall'){
+      p.y+=p.sp;
+      p.op=0.08+Math.abs(Math.sin(p.ph))*0.3;
+      if(p.y>h+40){Object.assign(p,mkP(fx,false));p.y=-30;p.x=Math.random()*w}
+    }
+
+    bgX.save();
+    bgX.globalAlpha=p.op;
+    bgX.translate(p.x,p.y);
+    bgX.rotate(p.rot*Math.PI/180);
+    bgX.font=Math.round(p.sz)+'px serif';
+    bgX.textAlign='center';bgX.textBaseline='middle';
+    bgX.fillText(p.e,0,0);
+    bgX.restore();
+  }
+  raf=requestAnimationFrame(loop);
+}
+
+window.initBg=function(g){
+  grp=g;parts=[];active=true;
+  resize();
+  const fx=FX[g];
+  if(fx){for(let i=0;i<fx.n;i++)parts.push(mkP(fx,true))}
+  if(!raf)loop();
+};
+
+window.stopBg=function(){
+  active=false;grp=-1;
+  if(bgC.width)bgX.clearRect(0,0,bgC.width,bgC.height);
+};
+
+addEventListener('resize',function(){
+  resize();
+  if(active&&grp>=0){
+    const fx=FX[grp];
+    if(fx){
+      parts=[];
+      for(let i=0;i<fx.n;i++)parts.push(mkP(fx,true));
+    }
+  }
+});
+})();
+</script>
+
+<!-- ===== MAIN GAME ===== -->
 <script>
 // ===== i18n =====
 const LANG=new URLSearchParams(location.search).get('lang')||'ar';
@@ -315,7 +495,7 @@ tech:['💻','🖥','🖨','⌨️','🖱','💽','💾','💿','📱','📲','�
 mix:['🐄','🍎','🐟','🦋','☀️','🌸','🥕','🍕','🚗','🌍','⚽','🎵','🦁','🦅','🔨','👕','🏠','📚','💻','🎉','🐷','🍊','🐬','🐝','🌈','🌹','🌽','🍔','🚌','🪐','🏀','🎸','🐯','🦉','🔧','👗','🏫','📖','📱','🎊','🐴','🍇','🐙','🐞','⭐','🌻','🍆','🍰','✈️','🚀']
 };
 
-// ===== THEMES =====
+// ===== THEMES (base per level) =====
 const THEMES=[
   {bg:'linear-gradient(135deg,#86efac,#22c55e)',cf1:'#16a34a',cf2:'#15803d'},
   {bg:'linear-gradient(135deg,#fca5a5,#ef4444)',cf1:'#dc2626',cf2:'#b91c1c'},
@@ -337,6 +517,49 @@ const THEMES=[
   {bg:'linear-gradient(135deg,#60a5fa,#2563eb)',cf1:'#2563eb',cf2:'#1d4ed8'},
   {bg:'linear-gradient(135deg,#22d3ee,#0e7490)',cf1:'#0e7490',cf2:'#0891b2'},
   {bg:'linear-gradient(135deg,#fb7185,#be123c)',cf1:'#be123c',cf2:'#9f1239'},
+];
+
+// ===== SUB-THEME VARIANTS (per group — randomly selected each play) =====
+const VARIANTS=[
+  // Group 0: Nature greens/springs
+  [
+    {bg:'linear-gradient(150deg,#bbf7d0,#4ade80)',cf1:'#22c55e',cf2:'#16a34a'},
+    {bg:'linear-gradient(120deg,#d9f99d,#84cc16)',cf1:'#65a30d',cf2:'#4d7c0f'},
+    {bg:'linear-gradient(160deg,#a7f3d0,#34d399)',cf1:'#059669',cf2:'#047857'},
+  ],
+  // Group 1: Ocean blues/teals
+  [
+    {bg:'linear-gradient(150deg,#a5f3fc,#22d3ee)',cf1:'#06b6d4',cf2:'#0891b2'},
+    {bg:'linear-gradient(120deg,#bfdbfe,#60a5fa)',cf1:'#2563eb',cf2:'#1d4ed8'},
+    {bg:'linear-gradient(160deg,#99f6e4,#14b8a6)',cf1:'#0d9488',cf2:'#0f766e'},
+  ],
+  // Group 2: City/Food warm
+  [
+    {bg:'linear-gradient(150deg,#fecaca,#f87171)',cf1:'#ef4444',cf2:'#dc2626'},
+    {bg:'linear-gradient(120deg,#fed7aa,#fb923c)',cf1:'#ea580c',cf2:'#c2410c'},
+    {bg:'linear-gradient(160deg,#fde68a,#f59e0b)',cf1:'#d97706',cf2:'#b45309'},
+  ],
+  // Group 3: Adventure golds/coppers
+  [
+    {bg:'linear-gradient(150deg,#fef08a,#eab308)',cf1:'#ca8a04',cf2:'#a16207'},
+    {bg:'linear-gradient(120deg,#fbbf24,#b45309)',cf1:'#92400e',cf2:'#78350f'},
+    {bg:'linear-gradient(160deg,#fed7aa,#ea580c)',cf1:'#c2410c',cf2:'#9a3412'},
+  ],
+  // Group 4: Tech purples/neons
+  [
+    {bg:'linear-gradient(150deg,#e9d5ff,#a855f7)',cf1:'#9333ea',cf2:'#7e22ce'},
+    {bg:'linear-gradient(120deg,#c7d2fe,#818cf8)',cf1:'#6366f1',cf2:'#4f46e5'},
+    {bg:'linear-gradient(160deg,#fbcfe8,#ec4899)',cf1:'#db2777',cf2:'#be185d'},
+  ],
+];
+
+// ===== CARD FRONT ICONS (per group — randomly selected each play) =====
+const FRONT_ICONS=[
+  ['❓','🌿','🍀','🌱','🌻','☘️'],
+  ['❓','🌊','💧','🐚','🫧','🪸'],
+  ['❓','✨','🌟','🔥','⭐','💫'],
+  ['❓','🗺️','⚔️','🏹','🛡️','🧭'],
+  ['❓','💠','🔮','⚡','🤖','💎'],
 ];
 
 // ===== LEVEL CONFIG: 20 levels, increasing grid & pairs =====
@@ -378,6 +601,8 @@ let cards=[],moves=0,matchedPairs=0,totalPairs=8,firstPick=null,secondPick=null,
 let gameStarted=false,startTime=null,timerInterval=null,elapsedSeconds=0;
 let currentLevel=-1,currentGridCols=4,currentGridRows=4;
 let currentEmoji=[];
+let currentFrontIcon='❓';
+let currentGroup=0;
 
 let progress=JSON.parse(localStorage.getItem('classify_memory_progress')||'{"unlocked":1,"scores":{},"stars":{}}');
 function saveProgress(){localStorage.setItem('classify_memory_progress',JSON.stringify(progress))}
@@ -386,6 +611,7 @@ function saveProgress(){localStorage.setItem('classify_memory_progress',JSON.str
 function shuffle(arr){const a=[...arr];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
 function fmtTime(s){return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')}
 function pickEmoji(cat,n){const pool=POOL[cat]||POOL.mix;const unique=[...new Set(shuffle(pool))];return unique.slice(0,n)}
+function getGroup(idx){return Math.min(4,Math.floor(idx/4))}
 
 function calcScore(moves,pairs,duration){
   const perfect=pairs;
@@ -401,18 +627,21 @@ function calcScore(moves,pairs,duration){
 function showScreen(id){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
-  if(id==='lvl-screen')renderLevelSelect();
+  if(id==='lvl-screen'){renderLevelSelect();if(window.stopBg)stopBg()}
+  if(id==='done-screen'){if(window.stopBg)stopBg()}
 }
 
 function renderLevelSelect(){
   const g=document.getElementById('ls-g');g.innerHTML='';
   for(let i=0;i<LEVELS.length;i++){
     const cfg=LEVELS[i];
+    const grp=getGroup(i);
     const unlocked=i<progress.unlocked;
     const stars=progress.stars[i]||0;
     const isCurr=i===progress.unlocked-1;
     const card=document.createElement('div');
     card.className='lc'+(unlocked?'':' locked')+(isCurr?' current':'');
+    card.setAttribute('data-grp',grp);
     if(unlocked){
       card.innerHTML=`<div class="lc-num">${i+1}</div><div class="lc-emoji">${cfg.emoji}</div><div class="lc-name">${t.lvNames[i]}</div><div class="lc-stars">${stars>=1?'⭐':'☆'}${stars>=2?'⭐':'☆'}${stars>=3?'⭐':'☆'}</div>`;
       card.onclick=()=>startLevel(i);
@@ -427,17 +656,39 @@ function renderLevelSelect(){
 function startLevel(idx){
   currentLevel=idx;
   const cfg=LEVELS[idx];
+  currentGroup=getGroup(idx);
   currentGridCols=cfg.gridCols;currentGridRows=cfg.gridRows;totalPairs=cfg.pairs;
   currentEmoji=pickEmoji(cfg.cat,totalPairs);
-  const theme=THEMES[idx];
-  document.getElementById('game-screen').style.background=theme.bg;
-  document.getElementById('game-screen').style.setProperty('--cf1',theme.cf1);
-  document.getElementById('game-screen').style.setProperty('--cf2',theme.cf2);
+
+  // Pick theme: 50% base, 50% random variant
+  const baseTheme=THEMES[idx];
+  const groupVariants=VARIANTS[currentGroup];
+  const allThemes=[baseTheme,...groupVariants];
+  const theme=allThemes[Math.floor(Math.random()*allThemes.length)];
+
+  // Pick random front icon for this group
+  const icons=FRONT_ICONS[currentGroup];
+  currentFrontIcon=icons[Math.floor(Math.random()*icons.length)];
+
+  // Apply theme
+  const gs=document.getElementById('game-screen');
+  gs.dataset.group=currentGroup;
+  gs.style.background=theme.bg;
+  gs.style.setProperty('--cf1',theme.cf1);
+  gs.style.setProperty('--cf2',theme.cf2);
   document.getElementById('done-screen').style.background=theme.bg;
+
   document.getElementById('g-t').textContent=t.lvNames[idx];
   document.getElementById('g-b').textContent=''+(idx+1);
+
+  // Start dynamic background
+  if(window.initBg)initBg(currentGroup);
+
   resetGame();
   showScreen('game-screen');
+
+  // Re-init bg after screen shown (ensures canvas is visible and sized)
+  requestAnimationFrame(()=>{if(window.initBg)initBg(currentGroup)});
 }
 
 function resetGame(){
@@ -474,7 +725,7 @@ function renderCards(){
     btn.className='card'+(card.flipped?' flipped':'')+(card.matched?' matched flipped':'');
     btn.disabled=card.flipped||card.matched;
     btn.setAttribute('data-id',card.id);
-    btn.innerHTML=`<div class="card-inner"><div class="card-front"><span class="icon">❓</span></div><div class="card-back"><span class="sym">${card.symbol}</span></div></div>`;
+    btn.innerHTML=`<div class="card-inner"><div class="card-front"><span class="icon">${currentFrontIcon}</span></div><div class="card-back"><span class="sym">${card.symbol}</span></div></div>`;
     btn.style.width=sz+'px';btn.style.height=sz+'px';
     btn.addEventListener('click',()=>flipCard(card.id));
     g.appendChild(btn);
@@ -498,12 +749,35 @@ function flipCard(id){
     document.getElementById('g-pr').textContent=matchedPairs+'/'+totalPairs;
     updateCardDOM(first.id,true,true);updateCardDOM(second.id,true,true);
     sfxMatch();
+    // Spawn mini particles on match
+    spawnMatchParticles(first.id,second.id);
     firstPick=null;secondPick=null;
     if(matchedPairs===totalPairs)setTimeout(()=>endGame(),400);
   } else {
     isChecking=true;sfxNoMatch();
     setTimeout(()=>{first.flipped=false;second.flipped=false;updateCardDOM(first.id,false,false);updateCardDOM(second.id,false,false);firstPick=null;secondPick=null;isChecking=false},800);
   }
+}
+
+function spawnMatchParticles(id1,id2){
+  try{
+    [id1,id2].forEach(id=>{
+      const el=document.getElementById('grid').querySelector(`[data-id="${id}"]`);
+      if(!el)return;
+      const r=el.getBoundingClientRect();
+      const cx=r.left+r.width/2,cy=r.top+r.height/2;
+      for(let i=0;i<4;i++){
+        const p=document.createElement('div');p.className='particle';
+        const emojis=['⭐','✨','🌟','💫','💎','🎉'];
+        p.textContent=emojis[Math.floor(Math.random()*emojis.length)];
+        p.style.left=(cx-10+Math.random()*20)+'px';
+        p.style.top=(cy-10+Math.random()*20)+'px';
+        p.style.fontSize='18px';
+        document.body.appendChild(p);
+        setTimeout(()=>p.remove(),1200);
+      }
+    });
+  }catch(e){}
 }
 
 function updateCardDOM(id,flipped,matched){
