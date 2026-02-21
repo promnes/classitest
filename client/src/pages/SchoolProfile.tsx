@@ -377,7 +377,7 @@ export default function SchoolProfile() {
       <div className="max-w-5xl mx-auto px-3 sm:px-6 py-4">
         <div className="flex flex-col lg:flex-row gap-4">
           {/* ===== LEFT SIDEBAR ===== */}
-          <div className="lg:w-80 space-y-4 lg:sticky lg:top-4 lg:self-start">
+          <div className="lg:w-80 space-y-4 lg:sticky lg:top-4 lg:self-start overflow-hidden">
             <Card className="shadow-sm">
               <CardContent className="p-4 space-y-3">
                 <h3 className="font-bold text-lg flex items-center gap-2">
@@ -385,35 +385,35 @@ export default function SchoolProfile() {
                   {t("schoolProfile.schoolInfo")}
                 </h3>
                 {school.description && (
-                  <p className="text-sm text-muted-foreground leading-relaxed">{school.description}</p>
+                  <p className="text-sm text-muted-foreground leading-relaxed break-words">{school.description}</p>
                 )}
-                <div className="space-y-2.5">
+                <div className="space-y-2.5 min-w-0">
                   {(school.address || school.city || school.governorate) && (
-                    <div className="flex items-start gap-2.5 text-sm">
+                    <div className="flex items-start gap-2.5 text-sm min-w-0">
                       <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
-                      <span>{[school.address, school.city, school.governorate].filter(Boolean).join(t("schoolProfile.commaSeparator"))}</span>
+                      <span className="break-words min-w-0">{[school.address, school.city, school.governorate].filter(Boolean).join(t("schoolProfile.commaSeparator"))}</span>
                     </div>
                   )}
                   {school.phoneNumber && (
-                    <div className="flex items-center gap-2.5 text-sm">
+                    <div className="flex items-center gap-2.5 text-sm min-w-0">
                       <Phone className="h-4 w-4 text-muted-foreground shrink-0" />
-                      <a href={`tel:${school.phoneNumber}`} className="hover:text-blue-600" dir="ltr">{school.phoneNumber}</a>
+                      <a href={`tel:${school.phoneNumber}`} className="hover:text-blue-600 truncate" dir="ltr">{school.phoneNumber}</a>
                     </div>
                   )}
                   {school.email && (
-                    <div className="flex items-center gap-2.5 text-sm">
+                    <div className="flex items-center gap-2.5 text-sm min-w-0">
                       <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
-                      <a href={`mailto:${school.email}`} className="hover:text-blue-600 text-blue-600">{school.email}</a>
+                      <a href={`mailto:${school.email}`} className="hover:text-blue-600 text-blue-600 break-all">{school.email}</a>
                     </div>
                   )}
                   <div className="flex items-center gap-2.5 text-sm">
                     <Calendar className="h-4 w-4 text-muted-foreground shrink-0" />
-                    <span>{t("schoolProfile.joinedIn")} {joinDate}</span>
+                    <span className="break-words min-w-0">{t("schoolProfile.joinedIn")} {joinDate}</span>
                   </div>
                   {school.referralCode && (
-                    <div className="flex items-center gap-2.5 text-sm">
+                    <div className="flex items-center gap-2.5 text-sm min-w-0">
                       <Award className="h-4 w-4 text-muted-foreground shrink-0" />
-                      <span>{t("schoolProfile.referralCode")} <strong className="font-mono bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded text-blue-600">{school.referralCode}</strong></span>
+                      <span className="break-words min-w-0">{t("schoolProfile.referralCode")} <strong className="font-mono bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded text-blue-600">{school.referralCode}</strong></span>
                     </div>
                   )}
                 </div>
