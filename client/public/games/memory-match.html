@@ -164,6 +164,16 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',Tahoma,G
 .peek-banner span{color:#fff;font-size:clamp(18px,5vmin,28px);font-weight:900;text-shadow:0 2px 8px rgba(0,0,0,.5);animation:peekPulse 1s ease-in-out infinite}
 @keyframes peekPulse{0%,100%{opacity:.7;transform:scale(1)}50%{opacity:1;transform:scale(1.1)}}
 
+/* === DDA SYSTEM === */
+.dda-badge{position:relative;z-index:12;display:inline-flex;align-items:center;gap:4px;background:rgba(0,0,0,.25);color:#fff;font-size:clamp(10px,1.8vmin,12px);padding:2px 10px;border-radius:12px;font-weight:700;backdrop-filter:blur(4px);flex-shrink:0;transition:all .5s}
+.dda-badge.easy{background:rgba(34,197,94,.35);border:1px solid rgba(34,197,94,.4)}
+.dda-badge.normal{background:rgba(59,130,246,.3);border:1px solid rgba(59,130,246,.3)}
+.dda-badge.hard{background:rgba(239,68,68,.3);border:1px solid rgba(239,68,68,.3)}
+.card.dda-hint .card-front{animation:ddaHintGlow 1.2s ease-in-out 3}
+@keyframes ddaHintGlow{0%,100%{box-shadow:0 5px 0 rgba(0,0,0,.2),0 8px 16px rgba(0,0,0,.12)}50%{box-shadow:0 0 16px rgba(251,191,36,.6),0 0 32px rgba(251,191,36,.2),0 5px 0 rgba(0,0,0,.15)}}
+.cd-wrap.level-timer{display:block}
+.cd-fill.paused{animation:none !important;transition:none !important}
+
 /* === FOOTER & MISC === */
 .g-foot{display:flex;gap:clamp(4px,1vmin,8px);flex-shrink:0;flex-wrap:wrap;justify-content:center}
 .f-btn{background:rgba(255,255,255,.25);border:none;border-radius:12px;padding:clamp(7px,1.8vmin,12px) clamp(14px,3.5vmin,24px);font-size:clamp(14px,2.5vmin,18px);font-weight:800;color:#fff;cursor:pointer;transition:all .2s;text-shadow:0 1px 3px rgba(0,0,0,.3)}
@@ -257,7 +267,7 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',Tahoma,G
       <div class="g-stat"><div class="g-sv" id="g-tm">0:00</div><div class="g-sl" id="g-tml">الوقت</div></div>
     </div>
   </div>
-  <div class="mech-info" id="mech-info" style="display:none"></div>
+  <div style="display:flex;gap:6px;align-items:center;flex-shrink:0;position:relative;z-index:12"><div class="mech-info" id="mech-info" style="display:none"></div><div class="dda-badge normal" id="dda-badge" style="display:none"></div></div>
   <div class="cd-wrap" id="cd-wrap" style="display:none">
     <div class="cd-hdr"><span class="cd-txt" id="cd-text">⏱️ 2:00</span><span class="cd-txt" id="cd-label"></span></div>
     <div class="cd-bar"><div class="cd-fill" id="cd-fill" style="width:100%"></div></div>
@@ -488,13 +498,13 @@ const LANG=new URLSearchParams(location.search).get('lang')||'ar';
 document.documentElement.lang=LANG;document.documentElement.dir=LANG==='ar'?'rtl':'ltr';
 const I={
 ar:{title:'🧠 لعبة الذاكرة',sub:'اختر المستوى لتبدأ!',moves:'المحاولات',pairs:'الأزواج',sets:'المجموعات',time:'الوقت',hint:'اضغط على أي بطاقة للبدء!',score:'النقاط',congrats:'مبروك!',excellent:'🌟 ممتاز!',great:'🎉 أحسنت!',good:'👍 جيد!',tryMore:'💪 حاول أكثر!',done:'أتممت المستوى!',next:'➡️ التالي',share:'📤 مشاركة',again:'🔄 إعادة',levels:'🏠 المستويات',back:'🏠 رجوع',locked:'🔒',mech:{timed:'⏱️ تذكّر!',moving:'🔀 متحركة!',masked:'🎭 مُقنّعة!',fog:'🌫️ ضباب!',triple:'🔱 ثلاثي!',boss:'👑 الزعيم!'},mechHint:{timed:'تذكر مواقع البطاقات!',moving:'البطاقات تتبدل كل ٣ محاولات!',masked:'بعض البطاقات تخدعك!',fog:'اضغط الضباب أولاً!',triple:'طابق ٣ بطاقات متشابهة!',boss:'كل التحديات + مؤقت!'},timeUp:'⏰ انتهى الوقت!',remember:'👀 تذكّر!',shuffling:'🔀 تبديل...',
-shareText:'حققت {score} نقطة في المستوى {level} من لعبة الذاكرة! ⭐{stars}',
+shareText:'حققت {score} نقطة في المستوى {level} من لعبة الذاكرة! ⭐{stars}',dda:{easy:'🟢 سهل',normal:'🔵 عادي',hard:'🔴 صعب'},hintMsg:'💡 تلميح!',
 lvNames:['مزرعة الحيوانات','سلة الفواكه','عالم البحار','حديقة الحشرات','سماء وطقس','حديقة الورد','وادي الخضار','مطبخ لذيذ','عالم المركبات','استكشاف الفضاء','ملعب الرياضة','عالم الموسيقى','رحلة السفاري','عالم الطيور','ورشة الأدوات','عالم الأزياء','مدينة المباني','يوم المدرسة','عالم التقنية','🌍 بطل العالم']},
 en:{title:'🧠 Memory Match',sub:'Choose a level to start!',moves:'Moves',pairs:'Pairs',sets:'Sets',time:'Time',hint:'Tap any card to start!',score:'Score',congrats:'Congrats!',excellent:'🌟 Excellent!',great:'🎉 Great!',good:'👍 Good!',tryMore:'💪 Try More!',done:'Level complete!',next:'➡️ Next',share:'📤 Share',again:'🔄 Replay',levels:'🏠 Levels',back:'🏠 Back',locked:'🔒',mech:{timed:'⏱️ Peek!',moving:'🔀 Moving!',masked:'🎭 Masked!',fog:'🌫️ Fog!',triple:'🔱 Triple!',boss:'👑 Boss!'},mechHint:{timed:'Memorize the cards!',moving:'Cards shuffle every 3 moves!',masked:'Some cards trick you first!',fog:'Tap fog to reveal!',triple:'Match 3 cards!',boss:'All challenges + timer!'},timeUp:'⏰ Time\'s up!',remember:'👀 Remember!',shuffling:'🔀 Shuffling...',
-shareText:'I scored {score} on Level {level} in Memory Match! ⭐{stars}',
+shareText:'I scored {score} on Level {level} in Memory Match! ⭐{stars}',dda:{easy:'🟢 Easy',normal:'🔵 Normal',hard:'🔴 Hard'},hintMsg:'💡 Hint!',
 lvNames:['Farm Friends','Fruit Basket','Ocean World','Bug Garden','Sky Watch','Flower Garden','Veggie Valley','Yummy Kitchen','On the Move','Space Quest','Sports Arena','Music Studio','Wild Safari','Bird Paradise','Tool Workshop','Fashion Show','City Builder','School Days','Tech World','🌍 World Champion']},
 pt:{title:'🧠 Jogo da Memória',sub:'Escolha um nível!',moves:'Jogadas',pairs:'Pares',sets:'Conjuntos',time:'Tempo',hint:'Toque para começar!',score:'Pontos',congrats:'Parabéns!',excellent:'🌟 Excelente!',great:'🎉 Muito Bem!',good:'👍 Bom!',tryMore:'💪 Tente Mais!',done:'Nível completo!',next:'➡️ Próximo',share:'📤 Compartilhar',again:'🔄 Repetir',levels:'🏠 Níveis',back:'🏠 Voltar',locked:'🔒',mech:{timed:'⏱️ Memorize!',moving:'🔀 Mover!',masked:'🎭 Mascarado!',fog:'🌫️ Névoa!',triple:'🔱 Triplo!',boss:'👑 Chefe!'},mechHint:{timed:'Memorize as cartas!',moving:'Cartas mudam a cada 3!',masked:'Algumas enganam primeiro!',fog:'Toque a névoa primeiro!',triple:'Combine 3 cartas!',boss:'Todos desafios + tempo!'},timeUp:'⏰ Tempo esgotado!',remember:'👀 Lembre-se!',shuffling:'🔀 Movendo...',
-shareText:'Fiz {score} pontos no Nível {level} do Jogo da Memória! ⭐{stars}',
+shareText:'Fiz {score} pontos no Nível {level} do Jogo da Memória! ⭐{stars}',dda:{easy:'🟢 Fácil',normal:'🔵 Normal',hard:'🔴 Difícil'},hintMsg:'💡 Dica!',
 lvNames:['Amigos da Fazenda','Cesta de Frutas','Mundo do Mar','Jardim de Insetos','Céu e Clima','Jardim de Flores','Vale dos Vegetais','Cozinha Gostosa','Em Movimento','Missão Espacial','Arena Esportiva','Estúdio Musical','Safari Selvagem','Paraíso dos Pássaros','Oficina de Ferramentas','Desfile de Moda','Construtor de Cidades','Dia Escolar','Mundo Tech','🌍 Campeão Mundial']}
 };
 const t=I[LANG]||I.en;
@@ -643,6 +653,16 @@ let movesSinceShuffle=0;
 let bossCountdownSec=0;
 let bossTimerId=null;
 
+// ===== DDA (Dynamic Difficulty Adjustment) STATE =====
+let dda={skill:50,streak:0,failStreak:0,lastMoveTime:0,hintTimer:null,diff:'normal'};
+let levelTimerSec=0;
+let levelTimerMax=0;
+let levelTimerId=null;
+
+// Load persistent DDA profile
+let ddaProfile=JSON.parse(localStorage.getItem('classify_memory_dda')||'{"skill":50,"gamesPlayed":0,"totalStars":0,"avgMoveRatio":1.0}');
+function saveDDA(){localStorage.setItem('classify_memory_dda',JSON.stringify(ddaProfile))}
+
 let progress=JSON.parse(localStorage.getItem('classify_memory_progress')||'{"unlocked":1,"scores":{},"stars":{}}');
 function saveProgress(){localStorage.setItem('classify_memory_progress',JSON.stringify(progress))}
 
@@ -669,7 +689,7 @@ function calcScore(moves,pairs,duration,matched){
 function showScreen(id){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
-  if(id==='lvl-screen'){renderLevelSelect();if(window.stopBg)stopBg()}
+  if(id==='lvl-screen'){renderLevelSelect();if(window.stopBg)stopBg();ddaClearHintTimer();stopLevelTimer()}
   if(id==='done-screen'){if(window.stopBg)stopBg()}
 }
 
@@ -741,16 +761,23 @@ function startLevel(idx){
 function resetGame(){
   clearInterval(timerInterval);
   if(bossTimerId){clearInterval(bossTimerId);bossTimerId=null}
+  stopLevelTimer();
   picks=[];isChecking=false;
   gameStarted=false;startTime=null;elapsedSeconds=0;
   peekInProgress=false;movesSinceShuffle=0;
   fogSet=new Set();maskedMap={};
-  bossCountdownSec=0;
+  bossCountdownSec=0;levelTimerSec=0;levelTimerMax=0;
 
   // Setup mechanic from current level
   const cfg=LEVELS[currentLevel];
   mechanic=cfg?cfg.mechanic||'classic':'classic';
   matchCount=(mechanic==='triple')?3:2;
+
+  // Compute level timer
+  levelTimerMax=computeLevelTimer(currentLevel,cfg?cfg.pairs:8,mechanic);
+
+  // Init DDA
+  ddaInit();
 
   cards=createDeck();moves=0;matchedPairs=0;
   document.getElementById('g-mv').textContent='0';
@@ -829,6 +856,8 @@ function flipCard(id){
     timerInterval=setInterval(()=>{elapsedSeconds=Math.floor((Date.now()-startTime)/1000);document.getElementById('g-tm').textContent=fmtTime(elapsedSeconds)},1000);
     // Boss countdown
     if(mechanic==='boss'&&bossCountdownSec>0)startBossCountdown();
+    // Level timer (non-classic, non-boss)
+    if(levelTimerMax>0)startLevelTimer();
   }
 
   // Masked: first flip shows decoy, then auto-hides
@@ -875,18 +904,21 @@ function flipCard(id){
     document.getElementById('g-pr').textContent=matchedPairs+'/'+totalPairs;
     sfxMatch();
     spawnMatchParticles(picks[0],picks[picks.length-1]);
+    ddaOnMatch();
     picks=[];
     if(matchedPairs===totalPairs)setTimeout(()=>endGame(),400);
   } else {
     isChecking=true;sfxNoMatch();
+    ddaOnMismatch();
     setTimeout(()=>{
       picks.forEach(pid=>{cards[pid].flipped=false;updateCardDOM(pid,false,false)});
       picks=[];isChecking=false;
     },800);
   }
 
-  // Moving / Boss: shuffle after every 3 moves
-  if((mechanic==='moving'||mechanic==='boss')&&movesSinceShuffle>=3&&matchedPairs<totalPairs){
+  // Moving / Boss: shuffle based on DDA-adjusted interval
+  const shuffleInterval=dda.diff==='easy'?4:dda.diff==='hard'?2:3;
+  if((mechanic==='moving'||mechanic==='boss')&&movesSinceShuffle>=shuffleInterval&&matchedPairs<totalPairs){
     movesSinceShuffle=0;
     setTimeout(()=>shufflePositions(),allMatch?600:1000);
   }
@@ -917,6 +949,14 @@ function spawnMatchParticles(id1,id2){
 function setupMechanic(){
   const infoEl=document.getElementById('mech-info');
   const cdWrap=document.getElementById('cd-wrap');
+
+  // Show countdown bar for any level with a timer
+  if(levelTimerMax>0){
+    cdWrap.style.display='';
+    levelTimerSec=levelTimerMax;
+    updateCountdownDisplay();
+  }
+
   if(mechanic==='classic'){return}
 
   // Show mechanic name + hint
@@ -926,16 +966,20 @@ function setupMechanic(){
     infoEl.style.display='';
   }
 
-  // Fog: mark ~40% of cards
+  // DDA-adjusted fog percentage
+  const fogPct=dda.diff==='easy'?0.3:dda.diff==='hard'?0.5:0.4;
+  const maskPct=dda.diff==='easy'?0.25:dda.diff==='hard'?0.45:0.35;
+
+  // Fog: mark cards
   if(mechanic==='fog'){
-    const nFog=Math.floor(cards.length*0.4);
+    const nFog=Math.floor(cards.length*fogPct);
     const idxs=shuffle(cards.map(c=>c.id)).slice(0,nFog);
     idxs.forEach(i=>fogSet.add(i));
   }
 
-  // Masked: assign decoys to ~35% of cards
+  // Masked: assign decoys
   if(mechanic==='masked'){
-    const nMask=Math.floor(cards.length*0.35);
+    const nMask=Math.floor(cards.length*maskPct);
     const idxs=shuffle(cards.map(c=>c.id)).slice(0,nMask);
     idxs.forEach(i=>{
       let decoy;
@@ -946,10 +990,12 @@ function setupMechanic(){
 
   // Boss: fog + countdown
   if(mechanic==='boss'){
-    const nFog=Math.floor(cards.length*0.25);
+    const bossFogPct=dda.diff==='easy'?0.2:dda.diff==='hard'?0.35:0.25;
+    const nFog=Math.floor(cards.length*bossFogPct);
     const idxs=shuffle(cards.map(c=>c.id)).slice(0,nFog);
     idxs.forEach(i=>fogSet.add(i));
-    bossCountdownSec=120;
+    // DDA-adjusted boss timer
+    bossCountdownSec=dda.diff==='easy'?150:dda.diff==='hard'?100:120;
     cdWrap.style.display='';
     updateCountdownDisplay();
   }
@@ -976,6 +1022,8 @@ function doTimedPeek(){
   const peekText=document.getElementById('peek-text');
   if(peekText)peekText.textContent=t.remember||'👀 Remember!';
   if(banner)banner.classList.add('show');
+  // DDA: easy gets longer peek, hard gets shorter
+  const peekMs=dda.diff==='easy'?3500:dda.diff==='hard'?1800:2500;
   setTimeout(()=>{
     btns.forEach(b=>{
       if(!b.classList.contains('matched')){
@@ -985,7 +1033,7 @@ function doTimedPeek(){
     });
     if(banner)banner.classList.remove('show');
     peekInProgress=false;
-  },2500);
+  },peekMs);
 }
 
 // ===== SHUFFLE POSITIONS =====
@@ -1033,10 +1081,129 @@ function updateCountdownDisplay(){
   const fill=document.getElementById('cd-fill');
   const text=document.getElementById('cd-text');
   if(!fill||!text)return;
-  const pct=Math.max(0,(bossCountdownSec/120)*100);
+  const max=mechanic==='boss'?120:levelTimerMax;
+  const sec=mechanic==='boss'?bossCountdownSec:levelTimerSec;
+  const pct=max>0?Math.max(0,(sec/max)*100):100;
   fill.style.width=pct+'%';
-  text.textContent='⏱️ '+fmtTime(bossCountdownSec);
-  text.className='cd-txt'+(bossCountdownSec<=20?' urgent':'');
+  text.textContent='⏱️ '+fmtTime(sec);
+  text.className='cd-txt'+(sec<=Math.min(20,max*0.15)?' urgent':'');
+}
+
+// ===== DDA ENGINE =====
+function computeLevelTimer(lvl,pairs,mech){
+  // Base: pairs × 8s for classic, less for harder mechanics
+  const mechMult={classic:0,timed:8,moving:7,masked:7.5,fog:7,triple:9,boss:0};
+  const mult=mechMult[mech]||8;
+  if(mech==='classic')return 0; // no timer for classic
+  if(mech==='boss')return 0; // boss uses its own countdown
+
+  let base=pairs*mult;
+  // DDA adjustment: struggling players get +25% time, skilled get -15%
+  if(ddaProfile.skill<35) base*=1.25;
+  else if(ddaProfile.skill>70) base*=0.85;
+  return Math.round(base);
+}
+
+function ddaInit(){
+  dda={skill:ddaProfile.skill,streak:0,failStreak:0,lastMoveTime:Date.now(),hintTimer:null,diff:'normal'};
+  ddaUpdateBadge();
+}
+
+function ddaUpdateBadge(){
+  const badge=document.getElementById('dda-badge');
+  if(!badge)return;
+  if(mechanic==='classic'&&currentLevel<3){badge.style.display='none';return}
+  badge.style.display='';
+  let diff,cls;
+  if(dda.skill<35){diff=t.dda?t.dda.easy:'🟢 Easy';cls='easy'}
+  else if(dda.skill>70){diff=t.dda?t.dda.hard:'🔴 Hard';cls='hard'}
+  else{diff=t.dda?t.dda.normal:'🔵 Normal';cls='normal'}
+  badge.textContent=diff;
+  badge.className='dda-badge '+cls;
+  dda.diff=cls;
+}
+
+function ddaOnMatch(){
+  dda.streak++;dda.failStreak=0;
+  dda.skill=Math.min(100,dda.skill+2);
+  ddaClearHintTimer();
+  ddaUpdateBadge();
+}
+
+function ddaOnMismatch(){
+  dda.failStreak++;dda.streak=0;
+  dda.skill=Math.max(0,dda.skill-1.5);
+  ddaUpdateBadge();
+  // If 3+ consecutive fails, start hint timer
+  if(dda.failStreak>=3) ddaStartHintTimer();
+}
+
+function ddaStartHintTimer(){
+  ddaClearHintTimer();
+  // After a pause, glow-hint one of the correct cards
+  const delay=dda.diff==='easy'?4000:dda.diff==='hard'?8000:6000;
+  dda.hintTimer=setTimeout(()=>{
+    if(matchedPairs>=totalPairs||!gameStarted)return;
+    ddaShowHint();
+  },delay);
+}
+
+function ddaClearHintTimer(){
+  if(dda.hintTimer){clearTimeout(dda.hintTimer);dda.hintTimer=null}
+}
+
+function ddaShowHint(){
+  // Find an unmatched pair and glow one of its cards
+  const unmatched=cards.filter(c=>!c.matched&&!c.flipped);
+  if(unmatched.length<2)return;
+  // Find a symbol that appears at least twice in unmatched
+  const symCount={};
+  unmatched.forEach(c=>{symCount[c.symbol]=(symCount[c.symbol]||0)+1});
+  const hintSym=Object.keys(symCount).find(s=>symCount[s]>=2);
+  if(!hintSym)return;
+  const hintCards=unmatched.filter(c=>c.symbol===hintSym);
+  const hintCard=hintCards[0];
+  const btn=document.getElementById('grid').querySelector(`[data-id="${hintCard.id}"]`);
+  if(btn){
+    btn.classList.add('dda-hint');
+    setTimeout(()=>btn.classList.remove('dda-hint'),3600);
+  }
+  dda.failStreak=0; // reset after giving hint
+}
+
+function ddaEndLevel(score,stars){
+  // Update persistent profile
+  ddaProfile.gamesPlayed++;
+  ddaProfile.totalStars+=stars;
+  // Weighted skill update: 70% current + 30% from this game's performance
+  const perfScore=Math.min(100,score+(stars*5));
+  ddaProfile.skill=Math.round(ddaProfile.skill*0.7+perfScore*0.3);
+  ddaProfile.avgMoveRatio=ddaProfile.gamesPlayed>1?
+    ddaProfile.avgMoveRatio*0.8+(moves/(totalPairs||1))*0.2:
+    moves/(totalPairs||1);
+  saveDDA();
+  ddaClearHintTimer();
+}
+
+// ===== LEVEL TIMER (non-classic, non-boss) =====
+function startLevelTimer(){
+  if(levelTimerMax<=0)return;
+  levelTimerSec=levelTimerMax;
+  const cdWrap=document.getElementById('cd-wrap');
+  if(cdWrap)cdWrap.style.display='';
+  updateCountdownDisplay();
+  levelTimerId=setInterval(()=>{
+    levelTimerSec--;
+    updateCountdownDisplay();
+    if(levelTimerSec<=0){
+      clearInterval(levelTimerId);levelTimerId=null;
+      endGame();
+    }
+  },1000);
+}
+
+function stopLevelTimer(){
+  if(levelTimerId){clearInterval(levelTimerId);levelTimerId=null}
 }
 
 function updateCardDOM(id,flipped,matched){
@@ -1049,12 +1216,18 @@ function updateCardDOM(id,flipped,matched){
 function endGame(){
   clearInterval(timerInterval);
   if(bossTimerId){clearInterval(bossTimerId);bossTimerId=null}
+  stopLevelTimer();
+  ddaClearHintTimer();
   peekInProgress=false;
   const dur=Math.floor((Date.now()-startTime)/1000);
   const isPartial=matchedPairs<totalPairs;
   const sc=calcScore(moves,totalPairs,dur,matchedPairs);
   let stars=0;if(sc>=50)stars=1;if(sc>=75)stars=2;if(sc>=90)stars=3;
   if(isPartial){stars=0}
+
+  // DDA: update persistent profile
+  ddaEndLevel(sc,stars);
+
   if(currentLevel>=0){
     const prev=progress.stars[currentLevel]||0;if(stars>prev)progress.stars[currentLevel]=stars;
     const prevSc=progress.scores[currentLevel]||0;if(sc>prevSc)progress.scores[currentLevel]=sc;
