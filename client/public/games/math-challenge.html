@@ -200,6 +200,51 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',Tahoma,s
 @keyframes royalBG{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
 .screen.active{animation:screenIn .4s cubic-bezier(.34,1.56,.64,1)}
 @keyframes screenIn{0%{opacity:0;transform:scale(.93) translateY(12px)}100%{opacity:1;transform:scale(1) translateY(0)}}
+
+/* WEEKLY BUTTON */
+.ls-btn.weekly{background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border:2px solid rgba(255,255,255,.3);font-weight:700}
+.ls-btn.weekly:disabled{opacity:.5;cursor:default}
+.ls-btn.ach{background:linear-gradient(135deg,#f093fb,#f5576c);color:#fff;border:2px solid rgba(255,255,255,.3);font-weight:700}
+
+/* PRESTIGE BUTTON */
+.prestige-btn{background:linear-gradient(135deg,#ffd700,#ff8c00);color:#fff;border:none;border-radius:12px;padding:6px 14px;font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(255,165,0,.4);transition:transform .2s}
+.prestige-btn:hover{transform:scale(1.05)}
+.lvl-prestige-info{text-align:center;padding:4px 10px;font-size:13px;color:rgba(255,255,255,.85);font-weight:600}
+
+/* PRESTIGE BADGE ON WORLD CARDS */
+.wc-prestige{font-size:12px;font-weight:700;color:#ffd700;margin-top:2px;text-shadow:0 1px 3px rgba(0,0,0,.4)}
+
+/* ACHIEVEMENT MODAL */
+.ach-modal{background:linear-gradient(135deg,#1a1a2e,#16213e);color:#fff;border-radius:22px;padding:20px;max-height:80vh;overflow-y:auto;width:92%;max-width:420px;box-shadow:0 10px 40px rgba(0,0,0,.5)}
+.ach-modal h2{text-align:center;font-size:22px;margin-bottom:14px}
+.ach-list{display:flex;flex-direction:column;gap:8px}
+.ach-item{display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.07);border-radius:12px;padding:10px 12px;transition:opacity .3s}
+.ach-item.locked{opacity:.45}
+.ach-item .ach-icon{font-size:28px;min-width:36px;text-align:center}
+.ach-item .ach-info{flex:1}
+.ach-item .ach-name{font-weight:700;font-size:14px}
+.ach-item .ach-desc{font-size:12px;opacity:.7;margin-top:2px}
+.ach-item .ach-bar{height:6px;background:rgba(255,255,255,.12);border-radius:4px;margin-top:4px;overflow:hidden}
+.ach-item .ach-bar-fill{height:100%;background:linear-gradient(90deg,#ffd700,#ff8c00);border-radius:4px;transition:width .4s}
+.ach-item .ach-reward{font-size:12px;color:#ffd700;font-weight:600;white-space:nowrap}
+
+/* LOGIN TOAST */
+.login-toast{position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:300;animation:toastSlide .5s ease-out}
+.login-toast-inner{background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border-radius:16px;padding:10px 20px;display:flex;align-items:center;gap:8px;font-weight:700;font-size:15px;box-shadow:0 4px 20px rgba(102,126,234,.5)}
+.login-toast-emoji{font-size:24px}
+@keyframes toastSlide{0%{opacity:0;transform:translateX(-50%) translateY(-30px)}100%{opacity:1;transform:translateX(-50%) translateY(0)}}
+
+/* ACHIEVEMENT TOAST */
+.ach-toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:300;animation:achToastIn .6s cubic-bezier(.34,1.56,.64,1)}
+.ach-toast-inner{background:linear-gradient(135deg,#ffd700,#ff8c00);color:#1a1a2e;border-radius:16px;padding:10px 20px;display:flex;align-items:center;gap:8px;font-weight:700;font-size:15px;box-shadow:0 4px 20px rgba(255,215,0,.5)}
+.ach-toast-icon{font-size:26px}
+@keyframes achToastIn{0%{opacity:0;transform:translateX(-50%) scale(.6) translateY(30px)}100%{opacity:1;transform:translateX(-50%) scale(1) translateY(0)}}
+
+/* DONE SCREEN ACHIEVEMENTS */
+.d-achievements{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;margin:6px 0}
+.d-badge.ach-new{background:linear-gradient(135deg,#ffd700,#ff8c00);color:#1a1a2e;animation:achPulse 1s ease-in-out infinite alternate}
+@keyframes achPulse{0%{box-shadow:0 0 0 0 rgba(255,215,0,.4)}100%{box-shadow:0 0 12px 4px rgba(255,215,0,.3)}}
+.d-streak{text-align:center;font-size:14px;font-weight:700;color:#ff6b6b;margin:4px 0}
 </style>
 </head>
 <body>
@@ -221,7 +266,9 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',Tahoma,s
   <div class="ls-sub" id="ws-sub">اختر عالمك لتبدأ المغامرة!</div>
   <div class="ls-btns">
     <button class="ls-btn daily" id="daily-btn" onclick="startDaily()">🎯 التحدي اليومي</button>
+    <button class="ls-btn weekly" id="weekly-btn" onclick="startWeekly()">📅 التحدي الأسبوعي</button>
     <button class="ls-btn" onclick="openShop()">🛒 المتجر</button>
+    <button class="ls-btn ach" id="ach-btn" onclick="openAchievements()">🏅 الإنجازات</button>
   </div>
   <div class="world-grid" id="world-grid"></div>
 </div>
@@ -231,8 +278,10 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',Tahoma,s
   <div class="lvl-header">
     <button class="lvl-back" id="lvl-back" onclick="backToWorlds()">← العوالم</button>
     <div class="lvl-world-title" id="lvl-world-title"></div>
+    <button class="prestige-btn" id="prestige-btn" onclick="handlePrestige()" style="display:none">♻️ برستيج</button>
     <div class="tb-item mute-btn" onclick="toggleMuteBtn()" id="lvl-mute">🔊</div>
   </div>
+  <div class="lvl-prestige-info" id="lvl-prestige-info" style="display:none"></div>
   <div class="ls-grid" id="ls-g"></div>
 </div>
 
@@ -302,6 +351,8 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',Tahoma,s
     <div class="d-st"><div class="d-st-e">🪙</div><div class="d-st-v" id="d-cn">+0</div><div class="d-st-l" id="d-cnl">عملات</div></div>
   </div>
   <div class="d-badges" id="d-badges"></div>
+  <div class="d-achievements" id="d-achievements"></div>
+  <div class="d-streak" id="d-streak" style="display:none"></div>
   <div class="d-btns">
     <button class="d-btn pri" id="d-nx" onclick="nextLevel()">➡️ التالي</button>
     <button class="d-btn shr" id="d-sh" onclick="shareResult()">📤 مشاركة</button>
@@ -330,7 +381,32 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',Tahoma,s
   <div class="modal" style="background:linear-gradient(135deg,#ef4444,#b91c1c)">
     <h2>❤️ لا أرواح!</h2>
     <p id="nolives-msg">القلب التالي خلال 10 دقائق</p>
-    <button onclick="closeNoLives()">حسناً</button>
+    <b
+
+<!-- Achievement Modal -->
+<div class="modal-overlay" id="ach-modal">
+  <div class="ach-modal">
+    <h2 id="ach-modal-title">🏅 الإنجازات</h2>
+    <div class="ach-list" id="ach-list"></div>
+    <button class="shop-close" onclick="closeAchievements()">✕ إغلاق</button>
+  </div>
+</div>
+
+<!-- Login Bonus Toast -->
+<div class="login-toast" id="login-toast" style="display:none">
+  <div class="login-toast-inner">
+    <span class="login-toast-emoji">🎁</span>
+    <span class="login-toast-text" id="login-toast-text">مكافأة يومية!</span>
+  </div>
+</div>
+
+<!-- Achievement Toast -->
+<div class="ach-toast" id="ach-toast" style="display:none">
+  <div class="ach-toast-inner">
+    <span class="ach-toast-icon" id="ach-toast-icon">🏅</span>
+    <span class="ach-toast-text" id="ach-toast-text">إنجاز جديد!</span>
+  </div>
+</div>utton onclick="closeNoLives()">حسناً</button>
   </div>
 </div>
 
@@ -412,8 +488,8 @@ function loop(){
 
 <!-- ===== GAME MODULE ===== -->
 <script type="module">
-import { POOL, CATEGORIES, LANG, t, I18N } from './math-modules/config.js';
-import { WORLDS, WORLD_MAP, generateLevelConfig, isWorldUnlocked, getTotalStars, getWorldCompletion, getMasteryIcon, getLevelName, generateDailyChallenge } from './math-modules/worlds.js';
+import { POOL, CATEGORIES, LANG, t, I18N, ACHIEVEMENTS } from './math-modules/config.js';
+import { WORLDS, WORLD_MAP, generateLevelConfig, isWorldUnlocked, getTotalStars, getWorldCompletion, getMasteryIcon, getLevelName, generateDailyChallenge, getPrestigeLevel, canPrestige, applyPrestige, generateWeeklyChallenge, getWeekNum } from './math-modules/worlds.js';
 import * as Core from './math-modules/core.js';
 import * as Intel from './math-modules/intelligence.js';
 import * as Engage from './math-modules/engagement.js';
@@ -433,7 +509,7 @@ let currentLevelIndex = -1;    // level index within world
 let levelConfig = null;        // generated level config
 let currentQ = 0, totalScore = 0, streak = 0, highStreak = 0;
 let questions = [], timerInterval = null, timeLeft = 0, answering = false, startTime = 0;
-let usedHintThisLevel = false, bossState = null, dailyMode = false, questionStartTime = 0;
+let usedHintThisLevel = false, bossState = null, dailyMode = false, weeklyMode = false, questionStartTime = 0;
 let totalCorrect = 0, totalQ = 10, currentTimerMax = 0;
 let challengeTracker;
 let sessionTracker;
@@ -446,6 +522,13 @@ function init() {
   progress = Core.loadProgress();
   if (!progress.skillData) progress.skillData = { avgResponseTime: 8, accuracyRate: 0.5, highestStreak: 0, totalGamesPlayed: 0, smoothedSkill: 50, typeProfiles: {} };
   if (!progress.skillData.typeProfiles) progress.skillData.typeProfiles = {};
+  if (!progress.achievementsUnlocked) progress.achievementsUnlocked = [];
+  if (!progress.prestige) progress.prestige = {};
+  if (!progress.loginStreak) progress.loginStreak = { lastDate: null, count: 0 };
+  if (progress.bossesBeaten == null) progress.bossesBeaten = 0;
+  if (progress.perfectGames == null) progress.perfectGames = 0;
+  if (progress.worldsCleared == null) progress.worldsCleared = 0;
+  if (progress.totalPrestige == null) progress.totalPrestige = 0;
   if (!progress.boosters) progress.boosters = { hammer: 1, shuffle: 1, extraTime: 1, hint: 3 };
   if (!progress.tutorialShown) progress.tutorialShown = {};
   if (!progress.purchaseCounts) progress.purchaseCounts = { hammer: 0, shuffle: 0, extraTime: 0, hint: 0 };
@@ -466,8 +549,18 @@ function init() {
   el('d-sh').textContent = T.share;
   el('daily-btn').textContent = T.daily;
   el('lvl-back').textContent = T.backToWorlds;
+  el('weekly-btn').textContent = T.weekly;
+  el('ach-btn').textContent = T.achievements;
+
+  // Daily login bonus
+  const loginResult = Econ.checkDailyLogin(progress);
+  if (loginResult) {
+    Core.saveProgress(progress);
+    setTimeout(() => showLoginBonus(loginResult), 600);
+  }
 
   updateDailyBtn();
+  updateWeeklyBtn();
   renderWorldSelect();
 }
 
@@ -492,7 +585,7 @@ function updateMuteButtons() {
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   el(id).classList.add('active');
-  if (id === 'world-screen') { renderWorldSelect(); UI.stopMusic(); }
+  if (id === 'world-screen') { renderWorldSelect(); updateDailyBtn(); updateWeeklyBtn(); UI.stopMusic(); }
   if (id === 'lvl-screen') { renderLevelSelect(); }
 }
 window.showScreen = showScreen;
@@ -538,12 +631,15 @@ function renderWorldSelect() {
     card.style.background = unlocked ? w.gradient : 'rgba(100,100,140,.35)';
 
     if (unlocked) {
+      const pLv = getPrestigeLevel(progress, w.id);
+      const prestigeTag = pLv > 0 ? `<div class="wc-prestige">♻️ ${T.prestigeLv || 'Prestige'} ${pLv}</div>` : '';
       card.innerHTML = `
         <div class="wc-icon">${w.icon}</div>
         <div class="wc-name">${worldName}</div>
         <div class="wc-desc">${worldDesc}</div>
         <div class="wc-progress">${completion.stars} ⭐ · ${T.level} ${completion.levels}</div>
         ${masteryIcon ? `<div class="wc-mastery">${masteryIcon} ${T.mastery[completion.mastery] || ''}</div>` : ''}
+        ${prestigeTag}
       `;
       card.onclick = () => enterWorld(w.id);
     } else {
@@ -583,6 +679,23 @@ window.backToWorlds = backToWorlds;
 function renderLevelSelect() {
   if (!currentWorld) return;
   const w = WORLD_MAP[currentWorld];
+  // Prestige info
+  const pLv = getPrestigeLevel(progress, currentWorld);
+  const pInfo = el('lvl-prestige-info');
+  const pBtn = el('prestige-btn');
+  if (pLv > 0) {
+    pInfo.style.display = '';
+    pInfo.textContent = '♻️ ' + (T.prestigeLv || 'Prestige') + ' ' + pLv + ' — ' + (T.prestigeDesc || 'مكافآت محسّنة!');
+  } else {
+    pInfo.style.display = 'none';
+  }
+  if (canPrestige(progress, currentWorld)) {
+    pBtn.style.display = '';
+    pBtn.textContent = '♻️ ' + (T.prestige || 'برستيج');
+  } else {
+    pBtn.style.display = 'none';
+  }
+
   const wp = progress.worlds[currentWorld] || { levelReached: 0, scores: {}, stars: {} };
   const levelsToShow = Math.max(20, (wp.levelReached || 0) + 4);
 
@@ -797,11 +910,12 @@ function genAllQuestions(cfg, isBoss) {
 function startLevel(worldId, levelIdx) {
   if (!checkLives()) return;
   dailyMode = false;
+  weeklyMode = false;
   currentWorld = worldId;
   currentLevelIndex = levelIdx;
 
   const w = WORLD_MAP[worldId];
-  levelConfig = generateLevelConfig(worldId, levelIdx, progress.skillData);
+  levelConfig = generateLevelConfig(worldId, levelIdx, progress.skillData, progress);
   if (!levelConfig) return;
 
   totalQ = levelConfig.questions;
@@ -1242,14 +1356,32 @@ function endGame() {
   const isPerfect = totalCorrect === totalQ;
   const noHints = !usedHintThisLevel;
 
-  const xpGained = Core.calculateXP(totalScore, totalQ, isPerfect, noHints, dailyMode);
-  const coinsGained = Core.calculateCoins(stars, isPerfect, dailyMode);
+  // Prestige multipliers
+  const xpMult = (levelConfig && levelConfig.xpMult) || 1;
+  const coinMult = (levelConfig && levelConfig.coinMult) || 1;
+
+  // Daily streak bonus
+  const dailyStreakBonus = dailyMode ? Econ.getDailyStreakBonus(Econ.getDailyStreak(progress)) : 0;
+
+  let xpGained = Math.round(Core.calculateXP(totalScore, totalQ, isPerfect, noHints, dailyMode) * xpMult);
+  let coinsGained = Math.round((Core.calculateCoins(stars, isPerfect, dailyMode) + dailyStreakBonus) * coinMult);
   const xpResult = Core.addXP(progress, xpGained);
   Econ.addCoins(progress, coinsGained);
+
+  // Track stats for achievements
+  if (isPerfect && stars === 3) progress.perfectGames = (progress.perfectGames || 0) + 1;
+  if (bossState && Boss.isBossDefeated(bossState)) progress.bossesBeaten = (progress.bossesBeaten || 0) + 1;
 
   // Update world progress
   if (currentWorld && currentLevelIndex >= 0 && !dailyMode) {
     Core.updateLevelProgress(progress, currentWorld, currentLevelIndex, totalScore, stars);
+  }
+
+  // Weekly
+  if (weeklyMode) {
+    const wk = getWeekNum(new Date().toDateString());
+    progress.weeklyDate = wk;
+    progress.weeklyCompleted = true;
   }
 
   // Daily  
@@ -1266,6 +1398,9 @@ function endGame() {
   // Badges
   const badges = Engage.evaluateBadges(challengeTracker);
   Engage.saveBadges(progress, badges);
+
+  // Achievements
+  const newAchs = Econ.evaluateAchievements(progress);
   Core.saveProgress(progress);
 
   // ===== RENDER DONE =====
@@ -1282,7 +1417,7 @@ function endGame() {
 
   el('d-e').textContent = emoji;
   el('d-t').textContent = title;
-  el('d-sub').textContent = T.done + (dailyMode ? ' ' + T.dailyReward : '');
+  el('d-sub').textContent = T.done + (dailyMode ? ' ' + T.dailyReward : '') + (weeklyMode ? ' 📅' : '');
   el('d-cr').textContent = totalCorrect;
   el('d-wr').textContent = totalQ - totalCorrect;
   el('d-tm').textContent = elapsed + 's';
@@ -1324,8 +1459,27 @@ function endGame() {
     badgesEl.appendChild(sp);
   }
 
+  // Achievements on done screen
+  const achEl = el('d-achievements'); achEl.innerHTML = '';
+  if (newAchs && newAchs.length > 0) {
+    for (const a of newAchs) {
+      const sp = document.createElement('span');
+      sp.className = 'd-badge ach-new';
+      sp.textContent = a.icon + ' ' + (T.achNames && T.achNames[a.id] || a.id);
+      achEl.appendChild(sp);
+    }
+  }
+
+  // Daily streak on done screen
+  const streakEl = el('d-streak');
+  const streak = Econ.getDailyStreak(progress);
+  if (streak >= 2) {
+    streakEl.style.display = '';
+    streakEl.textContent = '🔥 ' + T.dailyStreak + ': ' + streak + (dailyStreakBonus > 0 ? ' (+' + dailyStreakBonus + ' 🪙)' : '');
+  } else { streakEl.style.display = 'none'; }
+
   // Next button: show if playing a world level and got at least 1 star
-  el('d-nx').style.display = (currentWorld && currentLevelIndex >= 0 && !dailyMode && stars >= 1) ? '' : 'none';
+  el('d-nx').style.display = (currentWorld && currentLevelIndex >= 0 && !dailyMode && !weeklyMode && stars >= 1) ? '' : 'none';
   el('d-nx').textContent = T.next;
 
   UI.sfxComplete();
@@ -1340,6 +1494,11 @@ function endGame() {
   showScreen('done-screen');
   UI.spawnCelebration(stars * 5 + (isPerfect ? 10 : 0));
   if (window.royalCelebration) window.royalCelebration(stars);
+
+  // Achievement toasts (delayed)
+  if (newAchs && newAchs.length > 0) {
+    newAchs.forEach((a, i) => setTimeout(() => showAchievementToast(a), 2000 + i * 1200));
+  }
 
   // Level up   
   if (xpResult.leveledUp) {
@@ -1374,6 +1533,7 @@ window.nextLevel = nextLevel;
 
 function replayLevel() {
   if (dailyMode) startDaily();
+  else if (weeklyMode) startWeekly();
   else if (currentWorld && currentLevelIndex >= 0) startLevel(currentWorld, currentLevelIndex);
 }
 window.replayLevel = replayLevel;
@@ -1449,6 +1609,145 @@ function togglePerf() {
   updateTopBar();
 }
 window.togglePerf = togglePerf;
+
+// ===== WEEKLY CHALLENGE =====
+function startWeekly() {
+  const wk = getWeekNum(new Date().toDateString());
+  if (progress.weeklyDate === wk && progress.weeklyCompleted) return;
+  if (!checkLives()) return;
+  weeklyMode = true;
+  dailyMode = false;
+  currentWorld = null;
+  currentLevelIndex = -1;
+
+  const weeklyCfg = generateWeeklyChallenge(new Date().toDateString(), progress.skillData);
+  levelConfig = weeklyCfg;
+  totalQ = weeklyCfg.questions;
+  currentTimerMax = weeklyCfg.timer;
+
+  UI.applyWorldTheme(weeklyCfg.gradient, weeklyCfg.accent || 'rgba(255,255,255,.2)', el('game-screen'), el('done-screen'));
+  el('boss-bar').style.display = 'none';
+  bossState = null;
+  el('g-t').textContent = T.weekly + ' 📅';
+
+  currentQ = 0; totalScore = 0; streak = 0; highStreak = 0;
+  totalCorrect = 0; usedHintThisLevel = false; answering = false;
+  startTime = Date.now();
+  challengeTracker = Engage.createChallengeTracker();
+  sessionTracker = Intel.createSessionTracker();
+
+  const sd = progress.skillData || {};
+  const pool = pickMultiCatEmoji(weeklyCfg.cats || ['animals', 'food']);
+  const baseTypes = weeklyCfg.questionTypes || ['classic'];
+  const typeSeq = Intel.weightedTypeSelection(sd, baseTypes, totalQ);
+  questions = [];
+  for (let i = 0; i < totalQ; i++) {
+    const diff = Intel.getQuestionDifficulty(i, totalQ, false, sessionTracker);
+    questions.push(genTypedQuestion(typeSeq[i], weeklyCfg.ops, weeklyCfg.range, pool, diff));
+  }
+
+  el('g-sc').textContent = '0';
+  renderLives();
+  updateCombo();
+  showScreen('game-screen');
+  if (!UI.isMuted()) UI.startMusic();
+  renderBoosters();
+  showQuestion();
+}
+window.startWeekly = startWeekly;
+
+function updateWeeklyBtn() {
+  const btn = el('weekly-btn');
+  if (!btn) return;
+  const wk = getWeekNum(new Date().toDateString());
+  if (progress.weeklyDate === wk && progress.weeklyCompleted) {
+    btn.textContent = T.weeklyDone || '✅ تم';
+    btn.disabled = true;
+    btn.style.opacity = '.5';
+  } else {
+    btn.textContent = T.weekly || '📅 أسبوعي';
+    btn.disabled = false;
+    btn.style.opacity = '1';
+  }
+}
+window.updateWeeklyBtn = updateWeeklyBtn;
+
+// ===== ACHIEVEMENTS =====
+function openAchievements() {
+  const all = Econ.getAllAchievements(progress);
+  const list = el('ach-list');
+  list.innerHTML = '';
+  el('ach-modal-title').textContent = T.achievements || '🏅 الإنجازات';
+
+  for (const a of all) {
+    const item = document.createElement('div');
+    item.className = 'ach-item' + (a.unlocked ? '' : ' locked');
+    const pct = Math.min(100, Math.round((a.current / a.goal) * 100));
+    item.innerHTML = `
+      <div class="ach-icon">${a.icon}</div>
+      <div class="ach-info">
+        <div class="ach-name">${a.unlocked ? '✅ ' : ''}${T.achNames && T.achNames[a.id] || a.id}</div>
+        <div class="ach-desc">${a.current} / ${a.goal}</div>
+        <div class="ach-bar"><div class="ach-bar-fill" style="width:${pct}%"></div></div>
+      </div>
+      <div class="ach-reward">${a.unlocked ? '✅' : '🪙 ' + a.coins}</div>
+    `;
+    list.appendChild(item);
+  }
+  el('ach-modal').classList.add('show');
+}
+window.openAchievements = openAchievements;
+
+function closeAchievements() { el('ach-modal').classList.remove('show'); }
+window.closeAchievements = closeAchievements;
+
+// ===== LOGIN BONUS TOAST =====
+function showLoginBonus(result) {
+  if (!result || !result.coins) return;
+  const toast = el('login-toast');
+  el('login-toast-text').textContent = (T.loginBonus || '🎁 مكافأة يومية') + ': +' + result.coins + ' 🪙' + (result.streak > 1 ? ' (🔥' + result.streak + ')' : '');
+  toast.style.display = '';
+  setTimeout(() => { toast.style.display = 'none'; }, 3500);
+  updateTopBar();
+  Core.saveProgress(progress);
+}
+
+// ===== ACHIEVEMENT TOAST =====
+function showAchievementToast(ach) {
+  if (!ach) return;
+  const toast = el('ach-toast');
+  el('ach-toast-icon').textContent = ach.icon || '🏅';
+  el('ach-toast-text').textContent = (T.achUnlocked || 'إنجاز جديد!') + ' ' + (T.achNames && T.achNames[ach.id] || ach.id);
+  toast.style.display = '';
+  UI.sfxBadge();
+  setTimeout(() => { toast.style.display = 'none'; }, 3000);
+}
+
+// ===== PRESTIGE =====
+function handlePrestige() {
+  if (!currentWorld) return;
+  if (!canPrestige(progress, currentWorld)) return;
+  const pLv = getPrestigeLevel(progress, currentWorld) + 1;
+  const worldName = T.worldNames[currentWorld] || currentWorld;
+  const msg = (T.prestigeDesc || 'إعادة تعيين العالم للحصول على مكافآت أقوى') + '\n\n' + worldName + ' → ' + (T.prestigeLv || 'برستيج') + ' ' + pLv;
+  if (!confirm(msg)) return;
+  applyPrestige(progress, currentWorld);
+  progress.totalPrestige = (progress.totalPrestige || 0) + 1;
+  // Check worldsCleared
+  const wp = progress.worlds[currentWorld] || {};
+  const totalStars = Object.values(wp.stars || {}).reduce((a, b) => a + b, 0);
+  if (totalStars === 0) {
+    // Count worlds that have been prestatiged = "cleared" at least once
+    const clearedCount = Object.keys(progress.prestige || {}).filter(k => (progress.prestige[k] || 0) > 0).length;
+    progress.worldsCleared = clearedCount;
+  }
+  Core.saveProgress(progress);
+  Econ.evaluateAchievements(progress);
+  Core.saveProgress(progress);
+  updateTopBar();
+  renderLevelSelect();
+}
+window.handlePrestige = handlePrestige;
 
 // ===== BOOT =====
 init();

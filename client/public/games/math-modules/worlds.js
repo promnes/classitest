@@ -241,7 +241,7 @@ export const WORLD_MAP = WORLDS.reduce((m, w) => { m[w.id] = w; return m; }, {})
 
 // ===== PROCEDURAL LEVEL GENERATION =====
 
-export function generateLevelConfig(worldId, levelIndex, skillData) {
+export function generateLevelConfig(worldId, levelIndex, skillData, progress) {
   const w = WORLD_MAP[worldId];
   if (!w) return null;
 
@@ -249,26 +249,28 @@ export function generateLevelConfig(worldId, levelIndex, skillData) {
   const isBoss = (levelIndex + 1) % w.bossEvery === 0;
   const bossIdx = Math.floor(levelIndex / w.bossEvery) % w.bossTypes.length;
 
-  // Range scales with tier
+  // Prestige modifiers
+  const pLvl = (progress && progress.prestige && progress.prestige[worldId]) || 0;
+  const pm = getPrestigeModifiers(pLvl);
+
+  // Range scales with tier + prestige
   let range = w.baseRange + tier * w.rangeStep;
-  // DDA adjustment
   const skill = (skillData && skillData.smoothedSkill) || 50;
   const ddaFactor = 0.7 + (skill / 100) * 0.6;
-  range = Math.max(3, Math.round(range * ddaFactor));
+  range = Math.max(3, Math.round(range * ddaFactor * pm.rangeMult));
 
-  // Questions increase slowly
-  const questions = isBoss
-    ? Math.min(15, w.baseQuestions + Math.floor(tier / 2))
-    : Math.min(20, w.baseQuestions + Math.floor(tier / 3));
+  // Questions increase slowly + prestige bonus
+  let questions = isBoss
+    ? Math.min(15 + pm.extraQ, w.baseQuestions + Math.floor(tier / 2) + pm.extraQ)
+    : Math.min(20 + pm.extraQ, w.baseQuestions + Math.floor(tier / 3) + pm.extraQ);
 
-  // Timer
+  // Timer + prestige makes it tighter
   let timer = 0;
   if (levelIndex >= w.timerStartLevel) {
     const timerTier = Math.floor((levelIndex - w.timerStartLevel) / 5);
     timer = Math.max(6, w.baseTimerSec - timerTier * w.timerDecay);
-    // DDA: higher skill -> less time
     const timerAdj = Math.round((skill - 50) / 25);
-    timer = Math.max(6, timer - timerAdj);
+    timer = Math.max(6, Math.round((timer - timerAdj) * Math.max(0.5, pm.timerMult)));
   }
 
   // Pick question types for this level (cycle through world types)
@@ -303,6 +305,9 @@ export function generateLevelConfig(worldId, levelIndex, skillData) {
     gradient: w.gradient,
     accent: w.accent,
     particleStyle: w.particleStyle,
+    prestigeLevel: pLvl,
+    xpMult: pm.xpMult,
+    coinMult: pm.coinMult,
   };
 }
 
@@ -397,4 +402,81 @@ function dateToSeed(dateStr) {
     h = ((h << 5) - h + dateStr.charCodeAt(i)) | 0;
   }
   return Math.abs(h);
+}
+
+// ===== PRESTIGE SYSTEM =====
+// Prestige = replay a world with harder modifiers for bonus rewards.
+// Each prestige level adds +20% range, -10% timer, +1 extra question.
+
+export function getPrestigeLevel(progress, worldId) {
+  return (progress.prestige && progress.prestige[worldId]) || 0;
+}
+
+export function canPrestige(progress, worldId) {
+  // Need at least 20 stars in the world (out of ~90 possible) = ~7 levels at 3 stars
+  const wp = progress.worlds[worldId];
+  if (!wp) return false;
+  const stars = getTotalStars(wp);
+  return stars >= 20;
+}
+
+export function applyPrestige(progress, worldId) {
+  if (!canPrestige(progress, worldId)) return false;
+  if (!progress.prestige) progress.prestige = {};
+  progress.prestige[worldId] = (progress.prestige[worldId] || 0) + 1;
+  // Reset world stars/scores but keep levelReached
+  const wp = progress.worlds[worldId];
+  wp.stars = {};
+  wp.scores = {};
+  return true;
+}
+
+export function getPrestigeModifiers(prestigeLevel) {
+  // Each prestige level makes the world harder + more rewarding
+  return {
+    rangeMult: 1 + prestigeLevel * 0.2,   // +20% range per prestige
+    timerMult: 1 - prestigeLevel * 0.08,   // -8% timer per prestige (min 0.5x)
+    extraQ: prestigeLevel,                  // +1 question per prestige
+    xpMult: 1 + prestigeLevel * 0.3,       // +30% XP per prestige
+    coinMult: 1 + prestigeLevel * 0.25,    // +25% coins per prestige
+  };
+}
+
+// ===== WEEKLY CHALLENGE =====
+export function generateWeeklyChallenge(dateStr, skillData) {
+  // Seed from ISO week number for consistent weekly challenge
+  const d = new Date(dateStr);
+  const weekNum = Math.ceil(((d - new Date(d.getFullYear(), 0, 1)) / 86400000 + 1) / 7);
+  const seed = dateToSeed('week' + d.getFullYear() + '_' + weekNum);
+
+  const w1 = WORLDS[seed % WORLDS.length];
+  const w2 = WORLDS[(seed + 3) % WORLDS.length];
+  const skill = (skillData && skillData.smoothedSkill) || 50;
+  const range = Math.max(8, Math.round(25 * (0.7 + (skill / 100) * 0.6)));
+
+  // Mix types from two worlds for variety
+  const mixTypes = [...new Set([...w1.questionTypes, ...w2.questionTypes])];
+
+  return {
+    worldId: null,
+    levelIndex: -1,
+    range,
+    questions: 15,
+    timer: 18,
+    ops: ['add', 'sub', 'mul', 'div'].slice(0, Math.max(2, Math.floor(skill / 20))),
+    cats: [...new Set([...w1.cats, ...w2.cats])],
+    questionTypes: mixTypes.slice(0, 5),
+    boss: false,
+    bossType: null,
+    emoji: '📋',
+    gradient: 'linear-gradient(135deg,#f59e0b,#ef4444)',
+    accent: '#dc2626',
+    particleStyle: '🏆',
+    weekNum,
+  };
+}
+
+export function getWeekNum(dateStr) {
+  const d = new Date(dateStr);
+  return Math.ceil(((d - new Date(d.getFullYear(), 0, 1)) / 86400000 + 1) / 7);
 }

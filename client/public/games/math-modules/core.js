@@ -94,6 +94,16 @@ function defaultProgress() {
     tutorialShown: {},
     purchaseCounts: { hammer: 0, shuffle: 0, extraTime: 0, hint: 0 },
     soundMuted: false,
+    // Phase E: deep progression
+    bossesBeaten: 0,
+    perfectGames: 0,
+    worldsCleared: 0,
+    totalPrestige: 0,
+    prestige: {},
+    achievementsUnlocked: [],
+    loginStreak: { lastDate: null, count: 0 },
+    weeklyDate: null,
+    weeklyCompleted: false,
   };
 }
 
