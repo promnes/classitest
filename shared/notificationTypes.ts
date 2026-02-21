@@ -43,6 +43,7 @@ export const NOTIFICATION_TYPES = {
   BROADCAST: "broadcast",
   SYSTEM_ALERT: "system_alert",
   NEW_REGISTRATION: "new_registration",
+  GAME_SHARED: "game_shared",
 } as const;
 
 export type NotificationType = (typeof NOTIFICATION_TYPES)[keyof typeof NOTIFICATION_TYPES];

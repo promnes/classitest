@@ -1306,13 +1306,31 @@
   },
   "notifications": {
     "title": "Notificacoes",
-    "noNotifications": "Sem notificacoes",
+    "noNotifications": "Sem notificacoes no momento",
+    "noUnreadNotifications": "Sem notificacoes nao lidas",
     "markAsRead": "Marcar como lida",
     "markAllAsRead": "Marcar todas como lidas",
+    "markedAllRead": "Todas marcadas como lidas \u2705",
     "delete": "Excluir",
     "today": "Hoje",
     "yesterday": "Ontem",
-    "older": "Antigas"
+    "older": "Antigas",
+    "viewAll": "Ver todas as notificacoes",
+    "all": "Todas",
+    "unread": "Nao lidas",
+    "previous": "Anterior",
+    "next": "Proximo",
+    "linkCode": "Codigo de link:",
+    "codeCopied": "Codigo copiado",
+    "approve": "Aprovar",
+    "reject": "Rejeitar",
+    "approved": "Aprovado \u2705",
+    "rejected": "Rejeitado \u274c",
+    "loginApproved": "Login da crianca aprovado com sucesso",
+    "loginRejected": "Pedido de login rejeitado",
+    "error": "Ocorreu um erro",
+    "tryAgain": "Tente novamente",
+    "clickToNavigate": "Clique para navegar"
   },
   "referrals": {
     "title": "Indicacoes",
@@ -3380,7 +3398,12 @@
     "checking": "Verificando...",
     "greeting": "Olá {{name}} 👋",
     "loadingGame": "Carregando jogo...",
-    "completeForPoints": "Complete o jogo para ganhar pontos..."
+    "completeForPoints": "Complete o jogo para ganhar pontos...",
+    "shareOnSocial": "Compartilhe sua conquista nas redes sociais",
+    "scored": "marcou",
+    "linkCopied": "Link copiado!",
+    "copy": "Copiar",
+    "alreadySharedSameScore": "Voce ja compartilhou esta pontuacao! Compartilhe com amigos"
   },
   "memoryGame": {
     "title": "Jogo da Memória",
@@ -3837,7 +3860,11 @@
     "noNotifications": "Sem notificações",
     "emptyMessage": "Suas notificações aparecerão aqui quando ganhar novos pontos ou presentes",
     "hello": "Olá {{name}}!",
-    "encouragement": "Continue ganhando pontos para presentes incríveis! Você tem {{count}} pontos."
+    "encouragement": "Continue ganhando pontos para presentes incríveis! Você tem {{count}} pontos.",
+    "clickToNavigate": "Clique para navegar",
+    "viewAll": "Ver todas as notificações",
+    "markAllRead": "Marcar todas como lidas",
+    "noNotificationsEmoji": "Sem notificações ✨"
   },
   "childNav": {
     "play": "Jogar",

@@ -46,8 +46,19 @@ export const Settings = (): JSX.Element => {
   const { data: contactInfo } = useQuery({
     queryKey: ["contact-info"],
     queryFn: async () => {
-      const res = await fetch("/api/contact-info");
-      return res.json();
+      const res = await fetch("/api/support-settings");
+      if (!res.ok) return null;
+      const json = await res.json();
+      const d = json?.data || json;
+      return {
+        phone: d?.supportPhone || null,
+        email: d?.supportEmail || null,
+        whatsapp: d?.whatsappNumber || null,
+        facebook: d?.facebookUrl || null,
+        instagram: d?.instagramUrl || null,
+        twitter: d?.twitterUrl || null,
+        address: d?.companyName || null,
+      };
     },
   });
 

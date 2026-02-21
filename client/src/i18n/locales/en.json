@@ -1306,13 +1306,31 @@
   },
   "notifications": {
     "title": "Notifications",
-    "noNotifications": "No notifications",
+    "noNotifications": "No notifications right now",
+    "noUnreadNotifications": "No unread notifications",
     "markAsRead": "Mark as read",
-    "markAllAsRead": "Mark all as read",
+    "markAllAsRead": "Mark all read",
+    "markedAllRead": "All marked as read \u2705",
     "delete": "Delete",
     "today": "Today",
     "yesterday": "Yesterday",
-    "older": "Older"
+    "older": "Older",
+    "viewAll": "View all notifications",
+    "all": "All",
+    "unread": "Unread",
+    "previous": "Previous",
+    "next": "Next",
+    "linkCode": "Link code:",
+    "codeCopied": "Code copied",
+    "approve": "Approve",
+    "reject": "Reject",
+    "approved": "Approved \u2705",
+    "rejected": "Rejected \u274c",
+    "loginApproved": "Child login approved successfully",
+    "loginRejected": "Login request rejected",
+    "error": "Error occurred",
+    "tryAgain": "Please try again",
+    "clickToNavigate": "Click to navigate"
   },
   "referrals": {
     "title": "Referrals",
@@ -3405,7 +3423,12 @@
     "checking": "Checking...",
     "greeting": "Hi {{name}} 👋",
     "loadingGame": "Loading game...",
-    "completeForPoints": "Complete the game to earn points..."
+    "completeForPoints": "Complete the game to earn points...",
+    "shareOnSocial": "Share your achievement on social media",
+    "scored": "scored",
+    "linkCopied": "Link copied!",
+    "copy": "Copy",
+    "alreadySharedSameScore": "You already shared this score! Share it with friends"
   },
   "memoryGame": {
     "title": "Memory Match",
@@ -3862,7 +3885,11 @@
     "noNotifications": "No notifications",
     "emptyMessage": "Your notifications will appear here when you earn new points or gifts",
     "hello": "Hello {{name}}!",
-    "encouragement": "Keep earning points for amazing gifts! You have {{count}} points."
+    "encouragement": "Keep earning points for amazing gifts! You have {{count}} points.",
+    "clickToNavigate": "Click to navigate",
+    "viewAll": "View all notifications",
+    "markAllRead": "Mark all read",
+    "noNotificationsEmoji": "No notifications \u2728"
   },
   "childNav": {
     "play": "Play",

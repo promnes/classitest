@@ -749,5 +749,35 @@ Future games should target these educational categories:
 
 ---
 
+## 🚨 PRODUCTION API ERROR PREVENTION
+
+### Common Errors Found (2025-06 Audit)
+
+| Error | Root Cause | Fix |
+|-------|-----------|-----|
+| **500 on check-likes/check-votes** | `sql\`ANY(${array})\`` doesn't work with Drizzle array params | Use `inArray(column, array)` from drizzle-orm |
+| **404 on /api/contact-info** | Client called non-existent endpoint | Map to existing `/api/support-settings` with field mapping |
+| **500 SQL template errors** | Using raw SQL templates with arrays | Always use Drizzle's `inArray()`, `eq()`, `and()` operators |
+
+### Mandatory Rules
+
+1. **NEVER use `sql\`ANY(${array})\``** — Use `inArray(column, array)` from drizzle-orm instead
+2. **ALWAYS verify API routes exist** before calling from client — Check `server/routes/*.ts`
+3. **Test all new API calls** with `curl` before deploying
+4. **No orphaned client API calls** — Every `fetch("/api/...")` must have a corresponding server route
+5. **Array query params** — Use `inArray()` for WHERE IN queries, never raw SQL with arrays
+6. **Error handling** — All API routes must return proper `errorResponse()` format, never crash
+7. **Drizzle ORM** — Prefer Drizzle query builders over raw SQL templates
+
+### Game Share Notification System
+
+When a child shares a game result (post with `###GAME_SHARE###` content):
+- Server auto-notifies: Parents, Followers, Friends
+- Notification type: `game_shared`
+- Dedup on client: Same game+score share is only posted once, then social sharing buttons shown
+- Social share buttons: WhatsApp, Facebook, X (Twitter), Copy Link
+
+---
+
 **This document is the single source of truth for game development in Classify.**  
 **Update it when patterns change, bugs are fixed, or new games are built.**

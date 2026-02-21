@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -66,6 +67,7 @@ const ICON_CONFIG: Record<string, { emoji: string; bg: string }> = {
   withdrawal_approved: { emoji: "💰", bg: "bg-emerald-500" },
   withdrawal_rejected: { emoji: "💰", bg: "bg-red-500" },
   low_points_warning: { emoji: "⚠️", bg: "bg-orange-500" },
+  game_shared: { emoji: "🎮", bg: "bg-purple-500" },
 };
 
 const getIconConfig = (type: string) => ICON_CONFIG[type] || { emoji: "🔔", bg: "bg-gray-500" };
@@ -87,9 +89,11 @@ const NAV_MAP: Record<string, string> = {
   product_assigned: "/parent-dashboard", reward: "/parent-dashboard",
   reward_unlocked: "/parent-dashboard",
   security_alert: "/settings", login_rejected: "/settings",
+  game_shared: "/child-profile",
 };
 
 export function ParentNotificationBell() {
+  const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -140,12 +144,12 @@ export function ParentNotificationBell() {
       queryClient.invalidateQueries({ queryKey: ["/api/parent/notifications"] });
       queryClient.invalidateQueries({ queryKey: ["/api/parent/notifications/unread-count"] });
       toast({
-        title: variables.action === "approve" ? "تمت الموافقة ✅" : "تم الرفض ❌",
-        description: variables.action === "approve" ? "تم تسجيل دخول الطفل بنجاح" : "تم رفض طلب تسجيل الدخول",
+        title: variables.action === "approve" ? t("notifications.approved") : t("notifications.rejected"),
+        description: variables.action === "approve" ? t("notifications.loginApproved") : t("notifications.loginRejected"),
       });
     },
     onError: () => {
-      toast({ title: "حدث خطأ", description: "يرجى المحاولة مرة أخرى", variant: "destructive" });
+      toast({ title: t("notifications.error"), description: t("notifications.tryAgain"), variant: "destructive" });
     },
   });
 
@@ -163,6 +167,47 @@ export function ParentNotificationBell() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [isOpen]);
 
+  // IntersectionObserver: auto-mark-read when notification scrolls into viewport
+  const observerRef = useRef<IntersectionObserver | null>(null);
+  const observedIds = useRef<Set<string>>(new Set());
+
+  const setupObserver = useCallback(() => {
+    if (observerRef.current) observerRef.current.disconnect();
+    observedIds.current.clear();
+
+    observerRef.current = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            const id = (entry.target as HTMLElement).dataset.notifId;
+            const isRead = (entry.target as HTMLElement).dataset.notifRead === "true";
+            if (id && !isRead && !observedIds.current.has(id)) {
+              observedIds.current.add(id);
+              markReadMutation.mutate(id);
+            }
+          }
+        });
+      },
+      { threshold: 0.6 }
+    );
+
+    return observerRef.current;
+  }, []);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const obs = setupObserver();
+    // Small delay to allow DOM rendering
+    const timer = setTimeout(() => {
+      const items = panelRef.current?.querySelectorAll("[data-notif-id]");
+      items?.forEach((el) => obs.observe(el));
+    }, 100);
+    return () => {
+      clearTimeout(timer);
+      obs.disconnect();
+    };
+  }, [isOpen, notifications, setupObserver]);
+
   const handleNotificationClick = (notification: NotificationItem) => {
     if (!notification.isRead) markReadMutation.mutate(notification.id);
     const target = NAV_MAP[notification.type];
@@ -175,7 +220,7 @@ export function ParentNotificationBell() {
   const copyCode = (code: string, notificationId: string) => {
     navigator.clipboard.writeText(code);
     setCopiedCode(notificationId);
-    toast({ title: "تم نسخ الكود" });
+    toast({ title: t("notifications.codeCopied") });
     setTimeout(() => setCopiedCode(null), 2000);
   };
 
@@ -190,7 +235,7 @@ export function ParentNotificationBell() {
             ? "hover:bg-gray-700 active:bg-gray-600"
             : "hover:bg-gray-100 active:bg-gray-200"
         }`}
-        aria-label="الإشعارات"
+        aria-label={t("notifications.title")}
       >
         <Bell className={`h-5 w-5 ${unreadCount > 0 ? "text-blue-500" : ""}`} />
         {unreadCount > 0 && (
@@ -217,7 +262,7 @@ export function ParentNotificationBell() {
             {/* Header */}
             <div className="flex items-center justify-between px-4 py-3">
               <h3 className={`text-xl font-bold ${isDark ? "text-white" : "text-gray-900"}`}>
-                الإشعارات
+                {t("notifications.title")}
               </h3>
               <div className="flex items-center gap-1">
                 {unreadCount > 0 && (
@@ -235,7 +280,7 @@ export function ParentNotificationBell() {
                     ) : (
                       <span className="flex items-center gap-1">
                         <CheckCheck className="h-3.5 w-3.5" />
-                        قراءة الكل
+                        {t("notifications.markAllAsRead")}
                       </span>
                     )}
                   </button>
@@ -255,7 +300,7 @@ export function ParentNotificationBell() {
                 <div className="py-16 text-center">
                   <div className="text-4xl mb-3">🔔</div>
                   <p className={`text-sm font-medium ${isDark ? "text-gray-400" : "text-gray-500"}`}>
-                    لا توجد إشعارات حالياً
+                    {t("notifications.noNotifications")}
                   </p>
                 </div>
               ) : (
@@ -271,6 +316,8 @@ export function ParentNotificationBell() {
                   return (
                     <div
                       key={notification.id}
+                      data-notif-id={notification.id}
+                      data-notif-read={String(notification.isRead)}
                       className={`flex items-start gap-3 px-4 py-2.5 transition-colors duration-150 ${
                         !notification.isRead
                           ? isDark ? "bg-[#263951]" : "bg-blue-50/80"
@@ -331,7 +378,7 @@ export function ParentNotificationBell() {
                               <div className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs ${
                                 isDark ? "bg-[#3a3b3c]" : "bg-gray-100"
                               }`}>
-                                <span className={isDark ? "text-gray-400" : "text-gray-500"}>كود الربط:</span>
+                                <span className={isDark ? "text-gray-400" : "text-gray-500"}>{t("notifications.linkCode")}</span>
                                 <span className="font-mono font-bold text-orange-500">{parentCode}</span>
                                 <button
                                   onClick={(e) => { e.stopPropagation(); copyCode(parentCode, notification.id); }}
@@ -351,14 +398,14 @@ export function ParentNotificationBell() {
                                 disabled={respondToLoginMutation.isPending}
                                 className="flex-1 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-1 transition-colors disabled:opacity-50"
                               >
-                                {respondToLoginMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <><Check className="w-3 h-3" /> موافقة</>}
+                                {respondToLoginMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <><Check className="w-3 h-3" /> {t("notifications.approve")}</>}
                               </button>
                               <button
                                 onClick={(e) => { e.stopPropagation(); respondToLoginMutation.mutate({ notificationId: notification.id, action: "reject" }); }}
                                 disabled={respondToLoginMutation.isPending}
                                 className="flex-1 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-1 transition-colors disabled:opacity-50"
                               >
-                                {respondToLoginMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <><X className="w-3 h-3" /> رفض</>}
+                                {respondToLoginMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <><X className="w-3 h-3" /> {t("notifications.reject")}</>}
                               </button>
                             </div>
                           </div>
@@ -387,7 +434,7 @@ export function ParentNotificationBell() {
                     : "text-blue-600 hover:bg-blue-50"
                 }`}
               >
-                عرض كل الإشعارات
+                {t("notifications.viewAll")}
               </button>
             </div>
           </div>

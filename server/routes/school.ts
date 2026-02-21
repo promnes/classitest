@@ -21,7 +21,7 @@ import {
   teacherTransfers,
   notifications,
 } from "../../shared/schema";
-import { eq, desc, and, sql, like, or, count } from "drizzle-orm";
+import { eq, desc, and, sql, like, or, count, inArray } from "drizzle-orm";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import { createPresignedUpload, finalizeUpload } from "../services/uploadService";
@@ -1173,7 +1173,7 @@ export async function registerSchoolRoutes(app: Express) {
 
       const likes = await db.select({ postId: schoolPostLikes.postId }).from(schoolPostLikes).where(
         and(
-          sql`${schoolPostLikes.postId} = ANY(${postIds})`,
+          inArray(schoolPostLikes.postId, postIds),
           parentId ? eq(schoolPostLikes.parentId, parentId) : eq(schoolPostLikes.childId, childId!)
         )
       );
@@ -1637,7 +1637,7 @@ export async function registerSchoolRoutes(app: Express) {
         selectedOptions: schoolPollVotes.selectedOptions,
       }).from(schoolPollVotes).where(
         and(
-          sql`${schoolPollVotes.pollId} = ANY(${pollIds})`,
+          inArray(schoolPollVotes.pollId, pollIds),
           eq(schoolPollVotes.parentId, parentId),
         )
       );

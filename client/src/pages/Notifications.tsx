@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -66,6 +67,7 @@ const ICON_CONFIG: Record<string, { emoji: string; bg: string }> = {
   withdrawal_approved: { emoji: "💰", bg: "bg-emerald-500" },
   withdrawal_rejected: { emoji: "💰", bg: "bg-red-500" },
   low_points_warning: { emoji: "⚠️", bg: "bg-orange-500" },
+  game_shared: { emoji: "🎮", bg: "bg-purple-500" },
 };
 const getIconConfig = (type: string) => ICON_CONFIG[type] || { emoji: "🔔", bg: "bg-gray-500" };
 
@@ -86,9 +88,11 @@ const NAV_MAP: Record<string, string> = {
   product_assigned: "/parent-dashboard", reward: "/parent-dashboard",
   reward_unlocked: "/parent-dashboard",
   security_alert: "/settings", login_rejected: "/settings",
+  game_shared: "/child-profile",
 };
 
 export const Notifications = (): JSX.Element => {
+  const { t } = useTranslation();
   const [, navigate] = useLocation();
   const { isDark } = useTheme();
   const token = localStorage.getItem("token");
@@ -144,12 +148,12 @@ export const Notifications = (): JSX.Element => {
       queryClient.invalidateQueries({ queryKey: ["/api/parent/notifications"] });
       queryClient.invalidateQueries({ queryKey: ["/api/parent/notifications/unread-count"] });
       toast({
-        title: variables.action === "approve" ? "تمت الموافقة ✅" : "تم الرفض ❌",
-        description: variables.action === "approve" ? "تم تسجيل دخول الطفل بنجاح" : "تم رفض طلب تسجيل الدخول",
+        title: variables.action === "approve" ? t("notifications.approved") : t("notifications.rejected"),
+        description: variables.action === "approve" ? t("notifications.loginApproved") : t("notifications.loginRejected"),
       });
     },
     onError: () => {
-      toast({ title: "حدث خطأ", description: "يرجى المحاولة مرة أخرى", variant: "destructive" });
+      toast({ title: t("notifications.error"), description: t("notifications.tryAgain"), variant: "destructive" });
     },
   });
 
@@ -158,14 +162,51 @@ export const Notifications = (): JSX.Element => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/parent/notifications"] });
       queryClient.invalidateQueries({ queryKey: ["/api/parent/notifications/unread-count"] });
-      toast({ title: "تم تعليم الكل كمقروء ✅" });
+      toast({ title: t("notifications.markedAllRead") });
     },
   });
+
+  // IntersectionObserver: auto-mark-read when notifications become visible
+  const listRef = useRef<HTMLDivElement>(null);
+  const observerRef = useRef<IntersectionObserver | null>(null);
+  const observedIds = useRef<Set<string>>(new Set());
+
+  const setupObserver = useCallback(() => {
+    if (observerRef.current) observerRef.current.disconnect();
+    observedIds.current.clear();
+
+    observerRef.current = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            const id = (entry.target as HTMLElement).dataset.notifId;
+            const isRead = (entry.target as HTMLElement).dataset.notifRead === "true";
+            if (id && !isRead && !observedIds.current.has(id)) {
+              observedIds.current.add(id);
+              markReadMutation.mutate(id);
+            }
+          }
+        });
+      },
+      { threshold: 0.5 }
+    );
+
+    return observerRef.current;
+  }, []);
+
+  useEffect(() => {
+    const obs = setupObserver();
+    const timer = setTimeout(() => {
+      const items = listRef.current?.querySelectorAll("[data-notif-id]");
+      items?.forEach((el) => obs.observe(el));
+    }, 150);
+    return () => { clearTimeout(timer); obs.disconnect(); };
+  }, [displayNotifications, setupObserver]);
 
   const copyCode = (code: string, notificationId: string) => {
     navigator.clipboard.writeText(code);
     setCopiedCode(notificationId);
-    toast({ title: "تم نسخ الكود" });
+    toast({ title: t("notifications.codeCopied") });
     setTimeout(() => setCopiedCode(null), 2000);
   };
 
@@ -188,7 +229,7 @@ export const Notifications = (): JSX.Element => {
               <ArrowRight className="h-5 w-5" />
             </button>
             <h1 className={`text-2xl font-bold ${isDark ? "text-white" : "text-gray-900"}`}>
-              الإشعارات
+              {t("notifications.title")}
             </h1>
           </div>
           {unreadCount > 0 && (
@@ -199,7 +240,7 @@ export const Notifications = (): JSX.Element => {
                 isDark ? "text-blue-400 hover:bg-[#3a3b3c]" : "text-blue-600 hover:bg-blue-50"
               }`}
             >
-              {markAllReadMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "قراءة الكل"}
+              {markAllReadMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : t("notifications.markAllAsRead")}
             </button>
           )}
         </div>
@@ -214,7 +255,7 @@ export const Notifications = (): JSX.Element => {
                 : isDark ? "bg-[#3a3b3c] text-gray-300 hover:bg-[#4e4f50]" : "bg-gray-200 text-gray-600 hover:bg-gray-300"
             }`}
           >
-            الكل
+            {t("notifications.all")}
           </button>
           <button
             onClick={() => { setFilter("unread"); setPage(1); }}
@@ -224,17 +265,17 @@ export const Notifications = (): JSX.Element => {
                 : isDark ? "bg-[#3a3b3c] text-gray-300 hover:bg-[#4e4f50]" : "bg-gray-200 text-gray-600 hover:bg-gray-300"
             }`}
           >
-            غير المقروء {unreadCount > 0 && `(${unreadCount})`}
+            {t("notifications.unread")} {unreadCount > 0 && `(${unreadCount})`}
           </button>
         </div>
 
         {/* Notifications list */}
-        <div className={`rounded-xl overflow-hidden ${isDark ? "bg-[#242526]" : "bg-white"} shadow-sm`}>
+        <div ref={listRef} className={`rounded-xl overflow-hidden ${isDark ? "bg-[#242526]" : "bg-white"} shadow-sm`}>
           {displayNotifications.length === 0 ? (
             <div className="py-20 text-center">
               <div className="text-5xl mb-4">🔔</div>
               <p className={`text-base font-medium ${isDark ? "text-gray-400" : "text-gray-500"}`}>
-                {filter === "unread" ? "لا توجد إشعارات غير مقروءة" : "لا توجد إشعارات حالياً"}
+                {filter === "unread" ? t("notifications.noUnreadNotifications") : t("notifications.noNotifications")}
               </p>
             </div>
           ) : (
@@ -250,6 +291,8 @@ export const Notifications = (): JSX.Element => {
               return (
                 <div
                   key={notification.id}
+                  data-notif-id={notification.id}
+                  data-notif-read={String(notification.isRead)}
                   className={`flex items-start gap-3 px-4 py-3 transition-colors duration-150 border-b last:border-b-0 ${
                     isDark ? "border-gray-700/50" : "border-gray-100"
                   } ${!notification.isRead
@@ -311,7 +354,7 @@ export const Notifications = (): JSX.Element => {
                           <div className={`flex items-center gap-2 px-3 py-2 rounded-lg ${
                             isDark ? "bg-[#3a3b3c]" : "bg-gray-100"
                           }`}>
-                            <span className={`text-xs ${isDark ? "text-gray-400" : "text-gray-500"}`}>كود الربط:</span>
+                            <span className={`text-xs ${isDark ? "text-gray-400" : "text-gray-500"}`}>{t("notifications.linkCode")}</span>
                             <span className="font-mono font-bold text-lg text-orange-500">{parentCode}</span>
                             <button
                               onClick={(e) => { e.stopPropagation(); copyCode(parentCode, notification.id); }}
@@ -331,14 +374,14 @@ export const Notifications = (): JSX.Element => {
                             disabled={respondToLoginMutation.isPending}
                             className="flex-1 py-2.5 bg-green-500 hover:bg-green-600 text-white rounded-lg text-sm font-bold flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50"
                           >
-                            {respondToLoginMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Check className="w-4 h-4" /> موافقة</>}
+                            {respondToLoginMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Check className="w-4 h-4" /> {t("notifications.approve")}</>}
                           </button>
                           <button
                             onClick={(e) => { e.stopPropagation(); respondToLoginMutation.mutate({ notificationId: notification.id, action: "reject" }); }}
                             disabled={respondToLoginMutation.isPending}
                             className="flex-1 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm font-bold flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50"
                           >
-                            {respondToLoginMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <><X className="w-4 h-4" /> رفض</>}
+                            {respondToLoginMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <><X className="w-4 h-4" /> {t("notifications.reject")}</>}
                           </button>
                         </div>
                       </div>
@@ -348,7 +391,7 @@ export const Notifications = (): JSX.Element => {
                     {isClickable && (
                       <div className={`flex items-center gap-1 mt-1 text-xs ${isDark ? "text-blue-400" : "text-blue-500"}`}>
                         <ChevronRight className="w-3 h-3 rtl:rotate-180" />
-                        <span>اضغط للانتقال</span>
+                        <span>{t("notifications.clickToNavigate")}</span>
                       </div>
                     )}
                   </div>
@@ -377,7 +420,7 @@ export const Notifications = (): JSX.Element => {
                   : "bg-white text-gray-700 hover:bg-gray-50 shadow-sm"
               }`}
             >
-              السابق
+              {t("notifications.previous")}
             </button>
 
             <span className={`text-sm font-medium ${isDark ? "text-gray-400" : "text-gray-600"}`}>
@@ -393,7 +436,7 @@ export const Notifications = (): JSX.Element => {
                   : "bg-blue-500 text-white hover:bg-blue-600 shadow-sm"
               }`}
             >
-              التالي
+              {t("notifications.next")}
             </button>
           </div>
         )}

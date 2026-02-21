@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
@@ -29,6 +29,7 @@ const getNotificationIcon = (type: string) => {
     case "daily_challenge": return "🎯";
     case "goal_progress": return "📈";
     case "broadcast": case "system_alert": return "📢";
+    case "game_shared": return "🎮";
     default: return "🔔";
   }
 };
@@ -41,6 +42,7 @@ const getNavigationTarget = (notification: ChildNotification): string | null => 
     case "daily_challenge": return "/child-games";
     case "points_earned": case "points_adjustment": case "reward_unlocked": case "achievement": return "/child-rewards";
     case "goal_progress": return "/child-progress";
+    case "game_shared": return "/child-games";
     default: return null;
   }
 };
@@ -122,6 +124,43 @@ export function ChildNotificationBell() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [isOpen]);
 
+  // IntersectionObserver: auto-mark-read when notification scrolls into viewport
+  const observerRef = useRef<IntersectionObserver | null>(null);
+  const observedIds = useRef<Set<string>>(new Set());
+
+  const setupObserver = useCallback(() => {
+    if (observerRef.current) observerRef.current.disconnect();
+    observedIds.current.clear();
+
+    observerRef.current = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            const id = (entry.target as HTMLElement).dataset.notifId;
+            const isRead = (entry.target as HTMLElement).dataset.notifRead === "true";
+            if (id && !isRead && !observedIds.current.has(id)) {
+              observedIds.current.add(id);
+              markAsRead(id);
+            }
+          }
+        });
+      },
+      { threshold: 0.6 }
+    );
+
+    return observerRef.current;
+  }, []);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const obs = setupObserver();
+    const timer = setTimeout(() => {
+      const items = panelRef.current?.querySelectorAll("[data-notif-id]");
+      items?.forEach((el) => obs.observe(el));
+    }, 100);
+    return () => { clearTimeout(timer); obs.disconnect(); };
+  }, [isOpen, notifications, setupObserver]);
+
   const handleNotificationClick = (notification: ChildNotification) => {
     markAsRead(notification.id);
     const target = getNavigationTarget(notification);
@@ -166,7 +205,7 @@ export function ChildNotificationBell() {
             {/* Header */}
             <div className={`flex items-center justify-between px-4 py-3 border-b ${isDark ? "border-gray-700" : "border-gray-100"}`}>
               <h3 className={`font-bold text-base flex items-center gap-2 ${isDark ? "text-white" : "text-gray-800"}`}>
-                🔔 الإشعارات
+                🔔 {t("childNotifications.title")}
                 {unreadCount > 0 && (
                   <span className="text-xs bg-red-500 text-white px-2 py-0.5 rounded-full">{unreadCount}</span>
                 )}
@@ -176,7 +215,7 @@ export function ChildNotificationBell() {
                   <button
                     onClick={() => markAllRead()}
                     className={`text-xs px-2 py-1 rounded-lg transition-colors ${isDark ? "text-blue-400 hover:bg-gray-700" : "text-blue-600 hover:bg-blue-50"}`}
-                    title="قراءة الكل"
+                    title={t("childNotifications.markAllRead")}
                   >
                     <CheckCheck className="h-4 w-4" />
                   </button>
@@ -195,7 +234,7 @@ export function ChildNotificationBell() {
             <div className="overflow-y-auto max-h-[65vh] divide-y divide-gray-100 dark:divide-gray-700">
               {displayNotifications.length === 0 ? (
                 <div className="py-12 text-center">
-                  <p className={`text-sm ${isDark ? "text-gray-400" : "text-gray-500"}`}>لا توجد إشعارات ✨</p>
+                  <p className={`text-sm ${isDark ? "text-gray-400" : "text-gray-500"}`}>{t("childNotifications.noNotificationsEmoji")}</p>
                 </div>
               ) : (
                 displayNotifications.map((notification) => {
@@ -203,6 +242,8 @@ export function ChildNotificationBell() {
                   return (
                     <div
                       key={notification.id}
+                      data-notif-id={notification.id}
+                      data-notif-read={String(notification.isRead)}
                       className={`px-4 py-3 transition-colors ${
                         !notification.isRead
                           ? isDark ? "bg-blue-900/20" : "bg-blue-50/70"
@@ -231,7 +272,7 @@ export function ChildNotificationBell() {
                           </p>
                           {navTarget && (
                             <p className={`text-[10px] mt-1 ${isDark ? "text-blue-400" : "text-blue-500"}`}>
-                              اضغط للانتقال ←
+                              {t("childNotifications.clickToNavigate")} ←
                             </p>
                           )}
                         </div>
@@ -248,7 +289,7 @@ export function ChildNotificationBell() {
                 onClick={() => { setIsOpen(false); navigate("/child-notifications"); }}
                 className={`text-sm font-semibold ${isDark ? "text-blue-400 hover:text-blue-300" : "text-blue-600 hover:text-blue-700"}`}
               >
-                عرض كل الإشعارات
+                {t("childNotifications.viewAll")}
               </button>
             </div>
           </div>

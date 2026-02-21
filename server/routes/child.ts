@@ -3892,6 +3892,108 @@ export async function registerChildRoutes(app: Express) {
         mediaUrls: Array.isArray(mediaUrls) ? mediaUrls.slice(0, 5) : [],
         mediaTypes: Array.isArray(mediaTypes) ? mediaTypes.slice(0, 5) : [],
       }).returning();
+
+      // Detect game share and notify related people
+      if (content.includes("###GAME_SHARE###")) {
+        try {
+          const jsonMatch = content.match(/###GAME_SHARE###([\s\S]*?)###END_GAME_SHARE###/);
+          let gameData: { gameName?: string; score?: number; stars?: number } = {};
+          if (jsonMatch) {
+            try { gameData = JSON.parse(jsonMatch[1]); } catch {}
+          }
+
+          // Get child info
+          const [childInfo] = await db.select({ name: children.name }).from(children).where(eq(children.id, childId));
+          const childName = childInfo?.name || "طفل";
+          const gameName = gameData.gameName || "لعبة";
+          const score = gameData.score ?? 0;
+          const stars = gameData.stars ?? 0;
+          const starsEmoji = "⭐".repeat(Math.min(stars, 5));
+
+          // 1) Notify parent(s) of this child
+          const parentLinks = await db
+            .select({ parentId: parentChild.parentId })
+            .from(parentChild)
+            .where(eq(parentChild.childId, childId));
+
+          for (const link of parentLinks) {
+            createNotification({
+              parentId: link.parentId,
+              type: NOTIFICATION_TYPES.GAME_SHARED,
+              title: `🎮 ${childName} شارك نتيجة لعبة`,
+              message: `${childName} حقق ${score} نقطة ${starsEmoji} في ${gameName}!`,
+              style: NOTIFICATION_STYLES.TOAST,
+              priority: NOTIFICATION_PRIORITIES.NORMAL,
+              soundAlert: true,
+              relatedId: post.id,
+              ctaAction: "view_post",
+              ctaTarget: `/child-profile/${childId}`,
+              metadata: { childId, childName, gameName, score, stars, postId: post.id },
+            }).catch(err => console.error("Game share notify parent error:", err));
+          }
+
+          // 2) Notify followers (other children who follow this child)
+          const followers = await db
+            .select({ followerId: childFollows.followerId })
+            .from(childFollows)
+            .where(and(
+              eq(childFollows.followingId, childId),
+              eq(childFollows.followingType, "child")
+            ));
+
+          for (const f of followers) {
+            createNotification({
+              childId: f.followerId,
+              type: NOTIFICATION_TYPES.GAME_SHARED,
+              title: `🎮 ${childName} شارك نتيجة`,
+              message: `${childName} حقق ${score} نقطة ${starsEmoji} في ${gameName}!`,
+              style: NOTIFICATION_STYLES.TOAST,
+              priority: NOTIFICATION_PRIORITIES.NORMAL,
+              relatedId: post.id,
+              ctaAction: "view_post",
+              ctaTarget: `/child-profile/${childId}`,
+              metadata: { childId, childName, gameName, score, stars, postId: post.id },
+            }).catch(err => console.error("Game share notify follower error:", err));
+          }
+
+          // 3) Notify friends (accepted friendships)
+          const friendships = await db
+            .select({
+              requesterId: childFriendships.requesterId,
+              addresseeId: childFriendships.addresseeId,
+            })
+            .from(childFriendships)
+            .where(and(
+              or(
+                eq(childFriendships.requesterId, childId),
+                eq(childFriendships.addresseeId, childId)
+              ),
+              eq(childFriendships.status, "accepted")
+            ));
+
+          const followerIds = new Set(followers.map(f => f.followerId));
+          for (const fr of friendships) {
+            const friendId = fr.requesterId === childId ? fr.addresseeId : fr.requesterId;
+            if (followerIds.has(friendId)) continue; // skip if already notified as follower
+            createNotification({
+              childId: friendId,
+              type: NOTIFICATION_TYPES.GAME_SHARED,
+              title: `🎮 ${childName} شارك نتيجة`,
+              message: `صديقك ${childName} حقق ${score} نقطة ${starsEmoji} في ${gameName}!`,
+              style: NOTIFICATION_STYLES.TOAST,
+              priority: NOTIFICATION_PRIORITIES.NORMAL,
+              relatedId: post.id,
+              ctaAction: "view_post",
+              ctaTarget: `/child-profile/${childId}`,
+              metadata: { childId, childName, gameName, score, stars, postId: post.id },
+            }).catch(err => console.error("Game share notify friend error:", err));
+          }
+        } catch (notifErr) {
+          // Non-blocking: don't fail the post creation if notifications fail
+          console.error("Game share notification error:", notifErr);
+        }
+      }
+
       res.json({ success: true, data: post });
     } catch (error: any) {
       console.error("Create child post error:", error);

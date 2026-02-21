@@ -8,7 +8,7 @@ import { GrowthTree } from "@/components/GrowthTree";
 import { useTheme } from "@/contexts/ThemeContext";
 import { ChildNotificationBell } from "@/components/ChildNotificationBell";
 import { useChildAuth } from "@/hooks/useChildAuth";
-import { Gamepad2, Star, Gift, Bell, ShoppingBag, X, Trophy, Play, BookOpen, TrendingUp, LogOut, Settings, User, Loader2 } from "lucide-react";
+import { Gamepad2, Star, Gift, Bell, ShoppingBag, X, Trophy, Play, BookOpen, TrendingUp, LogOut, Settings, User, Loader2, Share2, Link2 } from "lucide-react";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -38,6 +38,8 @@ export const ChildGames = (): JSX.Element => {
   const [gameResult, setGameResult] = useState<{ score: number; total: number } | null>(null);
   const [iframeLoading, setIframeLoading] = useState(false);
   const [mutationError, setMutationError] = useState<string | null>(null);
+  const [gameShared, setGameShared] = useState(false);
+  const [sharedGameData, setSharedGameData] = useState<{ gameName: string; score: number; stars: number } | null>(null);
 
   // Refs for stable access in postMessage handler
   const selectedGameRef = useRef<Game | null>(null);
@@ -88,7 +90,7 @@ export const ChildGames = (): JSX.Element => {
         const total = Math.max(1, Math.min(e.data.total || 10, 10000));
         setGameResult({ score, total });
       }
-      // Handle achievement sharing to child profile — rich game card post
+      // Handle achievement sharing to child profile — rich game card post (share once per session)
       if (e.data?.type === 'SHARE_ACHIEVEMENT' && token) {
         const { game, level, score, stars, world } = e.data;
         const currentGame = selectedGameRef.current;
@@ -96,6 +98,45 @@ export const ChildGames = (): JSX.Element => {
 
         (async () => {
           try {
+            // Check if this game result was already shared in this session
+            const postsRes = await fetch("/api/child/posts", {
+              headers: { Authorization: `Bearer ${token}` },
+            });
+            let previousScore: number | null = null;
+            let alreadySharedThisGame = false;
+            if (postsRes.ok) {
+              const postsJson = await postsRes.json();
+              const posts = postsJson.data || postsJson || [];
+              for (const p of posts) {
+                if (p.content?.startsWith('###GAME_SHARE###')) {
+                  try {
+                    const jsonStr = p.content.replace('###GAME_SHARE###', '').replace('###END_GAME_SHARE###', '');
+                    const shareData = JSON.parse(jsonStr);
+                    if (shareData.gameUrl === currentGame.embedUrl) {
+                      // Found existing share for this game — update score tracking but don't re-post
+                      if (shareData.score === (score || 0)) {
+                        alreadySharedThisGame = true;
+                      }
+                      if (previousScore === null) previousScore = shareData.score;
+                      break;
+                    }
+                  } catch {}
+                }
+              }
+            }
+
+            if (alreadySharedThisGame) {
+              // Already shared this exact result — just show social sharing buttons
+              const isAr = langRef.current === 'ar';
+              setGameShared(true);
+              setSharedGameData({ gameName: currentGame.title, score: score || 0, stars: stars || 0 });
+              toast({
+                title: isAr ? '📱 شارك إنجازك!' : '📱 Share your achievement!',
+                description: isAr ? 'تم النشر مسبقاً — استخدم أزرار المشاركة أدناه' : 'Already posted — use share buttons below',
+              });
+              return;
+            }
+
             // Determine game emoji
             const gameEmoji = currentGame.embedUrl.includes('memory') ? '🧠' :
                               currentGame.embedUrl.includes('math') ? '🔢' : '🎮';
@@ -107,30 +148,6 @@ export const ChildGames = (): JSX.Element => {
             else if ((stars || 0) >= 2) motivationalText = isAr ? 'عمل رائع! استمر! 🎉' : 'Great job! Keep going! 🎉';
             else if ((stars || 0) >= 1) motivationalText = isAr ? 'جيد! حاول مرة أخرى للأفضل 💪' : 'Good! Try again for better! 💪';
             else motivationalText = isAr ? 'لا تستسلم! حاول مرة أخرى 💪' : "Don't give up! Try again! 💪";
-
-            // Check for previous score from earlier game share posts
-            let previousScore: number | null = null;
-            try {
-              const postsRes = await fetch("/api/child/posts", {
-                headers: { Authorization: `Bearer ${token}` },
-              });
-              if (postsRes.ok) {
-                const postsJson = await postsRes.json();
-                const posts = postsJson.data || postsJson || [];
-                for (const p of posts) {
-                  if (p.content?.startsWith('###GAME_SHARE###')) {
-                    try {
-                      const jsonStr = p.content.replace('###GAME_SHARE###', '').replace('###END_GAME_SHARE###', '');
-                      const shareData = JSON.parse(jsonStr);
-                      if (shareData.gameUrl === currentGame.embedUrl) {
-                        previousScore = shareData.score;
-                        break;
-                      }
-                    } catch {}
-                  }
-                }
-              }
-            } catch {}
 
             // Build rich post content
             const gameShareData = {
@@ -155,10 +172,14 @@ export const ChildGames = (): JSX.Element => {
               body: JSON.stringify({ content, mediaUrls: [], mediaTypes: [] }),
             });
 
+            // Track that we shared this game
+            setGameShared(true);
+            setSharedGameData({ gameName: currentGame.title, score: score || 0, stars: stars || 0 });
+
             // Show success toast
             toast({
               title: isAr ? '✅ تم النشر!' : '✅ Posted!',
-              description: isAr ? 'تم مشاركة إنجازك على صفحتك الشخصية' : 'Your achievement was shared to your profile',
+              description: isAr ? 'تم مشاركة إنجازك — شاركه مع أصدقائك!' : 'Achievement shared — share it with friends!',
             });
           } catch {}
         })();
@@ -249,6 +270,8 @@ export const ChildGames = (): JSX.Element => {
     setGameResult(null);
     setMutationError(null);
     setIframeLoading(true);
+    setGameShared(false);
+    setSharedGameData(null);
   };
 
   const handleCompleteGame = () => {
@@ -499,21 +522,77 @@ export const ChildGames = (): JSX.Element => {
                   <p className={`text-sm font-semibold ${isDark ? "text-gray-300" : "text-gray-600"}`}>
                     🎯 {t("childGames.yourScore", { score: gameResult.score, total: gameResult.total })}
                   </p>
-                  <button
-                    onClick={handleCompleteGame}
-                    disabled={completeGameMutation.isPending}
-                    className="px-8 py-3 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-bold rounded-xl flex items-center gap-2 disabled:opacity-50 transition-all"
-                    data-testid="button-complete-game"
-                  >
-                    {completeGameMutation.isPending ? (
-                      <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent" />
-                    ) : (
-                      <>
-                        <Trophy className="w-5 h-5" />
-                        {t("finishedGame")}
-                      </>
-                    )}
-                  </button>
+                  <div className="flex items-center gap-2 flex-wrap justify-center">
+                    <button
+                      onClick={handleCompleteGame}
+                      disabled={completeGameMutation.isPending}
+                      className="px-8 py-3 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-bold rounded-xl flex items-center gap-2 disabled:opacity-50 transition-all"
+                      data-testid="button-complete-game"
+                    >
+                      {completeGameMutation.isPending ? (
+                        <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent" />
+                      ) : (
+                        <>
+                          <Trophy className="w-5 h-5" />
+                          {t("finishedGame")}
+                        </>
+                      )}
+                    </button>
+                  </div>
+                  {/* Social sharing buttons */}
+                  {gameShared && sharedGameData && (
+                    <div className="w-full mt-2">
+                      <p className={`text-xs text-center mb-2 ${isDark ? "text-gray-400" : "text-gray-500"}`}>
+                        <Share2 className="w-3.5 h-3.5 inline-block ltr:mr-1 rtl:ml-1" />
+                        {t("childGames.shareOnSocial")}
+                      </p>
+                      <div className="flex items-center justify-center gap-2 flex-wrap">
+                        {/* WhatsApp */}
+                        <a
+                          href={`https://wa.me/?text=${encodeURIComponent(`🎮 ${sharedGameData.gameName} — ${t("childGames.scored")} ${sharedGameData.score} ${"⭐".repeat(sharedGameData.stars)} ${window.location.origin}/child-games`)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-3 py-2 bg-green-500 hover:bg-green-600 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors"
+                        >
+                          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.12.553 4.11 1.518 5.84L0 24l6.336-1.652A11.95 11.95 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818c-1.892 0-3.684-.516-5.253-1.485l-.377-.224-3.91 1.02 1.04-3.794-.246-.392A9.778 9.778 0 012.182 12c0-5.423 4.395-9.818 9.818-9.818S21.818 6.577 21.818 12s-4.395 9.818-9.818 9.818z"/></svg>
+                          WhatsApp
+                        </a>
+                        {/* Facebook */}
+                        <a
+                          href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(window.location.origin)}&quote=${encodeURIComponent(`🎮 ${sharedGameData.gameName} — ${sharedGameData.score} ${"⭐".repeat(sharedGameData.stars)}`)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors"
+                        >
+                          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+                          Facebook
+                        </a>
+                        {/* Twitter/X */}
+                        <a
+                          href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(`🎮 ${sharedGameData.gameName} — ${t("childGames.scored")} ${sharedGameData.score} ${"⭐".repeat(sharedGameData.stars)}`)}&url=${encodeURIComponent(window.location.origin)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-3 py-2 bg-black hover:bg-gray-800 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors"
+                        >
+                          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                          X
+                        </a>
+                        {/* Copy Link */}
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText(`${window.location.origin}/child-games`);
+                            toast({
+                              title: isRTL ? '📋 تم نسخ الرابط!' : '📋 Link copied!',
+                            });
+                          }}
+                          className={`px-3 py-2 ${isDark ? "bg-gray-600 hover:bg-gray-500" : "bg-gray-500 hover:bg-gray-600"} text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors`}
+                        >
+                          <Link2 className="w-4 h-4" />
+                          {isRTL ? 'نسخ' : 'Copy'}
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </>
               ) : (
                 <p className={`text-sm animate-pulse ${isDark ? "text-gray-400" : "text-gray-500"}`}>
