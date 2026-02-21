@@ -1011,18 +1011,24 @@ function startLevel(idx){
   resetGame();
   showScreen('game-screen');
 
-  // Render cards AFTER screen visible — poll until grid-wrap has real dimensions
-  function tryRender(attempt){
-    const wrap=document.querySelector('.grid-wrap');
-    const w=wrap?wrap.clientWidth:0, h=wrap?wrap.clientHeight:0;
-    if(w>30&&h>30){
+  // Render cards using ResizeObserver — fires once grid-wrap has real dimensions
+  const _wrap=document.querySelector('.grid-wrap');
+  if(window._cardRO)window._cardRO.disconnect();
+  window._cardRO=new ResizeObserver(function(entries){
+    const r=entries[0].contentRect;
+    if(r.width>50&&r.height>50){
+      window._cardRO.disconnect();
       renderCards();
       if(window.initBg)initBg(currentGroup);
-    } else if(attempt<20){
-      setTimeout(()=>tryRender(attempt+1),50);
     }
-  }
-  setTimeout(()=>tryRender(0),30);
+  });
+  window._cardRO.observe(_wrap);
+  // Fallback: force render after 500ms regardless
+  setTimeout(function(){
+    if(window._cardRO){window._cardRO.disconnect();window._cardRO=null}
+    var g=document.getElementById('grid');
+    if(!g.children.length)renderCards();
+  },500);
 
   // Timed mechanic: peek all cards briefly
   if(mechanic==='timed'){
@@ -1085,12 +1091,14 @@ function createDeck(){
 function renderCards(){
   const g=document.getElementById('grid');
   const wrap=document.querySelector('.grid-wrap');
-  const maxW=Math.max(wrap.clientWidth-8,60),maxH=Math.max(wrap.clientHeight-8,60);
-  const gap=Math.max(3,Math.min(6,maxW*.01));
-  const sW=(maxW-gap*(currentGridCols-1))/currentGridCols;
-  const sH=(maxH-gap*(currentGridRows-1))/currentGridRows;
-  const maxSz=Math.min(Math.max(80,Math.min(maxW,maxH)*.22),160);
-  const sz=Math.max(40,Math.floor(Math.min(sW,sH,maxSz)));
+  const wW=wrap.clientWidth, wH=wrap.clientHeight;
+  // Use available space, fallback to viewport if container is collapsed
+  const maxW=(wW>50?wW:window.innerWidth)-16;
+  const maxH=(wH>50?wH:window.innerHeight*0.65)-16;
+  const gap=Math.max(4,Math.min(8,maxW*.01));
+  const sW=Math.floor((maxW-gap*(currentGridCols-1))/currentGridCols);
+  const sH=Math.floor((maxH-gap*(currentGridRows-1))/currentGridRows);
+  const sz=Math.max(48,Math.min(sW,sH,200));
   g.style.gridTemplateColumns=`repeat(${currentGridCols},${sz}px)`;
   g.style.gridTemplateRows=`repeat(${currentGridRows},${sz}px)`;
   g.style.gap=gap+'px';
