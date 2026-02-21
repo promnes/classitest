@@ -447,16 +447,22 @@ function useMobileAppBranding() {
       ensureLink("shortcut icon", iconUrl, "dynamic-shortcut-icon");
       ensureLink("apple-touch-icon", iconUrl, "dynamic-apple-touch-icon", "180x180");
 
+      const origin = window.location.origin;
+      const absoluteIconUrl = iconUrl.startsWith("http") ? iconUrl : `${origin}${iconUrl}`;
+      const absoluteStartUrl = startUrl.startsWith("http") ? startUrl : `${origin}${startUrl}`;
+
       const manifestData = {
         name: appName,
         short_name: shortName,
-        start_url: startUrl,
+        start_url: absoluteStartUrl,
+        scope: origin + "/",
+        id: "/",
         display: displayMode,
         theme_color: themeColor,
         background_color: backgroundColor,
         icons: [
-          { src: iconUrl, sizes: "192x192", type: "image/png", purpose: "any" },
-          { src: iconUrl, sizes: "512x512", type: "image/png", purpose: "any maskable" },
+          { src: absoluteIconUrl, sizes: "192x192", type: "image/png", purpose: "any" },
+          { src: absoluteIconUrl, sizes: "512x512", type: "image/png", purpose: "any maskable" },
         ],
       };
 
