@@ -1151,6 +1151,8 @@ function endGame() {
 
   UI.sfxComplete();
   if (stars > 0) UI.sfxStar();
+  if (coinsGained > 0) setTimeout(() => UI.sfxCoin(), 400);
+  if (badges.length > 0) setTimeout(() => UI.sfxBadge(), 800);
 
   // Apply world theme to done screen
   if (levelConfig) {

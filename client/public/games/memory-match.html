@@ -730,15 +730,19 @@ function initMute(){try{const v=localStorage.getItem(MUTE_KEY);if(v!=null)soundM
 function toggleMute(){soundMuted=!soundMuted;try{localStorage.setItem(MUTE_KEY,soundMuted?'true':'false')}catch(e){}updateMuteBtns()}
 function updateMuteBtns(){const icon=soundMuted?'🔇':'🔊';document.querySelectorAll('.mute-btn').forEach(b=>b.textContent=icon)}
 
-// ===== AUDIO =====
+// ===== AUDIO — Childlike Joyful Sounds =====
 let audioCtx=null;
-function ctx(){if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();return audioCtx}
-function tone(f,d,tp,v){if(soundMuted)return;try{const c=ctx(),o=c.createOscillator(),g=c.createGain();o.type=tp||'sine';o.frequency.setValueAtTime(f,c.currentTime);g.gain.setValueAtTime(v||.1,c.currentTime);g.gain.exponentialRampToValueAtTime(.001,c.currentTime+(d||.15));o.connect(g);g.connect(c.destination);o.start();o.stop(c.currentTime+(d||.15))}catch(e){}}
-function sfxFlip(){tone(523,.06,'sine',.08)}
-function sfxMatch(){tone(659,.1,'sine',.12);setTimeout(()=>tone(784,.1,'sine',.12),70);setTimeout(()=>tone(988,.12,'sine',.13),140)}
-function sfxNoMatch(){tone(220,.15,'sawtooth',.06)}
-function sfxComplete(){[523,659,784,988,1175,1319].forEach((f,i)=>setTimeout(()=>tone(f,.18,'sine',.1),i*80))}
-function sfxStar(){[880,1100,1320].forEach((f,i)=>setTimeout(()=>tone(f,.15,'sine',.1),i*120))}
+function ctx(){if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended')audioCtx.resume();return audioCtx}
+function tone(f,d,tp,v,atk){if(soundMuted)return;try{const c=ctx(),o=c.createOscillator(),g=c.createGain();const a=atk||.005;o.type=tp||'sine';o.frequency.setValueAtTime(f,c.currentTime);g.gain.setValueAtTime(0,c.currentTime);g.gain.linearRampToValueAtTime(v||.08,c.currentTime+a);g.gain.exponentialRampToValueAtTime(.001,c.currentTime+(d||.15));o.connect(g);g.connect(c.destination);o.start();o.stop(c.currentTime+(d||.15)+.01)}catch(e){}}
+function bell(f,d,v){if(soundMuted)return;tone(f,d||.25,'sine',v||.09,.003);tone(f*2,(d||.25)*.6,'sine',(v||.09)*.3,.003);tone(f*3,(d||.25)*.35,'triangle',(v||.09)*.12,.003)}
+function sparkle(f,v){if(soundMuted)return;tone(f,.08,'sine',v||.06,.002);tone(f*1.5,.06,'sine',(v||.06)*.4,.002)}
+function sfxFlip(){bell(659,.1,.07);sparkle(1319,.03)}
+function sfxMatch(){bell(784,.15,.11);setTimeout(()=>bell(988,.18,.12),70);setTimeout(()=>{sparkle(1568,.05);sparkle(2093,.03)},130)}
+function sfxNoMatch(){tone(330,.18,'sine',.06,.01);setTimeout(()=>tone(262,.2,'triangle',.04,.01),80)}
+function sfxComplete(){const n=[523,659,784,988,1175,1319,1568];n.forEach((f,i)=>setTimeout(()=>bell(f,.22,.1),i*90));setTimeout(()=>sparkle(2093,.06),n.length*90)}
+function sfxStar(){[880,1175,1568].forEach((f,i)=>setTimeout(()=>{bell(f,.2,.1);sparkle(f*2,.04)},i*130))}
+function sfxCoin(){tone(1319,.06,'sine',.09,.002);setTimeout(()=>tone(1760,.08,'sine',.1,.002),50);setTimeout(()=>sparkle(2637,.04),90)}
+function sfxBadge(){[880,1047,1319,1568,1760].forEach((f,i)=>setTimeout(()=>bell(f,.18,.1),i*90))}
 
 // ===== GAME STATE =====
 let cards=[],moves=0,matchedPairs=0,totalPairs=8,isChecking=false;
@@ -803,9 +807,6 @@ const BADGE_DEFS=[
   {id:'champion',emoji:'👑',check:()=>progress.unlocked>20},
 ];
 function totalStarsEarned(){return Object.values(progress.stars).reduce((s,v)=>s+(v||0),0)}
-
-function sfxCoin(){tone(1047,.06,'sine',.08);setTimeout(()=>tone(1319,.08,'sine',.1),60)}
-function sfxBadge(){[880,1047,1319,1568].forEach((f,i)=>setTimeout(()=>tone(f,.15,'sine',.12),i*100))}
 
 // ===== RENDER SHOP =====
 function renderShop(){
