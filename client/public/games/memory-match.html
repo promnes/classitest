@@ -7,10 +7,10 @@
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;user-select:none;-webkit-tap-highlight-color:transparent}
-.screen{display:none;width:100%;height:100%;position:absolute;top:0;left:0;z-index:1;opacity:0;transition:opacity .25s ease}
+.screen{display:none;width:100%;height:100%;position:absolute;top:0;left:0;z-index:1;opacity:0;transition:opacity .12s ease}
 .screen.active{display:flex;opacity:1}
-.screen.fade-in{animation:screenFadeIn .3s ease forwards}
-@keyframes screenFadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.screen.fade-in{animation:screenFadeIn .12s ease forwards}
+@keyframes screenFadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
 
 /* === DYNAMIC BACKGROUND CANVAS === */
 #bg-canvas{position:absolute;inset:0;pointer-events:none;z-index:0;width:100%;height:100%}
@@ -57,13 +57,13 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',Tahoma,G
 /* === BASE CARD STYLES === */
 .card{aspect-ratio:1;border:none;background:transparent;cursor:pointer;padding:0;outline:none;-webkit-tap-highlight-color:transparent}
 .card:disabled{cursor:default}
-.card-inner{position:relative;width:100%;height:100%;transition:transform .45s ease;transform-style:preserve-3d;border-radius:clamp(8px,2vmin,14px);will-change:transform}
+.card-inner{position:relative;width:100%;height:100%;transition:transform .25s ease;transform-style:preserve-3d;border-radius:clamp(8px,2vmin,14px);will-change:transform}
 .card.flipped .card-inner{transform:rotateY(180deg)}
 [dir=rtl] .card.flipped .card-inner{transform:rotateY(-180deg)}
 [dir=rtl] .card-back{transform:rotateY(-180deg)}
 .card-front,.card-back{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:clamp(8px,2vmin,14px);display:flex;align-items:center;justify-content:center}
 .card-front{background:linear-gradient(145deg,var(--cf1,#6366f1),var(--cf2,#4f46e5));box-shadow:0 5px 0 rgba(0,0,0,.2),0 8px 16px rgba(0,0,0,.12);border:3px solid rgba(255,255,255,.3);transform-style:preserve-3d}
-.card-front .icon{font-size:clamp(1.6rem,5.5vmin,2.6rem);filter:drop-shadow(0 1px 2px rgba(0,0,0,.15));animation:emojiWiggle 3s ease-in-out infinite}
+.card-front .icon{font-size:clamp(1.6rem,5.5vmin,2.6rem);filter:drop-shadow(0 1px 2px rgba(0,0,0,.15))}
 .card:not(.flipped):not(.matched):hover .card-front{box-shadow:0 8px 0 rgba(0,0,0,.18),0 12px 24px rgba(0,0,0,.15);transform:scale(1.06);transition:transform .15s}
 .card:not(.flipped):not(.matched):active .card-front{transform:scale(.96);box-shadow:0 2px 0 rgba(0,0,0,.2),0 3px 8px rgba(0,0,0,.1)}
 .card-back{background:linear-gradient(145deg,#fff,#f1f5f9);box-shadow:0 5px 0 rgba(99,102,241,.15),0 8px 16px rgba(0,0,0,.08);transform:rotateY(180deg);border:3px solid rgba(99,102,241,.25)}
@@ -76,7 +76,7 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',Tahoma,G
 [data-group="0"] .card-inner,
 [data-group="0"] .card-front,
 [data-group="0"] .card-back{border-radius:clamp(16px,4vmin,24px) !important}
-[data-group="0"] .card-inner{transition:transform .5s ease !important}
+[data-group="0"] .card-inner{transition:transform .28s ease !important}
 [data-group="0"] .card.matched .card-back{
   background:linear-gradient(145deg,#dcfce7,#bbf7d0) !important;
   border-color:rgba(34,197,94,.4) !important;
@@ -89,7 +89,7 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',Tahoma,G
 [data-group="1"] .card-inner,
 [data-group="1"] .card-front,
 [data-group="1"] .card-back{border-radius:30% 70% 60% 40% / 55% 35% 65% 45% !important}
-[data-group="1"] .card-inner{transition:transform .55s cubic-bezier(.25,.8,.25,1) !important}
+[data-group="1"] .card-inner{transition:transform .28s cubic-bezier(.25,.8,.25,1) !important}
 [data-group="1"] .card-front{border:3px solid rgba(14,165,233,.4) !important}
 [data-group="1"] .card.matched .card-back{
   background:linear-gradient(145deg,#e0f2fe,#bae6fd) !important;
@@ -103,7 +103,7 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',Tahoma,G
 [data-group="2"] .card-inner,
 [data-group="2"] .card-front,
 [data-group="2"] .card-back{border-radius:50% !important}
-[data-group="2"] .card-inner{transition:transform .45s cubic-bezier(.34,1.8,.64,1) !important}
+[data-group="2"] .card-inner{transition:transform .25s cubic-bezier(.34,1.8,.64,1) !important}
 [data-group="2"] .card.flipped .card-inner{transform:rotateY(180deg) scale(1.03) !important}
 [data-group="2"] .card.matched .card-inner{transform:rotateY(180deg) scale(1) !important}
 [data-group="2"] .card.matched .card-back{
@@ -120,7 +120,7 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',Tahoma,G
 [data-group="3"] .card-inner,
 [data-group="3"] .card-front,
 [data-group="3"] .card-back{border-radius:clamp(5px,1.2vmin,8px) !important}
-[data-group="3"] .card-inner{transition:transform .4s cubic-bezier(.4,0,.2,1) !important}
+[data-group="3"] .card-inner{transition:transform .25s cubic-bezier(.4,0,.2,1) !important}
 [data-group="3"] .card.flipped .card-inner{transform:rotateY(180deg) rotateZ(2deg) !important}
 [data-group="3"] .card.matched .card-inner{transform:rotateY(180deg) rotateZ(0deg) !important}
 [data-group="3"] .card-front{border:3px solid rgba(245,158,11,.5) !important}
@@ -137,7 +137,7 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',Tahoma,G
 [data-group="4"] .card-inner,
 [data-group="4"] .card-front,
 [data-group="4"] .card-back{border-radius:3px !important}
-[data-group="4"] .card-inner{transition:transform .22s cubic-bezier(.7,0,.3,1) !important}
+[data-group="4"] .card-inner{transition:transform .18s cubic-bezier(.7,0,.3,1) !important}
 [data-group="4"] .card-front{border:2px solid rgba(168,85,247,.5) !important;box-shadow:0 0 8px rgba(168,85,247,.2),0 5px 0 rgba(0,0,0,.2),0 8px 16px rgba(0,0,0,.12) !important}
 [data-group="4"] .card:not(.flipped):not(.matched):hover .card-front{box-shadow:0 0 14px rgba(168,85,247,.4),0 8px 0 rgba(0,0,0,.15),0 12px 24px rgba(0,0,0,.15) !important}
 [data-group="4"] .card.matched .card-back{

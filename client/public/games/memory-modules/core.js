@@ -381,37 +381,48 @@ export function startLevel(globalIdx) {
   showScreen('game-screen');
   sfxWhoosh();
 
-  // Clear old cards and render new ones reliably
+  // Clear old cards and render new ones as fast as possible
   const g = document.getElementById('grid');
   g.innerHTML = '';
 
-  // Init background AFTER screen is visible so canvas gets real dimensions
-  requestAnimationFrame(() => { initBg(currentGroup); });
   startMusic(currentGroup);
 
-  // Render cards via ResizeObserver with robust fallback
+  // Render cards immediately — try rAF first, then aggressive fallback chain
   const wrap = document.querySelector('.grid-wrap');
-  if (window._cardRO) window._cardRO.disconnect();
+  if (window._cardRO) { window._cardRO.disconnect(); window._cardRO = null; }
   let rendered = false;
-  window._cardRO = new ResizeObserver(entries => {
-    if (rendered) return;
-    const r = entries[0].contentRect;
-    if (r.width > 50 && r.height > 50) {
-      rendered = true;
-      window._cardRO.disconnect();
-      window._cardRO = null;
-      renderCardsNow();
-      initBg(currentGroup);
-    }
-  });
-  window._cardRO.observe(wrap);
-  // Fallback: force render after animation completes (covers slow devices)
-  setTimeout(() => {
-    if (window._cardRO) { window._cardRO.disconnect(); window._cardRO = null; }
-    if (!rendered) { rendered = true; renderCardsNow(); initBg(currentGroup); }
-  }, 600);
 
-  if (mechanic === MECH.TIMED) setTimeout(() => doTimedPeek(), 400);
+  const doRender = () => {
+    if (rendered) return;
+    rendered = true;
+    if (window._cardRO) { window._cardRO.disconnect(); window._cardRO = null; }
+    renderCardsNow();
+    initBg(currentGroup);
+  };
+
+  // Strategy 1: immediate rAF — works when screen already has dimensions
+  requestAnimationFrame(() => {
+    if (rendered) return;
+    const wW = wrap.clientWidth, wH = wrap.clientHeight;
+    if (wW > 50 && wH > 50) { doRender(); return; }
+    // Strategy 2: second rAF for after layout pass
+    requestAnimationFrame(() => { if (!rendered) doRender(); });
+  });
+
+  // Strategy 3: ResizeObserver for edge cases (iframe resize etc)
+  if (typeof ResizeObserver !== 'undefined') {
+    window._cardRO = new ResizeObserver(entries => {
+      if (rendered) return;
+      const r = entries[0]?.contentRect;
+      if (r && r.width > 50 && r.height > 50) doRender();
+    });
+    window._cardRO.observe(wrap);
+  }
+
+  // Strategy 4: Hard fallback — never wait more than 150ms
+  setTimeout(doRender, 150);
+
+  if (mechanic === MECH.TIMED) setTimeout(() => doTimedPeek(), 250);
 }
 
 function resetGame() {
@@ -542,7 +553,7 @@ export function flipCard(id) {
       }
       delete maskedMap[id];
       isChecking = false;
-    }, 900);
+    }, 500);
     return;
   }
 
@@ -580,7 +591,7 @@ export function flipCard(id) {
           if (chainInfo) chainInfo.textContent = t.mech[mechanic] + (hint ? ' — ' + hint : '');
         }
         renderCardsNow();
-      }, 900);
+      }, 500);
       // Tick bombs on move even if chain fails
       if (Object.keys(bombMap).length > 0) tickBombs();
       return;
@@ -621,7 +632,7 @@ export function flipCard(id) {
     }
 
     picks = [];
-    if (matchedPairs === totalPairs) setTimeout(() => endGame(), 400);
+    if (matchedPairs === totalPairs) setTimeout(() => endGame(), 250);
   } else {
     isChecking = true;
     sfxNoMatch();
@@ -631,7 +642,7 @@ export function flipCard(id) {
     setTimeout(() => {
       picks.forEach(pid => { cards[pid].flipped = false; updateCardDOM(pid, false, false); });
       picks = []; isChecking = false;
-    }, 800);
+    }, 450);
   }
 
   // Tick boss freeze countdown
@@ -645,7 +656,7 @@ export function flipCard(id) {
   if ((mechanic === MECH.MOVING || mechanic === MECH.BOSS) &&
       movesSinceShuffle >= shuffleInterval && matchedPairs < totalPairs) {
     movesSinceShuffle = 0;
-    setTimeout(() => shufflePositions(), isMatch ? 600 : 1000);
+    setTimeout(() => shufflePositions(), isMatch ? 400 : 700);
   }
 
   // Mirror: flip grid positions every N moves
