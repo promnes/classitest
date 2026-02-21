@@ -88,7 +88,8 @@ function defaultProgress() {
       accuracyRate: 0.5,
       highestStreak: 0,
       totalGamesPlayed: 0,
-      smoothedSkill: 50
+      smoothedSkill: 50,
+      typeProfiles: {}
     },
     tutorialShown: {},
     purchaseCounts: { hammer: 0, shuffle: 0, extraTime: 0, hint: 0 },

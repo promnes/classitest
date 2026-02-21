@@ -436,6 +436,7 @@ let questions = [], timerInterval = null, timeLeft = 0, answering = false, start
 let usedHintThisLevel = false, bossState = null, dailyMode = false, questionStartTime = 0;
 let totalCorrect = 0, totalQ = 10, currentTimerMax = 0;
 let challengeTracker;
+let sessionTracker;
 let numpadValue = '';
 
 function el(id) { return document.getElementById(id); }
@@ -443,7 +444,8 @@ function el(id) { return document.getElementById(id); }
 // ===== INIT =====
 function init() {
   progress = Core.loadProgress();
-  if (!progress.skillData) progress.skillData = { avgResponseTime: 8, accuracyRate: 0.5, highestStreak: 0, totalGamesPlayed: 0, smoothedSkill: 50 };
+  if (!progress.skillData) progress.skillData = { avgResponseTime: 8, accuracyRate: 0.5, highestStreak: 0, totalGamesPlayed: 0, smoothedSkill: 50, typeProfiles: {} };
+  if (!progress.skillData.typeProfiles) progress.skillData.typeProfiles = {};
   if (!progress.boosters) progress.boosters = { hammer: 1, shuffle: 1, extraTime: 1, hint: 3 };
   if (!progress.tutorialShown) progress.tutorialShown = {};
   if (!progress.purchaseCounts) progress.purchaseCounts = { hammer: 0, shuffle: 0, extraTime: 0, hint: 0 };
@@ -769,22 +771,24 @@ function genTypedQuestion(typeId, ops, range, pool, difficulty) {
       options=wrongOpts(ar.ans,3,0,ar.ans+effR+5);break;
     }
   }
-  return{text,answer,options:options||[],visual,inputMode};
+  return{text,answer,options:options||[],visual,inputMode,typeId};
 }
 
 function genAllQuestions(cfg, isBoss) {
-  const skill = Intel.getSmoothedSkill(progress.skillData || {});
-  const adjustedRange = Intel.adjustRange(cfg.range, skill);
+  const sd = progress.skillData || {};
+  const skill = Intel.getSmoothedSkill(sd);
+  const sOff = Intel.getSessionOffset(sessionTracker);
+  const adjustedRange = Intel.adjustRange(cfg.range, skill, sOff);
   currentTimerMax = cfg.timer;
   const pool = pickMultiCatEmoji(cfg.cats);
-  const types = cfg.questionTypes || ['classic'];
+  const baseTypes = cfg.questionTypes || ['classic'];
+  const typeSeq = Intel.weightedTypeSelection(sd, baseTypes, cfg.questions);
   const qs = [];
   for (let i = 0; i < cfg.questions; i++) {
-    const diff = Intel.getQuestionDifficulty(i, cfg.questions, isBoss);
+    const diff = Intel.getQuestionDifficulty(i, cfg.questions, isBoss, sessionTracker);
     let ops = cfg.ops;
     if (isBoss && bossState) ops = Boss.getCurrentPhaseOps(bossState);
-    const type = types[i % types.length] || 'classic';
-    qs.push(genTypedQuestion(type, ops, adjustedRange, pool, diff));
+    qs.push(genTypedQuestion(typeSeq[i], ops, adjustedRange, pool, diff));
   }
   return qs;
 }
@@ -828,6 +832,7 @@ function startLevel(worldId, levelIdx) {
   totalCorrect = 0; usedHintThisLevel = false; answering = false;
   startTime = Date.now();
   challengeTracker = Engage.createChallengeTracker();
+  sessionTracker = Intel.createSessionTracker();
   currentTimerMax = levelConfig.timer;
 
   // Generate questions
@@ -850,16 +855,19 @@ window.startLevel = startLevel;
 function genBossQuestions(cfg) {
   if (!bossState) return genAllQuestions(cfg, true);
   const phases = Boss.getPhases(bossState);
-  const skill = Intel.getSmoothedSkill(progress.skillData || {});
+  const sd = progress.skillData || {};
+  const skill = Intel.getSmoothedSkill(sd);
+  const sOff = Intel.getSessionOffset(sessionTracker);
   const pool = pickMultiCatEmoji(cfg.cats);
-  const types = cfg.questionTypes || ['classic'];
+  const baseTypes = cfg.questionTypes || ['classic'];
+  const totalBossQ = phases.reduce((s, p) => s + p.questions, 0);
+  const typeSeq = Intel.weightedTypeSelection(sd, baseTypes, totalBossQ);
   const qs = [];
   let qi = 0;
   for (const phase of phases) {
     for (let i = 0; i < phase.questions; i++) {
-      const diff = Intel.getQuestionDifficulty(i, phase.questions, true);
-      const type = types[qi % types.length] || 'classic';
-      qs.push(genTypedQuestion(type, phase.ops, Intel.adjustRange(cfg.range, skill), pool, diff));
+      const diff = Intel.getQuestionDifficulty(i, phase.questions, true, sessionTracker);
+      qs.push(genTypedQuestion(typeSeq[qi], phase.ops, Intel.adjustRange(cfg.range, skill, sOff), pool, diff));
       qi++;
     }
   }
@@ -889,14 +897,16 @@ function startDaily() {
   totalCorrect = 0; usedHintThisLevel = false; answering = false;
   startTime = Date.now();
   challengeTracker = Engage.createChallengeTracker();
+  sessionTracker = Intel.createSessionTracker();
 
+  const sd = progress.skillData || {};
   const pool = pickMultiCatEmoji(dailyCfg.cats);
-  const types = dailyCfg.questionTypes || ['classic'];
+  const baseTypes = dailyCfg.questionTypes || ['classic'];
+  const typeSeq = Intel.weightedTypeSelection(sd, baseTypes, totalQ);
   questions = [];
   for (let i = 0; i < totalQ; i++) {
-    const diff = Intel.getQuestionDifficulty(i, totalQ, false);
-    const type = types[i % types.length] || 'classic';
-    questions.push(genTypedQuestion(type, dailyCfg.ops, dailyCfg.range, pool, diff));
+    const diff = Intel.getQuestionDifficulty(i, totalQ, false, sessionTracker);
+    questions.push(genTypedQuestion(typeSeq[i], dailyCfg.ops, dailyCfg.range, pool, diff));
   }
 
   el('g-sc').textContent = '0';
@@ -1006,6 +1016,8 @@ function processAnswer(selected, visualCallback) {
     if (streak > 1) UI.sfxComboUp(streak);
     if (bossState) { Boss.hitBoss(bossState); UI.sfxBossHit(); renderBossHP(); }
     Intel.updateSkillData(progress.skillData, true, responseTime);
+    Intel.updateTypeSkill(progress.skillData, q.typeId || 'classic', true, responseTime);
+    Intel.updateSession(sessionTracker, true, responseTime, q.typeId || 'classic');
   } else {
     if (streak >= 3) el('q-feedback').textContent = Engage.getWrongAfterStreakMessage(streak);
     streak = 0;
@@ -1021,6 +1033,8 @@ function processAnswer(selected, visualCallback) {
     }
     if (Core.getLives(progress) <= 0 && !bossState) { setTimeout(() => endGame(), 800); return; }
     Intel.updateSkillData(progress.skillData, false, responseTime);
+    Intel.updateTypeSkill(progress.skillData, q.typeId || 'classic', false, responseTime);
+    Intel.updateSession(sessionTracker, false, responseTime, q.typeId || 'classic');
   }
 
   Engage.trackAnswer(challengeTracker, correct, responseTime, false);
@@ -1203,10 +1217,10 @@ function useShuffle() {
   Core.saveProgress(progress);
   if (!levelConfig) return;
   const pool = pickMultiCatEmoji(levelConfig.cats);
-  const diff = Intel.getQuestionDifficulty(currentQ, totalQ, !!bossState);
+  const diff = Intel.getQuestionDifficulty(currentQ, totalQ, !!bossState, sessionTracker);
   const types = levelConfig.questionTypes || ['classic'];
-  const type = types[currentQ % types.length] || 'classic';
-  questions[currentQ] = genTypedQuestion(type, levelConfig.ops, levelConfig.range, pool, diff);
+  const picked = Intel.weightedTypeSelection(progress.skillData, types, 1);
+  questions[currentQ] = genTypedQuestion(picked[0], levelConfig.ops, levelConfig.range, pool, diff);
   showQuestion();
 }
 
