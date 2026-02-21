@@ -10,27 +10,57 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',Tahoma,s
 .screen{display:none;width:100%;height:100%;position:absolute;top:0;left:0}
 .screen.active{display:flex}
 
-/* LEVEL SELECT */
-#lvl-screen{flex-direction:column;align-items:center;padding:clamp(6px,1.5vmin,12px);gap:clamp(4px,1vmin,8px);overflow-y:auto;background:linear-gradient(135deg,#8b5cf6,#6366f1)}
+/* ===== WORLD SELECT ===== */
+#world-screen{flex-direction:column;align-items:center;padding:clamp(6px,1.5vmin,12px);gap:clamp(4px,1vmin,8px);overflow-y:auto;background:linear-gradient(135deg,#8b5cf6,#6366f1,#a855f7,#7c3aed);background-size:300% 300%;animation:royalBG 15s ease infinite}
 .top-bar{display:flex;width:100%;max-width:500px;justify-content:space-between;align-items:center;flex-shrink:0;gap:6px;flex-wrap:wrap}
-.tb-item{display:flex;align-items:center;gap:4px;background:rgba(255,255,255,.2);border-radius:12px;padding:6px 14px;font-size:clamp(14px,2.8vmin,18px);color:#fff;font-weight:800;backdrop-filter:blur(4px);text-shadow:0 1px 4px rgba(0,0,0,.3)}
+.tb-item{display:flex;align-items:center;gap:4px;background:rgba(255,255,255,.2);border-radius:12px;padding:6px 14px;font-size:clamp(14px,2.8vmin,18px);color:#fff;font-weight:800;backdrop-filter:blur(4px);text-shadow:0 1px 4px rgba(0,0,0,.3);box-shadow:0 3px 0 rgba(0,0,0,.12),0 4px 8px rgba(0,0,0,.06),inset 0 1px 0 rgba(255,255,255,.2);transition:all .2s}
+.tb-item:hover{transform:translateY(-2px) scale(1.04)}
+.mute-btn{cursor:pointer;font-size:clamp(18px,3.5vmin,24px);padding:6px 10px !important}
 .xp-bar-wrap{width:100%;max-width:500px;flex-shrink:0}
-.xp-bar{height:10px;background:rgba(255,255,255,.25);border-radius:99px;overflow:hidden}
-.xp-fill{height:100%;background:linear-gradient(90deg,#fbbf24,#f59e0b);border-radius:99px;transition:width .5s}
+.xp-bar{height:10px;background:rgba(255,255,255,.25);border-radius:99px;overflow:hidden;box-shadow:inset 0 2px 4px rgba(0,0,0,.2),0 1px 0 rgba(255,255,255,.15)}
+.xp-fill{height:100%;background:linear-gradient(90deg,#fbbf24,#f59e0b);border-radius:99px;transition:width .5s;box-shadow:0 1px 6px rgba(251,191,36,.5),inset 0 -1px 0 rgba(0,0,0,.1),inset 0 1px 0 rgba(255,255,255,.4)}
 .xp-label{font-size:clamp(11px,2vmin,14px);color:rgba(255,255,255,.85);text-align:center;margin-top:3px;font-weight:600}
 .ls-title{font-size:clamp(24px,6vmin,36px);font-weight:900;color:#fff;text-shadow:0 3px 12px rgba(0,0,0,.4);text-align:center;flex-shrink:0}
+.ls-sub{font-size:clamp(13px,2.5vmin,16px);color:rgba(255,255,255,.8);font-weight:600;text-align:center;flex-shrink:0}
 .ls-btns{display:flex;gap:8px;flex-shrink:0}
-.ls-btn{border:none;background:rgba(255,255,255,.25);color:#fff;font-weight:800;font-size:clamp(14px,2.8vmin,18px);padding:10px 20px;border-radius:12px;cursor:pointer;backdrop-filter:blur(4px);text-shadow:0 1px 4px rgba(0,0,0,.3)}
-.ls-btn:hover{background:rgba(255,255,255,.35)}
-.ls-btn:active{transform:scale(.95)}
-.ls-btn.daily{background:linear-gradient(135deg,#f59e0b,#f97316);box-shadow:0 2px 10px rgba(249,115,22,.4)}
+.ls-btn{border:none;background:rgba(255,255,255,.25);color:#fff;font-weight:800;font-size:clamp(14px,2.8vmin,18px);padding:10px 20px;border-radius:12px;cursor:pointer;backdrop-filter:blur(4px);text-shadow:0 1px 4px rgba(0,0,0,.3);box-shadow:0 4px 0 rgba(0,0,0,.12),0 6px 12px rgba(0,0,0,.08),inset 0 1px 0 rgba(255,255,255,.3);transition:all .2s cubic-bezier(.34,1.56,.64,1)}
+.ls-btn:hover{background:rgba(255,255,255,.35);transform:translateY(-3px) scale(1.05)}
+.ls-btn:active{transform:translateY(2px) scale(.96)}
+.ls-btn.daily{background:linear-gradient(135deg,#f59e0b,#f97316);box-shadow:0 4px 0 #c2410c,0 6px 12px rgba(249,115,22,.4)}
+
+/* WORLD CARDS GRID */
+.world-grid{display:grid;grid-template-columns:1fr 1fr;gap:clamp(8px,2vmin,12px);width:100%;max-width:540px;padding:4px 0}
+.wc{position:relative;border-radius:clamp(16px,3.5vmin,24px);padding:clamp(12px,2.5vmin,18px) clamp(8px,1.5vmin,12px);text-align:center;cursor:pointer;transition:all .35s cubic-bezier(.34,1.56,.64,1);box-shadow:0 6px 0 rgba(0,0,0,.18),0 10px 0 rgba(0,0,0,.08),0 20px 40px rgba(0,0,0,.12),inset 0 1px 0 rgba(255,255,255,.4);border:2px solid rgba(255,255,255,.4);overflow:hidden;animation:cardFloat 3s ease-in-out infinite;transform-style:preserve-3d}
+.wc:nth-child(even){animation-delay:.5s}.wc:nth-child(3n){animation-delay:1s}.wc:nth-child(4n+1){animation-delay:1.5s}
+.wc:hover{transform:translateY(-8px) scale(1.06) rotateX(3deg);box-shadow:0 12px 0 rgba(0,0,0,.12),0 20px 0 rgba(0,0,0,.05),0 32px 60px rgba(0,0,0,.15),inset 0 1px 0 rgba(255,255,255,.6)}
+.wc:active{transform:translateY(2px) scale(.96)}
+.wc.locked{opacity:.55;cursor:not-allowed;animation:none;filter:grayscale(.4)}
+.wc.locked:hover{transform:none;box-shadow:0 6px 0 rgba(0,0,0,.18),0 10px 0 rgba(0,0,0,.08)}
+.wc-icon{font-size:clamp(36px,8vmin,52px);margin-bottom:4px;filter:drop-shadow(0 3px 6px rgba(0,0,0,.25));animation:emojiWiggle 2.5s ease-in-out infinite}
+.wc:nth-child(2n) .wc-icon{animation-delay:.3s}.wc:nth-child(3n) .wc-icon{animation-delay:.7s}
+.wc.locked .wc-icon{animation:none}
+.wc-name{font-size:clamp(13px,2.5vmin,17px);font-weight:900;color:#fff;text-shadow:0 2px 6px rgba(0,0,0,.4);margin-bottom:2px}
+.wc-desc{font-size:clamp(10px,1.6vmin,12px);color:rgba(255,255,255,.85);font-weight:600;margin-bottom:4px}
+.wc-progress{font-size:clamp(12px,2vmin,15px);color:#fbbf24;font-weight:800;text-shadow:0 1px 4px rgba(0,0,0,.3)}
+.wc-mastery{font-size:clamp(11px,1.8vmin,14px);color:rgba(255,255,255,.9);font-weight:700;margin-top:2px}
+.wc-lock{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:clamp(36px,8vmin,50px);background:rgba(0,0,0,.25);border-radius:inherit;backdrop-filter:blur(2px)}
+.wc-lock-text{position:absolute;bottom:clamp(6px,1.5vmin,10px);left:0;right:0;font-size:clamp(9px,1.5vmin,11px);color:rgba(255,255,255,.9);font-weight:700;text-shadow:0 1px 4px rgba(0,0,0,.5)}
+
+/* ===== LEVEL SELECT (within world) ===== */
+#lvl-screen{flex-direction:column;align-items:center;padding:clamp(6px,1.5vmin,12px);gap:clamp(4px,1vmin,8px);overflow-y:auto;background:linear-gradient(135deg,#8b5cf6,#6366f1);transition:background .5s}
+.lvl-header{display:flex;width:100%;max-width:500px;align-items:center;gap:8px;flex-shrink:0}
+.lvl-back{border:none;background:rgba(255,255,255,.2);color:#fff;font-weight:800;font-size:clamp(14px,2.8vmin,18px);padding:8px 16px;border-radius:12px;cursor:pointer;backdrop-filter:blur(4px);box-shadow:0 3px 0 rgba(0,0,0,.12);transition:all .2s}
+.lvl-back:hover{background:rgba(255,255,255,.3);transform:translateY(-2px)}
+.lvl-world-title{flex:1;font-size:clamp(18px,4.5vmin,26px);font-weight:900;color:#fff;text-shadow:0 2px 8px rgba(0,0,0,.4);text-align:center}
 .ls-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:clamp(6px,1.5vmin,10px);width:100%;max-width:540px;padding:4px 0}
-.lc{position:relative;background:linear-gradient(145deg,rgba(255,255,255,.35),rgba(255,255,255,.15));border:3px solid rgba(255,255,255,.45);border-radius:clamp(14px,3vmin,22px);padding:clamp(8px,2vmin,16px) clamp(4px,1vmin,8px);text-align:center;cursor:pointer;transition:all .25s;backdrop-filter:blur(6px);box-shadow:0 6px 0 rgba(0,0,0,.12),0 10px 24px rgba(0,0,0,.08);transform-style:preserve-3d;animation:cardFloat 3s ease-in-out infinite}
+.lc{position:relative;background:linear-gradient(160deg,rgba(255,255,255,.5) 0%,rgba(255,255,255,.2) 40%,rgba(255,255,255,.05) 100%);border:2px solid rgba(255,255,255,.55);border-radius:clamp(14px,3vmin,22px);padding:clamp(8px,2vmin,16px) clamp(4px,1vmin,8px);text-align:center;cursor:pointer;transition:all .35s cubic-bezier(.34,1.56,.64,1);backdrop-filter:blur(6px);box-shadow:0 6px 0 rgba(0,0,0,.18),0 10px 0 rgba(0,0,0,.08),0 20px 40px rgba(0,0,0,.12),inset 0 1px 0 rgba(255,255,255,.4);transform-style:preserve-3d;animation:cardFloat 3s ease-in-out infinite}
 .lc:nth-child(even){animation-delay:.5s}.lc:nth-child(3n){animation-delay:1s}.lc:nth-child(4n+1){animation-delay:1.5s}
-.lc:hover{transform:translateY(-4px) scale(1.06);background:linear-gradient(145deg,rgba(255,255,255,.45),rgba(255,255,255,.25));box-shadow:0 10px 0 rgba(0,0,0,.1),0 16px 32px rgba(0,0,0,.1)}
-.lc:active{transform:translateY(3px) scale(.97);box-shadow:0 2px 0 rgba(0,0,0,.15),0 3px 8px rgba(0,0,0,.08)}
-.lc.locked{opacity:.5;cursor:not-allowed;animation:none}.lc.locked:hover{transform:none;background:rgba(255,255,255,.15);box-shadow:0 6px 0 rgba(0,0,0,.12),0 10px 24px rgba(0,0,0,.08)}
-.lc.current{border-color:#fbbf24;box-shadow:0 6px 0 rgba(251,191,36,.3),0 0 18px rgba(251,191,36,.5)}
+.lc:hover{transform:translateY(-8px) scale(1.1) rotateX(5deg);box-shadow:0 12px 0 rgba(0,0,0,.12),0 20px 0 rgba(0,0,0,.05),0 32px 60px rgba(0,0,0,.15),inset 0 1px 0 rgba(255,255,255,.6)}
+.lc:active{transform:translateY(2px) scale(.96)}
+.lc.locked{opacity:.5;cursor:not-allowed;animation:none}.lc.locked:hover{transform:none}
+.lc.current{animation:currentGlow 2.5s ease-in-out infinite,cardFloat 3s ease-in-out infinite;border-color:#fbbf24}
+@keyframes currentGlow{0%,100%{box-shadow:0 0 15px rgba(251,191,36,.4),0 6px 0 rgba(0,0,0,.15)}50%{box-shadow:0 0 30px rgba(251,191,36,.7),0 0 60px rgba(251,191,36,.2),0 6px 0 rgba(0,0,0,.12)}}
+.lc.boss-card{border-color:#ef4444;box-shadow:0 6px 0 rgba(239,68,68,.3),0 0 14px rgba(239,68,68,.3),0 20px 40px rgba(0,0,0,.12),inset 0 1px 0 rgba(255,255,255,.4)}
 .lc-num{font-size:clamp(22px,5vmin,32px);font-weight:900;color:#fff;text-shadow:0 2px 6px rgba(0,0,0,.3)}
 .lc-emoji{font-size:clamp(32px,7vmin,48px);margin:3px 0;filter:drop-shadow(0 2px 3px rgba(0,0,0,.2));animation:emojiWiggle 2.5s ease-in-out infinite}
 .lc:nth-child(2n) .lc-emoji{animation-delay:.3s}.lc:nth-child(3n) .lc-emoji{animation-delay:.7s}.lc:nth-child(4n) .lc-emoji{animation-delay:1.1s}.lc.locked .lc-emoji{animation:none}
@@ -38,87 +68,96 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',Tahoma,s
 .lc-stars{font-size:clamp(14px,2.8vmin,18px);margin-top:2px}
 .lc-lock{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:clamp(32px,7vmin,46px);filter:drop-shadow(0 2px 6px rgba(0,0,0,.4))}
 
-/* GAME SCREEN */
+/* ===== GAME SCREEN ===== */
 #game-screen{flex-direction:column;align-items:center;justify-content:flex-start;padding:clamp(6px,1.5vmin,12px);gap:clamp(3px,0.8vmin,6px);background:var(--bg,linear-gradient(135deg,#8b5cf6,#6366f1));transition:background .5s}
 .g-top{display:flex;width:100%;max-width:480px;justify-content:space-between;align-items:center;gap:6px;flex-shrink:0}
 .g-lives{display:flex;gap:2px;font-size:clamp(22px,5vmin,32px);filter:drop-shadow(0 2px 4px rgba(0,0,0,.2))}
 .g-combo{font-size:clamp(18px,3.5vmin,24px);font-weight:900;color:#fbbf24;min-width:70px;text-align:center;opacity:0;transition:opacity .3s;text-shadow:0 2px 6px rgba(0,0,0,.3)}
-.g-combo.show{opacity:1}
-.gc{background:rgba(255,255,255,.95);border-radius:clamp(10px,2.5vmin,20px);padding:clamp(10px,2.5vmin,20px);max-width:min(480px,95vw);width:100%;text-align:center;box-shadow:0 16px 50px rgba(0,0,0,.3);flex-shrink:1;overflow-y:auto;max-height:75vh}
+.g-combo.show{opacity:1;text-shadow:0 0 10px rgba(251,191,36,.6),0 0 20px rgba(251,191,36,.3),0 2px 8px rgba(0,0,0,.3);animation:combo3DPulse .4s cubic-bezier(.34,1.56,.64,1)}
+@keyframes combo3DPulse{0%{transform:scale(1)}50%{transform:scale(1.35) rotateZ(-5deg)}100%{transform:scale(1)}}
+.g-mute{background:none;border:none;color:rgba(255,255,255,.85);font-size:clamp(20px,4vmin,28px);cursor:pointer;padding:4px 8px;border-radius:8px}
+.g-mute:hover{color:#fff;background:rgba(255,255,255,.15)}
+.gc{background:linear-gradient(180deg,rgba(255,255,255,.98),rgba(255,255,255,.92));border:2px solid rgba(255,255,255,.2);border-radius:24px;padding:clamp(10px,2.5vmin,20px);max-width:min(480px,95vw);width:100%;text-align:center;box-shadow:0 16px 0 rgba(0,0,0,.04),0 24px 64px rgba(0,0,0,.2),inset 0 2px 0 rgba(255,255,255,.8);flex-shrink:1;overflow-y:auto;max-height:75vh}
 .g-hdr h1{font-size:clamp(17px,3.2vmin,22px);color:var(--accent,#4c1d95);margin-bottom:6px;font-weight:800}
 .g-stats{display:flex;justify-content:center;gap:clamp(10px,2.5vmin,20px);margin-bottom:clamp(6px,1.5vmin,10px)}
 .g-stat{display:flex;flex-direction:column;align-items:center}
 .g-sv{font-size:clamp(22px,5vmin,30px);font-weight:900;color:var(--accent,#7c3aed)}
 .g-sl{font-size:clamp(10px,1.8vmin,13px);color:#4b5563;text-transform:uppercase;letter-spacing:.04em;font-weight:700}
-.pbar{width:100%;height:clamp(8px,1.5vmin,10px);background:#e5e7eb;border-radius:99px;margin-bottom:clamp(6px,1.5vmin,10px);overflow:hidden}
-.pfill{height:100%;background:linear-gradient(90deg,var(--accent,#8b5cf6),#ec4899);border-radius:99px;transition:width .4s}
+.pbar{width:100%;height:clamp(8px,1.5vmin,10px);background:#e5e7eb;border-radius:99px;margin-bottom:clamp(6px,1.5vmin,10px);overflow:hidden;box-shadow:inset 0 3px 6px rgba(0,0,0,.15),0 2px 0 rgba(255,255,255,.2);border:1px solid rgba(0,0,0,.06)}
+.pfill{height:100%;background:linear-gradient(90deg,var(--accent,#8b5cf6),#ec4899);border-radius:99px;transition:width .4s;box-shadow:0 2px 8px rgba(236,72,153,.4),inset 0 -2px 0 rgba(0,0,0,.1),inset 0 2px 0 rgba(255,255,255,.3)}
 .timer{font-size:clamp(15px,2.5vmin,18px);color:#4b5563;margin-bottom:4px;font-weight:700}
-.timer.urgent{color:#ef4444;font-weight:700;animation:pulse .5s ease infinite}
+.timer.urgent{color:#ef4444;font-weight:700;animation:pulse .5s ease infinite;text-shadow:0 0 10px rgba(239,68,68,.5),0 0 20px rgba(239,68,68,.2)}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
 .q-area{margin-bottom:clamp(6px,1.5vmin,12px)}
 .q-visual{font-size:clamp(28px,6vmin,40px);margin-bottom:6px;line-height:1.4;min-height:clamp(30px,6.5vmin,44px);transition:opacity .3s;filter:drop-shadow(0 1px 2px rgba(0,0,0,.15))}
 .q-text{font-size:clamp(32px,8vmin,52px);font-weight:900;color:#111827;direction:ltr;margin-bottom:4px;text-shadow:0 1px 2px rgba(0,0,0,.1)}
 .q-feedback{font-size:clamp(16px,3vmin,22px);color:#d97706;font-weight:800;min-height:clamp(20px,3.5vmin,26px);transition:all .3s}
 .ans-grid{display:grid;grid-template-columns:1fr 1fr;gap:clamp(8px,1.8vmin,12px);margin-bottom:clamp(6px,1.5vmin,10px)}
-.ans-btn{padding:clamp(12px,2.8vmin,20px);font-size:clamp(24px,5.5vmin,36px);font-weight:900;border:4px solid #e5d5ff;border-radius:clamp(16px,3vmin,24px);background:linear-gradient(145deg,#fff,#f5f0ff);cursor:pointer;transition:all .12s;color:#111827;text-shadow:0 1px 2px rgba(0,0,0,.08);box-shadow:0 6px 0 #c4b5fd,0 8px 20px rgba(0,0,0,.08);transform:translateY(0)}
-.ans-btn:hover{border-color:var(--accent,#8b5cf6);background:linear-gradient(145deg,#f5f0ff,#ede9fe);transform:translateY(-3px);box-shadow:0 9px 0 #c4b5fd,0 14px 28px rgba(0,0,0,.1)}
-.ans-btn:active{transform:translateY(4px);box-shadow:0 2px 0 #c4b5fd,0 3px 8px rgba(0,0,0,.08)}
-.ans-btn.correct{border-color:#059669;background:linear-gradient(145deg,#d1fae5,#a7f3d0);color:#064e3b;animation:apulse .4s ease;box-shadow:0 6px 0 #059669,0 8px 16px rgba(5,150,105,.15)}
-.ans-btn.wrong{border-color:#dc2626;background:linear-gradient(145deg,#fee2e2,#fecaca);color:#7f1d1d;animation:ashake .4s ease;box-shadow:0 6px 0 #dc2626,0 8px 16px rgba(220,38,38,.15)}
+.ans-btn{padding:clamp(12px,2.8vmin,20px);font-size:clamp(24px,5.5vmin,36px);font-weight:900;border:none;border-radius:clamp(16px,3vmin,24px);background:linear-gradient(180deg,#fff 0%,#faf5ff 50%,#f3e8ff 100%);cursor:pointer;transition:all .15s cubic-bezier(.34,1.56,.64,1);color:#111827;text-shadow:0 1px 2px rgba(0,0,0,.08);box-shadow:0 6px 0 #c4b5fd,0 8px 0 #a78bfa,0 14px 28px rgba(0,0,0,.12),inset 0 -3px 0 rgba(0,0,0,.06),inset 0 2px 0 rgba(255,255,255,.8);position:relative;overflow:hidden}
+.ans-btn::after{content:'';position:absolute;top:0;left:-100%;width:60%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.4),transparent);transition:left .5s}
+.ans-btn:hover::after{left:100%}
+.ans-btn:hover{transform:translateY(-5px) scale(1.05);box-shadow:0 10px 0 #c4b5fd,0 12px 0 #a78bfa,0 22px 40px rgba(0,0,0,.15),inset 0 -3px 0 rgba(0,0,0,.04),inset 0 2px 0 rgba(255,255,255,.9)}
+.ans-btn:active{transform:translateY(4px) scale(.97);box-shadow:0 2px 0 #c4b5fd,0 3px 0 #a78bfa,0 4px 8px rgba(0,0,0,.08)}
+.ans-btn.correct{box-shadow:0 6px 0 #059669,0 8px 0 #047857,0 0 20px rgba(16,185,129,.4),inset 0 2px 0 rgba(255,255,255,.6);background:linear-gradient(180deg,#ecfdf5,#d1fae5,#a7f3d0);color:#064e3b;animation:correct3D .5s cubic-bezier(.34,1.56,.64,1)}
+.ans-btn.wrong{box-shadow:0 6px 0 #dc2626,0 8px 0 #b91c1c,0 0 20px rgba(239,68,68,.3),inset 0 2px 0 rgba(255,255,255,.4);background:linear-gradient(180deg,#fff1f2,#fee2e2,#fecaca);color:#7f1d1d}
 .ans-btn:disabled{cursor:default;opacity:.7}
-@keyframes apulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
-@keyframes ashake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+@keyframes correct3D{0%{transform:scale(1)}40%{transform:scale(1.12) rotateZ(-3deg)}70%{transform:scale(.95) rotateZ(2deg)}100%{transform:scale(1) rotateZ(0)}}
 
 /* BOOSTERS */
 .boosters{display:flex;justify-content:center;gap:clamp(8px,2vmin,14px);margin-top:6px}
-.bst-btn{border:none;background:rgba(0,0,0,.08);border-radius:12px;padding:6px 14px;font-size:clamp(18px,3.5vmin,26px);cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:4px}
-.bst-btn:hover{background:rgba(0,0,0,.14);transform:scale(1.05)}
+.bst-btn{border:none;background:rgba(255,255,255,.15);border-radius:14px;padding:6px 14px;font-size:clamp(18px,3.5vmin,26px);cursor:pointer;transition:all .2s cubic-bezier(.34,1.56,.64,1);display:flex;align-items:center;gap:4px;box-shadow:0 4px 0 rgba(0,0,0,.12),0 6px 12px rgba(0,0,0,.08),inset 0 1px 0 rgba(255,255,255,.3)}
+.bst-btn:hover{transform:translateY(-3px) scale(1.08);box-shadow:0 7px 0 rgba(0,0,0,.1),0 12px 20px rgba(0,0,0,.1)}
 .bst-btn:disabled{opacity:.3;cursor:not-allowed}
 .bst-cnt{font-size:clamp(12px,2.2vmin,16px);color:#374151;font-weight:800}
 
 /* BOSS */
 .boss-bar{width:100%;max-width:480px;flex-shrink:0}
 .boss-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
-.boss-emoji{font-size:clamp(36px,8vmin,52px);animation:bossFloat 2s ease infinite;filter:drop-shadow(0 3px 8px rgba(0,0,0,.3))}
+.boss-emoji{font-size:clamp(36px,8vmin,52px);animation:bossFloat 2s ease infinite;filter:drop-shadow(0 4px 12px rgba(0,0,0,.4)) drop-shadow(0 0 20px rgba(239,68,68,.3))}
 @keyframes bossFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
 .boss-label{font-size:clamp(16px,3vmin,20px);color:#fff;font-weight:800;text-shadow:0 2px 6px rgba(0,0,0,.3)}
-.boss-hp{display:flex;height:clamp(14px,3vmin,20px);border-radius:99px;overflow:hidden;gap:3px;background:rgba(0,0,0,.25);padding:3px}
-.boss-seg{flex:1;border-radius:99px;transition:all .3s}
+.boss-hp{display:flex;height:clamp(14px,3vmin,20px);border-radius:99px;overflow:hidden;gap:3px;background:rgba(0,0,0,.25);padding:3px;box-shadow:inset 0 2px 4px rgba(0,0,0,.3),0 2px 0 rgba(255,255,255,.1)}
+.boss-seg{flex:1;border-radius:99px;transition:all .4s cubic-bezier(.34,1.56,.64,1)}
 .boss-seg.empty{opacity:.2}
 
-/* DONE */
-#done-screen{flex-direction:column;align-items:center;justify-content:center;gap:clamp(6px,1.5vmin,12px);padding:clamp(10px,2.5vmin,20px);background:var(--bg,linear-gradient(135deg,#8b5cf6,#6366f1));overflow-y:auto}
-.d-emoji{font-size:clamp(56px,14vmin,84px);animation:bounce 1s ease infinite;filter:drop-shadow(0 4px 12px rgba(0,0,0,.3))}
-@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+/* ===== DONE SCREEN ===== */
+#done-screen{flex-direction:column;align-items:center;justify-content:center;gap:clamp(6px,1.5vmin,12px);padding:clamp(10px,2.5vmin,20px);overflow-y:auto;background-size:300% 300%;animation:royalBG 15s ease infinite}
+.d-emoji{font-size:clamp(56px,14vmin,84px);animation:doneBounce3D 1.5s cubic-bezier(.34,1.56,.64,1) infinite;filter:drop-shadow(0 8px 20px rgba(0,0,0,.3))}
+@keyframes doneBounce3D{0%,100%{transform:translateY(0) scale(1) rotateZ(0)}25%{transform:translateY(-12px) scale(1.05) rotateZ(-3deg)}50%{transform:translateY(-6px) scale(1.02) rotateZ(0)}75%{transform:translateY(-12px) scale(1.05) rotateZ(3deg)}}
 .d-title{font-size:clamp(24px,7vmin,36px);font-weight:900;color:#fff;text-shadow:0 3px 12px rgba(0,0,0,.4)}
 .d-stars{display:flex;gap:clamp(5px,1.2vmin,8px);font-size:clamp(32px,8vmin,50px);filter:drop-shadow(0 2px 6px rgba(0,0,0,.3))}
+.d-stars span{display:inline-block;animation:starPop3D .6s cubic-bezier(.34,1.56,.64,1) both}
+.d-stars span:nth-child(1){animation-delay:.1s}.d-stars span:nth-child(2){animation-delay:.3s}.d-stars span:nth-child(3){animation-delay:.5s}
+@keyframes starPop3D{0%{transform:scale(0) rotateY(180deg);opacity:0}60%{transform:scale(1.3) rotateY(45deg);opacity:1}100%{transform:scale(1) rotateY(0deg);opacity:1}}
 .d-sub{font-size:clamp(14px,2.8vmin,18px);color:rgba(255,255,255,.9);font-weight:600}
 .d-near{font-size:clamp(16px,3vmin,20px);color:#fbbf24;font-weight:800;animation:pulse .8s ease infinite;text-shadow:0 1px 4px rgba(0,0,0,.3)}
 .d-stats{display:flex;gap:clamp(6px,1.5vmin,12px);flex-wrap:wrap;justify-content:center}
-.d-st{text-align:center;background:rgba(255,255,255,.2);border-radius:10px;padding:clamp(5px,1.2vmin,10px) clamp(8px,2vmin,16px);backdrop-filter:blur(4px)}
+.d-st{text-align:center;background:rgba(255,255,255,.2);border-radius:10px;padding:clamp(5px,1.2vmin,10px) clamp(8px,2vmin,16px);backdrop-filter:blur(4px);box-shadow:0 4px 0 rgba(0,0,0,.1),0 8px 16px rgba(0,0,0,.08),inset 0 1px 0 rgba(255,255,255,.2);transition:all .3s cubic-bezier(.34,1.56,.64,1)}
+.d-st:hover{transform:translateY(-3px) scale(1.05)}
 .d-st-e{font-size:clamp(24px,6vmin,36px);filter:drop-shadow(0 2px 4px rgba(0,0,0,.2))}
 .d-st-v{font-size:clamp(20px,4.5vmin,28px);font-weight:900;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.3)}
 .d-st-l{font-size:clamp(10px,1.8vmin,12px);color:rgba(255,255,255,.8);text-transform:uppercase;font-weight:600}
 .d-badges{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
-.d-badge{background:rgba(255,255,255,.3);border-radius:10px;padding:5px 14px;font-size:clamp(14px,2.5vmin,18px);color:#fff;font-weight:700;text-shadow:0 1px 3px rgba(0,0,0,.3)}
+.d-badge{background:rgba(255,255,255,.3);border-radius:10px;padding:5px 14px;font-size:clamp(14px,2.5vmin,18px);color:#fff;font-weight:700;text-shadow:0 1px 3px rgba(0,0,0,.3);box-shadow:0 3px 0 rgba(0,0,0,.1),0 4px 8px rgba(0,0,0,.06),inset 0 1px 0 rgba(255,255,255,.2);transition:all .2s}
+.d-badge:hover{transform:translateY(-2px) scale(1.05)}
 .d-btns{display:flex;gap:clamp(5px,1.2vmin,8px);flex-wrap:wrap;justify-content:center}
 .d-btn{border:none;border-radius:14px;padding:clamp(10px,2.2vmin,16px) clamp(22px,5vmin,38px);font-size:clamp(15px,3vmin,20px);font-weight:900;cursor:pointer;transition:all .2s}
 .d-btn:hover{transform:scale(1.04)}.d-btn:active{transform:scale(.95)}
-.d-btn.pri{background:linear-gradient(135deg,#f59e0b,#f97316);color:#fff;box-shadow:0 4px 14px rgba(249,115,22,.4)}
-.d-btn.sec{background:rgba(255,255,255,.25);color:#fff}
-.d-btn.shr{background:linear-gradient(135deg,#3b82f6,#2563eb);color:#fff;box-shadow:0 4px 14px rgba(37,99,235,.4)}
+.d-btn.pri{background:linear-gradient(135deg,#f59e0b,#f97316);color:#fff;box-shadow:0 6px 0 #c2410c,0 8px 0 #9a3412,0 14px 24px rgba(249,115,22,.3)}
+.d-btn.pri:hover{transform:translateY(-3px) scale(1.06);box-shadow:0 9px 0 #c2410c,0 12px 0 #9a3412,0 20px 32px rgba(249,115,22,.35)}
+.d-btn.pri:active{transform:translateY(3px) scale(.96);box-shadow:0 2px 0 #c2410c,0 3px 0 #9a3412}
+.d-btn.sec{background:rgba(255,255,255,.25);color:#fff;box-shadow:0 4px 0 rgba(0,0,0,.15),0 6px 12px rgba(0,0,0,.08)}
+.d-btn.shr{background:linear-gradient(135deg,#3b82f6,#2563eb);color:#fff;box-shadow:0 6px 0 #1d4ed8,0 8px 0 #1e40af,0 14px 24px rgba(37,99,235,.3)}
 
-/* LEVEL UP MODAL */
+/* MODALS */
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:100;align-items:center;justify-content:center}
 .modal-overlay.show{display:flex}
-.modal{background:linear-gradient(135deg,#fbbf24,#f59e0b);border-radius:20px;padding:clamp(16px,4vmin,32px);text-align:center;max-width:320px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.4);animation:modalIn .4s ease}
+.modal{background:linear-gradient(135deg,#fbbf24,#f59e0b);border-radius:20px;padding:clamp(16px,4vmin,32px);text-align:center;max-width:320px;width:90%;box-shadow:0 8px 0 rgba(0,0,0,.1),0 24px 60px rgba(0,0,0,.4),inset 0 2px 0 rgba(255,255,255,.3);animation:modalIn .4s ease}
 @keyframes modalIn{from{transform:scale(.7);opacity:0}to{transform:scale(1);opacity:1}}
 .modal h2{font-size:clamp(24px,6vmin,34px);font-weight:900;color:#fff;margin-bottom:10px;text-shadow:0 2px 6px rgba(0,0,0,.3)}
 .modal p{font-size:clamp(15px,3vmin,20px);color:rgba(255,255,255,.95);margin-bottom:14px;font-weight:600}
 .modal button{border:none;background:#fff;color:#b45309;font-weight:900;font-size:clamp(16px,3.2vmin,20px);padding:10px 32px;border-radius:14px;cursor:pointer}
-
-/* SHOP MODAL */
-.shop-modal{background:linear-gradient(135deg,#6366f1,#4f46e5);border-radius:20px;padding:clamp(12px,3vmin,24px);text-align:center;max-width:360px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.4);animation:modalIn .4s ease}
+.shop-modal{background:linear-gradient(135deg,#6366f1,#4f46e5);border-radius:20px;padding:clamp(12px,3vmin,24px);text-align:center;max-width:360px;width:90%;box-shadow:0 8px 0 rgba(0,0,0,.12),0 24px 60px rgba(0,0,0,.4),inset 0 2px 0 rgba(255,255,255,.2);animation:modalIn .4s ease}
 .shop-modal h2{color:#fff;font-size:clamp(20px,5vmin,28px);margin-bottom:12px;text-shadow:0 2px 6px rgba(0,0,0,.3)}
 .shop-coins{color:#fbbf24;font-weight:900;font-size:clamp(18px,4vmin,24px);margin-bottom:12px;text-shadow:0 1px 4px rgba(0,0,0,.3)}
 .shop-items{display:grid;grid-template-columns:1fr 1fr;gap:8px}
@@ -131,140 +170,65 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',Tahoma,s
 .shop-buy:disabled{opacity:.4;cursor:not-allowed}
 .shop-close{border:none;background:rgba(255,255,255,.3);color:#fff;font-weight:800;padding:8px 24px;border-radius:12px;cursor:pointer;margin-top:12px;font-size:16px}
 
-/* BACK BUTTON */
+/* BACK */
 .g-back{background:none;border:none;color:rgba(255,255,255,.85);font-size:clamp(16px,3vmin,20px);font-weight:800;cursor:pointer;padding:6px 12px;border-radius:10px;flex-shrink:0}
 .g-back:hover{color:#fff;background:rgba(255,255,255,.15)}
 
 /* TOOLTIP */
 .tooltip-popup{position:fixed;z-index:200;background:#1f2937;color:#fff;font-size:16px;font-weight:700;padding:10px 20px;border-radius:12px;transform:translateX(-50%) translateY(-100%);pointer-events:none;box-shadow:0 6px 20px rgba(0,0,0,.3);transition:opacity .3s;opacity:1}
 
-/* PARTICLES */
+/* PARTICLES + ANIMATIONS */
 .particle{position:fixed;pointer-events:none;z-index:999;animation:floatup 1.2s ease-out forwards}
 @keyframes floatup{0%{opacity:1;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(-90px) scale(.3)}}
 @keyframes emojiBounce{0%{transform:scale(1)}30%{transform:scale(1.2)}60%{transform:scale(0.95)}100%{transform:scale(1)}}
 @keyframes screenShake{0%,100%{transform:translateX(0)}20%{transform:translateX(-4px)}40%{transform:translateX(4px)}60%{transform:translateX(-3px)}80%{transform:translateX(2px)}}
 @keyframes cardFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
 @keyframes emojiWiggle{0%,100%{transform:scale(1) rotate(0deg)}25%{transform:scale(1.15) rotate(-6deg)}50%{transform:scale(1) rotate(0deg)}75%{transform:scale(1.15) rotate(6deg)}}
-
-/* ===== ROYAL MATCH 3D VISUAL SYSTEM ===== */
-
-/* Animated gradient backgrounds */
-#lvl-screen{background:linear-gradient(135deg,#8b5cf6,#6366f1,#a855f7,#7c3aed);background-size:300% 300%;animation:royalBG 15s ease infinite}
-#done-screen{background-size:300% 300%;animation:royalBG 15s ease infinite}
 @keyframes royalBG{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
-
-/* Screen transitions */
 .screen.active{animation:screenIn .4s cubic-bezier(.34,1.56,.64,1)}
 @keyframes screenIn{0%{opacity:0;transform:scale(.93) translateY(12px)}100%{opacity:1;transform:scale(1) translateY(0)}}
-
-/* 3D Level Cards */
-.lc{transform-style:preserve-3d;box-shadow:0 6px 0 rgba(0,0,0,.18),0 10px 0 rgba(0,0,0,.08),0 20px 40px rgba(0,0,0,.12),inset 0 1px 0 rgba(255,255,255,.4);background:linear-gradient(160deg,rgba(255,255,255,.5) 0%,rgba(255,255,255,.2) 40%,rgba(255,255,255,.05) 100%) !important;border:2px solid rgba(255,255,255,.55);transition:all .35s cubic-bezier(.34,1.56,.64,1)}
-.lc:hover{transform:translateY(-8px) scale(1.1) rotateX(5deg) !important;box-shadow:0 12px 0 rgba(0,0,0,.12),0 20px 0 rgba(0,0,0,.05),0 32px 60px rgba(0,0,0,.15),inset 0 1px 0 rgba(255,255,255,.6)}
-.lc:active{transform:translateY(2px) scale(.96) !important}
-.lc.current{animation:currentGlow 2.5s ease-in-out infinite,cardFloat 3s ease-in-out infinite !important;border-color:#fbbf24}
-@keyframes currentGlow{0%,100%{box-shadow:0 0 15px rgba(251,191,36,.4),0 6px 0 rgba(0,0,0,.15)}50%{box-shadow:0 0 30px rgba(251,191,36,.7),0 0 60px rgba(251,191,36,.2),0 6px 0 rgba(0,0,0,.12)}}
-
-/* 3D Game Container */
-.gc{box-shadow:0 16px 0 rgba(0,0,0,.04),0 24px 64px rgba(0,0,0,.2),inset 0 2px 0 rgba(255,255,255,.8) !important;border:2px solid rgba(255,255,255,.2);background:linear-gradient(180deg,rgba(255,255,255,.98),rgba(255,255,255,.92)) !important;border-radius:24px !important}
-
-/* 3D Answer Buttons */
-.ans-btn{border:none !important;box-shadow:0 6px 0 #c4b5fd,0 8px 0 #a78bfa,0 14px 28px rgba(0,0,0,.12),inset 0 -3px 0 rgba(0,0,0,.06),inset 0 2px 0 rgba(255,255,255,.8) !important;background:linear-gradient(180deg,#fff 0%,#faf5ff 50%,#f3e8ff 100%) !important;transition:all .15s cubic-bezier(.34,1.56,.64,1) !important;position:relative;overflow:hidden}
-.ans-btn::after{content:'';position:absolute;top:0;left:-100%;width:60%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.4),transparent);transition:left .5s}
-.ans-btn:hover::after{left:100%}
-.ans-btn:hover{transform:translateY(-5px) scale(1.05) !important;box-shadow:0 10px 0 #c4b5fd,0 12px 0 #a78bfa,0 22px 40px rgba(0,0,0,.15),inset 0 -3px 0 rgba(0,0,0,.04),inset 0 2px 0 rgba(255,255,255,.9) !important}
-.ans-btn:active{transform:translateY(4px) scale(.97) !important;box-shadow:0 2px 0 #c4b5fd,0 3px 0 #a78bfa,0 4px 8px rgba(0,0,0,.08) !important}
-.ans-btn.correct{box-shadow:0 6px 0 #059669,0 8px 0 #047857,0 0 20px rgba(16,185,129,.4),0 0 40px rgba(16,185,129,.15),inset 0 2px 0 rgba(255,255,255,.6) !important;background:linear-gradient(180deg,#ecfdf5,#d1fae5,#a7f3d0) !important;animation:correct3D .5s cubic-bezier(.34,1.56,.64,1) !important}
-.ans-btn.wrong{box-shadow:0 6px 0 #dc2626,0 8px 0 #b91c1c,0 0 20px rgba(239,68,68,.3),inset 0 2px 0 rgba(255,255,255,.4) !important;background:linear-gradient(180deg,#fff1f2,#fee2e2,#fecaca) !important}
-@keyframes correct3D{0%{transform:scale(1)}40%{transform:scale(1.12) rotateZ(-3deg)}70%{transform:scale(.95) rotateZ(2deg)}100%{transform:scale(1) rotateZ(0)}}
-
-/* 3D Progress Bar */
-.pbar{box-shadow:inset 0 3px 6px rgba(0,0,0,.15),0 2px 0 rgba(255,255,255,.2) !important;border:1px solid rgba(0,0,0,.06)}
-.pfill{box-shadow:0 2px 8px rgba(236,72,153,.4),inset 0 -2px 0 rgba(0,0,0,.1),inset 0 2px 0 rgba(255,255,255,.3) !important}
-
-/* 3D XP Bar */
-.xp-bar{box-shadow:inset 0 2px 4px rgba(0,0,0,.2),0 1px 0 rgba(255,255,255,.15) !important}
-.xp-fill{box-shadow:0 1px 6px rgba(251,191,36,.5),inset 0 -1px 0 rgba(0,0,0,.1),inset 0 1px 0 rgba(255,255,255,.4) !important}
-
-/* 3D Boosters */
-.bst-btn{box-shadow:0 4px 0 rgba(0,0,0,.12),0 6px 12px rgba(0,0,0,.08),inset 0 1px 0 rgba(255,255,255,.3) !important;transition:all .2s cubic-bezier(.34,1.56,.64,1) !important;background:rgba(255,255,255,.15) !important;border-radius:14px !important}
-.bst-btn:hover{transform:translateY(-3px) scale(1.08) !important;box-shadow:0 7px 0 rgba(0,0,0,.1),0 12px 20px rgba(0,0,0,.1) !important}
-
-/* 3D Boss */
-.boss-emoji{filter:drop-shadow(0 4px 12px rgba(0,0,0,.4)) drop-shadow(0 0 20px rgba(239,68,68,.3)) !important}
-.boss-seg{border-radius:99px !important;transition:all .4s cubic-bezier(.34,1.56,.64,1) !important}
-.boss-hp{box-shadow:inset 0 2px 4px rgba(0,0,0,.3),0 2px 0 rgba(255,255,255,.1) !important;border-radius:99px !important}
-
-/* 3D Combo */
-.g-combo.show{text-shadow:0 0 10px rgba(251,191,36,.6),0 0 20px rgba(251,191,36,.3),0 2px 8px rgba(0,0,0,.3) !important;animation:combo3DPulse .4s cubic-bezier(.34,1.56,.64,1)}
-@keyframes combo3DPulse{0%{transform:scale(1)}50%{transform:scale(1.35) rotateZ(-5deg)}100%{transform:scale(1)}}
-
-/* Done Screen 3D Stars */
-.d-stars span{display:inline-block;animation:starPop3D .6s cubic-bezier(.34,1.56,.64,1) both}
-.d-stars span:nth-child(1){animation-delay:.1s}
-.d-stars span:nth-child(2){animation-delay:.3s}
-.d-stars span:nth-child(3){animation-delay:.5s}
-@keyframes starPop3D{0%{transform:scale(0) rotateY(180deg);opacity:0}60%{transform:scale(1.3) rotateY(45deg);opacity:1}100%{transform:scale(1) rotateY(0deg);opacity:1}}
-
-/* Done Screen 3D Stat Cards */
-.d-st{box-shadow:0 4px 0 rgba(0,0,0,.1),0 8px 16px rgba(0,0,0,.08),inset 0 1px 0 rgba(255,255,255,.2) !important;transition:all .3s cubic-bezier(.34,1.56,.64,1)}
-.d-st:hover{transform:translateY(-3px) scale(1.05)}
-
-/* 3D Badges */
-.d-badge{box-shadow:0 3px 0 rgba(0,0,0,.1),0 4px 8px rgba(0,0,0,.06),inset 0 1px 0 rgba(255,255,255,.2) !important;transition:all .2s}
-.d-badge:hover{transform:translateY(-2px) scale(1.05)}
-
-/* 3D Done Buttons */
-.d-btn.pri{box-shadow:0 6px 0 #c2410c,0 8px 0 #9a3412,0 14px 24px rgba(249,115,22,.3) !important}
-.d-btn.pri:hover{transform:translateY(-3px) scale(1.06) !important;box-shadow:0 9px 0 #c2410c,0 12px 0 #9a3412,0 20px 32px rgba(249,115,22,.35) !important}
-.d-btn.pri:active{transform:translateY(3px) scale(.96) !important;box-shadow:0 2px 0 #c2410c,0 3px 0 #9a3412 !important}
-.d-btn.shr{box-shadow:0 6px 0 #1d4ed8,0 8px 0 #1e40af,0 14px 24px rgba(37,99,235,.3) !important}
-.d-btn.sec{box-shadow:0 4px 0 rgba(0,0,0,.15),0 6px 12px rgba(0,0,0,.08) !important}
-
-/* 3D Top Bar Items */
-.tb-item{box-shadow:0 3px 0 rgba(0,0,0,.12),0 4px 8px rgba(0,0,0,.06),inset 0 1px 0 rgba(255,255,255,.2) !important;transition:all .2s}
-.tb-item:hover{transform:translateY(-2px) scale(1.04)}
-
-/* 3D Modals */
-.modal{box-shadow:0 8px 0 rgba(0,0,0,.1),0 24px 60px rgba(0,0,0,.4),inset 0 2px 0 rgba(255,255,255,.3) !important}
-.shop-modal{box-shadow:0 8px 0 rgba(0,0,0,.12),0 24px 60px rgba(0,0,0,.4),inset 0 2px 0 rgba(255,255,255,.2) !important}
-
-/* Timer 3D */
-.timer.urgent{text-shadow:0 0 10px rgba(239,68,68,.5),0 0 20px rgba(239,68,68,.2) !important}
-
-/* Floating animation for done emoji */
-.d-emoji{animation:doneBounce3D 1.5s cubic-bezier(.34,1.56,.64,1) infinite !important;filter:drop-shadow(0 8px 20px rgba(0,0,0,.3)) !important}
-@keyframes doneBounce3D{0%,100%{transform:translateY(0) scale(1) rotateZ(0)}25%{transform:translateY(-12px) scale(1.05) rotateZ(-3deg)}50%{transform:translateY(-6px) scale(1.02) rotateZ(0)}75%{transform:translateY(-12px) scale(1.05) rotateZ(3deg)}}
-
-/* ===== END ROYAL MATCH 3D ===== */
 </style>
 </head>
 <body>
 
-<!-- LEVEL SELECT -->
-<div id="lvl-screen" class="screen active">
+<!-- ===== WORLD SELECT ===== -->
+<div id="world-screen" class="screen active">
   <div class="top-bar">
     <div class="tb-item" id="tb-level">⭐ Lv.1</div>
     <div class="tb-item" id="tb-coins">🪙 0</div>
     <div class="tb-item" id="tb-lives">❤️ 5</div>
+    <div class="tb-item mute-btn" id="tb-mute" onclick="toggleMuteBtn()">🔊</div>
     <div class="tb-item" id="tb-perf" style="cursor:pointer" onclick="togglePerf()">⚡</div>
   </div>
   <div class="xp-bar-wrap">
     <div class="xp-bar"><div class="xp-fill" id="xp-fill" style="width:0%"></div></div>
     <div class="xp-label" id="xp-label">0 / 1000 XP</div>
   </div>
-  <div class="ls-title" id="ls-t">🧮 مملكة الأرقام</div>
+  <div class="ls-title" id="ws-t">🧮 مملكة الأرقام</div>
+  <div class="ls-sub" id="ws-sub">اختر عالمك لتبدأ المغامرة!</div>
   <div class="ls-btns">
     <button class="ls-btn daily" id="daily-btn" onclick="startDaily()">🎯 التحدي اليومي</button>
     <button class="ls-btn" onclick="openShop()">🛒 المتجر</button>
   </div>
+  <div class="world-grid" id="world-grid"></div>
+</div>
+
+<!-- ===== LEVEL SELECT (within world) ===== -->
+<div id="lvl-screen" class="screen">
+  <div class="lvl-header">
+    <button class="lvl-back" id="lvl-back" onclick="backToWorlds()">← العوالم</button>
+    <div class="lvl-world-title" id="lvl-world-title"></div>
+    <div class="tb-item mute-btn" onclick="toggleMuteBtn()" id="lvl-mute">🔊</div>
+  </div>
   <div class="ls-grid" id="ls-g"></div>
 </div>
 
-<!-- GAME SCREEN -->
+<!-- ===== GAME SCREEN ===== -->
 <div id="game-screen" class="screen">
   <div class="g-top">
     <div class="g-lives" id="g-lives"></div>
     <div class="g-combo" id="g-combo">🔥 x1</div>
+    <button class="g-mute" id="g-mute" onclick="toggleMuteBtn()">🔊</button>
     <button class="g-back" onclick="exitGame()">✕</button>
   </div>
   <div class="boss-bar" id="boss-bar" style="display:none">
@@ -293,7 +257,7 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',Tahoma,s
   </div>
 </div>
 
-<!-- DONE SCREEN -->
+<!-- ===== DONE SCREEN ===== -->
 <div id="done-screen" class="screen">
   <div class="d-emoji" id="d-e">🏆</div>
   <div class="d-title" id="d-t">أحسنت!</div>
@@ -312,7 +276,7 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',Tahoma,s
     <button class="d-btn pri" id="d-nx" onclick="nextLevel()">➡️ التالي</button>
     <button class="d-btn shr" id="d-sh" onclick="shareResult()">📤 مشاركة</button>
     <button class="d-btn sec" onclick="replayLevel()">🔄 إعادة</button>
-    <button class="d-btn sec" onclick="showScreen('lvl-screen')">🏠</button>
+    <button class="d-btn sec" onclick="showScreen('world-screen')">🏠</button>
   </div>
 </div>
 
@@ -340,8 +304,8 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',Tahoma,s
   </div>
 </div>
 
+<!-- ===== PARTICLE SYSTEM ===== -->
 <script>
-// ===== ROYAL MATCH 3D PARTICLE SYSTEM =====
 (function(){
 const c=document.createElement('canvas');
 c.style.cssText='position:fixed;inset:0;pointer-events:none;z-index:9999';
@@ -416,8 +380,10 @@ function loop(){
 })();
 </script>
 
+<!-- ===== GAME MODULE ===== -->
 <script type="module">
-import { POOL, LEVELS, THEMES, THEME_GROUPS, LANG, t, I18N } from './math-modules/config.js';
+import { POOL, CATEGORIES, LANG, t, I18N } from './math-modules/config.js';
+import { WORLDS, WORLD_MAP, generateLevelConfig, isWorldUnlocked, getTotalStars, getWorldCompletion, getMasteryIcon, getLevelName, generateDailyChallenge } from './math-modules/worlds.js';
 import * as Core from './math-modules/core.js';
 import * as Intel from './math-modules/intelligence.js';
 import * as Engage from './math-modules/engagement.js';
@@ -431,22 +397,33 @@ document.documentElement.dir = LANG === 'ar' ? 'rtl' : 'ltr';
 const T = (I18N[LANG] || I18N.en);
 
 // ===== GAME STATE =====
-let progress, currentLevel = -1, currentQ = 0, totalScore = 0, streak = 0, highStreak = 0;
+let progress;
+let currentWorld = null;       // world ID
+let currentLevelIndex = -1;    // level index within world
+let levelConfig = null;        // generated level config
+let currentQ = 0, totalScore = 0, streak = 0, highStreak = 0;
 let questions = [], timerInterval = null, timeLeft = 0, answering = false, startTime = 0;
 let usedHintThisLevel = false, bossState = null, dailyMode = false, questionStartTime = 0;
 let totalCorrect = 0, totalQ = 10, currentTimerMax = 0;
 let challengeTracker;
 
+function el(id) { return document.getElementById(id); }
+
 // ===== INIT =====
 function init() {
   progress = Core.loadProgress();
-  // Defensive: ensure skillData exists (legacy migration)
   if (!progress.skillData) progress.skillData = { avgResponseTime: 8, accuracyRate: 0.5, highestStreak: 0, totalGamesPlayed: 0, smoothedSkill: 50 };
   if (!progress.boosters) progress.boosters = { hammer: 1, shuffle: 1, extraTime: 1, hint: 3 };
   if (!progress.tutorialShown) progress.tutorialShown = {};
   if (!progress.purchaseCounts) progress.purchaseCounts = { hammer: 0, shuffle: 0, extraTime: 0, hint: 0 };
-  // Apply i18n
-  el('ls-t').textContent = T.title;
+
+  // Init mute state  
+  UI.initMuteState(progress.soundMuted);
+  updateMuteButtons();
+
+  // i18n
+  el('ws-t').textContent = T.title;
+  el('ws-sub').textContent = T.sub;
   el('g-scl').textContent = T.score;
   el('g-qnl').textContent = T.question;
   el('d-crl').textContent = T.correct;
@@ -455,18 +432,35 @@ function init() {
   el('d-cnl').textContent = T.coins;
   el('d-sh').textContent = T.share;
   el('daily-btn').textContent = T.daily;
-  // Check daily
+  el('lvl-back').textContent = T.backToWorlds;
+
   updateDailyBtn();
-  renderLevelSelect();
+  renderWorldSelect();
 }
 
-function el(id) { return document.getElementById(id); }
+// ===== MUTE =====
+function toggleMuteBtn() {
+  const muted = UI.toggleMute();
+  progress.soundMuted = muted;
+  Core.saveProgress(progress);
+  updateMuteButtons();
+}
+window.toggleMuteBtn = toggleMuteBtn;
+
+function updateMuteButtons() {
+  const icon = UI.isMuted() ? T.soundOff : T.soundOn;
+  ['tb-mute', 'lvl-mute', 'g-mute'].forEach(id => {
+    const e = el(id);
+    if (e) e.textContent = icon;
+  });
+}
 
 // ===== SCREENS =====
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   el(id).classList.add('active');
-  if (id === 'lvl-screen') { renderLevelSelect(); UI.stopMusic(); }
+  if (id === 'world-screen') { renderWorldSelect(); UI.stopMusic(); }
+  if (id === 'lvl-screen') { renderLevelSelect(); }
 }
 window.showScreen = showScreen;
 
@@ -492,29 +486,101 @@ function updateDailyBtn() {
   }
 }
 
-// ===== LEVEL SELECT =====
-function renderLevelSelect() {
+// ===== WORLD SELECT =====
+function renderWorldSelect() {
   updateTopBar();
-  const g = el('ls-g'); g.innerHTML = '';
-  for (let i = 0; i < LEVELS.length; i++) {
-    const cfg = LEVELS[i];
-    const unlocked = i < (progress.unlocked || 1);
-    const stars = progress.stars[i] || 0;
-    const isCurr = i === (progress.unlocked || 1) - 1;
+  const g = el('world-grid');
+  g.innerHTML = '';
+
+  for (const w of WORLDS) {
+    const unlocked = isWorldUnlocked(w.id, progress.worlds);
+    const wp = progress.worlds[w.id] || {};
+    const completion = getWorldCompletion(wp);
+    const masteryIcon = getMasteryIcon(completion.mastery);
+    const worldName = T.worldNames[w.id] || w.id;
+    const worldDesc = T.worldDescs[w.id] || '';
+
     const card = document.createElement('div');
-    card.className = 'lc' + (unlocked ? '' : ' locked') + (isCurr ? ' current' : '');
+    card.className = 'wc' + (unlocked ? '' : ' locked');
+    card.style.background = unlocked ? w.gradient : 'rgba(100,100,140,.35)';
+
     if (unlocked) {
-      card.innerHTML = `<div class="lc-num">${i+1}</div><div class="lc-emoji">${cfg.emoji}</div><div class="lc-name">${T.lvNames[i]}</div><div class="lc-stars">${stars>=1?'⭐':'☆'}${stars>=2?'⭐':'☆'}${stars>=3?'⭐':'☆'}</div>`;
-      card.onclick = () => startLevel(i);
+      card.innerHTML = `
+        <div class="wc-icon">${w.icon}</div>
+        <div class="wc-name">${worldName}</div>
+        <div class="wc-desc">${worldDesc}</div>
+        <div class="wc-progress">${completion.stars} ⭐ · ${T.level} ${completion.levels}</div>
+        ${masteryIcon ? `<div class="wc-mastery">${masteryIcon} ${T.mastery[completion.mastery] || ''}</div>` : ''}
+      `;
+      card.onclick = () => enterWorld(w.id);
     } else {
-      card.innerHTML = `<div class="lc-num" style="opacity:.4">${i+1}</div><div class="lc-lock">${T.locked}</div><div class="lc-name" style="opacity:.4">${T.lvNames[i]}</div>`;
+      const reqWorld = w.unlockReq ? w.unlockReq.world : '';
+      const reqStars = w.unlockReq ? w.unlockReq.starsNeeded : 0;
+      const reqName = T.worldNames[reqWorld] || reqWorld;
+      card.innerHTML = `
+        <div class="wc-icon" style="opacity:.5">${w.icon}</div>
+        <div class="wc-name">${worldName}</div>
+        <div class="wc-desc">${worldDesc}</div>
+        <div class="wc-lock">🔒</div>
+        <div class="wc-lock-text">${T.starsNeeded.replace('{n}', reqStars).replace('{world}', reqName)}</div>
+      `;
     }
     g.appendChild(card);
   }
-  // Tutorial: first visit
-  if (UI.shouldShowTooltip(progress, 'levelSelect')) {
-    UI.markTooltipShown(progress, 'levelSelect');
-    Core.saveProgress(progress);
+}
+
+// ===== ENTER WORLD =====
+function enterWorld(worldId) {
+  currentWorld = worldId;
+  const w = WORLD_MAP[worldId];
+  // Apply world theme to level screen
+  el('lvl-screen').style.background = w.gradient;
+  el('lvl-world-title').textContent = T.worldNames[worldId] || worldId;
+  showScreen('lvl-screen');
+}
+window.enterWorld = enterWorld;
+
+function backToWorlds() {
+  currentWorld = null;
+  showScreen('world-screen');
+}
+window.backToWorlds = backToWorlds;
+
+// ===== LEVEL SELECT (within world) =====
+function renderLevelSelect() {
+  if (!currentWorld) return;
+  const w = WORLD_MAP[currentWorld];
+  const wp = progress.worlds[currentWorld] || { levelReached: 0, scores: {}, stars: {} };
+  const levelsToShow = Math.max(20, (wp.levelReached || 0) + 4);
+
+  const g = el('ls-g');
+  g.innerHTML = '';
+
+  for (let i = 0; i < levelsToShow; i++) {
+    const unlocked = i < Math.max(1, wp.levelReached || 1);
+    const stars = wp.stars[i] || 0;
+    const isCurr = i === Math.max(0, (wp.levelReached || 1) - 1);
+    const isBoss = (i + 1) % w.bossEvery === 0;
+    const levelName = getLevelName(currentWorld, i, LANG);
+
+    const card = document.createElement('div');
+    card.className = 'lc' + (unlocked ? '' : ' locked') + (isCurr ? ' current' : '') + (isBoss && unlocked ? ' boss-card' : '');
+
+    if (unlocked) {
+      card.innerHTML = `
+        <div class="lc-num">${isBoss ? '👑' : (i + 1)}</div>
+        <div class="lc-emoji">${isBoss ? '⚔️' : w.emoji}</div>
+        <div class="lc-name">${isBoss ? T.bossBattle : levelName}</div>
+        <div class="lc-stars">${stars>=1?'⭐':'☆'}${stars>=2?'⭐':'☆'}${stars>=3?'⭐':'☆'}</div>
+      `;
+      card.onclick = () => startLevel(currentWorld, i);
+    } else {
+      card.innerHTML = `
+        <div class="lc-num" style="opacity:.4">${i + 1}</div>
+        <div class="lc-lock">🔒</div>
+      `;
+    }
+    g.appendChild(card);
   }
 }
 
@@ -547,7 +613,16 @@ function pickMultiCatEmoji(cats) {
 
 function genQuestion(ops, range, emojiPool, difficulty, isBoss) {
   const effRange = Intel.getDifficultyRange(range, difficulty);
-  const op = ops[Math.floor(Math.random() * ops.length)];
+  let op = ops[Math.floor(Math.random() * ops.length)];
+  // Handle special ops as add/sub fallback
+  if (['count','fraction','decimal','pattern','geometry','algebra'].includes(op)) {
+    if (op === 'count') op = 'add';
+    else if (op === 'fraction') op = 'add';
+    else if (op === 'decimal') op = 'add';
+    else if (op === 'pattern') op = 'add';
+    else if (op === 'geometry') op = 'mul';
+    else if (op === 'algebra') op = 'add';
+  }
   let a, b, answer, text, visual = '';
   const em = emojiPool[Math.floor(Math.random() * emojiPool.length)];
   switch(op) {
@@ -575,6 +650,10 @@ function genQuestion(ops, range, emojiPool, difficulty, isBoss) {
       a = b * q; answer = q; text = `${a} ÷ ${b} = ?`;
       if (a <= 12) visual = em.repeat(a) + ' ÷ ' + b;
       break;
+    default:
+      a = Math.floor(Math.random() * effRange) + 1;
+      b = Math.floor(Math.random() * effRange) + 1;
+      answer = a + b; text = `${a} + ${b} = ?`;
   }
   const wrongs = new Set();
   while (wrongs.size < 3) {
@@ -588,11 +667,9 @@ function genQuestion(ops, range, emojiPool, difficulty, isBoss) {
 function genAllQuestions(cfg, isBoss) {
   const skill = Intel.getSmoothedSkill(progress.skillData || {});
   const adjustedRange = Intel.adjustRange(cfg.range, skill);
-  const adjustedTimer = Intel.adjustTimer(cfg.timer, skill);
-  currentTimerMax = adjustedTimer;
+  currentTimerMax = cfg.timer;
   const pool = pickMultiCatEmoji(cfg.cats);
   const qs = [];
-  const bossOps = isBoss ? null : null; // for boss, phase ops come from boss module
   for (let i = 0; i < cfg.questions; i++) {
     const diff = Intel.getQuestionDifficulty(i, cfg.questions, isBoss);
     let ops = cfg.ops;
@@ -603,20 +680,27 @@ function genAllQuestions(cfg, isBoss) {
 }
 
 // ===== START LEVEL =====
-function startLevel(idx) {
+function startLevel(worldId, levelIdx) {
   if (!checkLives()) return;
   dailyMode = false;
-  currentLevel = idx;
-  const cfg = LEVELS[idx];
-  totalQ = cfg.questions;
-  const isBoss = cfg.boss;
+  currentWorld = worldId;
+  currentLevelIndex = levelIdx;
+
+  const w = WORLD_MAP[worldId];
+  levelConfig = generateLevelConfig(worldId, levelIdx, progress.skillData);
+  if (!levelConfig) return;
+
+  totalQ = levelConfig.questions;
+  const isBoss = levelConfig.boss;
 
   // Theme
-  UI.applyTheme(idx, el('game-screen'), el('done-screen'));
+  UI.applyWorldTheme(levelConfig.gradient, levelConfig.accent, el('game-screen'), el('done-screen'));
 
   // Boss init
   if (isBoss) {
-    bossState = Boss.createBossState();
+    const bossOps = levelConfig.ops.length > 0 ? levelConfig.ops : ['add'];
+    bossState = Boss.createBossState(levelConfig.bossType, bossOps);
+    totalQ = bossState.totalHP;
     el('boss-bar').style.display = '';
     renderBossHP();
     el('boss-emoji').textContent = Boss.getBossEmoji(bossState);
@@ -626,40 +710,36 @@ function startLevel(idx) {
     el('boss-bar').style.display = 'none';
   }
 
-  el('g-t').textContent = T.lvNames[idx] + (isBoss ? ' 👑' : ' 🧮');
+  const levelName = getLevelName(worldId, levelIdx, LANG);
+  el('g-t').textContent = (isBoss ? '👑 ' + T.bossBattle : levelName + ' 🧮');
 
   // Reset state
   currentQ = 0; totalScore = 0; streak = 0; highStreak = 0;
   totalCorrect = 0; usedHintThisLevel = false; answering = false;
   startTime = Date.now();
   challengeTracker = Engage.createChallengeTracker();
+  currentTimerMax = levelConfig.timer;
 
-  // Generate questions (for boss, generate per-phase later)
+  // Generate questions
   if (isBoss) {
-    questions = genBossQuestions(cfg);
+    questions = genBossQuestions(levelConfig);
   } else {
-    questions = genAllQuestions(cfg, false);
+    questions = genAllQuestions(levelConfig, false);
   }
 
   el('g-sc').textContent = '0';
   renderLives();
   updateCombo();
   showScreen('game-screen');
-  UI.startMusic();
+  if (!UI.isMuted()) UI.startMusic();
   renderBoosters();
-
-  // Tutorial
-  if (currentTimerMax > 0 && UI.shouldShowTooltip(progress, 'timer')) {
-    UI.markTooltipShown(progress, 'timer');
-    Core.saveProgress(progress);
-  }
-
   showQuestion();
 }
 window.startLevel = startLevel;
 
 function genBossQuestions(cfg) {
-  const phases = Boss.getPhases();
+  if (!bossState) return genAllQuestions(cfg, true);
+  const phases = Boss.getPhases(bossState);
   const skill = Intel.getSmoothedSkill(progress.skillData || {});
   const pool = pickMultiCatEmoji(cfg.cats);
   const qs = [];
@@ -678,11 +758,15 @@ function startDaily() {
   if (progress.dailyChallengeDate === today && progress.dailyChallengeCompleted) return;
   if (!checkLives()) return;
   dailyMode = true;
-  currentLevel = -1;
-  totalQ = 10;
-  currentTimerMax = 14;
+  currentWorld = null;
+  currentLevelIndex = -1;
 
-  UI.applyTheme(Math.floor(Math.random() * 20), el('game-screen'), el('done-screen'));
+  const dailyCfg = generateDailyChallenge(today, progress.skillData);
+  levelConfig = dailyCfg;
+  totalQ = dailyCfg.questions;
+  currentTimerMax = dailyCfg.timer;
+
+  UI.applyWorldTheme(dailyCfg.gradient, dailyCfg.accent, el('game-screen'), el('done-screen'));
   el('boss-bar').style.display = 'none';
   bossState = null;
   el('g-t').textContent = T.daily + ' 🎯';
@@ -692,20 +776,18 @@ function startDaily() {
   startTime = Date.now();
   challengeTracker = Engage.createChallengeTracker();
 
-  // Mix questions from random levels
-  const pool = pickMultiCatEmoji(['mix', 'farm', 'fruit', 'sport', 'space']);
+  const pool = pickMultiCatEmoji(dailyCfg.cats);
   questions = [];
-  const ops = ['add', 'sub', 'mul', 'div'];
   for (let i = 0; i < totalQ; i++) {
     const diff = Intel.getQuestionDifficulty(i, totalQ, false);
-    questions.push(genQuestion(ops, 30, pool, diff, false));
+    questions.push(genQuestion(dailyCfg.ops, dailyCfg.range, pool, diff, false));
   }
 
   el('g-sc').textContent = '0';
   renderLives();
   updateCombo();
   showScreen('game-screen');
-  UI.startMusic();
+  if (!UI.isMuted()) UI.startMusic();
   renderBoosters();
   showQuestion();
 }
@@ -718,7 +800,6 @@ function showQuestion() {
   questionStartTime = Date.now();
   const q = questions[currentQ];
 
-  // Boss: update phase ops
   if (bossState) {
     el('boss-emoji').textContent = Boss.getBossEmoji(bossState);
     el('boss-label').textContent = Boss.getBossPhaseLabel(bossState);
@@ -744,7 +825,6 @@ function showQuestion() {
     ans.appendChild(btn);
   });
 
-  // Timer
   clearInterval(timerInterval);
   if (currentTimerMax > 0) {
     timeLeft = currentTimerMax;
@@ -786,64 +866,50 @@ function selectAnswer(selected, btn) {
     streak++;
     if (streak > highStreak) highStreak = streak;
 
-    // Scoring
     const comboMult = Core.getComboMultiplier(streak);
     const qScore = Core.calculateScore(true, timeLeft, currentTimerMax || 15, comboMult, usedHintThisLevel);
     totalScore += qScore;
 
-    // Engagement
     const streakMsg = Engage.getStreakMessage(streak);
     if (streakMsg) el('q-feedback').textContent = streakMsg;
 
-    // Audio + visual
     UI.sfxCorrect();
     if (streak > 1) UI.sfxComboUp(streak);
     const rect = btn.getBoundingClientRect();
-    const thGroup = currentLevel >= 0 ? UI.getThemeGroup(currentLevel) : THEME_GROUPS.nature;
-    UI.spawnParticles(rect.left + rect.width / 2, rect.top, 4, thGroup.particleStyle);
+    const pStyle = levelConfig ? levelConfig.particleStyle : '⭐';
+    UI.spawnParticles(rect.left + rect.width / 2, rect.top, 4, pStyle);
 
-    // Boss hit
     if (bossState) {
-      const result = Boss.hitBoss(bossState);
+      Boss.hitBoss(bossState);
       UI.sfxBossHit();
       renderBossHP();
     }
 
-    // Skill tracking
     Intel.updateSkillData(progress.skillData, true, responseTime);
 
   } else {
     btn.classList.add('wrong');
-    // Show correct
     document.querySelectorAll('.ans-btn').forEach(b => {
       if (+b.textContent === q.answer) b.classList.add('correct');
     });
 
-    // Engagement feedback
     if (streak >= 3) {
       el('q-feedback').textContent = Engage.getWrongAfterStreakMessage(streak);
     }
     streak = 0;
 
-    // Lose life
     Core.loseLife(progress);
     renderLives();
     UI.sfxWrong();
     UI.vibrate(100);
     UI.shakeElement(el('gc'));
 
-    // Boss attack
     if (bossState) {
       const atk = Boss.bossAttack(bossState);
       UI.sfxBossAttack();
-      if (atk.gameOver) {
-        // Boss killed player
-        setTimeout(() => endGame(), 800);
-        return;
-      }
+      if (atk.gameOver) { setTimeout(() => endGame(), 800); return; }
     }
 
-    // Check lives
     if (Core.getLives(progress) <= 0 && !bossState) {
       setTimeout(() => endGame(), 800);
       return;
@@ -852,15 +918,11 @@ function selectAnswer(selected, btn) {
     Intel.updateSkillData(progress.skillData, false, responseTime);
   }
 
-  // Track challenge
   Engage.trackAnswer(challengeTracker, correct, responseTime, false);
-
   updateCombo();
   UI.updateMusicLayers(streak, !!bossState);
 
   currentQ++;
-
-  // Flow controller transition
   const delay = Intel.getTransitionDelay(responseTime);
   setTimeout(showQuestion, delay);
 }
@@ -875,7 +937,6 @@ function timeUp() {
   });
   el('q-feedback').textContent = T.timeUp;
 
-  // Lose life + streak reset
   if (streak >= 3) el('q-feedback').textContent = T.timeUp + ' ' + Engage.getWrongAfterStreakMessage(streak);
   streak = 0;
   Core.loseLife(progress);
@@ -883,7 +944,6 @@ function timeUp() {
   UI.vibrate(100);
 
   if (bossState) Boss.bossAttack(bossState);
-
   Engage.trackAnswer(challengeTracker, false, currentTimerMax, false);
   updateCombo();
 
@@ -898,9 +958,9 @@ function timeUp() {
 // ===== UI HELPERS =====
 function renderLives() {
   const lives = Core.getLives(progress);
-  const maxLives = Core.getMaxLives();
+  const max = Core.getMaxLives();
   let html = '';
-  for (let i = 0; i < maxLives; i++) html += i < lives ? '❤️' : '🖤';
+  for (let i = 0; i < max; i++) html += i < lives ? '❤️' : '🖤';
   el('g-lives').innerHTML = html;
 }
 
@@ -949,15 +1009,6 @@ function renderBoosters() {
     btn.onclick = bt.action;
     bEl.appendChild(btn);
   }
-
-  // Tooltip for boosters on first sight
-  if (UI.shouldShowTooltip(progress, 'boosters') && Econ.getBoosterCount(progress, 'hint') > 0) {
-    setTimeout(() => {
-      UI.showTooltip('💡 ' + T.hint, bEl.firstChild, 2500);
-      UI.markTooltipShown(progress, 'boosters');
-      Core.saveProgress(progress);
-    }, 1000);
-  }
 }
 
 function useHint() {
@@ -965,7 +1016,6 @@ function useHint() {
   if (!Econ.useBooster(progress, 'hint')) return;
   usedHintThisLevel = true;
   Core.saveProgress(progress);
-  // Remove 2 wrong answers
   const q = questions[currentQ];
   const btns = [...document.querySelectorAll('.ans-btn')];
   const wrongBtns = btns.filter(b => +b.textContent !== q.answer);
@@ -977,7 +1027,6 @@ function useHammer() {
   if (answering) return;
   if (!Econ.useBooster(progress, 'hammer')) return;
   Core.saveProgress(progress);
-  // Remove 1 wrong answer
   const q = questions[currentQ];
   const btns = [...document.querySelectorAll('.ans-btn')];
   const wrongBtns = btns.filter(b => +b.textContent !== q.answer && !b.disabled);
@@ -986,14 +1035,13 @@ function useHammer() {
 }
 
 function useShuffle() {
-  if (answering) return;
+  if (answering) return;  
   if (!Econ.useBooster(progress, 'shuffle')) return;
   Core.saveProgress(progress);
-  // Regenerate current question
-  const cfg = currentLevel >= 0 ? LEVELS[currentLevel] : { ops: ['add','sub','mul','div'], range: 30, cats: ['mix'] };
-  const pool = pickMultiCatEmoji(cfg.cats);
-  const diff = Intel.getQuestionDifficulty(currentQ, totalQ, !!(bossState));
-  questions[currentQ] = genQuestion(cfg.ops, cfg.range, pool, diff, !!(bossState));
+  if (!levelConfig) return;
+  const pool = pickMultiCatEmoji(levelConfig.cats);
+  const diff = Intel.getQuestionDifficulty(currentQ, totalQ, !!bossState);
+  questions[currentQ] = genQuestion(levelConfig.ops, levelConfig.range, pool, diff, !!bossState);
   showQuestion();
 }
 
@@ -1015,38 +1063,33 @@ function endGame() {
   const isPerfect = totalCorrect === totalQ;
   const noHints = !usedHintThisLevel;
 
-  // XP & Coins
   const xpGained = Core.calculateXP(totalScore, totalQ, isPerfect, noHints, dailyMode);
   const coinsGained = Core.calculateCoins(stars, isPerfect, dailyMode);
   const xpResult = Core.addXP(progress, xpGained);
   Econ.addCoins(progress, coinsGained);
 
-  // Update level progress
-  if (currentLevel >= 0 && !dailyMode) {
-    Core.updateLevelProgress(progress, currentLevel, totalScore, stars);
+  // Update world progress
+  if (currentWorld && currentLevelIndex >= 0 && !dailyMode) {
+    Core.updateLevelProgress(progress, currentWorld, currentLevelIndex, totalScore, stars);
   }
 
-  // Daily challenge
+  // Daily  
   if (dailyMode) {
     progress.dailyChallengeDate = new Date().toDateString();
     progress.dailyChallengeCompleted = true;
-    // Daily hint reward on failure (consolation prize)
-    if (stars === 0) {
-      progress.boosters.hint = (progress.boosters.hint || 0) + 1;
-    }
+    if (stars === 0) progress.boosters.hint = (progress.boosters.hint || 0) + 1;
   }
 
-  // Skill update
+  // Skill
   const avgRT = Engage.getAvgResponseTime(challengeTracker);
   Intel.updateSkillAfterLevel(progress.skillData, totalCorrect / totalQ, avgRT, highStreak, totalQ);
 
   // Badges
   const badges = Engage.evaluateBadges(challengeTracker);
   Engage.saveBadges(progress, badges);
-
   Core.saveProgress(progress);
 
-  // ===== RENDER DONE SCREEN =====
+  // ===== RENDER DONE =====
   let title, emoji;
   if (isPerfect) { title = T.excellent; emoji = '🏆'; }
   else if (stars >= 2) { title = T.great; emoji = '🎉'; }
@@ -1102,17 +1145,22 @@ function endGame() {
     badgesEl.appendChild(sp);
   }
 
-  // Next button
-  el('d-nx').style.display = (currentLevel >= 0 && currentLevel < LEVELS.length - 1 && !dailyMode && stars >= 1) ? '' : 'none';
+  // Next button: show if playing a world level and got at least 1 star
+  el('d-nx').style.display = (currentWorld && currentLevelIndex >= 0 && !dailyMode && stars >= 1) ? '' : 'none';
   el('d-nx').textContent = T.next;
 
   UI.sfxComplete();
   if (stars > 0) UI.sfxStar();
+
+  // Apply world theme to done screen
+  if (levelConfig) {
+    el('done-screen').style.background = levelConfig.gradient;
+  }
   showScreen('done-screen');
   UI.spawnCelebration(stars * 5 + (isPerfect ? 10 : 0));
-  if(window.royalCelebration) window.royalCelebration(stars);
+  if (window.royalCelebration) window.royalCelebration(stars);
 
-  // Level up modal
+  // Level up   
   if (xpResult.leveledUp) {
     setTimeout(() => {
       el('lvlup-title').textContent = T.lvlUp;
@@ -1122,12 +1170,13 @@ function endGame() {
     }, 1500);
   }
 
-  // PostMessage to parent
+  // PostMessage
   const scaledScore = Math.round(totalCorrect / totalQ * 100);
   try {
     window.parent.postMessage({
       type: 'GAME_COMPLETE', score: scaledScore, total: 100,
-      timeElapsed: elapsed, level: currentLevel >= 0 ? currentLevel + 1 : 0, stars
+      timeElapsed: elapsed, level: currentLevelIndex >= 0 ? currentLevelIndex + 1 : 0,
+      world: currentWorld, stars
     }, '*');
   } catch(e) {}
 }
@@ -1136,33 +1185,39 @@ function closeLvlUp() { el('lvlup-modal').classList.remove('show'); }
 window.closeLvlUp = closeLvlUp;
 
 function nextLevel() {
-  if (currentLevel >= 0 && currentLevel < LEVELS.length - 1) startLevel(currentLevel + 1);
+  if (currentWorld && currentLevelIndex >= 0) {
+    startLevel(currentWorld, currentLevelIndex + 1);
+  }
 }
 window.nextLevel = nextLevel;
 
 function replayLevel() {
   if (dailyMode) startDaily();
-  else if (currentLevel >= 0) startLevel(currentLevel);
+  else if (currentWorld && currentLevelIndex >= 0) startLevel(currentWorld, currentLevelIndex);
 }
 window.replayLevel = replayLevel;
 
 function exitGame() {
   clearInterval(timerInterval);
   UI.stopMusic();
-  showScreen('lvl-screen');
+  if (currentWorld) {
+    showScreen('lvl-screen');
+  } else {
+    showScreen('world-screen');
+  }
 }
 window.exitGame = exitGame;
 
 // ===== SHARE =====
 function shareResult() {
-  const lvl = currentLevel >= 0 ? currentLevel + 1 : 0;
-  const stars = currentLevel >= 0 ? (progress.stars[currentLevel] || 0) : 0;
-  const text = T.shareText.replace('{score}', totalScore).replace('{level}', lvl).replace('{stars}', '⭐'.repeat(stars));
+  const worldName = currentWorld ? (T.worldNames[currentWorld] || currentWorld) : T.daily;
+  const starsCount = currentWorld && currentLevelIndex >= 0 ? (Core.getWorldProgress(progress, currentWorld).stars[currentLevelIndex] || 0) : 0;
+  const text = T.shareText.replace('{score}', totalScore).replace('{world}', worldName).replace('{stars}', '⭐'.repeat(starsCount));
   try { if (navigator.share) navigator.share({ title: T.title, text }); } catch(e) {}
   try {
     window.parent.postMessage({
-      type: 'SHARE_ACHIEVEMENT', game: 'math', level: lvl,
-      score: totalScore, stars, text
+      type: 'SHARE_ACHIEVEMENT', game: 'math', world: currentWorld,
+      level: currentLevelIndex, score: totalScore, stars: starsCount, text
     }, '*');
   } catch(e) {}
   el('d-sh').textContent = '✅';
@@ -1193,7 +1248,7 @@ function openShop() {
       const result = Econ.buyBooster(progress, item.type);
       if (result.success) {
         Core.saveProgress(progress);
-        openShop(); // refresh
+        openShop();
         updateTopBar();
       }
     };

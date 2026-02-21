@@ -309,7 +309,10 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',Tahoma,G
 
 <!-- LEVEL SELECT -->
 <div id="lvl-screen" class="screen active">
-  <div class="ls-title" id="ls-t">🧠 لعبة الذاكرة</div>
+  <div style="display:flex;align-items:center;justify-content:space-between;width:100%;max-width:540px">
+    <div class="ls-title" id="ls-t">🧠 لعبة الذاكرة</div>
+    <button class="mute-btn" onclick="toggleMute()" style="background:rgba(255,255,255,.2);border:none;border-radius:12px;padding:8px 12px;font-size:clamp(18px,3.5vmin,24px);cursor:pointer;backdrop-filter:blur(4px);box-shadow:0 3px 0 rgba(0,0,0,.12)">🔊</button>
+  </div>
   <div class="coins-bar">
     <div class="coin-display"><span class="coin-icon">🪙</span> <span id="coin-count">0</span></div>
     <button class="nav-btn shop" onclick="showScreen('shop-screen')">🛒 <span id="nav-shop-txt">المتجر</span></button>
@@ -360,6 +363,7 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',Tahoma,G
   </div>
   <p class="hint" id="hint">اضغط على أي بطاقة للبدء!</p>
   <div class="g-foot">
+    <button class="mute-btn" onclick="toggleMute()" style="background:none;border:none;font-size:clamp(20px,4vmin,28px);cursor:pointer;padding:4px 8px;color:rgba(255,255,255,.85);border-radius:8px">🔊</button>
     <button class="f-btn" onclick="showScreen('lvl-screen')">🏠 رجوع</button>
   </div>
 </div>
@@ -719,10 +723,17 @@ const LEVELS=[
   {cat:'mix',     gridCols:6,gridRows:6,pairs:18,emoji:'🌍',mechanic:'boss'},
 ];
 
+// ===== SOUND MUTE =====
+const MUTE_KEY='classify_memory_muted';
+let soundMuted=false;
+function initMute(){try{const v=localStorage.getItem(MUTE_KEY);if(v!=null)soundMuted=v==='true'}catch(e){}updateMuteBtns()}
+function toggleMute(){soundMuted=!soundMuted;try{localStorage.setItem(MUTE_KEY,soundMuted?'true':'false')}catch(e){}updateMuteBtns()}
+function updateMuteBtns(){const icon=soundMuted?'🔇':'🔊';document.querySelectorAll('.mute-btn').forEach(b=>b.textContent=icon)}
+
 // ===== AUDIO =====
 let audioCtx=null;
 function ctx(){if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();return audioCtx}
-function tone(f,d,tp,v){try{const c=ctx(),o=c.createOscillator(),g=c.createGain();o.type=tp||'sine';o.frequency.setValueAtTime(f,c.currentTime);g.gain.setValueAtTime(v||.1,c.currentTime);g.gain.exponentialRampToValueAtTime(.001,c.currentTime+(d||.15));o.connect(g);g.connect(c.destination);o.start();o.stop(c.currentTime+(d||.15))}catch(e){}}
+function tone(f,d,tp,v){if(soundMuted)return;try{const c=ctx(),o=c.createOscillator(),g=c.createGain();o.type=tp||'sine';o.frequency.setValueAtTime(f,c.currentTime);g.gain.setValueAtTime(v||.1,c.currentTime);g.gain.exponentialRampToValueAtTime(.001,c.currentTime+(d||.15));o.connect(g);g.connect(c.destination);o.start();o.stop(c.currentTime+(d||.15))}catch(e){}}
 function sfxFlip(){tone(523,.06,'sine',.08)}
 function sfxMatch(){tone(659,.1,'sine',.12);setTimeout(()=>tone(784,.1,'sine',.12),70);setTimeout(()=>tone(988,.12,'sine',.13),140)}
 function sfxNoMatch(){tone(220,.15,'sawtooth',.06)}
@@ -1581,6 +1592,7 @@ if(t.shop)document.getElementById('shop-t').textContent=t.shop;
 if(t.badges)document.getElementById('badge-t').textContent=t.badges;
 
 // ===== INIT =====
+initMute();
 window.addEventListener('resize',()=>{if(document.getElementById('game-screen').classList.contains('active'))renderCards()});
 updateCoinDisplays();
 renderLevelSelect();

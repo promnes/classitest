@@ -1,37 +1,79 @@
-// ===== Emoji Kingdom — Core Systems =====
-// Progress persistence, XP/Level, Lives, Combo/Streak, Scoring
+// ===== Emoji Kingdom v3 — Core Systems =====
+// World-based progress, XP/Level, Lives, Combo/Streak, Scoring
 
-const STORAGE_KEY = 'classify_math_v2';
+const STORAGE_KEY = 'classify_math_v3';
+const V2_KEY = 'classify_math_v2';
 const OLD_KEY = 'classify_math_progress';
 const XP_PER_LEVEL = 1000;
 const MAX_LIVES = 5;
 const REGEN_MS = 10 * 60 * 1000; // 10 min per life
 
+const WORLD_IDS = ['forest','orchard','ocean','volcano','electric','castle','space','puzzle','geometry','algebra'];
+
 // ===== Progress =====
 export function loadProgress() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw);
+    if (raw) {
+      const p = JSON.parse(raw);
+      if (p.version === 3) return p;
+    }
   } catch(e) {}
-  // Migrate from old system
+  // Migrate from v2 flat system
   const base = defaultProgress();
   try {
+    const v2 = JSON.parse(localStorage.getItem(V2_KEY));
+    if (v2) {
+      // Carry over global stats
+      base.totalXP = v2.totalXP || 0;
+      base.playerLevel = v2.playerLevel || 1;
+      base.coins = v2.coins || 0;
+      base.lives = v2.lives != null ? v2.lives : MAX_LIVES;
+      base.livesTimestamp = v2.livesTimestamp || Date.now();
+      if (v2.boosters) base.boosters = { ...base.boosters, ...v2.boosters };
+      if (v2.badges) base.badges = v2.badges;
+      if (v2.skillData) base.skillData = { ...base.skillData, ...v2.skillData };
+      if (v2.tutorialShown) base.tutorialShown = v2.tutorialShown;
+      if (v2.purchaseCounts) base.purchaseCounts = v2.purchaseCounts;
+      base.dailyChallengeDate = v2.dailyChallengeDate || null;
+      base.dailyChallengeCompleted = v2.dailyChallengeCompleted || false;
+      // Map old flat levels to forest world
+      const oldUnlocked = v2.unlocked || 1;
+      const oldStars = v2.stars || {};
+      const oldScores = v2.scores || {};
+      base.worlds.forest.levelReached = Math.min(oldUnlocked, 30);
+      for (const [k, v] of Object.entries(oldStars)) base.worlds.forest.stars[k] = v;
+      for (const [k, v] of Object.entries(oldScores)) base.worlds.forest.scores[k] = v;
+      // If they had many levels, unlock orchard
+      if (oldUnlocked > 10) {
+        base.worlds.orchard.levelReached = Math.max(1, oldUnlocked - 10);
+      }
+    }
+  } catch(e) {}
+  // Also try very old key
+  try {
     const old = JSON.parse(localStorage.getItem(OLD_KEY));
-    if (old && old.unlocked) {
-      base.unlocked = old.unlocked;
-      base.scores = old.scores || {};
-      base.stars = old.stars || {};
+    if (old && old.unlocked && base.worlds.forest.levelReached === 0) {
+      base.worlds.forest.levelReached = old.unlocked || 1;
+      if (old.stars) for (const [k, v] of Object.entries(old.stars)) base.worlds.forest.stars[k] = v;
+      if (old.scores) for (const [k, v] of Object.entries(old.scores)) base.worlds.forest.scores[k] = v;
     }
   } catch(e) {}
   saveProgress(base);
   return base;
 }
 
+function defaultWorldProgress() {
+  return { levelReached: 0, scores: {}, stars: {} };
+}
+
 function defaultProgress() {
+  const worlds = {};
+  for (const id of WORLD_IDS) worlds[id] = defaultWorldProgress();
+  worlds.forest.levelReached = 1; // first world starts unlocked with level 1
   return {
-    unlocked: 1,
-    scores: {},
-    stars: {},
+    version: 3,
+    worlds,
     totalXP: 0,
     playerLevel: 1,
     coins: 0,
@@ -49,7 +91,8 @@ function defaultProgress() {
       smoothedSkill: 50
     },
     tutorialShown: {},
-    purchaseCounts: { hammer: 0, shuffle: 0, extraTime: 0, hint: 0 }
+    purchaseCounts: { hammer: 0, shuffle: 0, extraTime: 0, hint: 0 },
+    soundMuted: false,
   };
 }
 
@@ -150,16 +193,34 @@ export function calculateCoins(stars, isPerfect, isDaily) {
   return coins;
 }
 
-// ===== Level Progress =====
-export function updateLevelProgress(p, levelIdx, score, stars) {
-  const prev = p.stars[levelIdx] || 0;
-  if (stars > prev) p.stars[levelIdx] = stars;
-  const prevSc = p.scores[levelIdx] || 0;
-  if (score > prevSc) p.scores[levelIdx] = score;
-  if (stars >= 1 && levelIdx + 1 >= (p.unlocked || 1)) {
-    p.unlocked = levelIdx + 2;
+// ===== Level Progress (World-based) =====
+export function updateLevelProgress(p, worldId, levelIndex, score, stars) {
+  if (!p.worlds[worldId]) p.worlds[worldId] = defaultWorldProgress();
+  const wp = p.worlds[worldId];
+  const prev = wp.stars[levelIndex] || 0;
+  if (stars > prev) wp.stars[levelIndex] = stars;
+  const prevSc = wp.scores[levelIndex] || 0;
+  if (score > prevSc) wp.scores[levelIndex] = score;
+  if (stars >= 1 && levelIndex + 1 >= (wp.levelReached || 0)) {
+    wp.levelReached = levelIndex + 2;
   }
   saveProgress(p);
+}
+
+export function getWorldProgress(p, worldId) {
+  return p.worlds[worldId] || defaultWorldProgress();
+}
+
+export function getTotalStarsInWorld(p, worldId) {
+  const wp = p.worlds[worldId];
+  if (!wp || !wp.stars) return 0;
+  return Object.values(wp.stars).reduce((s, v) => s + (v || 0), 0);
+}
+
+export function getTotalStarsAll(p) {
+  let total = 0;
+  for (const id of WORLD_IDS) total += getTotalStarsInWorld(p, id);
+  return total;
 }
 
 export function getStarsForScore(correct, total) {

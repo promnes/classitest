@@ -1,43 +1,47 @@
-// ===== Emoji Kingdom — UI Module =====
-// Audio/Music layers, Animations, Particles, Theme system, Performance mode, Tooltips
+// ===== Emoji Kingdom v3 — UI Module =====
+// Audio/Music with mute, Animations, Particles, World theme system, Performance mode, Tooltips
 
-import { THEME_GROUPS, THEMES } from './config.js';
+// ===== Sound Mute System =====
+let soundMuted = false;
+const MUTE_KEY = 'classify_math_muted';
+
+export function initMuteState(savedMute) {
+  try {
+    if (savedMute != null) { soundMuted = !!savedMute; return; }
+    const stored = localStorage.getItem(MUTE_KEY);
+    if (stored != null) soundMuted = stored === 'true';
+  } catch(e) {}
+}
+
+export function toggleMute() {
+  soundMuted = !soundMuted;
+  try { localStorage.setItem(MUTE_KEY, soundMuted ? 'true' : 'false'); } catch(e) {}
+  if (soundMuted) stopMusic();
+  return soundMuted;
+}
+
+export function isMuted() { return soundMuted; }
 
 // ===== Performance Mode =====
 let lowPerfMode = false;
 export function isLowPerf() { return lowPerfMode; }
 export function setLowPerf(v) { lowPerfMode = v; }
 export function detectPerformance() {
-  // Simple heuristic: check device memory or hardwareConcurrency
-  if (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 2) {
-    lowPerfMode = true;
-  }
-  if (navigator.deviceMemory && navigator.deviceMemory <= 2) {
-    lowPerfMode = true;
-  }
+  if (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 2) lowPerfMode = true;
+  if (navigator.deviceMemory && navigator.deviceMemory <= 2) lowPerfMode = true;
 }
 
 export function getParticleCount(base) {
   return lowPerfMode ? Math.max(1, Math.floor(base / 3)) : base;
 }
 
-// ===== Theme System =====
-export function getTheme(levelIdx) {
-  return THEMES[Math.min(levelIdx, THEMES.length - 1)];
-}
-
-export function getThemeGroup(levelIdx) {
-  const theme = getTheme(levelIdx);
-  return THEME_GROUPS[theme.group] || THEME_GROUPS.nature;
-}
-
-export function applyTheme(levelIdx, gameEl, doneEl) {
-  const theme = getTheme(levelIdx);
+// ===== World Theme System =====
+export function applyWorldTheme(worldGradient, worldAccent, gameEl, doneEl) {
   if (gameEl) {
-    gameEl.style.background = theme.bg;
-    gameEl.style.setProperty('--accent', theme.accent);
+    gameEl.style.background = worldGradient;
+    gameEl.style.setProperty('--accent', worldAccent);
   }
-  if (doneEl) doneEl.style.background = theme.bg;
+  if (doneEl) doneEl.style.background = worldGradient;
 }
 
 // ===== Audio System =====
@@ -58,6 +62,7 @@ function ctx() {
 }
 
 function tone(freq, dur, type, vol) {
+  if (soundMuted) return;
   try {
     const c = ctx();
     const o = c.createOscillator();
@@ -134,7 +139,7 @@ function createLoop(freq, type, vol) {
 }
 
 export function startMusic() {
-  if (musicPlaying || lowPerfMode) return;
+  if (musicPlaying || lowPerfMode || soundMuted) return;
   musicPlaying = true;
   // Base loop - gentle sine
   const base = createLoop(220, 'sine', 0.03);
