@@ -174,6 +174,67 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',Tahoma,G
 .cd-wrap.level-timer{display:block}
 .cd-fill.paused{animation:none !important;transition:none !important}
 
+/* === COINS DISPLAY === */
+.coins-bar{display:flex;align-items:center;justify-content:center;gap:clamp(8px,2vmin,14px);flex-shrink:0;flex-wrap:wrap}
+.coin-display{display:inline-flex;align-items:center;gap:4px;background:linear-gradient(135deg,rgba(251,191,36,.35),rgba(245,158,11,.25));border:2px solid rgba(251,191,36,.5);border-radius:20px;padding:4px 14px;font-size:clamp(14px,2.8vmin,18px);font-weight:900;color:#fbbf24;text-shadow:0 1px 4px rgba(0,0,0,.3);backdrop-filter:blur(4px)}
+.coin-display .coin-icon{font-size:clamp(16px,3vmin,22px);animation:coinSpin 3s linear infinite}
+@keyframes coinSpin{0%,80%{transform:rotateY(0)}90%{transform:rotateY(180deg)}100%{transform:rotateY(360deg)}}
+.nav-btn{background:rgba(255,255,255,.2);border:2px solid rgba(255,255,255,.3);border-radius:14px;padding:6px 14px;font-size:clamp(12px,2.2vmin,16px);font-weight:800;color:#fff;cursor:pointer;transition:all .25s;backdrop-filter:blur(4px);text-shadow:0 1px 3px rgba(0,0,0,.2)}
+.nav-btn:hover{background:rgba(255,255,255,.35);transform:translateY(-2px) scale(1.05)}
+.nav-btn:active{transform:translateY(1px) scale(.96)}
+.nav-btn.shop{border-color:rgba(251,191,36,.5);background:linear-gradient(135deg,rgba(251,191,36,.2),rgba(245,158,11,.15))}
+.nav-btn.badges{border-color:rgba(168,85,247,.5);background:linear-gradient(135deg,rgba(168,85,247,.2),rgba(139,92,246,.15))}
+
+/* === COIN EARN ANIMATION (done screen) === */
+.coin-earned{display:flex;align-items:center;justify-content:center;gap:6px;font-size:clamp(18px,4vmin,26px);font-weight:900;color:#fbbf24;text-shadow:0 2px 8px rgba(0,0,0,.3);animation:coinBounceIn .6s cubic-bezier(.34,1.56,.64,1)}
+@keyframes coinBounceIn{0%{opacity:0;transform:scale(0) rotate(-20deg)}60%{transform:scale(1.2) rotate(5deg)}100%{opacity:1;transform:scale(1) rotate(0)}}
+.coin-fly{position:fixed;pointer-events:none;z-index:9999;font-size:28px;animation:coinFlyUp 1.2s ease-out forwards}
+@keyframes coinFlyUp{0%{opacity:1;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(-120px) scale(.4)}}
+
+/* === SHOP SCREEN === */
+#shop-screen{flex-direction:column;align-items:center;padding:clamp(8px,2vmin,16px);gap:clamp(8px,2vmin,14px);overflow-y:auto;background:var(--bg,linear-gradient(135deg,#fbbf24,#f59e0b))}
+.shop-title{font-size:clamp(26px,7vmin,40px);font-weight:900;color:#fff;text-shadow:0 3px 12px rgba(0,0,0,.4);text-align:center;flex-shrink:0}
+.shop-coins{font-size:clamp(16px,3vmin,20px);font-weight:800;color:#fef08a;text-shadow:0 1px 4px rgba(0,0,0,.3);flex-shrink:0}
+.shop-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:clamp(8px,2vmin,12px);width:100%;max-width:480px;padding:clamp(4px,1vmin,8px) 0}
+.shop-item{position:relative;background:linear-gradient(145deg,rgba(255,255,255,.3),rgba(255,255,255,.12));border:3px solid rgba(255,255,255,.35);border-radius:clamp(14px,3vmin,22px);padding:clamp(10px,2.5vmin,16px);text-align:center;cursor:pointer;transition:all .25s;backdrop-filter:blur(6px)}
+.shop-item:hover{transform:translateY(-4px) scale(1.04);background:rgba(255,255,255,.35)}
+.shop-item:active{transform:translateY(2px) scale(.97)}
+.shop-item.equipped{border-color:#22c55e;box-shadow:0 0 16px rgba(34,197,94,.4)}
+.shop-item.owned{border-color:rgba(59,130,246,.5)}
+.shop-item.locked{opacity:.7}
+.si-preview{width:60px;height:60px;margin:0 auto 6px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:32px;box-shadow:0 4px 0 rgba(0,0,0,.15),0 6px 12px rgba(0,0,0,.1)}
+.si-name{font-size:clamp(13px,2.4vmin,16px);font-weight:800;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.3)}
+.si-price{font-size:clamp(12px,2vmin,14px);font-weight:700;color:#fef08a;margin-top:2px}
+.si-btn{margin-top:6px;border:none;border-radius:10px;padding:5px 16px;font-size:clamp(11px,2vmin,14px);font-weight:800;cursor:pointer;transition:all .2s}
+.si-btn.buy{background:linear-gradient(135deg,#f59e0b,#f97316);color:#fff;box-shadow:0 3px 0 #c2410c}
+.si-btn.equip{background:linear-gradient(135deg,#3b82f6,#2563eb);color:#fff;box-shadow:0 3px 0 #1d4ed8}
+.si-btn.equipped{background:rgba(34,197,94,.5);color:#fff;cursor:default}
+.si-btn.cant{background:rgba(255,255,255,.15);color:rgba(255,255,255,.5);cursor:not-allowed}
+.si-btn:active:not(.cant):not(.equipped){transform:translateY(2px)}
+
+/* === BADGE SCREEN === */
+#badge-screen{flex-direction:column;align-items:center;padding:clamp(8px,2vmin,16px);gap:clamp(8px,2vmin,14px);overflow-y:auto;background:var(--bg,linear-gradient(135deg,#a855f7,#7c3aed))}
+.badge-title{font-size:clamp(26px,7vmin,40px);font-weight:900;color:#fff;text-shadow:0 3px 12px rgba(0,0,0,.4);text-align:center;flex-shrink:0}
+.badge-sub{font-size:clamp(14px,2.8vmin,18px);color:rgba(255,255,255,.85);font-weight:600;flex-shrink:0}
+.badge-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:clamp(8px,2vmin,12px);width:100%;max-width:480px;padding:clamp(4px,1vmin,8px) 0}
+.badge-card{background:linear-gradient(145deg,rgba(255,255,255,.25),rgba(255,255,255,.1));border:3px solid rgba(255,255,255,.3);border-radius:clamp(14px,3vmin,22px);padding:clamp(10px,2.5vmin,16px);text-align:center;transition:all .25s;backdrop-filter:blur(6px)}
+.badge-card.unlocked{border-color:rgba(251,191,36,.5);box-shadow:0 0 14px rgba(251,191,36,.3);animation:badgeGlow 2.5s ease-in-out infinite}
+@keyframes badgeGlow{0%,100%{box-shadow:0 0 8px rgba(251,191,36,.2)}50%{box-shadow:0 0 20px rgba(251,191,36,.5)}}
+.badge-card.locked{opacity:.55}
+.bc-emoji{font-size:clamp(36px,8vmin,52px);filter:drop-shadow(0 2px 6px rgba(0,0,0,.3))}
+.badge-card.locked .bc-emoji{filter:grayscale(1) drop-shadow(0 2px 6px rgba(0,0,0,.2))}
+.bc-name{font-size:clamp(12px,2.2vmin,15px);font-weight:800;color:#fff;margin-top:4px;text-shadow:0 1px 3px rgba(0,0,0,.3)}
+.bc-desc{font-size:clamp(10px,1.8vmin,12px);color:rgba(255,255,255,.75);margin-top:2px;font-weight:600}
+.bc-date{font-size:clamp(9px,1.5vmin,11px);color:rgba(255,255,255,.5);margin-top:3px}
+
+/* === NEW BADGE POPUP === */
+.badge-popup{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(0);z-index:10000;background:linear-gradient(135deg,#1e1b4b,#312e81);border:3px solid #fbbf24;border-radius:24px;padding:24px 32px;text-align:center;animation:badgePopIn .6s cubic-bezier(.34,1.56,.64,1) forwards;box-shadow:0 0 60px rgba(251,191,36,.3),0 20px 40px rgba(0,0,0,.4)}
+@keyframes badgePopIn{0%{transform:translate(-50%,-50%) scale(0) rotate(-10deg);opacity:0}100%{transform:translate(-50%,-50%) scale(1) rotate(0);opacity:1}}
+.badge-popup .bp-emoji{font-size:60px;animation:emojiWiggle 1.5s ease-in-out infinite}
+.badge-popup .bp-title{font-size:20px;font-weight:900;color:#fbbf24;margin-top:8px;text-shadow:0 2px 8px rgba(0,0,0,.3)}
+.badge-popup .bp-name{font-size:16px;color:#e9d5ff;margin-top:4px;font-weight:700}
+.badge-popup .bp-close{margin-top:12px;border:none;background:rgba(255,255,255,.15);color:#fff;border-radius:10px;padding:6px 24px;font-size:14px;font-weight:700;cursor:pointer}
+
 /* === FOOTER & MISC === */
 .g-foot{display:flex;gap:clamp(4px,1vmin,8px);flex-shrink:0;flex-wrap:wrap;justify-content:center}
 .f-btn{background:rgba(255,255,255,.25);border:none;border-radius:12px;padding:clamp(7px,1.8vmin,12px) clamp(14px,3.5vmin,24px);font-size:clamp(14px,2.5vmin,18px);font-weight:800;color:#fff;cursor:pointer;transition:all .2s;text-shadow:0 1px 3px rgba(0,0,0,.3)}
@@ -249,8 +310,29 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',Tahoma,G
 <!-- LEVEL SELECT -->
 <div id="lvl-screen" class="screen active">
   <div class="ls-title" id="ls-t">🧠 لعبة الذاكرة</div>
+  <div class="coins-bar">
+    <div class="coin-display"><span class="coin-icon">🪙</span> <span id="coin-count">0</span></div>
+    <button class="nav-btn shop" onclick="showScreen('shop-screen')">🛒 <span id="nav-shop-txt">المتجر</span></button>
+    <button class="nav-btn badges" onclick="showScreen('badge-screen')">🏅 <span id="nav-badge-txt">الإنجازات</span></button>
+  </div>
   <div class="ls-sub" id="ls-s">اختر المستوى لتبدأ!</div>
   <div class="ls-grid" id="ls-g"></div>
+</div>
+
+<!-- SHOP -->
+<div id="shop-screen" class="screen">
+  <div class="shop-title" id="shop-t">🛒 المتجر</div>
+  <div class="shop-coins"><span class="coin-icon">🪙</span> <span id="shop-coins">0</span></div>
+  <div class="shop-grid" id="shop-grid"></div>
+  <div class="g-foot"><button class="f-btn" onclick="showScreen('lvl-screen')">🏠 رجوع</button></div>
+</div>
+
+<!-- BADGES -->
+<div id="badge-screen" class="screen">
+  <div class="badge-title" id="badge-t">🏅 الإنجازات</div>
+  <div class="badge-sub" id="badge-sub">0/10</div>
+  <div class="badge-grid" id="badge-grid"></div>
+  <div class="g-foot"><button class="f-btn" onclick="showScreen('lvl-screen')">🏠 رجوع</button></div>
 </div>
 
 <!-- GAME -->
@@ -293,6 +375,7 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',Tahoma,G
     <div class="d-st"><div class="d-st-e">🎯</div><div class="d-st-v" id="d-mv2">0</div><div class="d-st-l" id="d-mvl2">المحاولات</div></div>
     <div class="d-st"><div class="d-st-e">⏱️</div><div class="d-st-v" id="d-tm">0:00</div><div class="d-st-l" id="d-tml">الوقت</div></div>
   </div>
+  <div class="coin-earned" id="d-coins" style="display:none"><span class="coin-icon">🪙</span> +<span id="d-coins-val">0</span></div>
   <div class="d-btns">
     <button class="d-btn pri" id="d-nx" onclick="nextLevel()">➡️ التالي</button>
     <button class="d-btn shr" id="d-sh" onclick="shareResult()">📤 مشاركة</button>
@@ -499,12 +582,24 @@ document.documentElement.lang=LANG;document.documentElement.dir=LANG==='ar'?'rtl
 const I={
 ar:{title:'🧠 لعبة الذاكرة',sub:'اختر المستوى لتبدأ!',moves:'المحاولات',pairs:'الأزواج',sets:'المجموعات',time:'الوقت',hint:'اضغط على أي بطاقة للبدء!',score:'النقاط',congrats:'مبروك!',excellent:'🌟 ممتاز!',great:'🎉 أحسنت!',good:'👍 جيد!',tryMore:'💪 حاول أكثر!',done:'أتممت المستوى!',next:'➡️ التالي',share:'📤 مشاركة',again:'🔄 إعادة',levels:'🏠 المستويات',back:'🏠 رجوع',locked:'🔒',mech:{timed:'⏱️ تذكّر!',moving:'🔀 متحركة!',masked:'🎭 مُقنّعة!',fog:'🌫️ ضباب!',triple:'🔱 ثلاثي!',boss:'👑 الزعيم!'},mechHint:{timed:'تذكر مواقع البطاقات!',moving:'البطاقات تتبدل كل ٣ محاولات!',masked:'بعض البطاقات تخدعك!',fog:'اضغط الضباب أولاً!',triple:'طابق ٣ بطاقات متشابهة!',boss:'كل التحديات + مؤقت!'},timeUp:'⏰ انتهى الوقت!',remember:'👀 تذكّر!',shuffling:'🔀 تبديل...',
 shareText:'حققت {score} نقطة في المستوى {level} من لعبة الذاكرة! ⭐{stars}',dda:{easy:'🟢 سهل',normal:'🔵 عادي',hard:'🔴 صعب'},hintMsg:'💡 تلميح!',
+shop:'🛒 المتجر',badges:'🏅 الإنجازات',coinsEarned:'+{n} عملة',buy:'شراء',equip:'تجهيز',equipped:'✅ مجهز',cantAfford:'لا يكفي',owned:'مملوك',newBadge:'🎉 إنجاز جديد!',badgeCount:'{n}/{total} إنجاز',
+badgeNames:['🐣 أول خطوة','⭐ جامع النجوم','🌟 سيد النجوم','🏆 جولة مثالية','🌿 مستكشف الطبيعة','🌊 غواص المحيط','🏙️ متجول المدينة','⚔️ المغامر','🤖 عبقري التقنية','👑 بطل العالم'],
+badgeDescs:['أكمل أول مستوى','اجمع 10 نجوم','اجمع 30 نجمة','احصل على 3 نجوم','أكمل مستويات 1-4','أكمل مستويات 5-8','أكمل مستويات 9-12','أكمل مستويات 13-16','أكمل مستويات 17-20','أكمل كل المستويات'],
+themeNames:['افتراضي','✨ مجرّة','🍬 حلوى','💎 ألماس','🔥 نار','🌈 قوس قزح'],
 lvNames:['مزرعة الحيوانات','سلة الفواكه','عالم البحار','حديقة الحشرات','سماء وطقس','حديقة الورد','وادي الخضار','مطبخ لذيذ','عالم المركبات','استكشاف الفضاء','ملعب الرياضة','عالم الموسيقى','رحلة السفاري','عالم الطيور','ورشة الأدوات','عالم الأزياء','مدينة المباني','يوم المدرسة','عالم التقنية','🌍 بطل العالم']},
 en:{title:'🧠 Memory Match',sub:'Choose a level to start!',moves:'Moves',pairs:'Pairs',sets:'Sets',time:'Time',hint:'Tap any card to start!',score:'Score',congrats:'Congrats!',excellent:'🌟 Excellent!',great:'🎉 Great!',good:'👍 Good!',tryMore:'💪 Try More!',done:'Level complete!',next:'➡️ Next',share:'📤 Share',again:'🔄 Replay',levels:'🏠 Levels',back:'🏠 Back',locked:'🔒',mech:{timed:'⏱️ Peek!',moving:'🔀 Moving!',masked:'🎭 Masked!',fog:'🌫️ Fog!',triple:'🔱 Triple!',boss:'👑 Boss!'},mechHint:{timed:'Memorize the cards!',moving:'Cards shuffle every 3 moves!',masked:'Some cards trick you first!',fog:'Tap fog to reveal!',triple:'Match 3 cards!',boss:'All challenges + timer!'},timeUp:'⏰ Time\'s up!',remember:'👀 Remember!',shuffling:'🔀 Shuffling...',
 shareText:'I scored {score} on Level {level} in Memory Match! ⭐{stars}',dda:{easy:'🟢 Easy',normal:'🔵 Normal',hard:'🔴 Hard'},hintMsg:'💡 Hint!',
+shop:'🛒 Shop',badges:'🏅 Badges',coinsEarned:'+{n} coins',buy:'Buy',equip:'Equip',equipped:'✅ Equipped',cantAfford:'Not enough',owned:'Owned',newBadge:'🎉 New Badge!',badgeCount:'{n}/{total} badges',
+badgeNames:['🐣 First Steps','⭐ Star Collector','🌟 Star Master','🏆 Perfect Round','🌿 Nature Explorer','🌊 Ocean Diver','🏙️ City Walker','⚔️ Adventurer','🤖 Tech Wizard','👑 World Champion'],
+badgeDescs:['Complete first level','Earn 10 stars','Earn 30 stars','Get 3 stars on any level','Complete levels 1-4','Complete levels 5-8','Complete levels 9-12','Complete levels 13-16','Complete levels 17-20','Complete all 20 levels'],
+themeNames:['Default','✨ Galaxy','🍬 Candy','💎 Diamond','🔥 Fire','🌈 Rainbow'],
 lvNames:['Farm Friends','Fruit Basket','Ocean World','Bug Garden','Sky Watch','Flower Garden','Veggie Valley','Yummy Kitchen','On the Move','Space Quest','Sports Arena','Music Studio','Wild Safari','Bird Paradise','Tool Workshop','Fashion Show','City Builder','School Days','Tech World','🌍 World Champion']},
 pt:{title:'🧠 Jogo da Memória',sub:'Escolha um nível!',moves:'Jogadas',pairs:'Pares',sets:'Conjuntos',time:'Tempo',hint:'Toque para começar!',score:'Pontos',congrats:'Parabéns!',excellent:'🌟 Excelente!',great:'🎉 Muito Bem!',good:'👍 Bom!',tryMore:'💪 Tente Mais!',done:'Nível completo!',next:'➡️ Próximo',share:'📤 Compartilhar',again:'🔄 Repetir',levels:'🏠 Níveis',back:'🏠 Voltar',locked:'🔒',mech:{timed:'⏱️ Memorize!',moving:'🔀 Mover!',masked:'🎭 Mascarado!',fog:'🌫️ Névoa!',triple:'🔱 Triplo!',boss:'👑 Chefe!'},mechHint:{timed:'Memorize as cartas!',moving:'Cartas mudam a cada 3!',masked:'Algumas enganam primeiro!',fog:'Toque a névoa primeiro!',triple:'Combine 3 cartas!',boss:'Todos desafios + tempo!'},timeUp:'⏰ Tempo esgotado!',remember:'👀 Lembre-se!',shuffling:'🔀 Movendo...',
 shareText:'Fiz {score} pontos no Nível {level} do Jogo da Memória! ⭐{stars}',dda:{easy:'🟢 Fácil',normal:'🔵 Normal',hard:'🔴 Difícil'},hintMsg:'💡 Dica!',
+shop:'🛒 Loja',badges:'🏅 Conquistas',coinsEarned:'+{n} moedas',buy:'Comprar',equip:'Equipar',equipped:'✅ Equipado',cantAfford:'Sem moedas',owned:'Comprado',newBadge:'🎉 Nova Conquista!',badgeCount:'{n}/{total} conquistas',
+badgeNames:['🐣 Primeiros Passos','⭐ Coletor de Estrelas','🌟 Mestre Estelar','🏆 Rodada Perfeita','🌿 Explorador Natural','🌊 Mergulhador','🏙️ Caminhante Urbano','⚔️ Aventureiro','🤖 Gênio Tech','👑 Campeão Mundial'],
+badgeDescs:['Complete o primeiro nível','Ganhe 10 estrelas','Ganhe 30 estrelas','3 estrelas em um nível','Complete níveis 1-4','Complete níveis 5-8','Complete níveis 9-12','Complete níveis 13-16','Complete níveis 17-20','Complete todos 20 níveis'],
+themeNames:['Padrão','✨ Galáxia','🍬 Doce','💎 Diamante','🔥 Fogo','🌈 Arco-íris'],
 lvNames:['Amigos da Fazenda','Cesta de Frutas','Mundo do Mar','Jardim de Insetos','Céu e Clima','Jardim de Flores','Vale dos Vegetais','Cozinha Gostosa','Em Movimento','Missão Espacial','Arena Esportiva','Estúdio Musical','Safari Selvagem','Paraíso dos Pássaros','Oficina de Ferramentas','Desfile de Moda','Construtor de Cidades','Dia Escolar','Mundo Tech','🌍 Campeão Mundial']}
 };
 const t=I[LANG]||I.en;
@@ -666,6 +761,160 @@ function saveDDA(){localStorage.setItem('classify_memory_dda',JSON.stringify(dda
 let progress=JSON.parse(localStorage.getItem('classify_memory_progress')||'{"unlocked":1,"scores":{},"stars":{}}');
 function saveProgress(){localStorage.setItem('classify_memory_progress',JSON.stringify(progress))}
 
+// ===== WALLET (Coins) =====
+let wallet=JSON.parse(localStorage.getItem('classify_memory_wallet')||'{"coins":0,"owned":["default"],"equipped":"default","totalEarned":0}');
+function saveWallet(){localStorage.setItem('classify_memory_wallet',JSON.stringify(wallet))}
+
+// ===== SHOP THEMES =====
+const SHOP_ITEMS=[
+  {id:'default',icon:'❓',price:0,cf1:'#6366f1',cf2:'#4f46e5',frontIcon:'❓'},
+  {id:'galaxy',icon:'✨',price:100,cf1:'#312e81',cf2:'#1e1b4b',frontIcon:'✨'},
+  {id:'candy',icon:'🍬',price:150,cf1:'#ec4899',cf2:'#be185d',frontIcon:'🍬'},
+  {id:'diamond',icon:'💎',price:200,cf1:'#0ea5e9',cf2:'#0369a1',frontIcon:'💎'},
+  {id:'fire',icon:'🔥',price:250,cf1:'#ef4444',cf2:'#b91c1c',frontIcon:'🔥'},
+  {id:'rainbow',icon:'🌈',price:300,cf1:'#a855f7',cf2:'#6d28d9',frontIcon:'🌈'},
+];
+
+// ===== BADGES =====
+let badgeData=JSON.parse(localStorage.getItem('classify_memory_badges')||'{"unlocked":[],"dates":{}}');
+function saveBadges(){localStorage.setItem('classify_memory_badges',JSON.stringify(badgeData))}
+
+const BADGE_DEFS=[
+  {id:'first',emoji:'🐣',check:()=>Object.keys(progress.stars).length>=1},
+  {id:'stars10',emoji:'⭐',check:()=>totalStarsEarned()>=10},
+  {id:'stars30',emoji:'🌟',check:()=>totalStarsEarned()>=30},
+  {id:'perfect',emoji:'🏆',check:()=>Object.values(progress.stars).some(s=>s>=3)},
+  {id:'nature',emoji:'🌿',check:()=>[0,1,2,3].every(i=>progress.stars[i]>=1)},
+  {id:'ocean',emoji:'🌊',check:()=>[4,5,6,7].every(i=>progress.stars[i]>=1)},
+  {id:'city',emoji:'🏙️',check:()=>[8,9,10,11].every(i=>progress.stars[i]>=1)},
+  {id:'adventure',emoji:'⚔️',check:()=>[12,13,14,15].every(i=>progress.stars[i]>=1)},
+  {id:'tech',emoji:'🤖',check:()=>[16,17,18,19].every(i=>progress.stars[i]>=1)},
+  {id:'champion',emoji:'👑',check:()=>progress.unlocked>20},
+];
+function totalStarsEarned(){return Object.values(progress.stars).reduce((s,v)=>s+(v||0),0)}
+
+function sfxCoin(){tone(1047,.06,'sine',.08);setTimeout(()=>tone(1319,.08,'sine',.1),60)}
+function sfxBadge(){[880,1047,1319,1568].forEach((f,i)=>setTimeout(()=>tone(f,.15,'sine',.12),i*100))}
+
+// ===== RENDER SHOP =====
+function renderShop(){
+  const grid=document.getElementById('shop-grid');
+  if(!grid)return;
+  grid.innerHTML='';
+  document.getElementById('shop-coins').textContent=wallet.coins;
+  const names=t.themeNames||[];
+  SHOP_ITEMS.forEach((item,i)=>{
+    const isOwned=wallet.owned.includes(item.id);
+    const isEquipped=wallet.equipped===item.id;
+    const canBuy=wallet.coins>=item.price;
+    const card=document.createElement('div');
+    card.className='shop-item'+(isEquipped?' equipped':isOwned?' owned':canBuy?'':' locked');
+    const preview=document.createElement('div');
+    preview.className='si-preview';
+    preview.style.background=`linear-gradient(145deg,${item.cf1},${item.cf2})`;
+    preview.textContent=item.frontIcon;
+    card.appendChild(preview);
+    const name=document.createElement('div');name.className='si-name';name.textContent=names[i]||item.id;card.appendChild(name);
+    if(!isOwned){
+      const price=document.createElement('div');price.className='si-price';price.textContent='🪙 '+item.price;card.appendChild(price);
+    }
+    const btn=document.createElement('button');btn.className='si-btn';
+    if(isEquipped){btn.className+=' equipped';btn.textContent=t.equipped||'✅ Equipped';btn.disabled=true}
+    else if(isOwned){btn.className+=' equip';btn.textContent=t.equip||'Equip';btn.onclick=()=>{wallet.equipped=item.id;saveWallet();renderShop()}}
+    else if(canBuy){btn.className+=' buy';btn.textContent=(t.buy||'Buy')+' 🪙'+item.price;btn.onclick=()=>{buyItem(item)}}
+    else{btn.className+=' cant';btn.textContent=t.cantAfford||'Not enough';btn.disabled=true}
+    card.appendChild(btn);
+    grid.appendChild(card);
+  });
+}
+
+function buyItem(item){
+  if(wallet.coins<item.price)return;
+  wallet.coins-=item.price;
+  wallet.owned.push(item.id);
+  wallet.equipped=item.id;
+  saveWallet();
+  sfxCoin();
+  renderShop();
+  updateCoinDisplays();
+}
+
+// ===== RENDER BADGES =====
+function renderBadges(){
+  const grid=document.getElementById('badge-grid');
+  if(!grid)return;
+  grid.innerHTML='';
+  const unlockedCount=badgeData.unlocked.length;
+  document.getElementById('badge-sub').textContent=(t.badgeCount||'{n}/{total}').replace('{n}',unlockedCount).replace('{total}',BADGE_DEFS.length);
+  const names=t.badgeNames||[];
+  const descs=t.badgeDescs||[];
+  BADGE_DEFS.forEach((b,i)=>{
+    const isUnlocked=badgeData.unlocked.includes(b.id);
+    const card=document.createElement('div');
+    card.className='badge-card'+(isUnlocked?' unlocked':' locked');
+    card.innerHTML=`<div class="bc-emoji">${b.emoji}</div><div class="bc-name">${names[i]||b.id}</div><div class="bc-desc">${descs[i]||''}</div>${isUnlocked&&badgeData.dates[b.id]?'<div class="bc-date">'+badgeData.dates[b.id]+'</div>':''}`;
+    grid.appendChild(card);
+  });
+}
+
+// ===== CHECK BADGES =====
+function checkBadges(){
+  const newBadges=[];
+  BADGE_DEFS.forEach(b=>{
+    if(!badgeData.unlocked.includes(b.id)&&b.check()){
+      badgeData.unlocked.push(b.id);
+      badgeData.dates[b.id]=new Date().toLocaleDateString();
+      newBadges.push(b);
+    }
+  });
+  if(newBadges.length>0){
+    saveBadges();
+    showBadgePopup(newBadges[0]);
+  }
+}
+
+function showBadgePopup(badge){
+  const idx=BADGE_DEFS.indexOf(badge);
+  const name=(t.badgeNames||[])[idx]||badge.id;
+  const popup=document.createElement('div');popup.className='badge-popup';
+  popup.innerHTML=`<div class="bp-emoji">${badge.emoji}</div><div class="bp-title">${t.newBadge||'🎉 New Badge!'}</div><div class="bp-name">${name}</div><button class="bp-close" onclick="this.parentElement.remove()">OK</button>`;
+  document.body.appendChild(popup);
+  sfxBadge();
+  if(window.spawnConfetti)spawnConfetti(innerWidth/2,innerHeight*.3,30);
+  setTimeout(()=>{if(popup.parentElement)popup.remove()},5000);
+}
+
+// ===== EARN COINS =====
+function earnCoins(stars,isFirstTime){
+  if(stars<=0)return 0;
+  const base=stars===3?50:stars===2?25:10;
+  const bonus=isFirstTime?20:0;
+  const mechBonus=mechanic==='boss'?15:mechanic==='classic'?0:5;
+  const total=base+bonus+mechBonus;
+  wallet.coins+=total;
+  wallet.totalEarned+=total;
+  saveWallet();
+  return total;
+}
+
+function spawnCoinFly(n){
+  const count=Math.min(n>30?8:n>15?5:3,8);
+  for(let i=0;i<count;i++){
+    setTimeout(()=>{
+      const el=document.createElement('div');el.className='coin-fly';el.textContent='🪙';
+      el.style.left=(innerWidth*.3+Math.random()*innerWidth*.4)+'px';
+      el.style.top=(innerHeight*.45+Math.random()*40)+'px';
+      document.body.appendChild(el);
+      setTimeout(()=>el.remove(),1300);
+    },i*120);
+  }
+}
+
+function updateCoinDisplays(){
+  const el=document.getElementById('coin-count');if(el)el.textContent=wallet.coins;
+  const el2=document.getElementById('shop-coins');if(el2)el2.textContent=wallet.coins;
+}
+
 // ===== HELPERS =====
 function shuffle(arr){const a=[...arr];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
 function fmtTime(s){return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')}
@@ -689,8 +938,10 @@ function calcScore(moves,pairs,duration,matched){
 function showScreen(id){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
-  if(id==='lvl-screen'){renderLevelSelect();if(window.stopBg)stopBg();ddaClearHintTimer();stopLevelTimer()}
+  if(id==='lvl-screen'){renderLevelSelect();updateCoinDisplays();if(window.stopBg)stopBg();ddaClearHintTimer();stopLevelTimer()}
   if(id==='done-screen'){if(window.stopBg)stopBg()}
+  if(id==='shop-screen'){renderShop()}
+  if(id==='badge-screen'){renderBadges()}
 }
 
 function renderLevelSelect(){
@@ -728,16 +979,27 @@ function startLevel(idx){
   const allThemes=[baseTheme,...groupVariants];
   const theme=allThemes[Math.floor(Math.random()*allThemes.length)];
 
-  // Pick random front icon for this group
-  const icons=FRONT_ICONS[currentGroup];
-  currentFrontIcon=icons[Math.floor(Math.random()*icons.length)];
+  // Pick random front icon for this group (or use shop theme)
+  const equipped=SHOP_ITEMS.find(si=>si.id===wallet.equipped);
+  if(equipped&&equipped.id!=='default'){
+    currentFrontIcon=equipped.frontIcon;
+  } else {
+    const icons=FRONT_ICONS[currentGroup];
+    currentFrontIcon=icons[Math.floor(Math.random()*icons.length)];
+  }
 
   // Apply theme
   const gs=document.getElementById('game-screen');
   gs.dataset.group=currentGroup;
   gs.style.background=theme.bg;
-  gs.style.setProperty('--cf1',theme.cf1);
-  gs.style.setProperty('--cf2',theme.cf2);
+  // Apply shop theme card colors if non-default equipped
+  if(equipped&&equipped.id!=='default'){
+    gs.style.setProperty('--cf1',equipped.cf1);
+    gs.style.setProperty('--cf2',equipped.cf2);
+  } else {
+    gs.style.setProperty('--cf1',theme.cf1);
+    gs.style.setProperty('--cf2',theme.cf2);
+  }
   document.getElementById('done-screen').style.background=theme.bg;
 
   document.getElementById('g-t').textContent=t.lvNames[idx];
@@ -1229,10 +1491,26 @@ function endGame(){
   ddaEndLevel(sc,stars);
 
   if(currentLevel>=0){
-    const prev=progress.stars[currentLevel]||0;if(stars>prev)progress.stars[currentLevel]=stars;
+    const prev=progress.stars[currentLevel]||0;
+    const isFirstTime=prev===0&&stars>=1;
+    if(stars>prev)progress.stars[currentLevel]=stars;
     const prevSc=progress.scores[currentLevel]||0;if(sc>prevSc)progress.scores[currentLevel]=sc;
     if(stars>=1&&currentLevel+1>=progress.unlocked)progress.unlocked=currentLevel+2;
     saveProgress();
+
+    // Earn coins
+    const coinsGained=earnCoins(stars,isFirstTime);
+    const dCoins=document.getElementById('d-coins');
+    const dCoinsVal=document.getElementById('d-coins-val');
+    if(coinsGained>0&&dCoins&&dCoinsVal){
+      dCoinsVal.textContent=coinsGained;
+      dCoins.style.display='';
+      sfxCoin();
+      setTimeout(()=>spawnCoinFly(coinsGained),300);
+    } else if(dCoins){dCoins.style.display='none'}
+
+    // Check badges
+    setTimeout(()=>checkBadges(),1200);
   }
   let title,emoji;
   if(isPartial){title=t.timeUp||'⏰ Time\'s up!';emoji='⏰'}
@@ -1277,9 +1555,15 @@ document.getElementById('d-mvl2').textContent=t.moves;
 document.getElementById('d-tml').textContent=t.time;
 document.getElementById('d-nx').textContent=t.next;
 document.getElementById('d-sh').textContent=t.share;
+// Phase D i18n
+if(t.shop)document.getElementById('nav-shop-txt').textContent=t.shop.replace(/🛒\s*/,'');
+if(t.badges)document.getElementById('nav-badge-txt').textContent=t.badges.replace(/🏅\s*/,'');
+if(t.shop)document.getElementById('shop-t').textContent=t.shop;
+if(t.badges)document.getElementById('badge-t').textContent=t.badges;
 
 // ===== INIT =====
 window.addEventListener('resize',()=>{if(document.getElementById('game-screen').classList.contains('active'))renderCards()});
+updateCoinDisplays();
 renderLevelSelect();
 </script>
 </body>
