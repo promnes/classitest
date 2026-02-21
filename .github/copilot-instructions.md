@@ -62,6 +62,13 @@ Payments:
 - `server/routes/payments.ts` - Stripe webhook handling
 - `shared/schema.ts` - Payment and transaction tables
 
+Games (MUST READ for any game-related task):
+- `docs/GAMES_MEMORY.md` - Complete game architecture, patterns, bugs, checklist
+- `client/public/games/` - HTML/Vanilla JS games (iframe-based)
+- `client/src/pages/ChildGames.tsx` - Game listing & iframe loader
+- `server/routes/index.ts` - seedDefaultGames() function
+- `server/routes/child.ts` - POST /api/child/complete-game endpoint
+
 If a file exists and is relevant but NOT read → **IMMEDIATE FAILURE**.
 
 The agent is **FORBIDDEN** from responding based on:
