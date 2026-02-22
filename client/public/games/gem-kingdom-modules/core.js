@@ -188,6 +188,16 @@ async function loadEconomy() {
   } catch (e) { /* optional */ }
 }
 
+// ===== ENGAGEMENT =====
+let ENGAGE = null;
+
+async function loadEngagement() {
+  try {
+    const mod = await import('./engagement.js');
+    ENGAGE = mod;
+  } catch (e) { /* optional */ }
+}
+
 // ===== INIT =====
 export async function initGame() {
   detectPerformance();
@@ -200,7 +210,7 @@ export async function initGame() {
   document.documentElement.dir = LANG === 'ar' ? 'rtl' : 'ltr';
 
   // Load optional modules in parallel
-  await Promise.allSettled([loadWorlds(), loadAudio(), loadIntelligence(), loadStory(), loadEconomy()]);
+  await Promise.allSettled([loadWorlds(), loadAudio(), loadIntelligence(), loadStory(), loadEconomy(), loadEngagement()]);
 
   setupEventListeners();
   showScreen('world');
@@ -211,6 +221,20 @@ export async function initGame() {
 
   // Check daily reward
   checkDailyReward();
+
+  // Comeback message
+  if (ENGAGE && S.progress.lastPlayTimestamp) {
+    const hoursSince = (Date.now() - S.progress.lastPlayTimestamp) / 3600000;
+    const comebackMsg = ENGAGE.getComebackMessage(hoursSince);
+    if (comebackMsg) {
+      const toast = qs('#comeback-toast');
+      if (toast) {
+        toast.querySelector('.comeback-text').textContent = comebackMsg;
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 5000);
+      }
+    }
+  }
 }
 
 // ===== GAME LOOP =====
@@ -1186,14 +1210,40 @@ async function endLevel() {
   const bossBonus = S.boss && S.boss.defeated ? 10 : 0;
   S.coinsEarned = baseCoins + bossBonus;
 
-  // Badges
+  // Snapshot previous stats for milestone detection
+  const prevStats = {
+    totalStars: getTotalStars(S.progress),
+    levelsCompleted: S.progress.levelsCompleted,
+    totalCoins: S.progress.totalCoinsEarned,
+  };
+
+  // Badges via engagement.js micro-badges
   S.badges = [];
   const elapsed = (Date.now() - S.levelStartTime) / 1000;
-  if (elapsed < 30 && won) S.badges.push(t('badgeFast'));
-  if (!S.hintUsed && won) S.badges.push(t('badgeNoHint'));
-  if (stars === 3) S.badges.push(t('badgePerfect'));
-  if (S.maxCombo >= 5) S.badges.push(t('badgeCombo'));
-  if (S.specialsUsed >= 3) S.badges.push(t('badgeSpecial'));
+  if (ENGAGE) {
+    const microStats = {
+      specialsCreated: S.specialsUsed,
+      maxCombo: S.maxCombo,
+      powerCombos: S.progress.totalPowerCombos || 0,
+      movesLeftPct: S.levelDef.moves > 0 ? Math.round((S.movesLeft / S.levelDef.moves) * 100) : 0,
+      timeSec: elapsed,
+      obstaclesCleared: 0,
+      badSwaps: 0,
+      totalSwaps: S.levelDef.moves - S.movesLeft,
+      bossDefeated: S.boss && S.boss.defeated,
+      rainbowsCreated: 0,
+      score: S.score,
+    };
+    const microBadges = ENGAGE.checkMicroBadges(microStats);
+    for (const mb of microBadges) S.badges.push(`${mb.icon} ${mb.text}`);
+  } else {
+    // Fallback inline badges
+    if (elapsed < 30 && won) S.badges.push(t('badgeFast'));
+    if (!S.hintUsed && won) S.badges.push(t('badgeNoHint'));
+    if (stars === 3) S.badges.push(t('badgePerfect'));
+    if (S.maxCombo >= 5) S.badges.push(t('badgeCombo'));
+    if (S.specialsUsed >= 3) S.badges.push(t('badgeSpecial'));
+  }
 
   // Save progress
   if (won) {
@@ -1227,11 +1277,44 @@ async function endLevel() {
     // Check achievements
     checkAchievements();
 
+    // Update lastPlayTimestamp
+    p.lastPlayTimestamp = Date.now();
+
     saveProgress(p);
 
     // DDA update
     if (INTEL) {
       INTEL.updateAfterLevel(p, S.score, S.maxCombo, elapsed, S.movesLeft);
+    }
+  }
+
+  // Milestone detection
+  if (ENGAGE && won) {
+    const curStats = {
+      totalStars: getTotalStars(S.progress),
+      levelsCompleted: S.progress.levelsCompleted,
+      totalCoins: S.progress.totalCoinsEarned,
+    };
+    const milestones = ENGAGE.getMilestoneMessage(curStats, prevStats);
+    if (milestones && milestones.length > 0) {
+      const m = milestones[0];
+      setTimeout(() => {
+        const popup = qs('#milestone-popup');
+        if (popup) {
+          popup.querySelector('.milestone-icon').textContent = m.icon;
+          popup.querySelector('.milestone-text').textContent = m.text;
+          popup.classList.add('show');
+          setTimeout(() => popup.classList.remove('show'), 4000);
+        }
+      }, 1200);
+    }
+  }
+
+  // Story Quiz (on boss defeat or last level of world)
+  if (STORY && (S.boss && S.boss.defeated || S.levelDef.isBoss && stars > 0)) {
+    const quiz = STORY.getQuiz(S.currentWorld);
+    if (quiz) {
+      setTimeout(() => showStoryQuiz(quiz), 5500);
     }
   }
 
@@ -1254,9 +1337,24 @@ async function endLevel() {
 function renderDoneScreen() {
   const won = S.stars > 0;
   qs('#done-emoji').textContent = won ? '🎉' : '😢';
+
+  // Near-miss message for lost games
+  let subtitle = '';
+  if (!won && ENGAGE) {
+    const objPct = S.objectiveTracker.length > 0
+      ? Math.round(S.objectiveTracker.reduce((s, o) => s + Math.min(o.current / o.target, 1), 0) / S.objectiveTracker.length * 100)
+      : 0;
+    const nearMiss = ENGAGE.getNearMissMessage({
+      objectivesPct: objPct,
+      score: S.score,
+      starThresholds: S.levelDef.starThresholds,
+    });
+    if (nearMiss) subtitle = nearMiss;
+  }
+
   qs('#done-title').textContent = won
     ? (S.stars === 3 ? t('excellent') : S.stars === 2 ? t('great') : t('good'))
-    : t('tryAgain');
+    : (subtitle || t('tryAgain'));
 
   // Stars
   const starsEl = qs('#done-stars');
@@ -1290,6 +1388,36 @@ function renderDoneScreen() {
 
   // Coins
   qs('#done-coins').innerHTML = `🪙 +${S.coinsEarned}`;
+
+  // Session Summary (engagement.js)
+  const sessionPanel = qs('#d-session');
+  if (sessionPanel && ENGAGE) {
+    const elapsed = (Date.now() - S.levelStartTime) / 1000;
+    const sessionData = {
+      levelsPlayed: 1,
+      levelsWon: S.stars > 0 ? 1 : 0,
+      totalScore: S.score,
+      totalCoins: S.coinsEarned,
+      totalStars: S.stars,
+      timeMinutes: Math.round(elapsed / 60),
+      badgesEarned: S.badges.length,
+    };
+    const summary = ENGAGE.getSessionSummary(sessionData);
+    if (summary) {
+      let html = `<div class="session-title">${summary.title}</div><div class="session-grid">`;
+      for (const st of summary.stats) {
+        html += `<div class="session-item"><div class="si-v">${st.icon} ${st.value}</div><div class="si-l">${st.label}</div></div>`;
+      }
+      html += `</div>`;
+      if (summary.message) html += `<div class="session-msg">${summary.message}</div>`;
+      sessionPanel.innerHTML = html;
+      sessionPanel.style.display = '';
+    } else {
+      sessionPanel.style.display = 'none';
+    }
+  } else if (sessionPanel) {
+    sessionPanel.style.display = 'none';
+  }
 
   // Did you know
   const dykTitle = qs('#done-dyk-title');
@@ -1347,6 +1475,57 @@ function renderDoneScreen() {
   shareBtn.textContent = `${t('share')} 📤`;
   shareBtn.addEventListener('click', () => shareResult());
   btnsEl.appendChild(shareBtn);
+
+  // Dismiss handlers for milestone and quiz
+  const milestonePopup = qs('#milestone-popup');
+  if (milestonePopup) {
+    milestonePopup.onclick = () => milestonePopup.classList.remove('show');
+  }
+  const quizOverlay = qs('#quiz-overlay');
+  if (quizOverlay) {
+    quizOverlay.onclick = (e) => { if (e.target === quizOverlay) quizOverlay.classList.remove('show'); };
+  }
+}
+
+// ===== STORY QUIZ =====
+function showStoryQuiz(quiz) {
+  const overlay = qs('#quiz-overlay');
+  if (!overlay) return;
+  const card = overlay.querySelector('.quiz-card');
+  if (!card) return;
+
+  card.querySelector('.quiz-question').textContent = quiz.q;
+  const answersEl = card.querySelector('.quiz-answers');
+  const resultEl = card.querySelector('.quiz-result');
+  resultEl.textContent = '';
+  answersEl.innerHTML = '';
+
+  quiz.a.forEach((ans, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'quiz-answer-btn';
+    btn.textContent = ans;
+    btn.addEventListener('click', () => {
+      // Disable all buttons
+      answersEl.querySelectorAll('.quiz-answer-btn').forEach(b => b.disabled = true);
+      if (i === quiz.correct) {
+        btn.classList.add('correct');
+        resultEl.textContent = LANG === 'ar' ? '✅ إجابة صحيحة! +10 عملات' : LANG === 'pt' ? '✅ Correto! +10 moedas' : '✅ Correct! +10 coins';
+        S.progress.coins += 10;
+        S.progress.totalQuizCorrect = (S.progress.totalQuizCorrect || 0) + 1;
+        saveProgress(S.progress);
+        playSound('achievement');
+      } else {
+        btn.classList.add('wrong');
+        answersEl.children[quiz.correct]?.classList.add('correct');
+        resultEl.textContent = LANG === 'ar' ? '❌ إجابة خاطئة' : LANG === 'pt' ? '❌ Incorreto' : '❌ Incorrect';
+        playSound('error');
+      }
+      setTimeout(() => overlay.classList.remove('show'), 2500);
+    });
+    answersEl.appendChild(btn);
+  });
+
+  overlay.classList.add('show');
 }
 
 // ===== SHOP =====

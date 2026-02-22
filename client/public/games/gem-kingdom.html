@@ -231,6 +231,44 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',Tahoma,G
   .world-grid{grid-template-columns:repeat(3,1fr)}
   .lvl-grid{grid-template-columns:repeat(5,1fr)}
 }
+
+/* ===== SESSION SUMMARY ===== */
+.d-session{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:16px;padding:12px;width:100%;max-width:380px;animation:slideUp .4s ease}
+.session-title{font-size:clamp(14px,2.8vmin,18px);font-weight:900;color:#a78bfa;text-align:center;margin-bottom:8px}
+.session-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.session-item{text-align:center;padding:4px}
+.si-v{font-size:clamp(14px,2.8vmin,18px);font-weight:900;color:#fff}
+.si-l{font-size:clamp(9px,1.6vmin,11px);color:rgba(255,255,255,.5);margin-top:2px}
+.session-msg{text-align:center;font-size:clamp(13px,2.4vmin,16px);color:#fbbf24;font-weight:700;margin-top:8px}
+
+/* ===== MILESTONE POPUP ===== */
+.milestone-popup{position:fixed;top:-100px;left:50%;transform:translateX(-50%);z-index:300;transition:top .5s cubic-bezier(.34,1.56,.64,1);pointer-events:none}
+.milestone-popup.show{top:20px;pointer-events:auto}
+.milestone-inner{display:flex;align-items:center;gap:10px;background:linear-gradient(135deg,#1e1b4b,#4c1d95);border:2px solid rgba(251,191,36,.4);border-radius:20px;padding:12px 20px;box-shadow:0 8px 32px rgba(0,0,0,.5);animation:mileFadeIn .5s ease}
+.milestone-icon{font-size:32px}
+.milestone-text{font-size:clamp(14px,2.8vmin,18px);font-weight:800;color:#fbbf24}
+@keyframes mileFadeIn{from{opacity:0;transform:scale(.8)}to{opacity:1;transform:scale(1)}}
+
+/* ===== QUIZ OVERLAY ===== */
+.quiz-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;z-index:250;opacity:0;pointer-events:none;transition:opacity .3s}
+.quiz-overlay.show{opacity:1;pointer-events:auto}
+.quiz-card{background:linear-gradient(135deg,#1e1b4b,#312e81);border:2px solid rgba(167,139,250,.4);border-radius:24px;padding:20px;max-width:360px;width:90%;color:#fff;text-align:center;animation:slideUp .3s ease}
+.quiz-header{font-size:40px;margin-bottom:8px}
+.quiz-question{font-size:clamp(14px,2.8vmin,17px);font-weight:700;line-height:1.5;margin-bottom:14px;color:rgba(255,255,255,.9)}
+.quiz-answers{display:flex;flex-direction:column;gap:8px}
+.quiz-answer-btn{background:rgba(255,255,255,.1);border:2px solid rgba(255,255,255,.2);border-radius:14px;padding:10px;font-size:clamp(13px,2.4vmin,16px);color:#fff;font-weight:700;cursor:pointer;transition:all .2s}
+.quiz-answer-btn:hover{background:rgba(255,255,255,.15);transform:translateY(-2px)}
+.quiz-answer-btn.correct{background:rgba(34,197,94,.3);border-color:#22c55e;color:#4ade80}
+.quiz-answer-btn.wrong{background:rgba(239,68,68,.3);border-color:#ef4444;color:#f87171}
+.quiz-result{font-size:clamp(14px,2.8vmin,17px);font-weight:800;margin-top:12px;min-height:24px}
+
+/* ===== COMEBACK TOAST ===== */
+.comeback-toast{position:fixed;bottom:-80px;left:50%;transform:translateX(-50%);z-index:300;transition:bottom .5s cubic-bezier(.34,1.56,.64,1)}
+.comeback-toast.show{bottom:30px}
+.comeback-inner{display:flex;align-items:center;gap:8px;background:linear-gradient(135deg,#1e1b4b,#4c1d95);border:2px solid rgba(167,139,250,.3);border-radius:20px;padding:10px 18px;box-shadow:0 8px 32px rgba(0,0,0,.4);animation:comebackIn .5s ease}
+.comeback-emoji{font-size:28px}
+.comeback-text{font-size:clamp(13px,2.4vmin,16px);font-weight:700;color:#a78bfa}
+@keyframes comebackIn{from{opacity:0;transform:scale(.8)}to{opacity:1;transform:scale(1)}}
 </style>
 </head>
 <body>
@@ -326,10 +364,10 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',Tahoma,G
     <div class="done-dyk-text" id="done-dyk-text"></div>
   </div>
   <div class="done-btns" id="done-btns"></div>
+  <div class="d-session" id="d-session" style="display:none"></div>
 </div>
 
 <!-- ===== SHOP SCREEN ===== -->
-<div id="shop-screen" class="screen">
   <div class="ls-header">
     <div class="ls-back" id="shop-back">←</div>
     <div class="shop-title" id="shop-title">🛍️</div>
@@ -359,6 +397,32 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',Tahoma,G
     <div></div>
   </div>
   <div id="stats-content"></div>
+</div>
+
+<!-- ===== MILESTONE POPUP ===== -->
+<div id="milestone-popup" class="milestone-popup">
+  <div class="milestone-inner">
+    <span class="milestone-icon"></span>
+    <span class="milestone-text"></span>
+  </div>
+</div>
+
+<!-- ===== QUIZ OVERLAY ===== -->
+<div id="quiz-overlay" class="quiz-overlay">
+  <div class="quiz-card">
+    <div class="quiz-header">🧠</div>
+    <div class="quiz-question"></div>
+    <div class="quiz-answers"></div>
+    <div class="quiz-result"></div>
+  </div>
+</div>
+
+<!-- ===== COMEBACK TOAST ===== -->
+<div id="comeback-toast" class="comeback-toast">
+  <div class="comeback-inner">
+    <span class="comeback-emoji">👋</span>
+    <span class="comeback-text"></span>
+  </div>
 </div>
 
 <script type="module">

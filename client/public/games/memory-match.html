@@ -561,6 +561,45 @@ button:focus-visible,.card:focus-visible,.lc:focus-visible,.wc:focus-visible{out
 .story-toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 .story-mascot{font-size:36px;flex-shrink:0}
 .story-text{color:#fff;font-size:clamp(13px,2.8vmin,16px);line-height:1.5}
+
+/* SESSION SUMMARY */
+.d-session{background:rgba(255,255,255,.08);backdrop-filter:blur(8px);border-radius:14px;padding:12px 16px;margin:8px auto;max-width:92%;text-align:center}
+.d-session .session-title{font-size:15px;font-weight:800;margin-bottom:8px;color:#ffd700}
+.d-session .session-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:6px}
+.d-session .session-item{background:rgba(255,255,255,.06);border-radius:10px;padding:6px 8px}
+.d-session .session-item .si-v{font-size:16px;font-weight:800;background:linear-gradient(135deg,#ffd700,#ff8c00);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.d-session .session-item .si-l{font-size:11px;opacity:.7;margin-top:1px}
+.d-session .session-badges{display:flex;flex-wrap:wrap;justify-content:center;gap:4px;margin-top:8px}
+.d-session .micro-badge{background:linear-gradient(135deg,rgba(255,215,0,.2),rgba(255,140,0,.2));border:1px solid rgba(255,215,0,.3);border-radius:20px;padding:3px 10px;font-size:12px;font-weight:700;color:#ffd700}
+.d-session .session-msg{margin-top:8px;font-size:14px;font-weight:700;color:#69f0ae;line-height:1.4}
+
+/* MILESTONE POPUP */
+.milestone-popup{position:fixed;top:0;left:0;right:0;bottom:0;z-index:500;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.6);backdrop-filter:blur(6px);animation:mileFadeIn .4s ease}
+.milestone-inner{background:linear-gradient(135deg,#ffd700,#ff8c00);color:#1a1a2e;border-radius:24px;padding:28px 36px;text-align:center;max-width:86vw;box-shadow:0 8px 40px rgba(255,215,0,.5);animation:mileScale .6s cubic-bezier(.34,1.56,.64,1)}
+.milestone-icon{font-size:56px;margin-bottom:8px}
+.milestone-text{font-size:20px;font-weight:800;line-height:1.5}
+@keyframes mileFadeIn{0%{opacity:0}100%{opacity:1}}
+@keyframes mileScale{0%{transform:scale(.5)}100%{transform:scale(1)}}
+
+/* QUIZ OVERLAY */
+.quiz-overlay{position:fixed;top:0;left:0;right:0;bottom:0;z-index:400;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.7);backdrop-filter:blur(8px);animation:mileFadeIn .4s ease}
+.quiz-card{background:linear-gradient(135deg,#667eea,#764ba2);border-radius:22px;padding:24px;max-width:88vw;width:340px;box-shadow:0 8px 40px rgba(102,126,234,.5);text-align:center;color:#fff}
+.quiz-header{font-size:20px;font-weight:800;margin-bottom:14px}
+.quiz-question{font-size:16px;font-weight:600;line-height:1.5;margin-bottom:16px;min-height:48px}
+.quiz-answers{display:flex;flex-direction:column;gap:8px}
+.quiz-answer-btn{background:rgba(255,255,255,.15);border:2px solid rgba(255,255,255,.25);border-radius:14px;padding:10px 16px;color:#fff;font-size:15px;font-weight:700;cursor:pointer;transition:all .2s}
+.quiz-answer-btn:hover{background:rgba(255,255,255,.25)}
+.quiz-answer-btn.correct{background:rgba(0,230,118,.3);border-color:#00e676}
+.quiz-answer-btn.wrong{background:rgba(255,82,82,.3);border-color:#ff5252}
+.quiz-result{font-size:15px;font-weight:700;margin-top:12px;padding:8px;border-radius:10px}
+.quiz-result.win{color:#69f0ae}
+.quiz-result.lose{color:#ff8a80}
+
+/* COMEBACK TOAST */
+.comeback-toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);z-index:600;animation:comebackIn .6s cubic-bezier(.34,1.56,.64,1)}
+.comeback-inner{background:linear-gradient(135deg,#43e97b,#38f9d7);color:#1a1a2e;border-radius:16px;padding:12px 22px;display:flex;align-items:center;gap:10px;font-weight:700;font-size:15px;box-shadow:0 4px 20px rgba(67,233,123,.4)}
+.comeback-emoji{font-size:28px}
+@keyframes comebackIn{0%{opacity:0;transform:translateX(-50%) translateY(-30px)}100%{opacity:1;transform:translateX(-50%) translateY(0)}}
 </style>
 </head>
 <body>
@@ -687,12 +726,39 @@ button:focus-visible,.card:focus-visible,.lc:focus-visible,.wc:focus-visible{out
   <div class="d-streak" id="d-streak" style="display:none">🔥 Streak</div>
   <div class="pu-award" id="d-powers" style="display:none"></div>
   <div class="d-fact" id="d-fact" style="display:none"></div>
+  <div class="d-session" id="d-session" style="display:none"></div>
   <div class="d-btns">
     <button class="d-btn pri" id="d-nx">➡️ التالي</button>
     <button class="d-btn shr" id="d-sh">📤 مشاركة</button>
     <button class="d-btn sec" id="d-rp">🔄 إعادة</button>
     <button class="d-btn sec" id="d-wm">🗺️ الخريطة</button>
     <button class="d-btn sec" id="d-lv">📋 المستويات</button>
+  </div>
+</div>
+
+<!-- Milestone Celebration -->
+<div class="milestone-popup" id="milestone-popup" style="display:none">
+  <div class="milestone-inner">
+    <div class="milestone-icon">🏅</div>
+    <div class="milestone-text" id="milestone-text"></div>
+  </div>
+</div>
+
+<!-- Story Quiz Overlay -->
+<div class="quiz-overlay" id="quiz-overlay" style="display:none">
+  <div class="quiz-card">
+    <div class="quiz-header">🧠 <span id="quiz-header-text">Quiz Bonus!</span></div>
+    <div class="quiz-question" id="quiz-question"></div>
+    <div class="quiz-answers" id="quiz-answers"></div>
+    <div class="quiz-result" id="quiz-result" style="display:none"></div>
+  </div>
+</div>
+
+<!-- Comeback Toast -->
+<div class="comeback-toast" id="comeback-toast" style="display:none">
+  <div class="comeback-inner">
+    <span class="comeback-emoji">👋</span>
+    <span class="comeback-text" id="comeback-text"></span>
   </div>
 </div>
 

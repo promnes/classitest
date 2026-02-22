@@ -296,6 +296,43 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',Tahoma,s
 .story-toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 .story-mascot{font-size:36px;flex-shrink:0}
 .story-text{color:#fff;font-size:clamp(13px,2.8vmin,16px);line-height:1.5}
+
+/* SESSION SUMMARY */
+.d-session{background:rgba(255,255,255,.08);backdrop-filter:blur(8px);border-radius:14px;padding:12px 16px;margin:8px auto;max-width:92%;text-align:center}
+.d-session .session-title{font-size:15px;font-weight:800;margin-bottom:8px;color:#ffd700}
+.d-session .session-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:6px}
+.d-session .session-item{background:rgba(255,255,255,.06);border-radius:10px;padding:6px 8px}
+.d-session .session-item .si-v{font-size:16px;font-weight:800;background:linear-gradient(135deg,#ffd700,#ff8c00);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.d-session .session-item .si-l{font-size:11px;opacity:.7;margin-top:1px}
+.d-session .session-msg{margin-top:8px;font-size:14px;font-weight:700;color:#69f0ae;line-height:1.4}
+
+/* MILESTONE POPUP */
+.milestone-popup{position:fixed;top:0;left:0;right:0;bottom:0;z-index:500;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.6);backdrop-filter:blur(6px);animation:mileFadeIn .4s ease}
+.milestone-inner{background:linear-gradient(135deg,#ffd700,#ff8c00);color:#1a1a2e;border-radius:24px;padding:28px 36px;text-align:center;max-width:86vw;box-shadow:0 8px 40px rgba(255,215,0,.5);animation:mileScale .6s cubic-bezier(.34,1.56,.64,1)}
+.milestone-icon{font-size:56px;margin-bottom:8px}
+.milestone-text{font-size:20px;font-weight:800;line-height:1.5}
+@keyframes mileFadeIn{0%{opacity:0}100%{opacity:1}}
+@keyframes mileScale{0%{transform:scale(.5)}100%{transform:scale(1)}}
+
+/* QUIZ OVERLAY */
+.quiz-overlay{position:fixed;top:0;left:0;right:0;bottom:0;z-index:400;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.7);backdrop-filter:blur(8px);animation:mileFadeIn .4s ease}
+.quiz-card{background:linear-gradient(135deg,#667eea,#764ba2);border-radius:22px;padding:24px;max-width:88vw;width:340px;box-shadow:0 8px 40px rgba(102,126,234,.5);text-align:center;color:#fff}
+.quiz-header{font-size:20px;font-weight:800;margin-bottom:14px}
+.quiz-question{font-size:16px;font-weight:600;line-height:1.5;margin-bottom:16px;min-height:48px}
+.quiz-answers{display:flex;flex-direction:column;gap:8px}
+.quiz-answer-btn{background:rgba(255,255,255,.15);border:2px solid rgba(255,255,255,.25);border-radius:14px;padding:10px 16px;color:#fff;font-size:15px;font-weight:700;cursor:pointer;transition:all .2s}
+.quiz-answer-btn:hover{background:rgba(255,255,255,.25)}
+.quiz-answer-btn.correct{background:rgba(0,230,118,.3);border-color:#00e676}
+.quiz-answer-btn.wrong{background:rgba(255,82,82,.3);border-color:#ff5252}
+.quiz-result{font-size:15px;font-weight:700;margin-top:12px;padding:8px;border-radius:10px}
+.quiz-result.win{color:#69f0ae}
+.quiz-result.lose{color:#ff8a80}
+
+/* COMEBACK TOAST */
+.comeback-toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);z-index:600;animation:comebackIn .6s cubic-bezier(.34,1.56,.64,1)}
+.comeback-inner{background:linear-gradient(135deg,#43e97b,#38f9d7);color:#1a1a2e;border-radius:16px;padding:12px 22px;display:flex;align-items:center;gap:10px;font-weight:700;font-size:15px;box-shadow:0 4px 20px rgba(67,233,123,.4)}
+.comeback-emoji{font-size:28px}
+@keyframes comebackIn{0%{opacity:0;transform:translateX(-50%) translateY(-30px)}100%{opacity:1;transform:translateX(-50%) translateY(0)}}
 </style>
 </head>
 <body>
@@ -406,11 +443,38 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',Tahoma,s
   <div class="d-achievements" id="d-achievements"></div>
   <div class="d-streak" id="d-streak" style="display:none"></div>
   <div class="d-fact" id="d-fact" style="display:none"></div>
+  <div class="d-session" id="d-session" style="display:none"></div>
   <div class="d-btns">
     <button class="d-btn pri" id="d-nx" onclick="nextLevel()">➡️ التالي</button>
     <button class="d-btn shr" id="d-sh" onclick="shareResult()">📤 مشاركة</button>
     <button class="d-btn sec" onclick="replayLevel()">🔄 إعادة</button>
     <button class="d-btn sec" onclick="showScreen('world-screen')">🏠</button>
+  </div>
+</div>
+
+<!-- Milestone Celebration -->
+<div class="milestone-popup" id="milestone-popup" style="display:none">
+  <div class="milestone-inner">
+    <div class="milestone-icon">🏅</div>
+    <div class="milestone-text" id="milestone-text"></div>
+  </div>
+</div>
+
+<!-- Story Quiz Overlay -->
+<div class="quiz-overlay" id="quiz-overlay" style="display:none">
+  <div class="quiz-card">
+    <div class="quiz-header">🧠 <span id="quiz-header-text">Quiz Bonus!</span></div>
+    <div class="quiz-question" id="quiz-question"></div>
+    <div class="quiz-answers" id="quiz-answers"></div>
+    <div class="quiz-result" id="quiz-result" style="display:none"></div>
+  </div>
+</div>
+
+<!-- Comeback Toast -->
+<div class="comeback-toast" id="comeback-toast" style="display:none">
+  <div class="comeback-inner">
+    <span class="comeback-emoji">👋</span>
+    <span class="comeback-text" id="comeback-text"></span>
   </div>
 </div>
 
@@ -630,6 +694,22 @@ function init() {
     Core.saveProgress(progress);
     setTimeout(() => showLoginBonus(loginResult), 600);
   }
+
+  // Comeback message (show welcome-back if player was away)
+  const lastPlay = progress.lastPlayTimestamp || 0;
+  if (lastPlay > 0) {
+    const hoursSince = (Date.now() - lastPlay) / (1000 * 60 * 60);
+    const comebackMsg = Engage.getComebackMessage(hoursSince);
+    if (comebackMsg) {
+      setTimeout(() => {
+        el('comeback-text').textContent = comebackMsg;
+        el('comeback-toast').style.display = '';
+        setTimeout(() => { el('comeback-toast').style.display = 'none'; }, 5000);
+      }, 1200);
+    }
+  }
+  progress.lastPlayTimestamp = Date.now();
+  Core.saveProgress(progress);
 
   updateDailyBtn();
   updateWeeklyBtn();
@@ -1439,6 +1519,13 @@ function endGame() {
   const isPerfect = totalCorrect === totalQ;
   const noHints = !usedHintThisLevel;
 
+  // Snapshot progress BEFORE updates (for milestone detection)
+  const prevStats = {
+    totalStars: getTotalStars(progress),
+    levelsCleared: Object.values(progress.worlds || {}).reduce((s, w) => s + Object.keys(w.stars || {}).filter(k => w.stars[k] > 0).length, 0),
+    coins: progress.coins || 0,
+  };
+
   // Prestige multipliers
   const xpMult = (levelConfig && levelConfig.xpMult) || 1;
   const coinMult = (levelConfig && levelConfig.coinMult) || 1;
@@ -1484,7 +1571,21 @@ function endGame() {
 
   // Achievements
   const newAchs = Econ.evaluateAchievements(progress);
+  progress.lastPlayTimestamp = Date.now();
   Core.saveProgress(progress);
+
+  // Milestone detection (compare before/after)
+  const curStats = {
+    totalStars: getTotalStars(progress),
+    levelsCleared: Object.values(progress.worlds || {}).reduce((s, w) => s + Object.keys(w.stars || {}).filter(k => w.stars[k] > 0).length, 0),
+    coins: progress.coins || 0,
+  };
+  const milestoneMsg = Engage.getMilestoneMessage(curStats, prevStats);
+
+  // Session summary data
+  challengeTracker.coinsEarned = coinsGained;
+  challengeTracker._earnedBadges = badges;
+  const sessionSummary = Engage.getSessionSummary(challengeTracker);
 
   // ===== RENDER DONE =====
   let title, emoji;
@@ -1572,6 +1673,17 @@ function endGame() {
     } else { factEl.style.display = 'none'; }
   } else { factEl.style.display = 'none'; }
 
+  // Session summary
+  const sessionEl = el('d-session');
+  if (sessionSummary) {
+    sessionEl.style.display = '';
+    sessionEl.innerHTML = '<div class="session-title">' + sessionSummary.title + '</div>' +
+      '<div class="session-grid">' + sessionSummary.stats.map(s =>
+        '<div class="session-item"><div class="si-v">' + s.value + '</div><div class="si-l">' + s.label + '</div></div>'
+      ).join('') + '</div>' +
+      '<div class="session-msg">' + sessionSummary.message + '</div>';
+  } else { sessionEl.style.display = 'none'; }
+
   // Next button: show if playing a world level and got at least 1 star
   el('d-nx').style.display = (currentWorld && currentLevelIndex >= 0 && !dailyMode && !weeklyMode && stars >= 1) ? '' : 'none';
   el('d-nx').textContent = T.next;
@@ -1592,6 +1704,28 @@ function endGame() {
   // Achievement toasts (delayed)
   if (newAchs && newAchs.length > 0) {
     newAchs.forEach((a, i) => setTimeout(() => showAchievementToast(a), 2000 + i * 1200));
+  }
+
+  // Milestone celebration popup
+  if (milestoneMsg) {
+    const mDelay = (newAchs && newAchs.length > 0) ? 2000 + newAchs.length * 1200 + 500 : 2500;
+    setTimeout(() => {
+      el('milestone-text').textContent = milestoneMsg;
+      el('milestone-popup').style.display = '';
+      setTimeout(() => { el('milestone-popup').style.display = 'none'; }, 4000);
+    }, mDelay);
+  }
+
+  // Story Quiz (show after boss defeat or last level of a world)
+  const worldIdx = currentWorld ? WORLDS.findIndex(w => w.id === currentWorld) : -1;
+  const isBossDefeated = bossState && Boss.isBossDefeated(bossState);
+  const isLastLevel = currentLevelIndex >= 0 && currentLevelIndex === 9 && stars > 0;
+  if ((isBossDefeated || isLastLevel) && worldIdx >= 0) {
+    const quiz = Story.getQuiz(worldIdx);
+    if (quiz) {
+      const quizDelay = milestoneMsg ? 7000 : 4000;
+      setTimeout(() => showStoryQuiz(quiz), quizDelay);
+    }
   }
 
   // Level up   
@@ -1617,6 +1751,54 @@ function endGame() {
 
 function closeLvlUp() { el('lvlup-modal').classList.remove('show'); }
 window.closeLvlUp = closeLvlUp;
+
+// Dismiss milestone popup on click
+el('milestone-popup').addEventListener('click', () => { el('milestone-popup').style.display = 'none'; });
+
+// Story Quiz
+function showStoryQuiz(quiz) {
+  const overlay = el('quiz-overlay');
+  const headerLabels = { ar: '🧠 سؤال إضافي!', en: '🧠 Quiz Bonus!', pt: '🧠 Quiz Bônus!' };
+  el('quiz-header-text').textContent = headerLabels[LANG] || headerLabels.en;
+  el('quiz-question').textContent = quiz.q;
+  el('quiz-result').style.display = 'none';
+  const answersEl = el('quiz-answers');
+  answersEl.innerHTML = '';
+  let answered = false;
+  quiz.a.forEach((ans, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'quiz-answer-btn';
+    btn.textContent = ans;
+    btn.addEventListener('click', () => {
+      if (answered) return;
+      answered = true;
+      const resultEl = el('quiz-result');
+      if (i === quiz.correct) {
+        btn.classList.add('correct');
+        const bonusCoins = 10;
+        Econ.addCoins(progress, bonusCoins);
+        Core.saveProgress(progress);
+        const winLabels = { ar: '✅ صحيح! +' + bonusCoins + ' 🪙', en: '✅ Correct! +' + bonusCoins + ' 🪙', pt: '✅ Correto! +' + bonusCoins + ' 🪙' };
+        resultEl.textContent = winLabels[LANG] || winLabels.en;
+        resultEl.className = 'quiz-result win';
+        UI.sfxStar();
+      } else {
+        btn.classList.add('wrong');
+        // Highlight correct
+        answersEl.children[quiz.correct].classList.add('correct');
+        const loseLabels = { ar: '❌ ليست الإجابة الصحيحة', en: '❌ Not quite right', pt: '❌ Não foi desta vez' };
+        resultEl.textContent = loseLabels[LANG] || loseLabels.en;
+        resultEl.className = 'quiz-result lose';
+      }
+      resultEl.style.display = '';
+      setTimeout(() => { overlay.style.display = 'none'; }, 2500);
+    });
+    answersEl.appendChild(btn);
+  });
+  overlay.style.display = '';
+}
+// Dismiss quiz on overlay click (outside card)
+el('quiz-overlay').addEventListener('click', (e) => { if (e.target === el('quiz-overlay')) el('quiz-overlay').style.display = 'none'; });
 
 function nextLevel() {
   if (currentWorld && currentLevelIndex >= 0) {

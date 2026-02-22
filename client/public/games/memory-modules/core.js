@@ -20,8 +20,8 @@ import {
   initBg, stopBg, spawnConfetti, royalCelebration, spawnMatchParticles, spawnCoinFly,
   showScreen, updateCountdownDisplay, renderCards as uiRenderCards
 } from './ui.js';
-import { getWorldIntro, getRandomFact } from './story.js';
-import { checkMicroBadges, getNearMissMessage, getStreakMessage, getComebackMessage } from './engagement.js';
+import { getWorldIntro, getRandomFact, getQuiz } from './story.js';
+import { checkMicroBadges, getNearMissMessage, getStreakMessage, getComebackMessage, getSessionSummary, getMilestoneMessage } from './engagement.js';
 
 // Detect low-performance devices on load
 detectPerformance();
@@ -263,6 +263,24 @@ export function renderWorldMap() {
 
     container.appendChild(card);
   });
+
+  // Comeback message (welcome-back toast)
+  const lastPlay = progress.lastPlayTimestamp || 0;
+  if (lastPlay > 0 && !progress._comebackShown) {
+    const hoursSince = (Date.now() - lastPlay) / (1000 * 60 * 60);
+    const comebackMsg = getComebackMessage(hoursSince);
+    if (comebackMsg) {
+      progress._comebackShown = true;
+      setTimeout(() => {
+        const cEl = document.getElementById('comeback-toast');
+        if (cEl) {
+          document.getElementById('comeback-text').textContent = comebackMsg;
+          cEl.style.display = '';
+          setTimeout(() => { cEl.style.display = 'none'; }, 5000);
+        }
+      }, 800);
+    }
+  }
 }
 
 // ===== ENTER WORLD → SHOW LEVEL SELECT =====
@@ -2013,6 +2031,14 @@ export function endGame() {
   ddaClearHintTimer();
   stopMusic();
   peekInProgress = false;
+
+  // Snapshot progress for milestone detection
+  const prevStats = {
+    totalStars: getTotalStars(progress),
+    levelsCleared: Object.keys(progress.stars || {}).filter(k => progress.stars[k] > 0).length,
+    coins: progress.coins || 0,
+  };
+
   const dur = Math.floor((Date.now() - startTime) / 1000);
   const isPartial = matchedPairs < totalPairs;
   const sc = calcScore(moves, totalPairs, dur, matchedPairs, mechanic);
@@ -2145,6 +2171,79 @@ export function endGame() {
     } else { factEl.style.display = 'none'; }
   } else if (factEl) { factEl.style.display = 'none'; }
 
+  // Session summary + micro-badges
+  const sessionEl = document.getElementById('d-session');
+  if (sessionEl && currentLevel >= 0) {
+    const sessionData = {
+      levelsPlayed: 1,
+      stars: stars,
+      pairsMatched: matchedPairs,
+      moves: moves,
+      totalTimeSec: dur,
+      maxCombo: comboStreak || 0,
+      coinsEarned: 0,
+      mismatches: moves - matchedPairs * 2 > 0 ? moves - matchedPairs * 2 : 0,
+      bossDefeated: bossState ? bossState.defeated : false,
+      advancedMechanic: mechanic !== MECH.CLASSIC,
+      powerUpsUsed: 0,
+      usedHint: false,
+      worldsVisited: Object.keys(progress.worldsBeaten || {}).length + 1,
+      dailyStreak: streakData.current || 0,
+    };
+    // Check micro-badges from engagement module
+    const microBadges = checkMicroBadges(sessionData);
+    sessionData._earnedBadges = microBadges;
+    const summary = getSessionSummary(sessionData);
+    if (summary) {
+      sessionEl.style.display = '';
+      sessionEl.innerHTML = '<div class="session-title">' + summary.title + '</div>' +
+        '<div class="session-grid">' + summary.stats.map(s =>
+          '<div class="session-item"><div class="si-v">' + s.value + '</div><div class="si-l">' + s.label + '</div></div>'
+        ).join('') + '</div>' +
+        (microBadges.length > 0 ? '<div class="session-badges">' + microBadges.map(b =>
+          '<span class="micro-badge">' + b.icon + ' ' + b.label + '</span>'
+        ).join('') + '</div>' : '') +
+        '<div class="session-msg">' + summary.message + '</div>';
+    } else { sessionEl.style.display = 'none'; }
+  } else if (sessionEl) { sessionEl.style.display = 'none'; }
+
+  // Milestone detection
+  if (currentLevel >= 0) {
+    const curStats = {
+      totalStars: getTotalStars(progress),
+      levelsCleared: Object.keys(progress.stars || {}).filter(k => progress.stars[k] > 0).length,
+      coins: progress.coins || 0,
+    };
+    const milestoneMsg = getMilestoneMessage(curStats, prevStats);
+    if (milestoneMsg) {
+      setTimeout(() => {
+        const mEl = document.getElementById('milestone-popup');
+        if (mEl) {
+          document.getElementById('milestone-text').textContent = milestoneMsg;
+          mEl.style.display = '';
+          setTimeout(() => { mEl.style.display = 'none'; }, 4000);
+        }
+      }, 2500);
+    }
+  }
+
+  // Story Quiz (on boss defeat or last level of world)
+  if (currentLevel >= 0 && currentWorld >= 0) {
+    const lvlDef = LEVELS[currentLevel];
+    const isBossDefeated = bossState && bossState.defeated;
+    const isLastOfWorld = lvlDef && lvlDef.isBoss && stars > 0;
+    if (isBossDefeated || isLastOfWorld) {
+      const quiz = getQuiz(currentWorld);
+      if (quiz) {
+        setTimeout(() => showStoryQuiz(quiz), 5000);
+      }
+    }
+  }
+
+  // Update last play timestamp
+  progress.lastPlayTimestamp = Date.now();
+  saveProgress();
+
   sfxComplete();
   if (stars > 0) sfxStar();
   if (bossState && bossState.defeated) sfxLevelUp();
@@ -2176,6 +2275,55 @@ export function endGame() {
     }, '*');
   } catch(e) {}
 }
+
+// ===== STORY QUIZ =====
+function showStoryQuiz(quiz) {
+  const overlay = document.getElementById('quiz-overlay');
+  if (!overlay) return;
+  const LANG = document.documentElement.lang || 'ar';
+  const headerLabels = { ar: '🧠 سؤال إضافي!', en: '🧠 Quiz Bonus!', pt: '🧠 Quiz Bônus!' };
+  document.getElementById('quiz-header-text').textContent = headerLabels[LANG] || headerLabels.en;
+  document.getElementById('quiz-question').textContent = quiz.q;
+  document.getElementById('quiz-result').style.display = 'none';
+  const answersEl = document.getElementById('quiz-answers');
+  answersEl.innerHTML = '';
+  let answered = false;
+  quiz.a.forEach((ans, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'quiz-answer-btn';
+    btn.textContent = ans;
+    btn.addEventListener('click', () => {
+      if (answered) return;
+      answered = true;
+      const resultEl = document.getElementById('quiz-result');
+      if (i === quiz.correct) {
+        btn.classList.add('correct');
+        const bonusCoins = 10;
+        progress.coins = (progress.coins || 0) + bonusCoins;
+        saveProgress();
+        updateCoinDisplays();
+        const winLabels = { ar: '✅ صحيح! +' + bonusCoins + ' 🪙', en: '✅ Correct! +' + bonusCoins + ' 🪙', pt: '✅ Correto! +' + bonusCoins + ' 🪙' };
+        resultEl.textContent = winLabels[LANG] || winLabels.en;
+        resultEl.className = 'quiz-result win';
+        sfxStar();
+      } else {
+        btn.classList.add('wrong');
+        answersEl.children[quiz.correct].classList.add('correct');
+        const loseLabels = { ar: '❌ ليست الإجابة الصحيحة', en: '❌ Not quite right', pt: '❌ Não foi desta vez' };
+        resultEl.textContent = loseLabels[LANG] || loseLabels.en;
+        resultEl.className = 'quiz-result lose';
+      }
+      resultEl.style.display = '';
+      setTimeout(() => { overlay.style.display = 'none'; }, 2500);
+    });
+    answersEl.appendChild(btn);
+  });
+  overlay.style.display = '';
+}
+
+// Dismiss overlays
+document.getElementById('milestone-popup')?.addEventListener('click', () => { document.getElementById('milestone-popup').style.display = 'none'; });
+document.getElementById('quiz-overlay')?.addEventListener('click', (e) => { if (e.target.id === 'quiz-overlay') e.target.style.display = 'none'; });
 
 export function nextLevel() {
   if (currentLevel >= 0 && currentLevel < LEVELS.length - 1) {

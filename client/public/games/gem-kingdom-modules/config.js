@@ -589,6 +589,7 @@ export function createDefaultProgress() {
     levelsCompleted: 0,
     worldsCleared: 0,
     loginStreak: { lastDate: null, count: 0 },
+    lastPlayTimestamp: 0,
     storyProgress: {},
     settings: { theme: 'classic', gemStyle: 'classic' },
     skillData: {
