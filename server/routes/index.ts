@@ -101,17 +101,14 @@ async function seedDefaultGames() {
       }
     }
 
-    // Remove any legacy duplicates with old embed URLs (e.g. "/memory-match")
-    const legacyUrls = ["/memory-match", "/math-challenge"];
-    for (const url of legacyUrls) {
-      const legacy = await db.select({ id: flashGames.id })
-        .from(flashGames)
-        .where(eq(flashGames.embedUrl, url));
-      if (legacy.length > 0) {
-        for (const row of legacy) {
-          await db.delete(flashGames).where(eq(flashGames.id, row.id));
-        }
-        console.log(`🧹 Removed ${legacy.length} legacy game record(s) with URL: ${url}`);
+    // Remove any games whose embedUrl is NOT in the builtin list
+    // This cleans up legacy, orphan, or manually-added games with no HTML files
+    const validUrls = builtinGames.map(g => g.embedUrl);
+    const allGames = await db.select({ id: flashGames.id, embedUrl: flashGames.embedUrl }).from(flashGames);
+    for (const row of allGames) {
+      if (!validUrls.includes(row.embedUrl)) {
+        await db.delete(flashGames).where(eq(flashGames.id, row.id));
+        console.log(`🧹 Removed orphan game with URL: ${row.embedUrl}`);
       }
     }
   } catch (err) {

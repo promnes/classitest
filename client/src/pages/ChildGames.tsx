@@ -436,6 +436,10 @@ export const ChildGames = (): JSX.Element => {
                   <div className="w-full h-full bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center">
                     <span className="text-5xl drop-shadow-lg">🔢</span>
                   </div>
+                ) : game.embedUrl === "/games/gem-kingdom.html" ? (
+                  <div className="w-full h-full bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center">
+                    <span className="text-5xl drop-shadow-lg">💎</span>
+                  </div>
                 ) : (
                   <Gamepad2 className="w-12 h-12 text-purple-400" />
                 )}
