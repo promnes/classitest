@@ -17,8 +17,27 @@ const SWAP_MS   = 180;
 const REMOVE_MS = 220;
 const FALL_MS   = 100; // per cell distance
 const SPAWN_MS  = 180;
-const BG_COLOR  = '#48BB78'; // bright cheerful green
-const BOARD_BG  = 'rgba(255,255,255,0.25)';
+const BG_COLOR  = '#1a1a2e'; // deep royal dark blue
+const BOARD_BG  = '#FFFFFF';
+const CELL_LIGHT = '#F0F4FF';
+const CELL_DARK  = '#E2E8F0';
+const GEM_FILL_RATIO = 0.88; // gems fill 88% of cell
+
+/* ─── Floating Background Emoji ─── */
+const BG_EMOJIS = ['💎', '⭐', '✨', '🌟', '💫', '🔮', '👑', '🏆'];
+interface FloatingEmoji {
+  x: number; y: number; vx: number; vy: number;
+  emoji: string; size: number; opacity: number; rotation: number; rotSpeed: number;
+}
+
+/* ─── Celebration Confetti ─── */
+const CONFETTI_COLORS = ['#FF1744', '#FFAB00', '#00E676', '#2979FF', '#D500F9', '#1DE9B6',
+  '#FF6D00', '#FFD600', '#76FF03', '#448AFF', '#E040FB', '#64FFDA'];
+interface Confetti {
+  x: number; y: number; vx: number; vy: number;
+  size: number; color: string; rotation: number; rotSpeed: number;
+  life: number; shape: 'rect' | 'circle' | 'star';
+}
 
 /* ─── Easing Functions ─── */
 const easeOutQuad  = (t: number) => 1 - (1 - t) * (1 - t);
@@ -159,6 +178,13 @@ export default function Match3Game({ level, onBack, onComplete }: Props) {
   const touchRef     = useRef<{ x: number; y: number; pos: Pos | null } | null>(null);
   const dprRef       = useRef(1);
   const endedRef     = useRef(false);
+  const bgEmojisRef  = useRef<FloatingEmoji[]>([]);
+  const confettiRef  = useRef<Confetti[]>([]);
+  const celebrateRef = useRef(false);
+  const idleTimeRef  = useRef(0);
+  const [muted, setMuted] = useState(false);
+  const mutedRef     = useRef(false);
+  const audioCtxRef  = useRef<AudioContext | null>(null);
 
   /* ── Helpers ── */
   const addTween = useCallback((
@@ -188,6 +214,62 @@ export default function Match3Game({ level, onBack, onComplete }: Props) {
     popupsRef.current.push({ x, y, text, color, life: 1, maxLife: 1 });
   }, []);
 
+  /* ── Web Audio Sound System ── */
+  const getAudioCtx = useCallback(() => {
+    if (!audioCtxRef.current) {
+      audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+    }
+    return audioCtxRef.current;
+  }, []);
+
+  const playTone = useCallback((freq: number, dur: number, type: OscillatorType = 'sine', vol = 0.15) => {
+    if (mutedRef.current) return;
+    try {
+      const ctx = getAudioCtx();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, ctx.currentTime);
+      gain.gain.setValueAtTime(vol, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(); osc.stop(ctx.currentTime + dur);
+    } catch { /* silent fail */ }
+  }, [getAudioCtx]);
+
+  const playSwapSound = useCallback(() => {
+    playTone(440, 0.12, 'sine', 0.12);
+    setTimeout(() => playTone(554, 0.1, 'sine', 0.1), 40);
+  }, [playTone]);
+
+  const playMatchSound = useCallback((combo: number) => {
+    const base = 523 + combo * 80;
+    playTone(base, 0.15, 'triangle', 0.12);
+    setTimeout(() => playTone(base * 1.25, 0.12, 'triangle', 0.1), 60);
+    setTimeout(() => playTone(base * 1.5, 0.1, 'triangle', 0.08), 120);
+  }, [playTone]);
+
+  const playSpecialSound = useCallback(() => {
+    playTone(880, 0.2, 'square', 0.08);
+    setTimeout(() => playTone(1100, 0.15, 'square', 0.06), 80);
+    setTimeout(() => playTone(1320, 0.25, 'sine', 0.1), 160);
+  }, [playTone]);
+
+  const playWinSound = useCallback(() => {
+    const notes = [523, 659, 784, 1047];
+    notes.forEach((n, i) => setTimeout(() => playTone(n, 0.3, 'sine', 0.12), i * 120));
+  }, [playTone]);
+
+  const playLoseSound = useCallback(() => {
+    playTone(392, 0.3, 'sine', 0.1);
+    setTimeout(() => playTone(349, 0.3, 'sine', 0.1), 200);
+    setTimeout(() => playTone(330, 0.5, 'sine', 0.08), 400);
+  }, [playTone]);
+
+  const playSelectSound = useCallback(() => {
+    playTone(660, 0.08, 'sine', 0.1);
+  }, [playTone]);
+
   const getVisual = useCallback((gem: Gem): GemVisual => {
     let v = visualsRef.current.get(gem.id);
     if (!v) {
@@ -205,11 +287,30 @@ export default function Match3Game({ level, onBack, onComplete }: Props) {
     const grid = E.initGrid(level);
     gridRef.current = grid;
     visualsRef.current.clear();
+    celebrateRef.current = false;
+    confettiRef.current = [];
 
     const canvas = canvasRef.current;
     if (!canvas) return;
     const dpr = window.devicePixelRatio || 1;
     dprRef.current = dpr;
+
+    // Initialize floating background emojis
+    const floaters: FloatingEmoji[] = [];
+    for (let i = 0; i < 20; i++) {
+      floaters.push({
+        x: Math.random() * 500,
+        y: Math.random() * 900,
+        vx: (Math.random() - 0.5) * 0.3,
+        vy: -0.2 - Math.random() * 0.4,
+        emoji: BG_EMOJIS[Math.floor(Math.random() * BG_EMOJIS.length)],
+        size: 10 + Math.random() * 16,
+        opacity: 0.08 + Math.random() * 0.12,
+        rotation: Math.random() * Math.PI * 2,
+        rotSpeed: (Math.random() - 0.5) * 0.02,
+      });
+    }
+    bgEmojisRef.current = floaters;
 
     const resize = () => {
       const w = Math.min(window.innerWidth, 500);
@@ -277,7 +378,7 @@ export default function Match3Game({ level, onBack, onComplete }: Props) {
       const p = parts[i];
       p.x += p.vx; p.y += p.vy;
       p.vy += 0.08; // gravity
-      p.life -= 0.025;
+      p.life -= 0.02;
       if (p.life <= 0) parts.splice(i, 1);
     }
 
@@ -287,6 +388,38 @@ export default function Match3Game({ level, onBack, onComplete }: Props) {
       pops[i].y -= 0.8;
       pops[i].life -= 0.018;
       if (pops[i].life <= 0) pops.splice(i, 1);
+    }
+
+    // Update floating background emojis
+    const canvas = canvasRef.current;
+    const cW = canvas ? canvas.width / dprRef.current : 500;
+    const cH = canvas ? canvas.height / dprRef.current : 900;
+    for (const fe of bgEmojisRef.current) {
+      fe.x += fe.vx;
+      fe.y += fe.vy;
+      fe.rotation += fe.rotSpeed;
+      if (fe.y < -30) { fe.y = cH + 30; fe.x = Math.random() * cW; }
+      if (fe.x < -30) fe.x = cW + 30;
+      if (fe.x > cW + 30) fe.x = -30;
+    }
+
+    // Update confetti (celebration)
+    const conf = confettiRef.current;
+    for (let i = conf.length - 1; i >= 0; i--) {
+      const c = conf[i];
+      c.x += c.vx; c.y += c.vy;
+      c.vy += 0.12;
+      c.vx *= 0.99;
+      c.rotation += c.rotSpeed;
+      c.life -= 0.008;
+      if (c.life <= 0) conf.splice(i, 1);
+    }
+
+    // Idle time tracking (for breathing animation)
+    if (phaseRef.current === Phase.Idle) {
+      idleTimeRef.current += 16;
+    } else {
+      idleTimeRef.current = 0;
     }
 
     // Shake decay
@@ -351,6 +484,9 @@ export default function Match3Game({ level, onBack, onComplete }: Props) {
           if (!endedRef.current) {
             endedRef.current = true;
             setGameState('won');
+            celebrateRef.current = true;
+            spawnCelebration();
+            playWinSound();
             setTimeout(() => onComplete(st, sc), 600);
           }
         } else if (movesRef.current <= 0) {
@@ -358,6 +494,7 @@ export default function Match3Game({ level, onBack, onComplete }: Props) {
           if (!endedRef.current) {
             endedRef.current = true;
             setGameState('lost');
+            playLoseSound();
           }
         } else {
           phaseRef.current = Phase.Idle;
@@ -367,6 +504,27 @@ export default function Match3Game({ level, onBack, onComplete }: Props) {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [level]);
+
+  /* ── Spawn Celebration Confetti ── */
+  const spawnCelebration = useCallback(() => {
+    const canvas = canvasRef.current;
+    const cW = canvas ? canvas.width / dprRef.current : 500;
+    for (let i = 0; i < 80; i++) {
+      const shapes: Confetti['shape'][] = ['rect', 'circle', 'star'];
+      confettiRef.current.push({
+        x: Math.random() * cW,
+        y: -20 - Math.random() * 100,
+        vx: (Math.random() - 0.5) * 6,
+        vy: 2 + Math.random() * 4,
+        size: 4 + Math.random() * 6,
+        color: CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)],
+        rotation: Math.random() * Math.PI * 2,
+        rotSpeed: (Math.random() - 0.5) * 0.2,
+        life: 1,
+        shape: shapes[Math.floor(Math.random() * shapes.length)],
+      });
+    }
+  }, []);
 
   /* ── Start Removal Phase ── */
   const startRemoval = useCallback((matches: MatchGroup[]) => {
@@ -415,8 +573,12 @@ export default function Match3Game({ level, onBack, onComplete }: Props) {
         }
       }
 
-      if (style) spawnParticles(x, y, style.bg, 10);
+      if (style) spawnParticles(x, y, style.bg, 16);
     }
+
+    // Play match sound
+    playMatchSound(comboRef.current);
+    if (specials.length > 0) playSpecialSound();
 
     // Score popup
     if (removed.size > 0) {
@@ -520,50 +682,107 @@ export default function Match3Game({ level, onBack, onComplete }: Props) {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, w, h);
 
-    // Background gradient — bright cheerful green
+    // Background — deep royal gradient
     const bgGrad = ctx.createLinearGradient(0, 0, 0, h);
-    bgGrad.addColorStop(0, '#48BB78');
-    bgGrad.addColorStop(0.5, '#38A169');
-    bgGrad.addColorStop(1, '#2F855A');
+    bgGrad.addColorStop(0, '#1a1a2e');
+    bgGrad.addColorStop(0.4, '#16213e');
+    bgGrad.addColorStop(0.7, '#0f3460');
+    bgGrad.addColorStop(1, '#1a1a2e');
     ctx.fillStyle = bgGrad;
     ctx.fillRect(0, 0, w, h);
+
+    // Floating background emojis
+    for (const fe of bgEmojisRef.current) {
+      ctx.save();
+      ctx.globalAlpha = fe.opacity;
+      ctx.translate(fe.x, fe.y);
+      ctx.rotate(fe.rotation);
+      ctx.font = `${fe.size}px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(fe.emoji, 0, 0);
+      ctx.restore();
+    }
 
     ctx.save();
     ctx.translate(shk.x, shk.y);
 
-    // Board background
+    // Board background — solid white with shadow
     const boardW = cs * level.cols;
     const boardH = cs * level.rows;
+    ctx.save();
+    ctx.shadowColor = 'rgba(0,0,0,0.3)';
+    ctx.shadowBlur = 20;
+    ctx.shadowOffsetY = 4;
     ctx.fillStyle = BOARD_BG;
-    drawRoundRect(ctx, bx - 4, by - 4, boardW + 8, boardH + 8, 12);
+    drawRoundRect(ctx, bx - 4, by - 4, boardW + 8, boardH + 8, 14);
     ctx.fill();
+    ctx.restore();
 
-    // Grid cells
-    ctx.strokeStyle = 'rgba(255,255,255,0.18)';
-    ctx.lineWidth = 1;
-    for (let r = 0; r <= level.rows; r++) {
+    // Board border — golden
+    ctx.strokeStyle = 'rgba(255,215,0,0.4)';
+    ctx.lineWidth = 2;
+    drawRoundRect(ctx, bx - 4, by - 4, boardW + 8, boardH + 8, 14);
+    ctx.stroke();
+
+    // Checkerboard cells
+    for (let r = 0; r < level.rows; r++) {
+      for (let c = 0; c < level.cols; c++) {
+        const isLight = (r + c) % 2 === 0;
+        ctx.fillStyle = isLight ? CELL_LIGHT : CELL_DARK;
+        const cx = bx + c * cs;
+        const cy = by + r * cs;
+        // Rounded corners for edge cells
+        const rad = 0;
+        if (r === 0 && c === 0) {
+          drawRoundRect(ctx, cx, cy, cs, cs, 10); ctx.fill();
+        } else if (r === 0 && c === level.cols - 1) {
+          drawRoundRect(ctx, cx, cy, cs, cs, 10); ctx.fill();
+        } else if (r === level.rows - 1 && c === 0) {
+          drawRoundRect(ctx, cx, cy, cs, cs, 10); ctx.fill();
+        } else if (r === level.rows - 1 && c === level.cols - 1) {
+          drawRoundRect(ctx, cx, cy, cs, cs, 10); ctx.fill();
+        } else {
+          ctx.fillRect(cx, cy, cs, cs);
+        }
+      }
+    }
+
+    // Subtle grid lines
+    ctx.strokeStyle = 'rgba(0,0,0,0.06)';
+    ctx.lineWidth = 0.5;
+    for (let r = 1; r < level.rows; r++) {
       ctx.beginPath();
       ctx.moveTo(bx, by + r * cs);
       ctx.lineTo(bx + boardW, by + r * cs);
       ctx.stroke();
     }
-    for (let c = 0; c <= level.cols; c++) {
+    for (let c = 1; c < level.cols; c++) {
       ctx.beginPath();
       ctx.moveTo(bx + c * cs, by);
       ctx.lineTo(bx + c * cs, by + boardH);
       ctx.stroke();
     }
 
-    // Selected cell highlight
+    // Selected cell highlight — golden glow
     const sel = selectedRef.current;
     if (sel) {
-      ctx.fillStyle = 'rgba(255,215,0,0.2)';
-      drawRoundRect(ctx, bx + sel.col * cs + 2, by + sel.row * cs + 2, cs - 4, cs - 4, 6);
+      const pulse = 0.5 + Math.sin(now / 200) * 0.2;
+      ctx.save();
+      ctx.shadowColor = 'rgba(255,215,0,0.6)';
+      ctx.shadowBlur = 12;
+      ctx.fillStyle = `rgba(255,215,0,${0.15 + pulse * 0.1})`;
+      drawRoundRect(ctx, bx + sel.col * cs + 1, by + sel.row * cs + 1, cs - 2, cs - 2, 6);
       ctx.fill();
-      ctx.strokeStyle = 'rgba(255,215,0,0.6)';
-      ctx.lineWidth = 2;
+      ctx.strokeStyle = `rgba(255,215,0,${0.6 + pulse * 0.3})`;
+      ctx.lineWidth = 2.5;
       ctx.stroke();
+      ctx.restore();
     }
+
+    // Idle breathing animation factor
+    const breatheScale = phaseRef.current === Phase.Idle && idleTimeRef.current > 500
+      ? 1 + Math.sin(now / 800) * 0.03 : 1;
 
     // Draw gems
     const grid = gridRef.current;
@@ -575,45 +794,77 @@ export default function Match3Game({ level, onBack, onComplete }: Props) {
         if (!vis || vis.opacity <= 0.01) continue;
 
         const style = GEM_STYLES[gem.type];
-        const sz = (cs - CELL_PAD * 2) * 0.72 * vis.scale;
-        if (sz <= 0) continue;
+        const baseSz = (cs - CELL_PAD * 2) * GEM_FILL_RATIO * vis.scale * breatheScale;
+        if (baseSz <= 0) continue;
+        // Shape-specific size compensation
+        let sz = baseSz;
+        if (style.shape === 'star') sz *= 1.05;
+        if (style.shape === 'triangle') sz *= 1.08;
 
         ctx.save();
         ctx.globalAlpha = vis.opacity;
         ctx.translate(vis.x, vis.y);
 
-        // Glow — strong and vibrant
+        // Dark border (drawn slightly larger behind the gem)
         ctx.shadowColor = style.glow;
-        ctx.shadowBlur = 14 * vis.scale;
-
-        // Main shape
-        const grad = ctx.createRadialGradient(-sz * 0.25, -sz * 0.3, 0, 0, 0, sz);
-        grad.addColorStop(0, style.light);
-        grad.addColorStop(0.7, style.bg);
-        ctx.fillStyle = grad;
-
-        drawGemShape(ctx, style.shape, 0, 0, sz);
+        ctx.shadowBlur = 10 * vis.scale;
+        ctx.fillStyle = style.darkBg;
+        drawGemShape(ctx, style.shape, 0, 0, sz + 2);
         ctx.fill();
-
-        // Bold outline for clarity
-        ctx.strokeStyle = 'rgba(255,255,255,0.5)';
-        ctx.lineWidth = 2;
-        drawGemShape(ctx, style.shape, 0, 0, sz);
-        ctx.stroke();
         ctx.shadowBlur = 0;
 
-        // Highlight — strong glossy shine
-        ctx.fillStyle = 'rgba(255,255,255,0.45)';
-        ctx.beginPath();
-        ctx.ellipse(0, -sz * 0.25, sz * 0.5, sz * 0.22, 0, 0, Math.PI * 2);
+        // Main gem with gradient
+        const grad = ctx.createRadialGradient(-sz * 0.2, -sz * 0.25, sz * 0.1, 0, 0, sz);
+        grad.addColorStop(0, style.light);
+        grad.addColorStop(0.5, style.bg);
+        grad.addColorStop(1, style.darkBg);
+        ctx.fillStyle = grad;
+        drawGemShape(ctx, style.shape, 0, 0, sz);
         ctx.fill();
+
+        // White outline for pop
+        ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+        ctx.lineWidth = 1.5;
+        drawGemShape(ctx, style.shape, 0, 0, sz);
+        ctx.stroke();
+
+        // Glossy highlight
+        ctx.fillStyle = 'rgba(255,255,255,0.5)';
+        ctx.beginPath();
+        ctx.ellipse(-sz * 0.1, -sz * 0.28, sz * 0.45, sz * 0.18, -0.15, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Emoji on gem
+        ctx.font = `${sz * 0.6}px sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.globalAlpha = vis.opacity * 0.85;
+        ctx.fillText(style.emoji, 0, 1);
+        ctx.globalAlpha = vis.opacity;
+
+        // Shimmer / sparkle effect (subtle moving highlight)
+        const shimmerPhase = (now / 1500 + r * 0.3 + c * 0.3) % 1;
+        if (shimmerPhase < 0.3 && phaseRef.current === Phase.Idle) {
+          const shimmerX = -sz + shimmerPhase * sz * 6.67;
+          ctx.save();
+          ctx.beginPath();
+          drawGemShape(ctx, style.shape, 0, 0, sz);
+          ctx.clip();
+          const shimGrad = ctx.createLinearGradient(shimmerX - sz * 0.4, 0, shimmerX + sz * 0.4, 0);
+          shimGrad.addColorStop(0, 'rgba(255,255,255,0)');
+          shimGrad.addColorStop(0.5, 'rgba(255,255,255,0.25)');
+          shimGrad.addColorStop(1, 'rgba(255,255,255,0)');
+          ctx.fillStyle = shimGrad;
+          ctx.fillRect(-sz, -sz, sz * 2, sz * 2);
+          ctx.restore();
+        }
 
         // Special indicator
         if (gem.special !== SpecialType.None) {
           ctx.strokeStyle = SPECIAL_COLORS[gem.special];
           ctx.lineWidth = 2.5;
           ctx.beginPath();
-          ctx.arc(0, 0, sz + 3, 0, Math.PI * 2);
+          ctx.arc(0, 0, sz + 4, 0, Math.PI * 2);
           ctx.stroke();
 
           if (gem.special === SpecialType.RocketH) {
@@ -636,7 +887,7 @@ export default function Match3Game({ level, onBack, onComplete }: Props) {
             ctx.strokeStyle = '#FF6348';
             ctx.lineWidth = 2;
             ctx.setLineDash([3, 3]);
-            ctx.beginPath(); ctx.arc(0, 0, sz + 6, 0, Math.PI * 2); ctx.stroke();
+            ctx.beginPath(); ctx.arc(0, 0, sz + 7, 0, Math.PI * 2); ctx.stroke();
             ctx.setLineDash([]);
           } else if (gem.special === SpecialType.Rainbow) {
             const t = (now % 2000) / 2000;
@@ -647,7 +898,7 @@ export default function Match3Game({ level, onBack, onComplete }: Props) {
             rainbow.addColorStop(1, '#FF0000');
             ctx.strokeStyle = rainbow;
             ctx.lineWidth = 3;
-            ctx.beginPath(); ctx.arc(0, 0, sz + 4, 0, Math.PI * 2); ctx.stroke();
+            ctx.beginPath(); ctx.arc(0, 0, sz + 5, 0, Math.PI * 2); ctx.stroke();
           }
         }
 
@@ -655,24 +906,31 @@ export default function Match3Game({ level, onBack, onComplete }: Props) {
       }
     }
 
-    // Particles
+    // Particles — larger + more vibrant
     for (const p of particlesRef.current) {
-      ctx.globalAlpha = Math.max(0, p.life / p.maxLife);
+      const alpha = Math.max(0, p.life / p.maxLife);
+      ctx.globalAlpha = alpha;
       ctx.fillStyle = p.color;
+      const sz = p.size * (0.5 + 0.5 * (p.life / p.maxLife));
       ctx.beginPath();
-      ctx.arc(p.x, p.y, p.size * (p.life / p.maxLife), 0, Math.PI * 2);
+      ctx.arc(p.x, p.y, sz, 0, Math.PI * 2);
       ctx.fill();
+      // Add glow to particles
+      ctx.shadowColor = p.color;
+      ctx.shadowBlur = 6;
+      ctx.fill();
+      ctx.shadowBlur = 0;
     }
     ctx.globalAlpha = 1;
 
-    // Score popups
+    // Score popups — with glow
     for (const pop of popupsRef.current) {
       ctx.globalAlpha = Math.max(0, pop.life);
       ctx.fillStyle = pop.color;
-      ctx.font = `bold ${16 + (1 - pop.life) * 8}px sans-serif`;
+      ctx.font = `bold ${18 + (1 - pop.life) * 10}px sans-serif`;
       ctx.textAlign = 'center';
-      ctx.shadowColor = 'rgba(0,0,0,0.5)';
-      ctx.shadowBlur = 4;
+      ctx.shadowColor = pop.color;
+      ctx.shadowBlur = 8;
       ctx.fillText(pop.text, pop.x, pop.y);
       ctx.shadowBlur = 0;
     }
@@ -680,10 +938,37 @@ export default function Match3Game({ level, onBack, onComplete }: Props) {
 
     ctx.restore(); // shake transform
 
-    // HUD on canvas (kept minimal — React overlay handles most)
-    // Star progress bar
+    // Confetti (celebration overlay — drawn after shake restore so it's stable)
+    if (confettiRef.current.length > 0) {
+      for (const c of confettiRef.current) {
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, c.life);
+        ctx.translate(c.x, c.y);
+        ctx.rotate(c.rotation);
+        ctx.fillStyle = c.color;
+        if (c.shape === 'rect') {
+          ctx.fillRect(-c.size / 2, -c.size / 4, c.size, c.size / 2);
+        } else if (c.shape === 'circle') {
+          ctx.beginPath(); ctx.arc(0, 0, c.size / 2, 0, Math.PI * 2); ctx.fill();
+        } else {
+          // star shape
+          ctx.beginPath();
+          for (let i = 0; i < 10; i++) {
+            const a = (Math.PI / 5) * i - Math.PI / 2;
+            const rad = i % 2 === 0 ? c.size / 2 : c.size / 4;
+            i === 0 ? ctx.moveTo(Math.cos(a) * rad, Math.sin(a) * rad)
+                     : ctx.lineTo(Math.cos(a) * rad, Math.sin(a) * rad);
+          }
+          ctx.closePath(); ctx.fill();
+        }
+        ctx.restore();
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    // HUD on canvas — Star progress bar
     const barX = bx, barY = by - 28, barW = boardW, barH = 8;
-    ctx.fillStyle = 'rgba(255,255,255,0.25)';
+    ctx.fillStyle = 'rgba(255,255,255,0.15)';
     drawRoundRect(ctx, barX, barY, barW, barH, 4); ctx.fill();
 
     const sc = scoreRef.current;
@@ -760,9 +1045,11 @@ export default function Match3Game({ level, onBack, onComplete }: Props) {
         doSwap(selectedRef.current, tapped);
       } else {
         selectedRef.current = tapped;
+        playSelectSound();
       }
     } else {
       selectedRef.current = tapped;
+      playSelectSound();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -775,7 +1062,8 @@ export default function Match3Game({ level, onBack, onComplete }: Props) {
     E.swapGems(grid, a, b);
     animateSwap(a, b);
     phaseRef.current = Phase.Swapping;
-  }, [animateSwap]);
+    playSwapSound();
+  }, [animateSwap, playSwapSound]);
 
   /* ═══════════════════════════════════
      JSX RENDER
@@ -788,34 +1076,42 @@ export default function Match3Game({ level, onBack, onComplete }: Props) {
     <div className="relative w-full h-screen overflow-hidden select-none" style={{ background: BG_COLOR }}>
       {/* HUD Overlay */}
       <div className="absolute top-0 left-0 right-0 z-10 px-3 pt-3 pb-1 flex items-center justify-between text-white"
-        style={{ background: 'linear-gradient(180deg, rgba(47,133,90,0.85) 0%, transparent 100%)' }}>
+        style={{ background: 'linear-gradient(180deg, rgba(15,52,96,0.95) 0%, transparent 100%)' }}>
         <button
           onClick={onBack}
-          className="w-10 h-10 flex items-center justify-center rounded-full bg-white/20 hover:bg-white/30 text-lg"
+          className="w-10 h-10 flex items-center justify-center rounded-full bg-white/15 hover:bg-white/25 text-lg backdrop-blur-sm"
         >
           ←
         </button>
 
         <div className="flex flex-col items-center">
-          <span className="text-[10px] text-yellow-200 font-medium">المستوى {level.id}</span>
-          <span className="text-sm font-bold">{level.name}</span>
+          <span className="text-[10px] text-yellow-300/90 font-medium">المستوى {level.id}</span>
+          <span className="text-sm font-bold bg-gradient-to-r from-yellow-200 to-amber-300 bg-clip-text text-transparent">{level.name}</span>
         </div>
 
-        <div className="flex flex-col items-center">
-          <span className="text-[10px] text-yellow-200">الحركات</span>
-          <span className={`text-lg font-bold ${movesLeft <= 3 ? 'text-red-400 animate-pulse' : ''}`}>
-            {movesLeft}
-          </span>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => { setMuted(m => !m); mutedRef.current = !mutedRef.current; }}
+            className="w-8 h-8 flex items-center justify-center rounded-full bg-white/15 hover:bg-white/25 text-sm backdrop-blur-sm"
+          >
+            {muted ? '🔇' : '🔊'}
+          </button>
+          <div className="flex flex-col items-center">
+            <span className="text-[10px] text-yellow-300/90">الحركات</span>
+            <span className={`text-lg font-bold ${movesLeft <= 3 ? 'text-red-400 animate-pulse' : 'text-white'}`}>
+              {movesLeft}
+            </span>
+          </div>
         </div>
       </div>
 
       {/* Score + Stars */}
       <div className="absolute top-[52px] left-0 right-0 z-10 px-4 flex items-center justify-between text-white">
         <div className="flex items-center gap-1">{starIcons}</div>
-        <div className="text-sm font-bold text-yellow-300">{score.toLocaleString()}</div>
+        <div className="text-sm font-bold text-yellow-300 drop-shadow-lg">{score.toLocaleString()}</div>
         {combo > 0 && (
-          <span className="text-xs bg-orange-500/80 px-2 py-0.5 rounded-full animate-bounce">
-            x{combo + 1}
+          <span className="text-xs bg-gradient-to-r from-orange-500 to-red-500 px-2.5 py-0.5 rounded-full animate-bounce shadow-lg shadow-orange-500/30 font-bold">
+            x{combo + 1} 🔥
           </span>
         )}
       </div>
@@ -834,13 +1130,13 @@ export default function Match3Game({ level, onBack, onComplete }: Props) {
 
       {/* Objectives bar */}
       <div className="absolute bottom-0 left-0 right-0 z-10 px-4 py-3 flex items-center justify-center gap-4"
-        style={{ background: 'linear-gradient(0deg, rgba(47,133,90,0.85) 0%, transparent 100%)' }}>
+        style={{ background: 'linear-gradient(0deg, rgba(15,52,96,0.95) 0%, transparent 100%)' }}>
         {objectives.map((obj, i) => {
           const done = obj.type === 'score'
             ? score >= obj.target
             : obj.current >= obj.target;
           return (
-            <div key={i} className={`flex items-center gap-2 text-sm px-3 py-1.5 rounded-full border ${done ? 'border-yellow-400 text-yellow-200 bg-yellow-500/20' : 'border-white/30 text-white/80 bg-white/10'}`}>
+            <div key={i} className={`flex items-center gap-2 text-sm px-3 py-1.5 rounded-full border backdrop-blur-sm ${done ? 'border-yellow-400 text-yellow-200 bg-yellow-500/25 shadow-lg shadow-yellow-500/20' : 'border-white/25 text-white/80 bg-white/10'}`}>
               {obj.type === 'collect' && obj.gemType !== undefined && (
                 <span className="w-4 h-4 rounded-full" style={{ backgroundColor: GEM_STYLES[obj.gemType].bg }} />
               )}
@@ -860,30 +1156,30 @@ export default function Match3Game({ level, onBack, onComplete }: Props) {
         <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/70 animate-in fade-in duration-300">
           <div className={`mx-6 p-8 rounded-3xl text-center shadow-2xl ${
             gameState === 'won'
-              ? 'bg-gradient-to-b from-emerald-700 to-teal-800 border border-yellow-400/40'
+              ? 'bg-gradient-to-b from-[#0f3460] to-[#16213e] border-2 border-yellow-400/50 shadow-yellow-500/30'
               : 'bg-gradient-to-b from-gray-700 to-gray-800 border border-red-500/30'
           }`}>
-            <div className="text-5xl mb-4">{gameState === 'won' ? '🎉' : '😔'}</div>
+            <div className="text-5xl mb-4">{gameState === 'won' ? '🎉👑🎉' : '😔'}</div>
             <h2 className="text-2xl font-bold text-white mb-2">
-              {gameState === 'won' ? 'أحسنت!' : 'انتهت الحركات'}
+              {gameState === 'won' ? 'أحسنت! 🏆' : 'انتهت الحركات'}
             </h2>
             {gameState === 'won' && (
               <div className="flex items-center justify-center gap-1 mb-4">
                 {starIcons}
               </div>
             )}
-            <p className="text-emerald-100 mb-1">النقاط: {score.toLocaleString()}</p>
+            <p className="text-blue-100 mb-1">النقاط: {score.toLocaleString()}</p>
             <div className="flex items-center justify-center gap-3 mt-6">
               <button
                 onClick={onBack}
-                className="px-6 py-3 rounded-xl bg-white/15 hover:bg-white/25 text-white font-bold transition-colors"
+                className="px-6 py-3 rounded-xl bg-white/15 hover:bg-white/25 text-white font-bold transition-colors backdrop-blur-sm"
               >
                 القائمة
               </button>
               {gameState === 'lost' && (
                 <button
                   onClick={() => window.location.reload()}
-                  className="px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold transition-colors"
+                  className="px-6 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold transition-colors shadow-lg"
                 >
                   حاول مرة أخرى
                 </button>
