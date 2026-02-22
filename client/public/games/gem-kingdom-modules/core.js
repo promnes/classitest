@@ -28,6 +28,16 @@ import {
   spawnRocketTrail, drawSwipeLine, startFadeOut, isTransitioning,
 } from './ui.js';
 
+// ===== REPORTS =====
+let REPORTS = null;
+
+async function loadReports() {
+  try {
+    const mod = await import('./reports.js');
+    REPORTS = mod;
+  } catch (e) { /* optional */ }
+}
+
 // ===== STATE =====
 const S = {
   screen: 'world', // 'world', 'level', 'game', 'done', 'shop', 'achieve', 'stats'
@@ -35,6 +45,7 @@ const S = {
   progress: null,
   currentWorld: 0,
   currentLevel: 0,
+  winStreak: 0,
   // Game state
   grid: null,
   rows: 8,
@@ -210,7 +221,7 @@ export async function initGame() {
   document.documentElement.dir = LANG === 'ar' ? 'rtl' : 'ltr';
 
   // Load optional modules in parallel
-  await Promise.allSettled([loadWorlds(), loadAudio(), loadIntelligence(), loadStory(), loadEconomy(), loadEngagement()]);
+  await Promise.allSettled([loadWorlds(), loadAudio(), loadIntelligence(), loadStory(), loadEconomy(), loadEngagement(), loadReports()]);
 
   setupEventListeners();
   showScreen('world');
@@ -968,6 +979,15 @@ async function cascadeLoop() {
         );
       }
       playSound(S.combo >= 5 ? 'megaCombo' : 'combo');
+
+      // Streak engagement message
+      if (ENGAGE && S.combo >= 2) {
+        const streakMsg = ENGAGE.getStreakMessage(S.combo);
+        if (streakMsg) {
+          const st = qs('#streak-toast');
+          if (st) { st.textContent = streakMsg; st.classList.add('show'); clearTimeout(st._timer); st._timer = setTimeout(() => st.classList.remove('show'), 1800); }
+        }
+      }
     }
 
     // Special creations particles
@@ -1205,10 +1225,29 @@ async function endLevel() {
   const stars = won ? calcStars(S.score, S.levelDef.starThresholds) : 0;
   S.stars = stars;
 
-  // Calculate coins
-  const baseCoins = won ? 5 + stars * 3 : 1;
-  const bossBonus = S.boss && S.boss.defeated ? 10 : 0;
-  S.coinsEarned = baseCoins + bossBonus;
+  // Calculate coins via economy.js or fallback
+  if (ECONOMY && won) {
+    const reward = ECONOMY.calcReward({
+      score: S.score,
+      stars,
+      isBoss: !!S.levelDef.isBoss,
+      isMiniBoss: !!S.levelDef.isMiniBoss,
+      movesLeft: S.movesLeft,
+      totalMoves: S.levelDef.moves,
+      usedBoosters: 0,
+      winStreak: S.winStreak,
+      worldIdx: S.currentWorld,
+    });
+    S.coinsEarned = reward.total;
+  } else {
+    const baseCoins = won ? 5 + stars * 3 : 1;
+    const bossBonus = S.boss && S.boss.defeated ? 10 : 0;
+    S.coinsEarned = baseCoins + bossBonus;
+  }
+
+  // Track win streak
+  if (won) S.winStreak++;
+  else S.winStreak = 0;
 
   // Snapshot previous stats for milestone detection
   const prevStats = {
@@ -1386,6 +1425,19 @@ function renderDoneScreen() {
     badgesEl.appendChild(badge);
   }
 
+  // Win streak message
+  if (ENGAGE && S.winStreak >= 2) {
+    const streakMsg = ENGAGE.getStreakMessage(S.winStreak);
+    if (streakMsg) {
+      const streakEl = document.createElement('div');
+      streakEl.className = 'done-badge';
+      streakEl.style.background = 'rgba(251,191,36,.2)';
+      streakEl.style.borderColor = 'rgba(251,191,36,.5)';
+      streakEl.textContent = streakMsg;
+      badgesEl.appendChild(streakEl);
+    }
+  }
+
   // Coins
   qs('#done-coins').innerHTML = `🪙 +${S.coinsEarned}`;
 
@@ -1419,21 +1471,37 @@ function renderDoneScreen() {
     sessionPanel.style.display = 'none';
   }
 
-  // Did you know
+  // Did you know + Fact Library
   const dykTitle = qs('#done-dyk-title');
   const dykText = qs('#done-dyk-text');
+  const factsBtn = qs('#facts-lib-btn');
   if (STORY) {
     const fact = STORY.getRandomFact(S.currentWorld);
     if (fact) {
       dykTitle.textContent = t('didYouKnow');
       dykText.textContent = fact;
       qs('#done-dyk').style.display = '';
+      // Fact Library button
+      const allFacts = STORY.getAllFacts(S.currentWorld);
+      if (allFacts && allFacts.length > 1 && factsBtn) {
+        factsBtn.style.display = '';
+        factsBtn.onclick = () => {
+          const list = qs('#facts-list');
+          list.innerHTML = allFacts.map((f, i) => `<div class="facts-item"><span class="fi-num">${i + 1}.</span>${f}</div>`).join('');
+          qs('#facts-overlay').style.display = '';
+        };
+      } else if (factsBtn) { factsBtn.style.display = 'none'; }
     } else {
       qs('#done-dyk').style.display = 'none';
     }
   } else {
     qs('#done-dyk').style.display = 'none';
   }
+  // Close facts overlay
+  const factsClose = qs('#facts-close');
+  if (factsClose) factsClose.onclick = () => qs('#facts-overlay').style.display = 'none';
+  const factsOverlay = qs('#facts-overlay');
+  if (factsOverlay) factsOverlay.addEventListener('click', e => { if (e.target === factsOverlay) factsOverlay.style.display = 'none'; });
 
   // Buttons
   const btnsEl = qs('#done-btns');
@@ -1785,6 +1853,45 @@ function renderStatsScreen() {
 
   const totalStars = getTotalStars(p);
 
+  // Use reports.js for enhanced skill analysis if available
+  let skillHTML = '';
+  if (REPORTS) {
+    try {
+      const skills = REPORTS.getSkillAnalysis(p);
+      if (skills && skills.length > 0) {
+        for (const sk of skills) {
+          skillHTML += renderSkillBar(sk.name, sk.rating);
+        }
+      }
+    } catch (e) { /* fallback below */ }
+  }
+  if (!skillHTML) {
+    skillHTML = `
+      ${renderSkillBar(t('skillPlanning'), p.skillData.smoothedSkill || 50)}
+      ${renderSkillBar(t('skillPattern'), Math.min((p.totalGemsCollected / 500) * 100, 100))}
+      ${renderSkillBar(t('skillSpeed'), Math.min((100 - (p.skillData.avgResponseTime || 8)) * 10, 100))}
+      ${renderSkillBar(t('skillProblem'), Math.min((p.maxCombo / 10) * 100, 100))}
+    `;
+  }
+
+  // World breakdown from reports.js
+  let worldHTML = '';
+  if (REPORTS) {
+    try {
+      const breakdown = REPORTS.getWorldBreakdown(p);
+      if (breakdown && breakdown.length > 0) {
+        const nameKey = LANG === 'pt' ? 'pt' : LANG === 'ar' ? 'ar' : 'en';
+        const names = WORLD_NAMES[nameKey] || WORLD_NAMES.en;
+        worldHTML = `<div class="stats-card" style="margin-top:8px"><h3>🌍 ${LANG === 'ar' ? 'العوالم' : LANG === 'pt' ? 'Mundos' : 'Worlds'}</h3>`;
+        for (const wb of breakdown) {
+          const pct = wb.stars > 0 ? Math.round((wb.stars / 30) * 100) : 0;
+          worldHTML += `<div class="stats-row"><span class="stats-label">${WORLD_ICONS[wb.world] || '💎'} ${names[wb.world] || 'World ' + (wb.world + 1)}</span><span class="stats-value">⭐ ${wb.stars}/30</span></div>`;
+        }
+        worldHTML += `</div>`;
+      }
+    } catch (e) { /* skip */ }
+  }
+
   content.innerHTML = `
     <div class="stats-card">
       <h3>📊 ${t('report')}</h3>
@@ -1799,11 +1906,9 @@ function renderStatsScreen() {
     </div>
     <div class="stats-card" style="margin-top:8px">
       <h3>🧠 ${t('report')}</h3>
-      ${renderSkillBar(t('skillPlanning'), p.skillData.smoothedSkill || 50)}
-      ${renderSkillBar(t('skillPattern'), Math.min((p.totalGemsCollected / 500) * 100, 100))}
-      ${renderSkillBar(t('skillSpeed'), Math.min((100 - (p.skillData.avgResponseTime || 8)) * 10, 100))}
-      ${renderSkillBar(t('skillProblem'), Math.min((p.maxCombo / 10) * 100, 100))}
+      ${skillHTML}
     </div>
+    ${worldHTML}
   `;
 }
 
@@ -1941,7 +2046,7 @@ function shareResult() {
 
 // ===== POST MESSAGE =====
 function postGameComplete(won) {
-  window.parent.postMessage({
+  const msg = {
     type: 'GAME_COMPLETE',
     score: S.score,
     stars: S.stars,
@@ -1950,7 +2055,16 @@ function postGameComplete(won) {
     level: S.currentLevel + 1,
     world: S.currentWorld + 1,
     maxCombo: S.maxCombo,
-  }, '*');
+  };
+
+  // Attach compact report for parent dashboard
+  if (REPORTS) {
+    try {
+      msg.report = REPORTS.createCompactReport(S.progress);
+    } catch (e) { /* skip */ }
+  }
+
+  window.parent.postMessage(msg, '*');
 }
 
 // ===== MUTE =====

@@ -20,7 +20,7 @@ import {
   initBg, stopBg, spawnConfetti, royalCelebration, spawnMatchParticles, spawnCoinFly,
   showScreen, updateCountdownDisplay, renderCards as uiRenderCards
 } from './ui.js';
-import { getWorldIntro, getRandomFact, getQuiz } from './story.js';
+import { getWorldIntro, getRandomFact, getQuiz, getAllFacts } from './story.js';
 import { checkMicroBadges, getNearMissMessage, getStreakMessage, getComebackMessage, getSessionSummary, getMilestoneMessage } from './engagement.js';
 
 // Detect low-performance devices on load
@@ -648,6 +648,14 @@ export function flipCard(id) {
     }
     if (comboStreak > 1) sfxComboUp(comboStreak);
     updateMusicIntensity(comboStreak);
+    // Streak engagement message
+    if (comboStreak >= 2) {
+      const streakMsg = getStreakMessage(comboStreak);
+      if (streakMsg) {
+        const fb = document.getElementById('streak-toast');
+        if (fb) { fb.textContent = streakMsg; fb.classList.add('show'); clearTimeout(fb._timer); fb._timer = setTimeout(() => fb.classList.remove('show'), 1800); }
+      }
+    }
     spawnMatchParticles(picks[0], picks[picks.length - 1]);
     ddaOnMatch();
 
@@ -2161,15 +2169,31 @@ export function endGame() {
     } else { nearEl.style.display = 'none'; }
   }
 
-  // Fun fact from Story module
+  // Fun fact from Story module + Fact Library
   const factEl = document.getElementById('d-fact');
+  const factsLibBtn = document.getElementById('facts-lib-btn');
   if (factEl && currentWorld >= 0) {
     const fact = getRandomFact(currentWorld);
     if (fact) {
       factEl.style.display = '';
       factEl.innerHTML = '<span class="fact-icon">💡</span>' + fact;
-    } else { factEl.style.display = 'none'; }
-  } else if (factEl) { factEl.style.display = 'none'; }
+      // Fact Library
+      const allFacts = getAllFacts(currentWorld);
+      if (allFacts && allFacts.length > 1 && factsLibBtn) {
+        factsLibBtn.style.display = '';
+        factsLibBtn.onclick = () => {
+          const list = document.getElementById('facts-list');
+          list.innerHTML = allFacts.map((f, i) => `<div class="facts-item"><span class="fi-num">${i + 1}.</span>${f}</div>`).join('');
+          document.getElementById('facts-overlay').style.display = '';
+        };
+      } else if (factsLibBtn) { factsLibBtn.style.display = 'none'; }
+    } else { factEl.style.display = 'none'; if (factsLibBtn) factsLibBtn.style.display = 'none'; }
+  } else { if (factEl) factEl.style.display = 'none'; if (factsLibBtn) factsLibBtn.style.display = 'none'; }
+  // Close facts overlay
+  const factsCloseBtn = document.getElementById('facts-close');
+  if (factsCloseBtn) factsCloseBtn.onclick = () => document.getElementById('facts-overlay').style.display = 'none';
+  const factsOv = document.getElementById('facts-overlay');
+  if (factsOv) factsOv.addEventListener('click', e => { if (e.target === factsOv) factsOv.style.display = 'none'; });
 
   // Session summary + micro-badges
   const sessionEl = document.getElementById('d-session');
