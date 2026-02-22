@@ -417,3 +417,46 @@ export function createCompactReport(progress) {
     ),
   };
 }
+
+// ===== GRADE ESTIMATION =====
+export function estimateGradeLevel(progress) {
+  const skillReport = getSkillAnalysis(progress);
+  const avgSkill = skillReport.length > 0
+    ? Math.round(skillReport.reduce((s, r) => s + r.rating, 0) / skillReport.length) : 50;
+
+  let totalStars = 0;
+  let levelsCompleted = 0;
+  for (let w = 0; w < 10; w++) {
+    for (let l = 0; l < 10; l++) {
+      const s = progress?.stars?.[w]?.[l] || 0;
+      if (s > 0) levelsCompleted++;
+      totalStars += s;
+    }
+  }
+
+  // Composite: skill average + progression depth
+  const progressBonus = Math.min(20, levelsCompleted * 0.4);
+  const composite = avgSkill * 0.7 + progressBonus + (totalStars > 100 ? 10 : totalStars * 0.1);
+
+  if (composite >= 85) return { grade: '5+', label: 'Advanced', confidence: 'high' };
+  if (composite >= 72) return { grade: '4-5', label: 'Grade 4-5', confidence: 'medium' };
+  if (composite >= 58) return { grade: '3-4', label: 'Grade 3-4', confidence: 'medium' };
+  if (composite >= 42) return { grade: '2-3', label: 'Grade 2-3', confidence: 'medium' };
+  if (composite >= 28) return { grade: '1-2', label: 'Grade 1-2', confidence: 'medium' };
+  return { grade: 'K-1', label: 'Kindergarten-1st', confidence: 'low' };
+}
+
+// ===== FULL REPORT FOR POSTMESSAGE =====
+export function generateFullReport(progressOverride) {
+  const progress = progressOverride || loadProgress();
+  return {
+    type: 'GEM_PROGRESS_REPORT',
+    timestamp: Date.now(),
+    overview: generateReport(progress).overview,
+    worldBreakdown: getWorldBreakdown(progress),
+    skills: getSkillAnalysis(progress),
+    playtime: getPlaytimeSummary(progress),
+    gradeEstimate: estimateGradeLevel(progress),
+    recommendations: generateReport(progress).recommendations,
+  };
+}

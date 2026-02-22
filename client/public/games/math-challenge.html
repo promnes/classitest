@@ -343,54 +343,61 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',Tahoma,s
 .comeback-inner{background:linear-gradient(135deg,#43e97b,#38f9d7);color:#1a1a2e;border-radius:16px;padding:12px 22px;display:flex;align-items:center;gap:10px;font-weight:700;font-size:15px;box-shadow:0 4px 20px rgba(67,233,123,.4)}
 .comeback-emoji{font-size:28px}
 @keyframes comebackIn{0%{opacity:0;transform:translateX(-50%) translateY(-30px)}100%{opacity:1;transform:translateX(-50%) translateY(0)}}
+/* ===== ACCESSIBILITY: Reduced Motion ===== */
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important;scroll-behavior:auto !important}
+  .screen.fade-in{animation:none !important}
+}
+/* ===== Focus-visible ring ===== */
+button:focus-visible,.wc:focus-visible,.lc:focus-visible,.np-btn:focus-visible,.ls-btn:focus-visible,.d-btn:focus-visible{outline:3px solid #fbbf24;outline-offset:2px}
 </style>
 </head>
 <body>
 
 <!-- ===== WORLD SELECT ===== -->
-<div id="world-screen" class="screen active">
+<div id="world-screen" class="screen active" role="region" aria-label="World Select">
   <div class="top-bar">
     <div class="tb-item" id="tb-level">⭐ Lv.1</div>
     <div class="tb-item" id="tb-coins">🪙 0</div>
     <div class="tb-item" id="tb-lives">❤️ 5</div>
-    <div class="tb-item mute-btn" id="tb-mute" onclick="toggleMuteBtn()">🔊</div>
-    <div class="tb-item" id="tb-perf" style="cursor:pointer" onclick="togglePerf()">⚡</div>
+    <button class="tb-item mute-btn" id="tb-mute" aria-label="Toggle sound">🔊</button>
+    <button class="tb-item" id="tb-perf" style="cursor:pointer" aria-label="Toggle performance mode">⚡</button>
   </div>
   <div class="xp-bar-wrap">
-    <div class="xp-bar"><div class="xp-fill" id="xp-fill" style="width:0%"></div></div>
+    <div class="xp-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="Experience"><div class="xp-fill" id="xp-fill" style="width:0%"></div></div>
     <div class="xp-label" id="xp-label">0 / 1000 XP</div>
   </div>
   <div class="ls-title" id="ws-t">🧮 مملكة الأرقام</div>
   <div class="ls-sub" id="ws-sub">اختر عالمك لتبدأ المغامرة!</div>
   <div class="ls-btns">
-    <button class="ls-btn daily" id="daily-btn" onclick="startDaily()">🎯 التحدي اليومي</button>
-    <button class="ls-btn weekly" id="weekly-btn" onclick="startWeekly()">📅 التحدي الأسبوعي</button>
-    <button class="ls-btn" onclick="openShop()">🛒 المتجر</button>
-    <button class="ls-btn ach" id="ach-btn" onclick="openAchievements()">🏅 الإنجازات</button>
-    <button class="ls-btn report" id="report-btn" onclick="openReport()">📊 التقرير</button>
+    <button class="ls-btn daily" id="daily-btn">🎯 التحدي اليومي</button>
+    <button class="ls-btn weekly" id="weekly-btn">📅 التحدي الأسبوعي</button>
+    <button class="ls-btn" id="shop-btn">🛒 المتجر</button>
+    <button class="ls-btn ach" id="ach-btn">🏅 الإنجازات</button>
+    <button class="ls-btn report" id="report-btn">📊 التقرير</button>
   </div>
-  <div class="world-grid" id="world-grid"></div>
+  <div class="world-grid" id="world-grid" role="list" aria-label="Worlds"></div>
 </div>
 
 <!-- ===== LEVEL SELECT (within world) ===== -->
-<div id="lvl-screen" class="screen">
+<div id="lvl-screen" class="screen" role="region" aria-label="Level Select">
   <div class="lvl-header">
-    <button class="lvl-back" id="lvl-back" onclick="backToWorlds()">← العوالم</button>
+    <button class="lvl-back" id="lvl-back">← العوالم</button>
     <div class="lvl-world-title" id="lvl-world-title"></div>
-    <button class="prestige-btn" id="prestige-btn" onclick="handlePrestige()" style="display:none">♻️ برستيج</button>
-    <div class="tb-item mute-btn" onclick="toggleMuteBtn()" id="lvl-mute">🔊</div>
+    <button class="prestige-btn" id="prestige-btn" style="display:none">♻️ برستيج</button>
+    <button class="tb-item mute-btn" id="lvl-mute" aria-label="Toggle sound">🔊</button>
   </div>
   <div class="lvl-prestige-info" id="lvl-prestige-info" style="display:none"></div>
-  <div class="ls-grid" id="ls-g"></div>
+  <div class="ls-grid" id="ls-g" role="list" aria-label="Levels"></div>
 </div>
 
 <!-- ===== GAME SCREEN ===== -->
-<div id="game-screen" class="screen">
+<div id="game-screen" class="screen" role="region" aria-label="Game">
   <div class="g-top">
-    <div class="g-lives" id="g-lives"></div>
-    <div class="g-combo" id="g-combo">🔥 x1</div>
-    <button class="g-mute" id="g-mute" onclick="toggleMuteBtn()">🔊</button>
-    <button class="g-back" onclick="exitGame()">✕</button>
+    <div class="g-lives" id="g-lives" aria-label="Lives"></div>
+    <div class="g-combo" id="g-combo" aria-live="polite">🔥 x1</div>
+    <button class="g-mute" id="g-mute" aria-label="Toggle sound">🔊</button>
+    <button class="g-back" id="g-exit" aria-label="Exit game">✕</button>
   </div>
   <div class="boss-bar" id="boss-bar" style="display:none">
     <div class="boss-hdr">
@@ -406,29 +413,29 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',Tahoma,s
       <div class="g-stat"><span class="g-sv" id="g-sc">0</span><span class="g-sl" id="g-scl">النقاط</span></div>
       <div class="g-stat"><span class="g-sv" id="g-qn">1/10</span><span class="g-sl" id="g-qnl">السؤال</span></div>
     </div>
-    <div class="pbar"><div class="pfill" id="pfill" style="width:10%"></div></div>
+    <div class="pbar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="10" aria-label="Question progress"><div class="pfill" id="pfill" style="width:10%"></div></div>
     <div class="timer" id="timer"></div>
     <div class="q-area">
       <div class="q-visual" id="q-visual"></div>
       <div class="q-text" id="q-text">5 + 3 = ?</div>
       <div class="q-feedback" id="q-feedback"></div>
     </div>
-    <div class="ans-grid" id="answers"></div>
+    <div class="ans-grid" id="answers" role="group" aria-label="Answer choices"></div>
     <div class="numpad-wrap" id="numpad-wrap">
       <div class="numpad-display" id="numpad-display">_</div>
-      <div class="numpad-grid">
-        <button class="np-btn" onclick="numpadPress(1)">1</button>
-        <button class="np-btn" onclick="numpadPress(2)">2</button>
-        <button class="np-btn" onclick="numpadPress(3)">3</button>
-        <button class="np-btn" onclick="numpadPress(4)">4</button>
-        <button class="np-btn" onclick="numpadPress(5)">5</button>
-        <button class="np-btn" onclick="numpadPress(6)">6</button>
-        <button class="np-btn" onclick="numpadPress(7)">7</button>
-        <button class="np-btn" onclick="numpadPress(8)">8</button>
-        <button class="np-btn" onclick="numpadPress(9)">9</button>
-        <button class="np-btn np-del" onclick="numpadDel()">⌫</button>
-        <button class="np-btn" onclick="numpadPress(0)">0</button>
-        <button class="np-btn np-ok" onclick="numpadConfirm()">✅</button>
+      <div class="numpad-grid" id="numpad-grid">
+        <button class="np-btn" data-np="1">1</button>
+        <button class="np-btn" data-np="2">2</button>
+        <button class="np-btn" data-np="3">3</button>
+        <button class="np-btn" data-np="4">4</button>
+        <button class="np-btn" data-np="5">5</button>
+        <button class="np-btn" data-np="6">6</button>
+        <button class="np-btn" data-np="7">7</button>
+        <button class="np-btn" data-np="8">8</button>
+        <button class="np-btn" data-np="9">9</button>
+        <button class="np-btn np-del" data-np="del">⌫</button>
+        <button class="np-btn" data-np="0">0</button>
+        <button class="np-btn np-ok" data-np="ok">✅</button>
       </div>
     </div>
     <div class="boosters" id="boosters"></div>
@@ -436,7 +443,7 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',Tahoma,s
 </div>
 
 <!-- ===== DONE SCREEN ===== -->
-<div id="done-screen" class="screen">
+<div id="done-screen" class="screen" role="region" aria-label="Results">
   <div class="d-emoji" id="d-e">🏆</div>
   <div class="d-title" id="d-t">أحسنت!</div>
   <div class="d-stars" id="d-st"></div>
@@ -463,10 +470,10 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',Tahoma,s
   </div>
   <div class="d-session" id="d-session" style="display:none"></div>
   <div class="d-btns">
-    <button class="d-btn pri" id="d-nx" onclick="nextLevel()">➡️ التالي</button>
-    <button class="d-btn shr" id="d-sh" onclick="shareResult()">📤 مشاركة</button>
-    <button class="d-btn sec" onclick="replayLevel()">🔄 إعادة</button>
-    <button class="d-btn sec" onclick="showScreen('world-screen')">🏠</button>
+    <button class="d-btn pri" id="d-nx">➡️ التالي</button>
+    <button class="d-btn shr" id="d-sh">📤 مشاركة</button>
+    <button class="d-btn sec" id="d-rp">🔄 إعادة</button>
+    <button class="d-btn sec" id="d-hm">🏠</button>
   </div>
 </div>
 
@@ -497,33 +504,35 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',Tahoma,s
 </div>
 
 <!-- MODALS -->
-<div class="modal-overlay" id="lvlup-modal">
+<div class="modal-overlay" id="lvlup-modal" role="dialog" aria-modal="true" aria-label="Level Up">
   <div class="modal">
     <h2 id="lvlup-title">⬆️ Level Up!</h2>
     <p id="lvlup-msg">Earned: +1 🔨 +1 💡 +1 ❤️</p>
-    <button onclick="closeLvlUp()">👍</button>
+    <button id="lvlup-ok">👍</button>
   </div>
 </div>
-<div class="modal-overlay" id="shop-modal">
+<div class="modal-overlay" id="shop-modal" role="dialog" aria-modal="true" aria-label="Shop">
   <div class="shop-modal">
     <h2>🛒 المتجر</h2>
     <div class="shop-coins" id="shop-coins">🪙 0</div>
     <div class="shop-items" id="shop-items"></div>
-    <button class="shop-close" onclick="closeShop()">✕ إغلاق</button>
+    <button class="shop-close" id="shop-close">✕ إغلاق</button>
   </div>
 </div>
-<div class="modal-overlay" id="nolives-modal">
+<div class="modal-overlay" id="nolives-modal" role="dialog" aria-modal="true" aria-label="No Lives">
   <div class="modal" style="background:linear-gradient(135deg,#ef4444,#b91c1c)">
     <h2>❤️ لا أرواح!</h2>
     <p id="nolives-msg">القلب التالي خلال 10 دقائق</p>
-    <b
+    <button id="nolives-close">حسناً</button>
+  </div>
+</div>
 
 <!-- Achievement Modal -->
-<div class="modal-overlay" id="ach-modal">
+<div class="modal-overlay" id="ach-modal" role="dialog" aria-modal="true" aria-label="Achievements">
   <div class="ach-modal">
     <h2 id="ach-modal-title">🏅 الإنجازات</h2>
     <div class="ach-list" id="ach-list"></div>
-    <button class="shop-close" onclick="closeAchievements()">✕ إغلاق</button>
+    <button class="shop-close" id="ach-close">✕ إغلاق</button>
   </div>
 </div>
 
@@ -536,16 +545,16 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',Tahoma,s
 </div>
 
 <!-- Report Modal -->
-<div class="modal-overlay" id="report-modal">
+<div class="modal-overlay" id="report-modal" role="dialog" aria-modal="true" aria-label="Performance Report">
   <div class="report-modal">
     <div class="report-header">
       <h2 id="report-title">📊 تقرير الأداء</h2>
-      <button class="shop-close" onclick="closeReport()">✕</button>
+      <button class="shop-close" id="report-close">✕</button>
     </div>
     <div class="report-tabs" id="report-tabs"></div>
     <div class="report-body" id="report-body"></div>
     <div class="report-footer">
-      <button class="report-send-btn" id="report-send" onclick="sendReportToParent()">📤 إرسال للوالدين</button>
+      <button class="report-send-btn" id="report-send">📤 إرسال للوالدين</button>
     </div>
   </div>
 </div>
@@ -556,85 +565,7 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',Tahoma,s
     <span class="ach-toast-icon" id="ach-toast-icon">🏅</span>
     <span class="ach-toast-text" id="ach-toast-text">إنجاز جديد!</span>
   </div>
-</div>utton onclick="closeNoLives()">حسناً</button>
-  </div>
 </div>
-
-<!-- ===== PARTICLE SYSTEM ===== -->
-<script>
-(function(){
-const c=document.createElement('canvas');
-c.style.cssText='position:fixed;inset:0;pointer-events:none;z-index:9999';
-document.body.appendChild(c);
-const ctx=c.getContext('2d');
-let P=[],raf=null;
-function resize(){c.width=innerWidth;c.height=innerHeight}
-addEventListener('resize',resize);resize();
-
-window.spawnConfetti=function(x,y,n){
-  n=n||40;
-  const cols=['#FF6B6B','#4ECDC4','#45B7D1','#FFEAA7','#DDA0DD','#FF69B4','#98D8C8','#F7DC6F','#BB8FCE','#85C1E9','#F8C471','#82E0AA'];
-  for(let i=0;i<n;i++){
-    P.push({x:x||Math.random()*c.width,y:y||c.height*.3,
-      vx:(Math.random()-.5)*14,vy:-Math.random()*16-3,
-      w:Math.random()*10+4,h:Math.random()*6+3,
-      color:cols[Math.floor(Math.random()*cols.length)],
-      rot:Math.random()*360,rs:(Math.random()-.5)*15,
-      g:.25+Math.random()*.2,life:1,d:.006+Math.random()*.007})}
-  if(!raf)loop()};
-
-window.spawnFirework=function(x,y){
-  const cols=['#FFD700','#FF4500','#00FF7F','#1E90FF','#FF69B4','#FFA500','#E74C3C','#2ECC71','#9B59B6','#F39C12'];
-  const col=cols[Math.floor(Math.random()*cols.length)];
-  for(let i=0;i<50;i++){
-    const a=(i/50)*Math.PI*2,sp=2+Math.random()*6;
-    P.push({t:'fw',x:x,y:y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,
-      r:1.5+Math.random()*3,color:col,life:1,d:.012+Math.random()*.012,g:.06})}
-  if(!raf)loop()};
-
-window.spawn3DStars=function(x,y,n){
-  const em=['⭐','🌟','✨','💫','🎆','💎','🏆','🎉','🎊','👑'];
-  for(let i=0;i<(n||8);i++){
-    P.push({t:'em',x:x+(Math.random()-.5)*100,y:y,
-      vx:(Math.random()-.5)*6,vy:-Math.random()*10-3,
-      em:em[Math.floor(Math.random()*em.length)],
-      sz:18+Math.random()*24,life:1,d:.009,g:.12,rot:0,rs:(Math.random()-.5)*10})}
-  if(!raf)loop()};
-
-window.royalCelebration=function(stars){
-  stars=stars||1;
-  for(let w=0;w<Math.min(stars+1,4);w++)
-    setTimeout(()=>{
-      spawnConfetti(c.width*(.2+Math.random()*.6),c.height*(.2+Math.random()*.2),25+stars*10);
-    },w*350);
-  for(let f=0;f<Math.min(stars,3);f++)
-    setTimeout(()=>{
-      spawnFirework(c.width*(.15+Math.random()*.7),c.height*(.1+Math.random()*.25));
-    },200+f*600);
-  setTimeout(()=>spawn3DStars(c.width/2,c.height*.45,stars*4),100);
-};
-
-function loop(){
-  ctx.clearRect(0,0,c.width,c.height);
-  for(let i=P.length-1;i>=0;i--){
-    const p=P[i];
-    p.life-=p.d;
-    if(p.life<=0){P.splice(i,1);continue}
-    p.vy+=(p.g||.2);p.x+=p.vx;p.y+=p.vy;p.rot=(p.rot||0)+(p.rs||0);
-    ctx.save();ctx.globalAlpha=Math.min(1,p.life*1.5);
-    ctx.translate(p.x,p.y);ctx.rotate((p.rot||0)*Math.PI/180);
-    if(p.t==='fw'){
-      ctx.beginPath();ctx.arc(0,0,p.r*p.life,0,Math.PI*2);ctx.fillStyle=p.color;ctx.fill();
-      ctx.globalAlpha=p.life*.3;ctx.beginPath();ctx.arc(-p.vx*.5,-p.vy*.5,p.r*p.life*.6,0,Math.PI*2);ctx.fill();
-    } else if(p.t==='em'){
-      ctx.font=p.sz+'px serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(p.em,0,0);
-    } else {
-      ctx.fillStyle=p.color;ctx.fillRect(-p.w/2,-p.h/2,p.w,p.h);
-    }
-    ctx.restore()}
-  raf=P.length>0?requestAnimationFrame(loop):null}
-})();
-</script>
 
 <!-- ===== GAME MODULE ===== -->
 <script type="module">
@@ -648,6 +579,7 @@ import * as Econ from './math-modules/economy.js';
 import * as Boss from './math-modules/boss.js';
 import * as Reports from './math-modules/reports.js';
 import * as Story from './math-modules/story.js';
+import { royalCelebration } from './math-modules/effects.js';
 
 // Apply lang
 document.documentElement.lang = LANG;
@@ -741,7 +673,6 @@ function toggleMuteBtn() {
   Core.saveProgress(progress);
   updateMuteButtons();
 }
-window.toggleMuteBtn = toggleMuteBtn;
 
 function updateMuteButtons() {
   const icon = UI.isMuted() ? T.soundOff : T.soundOn;
@@ -854,7 +785,6 @@ function backToWorlds() {
   currentWorld = null;
   showScreen('world-screen');
 }
-window.backToWorlds = backToWorlds;
 
 // ===== LEVEL SELECT (within world) =====
 function renderLevelSelect() {
@@ -923,7 +853,9 @@ function checkLives() {
   }
   return true;
 }
-window.closeNoLives = () => el('nolives-modal').classList.remove('show');
+function closeNoLives() {
+  el('nolives-modal').classList.remove('show');
+}
 
 // ===== QUESTION GENERATION =====
 function shuffle(arr) {
@@ -1212,7 +1144,6 @@ function startDaily() {
   renderBoosters();
   showQuestion();
 }
-window.startDaily = startDaily;
 
 // ===== SHOW QUESTION =====
 function showQuestion() {
@@ -1364,7 +1295,6 @@ function numpadPress(n) {
   el('numpad-display').textContent = numpadValue;
   UI.sfxTap();
 }
-window.numpadPress = numpadPress;
 
 function numpadDel() {
   if (answering) return;
@@ -1372,7 +1302,6 @@ function numpadDel() {
   el('numpad-display').textContent = numpadValue || '_';
   UI.sfxTap();
 }
-window.numpadDel = numpadDel;
 
 function numpadConfirm() {
   if (!numpadValue) return;
@@ -1388,7 +1317,6 @@ function numpadConfirm() {
     }
   });
 }
-window.numpadConfirm = numpadConfirm;
 
 function timeUp() {
   if (answering) return;
@@ -1733,7 +1661,7 @@ function endGame() {
   }
   showScreen('done-screen');
   UI.spawnCelebration(stars * 5 + (isPerfect ? 10 : 0));
-  if (window.royalCelebration) window.royalCelebration(stars);
+  royalCelebration(stars);
 
   // Achievement toasts (delayed)
   if (newAchs && newAchs.length > 0) {
@@ -1784,7 +1712,6 @@ function endGame() {
 }
 
 function closeLvlUp() { el('lvlup-modal').classList.remove('show'); }
-window.closeLvlUp = closeLvlUp;
 
 // Dismiss milestone popup on click
 el('milestone-popup').addEventListener('click', () => { el('milestone-popup').style.display = 'none'; });
@@ -1839,14 +1766,12 @@ function nextLevel() {
     startLevel(currentWorld, currentLevelIndex + 1);
   }
 }
-window.nextLevel = nextLevel;
 
 function replayLevel() {
   if (dailyMode) startDaily();
   else if (weeklyMode) startWeekly();
   else if (currentWorld && currentLevelIndex >= 0) startLevel(currentWorld, currentLevelIndex);
 }
-window.replayLevel = replayLevel;
 
 function exitGame() {
   clearInterval(timerInterval);
@@ -1857,7 +1782,6 @@ function exitGame() {
     showScreen('world-screen');
   }
 }
-window.exitGame = exitGame;
 
 // ===== SHARE =====
 function shareResult() {
@@ -1872,7 +1796,6 @@ function shareResult() {
   el('d-sh').textContent = '✅';
   setTimeout(() => el('d-sh').textContent = T.share, 2000);
 }
-window.shareResult = shareResult;
 
 // ===== SHOP =====
 function openShop() {
@@ -1906,17 +1829,14 @@ function openShop() {
   }
   el('shop-modal').classList.add('show');
 }
-window.openShop = openShop;
 
 function closeShop() { el('shop-modal').classList.remove('show'); }
-window.closeShop = closeShop;
 
 // ===== PERF TOGGLE =====
 function togglePerf() {
   UI.setLowPerf(!UI.isLowPerf());
   updateTopBar();
 }
-window.togglePerf = togglePerf;
 
 // ===== WEEKLY CHALLENGE =====
 function startWeekly() {
@@ -1962,7 +1882,6 @@ function startWeekly() {
   renderBoosters();
   showQuestion();
 }
-window.startWeekly = startWeekly;
 
 function updateWeeklyBtn() {
   const btn = el('weekly-btn');
@@ -1993,10 +1912,8 @@ function openReport() {
   el('report-send').classList.remove('sent');
   el('report-modal').classList.add('show');
 }
-window.openReport = openReport;
 
 function closeReport() { el('report-modal').classList.remove('show'); }
-window.closeReport = closeReport;
 
 function renderReportTabs() {
   const tabs = [
@@ -2159,7 +2076,6 @@ function sendReportToParent() {
   btn.textContent = T.rSent || '✅ تم الإرسال';
   btn.classList.add('sent');
 }
-window.sendReportToParent = sendReportToParent;
 
 function openAchievements() {
   const all = Econ.getAllAchievements(progress);
@@ -2184,10 +2100,8 @@ function openAchievements() {
   }
   el('ach-modal').classList.add('show');
 }
-window.openAchievements = openAchievements;
 
 function closeAchievements() { el('ach-modal').classList.remove('show'); }
-window.closeAchievements = closeAchievements;
 
 // ===== LOGIN BONUS TOAST =====
 function showLoginBonus(result) {
@@ -2235,9 +2149,52 @@ function handlePrestige() {
   updateTopBar();
   renderLevelSelect();
 }
-window.handlePrestige = handlePrestige;
+
+// ===== WIRE BUTTONS (replaces inline onclick handlers) =====
+function wireButtons() {
+  const on = (id, fn) => { const e = document.getElementById(id); if (e) e.addEventListener('click', fn); };
+  // Mute buttons
+  on('tb-mute', toggleMuteBtn);
+  on('lvl-mute', toggleMuteBtn);
+  on('g-mute', toggleMuteBtn);
+  // World screen buttons
+  on('daily-btn', startDaily);
+  on('weekly-btn', startWeekly);
+  on('shop-btn', openShop);
+  on('ach-btn', openAchievements);
+  on('report-btn', openReport);
+  on('tb-perf', togglePerf);
+  // Level screen
+  on('lvl-back', backToWorlds);
+  on('prestige-btn', handlePrestige);
+  // Game screen
+  on('g-exit', exitGame);
+  // Done screen
+  on('d-nx', nextLevel);
+  on('d-sh', shareResult);
+  on('d-rp', replayLevel);
+  on('d-hm', () => showScreen('world-screen'));
+  // Modals
+  on('lvlup-ok', closeLvlUp);
+  on('shop-close', closeShop);
+  on('nolives-close', closeNoLives);
+  on('ach-close', closeAchievements);
+  on('report-close', closeReport);
+  on('report-send', sendReportToParent);
+  // Numpad event delegation
+  const npGrid = document.getElementById('numpad-grid');
+  if (npGrid) npGrid.addEventListener('click', e => {
+    const btn = e.target.closest('[data-np]');
+    if (!btn) return;
+    const val = btn.dataset.np;
+    if (val === 'del') numpadDel();
+    else if (val === 'ok') numpadConfirm();
+    else numpadPress(parseInt(val));
+  });
+}
 
 // ===== BOOT =====
+wireButtons();
 init();
 </script>
 </body>

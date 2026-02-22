@@ -367,7 +367,7 @@ function showScreen(name) {
     case 'done': renderDoneScreen(); break;
     case 'shop': renderShopScreen(); break;
     case 'achieve': renderAchieveScreen(); break;
-    case 'stats': renderStatsScreen(); break;
+    case 'stats': renderStatsScreen(); { const sb = qs('#report-send'); if (sb) { sb.textContent = '📤 إرسال للوالدين'; sb.classList.remove('sent'); } } break;
   }
 }
 
@@ -743,6 +743,17 @@ function setupEventListeners() {
   qs('#shop-back').addEventListener('click', () => showScreen('world'));
   qs('#ach-back').addEventListener('click', () => showScreen('world'));
   qs('#stats-back').addEventListener('click', () => showScreen('world'));
+  qs('#report-send').addEventListener('click', () => {
+    if (REPORTS) {
+      try {
+        const report = REPORTS.generateFullReport(S.progress);
+        window.parent.postMessage(report, '*');
+      } catch(e) {}
+    }
+    const btn = qs('#report-send');
+    btn.textContent = '✅ تم الإرسال';
+    btn.classList.add('sent');
+  });
 
   // Game canvas input
   const canvas = document.getElementById('game-canvas');
@@ -2039,19 +2050,25 @@ function shareResult() {
     : `💎 Scored ${S.score} in ${worldName} - Level ${S.currentLevel + 1} ⭐${'⭐'.repeat(S.stars)}\n🎮 Gem Kingdom — Classify`;
 
   window.parent.postMessage({
-    type: 'SHARE_RESULT',
-    text,
+    type: 'SHARE_ACHIEVEMENT',
+    game: 'gem',
+    world: S.currentWorld + 1,
+    level: S.currentLevel + 1,
+    score: S.score,
+    stars: S.stars,
   }, '*');
 }
 
 // ===== POST MESSAGE =====
 function postGameComplete(won) {
+  const scaledScore = Math.round(S.score > 0 ? Math.min(S.score, 100) : 0);
   const msg = {
     type: 'GAME_COMPLETE',
-    score: S.score,
+    score: scaledScore,
+    total: 100,
     stars: S.stars,
     won,
-    timeSpent: Math.floor((Date.now() - S.levelStartTime) / 1000),
+    timeElapsed: Math.floor((Date.now() - S.levelStartTime) / 1000),
     level: S.currentLevel + 1,
     world: S.currentWorld + 1,
     maxCombo: S.maxCombo,
