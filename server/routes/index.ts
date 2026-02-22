@@ -56,6 +56,16 @@ async function seedDefaultGames() {
         pointsPerPlay: 10,
         maxPlaysPerDay: 0,
       },
+      {
+        title: "مملكة الجواهر - Gem Kingdom 💎",
+        description: "100 مستوى عبر 10 عوالم سحرية! 13 نوع عائق، 20 وحش، 40 إنجاز، ذكاء تكيفي، قصص تعليمية، تقارير أداء للوالدين!",
+        embedUrl: "/games/gem-kingdom.html",
+        category: "puzzle",
+        minAge: 5,
+        maxAge: 14,
+        pointsPerPlay: 10,
+        maxPlaysPerDay: 0,
+      },
     ];
 
     for (const game of builtinGames) {
