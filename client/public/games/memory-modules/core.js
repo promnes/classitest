@@ -20,6 +20,8 @@ import {
   initBg, stopBg, spawnConfetti, royalCelebration, spawnMatchParticles, spawnCoinFly,
   showScreen, updateCountdownDisplay, renderCards as uiRenderCards
 } from './ui.js';
+import { getWorldIntro, getRandomFact } from './story.js';
+import { checkMicroBadges, getNearMissMessage, getStreakMessage, getComebackMessage } from './engagement.js';
 
 // Detect low-performance devices on load
 detectPerformance();
@@ -269,6 +271,17 @@ export function enterWorld(worldIdx) {
   sfxTap();
   renderLevelSelect(worldIdx);
   showScreen('lvl-screen');
+
+  // Story intro toast
+  const intro = getWorldIntro(worldIdx);
+  if (intro) {
+    const toast = document.createElement('div');
+    toast.className = 'story-toast';
+    toast.innerHTML = '<span class="story-mascot">' + intro.mascot + '</span><div class="story-text">' + intro.text + '</div>';
+    document.body.appendChild(toast);
+    requestAnimationFrame(() => toast.classList.add('show'));
+    setTimeout(() => { toast.classList.remove('show'); setTimeout(() => toast.remove(), 500); }, 4000);
+  }
 }
 
 // ===== LEVEL SELECT RENDER =====
@@ -2111,6 +2124,26 @@ export function endGame() {
   const lvl = LEVELS[currentLevel];
   const hasNext = currentLevel >= 0 && currentLevel < LEVELS.length - 1 && !isPartial;
   document.getElementById('d-nx').style.display = hasNext ? '' : 'none';
+
+  // Near-miss detection
+  const nearEl = document.getElementById('d-near');
+  if (nearEl) {
+    const threshold = 50; // score threshold to pass
+    if (sc < threshold && sc >= threshold - 15) {
+      nearEl.style.display = '';
+      nearEl.textContent = getNearMissMessage();
+    } else { nearEl.style.display = 'none'; }
+  }
+
+  // Fun fact from Story module
+  const factEl = document.getElementById('d-fact');
+  if (factEl && currentWorld >= 0) {
+    const fact = getRandomFact(currentWorld);
+    if (fact) {
+      factEl.style.display = '';
+      factEl.innerHTML = '<span class="fact-icon">💡</span>' + fact;
+    } else { factEl.style.display = 'none'; }
+  } else if (factEl) { factEl.style.display = 'none'; }
 
   sfxComplete();
   if (stars > 0) sfxStar();

@@ -39,7 +39,9 @@ client/public/games/
     ├── core.js                ← Game state, logic engine, main loop, DDA
     ├── ui.js                  ← Rendering, animations, sound (Web Audio API)
     ├── worlds.js              ← Level definitions, world configs, progression
-    └── [optional modules]     ← boss.js, economy.js, reports.js, etc.
+    ├── story.js               ← [standard] World intros, fun facts, quizzes (3 langs)
+    ├── engagement.js          ← [standard] Micro-badges, streaks, session summary, milestones
+    └── [optional modules]     ← boss.js, economy.js, reports.js, intelligence.js, etc.
 ```
 
 ### Naming Convention
@@ -680,21 +682,25 @@ When building a new game, follow this checklist:
 ## 🏗️ EXISTING GAMES REFERENCE
 
 ### 1. مملكة الذاكرة — Memory Kingdom 🧠
-- **Files:** `memory-match.html` + `memory-modules/{config,core,ui,worlds}.js`
-- **Total Code:** ~4,538 lines across 5 files
+- **Files:** `memory-match.html` + `memory-modules/{config,core,ui,worlds,story,engagement}.js`
+- **Total Code:** ~5,900+ lines across 7 files
 - **Structure:** 10 worlds × 10 levels = 100 levels
 - **Mechanics:** 11 types (classic, timed, moving, masked, fog, triple, boss, mirror, chain, bomb, rainbow)
 - **Features:** Boss system (10 bosses), 30 badges, shop (skins), XP/level, streak, prestige, 5 power-ups, DDA v2, cognitive report
+- **Story Module:** World intros (10 worlds × 3 langs), brain/memory fun facts (100 × 3 langs), memory quizzes
+- **Engagement Module:** 12 micro-badges, near-miss messages, streak messages, session summary, milestones, comeback messages
 - **Emoji Pool:** 2000+ educational emoji in 20 categories
 - **Storage Keys:** `classify_memPro_*`
 - **Category:** puzzle
 
 ### 2. مملكة الأرقام — Math Kingdom 🔢
-- **Files:** `math-challenge.html` + `math-modules/{config,core,ui,worlds,boss,economy,engagement,intelligence,reports}.js`
-- **Total Code:** ~6,439 lines across 10 files
+- **Files:** `math-challenge.html` + `math-modules/{config,core,ui,worlds,boss,economy,engagement,intelligence,reports,story}.js`
+- **Total Code:** ~7,800+ lines across 11 files
 - **Structure:** 10 worlds × 5 levels + bosses = 50+ levels
 - **Question Types:** 15 types (addition, subtraction, multiplication, division, fractions, decimals, percentages, algebra, geometry, comparisons, sequences, time, money, equations, word problems)
 - **Features:** Boss battles (50 bosses), lives system, 25 achievements, daily/weekly challenges, grade estimation, scientific report, XP/level, economy
+- **Story Module:** World intros (10 worlds × 3 langs), math history fun facts (100 × 3 langs), math quizzes
+- **Engagement Module:** 12 micro-badges, near-miss messages (5 per lang), streak/wrong-after-streak messages, session summary, milestones (11 thresholds), comeback messages
 - **Storage Keys:** `classify_math_*`
 - **Category:** math
 

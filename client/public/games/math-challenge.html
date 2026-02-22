@@ -290,6 +290,12 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',Tahoma,s
 .d-badge.ach-new{background:linear-gradient(135deg,#ffd700,#ff8c00);color:#1a1a2e;animation:achPulse 1s ease-in-out infinite alternate}
 @keyframes achPulse{0%{box-shadow:0 0 0 0 rgba(255,215,0,.4)}100%{box-shadow:0 0 12px 4px rgba(255,215,0,.3)}}
 .d-streak{text-align:center;font-size:14px;font-weight:700;color:#ff6b6b;margin:4px 0}
+.d-fact{background:rgba(255,255,255,.15);backdrop-filter:blur(6px);border-radius:12px;padding:10px 16px;margin:6px auto;max-width:92%;font-size:clamp(12px,2.5vmin,15px);color:rgba(255,255,255,.95);text-align:center;line-height:1.5}
+.d-fact .fact-icon{font-size:18px;margin-inline-end:6px}
+.story-toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(40px);opacity:0;background:rgba(30,20,60,.92);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.15);border-radius:16px;padding:14px 20px;display:flex;align-items:center;gap:12px;z-index:9999;max-width:88vw;transition:all .5s cubic-bezier(.34,1.56,.64,1);box-shadow:0 8px 32px rgba(0,0,0,.4)}
+.story-toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.story-mascot{font-size:36px;flex-shrink:0}
+.story-text{color:#fff;font-size:clamp(13px,2.8vmin,16px);line-height:1.5}
 </style>
 </head>
 <body>
@@ -399,6 +405,7 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',Tahoma,s
   <div class="d-badges" id="d-badges"></div>
   <div class="d-achievements" id="d-achievements"></div>
   <div class="d-streak" id="d-streak" style="display:none"></div>
+  <div class="d-fact" id="d-fact" style="display:none"></div>
   <div class="d-btns">
     <button class="d-btn pri" id="d-nx" onclick="nextLevel()">➡️ التالي</button>
     <button class="d-btn shr" id="d-sh" onclick="shareResult()">📤 مشاركة</button>
@@ -558,6 +565,7 @@ import * as UI from './math-modules/ui.js';
 import * as Econ from './math-modules/economy.js';
 import * as Boss from './math-modules/boss.js';
 import * as Reports from './math-modules/reports.js';
+import * as Story from './math-modules/story.js';
 
 // Apply lang
 document.documentElement.lang = LANG;
@@ -730,6 +738,17 @@ function enterWorld(worldId) {
   el('lvl-screen').style.background = w.gradient;
   el('lvl-world-title').textContent = T.worldNames[worldId] || worldId;
   showScreen('lvl-screen');
+
+  // Story intro toast
+  const intro = Story.getWorldIntro(worldId);
+  if (intro) {
+    const toast = document.createElement('div');
+    toast.className = 'story-toast';
+    toast.innerHTML = '<span class="story-mascot">' + intro.mascot + '</span><div class="story-text">' + intro.text + '</div>';
+    document.body.appendChild(toast);
+    requestAnimationFrame(() => toast.classList.add('show'));
+    setTimeout(() => { toast.classList.remove('show'); setTimeout(() => toast.remove(), 500); }, 4000);
+  }
 }
 window.enterWorld = enterWorld;
 
@@ -1541,6 +1560,17 @@ function endGame() {
     streakEl.style.display = '';
     streakEl.textContent = '🔥 ' + T.dailyStreak + ': ' + streak + (dailyStreakBonus > 0 ? ' (+' + dailyStreakBonus + ' 🪙)' : '');
   } else { streakEl.style.display = 'none'; }
+
+  // Fun fact from Story module
+  const factEl = el('d-fact');
+  if (currentWorld != null) {
+    const worldIdx = WORLDS.findIndex(w => w.id === currentWorld);
+    const fact = Story.getRandomFact(worldIdx >= 0 ? worldIdx : 0);
+    if (fact) {
+      factEl.style.display = '';
+      factEl.innerHTML = '<span class="fact-icon">💡</span>' + fact;
+    } else { factEl.style.display = 'none'; }
+  } else { factEl.style.display = 'none'; }
 
   // Next button: show if playing a world level and got at least 1 star
   el('d-nx').style.display = (currentWorld && currentLevelIndex >= 0 && !dailyMode && !weeklyMode && stars >= 1) ? '' : 'none';
