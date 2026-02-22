@@ -32,31 +32,12 @@ export default defineConfig({
             "wouter",
             "@tanstack/react-query",
           ],
-          // UI primitives (Radix) — large but stable
-          "vendor-radix": [
-            "@radix-ui/react-dialog",
-            "@radix-ui/react-tabs",
-            "@radix-ui/react-select",
-            "@radix-ui/react-dropdown-menu",
-            "@radix-ui/react-alert-dialog",
-            "@radix-ui/react-popover",
-            "@radix-ui/react-tooltip",
-            "@radix-ui/react-toast",
-            "@radix-ui/react-accordion",
-            "@radix-ui/react-checkbox",
-            "@radix-ui/react-switch",
-            "@radix-ui/react-label",
-            "@radix-ui/react-progress",
-            "@radix-ui/react-slider",
-            "@radix-ui/react-toggle",
-            "@radix-ui/react-toggle-group",
-            "@radix-ui/react-radio-group",
-            "@radix-ui/react-scroll-area",
-            "@radix-ui/react-separator",
-            "@radix-ui/react-slot",
-          ],
-          // Charts — heavy, loaded only when needed
-          "vendor-charts": ["recharts"],
+          // NOTE: vendor-radix removed from manualChunks. Previously all
+          // @radix-ui packages (425KB) were forced into one chunk that got
+          // modulepreloaded on every page load. Now each @radix-ui package
+          // naturally code-splits into the lazy routes that use it. Only
+          // @radix-ui/react-tooltip (small, ~15KB) remains in the entry
+          // since TooltipProvider is eagerly rendered in the App shell.
           // i18n runtime
           "vendor-i18n": [
             "i18next",
@@ -65,8 +46,10 @@ export default defineConfig({
           ],
           // Icons — extracted to allow caching independently
           "vendor-lucide": ["lucide-react"],
-          // Animation — heavy, only used by lazy pages
-          "vendor-motion": ["framer-motion"],
+          // NOTE: vendor-charts (recharts) and vendor-motion (framer-motion)
+          // are intentionally NOT in manualChunks so they code-split naturally
+          // into the lazy-loaded routes that import them, avoiding modulepreload
+          // on the landing page critical path.
         },
       },
     },

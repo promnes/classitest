@@ -2,19 +2,20 @@ import { useEffect, useState, lazy, Suspense } from "react";
 import { Switch, Route, Redirect, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { SEOProvider } from "@/components/SEOProvider";
-import { ChildAppWrapper } from "@/components/ChildAppWrapper";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { OfflineGuard } from "@/components/OfflineGuard";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
-import NotFound from "@/pages/not-found";
+const Toaster = lazy(() => import("@/components/ui/toaster").then(m => ({ default: m.Toaster })));
+const NotFound = lazy(() => import("@/pages/not-found"));
 
 const RandomAdPopup = lazy(() => import("@/components/RandomAdPopup").then(m => ({ default: m.RandomAdPopup })));
 
 import { Home } from "@/pages/Home";
+
+const ChildAppWrapper = lazy(() => import("@/components/ChildAppWrapper").then(m => ({ default: m.ChildAppWrapper })));
 
 const ParentAuth = lazy(() => import("@/pages/ParentAuth").then(m => ({ default: m.ParentAuth })));
 const ChildLink = lazy(() => import("@/pages/ChildLink").then(m => ({ default: m.ChildLink })));
@@ -528,7 +529,9 @@ function App() {
                   <Router />
                 </main>
               </div>
-              <Toaster />
+              <Suspense fallback={null}>
+                <Toaster />
+              </Suspense>
               <Suspense fallback={null}>
                 <RandomAdPopup />
               </Suspense>
