@@ -17,8 +17,8 @@ const SWAP_MS   = 180;
 const REMOVE_MS = 220;
 const FALL_MS   = 100; // per cell distance
 const SPAWN_MS  = 180;
-const BG_COLOR  = '#1a0a2e';
-const BOARD_BG  = 'rgba(255,255,255,0.06)';
+const BG_COLOR  = '#48BB78'; // bright cheerful green
+const BOARD_BG  = 'rgba(255,255,255,0.25)';
 
 /* ─── Easing Functions ─── */
 const easeOutQuad  = (t: number) => 1 - (1 - t) * (1 - t);
@@ -520,11 +520,11 @@ export default function Match3Game({ level, onBack, onComplete }: Props) {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, w, h);
 
-    // Background gradient
+    // Background gradient — bright cheerful green
     const bgGrad = ctx.createLinearGradient(0, 0, 0, h);
-    bgGrad.addColorStop(0, '#1a0a2e');
-    bgGrad.addColorStop(0.5, '#16213e');
-    bgGrad.addColorStop(1, '#0a1628');
+    bgGrad.addColorStop(0, '#48BB78');
+    bgGrad.addColorStop(0.5, '#38A169');
+    bgGrad.addColorStop(1, '#2F855A');
     ctx.fillStyle = bgGrad;
     ctx.fillRect(0, 0, w, h);
 
@@ -538,8 +538,8 @@ export default function Match3Game({ level, onBack, onComplete }: Props) {
     drawRoundRect(ctx, bx - 4, by - 4, boardW + 8, boardH + 8, 12);
     ctx.fill();
 
-    // Grid cells (subtle lines)
-    ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+    // Grid cells
+    ctx.strokeStyle = 'rgba(255,255,255,0.18)';
     ctx.lineWidth = 1;
     for (let r = 0; r <= level.rows; r++) {
       ctx.beginPath();
@@ -575,31 +575,37 @@ export default function Match3Game({ level, onBack, onComplete }: Props) {
         if (!vis || vis.opacity <= 0.01) continue;
 
         const style = GEM_STYLES[gem.type];
-        const sz = (cs - CELL_PAD * 2) * 0.42 * vis.scale;
+        const sz = (cs - CELL_PAD * 2) * 0.72 * vis.scale;
         if (sz <= 0) continue;
 
         ctx.save();
         ctx.globalAlpha = vis.opacity;
         ctx.translate(vis.x, vis.y);
 
-        // Glow
+        // Glow — strong and vibrant
         ctx.shadowColor = style.glow;
-        ctx.shadowBlur = 8 * vis.scale;
+        ctx.shadowBlur = 14 * vis.scale;
 
         // Main shape
         const grad = ctx.createRadialGradient(-sz * 0.25, -sz * 0.3, 0, 0, 0, sz);
         grad.addColorStop(0, style.light);
-        grad.addColorStop(1, style.bg);
+        grad.addColorStop(0.7, style.bg);
         ctx.fillStyle = grad;
 
         drawGemShape(ctx, style.shape, 0, 0, sz);
         ctx.fill();
+
+        // Bold outline for clarity
+        ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+        ctx.lineWidth = 2;
+        drawGemShape(ctx, style.shape, 0, 0, sz);
+        ctx.stroke();
         ctx.shadowBlur = 0;
 
-        // Highlight
-        ctx.fillStyle = 'rgba(255,255,255,0.25)';
+        // Highlight — strong glossy shine
+        ctx.fillStyle = 'rgba(255,255,255,0.45)';
         ctx.beginPath();
-        ctx.ellipse(0, -sz * 0.3, sz * 0.45, sz * 0.2, 0, 0, Math.PI * 2);
+        ctx.ellipse(0, -sz * 0.25, sz * 0.5, sz * 0.22, 0, 0, Math.PI * 2);
         ctx.fill();
 
         // Special indicator
@@ -677,7 +683,7 @@ export default function Match3Game({ level, onBack, onComplete }: Props) {
     // HUD on canvas (kept minimal — React overlay handles most)
     // Star progress bar
     const barX = bx, barY = by - 28, barW = boardW, barH = 8;
-    ctx.fillStyle = 'rgba(255,255,255,0.1)';
+    ctx.fillStyle = 'rgba(255,255,255,0.25)';
     drawRoundRect(ctx, barX, barY, barW, barH, 4); ctx.fill();
 
     const sc = scoreRef.current;
@@ -775,28 +781,28 @@ export default function Match3Game({ level, onBack, onComplete }: Props) {
      JSX RENDER
      ═══════════════════════════════════ */
   const starIcons = [0, 1, 2].map(i => (
-    <span key={i} className={`text-xl ${stars > i ? 'text-yellow-400' : 'text-gray-600'}`}>⭐</span>
+    <span key={i} className={`text-xl ${stars > i ? 'text-yellow-300' : 'text-white/40'}`}>⭐</span>
   ));
 
   return (
     <div className="relative w-full h-screen overflow-hidden select-none" style={{ background: BG_COLOR }}>
       {/* HUD Overlay */}
       <div className="absolute top-0 left-0 right-0 z-10 px-3 pt-3 pb-1 flex items-center justify-between text-white"
-        style={{ background: 'linear-gradient(180deg, rgba(0,0,0,0.6) 0%, transparent 100%)' }}>
+        style={{ background: 'linear-gradient(180deg, rgba(47,133,90,0.85) 0%, transparent 100%)' }}>
         <button
           onClick={onBack}
-          className="w-10 h-10 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-lg"
+          className="w-10 h-10 flex items-center justify-center rounded-full bg-white/20 hover:bg-white/30 text-lg"
         >
           ←
         </button>
 
         <div className="flex flex-col items-center">
-          <span className="text-[10px] text-purple-300 font-medium">المستوى {level.id}</span>
+          <span className="text-[10px] text-yellow-200 font-medium">المستوى {level.id}</span>
           <span className="text-sm font-bold">{level.name}</span>
         </div>
 
         <div className="flex flex-col items-center">
-          <span className="text-[10px] text-purple-300">الحركات</span>
+          <span className="text-[10px] text-yellow-200">الحركات</span>
           <span className={`text-lg font-bold ${movesLeft <= 3 ? 'text-red-400 animate-pulse' : ''}`}>
             {movesLeft}
           </span>
@@ -828,13 +834,13 @@ export default function Match3Game({ level, onBack, onComplete }: Props) {
 
       {/* Objectives bar */}
       <div className="absolute bottom-0 left-0 right-0 z-10 px-4 py-3 flex items-center justify-center gap-4"
-        style={{ background: 'linear-gradient(0deg, rgba(0,0,0,0.7) 0%, transparent 100%)' }}>
+        style={{ background: 'linear-gradient(0deg, rgba(47,133,90,0.85) 0%, transparent 100%)' }}>
         {objectives.map((obj, i) => {
           const done = obj.type === 'score'
             ? score >= obj.target
             : obj.current >= obj.target;
           return (
-            <div key={i} className={`flex items-center gap-2 text-sm px-3 py-1.5 rounded-full border ${done ? 'border-green-500 text-green-400 bg-green-500/10' : 'border-white/20 text-white/70 bg-white/5'}`}>
+            <div key={i} className={`flex items-center gap-2 text-sm px-3 py-1.5 rounded-full border ${done ? 'border-yellow-400 text-yellow-200 bg-yellow-500/20' : 'border-white/30 text-white/80 bg-white/10'}`}>
               {obj.type === 'collect' && obj.gemType !== undefined && (
                 <span className="w-4 h-4 rounded-full" style={{ backgroundColor: GEM_STYLES[obj.gemType].bg }} />
               )}
@@ -854,8 +860,8 @@ export default function Match3Game({ level, onBack, onComplete }: Props) {
         <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/70 animate-in fade-in duration-300">
           <div className={`mx-6 p-8 rounded-3xl text-center shadow-2xl ${
             gameState === 'won'
-              ? 'bg-gradient-to-b from-purple-800 to-indigo-900 border border-yellow-500/30'
-              : 'bg-gradient-to-b from-gray-800 to-gray-900 border border-red-500/20'
+              ? 'bg-gradient-to-b from-emerald-700 to-teal-800 border border-yellow-400/40'
+              : 'bg-gradient-to-b from-gray-700 to-gray-800 border border-red-500/30'
           }`}>
             <div className="text-5xl mb-4">{gameState === 'won' ? '🎉' : '😔'}</div>
             <h2 className="text-2xl font-bold text-white mb-2">
@@ -866,18 +872,18 @@ export default function Match3Game({ level, onBack, onComplete }: Props) {
                 {starIcons}
               </div>
             )}
-            <p className="text-purple-200 mb-1">النقاط: {score.toLocaleString()}</p>
+            <p className="text-emerald-100 mb-1">النقاط: {score.toLocaleString()}</p>
             <div className="flex items-center justify-center gap-3 mt-6">
               <button
                 onClick={onBack}
-                className="px-6 py-3 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold transition-colors"
+                className="px-6 py-3 rounded-xl bg-white/15 hover:bg-white/25 text-white font-bold transition-colors"
               >
                 القائمة
               </button>
               {gameState === 'lost' && (
                 <button
                   onClick={() => window.location.reload()}
-                  className="px-6 py-3 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold transition-colors"
+                  className="px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold transition-colors"
                 >
                   حاول مرة أخرى
                 </button>

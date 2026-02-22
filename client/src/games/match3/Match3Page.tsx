@@ -35,10 +35,10 @@ function LevelSelect({ onPlay }: { onPlay: (level: LevelData) => void }) {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#1a0a2e] via-[#16213e] to-[#0a1628] text-white select-none">
+    <div className="min-h-screen bg-gradient-to-b from-[#48BB78] via-[#38A169] to-[#2F855A] text-white select-none">
       {/* Header */}
       <div className="sticky top-0 z-20 px-4 py-3 flex items-center justify-between"
-        style={{ background: 'linear-gradient(180deg, rgba(26,10,46,0.95) 60%, transparent 100%)' }}>
+        style={{ background: 'linear-gradient(180deg, rgba(72,187,120,0.95) 60%, transparent 100%)' }}>
         <button
           onClick={() => navigate('/child-games')}
           className="w-10 h-10 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-lg transition"
@@ -47,9 +47,9 @@ function LevelSelect({ onPlay }: { onPlay: (level: LevelData) => void }) {
         </button>
         <div className="flex items-center gap-2">
           <span className="text-2xl">💎</span>
-          <h1 className="text-lg font-bold bg-gradient-to-r from-yellow-300 to-purple-300 bg-clip-text text-transparent">
+          <span className="text-lg font-bold bg-gradient-to-r from-yellow-200 to-emerald-200 bg-clip-text text-transparent">
             الجواهر الملكية
-          </h1>
+          </span>
         </div>
         <div className="w-10" /> {/* spacer */}
       </div>
@@ -69,8 +69,8 @@ function LevelSelect({ onPlay }: { onPlay: (level: LevelData) => void }) {
                 onClick={() => unlocked && onPlay(lvl)}
                 className={`relative aspect-square rounded-2xl flex flex-col items-center justify-center gap-1 transition-all duration-200 ${
                   unlocked
-                    ? 'bg-gradient-to-br from-purple-700/60 to-indigo-800/60 border border-purple-500/30 hover:border-yellow-400/50 hover:scale-105 active:scale-95 shadow-lg shadow-purple-900/40'
-                    : 'bg-gray-800/40 border border-gray-700/20 opacity-50'
+                    ? 'bg-gradient-to-br from-emerald-600/70 to-teal-700/70 border border-emerald-400/40 hover:border-yellow-400/60 hover:scale-105 active:scale-95 shadow-lg shadow-emerald-900/40'
+                    : 'bg-gray-600/30 border border-gray-500/20 opacity-50'
                 }`}
               >
                 {/* Level number */}
@@ -80,7 +80,7 @@ function LevelSelect({ onPlay }: { onPlay: (level: LevelData) => void }) {
 
                 {/* Level name */}
                 {unlocked && (
-                  <span className="text-[9px] text-purple-200/80 font-medium leading-tight text-center px-1">
+                  <span className="text-[9px] text-emerald-100/90 font-medium leading-tight text-center px-1">
                     {lvl.name}
                   </span>
                 )}
@@ -89,7 +89,7 @@ function LevelSelect({ onPlay }: { onPlay: (level: LevelData) => void }) {
                 {unlocked && (
                   <div className="flex gap-0.5 mt-0.5">
                     {[0, 1, 2].map(i => (
-                      <span key={i} className={`text-xs ${earned > i ? 'text-yellow-400' : 'text-gray-600'}`}>
+                      <span key={i} className={`text-xs ${earned > i ? 'text-yellow-300' : 'text-white/30'}`}>
                         ★
                       </span>
                     ))}
@@ -109,26 +109,26 @@ function LevelSelect({ onPlay }: { onPlay: (level: LevelData) => void }) {
 
         {/* Stats */}
         <div className="mt-8 max-w-md mx-auto">
-          <div className="bg-white/5 rounded-2xl p-4 border border-white/10">
-            <h3 className="text-sm font-bold text-purple-300 mb-3 text-center">الإحصائيات</h3>
+          <div className="bg-white/15 rounded-2xl p-4 border border-white/20">
+            <h3 className="text-sm font-bold text-yellow-200 mb-3 text-center">الإحصائيات</h3>
             <div className="grid grid-cols-3 gap-3 text-center">
               <div>
                 <div className="text-xl font-bold text-yellow-400">
                   {Object.keys(progress).filter(k => progress[Number(k)]?.stars > 0).length}
                 </div>
-                <div className="text-[10px] text-gray-400">مكتمل</div>
+                <div className="text-[10px] text-white/70">مكتمل</div>
               </div>
               <div>
                 <div className="text-xl font-bold text-yellow-400">
                   {Object.values(progress).reduce((sum, p) => sum + (p?.stars ?? 0), 0)}
                 </div>
-                <div className="text-[10px] text-gray-400">⭐ مجموع النجوم</div>
+                <div className="text-[10px] text-white/70">⭐ مجموع النجوم</div>
               </div>
               <div>
                 <div className="text-xl font-bold text-yellow-400">
                   {Math.max(0, ...Object.values(progress).map(p => p?.score ?? 0)).toLocaleString()}
                 </div>
-                <div className="text-[10px] text-gray-400">أعلى نقاط</div>
+                <div className="text-[10px] text-white/70">أعلى نقاط</div>
               </div>
             </div>
           </div>
@@ -136,9 +136,9 @@ function LevelSelect({ onPlay }: { onPlay: (level: LevelData) => void }) {
 
         {/* How to play */}
         <div className="mt-4 max-w-md mx-auto">
-          <div className="bg-white/5 rounded-2xl p-4 border border-white/10">
-            <h3 className="text-sm font-bold text-purple-300 mb-3 text-center">كيف تلعب؟</h3>
-            <div className="space-y-2 text-xs text-gray-300">
+          <div className="bg-white/15 rounded-2xl p-4 border border-white/20">
+            <h3 className="text-sm font-bold text-yellow-200 mb-3 text-center">كيف تلعب؟</h3>
+            <div className="space-y-2 text-xs text-white/90">
               <div className="flex items-center gap-2">
                 <span className="text-base">👆</span>
                 <span>اسحب أو انقر لتبديل الجواهر المتجاورة</span>

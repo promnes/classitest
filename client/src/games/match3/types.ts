@@ -93,12 +93,12 @@ export const GEM_STYLES: Record<GemType, {
   bg: string; light: string; glow: string;
   shape: 'diamond' | 'circle' | 'hex' | 'star' | 'square' | 'triangle';
 }> = {
-  [GemType.Ruby]:     { bg: '#E74C3C', light: '#FF7675', glow: 'rgba(231,76,60,0.6)',   shape: 'diamond'  },
-  [GemType.Sapphire]: { bg: '#2980B9', light: '#74B9FF', glow: 'rgba(41,128,185,0.6)',  shape: 'circle'   },
-  [GemType.Emerald]:  { bg: '#27AE60', light: '#55EFC4', glow: 'rgba(39,174,96,0.6)',   shape: 'hex'      },
-  [GemType.Amethyst]: { bg: '#8E44AD', light: '#A29BFE', glow: 'rgba(142,68,173,0.6)',  shape: 'star'     },
-  [GemType.Topaz]:    { bg: '#F39C12', light: '#FFEAA7', glow: 'rgba(243,156,18,0.6)',  shape: 'square'   },
-  [GemType.Diamond]:  { bg: '#00B894', light: '#81ECEC', glow: 'rgba(0,184,148,0.6)',   shape: 'triangle' },
+  [GemType.Ruby]:     { bg: '#FF1744', light: '#FF8A80', glow: 'rgba(255,23,68,0.85)',   shape: 'diamond'  },
+  [GemType.Sapphire]: { bg: '#2979FF', light: '#82B1FF', glow: 'rgba(41,121,255,0.85)',  shape: 'circle'   },
+  [GemType.Emerald]:  { bg: '#00E676', light: '#B9F6CA', glow: 'rgba(0,230,118,0.85)',   shape: 'hex'      },
+  [GemType.Amethyst]: { bg: '#D500F9', light: '#EA80FC', glow: 'rgba(213,0,249,0.85)',   shape: 'star'     },
+  [GemType.Topaz]:    { bg: '#FFAB00', light: '#FFE57F', glow: 'rgba(255,171,0,0.85)',   shape: 'square'   },
+  [GemType.Diamond]:  { bg: '#1DE9B6', light: '#A7FFEB', glow: 'rgba(29,233,182,0.85)',  shape: 'triangle' },
 };
 
 export const SPECIAL_COLORS: Record<SpecialType, string> = {
