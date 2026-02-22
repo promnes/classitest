@@ -1885,10 +1885,17 @@ export async function registerAdminRoutes(app: Express) {
       const { parentId } = req.params;
       const { amount, note } = req.body;
 
-      if (!amount || amount <= 0) {
+      const parsedAmount = parseFloat(String(amount || 0));
+      if (!parsedAmount || parsedAmount <= 0) {
         return res
           .status(400)
           .json(errorResponse(ErrorCode.BAD_REQUEST, "Valid amount is required"));
+      }
+
+      if (parsedAmount > 1000000) {
+        return res
+          .status(400)
+          .json(errorResponse(ErrorCode.BAD_REQUEST, "Maximum manual deposit is 1,000,000"));
       }
 
       // Check parent exists
@@ -1899,26 +1906,26 @@ export async function registerAdminRoutes(app: Express) {
           .json(errorResponse(ErrorCode.NOT_FOUND, "Parent not found"));
       }
 
-      // Get or create wallet
-      const wallet = await db.select().from(parentWallet).where(eq(parentWallet.parentId, parentId));
-      if (!wallet[0]) {
-        await db.insert(parentWallet).values({
-          parentId,
-          balance: amount.toString(),
-          totalDeposited: amount.toString(),
-        });
-      } else {
-        const newBalance = parseFloat(wallet[0].balance) + amount;
-        const newDeposited = parseFloat(wallet[0].totalDeposited) + amount;
-        await db
-          .update(parentWallet)
-          .set({
-            balance: newBalance.toString(),
-            totalDeposited: newDeposited.toString(),
-            updatedAt: new Date(),
-          })
-          .where(eq(parentWallet.parentId, parentId));
-      }
+      // Atomic get-or-create + deposit in a transaction with SQL expressions
+      await db.transaction(async (tx: any) => {
+        const wallet = await tx.select().from(parentWallet).where(eq(parentWallet.parentId, parentId));
+        if (!wallet[0]) {
+          await tx.insert(parentWallet).values({
+            parentId,
+            balance: parsedAmount.toFixed(2),
+            totalDeposited: parsedAmount.toFixed(2),
+          });
+        } else {
+          await tx
+            .update(parentWallet)
+            .set({
+              balance: sql`${parentWallet.balance} + ${parsedAmount}`,
+              totalDeposited: sql`${parentWallet.totalDeposited} + ${parsedAmount}`,
+              updatedAt: new Date(),
+            })
+            .where(eq(parentWallet.parentId, parentId));
+        }
+      });
 
       res.json(successResponse(undefined, "Deposit added successfully"));
     } catch (error: any) {

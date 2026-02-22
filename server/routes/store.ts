@@ -22,6 +22,7 @@ import {
 import { eq, and, or, desc, asc, sql, isNull } from "drizzle-orm";
 import { authMiddleware, adminMiddleware, JWT_SECRET } from "./middleware";
 import { createNotification, notifyChildProductAssigned } from "../notifications";
+import { checkoutLimiter } from "../utils/rateLimiters";
 import jwt from "jsonwebtoken";
 
 const db = storage.db;
@@ -267,7 +268,7 @@ export async function registerStoreRoutes(app: Express) {
     }
   });
 
-  app.post("/api/store/checkout", authMiddleware, async (req: any, res) => {
+  app.post("/api/store/checkout", authMiddleware, checkoutLimiter, async (req: any, res) => {
     try {
       const { items, paymentMethodId, shippingAddress, referralCode } = req.body;
       const parentId = req.user?.parentId || req.user?.userId;
@@ -383,26 +384,28 @@ export async function registerStoreRoutes(app: Express) {
 
       const computedTotal = checkoutItems.reduce((sum, item) => sum + item.subtotal, 0);
 
-      if (paymentMethodId === "wallet") {
-        const wallet = await db.select().from(parentWallet).where(eq(parentWallet.parentId, parentId));
-        if (!wallet[0] || parseFloat(wallet[0].balance) < computedTotal) {
-          return res.status(400).json({ message: "Insufficient wallet balance" });
-        }
-      }
-
       const [purchase] = await db.transaction(async (tx: any) => {
         const referralSettingsRows = await tx.select().from(libraryReferralSettings);
         const saleActivityPoints = referralSettingsRows[0]?.pointsPerSale ?? 10;
 
         if (paymentMethodId === "wallet") {
-          await tx
+          // Atomic check-and-deduct: prevents race condition / double-spend
+          const updated = await tx
             .update(parentWallet)
             .set({
               balance: sql`${parentWallet.balance} - ${computedTotal}`,
               totalSpent: sql`${parentWallet.totalSpent} + ${computedTotal}`,
               updatedAt: new Date(),
             })
-            .where(eq(parentWallet.parentId, parentId));
+            .where(and(
+              eq(parentWallet.parentId, parentId),
+              sql`${parentWallet.balance} >= ${computedTotal}`
+            ))
+            .returning();
+
+          if (!updated[0]) {
+            throw new Error("INSUFFICIENT_BALANCE");
+          }
         }
 
         const createdPurchase = await tx
@@ -412,7 +415,7 @@ export async function registerStoreRoutes(app: Express) {
             totalAmount: computedTotal.toFixed(2),
             currency: "EGP",
             paymentStatus: paymentMethodId === "wallet" ? "paid" : "pending",
-            invoiceNumber: `INV-${Date.now()}`,
+            invoiceNumber: `INV-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`,  
           })
           .returning();
 
@@ -610,6 +613,9 @@ export async function registerStoreRoutes(app: Express) {
         purchaseId: purchase.id 
       });
     } catch (error: any) {
+      if (error.message === "INSUFFICIENT_BALANCE") {
+        return res.status(400).json({ message: "Insufficient wallet balance" });
+      }
       console.error("Checkout error:", error);
       res.status(500).json({ message: "Checkout failed" });
     }

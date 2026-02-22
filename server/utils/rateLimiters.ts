@@ -43,3 +43,9 @@ export const otpVerifyLimiter = createLimiter(5, compositeKey, "rate_limited");
 export const childLinkLimiter = createCustomLimiter(15 * 60 * 1000, 5, (req) => ipKeyGenerator(req.ip || ""));
 export const childLoginRequestLimiter = createCustomLimiter(15 * 60 * 1000, 10, (req) => ipKeyGenerator(req.ip || ""));
 export const childLoginStatusLimiter = createCustomLimiter(60 * 1000, 30, (req) => `${ipKeyGenerator(req.ip || "")}:${req.params?.id || "unknown"}`);
+
+// Financial endpoints rate limiter: 10 requests per minute per user
+export const checkoutLimiter = createCustomLimiter(60 * 1000, 10, (req) => {
+  const userId = req.user?.userId || req.user?.parentId || ipKeyGenerator(req.ip || "");
+  return `checkout:${userId}`;
+});

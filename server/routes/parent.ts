@@ -666,28 +666,30 @@ export async function registerParentRoutes(app: Express) {
         return res.status(403).json(errorResponse(ErrorCode.PARENT_CHILD_MISMATCH, "Unauthorized"));
       }
 
-      // Check parent wallet balance
-      const wallet = await db.select().from(parentWallet).where(eq(parentWallet.parentId, req.user.userId));
-      const currentBalance = Number(wallet[0]?.balance || 0);
-      if (currentBalance < pointsReward) {
-        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, `رصيدك غير كافي لإرسال هذه المهمة. الرصيد الحالي: ${currentBalance}, المطلوب: ${pointsReward}`));
-      }
-
       const normalizedAnswers = normalizeAnswersForStorage(answers, 0);
       const correctCount = normalizedAnswers.filter((a) => a.isCorrect).length;
       if (correctCount !== 1) {
         return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Exactly one correct answer is required"));
       }
 
-      // Deduct points from parent wallet and create task in a transaction
+      // Atomic check-and-deduct wallet balance + create task in a single transaction
       const result = await db.transaction(async (tx: any) => {
-        await tx.update(parentWallet)
+        // Atomic: only deducts if balance >= pointsReward (prevents race condition / double-spend)
+        const updated = await tx.update(parentWallet)
           .set({
             balance: sql`${parentWallet.balance} - ${pointsReward}`,
             totalSpent: sql`${parentWallet.totalSpent} + ${pointsReward}`,
             updatedAt: new Date(),
           })
-          .where(eq(parentWallet.parentId, req.user.userId));
+          .where(and(
+            eq(parentWallet.parentId, req.user.userId),
+            sql`${parentWallet.balance} >= ${pointsReward}`
+          ))
+          .returning();
+
+        if (!updated[0]) {
+          throw new Error("INSUFFICIENT_BALANCE");
+        }
 
         const inserted = await tx
           .insert(tasks)
@@ -717,6 +719,9 @@ export async function registerParentRoutes(app: Express) {
 
       res.json(successResponse({ taskId: result[0].id }));
     } catch (error: any) {
+      if (error.message === "INSUFFICIENT_BALANCE") {
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "رصيدك غير كافي لإرسال هذه المهمة"));
+      }
       console.error("Create task error:", error);
       res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to create task"));
     }
@@ -883,6 +888,16 @@ export async function registerParentRoutes(app: Express) {
         return res.status(429).json(errorResponse("RATE_LIMITED" as any, "لديك 5 طلبات إيداع قيد المراجعة بالفعل"));
       }
 
+      // Idempotency: reject duplicate transactionId for the same parent
+      const duplicateDeposit = await db
+        .select({ id: deposits.id })
+        .from(deposits)
+        .where(and(eq(deposits.parentId, req.user.userId), eq(deposits.transactionId, normalizedTransactionId)))
+        .limit(1);
+      if (duplicateDeposit.length > 0) {
+        return res.status(409).json(errorResponse(ErrorCode.BAD_REQUEST, "رقم التحويل مستخدم بالفعل في طلب إيداع سابق"));
+      }
+
       // Verify the payment method exists, is admin-created (parentId null), and is active
       const method = await db
         .select()
@@ -902,7 +917,7 @@ export async function registerParentRoutes(app: Express) {
           status: "pending",
           transactionId: normalizedTransactionId,
           receiptUrl: normalizedReceiptUrl || null,
-          notes: notes || null,
+          notes: notes ? String(notes).substring(0, 500) : null,
         })
         .returning();
 
@@ -914,12 +929,12 @@ export async function registerParentRoutes(app: Express) {
       await notifyAllAdmins({
         type: NOTIFICATION_TYPES.DEPOSIT_REQUEST,
         title: "طلب إيداع جديد",
-        message: `${parentName} طلب إيداع ₪${amount} عبر ${method[0].type} (Ref: ${normalizedTransactionId})${notes ? ` — "${notes}"` : ""}`,
+        message: `${parentName} طلب إيداع ₪${amount} عبر ${method[0].type} (Ref: ...${normalizedTransactionId.slice(-4)})${notes ? ` — "${String(notes).substring(0, 100)}"` : ""}`,
         style: NOTIFICATION_STYLES.TOAST,
         priority: NOTIFICATION_PRIORITIES.URGENT,
         soundAlert: true,
         relatedId: result[0].id,
-        metadata: { depositId: result[0].id, parentId: req.user.userId, amount, transactionId: normalizedTransactionId },
+        metadata: { depositId: result[0].id, parentId: req.user.userId, amount },
       });
 
       res.json(successResponse({ depositId: result[0].id }, "Deposit request created"));
