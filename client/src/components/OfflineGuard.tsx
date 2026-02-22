@@ -1,5 +1,12 @@
 import { useState, useEffect, type ReactNode } from "react";
-import { WifiOff, RefreshCw } from "lucide-react";
+
+// SVG icons inline to avoid pulling lucide-react into the entry chunk
+const WifiOffIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h.01"/><path d="M8.5 16.429a5 5 0 0 1 7 0"/><path d="M5 12.859a10 10 0 0 1 5.17-2.69"/><path d="M13.83 10.17A10 10 0 0 1 19 12.86"/><path d="M2 8.82a15 15 0 0 1 4.17-2.65"/><path d="M10.66 5c4.01-.36 8.14.9 11.34 3.76"/><line x1="2" x2="22" y1="2" y2="22"/></svg>
+);
+const RefreshIcon = ({ spinning }: { spinning: boolean }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={spinning ? "animate-spin" : ""}><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg>
+);
 
 /**
  * OfflineGuard — Shows a friendly offline screen when there's no internet connection.
@@ -56,7 +63,7 @@ export function OfflineGuard({ children }: { children: ReactNode }) {
       <div className="text-center max-w-sm space-y-6">
         {/* Icon */}
         <div className="mx-auto w-24 h-24 bg-orange-100 dark:bg-orange-900/30 rounded-full flex items-center justify-center">
-          <WifiOff className="w-12 h-12 text-orange-500" />
+          <WifiOffIcon />
         </div>
 
         {/* Title */}
@@ -77,7 +84,7 @@ export function OfflineGuard({ children }: { children: ReactNode }) {
           disabled={checking}
           className="inline-flex items-center gap-2 px-6 py-3 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-400 text-white rounded-xl font-medium transition-colors"
         >
-          <RefreshCw className={`w-5 h-5 ${checking ? "animate-spin" : ""}`} />
+          <RefreshIcon spinning={checking} />
           {checking
             ? isRTL
               ? "جاري التحقق..."

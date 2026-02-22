@@ -34,11 +34,13 @@
     
     <link rel="manifest" href="/manifest.json">
     <link rel="preload" as="image" href="/logo.webp" type="image/webp" fetchpriority="high">
-    <link rel="preconnect" href="/" crossorigin>
     <style>
-      /* Critical inline CSS: prevent CLS flash before JS hydrates */
-      #root { min-height: 100vh; min-height: 100dvh; }
-      .css-loading-bg { min-height: 100vh; min-height: 100dvh; background: linear-gradient(to bottom, #c084fc, #f9a8d4, #fde68a); }
+      /* Critical inline CSS: instant FCP before JS hydrates */
+      #root{min-height:100vh;min-height:100dvh}
+      .css-shell{min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(to bottom,#c084fc,#f9a8d4,#fde68a)}
+      .css-shell img{width:112px;height:112px;border-radius:50%;border:4px solid #facc15;object-fit:cover}
+      .css-shell h1{font-size:3rem;font-weight:800;background:linear-gradient(to right,#9333ea,#db2777,#f97316);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;color:transparent;margin-top:1rem}
+      .css-shell p{color:#7e22ce;font-size:1.25rem;font-weight:600;margin-top:.5rem}
     </style>
   </head>
   <body>
@@ -53,7 +55,7 @@
         } catch (e) {}
       })();
     </script>
-    <div id="root"></div>
+    <div id="root"><div class="css-shell"><img src="/logo.webp" alt="Classify" width="128" height="128" fetchpriority="high"><h1>Classify</h1><p>&#x1F3AE; Let's Play & Learn!</p></div></div>
     <script type="module" src="/src/main.tsx"></script>
     <script defer>
       if ('serviceWorker' in navigator) {

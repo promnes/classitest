@@ -13,7 +13,7 @@ const NotFound = lazy(() => import("@/pages/not-found"));
 
 const RandomAdPopup = lazy(() => import("@/components/RandomAdPopup").then(m => ({ default: m.RandomAdPopup })));
 
-import { Home } from "@/pages/Home";
+const Home = lazy(() => import("@/pages/Home").then(m => ({ default: m.Home })));
 
 const ChildAppWrapper = lazy(() => import("@/components/ChildAppWrapper").then(m => ({ default: m.ChildAppWrapper })));
 
