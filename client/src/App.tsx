@@ -58,6 +58,7 @@ const ParentTasks = lazy(() => import("@/pages/ParentTasks"));
 const LibraryLogin = lazy(() => import("@/pages/LibraryLogin"));
 const LibraryDashboard = lazy(() => import("@/pages/LibraryDashboard"));
 const LibraryStore = lazy(() => import("@/pages/LibraryStore"));
+const TrialGames = lazy(() => import("@/pages/TrialGames").then(m => ({ default: m.TrialGames })));
 const Match3Page = lazy(() => import("@/games/match3/Match3Page"));
 const MemoryMatchPage = lazy(() => import("@/pages/MemoryMatchPage"));
 const SchoolLogin = lazy(() => import("@/pages/SchoolLogin"));
@@ -215,6 +216,9 @@ function Router() {
         <Route path="/child-link">
           <ErrorBoundary><ChildLink /></ErrorBoundary>
         </Route>
+        <Route path="/trial-games">
+          <ErrorBoundary><TrialGames /></ErrorBoundary>
+        </Route>
         <Route path="/parent-dashboard">
           <ErrorBoundary><ParentDashboard /></ErrorBoundary>
         </Route>
@@ -331,7 +335,7 @@ function Router() {
   );
 }
 
-const GAME_ROUTES = ["/child-games", "/match3", "/memory-match"];
+const GAME_ROUTES = ["/child-games", "/trial-games", "/match3", "/memory-match"];
 
 function useSwipeBackGesture() {
   const [location] = useLocation();

@@ -4130,7 +4130,31 @@
     "uploadImage": "Carregar imagem",
     "codeScanned": "Código escaneado:",
     "linking": "Vinculando...",
-    "linkAccount": "Vincular minha conta!"
+    "linkAccount": "Vincular minha conta!",
+    "or": "ou",
+    "seeYourGames": "Veja Seus Jogos"
+  },
+  "trialGames": {
+    "title": "🎮 Experimente Seus Jogos!",
+    "subtitle": "Experimente cada jogo uma vez de graça",
+    "login": "Entrar",
+    "info": "Cada jogo tem uma experiência grátis!",
+    "progress": "Experimentou {{tried}} de {{total}} jogos",
+    "freePlay": "Teste Grátis",
+    "alreadyTried": "Já Experimentado ✓",
+    "played": "Jogado ✓",
+    "tryNow": "Experimente Agora!",
+    "loginFull": "Entre para jogar sem limites!",
+    "trialMode": "Modo de Teste",
+    "greatJob": "Muito bem! Você completou o jogo",
+    "loginToSave": "Entre para salvar sua pontuação!",
+    "playing": "Jogando...",
+    "loginPrompt": {
+      "title": "🌟 Muito Bem!",
+      "message": "Entre para salvar sua pontuação e jogar mais",
+      "loginBtn": "Entrar",
+      "tryAnother": "Experimente outro jogo ({{count}} restantes)"
+    }
   },
   "adminAuth": {
     "recoverPassword": "Recuperação de Senha",

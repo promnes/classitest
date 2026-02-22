@@ -615,6 +615,22 @@ export const ChildLink = (): JSX.Element => {
                 <UserPlus className="w-6 h-6" />
                 {t("childLink.newChild")}
               </button>
+
+              <div className="relative flex items-center my-2">
+                <div className="flex-grow border-t border-gray-200 dark:border-gray-600"></div>
+                <span className="mx-3 text-sm text-gray-400 dark:text-gray-500">{t("childLink.or")}</span>
+                <div className="flex-grow border-t border-gray-200 dark:border-gray-600"></div>
+              </div>
+
+              <button
+                onClick={() => navigate("/trial-games")}
+                className="w-full py-4 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-bold text-lg rounded-2xl transition-all flex items-center justify-center gap-3 shadow-lg animate-pulse hover:animate-none"
+                data-testid="button-trial-games"
+              >
+                <Gamepad2 className="w-6 h-6" />
+                {t("childLink.seeYourGames")}
+                <Sparkles className="w-5 h-5" />
+              </button>
             </div>
           </div>
         )}

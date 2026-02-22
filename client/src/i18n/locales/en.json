@@ -4155,7 +4155,31 @@
     "uploadImage": "Upload image",
     "codeScanned": "Code scanned:",
     "linking": "Linking...",
-    "linkAccount": "Link my account!"
+    "linkAccount": "Link my account!",
+    "or": "or",
+    "seeYourGames": "See Your Games"
+  },
+  "trialGames": {
+    "title": "🎮 Try Your Games!",
+    "subtitle": "Try each game once for free",
+    "login": "Login",
+    "info": "Each game is available for one free trial!",
+    "progress": "Tried {{tried}} of {{total}} games",
+    "freePlay": "Free Trial",
+    "alreadyTried": "Already Tried ✓",
+    "played": "Played ✓",
+    "tryNow": "Try Now!",
+    "loginFull": "Login to play without limits!",
+    "trialMode": "Trial Mode",
+    "greatJob": "Great job! You completed the game",
+    "loginToSave": "Login to save your score!",
+    "playing": "Playing...",
+    "loginPrompt": {
+      "title": "🌟 Great Job!",
+      "message": "Login to save your score and play more",
+      "loginBtn": "Login",
+      "tryAnother": "Try another game ({{count}} left)"
+    }
   },
   "adminAuth": {
     "recoverPassword": "Password Recovery",
