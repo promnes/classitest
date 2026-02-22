@@ -65,6 +65,8 @@ export default defineConfig({
           ],
           // Icons — extracted to allow caching independently
           "vendor-lucide": ["lucide-react"],
+          // Animation — heavy, only used by lazy pages
+          "vendor-motion": ["framer-motion"],
         },
       },
     },

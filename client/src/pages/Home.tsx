@@ -13,8 +13,22 @@ export const Home = (): JSX.Element => {
   const { t, i18n } = useTranslation();
   const [, navigate] = useLocation();
   const { isDark, toggleTheme } = useTheme();
-  const [familyCode, setFamilyCode] = useState<string | null>(null);
-  const [showLanding, setShowLanding] = useState(false);
+  const [familyCode, setFamilyCode] = useState<string | null>(() => localStorage.getItem("familyCode") || null);
+  // Compute showLanding synchronously to avoid CLS flash
+  const [showLanding, setShowLanding] = useState(() => {
+    if (localStorage.getItem("familyCode")) return false;
+    if (localStorage.getItem("token")) return false;
+    if (localStorage.getItem("childToken")) return false;
+    try {
+      const saved = localStorage.getItem("savedChildren");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return false;
+      }
+    } catch {}
+    if (localStorage.getItem("rememberedChild")) return false;
+    return true;
+  });
   const libraryRef = new URLSearchParams(window.location.search).get("libraryRef")?.trim();
   const parentAuthPath = libraryRef
     ? `/parent-auth?libraryRef=${encodeURIComponent(libraryRef)}`
@@ -37,27 +51,19 @@ export const Home = (): JSX.Element => {
     }, 1500);
   }, [navigate, parentAuthPath]);
 
-  // Check for familyCode or existing sessions
+  // Handle redirects for logged-in users (navigation must happen in useEffect)
   useEffect(() => {
-    // If familyCode exists, always show PIN entry (shared device mode)
-    const storedFamilyCode = localStorage.getItem("familyCode");
-    if (storedFamilyCode) {
-      setFamilyCode(storedFamilyCode);
-      return;
-    }
-    // If already logged in as parent, go to dashboard
+    if (familyCode) return; // PIN mode handled by render
     const parentToken = localStorage.getItem("token");
     if (parentToken) {
       navigate("/parent-dashboard");
       return;
     }
-    // If child already logged in, go to games
     const childToken = localStorage.getItem("childToken");
     if (childToken) {
       navigate("/child-games");
       return;
     }
-    // If saved children exist (legacy), redirect to child-link
     const savedChildren = localStorage.getItem("savedChildren");
     if (savedChildren) {
       try {
@@ -75,9 +81,7 @@ export const Home = (): JSX.Element => {
       navigate("/child-link");
       return;
     }
-    // Show landing page
-    setShowLanding(true);
-  }, [navigate]);
+  }, [navigate, familyCode]);
 
   // If familyCode exists, show PIN entry screen
   if (familyCode) {
@@ -196,13 +200,15 @@ export const Home = (): JSX.Element => {
         </div>
       </main>
 
-      {/* Ads Section */}
-      <Suspense fallback={null}>
-        <SlidingAdsCarousel audience="all" variant="home" isDark={isDark} />
-      </Suspense>
+      {/* Ads Section — reserve min-height to prevent CLS */}
+      <div className="content-defer">
+        <Suspense fallback={<div className="min-h-[12rem]" />}>
+          <SlidingAdsCarousel audience="all" variant="home" isDark={isDark} />
+        </Suspense>
+      </div>
 
       {/* Footer */}
-      <footer className="text-center py-6 text-purple-600/70 relative z-10">
+      <footer className="text-center py-6 text-purple-600/70 relative z-10 content-defer">
         <div className="flex flex-wrap justify-center gap-4 mb-3">
           <button onClick={() => navigate("/privacy-policy")} className="hover:underline text-sm">🔒 {t("home.privacy")}</button>
           <button onClick={() => navigate("/terms")} className="hover:underline text-sm">📋 {t("home.terms")}</button>
