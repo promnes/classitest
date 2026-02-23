@@ -121,6 +121,8 @@ export const queryClient = new QueryClient({
       queryFn: getQueryFn({ on401: "throw" }),
       refetchInterval: false,
       refetchOnWindowFocus: false,
+      refetchOnReconnect: true,
+      networkMode: "offlineFirst",
       staleTime: 60 * 1000,
       gcTime: 10 * 60 * 1000,
       retry: 1,
@@ -128,6 +130,7 @@ export const queryClient = new QueryClient({
     },
     mutations: {
       retry: false,
+      networkMode: "offlineFirst",
     },
   },
 });

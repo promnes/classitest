@@ -1,24 +1,148 @@
-import { useState, useEffect, type ReactNode } from "react";
+import { useState, useEffect, useCallback, useRef, type ReactNode } from "react";
+import { queryClient } from "@/lib/queryClient";
 
-// SVG icons inline to avoid pulling lucide-react into the entry chunk
+/* ──────────────────────────────────────────────────────────
+ *  Localized strings — keyed by i18n language code.
+ *  Falls back to English for unknown languages.
+ * ────────────────────────────────────────────────────────── */
+const translations: Record<string, {
+  title: string;
+  description: string;
+  retry: string;
+  checking: string;
+  tip: string;
+}> = {
+  ar: {
+    title: "لا يوجد اتصال بالإنترنت",
+    description: "يبدو أن جهازك غير متصل بالإنترنت.\nتحقق من الشبكة وحاول مرة أخرى.",
+    retry: "إعادة المحاولة",
+    checking: "جاري التحقق…",
+    tip: "💡 جرّب تشغيل وإيقاف وضع الطيران",
+  },
+  en: {
+    title: "No Internet Connection",
+    description: "It looks like your device is offline.\nCheck your network and try again.",
+    retry: "Try Again",
+    checking: "Checking…",
+    tip: "💡 Try toggling Airplane mode on and off",
+  },
+  pt: {
+    title: "Sem Conexão com a Internet",
+    description: "Parece que seu dispositivo está off-line.\nVerifique sua rede e tente novamente.",
+    retry: "Tentar Novamente",
+    checking: "Verificando…",
+    tip: "💡 Tente ativar e desativar o modo avião",
+  },
+};
+
+function getLocale(): { lang: string; isRTL: boolean } {
+  const stored = localStorage.getItem("i18nextLng");
+  const lang = stored && stored in translations ? stored : "en";
+  return { lang, isRTL: lang === "ar" };
+}
+
+function t(key: keyof typeof translations.en): string {
+  const { lang } = getLocale();
+  return (translations[lang] ?? translations.en)[key];
+}
+
+/* ──── SVG icons (inline to avoid extra deps) ──── */
+
 const WifiOffIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h.01"/><path d="M8.5 16.429a5 5 0 0 1 7 0"/><path d="M5 12.859a10 10 0 0 1 5.17-2.69"/><path d="M13.83 10.17A10 10 0 0 1 19 12.86"/><path d="M2 8.82a15 15 0 0 1 4.17-2.65"/><path d="M10.66 5c4.01-.36 8.14.9 11.34 3.76"/><line x1="2" x2="22" y1="2" y2="22"/></svg>
+  <svg xmlns="http://www.w3.org/2000/svg" width="56" height="56" viewBox="0 0 24 24"
+    fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
+    className="text-purple-500 dark:text-purple-400"
+  >
+    <path d="M12 20h.01" />
+    <path d="M8.5 16.429a5 5 0 0 1 7 0" />
+    <path d="M5 12.859a10 10 0 0 1 5.17-2.69" />
+    <path d="M13.83 10.17A10 10 0 0 1 19 12.86" />
+    <path d="M2 8.82a15 15 0 0 1 4.17-2.65" />
+    <path d="M10.66 5c4.01-.36 8.14.9 11.34 3.76" />
+    <line x1="2" x2="22" y1="2" y2="22" className="text-red-400" />
+  </svg>
 );
+
 const RefreshIcon = ({ spinning }: { spinning: boolean }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={spinning ? "animate-spin" : ""}><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg>
+  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+    fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+    style={spinning ? { animation: "spin .8s linear infinite" } : undefined}
+  >
+    <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+    <path d="M21 3v5h-5" />
+    <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
+    <path d="M3 21v-5h5" />
+  </svg>
 );
+
+/* ──── Animated floating dots background ──── */
+const FloatingDots = () => (
+  <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
+    {[...Array(6)].map((_, i) => (
+      <span
+        key={i}
+        className="absolute rounded-full opacity-20 dark:opacity-10"
+        style={{
+          width: 10 + i * 8,
+          height: 10 + i * 8,
+          background: `hsl(${260 + i * 18}, 70%, 65%)`,
+          left: `${10 + i * 15}%`,
+          top: `${15 + ((i * 37) % 60)}%`,
+          animation: `float${i % 3} ${4 + i}s ease-in-out infinite`,
+        }}
+      />
+    ))}
+  </div>
+);
+
+/* ──── Keyframes injected once ──── */
+const styleId = "offline-guard-keyframes";
+function ensureKeyframes() {
+  if (typeof document === "undefined") return;
+  if (document.getElementById(styleId)) return;
+  const style = document.createElement("style");
+  style.id = styleId;
+  style.textContent = `
+    @keyframes float0{0%,100%{transform:translateY(0)}50%{transform:translateY(-18px)}}
+    @keyframes float1{0%,100%{transform:translateY(0)}50%{transform:translateY(14px)}}
+    @keyframes float2{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-10px) rotate(8deg)}}
+    @keyframes pulse-ring{0%{transform:scale(.85);opacity:.6}50%{transform:scale(1.05);opacity:.2}100%{transform:scale(.85);opacity:.6}}
+    @keyframes fade-up{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+    @keyframes spin{to{transform:rotate(360deg)}}
+  `;
+  document.head.appendChild(style);
+}
 
 /**
- * OfflineGuard — Shows a friendly offline screen when there's no internet connection.
- * Required for Google Play approval: apps must not show blank/error screens when offline.
+ * OfflineGuard — Shows a beautiful, localized offline screen when
+ * there's no internet connection. Supports ar / en / pt.
+ * Required for Google Play: apps must not show blank/error screens offline.
  */
 export function OfflineGuard({ children }: { children: ReactNode }) {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [checking, setChecking] = useState(false);
+  // Track whether we were ever offline so we can refetch on reconnect
+  const wasOffline = useRef(false);
 
   useEffect(() => {
-    const goOnline = () => setIsOnline(true);
-    const goOffline = () => setIsOnline(false);
+    ensureKeyframes();
+  }, []);
+
+  const comeOnline = useCallback(() => {
+    setIsOnline(true);
+    // If we were offline, refresh all stale React-Query data
+    if (wasOffline.current) {
+      wasOffline.current = false;
+      queryClient.invalidateQueries();
+    }
+  }, []);
+
+  useEffect(() => {
+    const goOnline = () => comeOnline();
+    const goOffline = () => {
+      wasOffline.current = true;
+      setIsOnline(false);
+    };
 
     window.addEventListener("online", goOnline);
     window.addEventListener("offline", goOffline);
@@ -27,78 +151,106 @@ export function OfflineGuard({ children }: { children: ReactNode }) {
       window.removeEventListener("online", goOnline);
       window.removeEventListener("offline", goOffline);
     };
-  }, []);
+  }, [comeOnline]);
 
-  const handleRetry = async () => {
+  // Auto-retry every 10 s when offline
+  useEffect(() => {
+    if (isOnline) return;
+    const id = setInterval(async () => {
+      try {
+        const apiBase = (window as any).__API_BASE__ || "";
+        const res = await fetch(apiBase + "/api/health", { method: "GET", cache: "no-store" });
+        if (res.ok) comeOnline();
+      } catch { /* still offline */ }
+    }, 10_000);
+    return () => clearInterval(id);
+  }, [isOnline, comeOnline]);
+
+  const handleRetry = useCallback(async () => {
     setChecking(true);
     try {
-      // Try to reach the API
       const apiBase = (window as any).__API_BASE__ || "";
-      const res = await fetch(apiBase + "/api/health", {
-        method: "GET",
-        cache: "no-store",
-      });
-      if (res.ok) {
-        setIsOnline(true);
-      }
+      const res = await fetch(apiBase + "/api/health", { method: "GET", cache: "no-store" });
+      if (res.ok) comeOnline();
     } catch {
       setIsOnline(false);
     } finally {
       setChecking(false);
     }
-  };
+  }, [comeOnline]);
 
-  if (isOnline) return <>{children}</>;
-
-  const isRTL =
-    document.documentElement.lang === "ar" ||
-    document.documentElement.dir === "rtl" ||
-    localStorage.getItem("i18nextLng") === "ar";
+  const { isRTL } = getLocale();
 
   return (
-    <div
-      className="min-h-screen flex items-center justify-center p-6 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800"
-      dir={isRTL ? "rtl" : "ltr"}
-    >
-      <div className="text-center max-w-sm space-y-6">
-        {/* Icon */}
-        <div className="mx-auto w-24 h-24 bg-orange-100 dark:bg-orange-900/30 rounded-full flex items-center justify-center">
-          <WifiOffIcon />
-        </div>
+    <>
+      {/* Always keep children mounted so state/navigation is preserved */}
+      {children}
 
-        {/* Title */}
-        <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">
-          {isRTL ? "لا يوجد اتصال بالإنترنت" : "No Internet Connection"}
-        </h1>
-
-        {/* Description */}
-        <p className="text-gray-500 dark:text-gray-400 leading-relaxed">
-          {isRTL
-            ? "تأكد من اتصالك بالإنترنت وحاول مرة أخرى"
-            : "Please check your internet connection and try again"}
-        </p>
-
-        {/* Retry button */}
-        <button
-          onClick={handleRetry}
-          disabled={checking}
-          className="inline-flex items-center gap-2 px-6 py-3 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-400 text-white rounded-xl font-medium transition-colors"
+      {/* Overlay — shown on top when offline */}
+      {!isOnline && (
+        <div
+          className="fixed inset-0 z-[9999] flex items-center justify-center p-6
+                     bg-gradient-to-br from-slate-50/95 via-purple-50/95 to-indigo-100/95
+                     dark:from-gray-950/95 dark:via-gray-900/95 dark:to-indigo-950/95
+                     backdrop-blur-sm transition-colors"
+          dir={isRTL ? "rtl" : "ltr"}
         >
-          <RefreshIcon spinning={checking} />
-          {checking
-            ? isRTL
-              ? "جاري التحقق..."
-              : "Checking..."
-            : isRTL
-              ? "إعادة المحاولة"
-              : "Try Again"}
-        </button>
+          {/* animated background */}
+          <FloatingDots />
 
-        {/* App branding */}
-        <p className="text-xs text-gray-400 dark:text-gray-500 pt-4">
-          Classify
-        </p>
-      </div>
-    </div>
+          <div
+            className="relative z-10 text-center max-w-md w-full space-y-7"
+            style={{ animation: "fade-up .6s ease-out both" }}
+          >
+            {/* Pulsing ring + icon */}
+            <div className="relative mx-auto w-28 h-28 flex items-center justify-center">
+              <span
+                className="absolute inset-0 rounded-full bg-purple-200 dark:bg-purple-800/40"
+                style={{ animation: "pulse-ring 2.5s ease-in-out infinite" }}
+              />
+              <div className="relative bg-white dark:bg-gray-800 w-24 h-24 rounded-full flex items-center justify-center shadow-lg shadow-purple-200/50 dark:shadow-purple-900/30">
+                <WifiOffIcon />
+              </div>
+            </div>
+
+            {/* Title */}
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-800 dark:text-gray-50 tracking-tight">
+              {t("title")}
+            </h1>
+
+            {/* Description */}
+            <p className="text-gray-500 dark:text-gray-400 leading-relaxed whitespace-pre-line text-base">
+              {t("description")}
+            </p>
+
+            {/* Retry button */}
+            <button
+              onClick={handleRetry}
+              disabled={checking}
+              className="inline-flex items-center gap-2.5 px-8 py-3.5
+                         bg-gradient-to-r from-purple-600 to-indigo-600
+                         hover:from-purple-700 hover:to-indigo-700
+                         disabled:from-purple-400 disabled:to-indigo-400
+                         text-white rounded-2xl font-semibold text-base
+                         shadow-lg shadow-purple-300/40 dark:shadow-purple-900/40
+                         transition-all active:scale-95"
+            >
+              <RefreshIcon spinning={checking} />
+              {checking ? t("checking") : t("retry")}
+            </button>
+
+            {/* Tip */}
+            <p className="text-sm text-gray-400 dark:text-gray-500">
+              {t("tip")}
+            </p>
+
+            {/* Branding */}
+            <p className="text-xs text-gray-300 dark:text-gray-600 pt-2 font-medium tracking-widest uppercase">
+              Classify
+            </p>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
