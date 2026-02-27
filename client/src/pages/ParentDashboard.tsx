@@ -627,9 +627,20 @@ export const ParentDashboard = (): JSX.Element => {
       <header className={`sticky top-0 z-40 ${isDark ? "bg-gray-900/95 border-gray-800" : "bg-white/95 border-gray-200"} border-b backdrop-blur-sm`}>
         <div className="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
           <div className="flex items-center gap-3">
-            <div className={`h-10 w-10 rounded-xl ${isDark ? "bg-gradient-to-br from-purple-600 to-indigo-600" : "bg-gradient-to-br from-purple-500 to-indigo-500"} flex items-center justify-center shadow-lg`}>
-              <Sparkles className="h-5 w-5 text-white" />
-            </div>
+            <button
+              onClick={() => navigate("/parent-profile")}
+              className="h-10 w-10 rounded-xl overflow-hidden shadow-lg flex-shrink-0 focus:outline-none focus:ring-2 focus:ring-purple-400 transition-transform hover:scale-105"
+              aria-label="Profile"
+              data-testid="button-header-avatar"
+            >
+              {parentData?.avatarUrl ? (
+                <img src={parentData.avatarUrl} alt="" className="h-full w-full object-cover" />
+              ) : (
+                <div className={`h-full w-full ${isDark ? "bg-gradient-to-br from-purple-600 to-indigo-600" : "bg-gradient-to-br from-purple-500 to-indigo-500"} flex items-center justify-center`}>
+                  <User className="h-5 w-5 text-white" />
+                </div>
+              )}
+            </button>
             <div>
               <h1 className={`text-lg font-bold ${isDark ? "text-white" : "text-gray-900"}`}>Classify</h1>
               <p className={`text-xs ${isDark ? "text-gray-400" : "text-gray-500"}`}>{t('parentDashboard.welcomeUser', { name: parentData?.name || '' })}</p>
@@ -645,9 +656,6 @@ export const ParentDashboard = (): JSX.Element => {
             <PWAInstallButton variant="ghost" size="icon" showText={false} />
             <Button variant="ghost" size="icon" onClick={() => navigate("/settings")} data-testid="button-settings" aria-label="Settings">
               <Settings className="h-5 w-5" />
-            </Button>
-            <Button variant="ghost" size="icon" onClick={() => navigate("/parent-profile")} data-testid="button-profile" aria-label="Profile">
-              <User className="h-5 w-5" />
             </Button>
             <Button variant="ghost" size="icon" onClick={() => setShowLogoutConfirm(true)} className="text-red-500 hover:text-red-600" data-testid="button-logout" aria-label="Logout">
               <LogOut className="h-5 w-5" />
