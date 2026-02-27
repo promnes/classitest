@@ -2373,6 +2373,7 @@
     "childAdded": "Criança adicionada com sucesso",
     "childAddFailed": "Falha ao adicionar criança",
     "pinSet": "PIN definido",
+    "pinRemoved": "PIN removido ✅",
     "pinSetFailed": "Falha ao definir PIN",
     "topUp": "Recarregar",
     "balance": "Saldo",
@@ -2433,6 +2434,10 @@
     "newPin4Digits": "Novo PIN (4 dígitos)",
     "setting": "Definindo...",
     "setConfirm": "Definir ✅",
+    "removePin": "Remover PIN ❌",
+    "leaveEmptyToRemove": "Deixe vazio para remover",
+    "leaveEmptyToRemoveHint": "Deixe vazio e pressione Remover para desativar o login por PIN",
+    "pinRemoved": "PIN removido ✅",
     "setYourPin": "Definir Seu PIN",
     "pinAllowsQuickLogin": "O PIN permite que você entre rapidamente do mesmo dispositivo",
     "pin4Digits": "PIN (4 dígitos)"

@@ -2848,13 +2848,8 @@ export async function registerAuthRoutes(app: Express) {
       const { childId, pin } = req.body;
       const parentId = req.user.userId;
 
-      if (!childId || !pin) {
-        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Child ID and PIN are required"));
-      }
-
-      const pinStr = String(pin).trim();
-      if (!/^\d{4,6}$/.test(pinStr)) {
-        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "PIN must be 4-6 digits"));
+      if (!childId) {
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Child ID is required"));
       }
 
       // Verify parent owns this child
@@ -2863,6 +2858,35 @@ export async function registerAuthRoutes(app: Express) {
       );
       if (!link[0]) {
         return res.status(403).json(errorResponse(ErrorCode.UNAUTHORIZED, "Not authorized for this child"));
+      }
+
+      const pinStr = pin ? String(pin).trim() : "";
+
+      // Empty PIN = remove PIN
+      if (!pinStr) {
+        await db.update(children).set({ pin: null, pinUpdatedAt: new Date() }).where(eq(children.id, childId));
+
+        // Notify parent about PIN removal
+        try {
+          await createNotification({
+            parentId,
+            type: NOTIFICATION_TYPES.CHILD_PIN_CHANGED,
+            title: "تم إزالة رمز PIN",
+            message: `تم إزالة رمز PIN للطفل — يمكنه الآن الدخول بدون رمز`,
+            style: NOTIFICATION_STYLES.TOAST,
+            priority: NOTIFICATION_PRIORITIES.LOW,
+            metadata: { childId, action: "removed" },
+          });
+        } catch (notifyErr: any) {
+          console.error("Failed to send PIN removal notification:", notifyErr);
+        }
+
+        return res.json(successResponse({ pinRemoved: true }, "Child PIN removed successfully"));
+      }
+
+      // Validate PIN format
+      if (!/^\d{4,6}$/.test(pinStr)) {
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "PIN must be 4-6 digits"));
       }
 
       // Check PIN doesn't conflict with parent's PIN
@@ -2903,7 +2927,7 @@ export async function registerAuthRoutes(app: Express) {
           message: `تم تحديث رمز PIN للطفل بنجاح`,
           style: NOTIFICATION_STYLES.TOAST,
           priority: NOTIFICATION_PRIORITIES.LOW,
-          metadata: { childId },
+          metadata: { childId, action: "set" },
         });
       } catch (notifyErr: any) {
         console.error("Failed to send PIN change notification:", notifyErr);

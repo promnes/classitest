@@ -2389,6 +2389,7 @@
     "childAdded": "Child added successfully ✅",
     "childAddFailed": "Failed to add child",
     "pinSet": "PIN set ✅",
+    "pinRemoved": "PIN removed ✅",
     "pinSetFailed": "Failed to set PIN",
     "topUp": "Top Up",
     "balance": "Balance",
@@ -2450,6 +2451,10 @@
     "newPin4Digits": "New PIN (4 digits)",
     "setting": "Setting...",
     "setConfirm": "Set ✅",
+    "removePin": "Remove PIN ❌",
+    "leaveEmptyToRemove": "Leave empty to remove",
+    "leaveEmptyToRemoveHint": "Leave empty and press Remove to disable PIN login",
+    "pinRemoved": "PIN removed ✅",
     "setYourPin": "Set Your PIN",
     "pinAllowsQuickLogin": "PIN allows you to quickly login from the same device",
     "pin4Digits": "PIN (4 digits)"

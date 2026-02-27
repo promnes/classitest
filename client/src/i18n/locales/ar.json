@@ -2393,6 +2393,7 @@
     "childAdded": "تم إضافة الطفل بنجاح ✅",
     "childAddFailed": "فشل إضافة الطفل",
     "pinSet": "تم تعيين رمز PIN ✅",
+    "pinRemoved": "تم إزالة رمز PIN ✅",
     "pinSetFailed": "فشل في تعيين رمز PIN",
     "topUp": "شحن الرصيد",
     "balance": "الرصيد",
@@ -2454,6 +2455,10 @@
     "newPin4Digits": "رمز PIN جديد (4 أرقام)",
     "setting": "جاري التعيين...",
     "setConfirm": "تعيين ✅",
+    "removePin": "إزالة PIN ❌",
+    "leaveEmptyToRemove": "اتركه فارغاً للإزالة",
+    "leaveEmptyToRemoveHint": "اتركه فارغاً واضغط إزالة لإلغاء رمز PIN",
+    "pinRemoved": "تم إزالة رمز PIN ✅",
     "setYourPin": "تعيين رمز PIN الخاص بك",
     "pinAllowsQuickLogin": "رمز PIN يسمح لك بالدخول لحسابك بسرعة من نفس الجهاز",
     "pin4Digits": "رمز PIN (4 أرقام)"

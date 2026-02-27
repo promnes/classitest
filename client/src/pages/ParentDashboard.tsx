@@ -69,7 +69,8 @@ import {
   X,
   School,
   GraduationCap,
-  Heart
+  Heart,
+  CalendarClock
 } from "lucide-react";
 
 function ChildReportCard({ child, token, isDark, t }: { child: any; token: string | null; isDark: boolean; t: (key: string, options?: any) => string }) {
@@ -473,15 +474,16 @@ export const ParentDashboard = (): JSX.Element => {
 
   const setChildPinMutation = useMutation({
     mutationFn: async ({ childId, pin }: { childId: number; pin: string }) => {
-      const res = await apiRequest("PUT", "/api/auth/set-child-pin", { childId, pin });
+      const res = await apiRequest("PUT", "/api/auth/set-child-pin", { childId, pin: pin || "" });
       return res.json();
     },
-    onSuccess: () => {
+    onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ["/api/auth/family-pin-status"] });
       setShowSetPinModal(false);
       setPinTargetChild(null);
       setChildPinValue("");
-      toast({ title: t("parentDashboard.pinSet") });
+      const pinRemoved = data?.data?.pinRemoved;
+      toast({ title: pinRemoved ? t("parentDashboard.pinRemoved") : t("parentDashboard.pinSet") });
     },
     onError: (err: any) => {
       const msg = extractErrorMessage(err);
@@ -1326,22 +1328,32 @@ export const ParentDashboard = (): JSX.Element => {
                             </div>
                           </div>
 
-                          <div className="flex gap-2">
+                          <div className="flex flex-wrap gap-2">
                             <Button 
                               onClick={() => navigate("/assign-task")}
                               variant="default"
                               size="sm"
-                              className="flex-1 gap-1"
+                              className="flex-1 gap-1 min-w-[80px]"
                               data-testid={`button-send-task-${child.id}`}
                             >
                               <Target className="h-4 w-4" />
                               {t('parentDashboard.sendTask')}
                             </Button>
                             <Button 
+                              onClick={() => navigate("/parent-tasks")}
+                              variant="outline"
+                              size="sm"
+                              className="flex-1 gap-1 min-w-[80px]"
+                              data-testid={`button-scheduled-sessions-${child.id}`}
+                            >
+                              <CalendarClock className="h-4 w-4" />
+                              {t('scheduledSessions.title')}
+                            </Button>
+                            <Button 
                               onClick={() => setGamesChild(child)}
                               variant="outline"
                               size="sm"
-                              className="flex-1 gap-1"
+                              className="flex-1 gap-1 min-w-[80px]"
                               data-testid={`button-games-${child.id}`}
                             >
                               <Gamepad2 className="h-4 w-4" />
@@ -1351,7 +1363,7 @@ export const ParentDashboard = (): JSX.Element => {
                               onClick={() => navigate("/parent-inventory")}
                               variant="outline"
                               size="sm"
-                              className="flex-1 gap-1"
+                              className="flex-1 gap-1 min-w-[80px]"
                               data-testid={`button-inventory-${child.id}`}
                             >
                               <Gift className="h-4 w-4" />
@@ -2170,7 +2182,10 @@ export const ParentDashboard = (): JSX.Element => {
       )}
 
       {/* Set Child PIN Modal */}
-      {showSetPinModal && pinTargetChild && (
+      {showSetPinModal && pinTargetChild && (() => {
+        const pinChild = pinData?.children?.find((c: any) => c.id === pinTargetChild.id);
+        const hasPinAlready = !!pinChild?.hasPin;
+        return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
           <div className={`w-full max-w-sm rounded-2xl p-6 shadow-2xl ${isDark ? "bg-gray-900" : "bg-white"}`}>
             <h3 className={`text-lg font-bold mb-4 flex items-center gap-2 ${isDark ? "text-white" : "text-gray-900"}`}>
@@ -2185,19 +2200,28 @@ export const ParentDashboard = (): JSX.Element => {
                   type="tel"
                   inputMode="numeric"
                   value={childPinValue}
-                  onChange={(e) => setChildPinValue(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                  placeholder="1234"
-                  maxLength={4}
+                  onChange={(e) => setChildPinValue(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                  placeholder={hasPinAlready ? t("parentDashboard.leaveEmptyToRemove") : "1234"}
+                  maxLength={6}
                   className={`w-full px-4 py-3 rounded-lg border-2 focus:outline-none focus:border-blue-400 text-center text-xl tracking-widest font-mono ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-white border-gray-300 text-gray-900"}`}
                 />
+                {hasPinAlready && (
+                  <p className={`text-xs mt-1 ${isDark ? "text-gray-400" : "text-gray-500"}`}>
+                    {t("parentDashboard.leaveEmptyToRemoveHint")}
+                  </p>
+                )}
               </div>
               <div className="flex gap-2 pt-2">
                 <Button
                   onClick={() => setChildPinMutation.mutate({ childId: pinTargetChild.id, pin: childPinValue })}
-                  disabled={childPinValue.length < 4 || setChildPinMutation.isPending}
-                  className="flex-1"
+                  disabled={(childPinValue.length > 0 && childPinValue.length < 4) || setChildPinMutation.isPending}
+                  className={`flex-1 ${childPinValue.length === 0 && hasPinAlready ? "bg-red-500 hover:bg-red-600" : ""}`}
                 >
-                  {setChildPinMutation.isPending ? t("parentDashboard.setting") : t("parentDashboard.setConfirm")}
+                  {setChildPinMutation.isPending 
+                    ? t("parentDashboard.setting") 
+                    : childPinValue.length === 0 && hasPinAlready 
+                      ? t("parentDashboard.removePin")
+                      : t("parentDashboard.setConfirm")}
                 </Button>
                 <Button variant="outline" onClick={() => { setShowSetPinModal(false); setPinTargetChild(null); setChildPinValue(""); }}>
                   {t("parentDashboard.cancel")}
@@ -2206,7 +2230,8 @@ export const ParentDashboard = (): JSX.Element => {
             </div>
           </div>
         </div>
-      )}
+        );
+      })()}
 
       {/* Set My PIN Modal */}
       {showSetMyPin && (
