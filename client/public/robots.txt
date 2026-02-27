@@ -1,0 +1,65 @@
+# Classify - Educational Platform for Kids
+# https://classi-fy.com
+
+User-agent: *
+Allow: /
+Allow: /privacy-policy
+Allow: /terms
+Allow: /about
+Allow: /contact
+Allow: /legal
+Allow: /cookie-policy
+Allow: /child-safety
+Allow: /refund-policy
+Allow: /acceptable-use
+Allow: /accessibility
+Allow: /download
+Allow: /trial-games
+Allow: /delete-account
+
+# Block private/authenticated areas
+Disallow: /parent-dashboard
+Disallow: /parent-store
+Disallow: /parent-inventory
+Disallow: /parent-tasks
+Disallow: /wallet
+Disallow: /notifications
+Disallow: /subjects
+Disallow: /admin
+Disallow: /admin-dashboard
+Disallow: /admin/
+Disallow: /otp
+Disallow: /forgot-password
+Disallow: /child-games
+Disallow: /child-store
+Disallow: /child-gifts
+Disallow: /child-notifications
+Disallow: /child-rewards
+Disallow: /child-progress
+Disallow: /child-tasks
+Disallow: /child-profile
+Disallow: /child-settings
+Disallow: /child-discover
+Disallow: /child-link
+Disallow: /create-task
+Disallow: /assign-task
+Disallow: /subject-tasks
+Disallow: /task-marketplace
+Disallow: /task-cart
+Disallow: /settings
+Disallow: /library/
+Disallow: /library-store
+Disallow: /api/
+
+# Sitemaps
+Sitemap: https://classi-fy.com/sitemap.xml
+
+# Crawl-delay (be friendly to server)
+User-agent: Googlebot
+Crawl-delay: 1
+
+User-agent: Bingbot
+Crawl-delay: 2
+
+User-agent: Yandex
+Crawl-delay: 3

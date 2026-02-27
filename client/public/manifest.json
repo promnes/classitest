@@ -1,7 +1,9 @@
 {
-  "name": "Classify - تطبيق الرقابة الأبوية",
+  "name": "Classify — منصة تعليمية تفاعلية للأطفال",
   "short_name": "Classify",
-  "description": "Parental Control App - تطبيق الرقابة الأبوية",
+  "description": "منصة تعليمية ممتعة للأطفال مع رقابة أبوية ذكية وألعاب تفاعلية — Fun educational platform for kids with smart parental controls",
+  "lang": "ar",
+  "dir": "auto",
   "start_url": "/",
   "scope": "/",
   "id": "/",
@@ -12,6 +14,18 @@
   "orientation": "portrait-primary",
   "prefer_related_applications": false,
   "icons": [
+    {
+      "src": "/icons/icon-36.png",
+      "sizes": "36x36",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-48.png",
+      "sizes": "48x48",
+      "type": "image/png",
+      "purpose": "any"
+    },
     {
       "src": "/icons/icon-72.png",
       "sizes": "72x72",
@@ -55,6 +69,12 @@
       "purpose": "any"
     },
     {
+      "src": "/icons/icon-256.png",
+      "sizes": "256x256",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
       "src": "/icons/icon-384.png",
       "sizes": "384x384",
       "type": "image/png",
@@ -79,7 +99,7 @@
       "purpose": "maskable"
     }
   ],
-  "categories": ["productivity", "education", "lifestyle"],
+  "categories": ["education", "productivity", "lifestyle"],
   "screenshots": [],
   "shortcuts": [
     {
