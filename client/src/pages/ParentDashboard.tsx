@@ -493,7 +493,7 @@ export const ParentDashboard = (): JSX.Element => {
 
   const setMyPinMutation = useMutation({
     mutationFn: async ({ pin }: { pin: string }) => {
-      const res = await apiRequest("PUT", "/api/auth/set-pin", { pin });
+      const res = await apiRequest("PUT", "/api/auth/set-pin", { pin: pin || "" });
       return res.json();
     },
     onSuccess: (data: any) => {
@@ -504,7 +504,8 @@ export const ParentDashboard = (): JSX.Element => {
       queryClient.invalidateQueries({ queryKey: ["/api/auth/family-pin-status"] });
       setShowSetMyPin(false);
       setMyPinValue("");
-      toast({ title: t("parentDashboard.yourPinSet") });
+      const pinRemoved = payload?.pinRemoved;
+      toast({ title: pinRemoved ? t("parentDashboard.pinRemoved") : t("parentDashboard.yourPinSet") });
     },
     onError: (err: any) => {
       const msg = extractErrorMessage(err);
@@ -2234,7 +2235,9 @@ export const ParentDashboard = (): JSX.Element => {
       })()}
 
       {/* Set My PIN Modal */}
-      {showSetMyPin && (
+      {showSetMyPin && (() => {
+        const hasMyPin = !!pinData?.parentHasPin;
+        return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
           <div className={`w-full max-w-sm rounded-2xl p-6 shadow-2xl ${isDark ? "bg-gray-900" : "bg-white"}`}>
             <h3 className={`text-lg font-bold mb-4 flex items-center gap-2 ${isDark ? "text-white" : "text-gray-900"}`}>
@@ -2252,19 +2255,28 @@ export const ParentDashboard = (): JSX.Element => {
                   type="tel"
                   inputMode="numeric"
                   value={myPinValue}
-                  onChange={(e) => setMyPinValue(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                  placeholder="1234"
-                  maxLength={4}
+                  onChange={(e) => setMyPinValue(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                  placeholder={hasMyPin ? t("parentDashboard.leaveEmptyToRemove") : "1234"}
+                  maxLength={6}
                   className={`w-full px-4 py-3 rounded-lg border-2 focus:outline-none focus:border-blue-400 text-center text-xl tracking-widest font-mono ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-white border-gray-300 text-gray-900"}`}
                 />
+                {hasMyPin && (
+                  <p className={`text-xs mt-1 ${isDark ? "text-gray-400" : "text-gray-500"}`}>
+                    {t("parentDashboard.leaveEmptyToRemoveHint")}
+                  </p>
+                )}
               </div>
               <div className="flex gap-2 pt-2">
                 <Button
                   onClick={() => setMyPinMutation.mutate({ pin: myPinValue })}
-                  disabled={myPinValue.length < 4 || setMyPinMutation.isPending}
-                  className="flex-1"
+                  disabled={(myPinValue.length > 0 && myPinValue.length < 4) || setMyPinMutation.isPending}
+                  className={`flex-1 ${myPinValue.length === 0 && hasMyPin ? "bg-red-500 hover:bg-red-600" : ""}`}
                 >
-                  {setMyPinMutation.isPending ? t("parentDashboard.setting") : t("parentDashboard.setConfirm")}
+                  {setMyPinMutation.isPending 
+                    ? t("parentDashboard.setting") 
+                    : myPinValue.length === 0 && hasMyPin 
+                      ? t("parentDashboard.removePin")
+                      : t("parentDashboard.setConfirm")}
                 </Button>
                 <Button variant="outline" onClick={() => { setShowSetMyPin(false); setMyPinValue(""); }}>
                   {t("parentDashboard.cancel")}
@@ -2273,7 +2285,8 @@ export const ParentDashboard = (): JSX.Element => {
             </div>
           </div>
         </div>
-      )}
+        );
+      })()}
     </div>
   );
 };

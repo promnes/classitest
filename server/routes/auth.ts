@@ -2804,11 +2804,15 @@ export async function registerAuthRoutes(app: Express) {
       const { pin } = req.body;
       const parentId = req.user.userId;
 
-      if (!pin) {
-        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "PIN is required"));
+      const pinStr = pin ? String(pin).trim() : "";
+
+      // Empty PIN = remove PIN
+      if (!pinStr) {
+        await db.update(parents).set({ pin: null }).where(eq(parents.id, parentId));
+        const parent = await db.select({ uniqueCode: parents.uniqueCode }).from(parents).where(eq(parents.id, parentId));
+        return res.json(successResponse({ familyCode: parent[0]?.uniqueCode, pinRemoved: true }, "PIN removed successfully"));
       }
 
-      const pinStr = String(pin).trim();
       if (!/^\d{4,6}$/.test(pinStr)) {
         return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "PIN must be 4-6 digits"));
       }
