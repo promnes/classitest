@@ -4264,7 +4264,7 @@
     "changePin": "تغيير رمز PIN",
     "setPin": "تعيين رمز PIN",
     "newPin": "رمز PIN الجديد",
-    "pinPlaceholder": "أدخل 4-6 أرقام",
+    "pinPlaceholder": "أدخل 4 أرقام",
     "pinUpdated": "تم تحديث رمز PIN بنجاح",
     "pinSet_success": "تم تعيين رمز PIN بنجاح",
     "lastUpdated": "آخر تحديث: {{date}}",

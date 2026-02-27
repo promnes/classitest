@@ -2209,9 +2209,9 @@ export const ParentDashboard = (): JSX.Element => {
                   type="tel"
                   inputMode="numeric"
                   value={childPinValue}
-                  onChange={(e) => setChildPinValue(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                  onChange={(e) => setChildPinValue(e.target.value.replace(/\D/g, "").slice(0, 4))}
                   placeholder={hasPinAlready ? t("parentDashboard.leaveEmptyToRemove") : "1234"}
-                  maxLength={6}
+                  maxLength={4}
                   className={`w-full px-4 py-3 rounded-lg border-2 focus:outline-none focus:border-blue-400 text-center text-xl tracking-widest font-mono ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-white border-gray-300 text-gray-900"}`}
                 />
                 {hasPinAlready && (
@@ -2263,9 +2263,9 @@ export const ParentDashboard = (): JSX.Element => {
                   type="tel"
                   inputMode="numeric"
                   value={myPinValue}
-                  onChange={(e) => setMyPinValue(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                  onChange={(e) => setMyPinValue(e.target.value.replace(/\D/g, "").slice(0, 4))}
                   placeholder={hasMyPin ? t("parentDashboard.leaveEmptyToRemove") : "1234"}
-                  maxLength={6}
+                  maxLength={4}
                   className={`w-full px-4 py-3 rounded-lg border-2 focus:outline-none focus:border-blue-400 text-center text-xl tracking-widest font-mono ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-white border-gray-300 text-gray-900"}`}
                 />
                 {hasMyPin && (

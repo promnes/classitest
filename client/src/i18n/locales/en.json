@@ -4264,7 +4264,7 @@
     "changePin": "Change PIN",
     "setPin": "Set PIN",
     "newPin": "New PIN",
-    "pinPlaceholder": "Enter 4-6 digits",
+    "pinPlaceholder": "Enter 4 digits",
     "pinUpdated": "PIN updated successfully",
     "pinSet_success": "PIN set successfully",
     "lastUpdated": "Last updated: {{date}}",

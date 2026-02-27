@@ -134,8 +134,8 @@ export async function registerAuthRoutes(app: Express) {
       let hashedPin: string | null = null;
       if (pin) {
         const pinStr = String(pin).trim();
-        if (!/^\d{4,6}$/.test(pinStr)) {
-          return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "PIN must be 4-6 digits"));
+        if (!/^\d{4}$/.test(pinStr)) {
+          return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "PIN must be exactly 4 digits"));
         }
         hashedPin = await bcrypt.hash(pinStr, 10);
       }
@@ -2735,8 +2735,8 @@ export async function registerAuthRoutes(app: Express) {
       const pinStr = String(pin).trim();
       const code = String(familyCode).trim().toUpperCase();
 
-      if (!/^\d{4,6}$/.test(pinStr)) {
-        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "PIN must be 4-6 digits"));
+      if (!/^\d{4}$/.test(pinStr)) {
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "PIN must be exactly 4 digits"));
       }
 
       // Find parent by unique code
@@ -2813,8 +2813,8 @@ export async function registerAuthRoutes(app: Express) {
         return res.json(successResponse({ familyCode: parent[0]?.uniqueCode, pinRemoved: true }, "PIN removed successfully"));
       }
 
-      if (!/^\d{4,6}$/.test(pinStr)) {
-        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "PIN must be 4-6 digits"));
+      if (!/^\d{4}$/.test(pinStr)) {
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "PIN must be exactly 4 digits"));
       }
 
       // Ensure PIN is unique within this family (no child has the same PIN)
@@ -2889,8 +2889,8 @@ export async function registerAuthRoutes(app: Express) {
       }
 
       // Validate PIN format
-      if (!/^\d{4,6}$/.test(pinStr)) {
-        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "PIN must be 4-6 digits"));
+      if (!/^\d{4}$/.test(pinStr)) {
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "PIN must be exactly 4 digits"));
       }
 
       // Check PIN doesn't conflict with parent's PIN
@@ -2960,8 +2960,8 @@ export async function registerAuthRoutes(app: Express) {
       }
 
       const pinStr = String(pin).trim();
-      if (!/^\d{4,6}$/.test(pinStr)) {
-        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "PIN must be 4-6 digits"));
+      if (!/^\d{4}$/.test(pinStr)) {
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "PIN must be exactly 4 digits"));
       }
 
       // Check PIN doesn't conflict with parent's PIN

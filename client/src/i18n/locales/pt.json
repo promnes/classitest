@@ -4239,7 +4239,7 @@
     "changePin": "Alterar PIN",
     "setPin": "Definir PIN",
     "newPin": "Novo PIN",
-    "pinPlaceholder": "Digite 4-6 dígitos",
+    "pinPlaceholder": "Digite 4 dígitos",
     "pinUpdated": "PIN atualizado com sucesso",
     "pinSet_success": "PIN definido com sucesso",
     "lastUpdated": "Última atualização: {{date}}",
