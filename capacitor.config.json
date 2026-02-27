@@ -15,7 +15,7 @@
     "captureInput": true,
     "webContentsDebuggingEnabled": false,
     "backgroundColor": "#667eea",
-    "overrideUserAgent": "Classify-Android/1.7.0"
+    "overrideUserAgent": "Classify-Android/1.8.0"
   },
   "ios": {
     "contentInset": "automatic",
