@@ -20,7 +20,7 @@ import { WalletAnalytics } from "@/components/admin/WalletAnalytics";
 import { PaymentMethodsTab } from "@/components/admin/PaymentMethodsTab";
 import { SubjectsTab } from "@/components/admin/SubjectsTab";
 import { NotificationsTab } from "@/components/admin/NotificationsTab";
-import { AdminNotificationBell } from "@/components/AccountNotificationBell";
+import { AdminNotificationBell, type NotificationItem } from "@/components/AccountNotificationBell";
 import { ReferralsTab } from "@/components/admin/ReferralsTab";
 import { AdsTab } from "@/components/admin/AdsTab";
 import { ParentsTab } from "@/components/admin/ParentsTab";
@@ -53,6 +53,29 @@ export const AdminDashboard = (): JSX.Element => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   
   const isRTL = i18n.language === 'ar';
+
+  const ADMIN_NAV_MAP: Record<string, TabType> = {
+    deposit_request: "deposits", deposit_approved: "deposits", deposit_rejected: "deposits",
+    withdrawal_approved: "wallets", withdrawal_rejected: "wallets",
+    purchase_request: "orders", purchase_approved: "orders", purchase_rejected: "orders",
+    purchase_paid: "orders", order_placed: "orders", order_confirmed: "orders",
+    order_shipped: "orders", order_delivered: "orders", order_rejected: "orders",
+    shipment_requested: "orders", shipping_update: "orders",
+    new_registration: "parents", new_user: "parents",
+    task_completed: "tasks", task: "tasks", task_assigned: "tasks",
+    task_reminder: "tasks", task_notification_escalation: "tasks",
+    points_earned: "wallets", points_adjustment: "wallets",
+    referral_reward: "referrals", new_referral: "referrals",
+    security_alert: "settings", login_rejected: "settings", login_code_request: "settings",
+    gift_unlocked: "gifts", gift_activated: "gifts", product_assigned: "products",
+    broadcast: "notifications", system_alert: "notifications", info: "notifications",
+    game_shared: "games",
+  };
+
+  const handleAdminNotificationClick = (notification: NotificationItem) => {
+    const tab = ADMIN_NAV_MAP[notification.type];
+    if (tab) setActiveTab(tab);
+  };
 
   if (!token) {
     navigate("/admin");
@@ -150,7 +173,7 @@ export const AdminDashboard = (): JSX.Element => {
       <div className="flex-1 overflow-auto flex flex-col">
         {/* Header with Language and Theme Toggle */}
         <div className={`flex items-center justify-end gap-2 p-3 border-b ${isDark ? "border-gray-700" : "border-gray-200"}`}>
-          <AdminNotificationBell />
+          <AdminNotificationBell onNotificationClick={handleAdminNotificationClick} />
           <LanguageSelector />
           <Button
             size="icon"

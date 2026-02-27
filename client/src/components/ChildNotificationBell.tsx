@@ -38,11 +38,17 @@ const getNavigationTarget = (notification: ChildNotification): string | null => 
   if (notification.ctaTarget) return notification.ctaTarget;
   switch (notification.type) {
     case "product_assigned": case "gift_assigned": case "gift_unlocked": case "gift_activated": return "/child-gifts";
-    case "task_reminder": case "task_assigned": case "task_completed": return "/child-tasks";
-    case "daily_challenge": return "/child-games";
-    case "points_earned": case "points_adjustment": case "reward_unlocked": case "achievement": return "/child-rewards";
+    case "task_reminder": case "task_assigned": case "task_completed":
+    case "scheduled_task_unlocked": case "scheduled_session_activated":
+    case "task": case "task_notification_escalation":
+      return "/child-tasks";
+    case "daily_challenge": case "game_shared": return "/child-games";
+    case "points_earned": case "points_adjustment": case "reward_unlocked":
+    case "achievement": case "reward":
+      return "/child-rewards";
     case "goal_progress": return "/child-progress";
-    case "game_shared": return "/child-games";
+    case "child_pin_changed": return "/child-settings";
+    case "broadcast": case "system_alert": case "info": return "/child-notifications";
     default: return null;
   }
 };

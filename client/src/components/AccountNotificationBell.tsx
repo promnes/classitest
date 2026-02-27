@@ -5,7 +5,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { Bell, X, CheckCheck } from "lucide-react";
 import { getRelativeTimeAr } from "@/lib/relativeTime";
 
-type NotificationItem = {
+export type NotificationItem = {
   id: string;
   type: string;
   title?: string | null;
@@ -63,9 +63,10 @@ interface AccountNotificationBellProps {
   bellColorClass?: string;
   sseEnabled?: boolean;
   sseStreamUrl?: string;
+  onNotificationClick?: (notification: NotificationItem) => void;
 }
 
-function AccountNotificationBell({ tokenKey, apiBase, queryKeyPrefix, bellColorClass, sseEnabled, sseStreamUrl }: AccountNotificationBellProps) {
+function AccountNotificationBell({ tokenKey, apiBase, queryKeyPrefix, bellColorClass, sseEnabled, sseStreamUrl, onNotificationClick }: AccountNotificationBellProps) {
   const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -255,7 +256,13 @@ function AccountNotificationBell({ tokenKey, apiBase, queryKeyPrefix, bellColorC
                           ? isDark ? "bg-blue-900/20 hover:bg-blue-900/30" : "bg-blue-50/80 hover:bg-blue-50"
                           : isDark ? "hover:bg-gray-700/50" : "hover:bg-gray-50"
                       }`}
-                      onClick={() => !notification.isRead && markReadMutation.mutate(notification.id)}
+                      onClick={() => {
+                        if (!notification.isRead) markReadMutation.mutate(notification.id);
+                        if (onNotificationClick) {
+                          setIsOpen(false);
+                          onNotificationClick(notification);
+                        }
+                      }}
                     >
                       {/* Avatar circle — Facebook-style */}
                       <div className={`shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-lg ${avatar.bg}`}>
@@ -327,7 +334,7 @@ export function TeacherNotificationBell() {
   );
 }
 
-export function AdminNotificationBell() {
+export function AdminNotificationBell({ onNotificationClick }: { onNotificationClick?: (notification: NotificationItem) => void } = {}) {
   return (
     <AccountNotificationBell
       tokenKey="adminToken"
@@ -335,6 +342,7 @@ export function AdminNotificationBell() {
       queryKeyPrefix="admin"
       sseEnabled={true}
       sseStreamUrl="/api/admin/own-notifications/stream"
+      onNotificationClick={onNotificationClick}
     />
   );
 }

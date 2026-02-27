@@ -139,17 +139,39 @@ export const ChildNotifications = (): JSX.Element => {
   const handleCTA = (notification: Notification) => {
     if (notification.ctaTarget) {
       navigate(notification.ctaTarget);
-    } else if (notification.relatedId) {
+    } else {
       switch (notification.type) {
         case "product_assigned":
         case "gift_assigned":
+        case "gift_unlocked":
+        case "gift_activated":
           navigate("/child-gifts");
           break;
         case "task_reminder":
+        case "task_assigned":
+        case "task_completed":
+        case "task":
+        case "scheduled_task_unlocked":
+        case "scheduled_session_activated":
+        case "task_notification_escalation":
           navigate("/child-tasks");
           break;
         case "daily_challenge":
+        case "game_shared":
           navigate("/child-games");
+          break;
+        case "points_earned":
+        case "points_adjustment":
+        case "reward_unlocked":
+        case "achievement":
+        case "reward":
+          navigate("/child-rewards");
+          break;
+        case "goal_progress":
+          navigate("/child-progress");
+          break;
+        case "child_pin_changed":
+          navigate("/child-settings");
           break;
         default:
           break;
@@ -208,8 +230,9 @@ export const ChildNotifications = (): JSX.Element => {
               return (
                 <div
                   key={notification.id}
-                  className={`${isDark ? "bg-gray-800" : "bg-white"} rounded-2xl overflow-hidden shadow-lg transition-all hover:shadow-xl ${isUnread ? "ring-2 ring-offset-2 ring-yellow-500" : ""} ${isUrgent ? "animate-pulse" : ""}`}
+                  className={`${isDark ? "bg-gray-800" : "bg-white"} rounded-2xl overflow-hidden shadow-lg transition-all hover:shadow-xl cursor-pointer ${isUnread ? "ring-2 ring-offset-2 ring-yellow-500" : ""} ${isUrgent ? "animate-pulse" : ""}`}
                   data-testid={`notification-${notification.id}`}
+                  onClick={() => handleCTA(notification)}
                 >
                   <div className={`h-2 bg-gradient-to-r ${config.bgColor}`} />
                   <div className="p-6">
