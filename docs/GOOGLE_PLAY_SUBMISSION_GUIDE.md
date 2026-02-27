@@ -1,0 +1,386 @@
+# دليل رفع Classify على Google Play Store
+
+**التاريخ:** 28 فبراير 2026
+**الإصدار:** 1.8.0 (versionCode 10)
+**ملف AAB:** `classify-googleplay.aab` (37.95 MB)
+
+---
+
+## معلومات التطبيق الحالية
+
+| البند | القيمة |
+|---|---|
+| Package Name | `com.classify.app` |
+| Version | 1.8.0 |
+| Version Code | 10 |
+| Target SDK | 35 |
+| Min SDK | 23 (Android 6.0+) |
+| التوقيع | CN=Classify, O=Classify, L=Cairo, C=EG |
+| صلاحية الشهادة | حتى 2053-07-08 |
+| Privacy Policy | `https://classi-fy.com/privacy-policy` |
+| Deep Links | `https://classi-fy.com` + `classify://app` |
+
+---
+
+## الخطوة 1: إنشاء التطبيق في Google Play Console
+
+1. اذهب إلى [Google Play Console](https://play.google.com/console)
+2. اضغط **"Create app"**
+3. املأ البيانات:
+   - **App name:** Classify
+   - **Default language:** العربية (Arabic)
+   - **App or game:** App
+   - **Free or paid:** Free
+4. وافق على السياسات واضغط **Create**
+
+---
+
+## الخطوة 2: رفع ملف AAB
+
+1. في القائمة الجانبية: **Release** → **Production**
+2. اضغط **"Create new release"**
+3. **App signing:** Google Play سيطلب تفعيل Play App Signing — وافق
+4. ارفع ملف `classify-googleplay.aab` (37.95 MB)
+5. **Release name:** 1.8.0
+6. **Release notes (العربية):**
+   ```
+   الإصدار 1.8.0:
+   - تحسينات أمنية شاملة
+   - نظام إشعارات محسّن يدعم كل المتصفحات
+   - تحسين تجربة التنقل عند الضغط على الإشعارات
+   - إصلاحات في الأداء والاستقرار
+   ```
+7. **Release notes (English):**
+   ```
+   Version 1.8.0:
+   - Comprehensive security improvements
+   - Enhanced notification system with cross-browser support
+   - Improved navigation from notification clicks
+   - Performance and stability fixes
+   ```
+
+---
+
+## الخطوة 3: Store Listing (قائمة المتجر)
+
+### Main store listing
+
+**باللغة العربية:**
+
+| الحقل | المحتوى |
+|---|---|
+| App name | Classify |
+| Short description (80 حرف) | منصة تعليمية ممتعة للأطفال مع رقابة أبوية ذكية وألعاب تفاعلية |
+| Full description | انظر أدناه |
+
+**الوصف الكامل بالعربية (انسخه كاملاً):**
+
+```
+Classify — منصة تعليمية تفاعلية للأطفال مع رقابة أبوية كاملة
+
+🎓 تعليم ممتع وآمن
+Classify هي منصة تعليمية مصممة خصيصاً للأطفال مع إدارة أبوية شاملة. نوفر بيئة آمنة للتعلم واللعب مع أدوات متقدمة للأهل للمتابعة والتحكم.
+
+⭐ المميزات الرئيسية:
+
+📚 التعليم التفاعلي
+• ألعاب تعليمية متنوعة تغطي الرياضيات والذاكرة والتهجئة
+• تتبع تقدم الطفل ومستواه التعليمي
+• مكافآت وإنجازات تحفيزية
+
+👨‍👩‍👧‍👦 الرقابة الأبوية
+• لوحة تحكم كاملة للأهل
+• جدولة أوقات الاستخدام والجلسات
+• إشعارات فورية بنشاط الطفل
+• التحكم في المحتوى المتاح
+
+🔒 الأمان
+• حسابات محمية بالكامل
+• تحقق ثنائي (2FA) للأهل
+• لا يمكن للطفل تغيير الإعدادات بدون إذن
+• متوافق مع COPPA وGDPR
+
+🎮 الألعاب التعليمية
+• Math Challenge - تحديات رياضية
+• Memory Match - ألعاب الذاكرة
+• Spelling Bee - تهجئة الكلمات
+• المزيد من الألعاب قريباً
+
+📱 مميزات إضافية
+• يدعم العربية والإنجليزية
+• يعمل بدون إنترنت (بعد التحميل الأول)
+• إشعارات فورية
+• تصميم جميل وسهل الاستخدام
+• متوافق مع جميع أحجام الشاشات
+
+ℹ️ ملاحظة: التطبيق مجاني بالكامل. بياناتكم محمية وفقاً لسياسة الخصوصية.
+```
+
+**بالإنجليزية:**
+
+| الحقل | المحتوى |
+|---|---|
+| App name | Classify |
+| Short description | Fun educational platform for kids with smart parental controls & games |
+| Full description | انظر أدناه |
+
+**Full description (English):**
+
+```
+Classify — Interactive Educational Platform for Kids with Full Parental Controls
+
+🎓 Fun & Safe Learning
+Classify is an educational platform designed specifically for children with comprehensive parental management. We provide a safe environment for learning and playing with advanced tools for parents to monitor and control.
+
+⭐ Key Features:
+
+📚 Interactive Learning
+• Diverse educational games covering math, memory, and spelling
+• Track your child's progress and educational level
+• Motivational rewards and achievements
+
+👨‍👩‍👧‍👦 Parental Controls
+• Complete parent dashboard
+• Schedule usage times and sessions
+• Real-time notifications of child activity
+• Control available content
+
+🔒 Security
+• Fully protected accounts
+• Two-factor authentication (2FA) for parents
+• Children cannot change settings without permission
+• COPPA and GDPR compliant
+
+🎮 Educational Games
+• Math Challenge
+• Memory Match
+• Spelling Bee
+• More games coming soon
+
+📱 Additional Features
+• Supports Arabic and English
+• Works offline (after first load)
+• Push notifications
+• Beautiful, easy-to-use design
+• Compatible with all screen sizes
+
+ℹ️ Note: The app is completely free. Your data is protected according to our Privacy Policy.
+```
+
+### الوسائط المطلوبة
+
+| النوع | المواصفات | العدد |
+|---|---|---|
+| Phone Screenshots | 1080x1920 أو 1440x2560 px (PNG/JPEG) | 4-8 صور |
+| 7" Tablet Screenshots | 1080x1920 px (اختياري) | 1-8 صور |
+| 10" Tablet Screenshots | 1920x1200 px (اختياري) | 1-8 صور |
+| Feature Graphic | 1024x500 px (مطلوب) | 1 |
+| App Icon (Hi-res) | 512x512 px (مطلوب) | 1 |
+
+**نصائح للـ Screenshots:**
+- صوّر شاشات: تسجيل الدخول، لوحة الأهل، ملف الطفل، الألعاب، الإعدادات
+- استخدم هاتف حقيقي أو محاكي Android Studio
+- تأكد الصور واضحة بدون بيانات حقيقية
+
+---
+
+## الخطوة 4: Content Rating (تصنيف المحتوى)
+
+1. اذهب إلى **Policy** → **App content** → **Content rating**
+2. اضغط **Start questionnaire**
+3. **Email:** (أدخل بريدك)
+4. **Category:** اختر **"All Other App Types"**
+5. الإجابات:
+   - Violence: **No**
+   - Sexual content: **No**
+   - Language: **No**
+   - Controlled substances: **No**
+   - User interaction: **Yes** (يوجد حسابات مستخدمين)
+   - Users can share info: **No**
+   - Users can communicate: **No**
+   - Location sharing: **No**
+   - Does the app share user's location: **No**
+   - Does the app contain ads: **No**
+   - Gambling: **No**
+   - Does the app allow purchases: **No**
+6. اضغط **Save** → **Calculate rating** → **Apply**
+
+---
+
+## الخطوة 5: Target Audience & Content (الجمهور المستهدف) ⚠️ مهم جداً
+
+### هذا القسم حساس لأن التطبيق موجه للأطفال
+
+1. اذهب إلى **Policy** → **App content** → **Target audience and content**
+2. **Target age groups:** اختر:
+   - ✅ Ages 6-8
+   - ✅ Ages 9-12
+   - ✅ Ages 13-15
+   - ✅ Ages 16-17
+   - ✅ Ages 18+
+   > ⚠️ لا تختار "Under 5" إلا إذا كان التطبيق مصمم لهم فعلاً
+
+3. **Is this app primarily child-directed?** → **Yes**
+4. **Does the app appeal primarily to children?** → **Yes, but it's also for parents**
+5. سيُطلب منك الانضمام لبرنامج **Designed for Families** — وافق
+
+### متطلبات Designed for Families:
+- ✅ لا إعلانات (التطبيق خالي من الإعلانات)
+- ✅ سياسة خصوصية موجودة
+- ✅ يتوافق مع COPPA
+- ✅ المحتوى مناسب للأطفال
+- ✅ لا روابط خارجية بدون بوابة أبوية
+
+---
+
+## الخطوة 6: Data Safety (سلامة البيانات)
+
+1. اذهب إلى **Policy** → **App content** → **Data safety**
+2. اضغط **Start**
+
+### Overview:
+- **Does your app collect or share any required user data types?** → **Yes**
+- **Is all user data encrypted in transit?** → **Yes**
+- **Do you provide a way for users to request that their data is deleted?** → **Yes**
+
+### Data types:
+
+| نوع البيانات | يتم جمعه؟ | يتم مشاركته؟ | الغرض |
+|---|---|---|---|
+| Email address | ✅ نعم | ❌ لا | Account management |
+| Name | ✅ نعم | ❌ لا | Account management, personalization |
+| User IDs | ✅ نعم | ❌ لا | Account management |
+| App interactions | ✅ نعم | ❌ لا | Analytics |
+| Other user-generated content | ✅ نعم | ❌ لا | App functionality |
+| Photos/Videos | ✅ نعم | ❌ لا | Profile picture (optional) |
+
+### لكل نوع بيانات:
+- **Is this data collected, shared, or both?** → **Collected**
+- **Is this data processed ephemerally?** → **No**
+- **Is this data required or optional?** → Email: **Required**, Name: **Required**, Photos: **Optional**
+- **Purpose:** → **App functionality, Account management**
+
+3. اضغط **Save** → **Submit**
+
+---
+
+## الخطوة 7: App Access (الوصول للتطبيق)
+
+لأن التطبيق يتطلب تسجيل دخول، يجب توفير بيانات اختبار لفريق مراجعة Google:
+
+1. اذهب إلى **Policy** → **App content** → **App access**
+2. اختر **"All or some functionality is restricted"**
+3. اضغط **"Add new instructions"**
+4. **Name:** Test Parent Account
+5. أنشئ حساب اختبار على `https://classi-fy.com` وأدخل:
+   - **Username/Email:** (بريد الاختبار)
+   - **Password:** (كلمة المرور)
+6. **Instructions:**
+   ```
+   1. Login with the test credentials above
+   2. You will see the parent dashboard
+   3. Navigate to "Children" to see child management
+   4. Navigate to "Games" to see educational games
+   5. The app supports Arabic and English languages
+   ```
+
+---
+
+## الخطوة 8: Privacy Policy (سياسة الخصوصية)
+
+1. اذهب إلى **Policy** → **App content** → **Privacy policy**
+2. أدخل الرابط: `https://classi-fy.com/privacy-policy`
+3. اضغط **Save**
+
+---
+
+## الخطوة 9: إعدادات إضافية
+
+### Ads declaration:
+- **Does your app contain ads?** → **No**
+
+### Government apps:
+- **Is this a government app?** → **No**
+
+### Financial features:
+- **Does this app provide financial features?** → **No**
+
+### Health:
+- **Is this a health app?** → **No**
+
+---
+
+## الخطوة 10: المراجعة والنشر
+
+1. تأكد أن كل الأقسام مكتملة (علامة ✅ خضراء بجانب كل قسم)
+2. ارجع إلى **Release** → **Production**
+3. اضغط **"Review release"**
+4. إذا لا يوجد أخطاء، اضغط **"Start rollout to Production"**
+
+### مدة المراجعة:
+- **أول مرة:** 3-7 أيام عمل (أحياناً حتى 14 يوم)
+- **التحديثات اللاحقة:** 1-3 أيام عمل
+
+---
+
+## أسباب الرفض الشائعة (تجنبها)
+
+| السبب | الحل |
+|---|---|
+| سياسة خصوصية مفقودة | ✅ موجودة: `classi-fy.com/privacy-policy` |
+| لا يوجد بيانات اختبار | ✅ أنشئ حساب اختبار (الخطوة 7) |
+| محتوى أطفال بدون COPPA | ✅ التطبيق متوافق مع COPPA |
+| عدم اكتمال Data Safety | ✅ اتبع الخطوة 6 بدقة |
+| Screenshots ناقصة | ⚠️ حضّر 4-8 screenshots حقيقية |
+| Feature Graphic مفقودة | ⚠️ صمم صورة 1024x500 |
+| التطبيق WebView فقط | ✅ التطبيق يقدم قيمة مضافة (ألعاب، إشعارات، رقابة أبوية) |
+| إعلانات بدون إعلان | ✅ لا يوجد إعلانات |
+
+---
+
+## بعد القبول
+
+### لتحديث التطبيق لاحقاً:
+```bash
+# 1. على جهازك
+cd c:\Users\cex\Desktop\classiv3-main
+
+# 2. زيّد versionCode في android/app/build.gradle
+
+# 3. ابني
+$env:VITE_API_BASE = "https://classi-fy.com"
+npm run build
+npx cap sync android
+
+# 4. بناء AAB
+cd android
+$env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"
+$env:ANDROID_HOME = "C:\Users\cex\AppData\Local\Android\Sdk"
+.\gradlew.bat bundleRelease
+
+# 5. الملف الناتج:
+# android\app\build\outputs\bundle\release\app-release.aab
+
+# 6. ارفعه في Play Console → Production → Create new release
+```
+
+### تحديث Deep Links (assetlinks):
+بعد تفعيل Play App Signing، Google سيعطيك SHA256 جديد.
+يجب تحديثه في: `client/public/.well-known/assetlinks.json`
+ويمكنك إضافة أكثر من fingerprint (واحد للـ upload key وواحد لـ Play signing key).
+
+---
+
+## ملاحظات مهمة
+
+⚠️ **الـ Keystore:** احتفظ بنسخة احتياطية في مكان آمن. فقدانه = لا يمكن تحديث التطبيق أبداً.
+
+⚠️ **Play App Signing:** Google Play سيوقّع التطبيق بمفتاحه الخاص. المفتاح اللي عندك يسمى "Upload Key".
+
+⚠️ **Push Notifications:** إذا أردت Push Notifications تعمل، يجب:
+1. إنشاء مشروع Firebase
+2. إضافة `google-services.json` في `android/app/`
+3. تفعيل Cloud Messaging
+4. إعادة بناء AAB
+
+⚠️ **الناحية التقنية:** التطبيق يعمل بنظام Live Server — كل المحتوى يأتي من `https://classi-fy.com`. تحديثات الواجهة والسيرفر تظهر فوراً بدون تحديث التطبيق. فقط التغييرات في الكود الأصلي (Android) تحتاج AAB جديد.
