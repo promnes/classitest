@@ -50,7 +50,7 @@ import {
 } from "../../shared/schema";
 import bcrypt from "bcrypt";
 import crypto from "crypto";
-import { eq, and, or, desc, sql, count, ilike, ne } from "drizzle-orm";
+import { eq, and, or, desc, sql, count, ilike, ne, inArray } from "drizzle-orm";
 import jwt from "jsonwebtoken";
 import { authMiddleware, JWT_SECRET } from "./middleware";
 import { childLinkLimiter, childLoginRequestLimiter, childLoginStatusLimiter } from "../utils/rateLimiters";
@@ -2624,7 +2624,7 @@ export async function registerChildRoutes(app: Express) {
     try {
       const childId = req.user.childId;
 
-      // Get watering settings
+      // Get watering settings (read-only, safe outside tx)
       const settings = await db.select().from(growthTreeSettings);
       const config = settings[0];
       
@@ -2632,91 +2632,110 @@ export async function registerChildRoutes(app: Express) {
         return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Watering is currently disabled"));
       }
 
-      // Check daily limit
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const todayWaterings = await db.select({ count: count() })
-        .from(childWateringLog)
-        .where(and(
-          eq(childWateringLog.childId, childId),
-          sql`${childWateringLog.wateredAt} >= ${today}`
-        ));
+      // All financial + state mutations in a single transaction to prevent race conditions
+      const result = await db.transaction(async (tx: any) => {
+        // Check daily limit inside transaction
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const todayWaterings = await tx.select({ count: count() })
+          .from(childWateringLog)
+          .where(and(
+            eq(childWateringLog.childId, childId),
+            sql`${childWateringLog.wateredAt} >= ${today}`
+          ));
 
-      if ((todayWaterings[0]?.count || 0) >= config.maxWateringsPerDay) {
-        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Maximum daily waterings reached"));
-      }
+        if ((todayWaterings[0]?.count || 0) >= config.maxWateringsPerDay) {
+          throw new Error("MAX_DAILY_WATERINGS");
+        }
 
-      // Check if child has enough points
-      const child = await db.select().from(children).where(eq(children.id, childId));
-      if (!child[0]) {
-        return res.status(404).json(errorResponse(ErrorCode.NOT_FOUND, "Child not found"));
-      }
+        // Lock child row with FOR UPDATE to prevent concurrent point deductions
+        const child = await tx.select().from(children)
+          .where(eq(children.id, childId))
+          .for("update");
+        if (!child[0]) {
+          throw new Error("CHILD_NOT_FOUND");
+        }
 
-      if (child[0].totalPoints < config.wateringCostPoints) {
-        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Not enough points for watering"));
-      }
+        if (child[0].totalPoints < config.wateringCostPoints) {
+          throw new Error("INSUFFICIENT_POINTS");
+        }
 
-      // Deduct points from child
-      await db.update(children)
-        .set({ totalPoints: child[0].totalPoints - config.wateringCostPoints })
-        .where(eq(children.id, childId));
+        // Atomic deduct points
+        await tx.update(children)
+          .set({ totalPoints: sql`${children.totalPoints} - ${config.wateringCostPoints}` })
+          .where(and(
+            eq(children.id, childId),
+            sql`${children.totalPoints} >= ${config.wateringCostPoints}`
+          ));
 
-      // Log the watering
-      await db.insert(childWateringLog).values({
-        childId,
-        pointsSpent: config.wateringCostPoints,
-        growthPointsEarned: config.wateringGrowthPoints,
-      });
-
-      // Record growth event and update tree
-      let tree = await db.select().from(childGrowthTrees).where(eq(childGrowthTrees.childId, childId));
-      
-      if (!tree[0]) {
-        await db.insert(childGrowthTrees).values({
+        // Log the watering
+        await tx.insert(childWateringLog).values({
           childId,
-          currentStage: 1,
-          totalGrowthPoints: config.wateringGrowthPoints,
-          wateringsCount: 1,
+          pointsSpent: config.wateringCostPoints,
+          growthPointsEarned: config.wateringGrowthPoints,
         });
-      } else {
-        const newTotal = tree[0].totalGrowthPoints + config.wateringGrowthPoints;
-        const newStage = calculateTreeStage(newTotal);
+
+        // Record growth event and update tree
+        let tree = await tx.select().from(childGrowthTrees).where(eq(childGrowthTrees.childId, childId));
         
-        await db.update(childGrowthTrees)
-          .set({
-            totalGrowthPoints: newTotal,
-            wateringsCount: tree[0].wateringsCount + 1,
-            currentStage: Math.max(tree[0].currentStage, newStage),
-            lastGrowthAt: new Date(),
-            updatedAt: new Date(),
-          })
-          .where(eq(childGrowthTrees.childId, childId));
-      }
+        if (!tree[0]) {
+          await tx.insert(childGrowthTrees).values({
+            childId,
+            currentStage: 1,
+            totalGrowthPoints: config.wateringGrowthPoints,
+            wateringsCount: 1,
+          });
+        } else {
+          const newTotal = tree[0].totalGrowthPoints + config.wateringGrowthPoints;
+          const newStage = calculateTreeStage(newTotal);
+          
+          await tx.update(childGrowthTrees)
+            .set({
+              totalGrowthPoints: newTotal,
+              wateringsCount: tree[0].wateringsCount + 1,
+              currentStage: Math.max(tree[0].currentStage, newStage),
+              lastGrowthAt: new Date(),
+              updatedAt: new Date(),
+            })
+            .where(eq(childGrowthTrees.childId, childId));
+        }
 
-      // Record growth event
-      await db.insert(childGrowthEvents).values({
-        childId,
-        eventType: "watering",
-        growthPoints: config.wateringGrowthPoints,
-        metadata: { pointsSpent: config.wateringCostPoints },
-      });
+        // Record growth event
+        await tx.insert(childGrowthEvents).values({
+          childId,
+          eventType: "watering",
+          growthPoints: config.wateringGrowthPoints,
+          metadata: { pointsSpent: config.wateringCostPoints },
+        });
 
-      // Get updated tree for response
-      const updatedTree = await db.select().from(childGrowthTrees).where(eq(childGrowthTrees.childId, childId));
-      const remainingWaterings = config.maxWateringsPerDay - ((todayWaterings[0]?.count || 0) + 1);
+        // Get updated tree for response
+        const updatedTree = await tx.select().from(childGrowthTrees).where(eq(childGrowthTrees.childId, childId));
+        const remainingWaterings = config.maxWateringsPerDay - ((todayWaterings[0]?.count || 0) + 1);
 
-      res.json({
-        success: true,
-        data: {
+        return {
           pointsDeducted: config.wateringCostPoints,
           growthPointsEarned: config.wateringGrowthPoints,
           remainingWateringsToday: remainingWaterings,
           newTotalPoints: child[0].totalPoints - config.wateringCostPoints,
           tree: updatedTree[0],
-        },
+        };
+      });
+
+      res.json({
+        success: true,
+        data: result,
         message: "Tree watered successfully!",
       });
     } catch (error: any) {
+      if (error.message === "MAX_DAILY_WATERINGS") {
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Maximum daily waterings reached"));
+      }
+      if (error.message === "CHILD_NOT_FOUND") {
+        return res.status(404).json(errorResponse(ErrorCode.NOT_FOUND, "Child not found"));
+      }
+      if (error.message === "INSUFFICIENT_POINTS") {
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Not enough points for watering"));
+      }
       console.error("Water tree error:", error);
       res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to water tree"));
     }
@@ -4210,8 +4229,10 @@ export async function registerChildRoutes(app: Express) {
       if (!Array.isArray(postIds) || postIds.length === 0) {
         return res.json({ success: true, data: {} });
       }
+      // Sanitize postIds to strings and use parameterized inArray (prevents SQL injection)
+      const safePostIds = postIds.map((id: any) => String(id)).slice(0, 200);
       const likes = await db.select({ postId: childPostLikes.postId }).from(childPostLikes)
-        .where(and(eq(childPostLikes.childId, childId), sql`${childPostLikes.postId} = ANY(${sql.raw(`ARRAY[${postIds.map((id: string) => `'${id}'`).join(",")}]`)})`));
+        .where(and(eq(childPostLikes.childId, childId), inArray(childPostLikes.postId, safePostIds)));
       const likedMap: Record<string, boolean> = {};
       likes.forEach(l => { likedMap[l.postId] = true; });
       res.json({ success: true, data: likedMap });

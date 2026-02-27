@@ -293,89 +293,95 @@ export function registerMarketplaceRoutes(app: Express) {
       }
 
       // Check wallet balance
-      const [wallet] = await db.select().from(parentWallet)
-        .where(eq(parentWallet.parentId, parentId)).limit(1);
-
-      const balance = Number(wallet?.balance || 0);
       const price = parseFloat(String(task.price));
-
-      if (balance < price) {
-        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, 
-          `رصيدك غير كافٍ. الرصيد: ${balance}, السعر: ${price}`));
+      if (isNaN(price) || price <= 0) {
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "سعر المهمة غير صالح"));
       }
 
-      // Deduct from wallet
-      await db.update(parentWallet).set({
-        balance: sql`${parentWallet.balance} - ${price.toFixed(2)}`,
-      }).where(eq(parentWallet.parentId, parentId));
-
-      // Create order
       const commissionPct = parseFloat(String(teacher.commissionRatePct));
       const commissionAmount = (price * commissionPct) / 100;
       const teacherEarning = price - commissionAmount;
 
-      const [order] = await db.insert(teacherTaskOrders).values({
-        teacherTaskId: task.id,
-        teacherId: task.teacherId,
-        buyerParentId: parentId,
-        childId: childId || null,
-        price: price.toFixed(2),
-        commissionRatePct: commissionPct.toFixed(2),
-        commissionAmount: commissionAmount.toFixed(2),
-        teacherEarningAmount: teacherEarning.toFixed(2),
-        status: "completed",
-        holdDays: 7,
-      }).returning();
+      // Atomic transaction: deduct wallet + create order + update stats
+      const txResult = await db.transaction(async (tx: any) => {
+        // Atomic deduct: only succeeds if balance >= price (prevents race condition)
+        const updated = await tx.update(parentWallet).set({
+          balance: sql`${parentWallet.balance} - ${price.toFixed(2)}`,
+        }).where(and(
+          eq(parentWallet.parentId, parentId),
+          sql`${parentWallet.balance} >= ${price.toFixed(2)}`
+        )).returning();
 
-      // Update teacher stats
-      await db.update(teacherTasks).set({
-        purchaseCount: sql`${teacherTasks.purchaseCount} + 1`,
-        updatedAt: new Date(),
-      }).where(eq(teacherTasks.id, task.id));
-
-      await db.update(schoolTeachers).set({
-        totalTasksSold: sql`${schoolTeachers.totalTasksSold} + 1`,
-        updatedAt: new Date(),
-      }).where(eq(schoolTeachers.id, task.teacherId));
-
-      // Add to pending teacher balance
-      async function ensureBalance(tId: string) {
-        const [existing] = await db.select().from(teacherBalances)
-          .where(eq(teacherBalances.teacherId, tId)).limit(1);
-        if (!existing) {
-          await db.insert(teacherBalances).values({ teacherId: tId }).onConflictDoNothing();
+        if (!updated[0]) {
+          throw new Error("INSUFFICIENT_BALANCE");
         }
-      }
-      await ensureBalance(task.teacherId);
-      await db.update(teacherBalances).set({
-        pendingBalance: sql`${teacherBalances.pendingBalance} + ${teacherEarning.toFixed(2)}`,
-        totalSalesAmount: sql`${teacherBalances.totalSalesAmount} + ${price.toFixed(2)}`,
-        totalCommissionAmount: sql`${teacherBalances.totalCommissionAmount} + ${commissionAmount.toFixed(2)}`,
-        updatedAt: new Date(),
-      }).where(eq(teacherBalances.teacherId, task.teacherId));
 
-      // Add to parent's task library
-      const [libItem] = await db.insert(parentTaskLibrary).values({
-        parentId,
-        sourceType: "teacher_task",
-        sourceTaskId: task.id,
-        title: task.title,
-        question: task.question,
-        answers: task.answers,
-        imageUrl: task.imageUrl,
-        gifUrl: task.gifUrl,
-        subjectLabel: task.subjectLabel,
-        pointsReward: task.pointsReward,
-        purchaseType: purchaseType as string,
-        maxUsageCount: purchaseType === "one_time" ? 1 : purchaseType === "limited" ? (maxUsageCount || 1) : null,
-      }).returning();
+        // Create order
+        const [order] = await tx.insert(teacherTaskOrders).values({
+          teacherTaskId: task.id,
+          teacherId: task.teacherId,
+          buyerParentId: parentId,
+          childId: childId || null,
+          price: price.toFixed(2),
+          commissionRatePct: commissionPct.toFixed(2),
+          commissionAmount: commissionAmount.toFixed(2),
+          teacherEarningAmount: teacherEarning.toFixed(2),
+          status: "completed",
+          holdDays: 7,
+        }).returning();
+
+        // Update teacher stats
+        await tx.update(teacherTasks).set({
+          purchaseCount: sql`${teacherTasks.purchaseCount} + 1`,
+          updatedAt: new Date(),
+        }).where(eq(teacherTasks.id, task.id));
+
+        await tx.update(schoolTeachers).set({
+          totalTasksSold: sql`${schoolTeachers.totalTasksSold} + 1`,
+          updatedAt: new Date(),
+        }).where(eq(schoolTeachers.id, task.teacherId));
+
+        // Add to pending teacher balance
+        const [existingBal] = await tx.select().from(teacherBalances)
+          .where(eq(teacherBalances.teacherId, task.teacherId)).limit(1);
+        if (!existingBal) {
+          await tx.insert(teacherBalances).values({ teacherId: task.teacherId }).onConflictDoNothing();
+        }
+        await tx.update(teacherBalances).set({
+          pendingBalance: sql`${teacherBalances.pendingBalance} + ${teacherEarning.toFixed(2)}`,
+          totalSalesAmount: sql`${teacherBalances.totalSalesAmount} + ${price.toFixed(2)}`,
+          totalCommissionAmount: sql`${teacherBalances.totalCommissionAmount} + ${commissionAmount.toFixed(2)}`,
+          updatedAt: new Date(),
+        }).where(eq(teacherBalances.teacherId, task.teacherId));
+
+        // Add to parent's task library
+        const [libItem] = await tx.insert(parentTaskLibrary).values({
+          parentId,
+          sourceType: "teacher_task",
+          sourceTaskId: task.id,
+          title: task.title,
+          question: task.question,
+          answers: task.answers,
+          imageUrl: task.imageUrl,
+          gifUrl: task.gifUrl,
+          subjectLabel: task.subjectLabel,
+          pointsReward: task.pointsReward,
+          purchaseType: purchaseType as string,
+          maxUsageCount: purchaseType === "one_time" ? 1 : purchaseType === "limited" ? (maxUsageCount || 1) : null,
+        }).returning();
+
+        return { order, libItem };
+      });
 
       res.json(successResponse({
-        order,
-        libraryItem: libItem,
+        order: txResult.order,
+        libraryItem: txResult.libItem,
         message: "تم شراء المهمة وإضافتها لمكتبتك بنجاح",
       }));
     } catch (err: any) {
+      if (err.message === "INSUFFICIENT_BALANCE") {
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "رصيدك غير كافٍ"));
+      }
       console.error("Buy teacher task error:", err);
       res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "خطأ في شراء المهمة"));
     }

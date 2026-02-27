@@ -100,12 +100,13 @@ export async function registerReferralRoutes(app: Express) {
     }
   });
 
-  app.post("/api/referrals/apply", async (req: any, res) => {
+  app.post("/api/referrals/apply", authMiddleware, async (req: any, res) => {
     try {
-      const { referralCode, newParentId } = req.body;
+      const { referralCode } = req.body;
+      const newParentId = req.user?.parentId || req.user?.userId;
       
       if (!referralCode || !newParentId) {
-        return res.status(400).json({ message: "Referral code and parent ID are required" });
+        return res.status(400).json({ message: "Referral code is required" });
       }
 
       const codeRecord = await db.select().from(parentReferralCodes).where(eq(parentReferralCodes.code, referralCode.toUpperCase()));
@@ -154,70 +155,80 @@ export async function registerReferralRoutes(app: Express) {
     try {
       const parentId = req.user?.parentId || req.user?.userId;
       
-      const pendingReferral = await db.select().from(referrals)
-        .where(eq(referrals.referredId, parentId));
-      
-      if (!pendingReferral[0] || pendingReferral[0].status !== "pending") {
-        return res.status(404).json({ message: "No pending referral found" });
-      }
+      // All referral activation in a single transaction to prevent double-reward
+      const result = await db.transaction(async (tx: any) => {
+        // Lock the referral row with FOR UPDATE
+        const pendingReferral = await tx.select().from(referrals)
+          .where(eq(referrals.referredId, parentId))
+          .for("update");
+        
+        if (!pendingReferral[0] || pendingReferral[0].status !== "pending") {
+          throw new Error("NO_PENDING_REFERRAL");
+        }
 
-      const referral = pendingReferral[0];
+        const referral = pendingReferral[0];
 
-      // Get dynamic points from settings
-      const settingsRows = await db.select().from(referralSettings);
-      const rewardPoints = settingsRows[0]?.pointsPerReferral ?? REFERRAL_REWARD_POINTS;
+        // Get dynamic points from settings
+        const settingsRows = await tx.select().from(referralSettings);
+        const rewardPoints = settingsRows[0]?.pointsPerReferral ?? REFERRAL_REWARD_POINTS;
 
-      await db.update(referrals)
-        .set({ 
-          status: "active",
-          activatedAt: new Date()
-        })
-        .where(eq(referrals.id, referral.id));
-
-      await db.update(parentReferralCodes)
-        .set({ activeReferrals: sql`${parentReferralCodes.activeReferrals} + 1` })
-        .where(eq(parentReferralCodes.parentId, referral.referrerId));
-
-      const wallet = await db.select().from(parentWallet).where(eq(parentWallet.parentId, referral.referrerId));
-      if (wallet[0]) {
-        await db.update(parentWallet)
+        await tx.update(referrals)
           .set({ 
-            balance: sql`${parentWallet.balance} + ${rewardPoints}`,
-            updatedAt: new Date()
+            status: "active",
+            activatedAt: new Date()
           })
-          .where(eq(parentWallet.parentId, referral.referrerId));
-      } else {
-        await db.insert(parentWallet).values({
-          parentId: referral.referrerId,
-          balance: rewardPoints.toString(),
-        });
-      }
+          .where(eq(referrals.id, referral.id));
 
-      await db.update(referrals)
-        .set({ 
-          status: "rewarded",
-          pointsAwarded: rewardPoints,
-          rewardedAt: new Date()
-        })
-        .where(eq(referrals.id, referral.id));
+        await tx.update(parentReferralCodes)
+          .set({ activeReferrals: sql`${parentReferralCodes.activeReferrals} + 1` })
+          .where(eq(parentReferralCodes.parentId, referral.referrerId));
 
-      await db.update(parentReferralCodes)
-        .set({ totalPointsEarned: sql`${parentReferralCodes.totalPointsEarned} + ${rewardPoints}` })
-        .where(eq(parentReferralCodes.parentId, referral.referrerId));
+        const wallet = await tx.select().from(parentWallet).where(eq(parentWallet.parentId, referral.referrerId));
+        if (wallet[0]) {
+          await tx.update(parentWallet)
+            .set({ 
+              balance: sql`${parentWallet.balance} + ${rewardPoints}`,
+              updatedAt: new Date()
+            })
+            .where(eq(parentWallet.parentId, referral.referrerId));
+        } else {
+          await tx.insert(parentWallet).values({
+            parentId: referral.referrerId,
+            balance: rewardPoints.toString(),
+          });
+        }
+
+        await tx.update(referrals)
+          .set({ 
+            status: "rewarded",
+            pointsAwarded: rewardPoints,
+            rewardedAt: new Date()
+          })
+          .where(eq(referrals.id, referral.id));
+
+        await tx.update(parentReferralCodes)
+          .set({ totalPointsEarned: sql`${parentReferralCodes.totalPointsEarned} + ${rewardPoints}` })
+          .where(eq(parentReferralCodes.parentId, referral.referrerId));
+
+        return { referral, rewardPoints };
+      });
 
       await createNotification({
-        parentId: referral.referrerId,
+        parentId: result.referral.referrerId,
         type: NOTIFICATION_TYPES.REFERRAL_REWARD,
         title: "مكافأة الإحالة!",
-        message: `تهانينا! حصلت على ${rewardPoints} نقطة كمكافأة للإحالة الناجحة!`,
-        relatedId: referral.id,
+        message: `تهانينا! حصلت على ${result.rewardPoints} نقطة كمكافأة للإحالة الناجحة!`,
+        relatedId: result.referral.id,
       });
 
       res.json({ 
         success: true, 
-        message: `Referral activated! Referrer received ${rewardPoints} points.`
+        message: `Referral activated! Referrer received ${result.rewardPoints} points.`
       });
     } catch (error: any) {
+      if (error.message === "NO_PENDING_REFERRAL") {
+        return res.status(404).json({ message: "No pending referral found" });
+      }
       console.error("Activate referral error:", error);
       res.status(500).json({ message: "Failed to activate referral" });
     }

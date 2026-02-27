@@ -1538,33 +1538,38 @@ export async function registerAdminRoutes(app: Express) {
           });
         }
       } else if (targetType === "parent") {
-        await db.insert(pointAdjustments).values({
-          targetType,
-          targetId,
-          adminId,
-          delta,
-          reason,
-        });
-
         const parent = await db.select().from(parents).where(eq(parents.id, targetId));
         if (!parent[0]) {
           return res.status(404).json(errorResponse(ErrorCode.NOT_FOUND, "Parent not found"));
         }
 
-        // Update parent wallet balance
-        const existingWallet = await db.select().from(parentWallet).where(eq(parentWallet.parentId, targetId));
-        if (existingWallet[0]) {
-          await db.update(parentWallet)
-            .set({ balance: sql`GREATEST(0, COALESCE(${parentWallet.balance}, 0) + ${delta})` })
-            .where(eq(parentWallet.parentId, targetId));
-        } else {
-          await db.insert(parentWallet).values({
-            parentId: targetId,
-            balance: Math.max(0, delta).toString(),
+        // Wrap in transaction to prevent race conditions on wallet balance
+        await db.transaction(async (tx: any) => {
+          await tx.insert(pointAdjustments).values({
+            targetType,
+            targetId,
+            adminId,
+            delta,
+            reason,
           });
-        }
 
-        // Send notification to parent
+          // Update parent wallet balance atomically
+          const existingWallet = await tx.select().from(parentWallet)
+            .where(eq(parentWallet.parentId, targetId))
+            .for("update");
+          if (existingWallet[0]) {
+            await tx.update(parentWallet)
+              .set({ balance: sql`GREATEST(0, COALESCE(${parentWallet.balance}, 0) + ${delta})` })
+              .where(eq(parentWallet.parentId, targetId));
+          } else {
+            await tx.insert(parentWallet).values({
+              parentId: targetId,
+              balance: Math.max(0, delta).toString(),
+            });
+          }
+        });
+
+        // Send notification to parent (outside tx — non-critical)
         await createNotification({
           parentId: targetId,
           type: NOTIFICATION_TYPES.POINTS_ADJUSTMENT,
@@ -1722,65 +1727,74 @@ export async function registerAdminRoutes(app: Express) {
           .json(errorResponse(ErrorCode.BAD_REQUEST, "Invalid status"));
       }
 
-      // Get the deposit first
-      const [deposit] = await db.select().from(deposits).where(eq(deposits.id, id));
-      if (!deposit) {
-        return res.status(404).json(errorResponse(ErrorCode.NOT_FOUND, "Deposit not found"));
-      }
-
-      // Don't re-process already completed deposits
-      if (deposit.status === "completed" && status === "completed") {
-        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Deposit already completed"));
-      }
-
-      const updateData: any = { 
-        status,
-        reviewedAt: new Date(),
-      };
-      if (adminNotes) updateData.adminNotes = adminNotes;
-      if (status === "completed") updateData.completedAt = new Date();
-
-      await db.update(deposits).set(updateData).where(eq(deposits.id, id));
-
-      // If approved → add balance to parent wallet
-      if (status === "completed" && deposit.status !== "completed") {
-        const depositAmount = parseFloat(deposit.amount as string);
-
-        // Check if wallet exists
-        const [existingWallet] = await db.select().from(parentWallet).where(eq(parentWallet.parentId, deposit.parentId));
-        
-        if (existingWallet) {
-          await db.update(parentWallet).set({
-            balance: sql`${parentWallet.balance} + ${depositAmount}`,
-            totalDeposited: sql`${parentWallet.totalDeposited} + ${depositAmount}`,
-            updatedAt: new Date(),
-          }).where(eq(parentWallet.parentId, deposit.parentId));
-        } else {
-          await db.insert(parentWallet).values({
-            parentId: deposit.parentId,
-            balance: depositAmount.toString(),
-            totalDeposited: depositAmount.toString(),
-          });
+      // Atomic transaction: lock deposit row, check status, update deposit + wallet
+      const txResult = await db.transaction(async (tx: any) => {
+        // Lock the deposit row to prevent double-approval
+        const [deposit] = await tx.select().from(deposits).where(eq(deposits.id, id)).for("update");
+        if (!deposit) {
+          throw new Error("DEPOSIT_NOT_FOUND");
         }
 
-        // Notify parent — deposit approved
+        // Don't re-process already completed/cancelled deposits
+        if (deposit.status === "completed" && status === "completed") {
+          throw new Error("DEPOSIT_ALREADY_COMPLETED");
+        }
+        if (deposit.status === "cancelled" && status === "cancelled") {
+          throw new Error("DEPOSIT_ALREADY_CANCELLED");
+        }
+
+        const updateData: any = { 
+          status,
+          reviewedAt: new Date(),
+        };
+        if (adminNotes) updateData.adminNotes = adminNotes;
+        if (status === "completed") updateData.completedAt = new Date();
+
+        await tx.update(deposits).set(updateData).where(eq(deposits.id, id));
+
+        // If approved → add balance to parent wallet (inside same tx)
+        if (status === "completed" && deposit.status !== "completed") {
+          const depositAmount = parseFloat(deposit.amount as string);
+
+          const [existingWallet] = await tx.select().from(parentWallet).where(eq(parentWallet.parentId, deposit.parentId));
+          
+          if (existingWallet) {
+            await tx.update(parentWallet).set({
+              balance: sql`${parentWallet.balance} + ${depositAmount}`,
+              totalDeposited: sql`${parentWallet.totalDeposited} + ${depositAmount}`,
+              updatedAt: new Date(),
+            }).where(eq(parentWallet.parentId, deposit.parentId));
+          } else {
+            await tx.insert(parentWallet).values({
+              parentId: deposit.parentId,
+              balance: depositAmount.toString(),
+              totalDeposited: depositAmount.toString(),
+            });
+          }
+        }
+
+        return deposit;
+      });
+
+      // Notifications sent outside transaction (non-critical)
+      if (status === "completed" && txResult.status !== "completed") {
+        const depositAmount = parseFloat(txResult.amount as string);
         await createNotification({
-          parentId: deposit.parentId,
+          parentId: txResult.parentId,
           type: NOTIFICATION_TYPES.DEPOSIT_APPROVED,
           title: "✅ تم قبول الإيداع",
           message: `تم قبول طلب الإيداع الخاص بك بمبلغ ${depositAmount.toFixed(2)} وتم إضافته لرصيدك`,
           style: NOTIFICATION_STYLES.MODAL,
           priority: NOTIFICATION_PRIORITIES.NORMAL,
           soundAlert: true,
-          metadata: { depositId: deposit.id, amount: depositAmount },
+          metadata: { depositId: txResult.id, amount: depositAmount },
         });
       }
 
-      // If rejected → notify parent
-      if (status === "cancelled" && deposit.status !== "cancelled") {
-        const depositAmount = parseFloat(deposit.amount as string);
+      if (status === "cancelled" && txResult.status !== "cancelled") {
+        const depositAmount = parseFloat(txResult.amount as string);
         await createNotification({
-          parentId: deposit.parentId,
+          parentId: txResult.parentId,
           type: NOTIFICATION_TYPES.DEPOSIT_REJECTED,
           title: "❌ تم رفض الإيداع",
           message: adminNotes 
@@ -1789,12 +1803,21 @@ export async function registerAdminRoutes(app: Express) {
           style: NOTIFICATION_STYLES.MODAL,
           priority: NOTIFICATION_PRIORITIES.WARNING,
           soundAlert: true,
-          metadata: { depositId: deposit.id, amount: depositAmount },
+          metadata: { depositId: txResult.id, amount: depositAmount },
         });
       }
 
       res.json(successResponse(undefined, `Deposit ${status === "completed" ? "approved" : status === "cancelled" ? "rejected" : "updated"}`));
     } catch (error: any) {
+      if (error.message === "DEPOSIT_NOT_FOUND") {
+        return res.status(404).json(errorResponse(ErrorCode.NOT_FOUND, "Deposit not found"));
+      }
+      if (error.message === "DEPOSIT_ALREADY_COMPLETED") {
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Deposit already completed"));
+      }
+      if (error.message === "DEPOSIT_ALREADY_CANCELLED") {
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Deposit already cancelled"));
+      }
       console.error("Update deposit error:", error);
       res
         .status(500)

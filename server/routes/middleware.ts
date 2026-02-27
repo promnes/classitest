@@ -1,10 +1,10 @@
 import jwt, { JwtPayload } from "jsonwebtoken";
 import { errorResponse, ErrorCode } from "../utils/apiResponse";
 
-const JWT_SECRET = process.env.JWT_SECRET || "classify-app-2025-secret";
+const JWT_SECRET = process.env.JWT_SECRET || "";
 
-if (!process.env.JWT_SECRET && process.env.NODE_ENV === "production") {
-  console.error("ERROR: JWT_SECRET must be set in production!");
+if (!JWT_SECRET) {
+  console.error("FATAL: JWT_SECRET environment variable must be set!");
   process.exit(1);
 }
 

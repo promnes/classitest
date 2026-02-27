@@ -9,11 +9,20 @@ import {
   children,
   parents
 } from "../../shared/schema";
-import { eq, and, gte, lte, desc } from "drizzle-orm";
+import { eq, and, gte, lte, desc, sql, count } from "drizzle-orm";
 import { applyPointsDelta } from "../services/pointsService";
+import rateLimit from "express-rate-limit";
 
 const router = Router();
 const db = storage.db;
+
+// Rate limiter for ad watch: max 20 per hour per user
+const adWatchLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 20,
+  keyGenerator: (req: any) => req.user?.childId || req.ip,
+  message: { success: false, error: "RATE_LIMITED", message: "Too many ad watches, try later" },
+});
 
 // ===== Child Ads APIs =====
 
@@ -88,7 +97,7 @@ router.get("/child/ads/:adId", authMiddleware, async (req, res) => {
 });
 
 // POST: تسجيل مشاهدة إعلان من الطفل
-router.post("/child/ads/:adId/watch", authMiddleware, async (req, res) => {
+router.post("/child/ads/:adId/watch", authMiddleware, adWatchLimiter, async (req, res) => {
   try {
     const { adId } = req.params;
     const { watchedDuration } = req.body;
@@ -107,10 +116,51 @@ router.post("/child/ads/:adId/watch", authMiddleware, async (req, res) => {
         message: "Ad not found"
       });
     }
+
+    // Server-side duration validation: cap at ad's actual duration (prevent client spoofing)
+    const maxDuration = ad[0].watchDurationSeconds;
+    const safeDuration = Math.min(Math.max(0, Number(watchedDuration) || 0), maxDuration);
+    
+    // Cooldown: same child+ad cannot be rewarded within 3 minutes
+    const cooldownTime = new Date(Date.now() - 3 * 60 * 1000);
+    const recentWatch = await db.select({ id: adWatchHistory.id })
+      .from(adWatchHistory)
+      .where(and(
+        eq(adWatchHistory.childId, childId),
+        eq(adWatchHistory.adId, adId),
+        eq(adWatchHistory.isCompleted, true),
+        sql`${adWatchHistory.watchedAt} >= ${cooldownTime}`
+      )).limit(1);
+    
+    if (recentWatch[0]) {
+      return res.status(429).json({
+        success: false,
+        error: "COOLDOWN",
+        message: "Please wait before watching this ad again"
+      });
+    }
+
+    // Daily points cap from ads: max 100 points per day
+    const DAILY_AD_POINTS_CAP = 100;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const dailyPoints = await db.select({ total: sql<number>`COALESCE(SUM(${adWatchHistory.pointsEarned}), 0)` })
+      .from(adWatchHistory)
+      .where(and(
+        eq(adWatchHistory.childId, childId),
+        sql`${adWatchHistory.watchedAt} >= ${today}`
+      ));
+    
+    const earnedToday = Number(dailyPoints[0]?.total || 0);
     
     // التحقق من أن المدة المشاهدة كافية
-    const isCompleted = watchedDuration >= ad[0].watchDurationSeconds;
-    const pointsEarned = isCompleted ? ad[0].pointsReward : 0;
+    const isCompleted = safeDuration >= maxDuration;
+    let pointsEarned = isCompleted ? ad[0].pointsReward : 0;
+    
+    // Cap points if daily limit would be exceeded
+    if (earnedToday + pointsEarned > DAILY_AD_POINTS_CAP) {
+      pointsEarned = Math.max(0, DAILY_AD_POINTS_CAP - earnedToday);
+    }
     
     // تسجيل المشاهدة
     const result = await db.transaction(async (tx: any) => {
@@ -120,7 +170,7 @@ router.post("/child/ads/:adId/watch", authMiddleware, async (req, res) => {
           childId,
           adId,
           adType: "child",
-          watchedDuration: watchedDuration || 0,
+          watchedDuration: safeDuration,
           pointsEarned,
           isCompleted,
         })

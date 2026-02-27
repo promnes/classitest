@@ -659,6 +659,12 @@ export async function registerParentRoutes(app: Express) {
         return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "All fields are required"));
       }
 
+      // Validate pointsReward: must be a positive integer within bounds
+      const pointsRewardNum = Number(pointsReward);
+      if (!Number.isInteger(pointsRewardNum) || pointsRewardNum < 1 || pointsRewardNum > 10000) {
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Points reward must be between 1 and 10,000"));
+      }
+
       // Verify parent owns this child
       const link = await db
         .select()
