@@ -9,6 +9,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { CheckCircle, XCircle, Clock, ArrowLeft, BookOpen, Star, Award } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { ChildScheduledSessions } from "@/components/ChildScheduledSessions";
 
 interface Task {
   id: string;
@@ -116,6 +117,9 @@ export const ChildTasks = (): JSX.Element => {
           <BookOpen className="inline-block h-8 w-8 text-blue-500" />
           {t("child.myTasks")}
         </h1>
+
+        {/* Scheduled Sessions */}
+        <ChildScheduledSessions />
 
         {pendingTasks.length === 0 && completedTasks.length === 0 ? (
           <Card className={`p-8 text-center ${isDark ? "bg-gray-800" : "bg-white"}`}>

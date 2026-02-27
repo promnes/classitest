@@ -20,6 +20,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { ArrowRight, Plus, Star, Users, BookOpen, Send, Coins, Loader2, Calendar, Clock, X, Pencil, Wallet, ShoppingCart, Heart, Sparkles, Search, ShoppingBag, Library, Infinity, RotateCcw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { TaskForm, type TaskFormValue } from "@/components/forms/TaskForm";
+import { ScheduledSessionsManager } from "@/components/ScheduledSessionsManager";
 
 export default function ParentTasks() {
   const { t } = useTranslation();
@@ -636,6 +637,8 @@ export default function ParentTasks() {
             <Clock className="h-4 w-4 ml-2" />
             {t("parentTasks.scheduledTasks")}
           </Button>
+
+          <ScheduledSessionsManager />
 
           <Dialog open={showCreateDialog} onOpenChange={(open) => {
             setShowCreateDialog(open);

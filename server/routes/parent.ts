@@ -56,6 +56,8 @@ import {
   parentPosts,
   parentPostComments,
   parentPostLikes,
+  scheduledSessions,
+  scheduledSessionTasks,
 } from "../../shared/schema";
 import jwt from "jsonwebtoken";
 import { JWT_SECRET } from "./middleware";
@@ -67,6 +69,7 @@ import { authMiddleware } from "./middleware";
 import { v4 as uuidv4 } from "uuid";
 import Stripe from "stripe";
 import { applyPointsDelta } from "../services/pointsService";
+import { activateOnLoginSessions, resumePausedSessions } from "../services/scheduledSessionService";
 import {
   compareOTP,
   validateExpiry,
@@ -1219,6 +1222,12 @@ export async function registerParentRoutes(app: Express) {
       if (action === "approve") {
         // Generate JWT token for the child
         const sessionToken = jwt.sign({ childId, type: "child" }, JWT_SECRET, { expiresIn: "30d" });
+
+        // Activate scheduled sessions on child login approval
+        if (childId) {
+          activateOnLoginSessions(childId).catch((err: any) => console.error("Session activation on login approval error:", err));
+          resumePausedSessions(childId).catch((err: any) => console.error("Session resume on login approval error:", err));
+        }
 
         // Update login request with approved status and token
         if (loginRequestId) {
@@ -3097,6 +3106,577 @@ export async function registerParentRoutes(app: Express) {
     } catch (error: any) {
       console.error("Delete scheduled task error:", error);
       res.status(500).json({ message: "Failed to delete scheduled task" });
+    }
+  });
+
+  // ===== Scheduled Sessions (جلسات المهام المجدولة) =====
+
+  // Get all scheduled sessions for parent
+  app.get("/api/parent/scheduled-sessions", authMiddleware, async (req: any, res) => {
+    try {
+      const parentId = req.user.userId;
+      const sessions = await db.select().from(scheduledSessions)
+        .where(eq(scheduledSessions.parentId, parentId))
+        .orderBy(desc(scheduledSessions.createdAt));
+      
+      // Enrich with child names and task list
+      const enriched = await Promise.all(sessions.map(async (session: any) => {
+        const child = await db.select().from(children).where(eq(children.id, session.childId));
+        const sessionTasks = await db.select().from(scheduledSessionTasks)
+          .where(eq(scheduledSessionTasks.sessionId, session.id))
+          .orderBy(scheduledSessionTasks.orderIndex);
+        
+        return {
+          ...session,
+          childName: child[0]?.name || "Unknown",
+          childAvatar: child[0]?.avatarUrl || null,
+          tasks: sessionTasks,
+        };
+      }));
+      
+      res.json({ success: true, data: enriched });
+    } catch (error: any) {
+      console.error("Get scheduled sessions error:", error);
+      res.status(500).json({ success: false, error: "INTERNAL_SERVER_ERROR", message: "فشل في جلب الجلسات المجدولة" });
+    }
+  });
+
+  // Get single scheduled session with tasks
+  app.get("/api/parent/scheduled-sessions/:id", authMiddleware, async (req: any, res) => {
+    try {
+      const parentId = req.user.userId;
+      const { id } = req.params;
+      
+      const session = await db.select().from(scheduledSessions)
+        .where(and(eq(scheduledSessions.id, id), eq(scheduledSessions.parentId, parentId)));
+      
+      if (!session[0]) {
+        return res.status(404).json({ success: false, error: "NOT_FOUND", message: "الجلسة غير موجودة" });
+      }
+      
+      const child = await db.select().from(children).where(eq(children.id, session[0].childId));
+      const sessionTasks = await db.select().from(scheduledSessionTasks)
+        .where(eq(scheduledSessionTasks.sessionId, id))
+        .orderBy(scheduledSessionTasks.orderIndex);
+      
+      res.json({
+        success: true,
+        data: {
+          ...session[0],
+          childName: child[0]?.name || "Unknown",
+          childAvatar: child[0]?.avatarUrl || null,
+          tasks: sessionTasks,
+        },
+      });
+    } catch (error: any) {
+      console.error("Get scheduled session error:", error);
+      res.status(500).json({ success: false, error: "INTERNAL_SERVER_ERROR", message: "فشل في جلب الجلسة" });
+    }
+  });
+
+  // Create scheduled session with tasks
+  app.post("/api/parent/scheduled-sessions", authMiddleware, async (req: any, res) => {
+    try {
+      const parentId = req.user.userId;
+      const {
+        childId,
+        title,
+        description,
+        intervalMinutes,
+        activationType,
+        scheduledStartAt,
+        tasks: sessionTasksList,
+      } = req.body;
+      
+      // Validate required fields
+      if (!childId || !title || !sessionTasksList || !Array.isArray(sessionTasksList) || sessionTasksList.length === 0) {
+        return res.status(400).json({
+          success: false,
+          error: "BAD_REQUEST",
+          message: "يجب تحديد الطفل والعنوان وإضافة مهمة واحدة على الأقل",
+        });
+      }
+      
+      // Verify child belongs to parent
+      const childLink = await db.select().from(parentChild)
+        .where(and(eq(parentChild.parentId, parentId), eq(parentChild.childId, childId)));
+      
+      if (!childLink[0]) {
+        return res.status(403).json({
+          success: false,
+          error: "PARENT_CHILD_MISMATCH",
+          message: "هذا الطفل غير مرتبط بحسابك",
+        });
+      }
+
+      // Validate activation type
+      const validActivationTypes = ["on_login", "immediate", "scheduled"];
+      const finalActivationType = validActivationTypes.includes(activationType) ? activationType : "on_login";
+      
+      if (finalActivationType === "scheduled" && !scheduledStartAt) {
+        return res.status(400).json({
+          success: false,
+          error: "BAD_REQUEST",
+          message: "يجب تحديد وقت البدء للجلسة المجدولة",
+        });
+      }
+
+      // Validate each task in the session
+      for (let i = 0; i < sessionTasksList.length; i++) {
+        const t = sessionTasksList[i];
+        if (!t.question || !t.answers || !Array.isArray(t.answers) || t.answers.length < 2) {
+          return res.status(400).json({
+            success: false,
+            error: "BAD_REQUEST",
+            message: `المهمة رقم ${i + 1} غير مكتملة. يجب أن تحتوي على سؤال وإجابتين على الأقل`,
+          });
+        }
+        const normalizedAnswers = normalizeAnswersForStorage(t.answers, 0);
+        const correctCount = normalizedAnswers.filter((a: any) => a.isCorrect).length;
+        if (correctCount !== 1) {
+          return res.status(400).json({
+            success: false,
+            error: "BAD_REQUEST",
+            message: `المهمة رقم ${i + 1} يجب أن تحتوي على إجابة صحيحة واحدة فقط`,
+          });
+        }
+      }
+
+      // Calculate total points for session
+      const totalPointsReward = sessionTasksList.reduce((sum: number, t: any) => sum + (t.pointsReward || 10), 0);
+      
+      // Check parent wallet balance for total session cost
+      const wallet = await db.select().from(parentWallet).where(eq(parentWallet.parentId, parentId));
+      const currentBalance = Number(wallet[0]?.balance || 0);
+      if (currentBalance < totalPointsReward) {
+        return res.status(400).json({
+          success: false,
+          error: "INSUFFICIENT_BALANCE",
+          message: `رصيدك غير كافي. الرصيد الحالي: ${currentBalance}, المطلوب: ${totalPointsReward}`,
+          currentBalance,
+          pointsNeeded: totalPointsReward,
+        });
+      }
+
+      // Create session and tasks atomically with wallet deduction
+      const result = await db.transaction(async (tx: any) => {
+        // Deduct from wallet with balance guard (prevents race condition)
+        const updatedWallet = await tx.update(parentWallet)
+          .set({
+            balance: sql`${parentWallet.balance} - ${totalPointsReward}`,
+            totalSpent: sql`${parentWallet.totalSpent} + ${totalPointsReward}`,
+            updatedAt: new Date(),
+          })
+          .where(and(
+            eq(parentWallet.parentId, parentId),
+            sql`${parentWallet.balance} >= ${totalPointsReward}`
+          ))
+          .returning();
+
+        if (!updatedWallet[0]) {
+          throw new Error("INSUFFICIENT_BALANCE");
+        }
+
+        // Create session
+        const [newSession] = await tx.insert(scheduledSessions).values({
+          parentId,
+          childId,
+          title,
+          description: description || null,
+          intervalMinutes: intervalMinutes || 15,
+          activationType: finalActivationType,
+          scheduledStartAt: scheduledStartAt ? new Date(scheduledStartAt) : null,
+          totalTasks: sessionTasksList.length,
+          totalPointsReward,
+          status: finalActivationType === "immediate" ? "active" : "draft",
+        }).returning();
+
+        // Create session tasks
+        const createdTasks = [];
+        for (let i = 0; i < sessionTasksList.length; i++) {
+          const t = sessionTasksList[i];
+          const normalizedAnswers = normalizeAnswersForStorage(t.answers, 0);
+          
+          const [sessionTask] = await tx.insert(scheduledSessionTasks).values({
+            sessionId: newSession.id,
+            orderIndex: i + 1,
+            templateTaskId: t.templateTaskId || null,
+            question: t.question,
+            answers: normalizedAnswers,
+            pointsReward: t.pointsReward || 10,
+            imageUrl: t.imageUrl || null,
+            status: "locked",
+          }).returning();
+          
+          createdTasks.push(sessionTask);
+        }
+
+        // If immediate activation, unlock first task and create actual task
+        if (finalActivationType === "immediate") {
+          const firstTask = createdTasks[0];
+          if (firstTask) {
+            // Create real task
+            const [realTask] = await tx.insert(tasks).values({
+              parentId,
+              childId,
+              question: firstTask.question,
+              answers: firstTask.answers,
+              pointsReward: firstTask.pointsReward,
+              status: "pending",
+              imageUrl: firstTask.imageUrl,
+            }).returning();
+            
+            // Update session task status
+            await tx.update(scheduledSessionTasks)
+              .set({ status: "unlocked", unlockedAt: new Date(), taskId: realTask.id })
+              .where(eq(scheduledSessionTasks.id, firstTask.id));
+            
+            // Update session
+            await tx.update(scheduledSessions)
+              .set({ actualStartAt: new Date() })
+              .where(eq(scheduledSessions.id, newSession.id));
+          }
+        }
+
+        return { session: newSession, tasks: createdTasks };
+      });
+
+      // Notify child about session
+      await createNotification({
+        childId,
+        type: NOTIFICATION_TYPES.SCHEDULED_SESSION_CREATED,
+        title: "جلسة مهام جديدة!",
+        message: `لديك جلسة مهام جديدة: ${title} (${sessionTasksList.length} مهام)`,
+        relatedId: result.session.id,
+        metadata: {
+          sessionId: result.session.id,
+          totalTasks: sessionTasksList.length,
+          activationType: finalActivationType,
+        },
+      });
+
+      // If immediate, also notify about first unlocked task
+      if (finalActivationType === "immediate") {
+        await createNotification({
+          childId,
+          type: NOTIFICATION_TYPES.SCHEDULED_TASK_UNLOCKED,
+          title: "مهمة متاحة!",
+          message: `المهمة الأولى في جلسة "${title}" متاحة الآن`,
+          relatedId: result.session.id,
+          metadata: { sessionId: result.session.id, taskOrder: 1 },
+        });
+      }
+
+      // Notify parent about session
+      await createNotification({
+        parentId,
+        type: NOTIFICATION_TYPES.SCHEDULED_SESSION_CREATED,
+        title: "تم إنشاء جلسة مجدولة",
+        message: `تم إنشاء جلسة "${title}" بنجاح (${sessionTasksList.length} مهام)`,
+        relatedId: result.session.id,
+        metadata: { sessionId: result.session.id },
+      });
+
+      res.json({
+        success: true,
+        data: result,
+        message: "تم إنشاء الجلسة المجدولة بنجاح",
+      });
+    } catch (error: any) {
+      console.error("Create scheduled session error:", error);
+      res.status(500).json({
+        success: false,
+        error: "INTERNAL_SERVER_ERROR",
+        message: "فشل في إنشاء الجلسة المجدولة",
+      });
+    }
+  });
+
+  // Activate scheduled session manually
+  app.patch("/api/parent/scheduled-sessions/:id/activate", authMiddleware, async (req: any, res) => {
+    try {
+      const parentId = req.user.userId;
+      const { id } = req.params;
+      
+      const session = await db.select().from(scheduledSessions)
+        .where(and(eq(scheduledSessions.id, id), eq(scheduledSessions.parentId, parentId)));
+      
+      if (!session[0]) {
+        return res.status(404).json({ success: false, error: "NOT_FOUND", message: "الجلسة غير موجودة" });
+      }
+      
+      if (session[0].status !== "draft" && session[0].status !== "paused") {
+        return res.status(400).json({
+          success: false,
+          error: "BAD_REQUEST",
+          message: "لا يمكن تفعيل هذه الجلسة. الحالة الحالية: " + session[0].status,
+        });
+      }
+
+      // Find the next locked task to unlock
+      const nextTask = await db.select().from(scheduledSessionTasks)
+        .where(and(
+          eq(scheduledSessionTasks.sessionId, id),
+          eq(scheduledSessionTasks.status, "locked")
+        ))
+        .orderBy(scheduledSessionTasks.orderIndex)
+        .limit(1);
+
+      await db.transaction(async (tx: any) => {
+        // Update session status
+        await tx.update(scheduledSessions)
+          .set({
+            status: "active",
+            actualStartAt: session[0].actualStartAt || new Date(),
+            pausedAt: null,
+            updatedAt: new Date(),
+          })
+          .where(eq(scheduledSessions.id, id));
+        
+        // Unlock first/next task if available
+        if (nextTask[0]) {
+          // Create real task
+          const [realTask] = await tx.insert(tasks).values({
+            parentId,
+            childId: session[0].childId,
+            question: nextTask[0].question,
+            answers: nextTask[0].answers,
+            pointsReward: nextTask[0].pointsReward,
+            status: "pending",
+            imageUrl: nextTask[0].imageUrl,
+          }).returning();
+          
+          await tx.update(scheduledSessionTasks)
+            .set({ status: "unlocked", unlockedAt: new Date(), taskId: realTask.id })
+            .where(eq(scheduledSessionTasks.id, nextTask[0].id));
+        }
+      });
+
+      // Notify child
+      await createNotification({
+        childId: session[0].childId,
+        type: NOTIFICATION_TYPES.SCHEDULED_SESSION_ACTIVATED,
+        title: "جلسة المهام بدأت!",
+        message: `جلسة "${session[0].title}" أصبحت نشطة. ابدأ بحل المهام!`,
+        relatedId: id,
+        metadata: { sessionId: id },
+      });
+
+      if (nextTask[0]) {
+        await createNotification({
+          childId: session[0].childId,
+          type: NOTIFICATION_TYPES.SCHEDULED_TASK_UNLOCKED,
+          title: "مهمة متاحة!",
+          message: `المهمة رقم ${nextTask[0].orderIndex} في جلسة "${session[0].title}" متاحة الآن`,
+          relatedId: id,
+          metadata: { sessionId: id, taskOrder: nextTask[0].orderIndex },
+        });
+      }
+
+      res.json({ success: true, message: "تم تفعيل الجلسة بنجاح" });
+    } catch (error: any) {
+      console.error("Activate scheduled session error:", error);
+      res.status(500).json({ success: false, error: "INTERNAL_SERVER_ERROR", message: "فشل في تفعيل الجلسة" });
+    }
+  });
+
+  // Pause scheduled session
+  app.patch("/api/parent/scheduled-sessions/:id/pause", authMiddleware, async (req: any, res) => {
+    try {
+      const parentId = req.user.userId;
+      const { id } = req.params;
+      
+      const session = await db.select().from(scheduledSessions)
+        .where(and(eq(scheduledSessions.id, id), eq(scheduledSessions.parentId, parentId)));
+      
+      if (!session[0]) {
+        return res.status(404).json({ success: false, error: "NOT_FOUND", message: "الجلسة غير موجودة" });
+      }
+      
+      if (session[0].status !== "active") {
+        return res.status(400).json({
+          success: false,
+          error: "BAD_REQUEST",
+          message: "لا يمكن إيقاف جلسة غير نشطة",
+        });
+      }
+
+      await db.update(scheduledSessions)
+        .set({ status: "paused", pausedAt: new Date(), updatedAt: new Date() })
+        .where(eq(scheduledSessions.id, id));
+
+      res.json({ success: true, message: "تم إيقاف الجلسة مؤقتاً" });
+    } catch (error: any) {
+      console.error("Pause scheduled session error:", error);
+      res.status(500).json({ success: false, error: "INTERNAL_SERVER_ERROR", message: "فشل في إيقاف الجلسة" });
+    }
+  });
+
+  // Cancel scheduled session (refund remaining tasks)
+  app.patch("/api/parent/scheduled-sessions/:id/cancel", authMiddleware, async (req: any, res) => {
+    try {
+      const parentId = req.user.userId;
+      const { id } = req.params;
+      
+      const session = await db.select().from(scheduledSessions)
+        .where(and(eq(scheduledSessions.id, id), eq(scheduledSessions.parentId, parentId)));
+      
+      if (!session[0]) {
+        return res.status(404).json({ success: false, error: "NOT_FOUND", message: "الجلسة غير موجودة" });
+      }
+      
+      if (session[0].status === "completed" || session[0].status === "cancelled") {
+        return res.status(400).json({
+          success: false,
+          error: "BAD_REQUEST",
+          message: "لا يمكن إلغاء جلسة مكتملة أو ملغية",
+        });
+      }
+
+      // Calculate refund for remaining locked tasks
+      const remainingTasks = await db.select().from(scheduledSessionTasks)
+        .where(and(
+          eq(scheduledSessionTasks.sessionId, id),
+          eq(scheduledSessionTasks.status, "locked")
+        ));
+      
+      const refundAmount = remainingTasks.reduce((sum: number, t: any) => sum + (t.pointsReward || 0), 0);
+
+      await db.transaction(async (tx: any) => {
+        // Cancel session
+        await tx.update(scheduledSessions)
+          .set({ status: "cancelled", updatedAt: new Date() })
+          .where(eq(scheduledSessions.id, id));
+        
+        // Mark remaining tasks as skipped
+        if (remainingTasks.length > 0) {
+          const remainingIds = remainingTasks.map((t: any) => t.id);
+          await tx.update(scheduledSessionTasks)
+            .set({ status: "skipped" })
+            .where(inArray(scheduledSessionTasks.id, remainingIds));
+        }
+
+        // Refund to parent wallet
+        if (refundAmount > 0) {
+          await tx.update(parentWallet)
+            .set({
+              balance: sql`${parentWallet.balance} + ${refundAmount}`,
+              totalSpent: sql`${parentWallet.totalSpent} - ${refundAmount}`,
+              updatedAt: new Date(),
+            })
+            .where(eq(parentWallet.parentId, parentId));
+        }
+      });
+
+      res.json({
+        success: true,
+        message: `تم إلغاء الجلسة. تم استرداد ${refundAmount} نقطة`,
+        data: { refunded: refundAmount },
+      });
+    } catch (error: any) {
+      console.error("Cancel scheduled session error:", error);
+      res.status(500).json({ success: false, error: "INTERNAL_SERVER_ERROR", message: "فشل في إلغاء الجلسة" });
+    }
+  });
+
+  // Delete scheduled session
+  app.delete("/api/parent/scheduled-sessions/:id", authMiddleware, async (req: any, res) => {
+    try {
+      const parentId = req.user.userId;
+      const { id } = req.params;
+      
+      const session = await db.select().from(scheduledSessions)
+        .where(and(eq(scheduledSessions.id, id), eq(scheduledSessions.parentId, parentId)));
+      
+      if (!session[0]) {
+        return res.status(404).json({ success: false, error: "NOT_FOUND", message: "الجلسة غير موجودة" });
+      }
+      
+      // Only allow delete if draft or cancelled
+      if (session[0].status !== "draft" && session[0].status !== "cancelled") {
+        return res.status(400).json({
+          success: false,
+          error: "BAD_REQUEST",
+          message: "لا يمكن حذف جلسة نشطة أو مؤقتة. قم بإلغائها أولاً",
+        });
+      }
+      
+      // If draft and not yet activated, refund all points
+      if (session[0].status === "draft") {
+        const refundAmount = session[0].totalPointsReward || 0;
+        await db.transaction(async (tx: any) => {
+          if (refundAmount > 0) {
+            await tx.update(parentWallet)
+              .set({
+                balance: sql`${parentWallet.balance} + ${refundAmount}`,
+                totalSpent: sql`${parentWallet.totalSpent} - ${refundAmount}`,
+                updatedAt: new Date(),
+              })
+              .where(eq(parentWallet.parentId, parentId));
+          }
+          await tx.delete(scheduledSessionTasks).where(eq(scheduledSessionTasks.sessionId, id));
+          await tx.delete(scheduledSessions).where(eq(scheduledSessions.id, id));
+        });
+      } else {
+        // Cancelled — just delete (no refund, already refunded on cancel)
+        await db.delete(scheduledSessionTasks).where(eq(scheduledSessionTasks.sessionId, id));
+        await db.delete(scheduledSessions).where(eq(scheduledSessions.id, id));
+      }
+      
+      res.json({ success: true, message: "تم حذف الجلسة بنجاح" });
+    } catch (error: any) {
+      console.error("Delete scheduled session error:", error);
+      res.status(500).json({ success: false, error: "INTERNAL_SERVER_ERROR", message: "فشل في حذف الجلسة" });
+    }
+  });
+
+  // Get scheduled session report
+  app.get("/api/parent/scheduled-sessions/:id/report", authMiddleware, async (req: any, res) => {
+    try {
+      const parentId = req.user.userId;
+      const { id } = req.params;
+      
+      const session = await db.select().from(scheduledSessions)
+        .where(and(eq(scheduledSessions.id, id), eq(scheduledSessions.parentId, parentId)));
+      
+      if (!session[0]) {
+        return res.status(404).json({ success: false, error: "NOT_FOUND", message: "الجلسة غير موجودة" });
+      }
+      
+      const child = await db.select().from(children).where(eq(children.id, session[0].childId));
+      const sessionTasks = await db.select().from(scheduledSessionTasks)
+        .where(eq(scheduledSessionTasks.sessionId, id))
+        .orderBy(scheduledSessionTasks.orderIndex);
+      
+      const completedCount = sessionTasks.filter((t: any) => t.status === "completed").length;
+      const correctCount = sessionTasks.filter((t: any) => t.isCorrect === true).length;
+      const totalPointsEarned = sessionTasks.reduce((sum: number, t: any) => sum + (t.pointsEarned || 0), 0);
+      const totalPointsPossible = sessionTasks.reduce((sum: number, t: any) => sum + (t.pointsReward || 0), 0);
+      
+      res.json({
+        success: true,
+        data: {
+          session: {
+            ...session[0],
+            childName: child[0]?.name || "Unknown",
+            childAvatar: child[0]?.avatarUrl || null,
+          },
+          tasks: sessionTasks,
+          summary: {
+            totalTasks: sessionTasks.length,
+            completedTasks: completedCount,
+            correctAnswers: correctCount,
+            wrongAnswers: completedCount - correctCount,
+            totalPointsEarned,
+            totalPointsPossible,
+            successRate: completedCount > 0 ? Math.round((correctCount / completedCount) * 100) : 0,
+            completionRate: sessionTasks.length > 0 ? Math.round((completedCount / sessionTasks.length) * 100) : 0,
+          },
+        },
+      });
+    } catch (error: any) {
+      console.error("Get session report error:", error);
+      res.status(500).json({ success: false, error: "INTERNAL_SERVER_ERROR", message: "فشل في جلب التقرير" });
     }
   });
 

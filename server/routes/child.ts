@@ -45,6 +45,8 @@ import {
   childPostComments,
   schools,
   schoolTeachers,
+  scheduledSessions,
+  scheduledSessionTasks,
 } from "../../shared/schema";
 import bcrypt from "bcrypt";
 import crypto from "crypto";
@@ -59,6 +61,7 @@ import { applyPointsDelta } from "../services/pointsService";
 import { getVapidPublicKey } from "../services/webPushService";
 import { notificationBus } from "../services/notificationBus";
 import { NOTIFICATION_TYPES, NOTIFICATION_STYLES, NOTIFICATION_PRIORITIES } from "../../shared/notificationTypes";
+import { activateOnLoginSessions, resumePausedSessions, pauseActiveSessions, handleSessionTaskCompletion } from "../services/scheduledSessionService";
 
 const db = storage.db;
 
@@ -316,6 +319,11 @@ export async function registerChildRoutes(app: Express) {
       }
 
       const token = jwt.sign({ childId: childResult[0].id, type: "child" }, JWT_SECRET, { expiresIn: "30d" });
+      
+      // Activate on_login scheduled sessions & resume paused ones
+      activateOnLoginSessions(childResult[0].id).catch(err => console.error("Session activation on link error:", err));
+      resumePausedSessions(childResult[0].id).catch(err => console.error("Session resume on link error:", err));
+
       res.status(201).json(successResponse({
         token,
         childId: childResult[0].id,
@@ -586,6 +594,79 @@ export async function registerChildRoutes(app: Express) {
     }
   });
 
+  // Get Child Scheduled Sessions (active/paused with tasks)
+  app.get("/api/child/scheduled-sessions", authMiddleware, async (req: any, res) => {
+    try {
+      const childId = req.user.childId;
+
+      const sessionList = await db
+        .select()
+        .from(scheduledSessions)
+        .where(
+          and(
+            eq(scheduledSessions.childId, childId),
+            or(
+              eq(scheduledSessions.status, "active"),
+              eq(scheduledSessions.status, "paused")
+            )
+          )
+        )
+        .orderBy(desc(scheduledSessions.createdAt));
+
+      const result = await Promise.all(
+        sessionList.map(async (session) => {
+          const sessionTasks = await db
+            .select()
+            .from(scheduledSessionTasks)
+            .where(eq(scheduledSessionTasks.sessionId, session.id))
+            .orderBy(scheduledSessionTasks.orderIndex);
+
+          // Find the current unlocked task and get its real task data
+          const currentTask = sessionTasks.find((t) => t.status === "unlocked");
+          let currentTaskData = null;
+          if (currentTask?.taskId) {
+            const taskRow = await db.select().from(tasks).where(eq(tasks.id, currentTask.taskId));
+            if (taskRow[0]) {
+              currentTaskData = {
+                ...taskRow[0],
+                answers: normalizeAnswers(taskRow[0].answers, taskRow[0].question),
+              };
+            }
+          }
+
+          return {
+            id: session.id,
+            title: session.title,
+            description: session.description,
+            status: session.status,
+            intervalMinutes: session.intervalMinutes,
+            totalTasks: session.totalTasks,
+            completedTasks: session.completedTasks,
+            totalPointsReward: session.totalPointsReward,
+            actualStartAt: session.actualStartAt,
+            createdAt: session.createdAt,
+            tasks: sessionTasks.map((t) => ({
+              id: t.id,
+              orderIndex: t.orderIndex,
+              status: t.status,
+              pointsReward: t.pointsReward,
+              unlockedAt: t.unlockedAt,
+              completedAt: t.completedAt,
+              isCorrect: t.isCorrect,
+              pointsEarned: t.pointsEarned,
+            })),
+            currentTask: currentTaskData,
+          };
+        })
+      );
+
+      res.json(successResponse(result));
+    } catch (error: any) {
+      console.error("Fetch child scheduled sessions error:", error);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to fetch scheduled sessions"));
+    }
+  });
+
   // Submit Task
   app.post("/api/child/submit-task", authMiddleware, async (req: any, res) => {
     try {
@@ -709,6 +790,19 @@ export async function registerChildRoutes(app: Express) {
 
       const failedAttempts = await getFailedAttemptCount(taskId, req.user.childId);
       await logTaskCompletion(req.user.childId, task[0], result.childName, failedAttempts);
+
+      // Check if this task belongs to a scheduled session and handle progression
+      try {
+        await handleSessionTaskCompletion(
+          taskId,
+          req.user.childId,
+          selectedAnswerId,
+          isCorrect,
+          isCorrect ? task[0].pointsReward : 0
+        );
+      } catch (sessionErr: any) {
+        console.error("Session task completion handler error:", sessionErr);
+      }
 
       res.json(successResponse({
         isCorrect: result.isCorrect,
@@ -2043,6 +2137,10 @@ export async function registerChildRoutes(app: Express) {
       // Generate new JWT
       const token = jwt.sign({ childId: child.id, type: "child" }, JWT_SECRET, { expiresIn: "30d" });
 
+      // Activate on_login scheduled sessions & resume paused ones
+      activateOnLoginSessions(child.id).catch(err => console.error("Session activation on refresh error:", err));
+      resumePausedSessions(child.id).catch(err => console.error("Session resume on refresh error:", err));
+
       res.json({
         success: true,
         data: {
@@ -2420,6 +2518,9 @@ export async function registerChildRoutes(app: Express) {
           }
         });
       }
+
+      // Pause active scheduled sessions on logout
+      pauseActiveSessions(childId).catch(err => console.error("Session pause on logout error:", err));
 
       res.json({ success: true, message: "Logged out successfully" });
     } catch (error: any) {

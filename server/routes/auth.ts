@@ -27,6 +27,7 @@ import {
 } from "../services/otpService";
 import { getProviderOrFallback } from "../providers/otp/providerFactory";
 import { NOTIFICATION_TYPES, NOTIFICATION_STYLES, NOTIFICATION_PRIORITIES } from "../../shared/notificationTypes";
+import { activateOnLoginSessions, resumePausedSessions } from "../services/scheduledSessionService";
 
 const MAX_FAILED_LOGIN_ATTEMPTS = 5;
 const LOCKOUT_MINUTES = 15;
@@ -2774,6 +2775,11 @@ export async function registerAuthRoutes(app: Express) {
           const childMatch = await bcrypt.compare(pinStr, child.pin);
           if (childMatch) {
             const token = jwt.sign({ childId: child.id, parentId: parent.id, type: "child" }, JWT_SECRET, { expiresIn: "7d" });
+
+            // Activate scheduled sessions on child login
+            activateOnLoginSessions(child.id).catch((err: any) => console.error("Session activation on PIN login error:", err));
+            resumePausedSessions(child.id).catch((err: any) => console.error("Session resume on PIN login error:", err));
+
             return res.json(successResponse({
               type: "child",
               token,
@@ -2886,7 +2892,22 @@ export async function registerAuthRoutes(app: Express) {
       }
 
       const hashedPin = await bcrypt.hash(pinStr, 10);
-      await db.update(children).set({ pin: hashedPin }).where(eq(children.id, childId));
+      await db.update(children).set({ pin: hashedPin, pinUpdatedAt: new Date() }).where(eq(children.id, childId));
+
+      // Notify parent about PIN change
+      try {
+        await createNotification({
+          parentId,
+          type: NOTIFICATION_TYPES.CHILD_PIN_CHANGED,
+          title: "تم تغيير رمز PIN",
+          message: `تم تحديث رمز PIN للطفل بنجاح`,
+          style: NOTIFICATION_STYLES.TOAST,
+          priority: NOTIFICATION_PRIORITIES.LOW,
+          metadata: { childId },
+        });
+      } catch (notifyErr: any) {
+        console.error("Failed to send PIN change notification:", notifyErr);
+      }
 
       res.json(successResponse(null, "Child PIN set successfully"));
     } catch (error: any) {
@@ -3039,6 +3060,7 @@ export async function registerAuthRoutes(app: Express) {
             id: childList[0].id,
             name: childList[0].name,
             hasPin: !!childList[0].pin,
+            pinUpdatedAt: childList[0].pinUpdatedAt || null,
           });
         }
       }

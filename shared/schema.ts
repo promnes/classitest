@@ -163,6 +163,7 @@ export const children = pgTable("children", {
   hobbies: text("hobbies"),
   governorate: text("governorate"),
   pin: varchar("pin", { length: 255 }),
+  pinUpdatedAt: timestamp("pin_updated_at"),
   coverImageUrl: text("cover_image_url"),
   bio: text("bio"),
   shareCode: varchar("share_code", { length: 12 }).unique(),
@@ -1217,6 +1218,66 @@ export const scheduledTasks = pgTable("scheduled_tasks", {
 export const insertScheduledTaskSchema = createInsertSchema(scheduledTasks).omit({ id: true, createdAt: true, sentAt: true, status: true });
 export type ScheduledTask = typeof scheduledTasks.$inferSelect;
 export type InsertScheduledTask = z.infer<typeof insertScheduledTaskSchema>;
+
+// ===== Scheduled Sessions (جلسات المهام المجدولة) =====
+export const scheduledSessions = pgTable("scheduled_sessions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  parentId: varchar("parent_id").notNull().references(() => parents.id, { onDelete: "cascade" }),
+  childId: varchar("child_id").notNull().references(() => children.id, { onDelete: "cascade" }),
+  title: text("title").notNull(),
+  description: text("description"),
+  intervalMinutes: integer("interval_minutes").default(15).notNull(), // الفاصل الزمني بين المهام بالدقائق
+  activationType: varchar("activation_type", { length: 20 }).default("on_login").notNull(), // on_login | immediate | scheduled
+  scheduledStartAt: timestamp("scheduled_start_at"), // وقت البدء المجدول (للنوع scheduled)
+  actualStartAt: timestamp("actual_start_at"), // وقت البدء الفعلي
+  pausedAt: timestamp("paused_at"), // وقت الإيقاف المؤقت
+  totalTasks: integer("total_tasks").default(0).notNull(),
+  completedTasks: integer("completed_tasks").default(0).notNull(),
+  totalPointsReward: integer("total_points_reward").default(0).notNull(), // إجمالي النقاط للجلسة
+  status: varchar("status", { length: 20 }).default("draft").notNull(), // draft | active | paused | completed | cancelled
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => ({
+  parentIdx: index("ss_parent_idx").on(table.parentId),
+  childIdx: index("ss_child_idx").on(table.childId),
+  statusIdx: index("ss_status_idx").on(table.status),
+}));
+
+export const insertScheduledSessionSchema = createInsertSchema(scheduledSessions).omit({
+  id: true, createdAt: true, updatedAt: true, actualStartAt: true, pausedAt: true, completedTasks: true, status: true,
+});
+export type ScheduledSession = typeof scheduledSessions.$inferSelect;
+export type InsertScheduledSession = z.infer<typeof insertScheduledSessionSchema>;
+
+// ===== Scheduled Session Tasks (مهام الجلسة المجدولة) =====
+export const scheduledSessionTasks = pgTable("scheduled_session_tasks", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  sessionId: varchar("session_id").notNull().references(() => scheduledSessions.id, { onDelete: "cascade" }),
+  orderIndex: integer("order_index").notNull(), // ترتيب المهمة في الجلسة (1, 2, 3...)
+  templateTaskId: varchar("template_task_id").references(() => templateTasks.id, { onDelete: "set null" }),
+  question: text("question").notNull(),
+  answers: json("answers").$type<{ id: string; text: string; isCorrect: boolean; imageUrl?: string }[]>().notNull(),
+  pointsReward: integer("points_reward").default(10).notNull(),
+  imageUrl: text("image_url"),
+  status: varchar("status", { length: 20 }).default("locked").notNull(), // locked | unlocked | completed | skipped
+  unlockedAt: timestamp("unlocked_at"), // وقت فتح المهمة
+  completedAt: timestamp("completed_at"), // وقت إكمال المهمة
+  taskId: varchar("task_id").references(() => tasks.id, { onDelete: "set null" }), // ربط بالمهمة الفعلية عند إرسالها
+  selectedAnswerId: varchar("selected_answer_id", { length: 50 }), // الإجابة المختارة
+  isCorrect: boolean("is_correct"), // هل الإجابة صحيحة
+  pointsEarned: integer("points_earned").default(0).notNull(), // النقاط المكتسبة
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  sessionIdx: index("sst_session_idx").on(table.sessionId),
+  statusIdx: index("sst_status_idx").on(table.status),
+  orderIdx: index("sst_order_idx").on(table.sessionId, table.orderIndex),
+}));
+
+export const insertScheduledSessionTaskSchema = createInsertSchema(scheduledSessionTasks).omit({
+  id: true, createdAt: true, unlockedAt: true, completedAt: true, taskId: true, selectedAnswerId: true, isCorrect: true, pointsEarned: true, status: true,
+});
+export type ScheduledSessionTask = typeof scheduledSessionTasks.$inferSelect;
+export type InsertScheduledSessionTask = z.infer<typeof insertScheduledSessionTaskSchema>;
 
 // ===== Profit Transactions (Commission tracking) =====
 export const profitTransactions = pgTable("profit_transactions", {

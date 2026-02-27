@@ -315,6 +315,11 @@ async function startHttpServer() {
       if (app.get("env") === "production") {
         log(`✓ Static assets: dist/public | SPA fallback: index.html`);
       }
+
+      // Recover any pending scheduled session unlocks lost due to server restart
+      import("./services/scheduledSessionService").then(({ recoverPendingSessionUnlocks }) => {
+        recoverPendingSessionUnlocks().catch(err => console.error("Session recovery error:", err));
+      }).catch(() => {});
     });
 
     // Graceful shutdown

@@ -44,6 +44,11 @@ export const NOTIFICATION_TYPES = {
   SYSTEM_ALERT: "system_alert",
   NEW_REGISTRATION: "new_registration",
   GAME_SHARED: "game_shared",
+  SCHEDULED_SESSION_CREATED: "scheduled_session_created",
+  SCHEDULED_TASK_UNLOCKED: "scheduled_task_unlocked",
+  SCHEDULED_SESSION_COMPLETED: "scheduled_session_completed",
+  SCHEDULED_SESSION_ACTIVATED: "scheduled_session_activated",
+  CHILD_PIN_CHANGED: "child_pin_changed",
 } as const;
 
 export type NotificationType = (typeof NOTIFICATION_TYPES)[keyof typeof NOTIFICATION_TYPES];

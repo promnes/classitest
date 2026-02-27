@@ -1272,7 +1272,11 @@ export const ParentDashboard = (): JSX.Element => {
                                 {(() => {
                                   const pinChild = pinData?.children?.find((c: any) => c.id === child.id);
                                   return pinChild?.hasPin ? (
-                                    <Badge variant="outline" className="text-xs gap-1 border-amber-400 text-amber-600">
+                                    <Badge 
+                                      variant="outline" 
+                                      className="text-xs gap-1 border-amber-400 text-amber-600"
+                                      title={pinChild.pinUpdatedAt ? `${t("pinManagement.lastUpdated", { date: new Date(pinChild.pinUpdatedAt).toLocaleDateString() })}` : ""}
+                                    >
                                       <KeyRound className="h-2.5 w-2.5" /> PIN
                                     </Badge>
                                   ) : null;
