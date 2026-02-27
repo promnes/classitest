@@ -104,7 +104,7 @@ export const TrialGames = (): JSX.Element => {
       <div className="sticky top-0 z-30 backdrop-blur-lg bg-white/10 border-b border-white/20">
         <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
           <button
-            onClick={() => navigate("/child-link")}
+            onClick={() => window.history.length > 1 ? window.history.back() : navigate("/child-link")}
             className="p-2 rounded-full bg-white/20 hover:bg-white/30 text-white transition-all"
           >
             <ArrowLeft className="w-5 h-5" />

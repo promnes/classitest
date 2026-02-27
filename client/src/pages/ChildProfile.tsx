@@ -738,7 +738,7 @@ export default function ChildProfile() {
 
           {/* Back button */}
           <button
-            onClick={() => navigate("/child-settings")}
+            onClick={() => window.history.length > 1 ? window.history.back() : navigate("/child-games")}
             className="absolute top-3 start-3 p-2 bg-black/40 hover:bg-black/60 text-white rounded-xl backdrop-blur-sm"
           >
             {isRTL ? <ArrowRight className="w-5 h-5" /> : <ArrowLeft className="w-5 h-5" />}

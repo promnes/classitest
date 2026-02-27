@@ -138,7 +138,7 @@ export default function ChildDiscover() {
       {/* Header */}
       <div className={`sticky top-0 z-50 px-4 pt-4 pb-3 ${isDark ? "bg-gray-900/95" : "bg-white/95"} backdrop-blur-sm border-b ${isDark ? "border-gray-800" : "border-gray-200"}`}>
         <div className="flex items-center gap-3 mb-3">
-          <button onClick={() => navigate("/child-profile")}
+          <button onClick={() => window.history.length > 1 ? window.history.back() : navigate("/child-games")}
             className={`p-2 rounded-xl ${isDark ? "hover:bg-gray-800 text-gray-300" : "hover:bg-gray-100 text-gray-600"}`}>
             {isRTL ? <ArrowRight className="w-5 h-5" /> : <ArrowLeft className="w-5 h-5" />}
           </button>

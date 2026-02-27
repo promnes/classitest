@@ -412,7 +412,7 @@ export default function LibraryStore() {
             <Button
               size="icon"
               variant="ghost"
-              onClick={() => navigate("/parent-store")}
+              onClick={() => window.history.length > 1 ? window.history.back() : navigate("/parent-store")}
               data-testid="button-back"
               className="flex-shrink-0"
             >
