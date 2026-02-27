@@ -112,8 +112,12 @@ function AccountNotificationBell({ tokenKey, apiBase, queryKeyPrefix, bellColorC
 
     let eventSource: EventSource | null = null;
     let reconnectTimeout: ReturnType<typeof setTimeout>;
+    let reconnectDelay = 1000;
+    const MAX_DELAY = 30000;
+    let disposed = false;
 
     const connect = () => {
+      if (disposed) return;
       const url = `${sseStreamUrl}?token=${encodeURIComponent(token)}`;
       eventSource = new EventSource(url);
 
@@ -122,19 +126,23 @@ function AccountNotificationBell({ tokenKey, apiBase, queryKeyPrefix, bellColorC
       });
 
       eventSource.addEventListener("ready", () => {
-        // SSE connection established
+        reconnectDelay = 1000;
       });
 
       eventSource.onerror = () => {
         eventSource?.close();
-        // Reconnect after 5 seconds
-        reconnectTimeout = setTimeout(connect, 5000);
+        eventSource = null;
+        if (!disposed) {
+          reconnectTimeout = setTimeout(connect, reconnectDelay);
+          reconnectDelay = Math.min(reconnectDelay * 2, MAX_DELAY);
+        }
       };
     };
 
     connect();
 
     return () => {
+      disposed = true;
       clearTimeout(reconnectTimeout);
       eventSource?.close();
     };

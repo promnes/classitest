@@ -507,9 +507,25 @@ function useMobileAppBranding() {
   }, []);
 }
 
+function useServiceWorkerNavigate() {
+  const [, navigate] = useLocation();
+  useEffect(() => {
+    const handler = (event: MessageEvent) => {
+      if (event.data?.type === "NAVIGATE" && typeof event.data.url === "string") {
+        navigate(event.data.url);
+      }
+    };
+    navigator.serviceWorker?.addEventListener("message", handler);
+    return () => {
+      navigator.serviceWorker?.removeEventListener("message", handler);
+    };
+  }, [navigate]);
+}
+
 function App() {
   useSwipeBackGesture();
   useMobileAppBranding();
+  useServiceWorkerNavigate();
 
   return (
     <QueryClientProvider client={queryClient}>

@@ -57,47 +57,68 @@ export function NotificationCenter() {
   useEffect(() => {
     if (!childToken) return;
 
-    const streamUrl = `/api/child/notifications/stream?token=${encodeURIComponent(childToken)}`;
-    let eventSource: EventSource | null = new EventSource(streamUrl);
+    let eventSource: EventSource | null = null;
+    let reconnectTimer: ReturnType<typeof setTimeout>;
+    let reconnectDelay = 1000;
+    const MAX_DELAY = 30000;
+    let disposed = false;
 
-    const onNotification = (event: MessageEvent) => {
-      try {
-        const notification = JSON.parse(event.data) as Notification;
-        if (!notification?.id) return;
+    const connect = () => {
+      if (disposed) return;
+      const streamUrl = `/api/child/notifications/stream?token=${encodeURIComponent(childToken)}`;
+      eventSource = new EventSource(streamUrl);
 
-        setDisplayedNotifications((prev) => {
-          if (prev.some((item) => item.id === notification.id)) {
-            return prev;
-          }
-          return [...prev, notification];
-        });
+      eventSource.addEventListener("ready", () => {
+        reconnectDelay = 1000; // reset on successful connection
+      });
 
-        setShownNotificationIds((prev) => {
-          const next = new Set(prev);
-          next.add(notification.id);
-          return next;
-        });
+      const onNotification = (event: MessageEvent) => {
+        try {
+          const notification = JSON.parse(event.data) as Notification;
+          if (!notification?.id) return;
 
-        queryClient.setQueryData(["childNotifications"], (old: any) => {
-          const current = Array.isArray(old?.data) ? old.data : [];
-          if (current.some((item: Notification) => item.id === notification.id)) {
-            return old;
-          }
-          return { success: true, data: [notification, ...current] };
-        });
-      } catch {
-        // ignore malformed stream payload
-      }
+          setDisplayedNotifications((prev) => {
+            if (prev.some((item) => item.id === notification.id)) {
+              return prev;
+            }
+            return [...prev, notification];
+          });
+
+          setShownNotificationIds((prev) => {
+            const next = new Set(prev);
+            next.add(notification.id);
+            return next;
+          });
+
+          queryClient.setQueryData(["childNotifications"], (old: any) => {
+            const current = Array.isArray(old?.data) ? old.data : [];
+            if (current.some((item: Notification) => item.id === notification.id)) {
+              return old;
+            }
+            return { success: true, data: [notification, ...current] };
+          });
+        } catch {
+          // ignore malformed stream payload
+        }
+      };
+
+      eventSource.addEventListener("notification", onNotification);
+
+      eventSource.onerror = () => {
+        eventSource?.close();
+        eventSource = null;
+        if (!disposed) {
+          reconnectTimer = setTimeout(connect, reconnectDelay);
+          reconnectDelay = Math.min(reconnectDelay * 2, MAX_DELAY);
+        }
+      };
     };
 
-    eventSource.addEventListener("notification", onNotification);
-
-    eventSource.onerror = () => {
-      // browser EventSource handles reconnection automatically
-    };
+    connect();
 
     return () => {
-      eventSource?.removeEventListener("notification", onNotification);
+      disposed = true;
+      clearTimeout(reconnectTimer);
       eventSource?.close();
     };
   }, [childToken, queryClient]);

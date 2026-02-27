@@ -1,4 +1,4 @@
-const CACHE_NAME = 'classify-v4';
+const CACHE_NAME = 'classify-v5';
 const STATIC_ASSETS = [
   '/icons/icon-72.png',
   '/icons/icon-96.png',
@@ -129,8 +129,17 @@ self.addEventListener('notificationclick', (event) => {
     for (const client of allClients) {
       const clientUrl = new URL(client.url);
       if (clientUrl.origin === self.location.origin) {
-        client.focus();
-        client.navigate(targetUrl);
+        await client.focus();
+        // client.navigate() is not supported on all browsers (e.g. Safari)
+        if (typeof client.navigate === 'function') {
+          try {
+            await client.navigate(targetUrl);
+          } catch {
+            client.postMessage({ type: 'NAVIGATE', url: targetUrl });
+          }
+        } else {
+          client.postMessage({ type: 'NAVIGATE', url: targetUrl });
+        }
         return;
       }
     }
