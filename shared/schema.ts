@@ -318,11 +318,13 @@ export const taskResults = pgTable("task_results", {
   completedAt: timestamp("completed_at").defaultNow().notNull(),
 });
 
-// Product Categories
+// Product Categories (hierarchical: main categories + subcategories)
 export const productCategories = pgTable("product_categories", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  parentId: varchar("parent_id"),
   name: text("name").notNull(),
   nameAr: text("name_ar").notNull(),
+  namePt: text("name_pt"),
   icon: varchar("icon", { length: 50 }).default("Package").notNull(),
   color: varchar("color", { length: 20 }).default("#667eea").notNull(),
   sortOrder: integer("sort_order").default(0).notNull(),

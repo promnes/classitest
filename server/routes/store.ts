@@ -224,7 +224,12 @@ export async function registerStoreRoutes(app: Express) {
       let filteredProducts = allProducts.filter(p => p.stock > 0);
       
       if (categoryId) {
-        filteredProducts = filteredProducts.filter((p: StoreProduct) => p.categoryId === categoryId);
+        // When filtering by a main category, also include products in its subcategories
+        const subcategoryIds = await db.select({ id: productCategories.id })
+          .from(productCategories)
+          .where(eq(productCategories.parentId, categoryId as string));
+        const matchIds = new Set([categoryId as string, ...subcategoryIds.map((s: { id: string }) => s.id)]);
+        filteredProducts = filteredProducts.filter((p: StoreProduct) => p.categoryId && matchIds.has(p.categoryId));
       }
       
       if (search) {

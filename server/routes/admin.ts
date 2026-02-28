@@ -84,7 +84,7 @@ import {
 import { createNotification, notifyAllAdmins } from "../notifications";
 import { emitGiftEvent } from "../giftEvents";
 import { notificationBus } from "../services/notificationBus";
-import { eq, sum, and, isNull, not, or, sql, desc, inArray, count } from "drizzle-orm";
+import { eq, sum, and, isNull, not, or, sql, desc, asc, inArray, count } from "drizzle-orm";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import { JWT_SECRET, adminMiddleware } from "./middleware";
@@ -610,10 +610,10 @@ export async function registerAdminRoutes(app: Express) {
 
   // ===== STORE CATEGORIES MANAGEMENT =====
 
-  // Get all categories
+  // Get all categories (hierarchical)
   app.get("/api/admin/categories", adminMiddleware, async (req: any, res) => {
     try {
-      const result = await db.select().from(productCategories);
+      const result = await db.select().from(productCategories).orderBy(asc(productCategories.sortOrder));
       res.json(successResponse(result));
     } catch (error: any) {
       console.error("Fetch categories error:", error);
@@ -623,21 +623,30 @@ export async function registerAdminRoutes(app: Express) {
     }
   });
 
-  // Create category
+  // Create category (supports parentId for subcategories)
   app.post("/api/admin/categories", adminMiddleware, async (req: any, res) => {
     try {
-      const { name, nameAr, icon, color, sortOrder } = req.body;
+      const { name, nameAr, namePt, icon, color, sortOrder, parentId } = req.body;
       if (!name || !nameAr) {
         return res
           .status(400)
           .json(errorResponse(ErrorCode.BAD_REQUEST, "name and nameAr are required"));
       }
+      // If parentId provided, verify it exists and is a main category
+      if (parentId) {
+        const parent = await db.select().from(productCategories).where(eq(productCategories.id, parentId));
+        if (!parent[0]) {
+          return res.status(404).json(errorResponse(ErrorCode.NOT_FOUND, "Parent category not found"));
+        }
+      }
       const result = await db.insert(productCategories).values({
         name,
         nameAr,
+        namePt: namePt || null,
         icon: icon || "Package",
         color: color || "#667eea",
         sortOrder: sortOrder || 0,
+        parentId: parentId || null,
       }).returning();
       res.status(201).json(successResponse(result[0], "Category created"));
     } catch (error: any) {
@@ -652,14 +661,16 @@ export async function registerAdminRoutes(app: Express) {
   app.put("/api/admin/categories/:id", adminMiddleware, async (req: any, res) => {
     try {
       const { id } = req.params;
-      const { name, nameAr, icon, color, sortOrder, isActive } = req.body;
+      const { name, nameAr, namePt, icon, color, sortOrder, isActive, parentId } = req.body;
       const setData: Record<string, any> = {};
       if (name !== undefined) setData['name'] = name;
       if (nameAr !== undefined) setData['nameAr'] = nameAr;
+      if (namePt !== undefined) setData['namePt'] = namePt;
       if (icon !== undefined) setData['icon'] = icon;
       if (color !== undefined) setData['color'] = color;
       if (sortOrder !== undefined) setData['sortOrder'] = sortOrder;
       if (isActive !== undefined) setData['isActive'] = isActive;
+      if (parentId !== undefined) setData['parentId'] = parentId || null;
 
       const result = await db.update(productCategories)
         .set(setData)
@@ -679,10 +690,13 @@ export async function registerAdminRoutes(app: Express) {
     }
   });
 
-  // Delete category
+  // Delete category (also deletes subcategories if it's a main category)
   app.delete("/api/admin/categories/:id", adminMiddleware, async (req: any, res) => {
     try {
       const { id } = req.params;
+      // Delete subcategories first
+      await db.delete(productCategories).where(eq(productCategories.parentId, id));
+      // Delete the category itself
       await db.delete(productCategories).where(eq(productCategories.id, id));
       res.json(successResponse(undefined, "Category deleted"));
     } catch (error: any) {

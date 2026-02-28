@@ -6,7 +6,7 @@ import {
   Search, ShoppingCart, Star, 
   Grid3X3, List, Package, Truck, Shield, Clock, 
   Smartphone, Gamepad2, BookOpen, Dumbbell, Shirt, Book, Palette, Gift,
-  X, Plus, Minus, MapPin, Check, ArrowLeft, Sparkles, Bell
+  X, Plus, Minus, MapPin, Check, ArrowLeft, Sparkles, Bell, ChevronDown
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -49,8 +49,10 @@ interface Product {
 
 interface Category {
   id: string;
+  parentId: string | null;
   name: string;
   nameAr: string;
+  namePt: string | null;
   icon: string;
   color: string;
 }
@@ -64,11 +66,12 @@ export const ChildStore = (): JSX.Element => {
   const [, navigate] = useLocation();
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const token = localStorage.getItem("childToken");
   
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [expandedMainCategory, setExpandedMainCategory] = useState<string | null>(null);
   const [showLibraryOnly, setShowLibraryOnly] = useState(false);
   const [sortBy, setSortBy] = useState("featured");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
@@ -152,6 +155,8 @@ export const ChildStore = (): JSX.Element => {
   });
 
   const categories: Category[] = categoriesData?.data || categoriesData || [];
+  const mainCategories = useMemo(() => categories.filter(c => !c.parentId), [categories]);
+  const getSubcategories = (parentId: string) => categories.filter(c => c.parentId === parentId);
   const allProducts: Product[] = productsData?.data || productsData || [];
   
   // Filter by library if showLibraryOnly is true
@@ -291,18 +296,19 @@ export const ChildStore = (): JSX.Element => {
 
         <div className="bg-orange-700/50 py-1.5 sm:py-2">
           <div className="max-w-7xl mx-auto px-2 sm:px-4">
+            {/* Main categories row */}
             <div className="flex items-center gap-2 sm:gap-4 overflow-x-auto scrollbar-hide pb-1">
               <button
-                onClick={() => { setSelectedCategory(null); setShowLibraryOnly(false); }}
+                onClick={() => { setSelectedCategory(null); setExpandedMainCategory(null); setShowLibraryOnly(false); }}
                 className={`whitespace-nowrap px-2.5 sm:px-3 py-1.5 rounded-full text-xs sm:text-sm transition-colors min-h-[36px] ${
-                  !selectedCategory && !showLibraryOnly ? "bg-white text-orange-600 font-bold" : "hover:bg-white/10"
+                  !selectedCategory && !showLibraryOnly && !expandedMainCategory ? "bg-white text-orange-600 font-bold" : "hover:bg-white/10"
                 }`}
                 data-testid="button-category-all"
               >
                 {t("childStore.all")}
               </button>
               <button
-                onClick={() => { setSelectedCategory(null); setShowLibraryOnly(true); }}
+                onClick={() => { setSelectedCategory(null); setExpandedMainCategory(null); setShowLibraryOnly(true); }}
                 className={`whitespace-nowrap px-2.5 sm:px-3 py-1.5 rounded-full text-xs sm:text-sm flex items-center gap-1 sm:gap-2 transition-colors min-h-[36px] ${
                   showLibraryOnly ? "bg-purple-600 text-white font-bold" : "bg-purple-500/20 hover:bg-purple-500/30"
                 }`}
@@ -311,23 +317,77 @@ export const ChildStore = (): JSX.Element => {
                 <BookOpen className="w-3 h-3 sm:w-4 sm:h-4" />
                 {t("childStore.libraries")}
               </button>
-              {categories.map((cat: Category) => {
+              {mainCategories.map((cat: Category) => {
                 const Icon = getCategoryIcon(cat.icon);
+                const subs = getSubcategories(cat.id);
+                const isExpanded = expandedMainCategory === cat.id;
+                const isSelected = selectedCategory === cat.id;
                 return (
                   <button
                     key={cat.id}
-                    onClick={() => { setSelectedCategory(cat.id); setShowLibraryOnly(false); }}
+                    onClick={() => {
+                      setShowLibraryOnly(false);
+                      if (subs.length > 0) {
+                        if (isExpanded) {
+                          setExpandedMainCategory(null);
+                          setSelectedCategory(null);
+                        } else {
+                          setExpandedMainCategory(cat.id);
+                          setSelectedCategory(cat.id);
+                        }
+                      } else {
+                        setExpandedMainCategory(null);
+                        setSelectedCategory(cat.id);
+                      }
+                    }}
                     className={`whitespace-nowrap px-2.5 sm:px-3 py-1.5 rounded-full text-xs sm:text-sm flex items-center gap-1 sm:gap-2 transition-colors min-h-[36px] ${
-                      selectedCategory === cat.id ? "bg-white text-orange-600 font-bold" : "hover:bg-white/10"
+                      isSelected || isExpanded ? "bg-white text-orange-600 font-bold" : "hover:bg-white/10"
                     }`}
                     data-testid={`button-category-${cat.id}`}
                   >
                     <Icon className="w-3 h-3 sm:w-4 sm:h-4" />
-                    {cat.nameAr}
+                    {i18n.language === "ar" ? cat.nameAr : i18n.language === "pt" && cat.namePt ? cat.namePt : cat.name}
+                    {subs.length > 0 && (
+                      <ChevronDown className={`w-3 h-3 transition-transform ${isExpanded ? "rotate-180" : ""}`} />
+                    )}
                   </button>
                 );
               })}
             </div>
+
+            {/* Subcategories row */}
+            {expandedMainCategory && getSubcategories(expandedMainCategory).length > 0 && (
+              <div className="flex items-center gap-2 mt-1.5 overflow-x-auto scrollbar-hide pb-1">
+                <button
+                  onClick={() => setSelectedCategory(expandedMainCategory)}
+                  className={`whitespace-nowrap px-2.5 py-1 rounded-full text-xs transition-colors border min-h-[32px] ${
+                    selectedCategory === expandedMainCategory 
+                      ? "bg-white text-orange-600 font-bold border-white" 
+                      : "border-white/30 hover:bg-white/10"
+                  }`}
+                >
+                  {t("childStore.all")}
+                </button>
+                {getSubcategories(expandedMainCategory).map((sub: Category) => {
+                  const SubIcon = getCategoryIcon(sub.icon);
+                  return (
+                    <button
+                      key={sub.id}
+                      onClick={() => setSelectedCategory(sub.id)}
+                      className={`whitespace-nowrap px-2.5 py-1 rounded-full text-xs flex items-center gap-1.5 transition-colors border min-h-[32px] ${
+                        selectedCategory === sub.id 
+                          ? "bg-white text-orange-600 font-bold border-white" 
+                          : "border-white/30 hover:bg-white/10"
+                      }`}
+                      data-testid={`button-subcategory-${sub.id}`}
+                    >
+                      <SubIcon className="w-3 h-3" />
+                      {i18n.language === "ar" ? sub.nameAr : i18n.language === "pt" && sub.namePt ? sub.namePt : sub.name}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
       </header>
@@ -474,7 +534,7 @@ export const ChildStore = (): JSX.Element => {
           <div className="flex items-center justify-between mb-3 sm:mb-4 gap-2">
             <h2 className="text-base sm:text-xl font-bold text-gray-800 dark:text-white truncate">
               {selectedCategory 
-                ? categories.find((c: Category) => c.id === selectedCategory)?.nameAr || t('childStore.products')
+                ? (() => { const c = categories.find((c: Category) => c.id === selectedCategory); return c ? (i18n.language === "ar" ? c.nameAr : i18n.language === "pt" && c.namePt ? c.namePt : c.name) : t('childStore.products'); })()
                 : searchQuery ? t('childStore.searchResults', { query: searchQuery }) : t('childStore.allProducts')
               }
             </h2>

@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { 
-  Search, ShoppingCart, Heart, Star, ChevronLeft, ChevronRight, 
+  Search, ShoppingCart, Heart, Star, ChevronLeft, ChevronRight, ChevronDown,
   Filter, Grid3X3, List, Package, Truck, Shield, Clock, 
   Smartphone, Gamepad2, BookOpen, Dumbbell, Shirt, Book, Palette, Gift,
   X, Plus, Minus, CreditCard, MapPin, Check, ArrowLeft, Sparkles
@@ -49,8 +49,10 @@ interface Product {
 
 interface Category {
   id: string;
+  parentId: string | null;
   name: string;
   nameAr: string;
+  namePt: string | null;
   icon: string;
   color: string;
 }
@@ -75,7 +77,7 @@ const normalizeCartProduct = (raw: any): Product => {
 const CART_STORAGE_KEY = "parent-store-cart";
 
 export const ParentStore = (): JSX.Element => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [, navigate] = useLocation();
   const queryClient = useQueryClient();
   const { isDark } = useTheme();
@@ -88,6 +90,7 @@ export const ParentStore = (): JSX.Element => {
   const [activeView, setActiveView] = useState<"store" | "cart" | "orders">(initialView || "store");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [expandedMainCategory, setExpandedMainCategory] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState("featured");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -212,6 +215,8 @@ export const ParentStore = (): JSX.Element => {
   });
 
   const categories: Category[] = categoriesData?.data || categoriesData || [];
+  const mainCategories = useMemo(() => categories.filter(c => !c.parentId), [categories]);
+  const getSubcategories = (parentId: string) => categories.filter(c => c.parentId === parentId);
   const products: Product[] = productsData?.data || productsData || [];
   const children = childrenData || [];
   const paymentMethods = (paymentMethodsData as any)?.data || paymentMethodsData || [];
@@ -393,11 +398,12 @@ export const ParentStore = (): JSX.Element => {
 
         <div className="bg-orange-700/50 py-2">
           <div className="max-w-7xl mx-auto px-4">
-            <div className="flex items-center gap-6 overflow-x-auto scrollbar-hide">
+            {/* Main categories row */}
+            <div className="flex items-center gap-3 overflow-x-auto scrollbar-hide">
               <button
-                onClick={() => setSelectedCategory(null)}
-                className={`whitespace-nowrap px-3 py-1 rounded-full text-sm transition-colors ${
-                  !selectedCategory ? "bg-white text-orange-600 font-bold" : "hover:bg-white/10"
+                onClick={() => { setSelectedCategory(null); setExpandedMainCategory(null); }}
+                className={`whitespace-nowrap px-3 py-1.5 rounded-full text-sm transition-colors ${
+                  !selectedCategory && !expandedMainCategory ? "bg-white text-orange-600 font-bold" : "hover:bg-white/10"
                 }`}
                 data-testid="button-category-all"
               >
@@ -405,29 +411,83 @@ export const ParentStore = (): JSX.Element => {
               </button>
               <button
                 onClick={() => navigate("/library-store")}
-                className="whitespace-nowrap px-3 py-1 rounded-full text-sm flex items-center gap-2 transition-colors bg-blue-600 text-white hover:bg-blue-700"
+                className="whitespace-nowrap px-3 py-1.5 rounded-full text-sm flex items-center gap-2 transition-colors bg-blue-600 text-white hover:bg-blue-700"
                 data-testid="button-library-store"
               >
                 <BookOpen className="w-4 h-4" />
                 {t("parentStore.libraries")}
               </button>
-              {categories.map((cat: Category) => {
+              {mainCategories.map((cat: Category) => {
                 const Icon = getCategoryIcon(cat.icon);
+                const subs = getSubcategories(cat.id);
+                const isExpanded = expandedMainCategory === cat.id;
+                const isSelected = selectedCategory === cat.id;
                 return (
                   <button
                     key={cat.id}
-                    onClick={() => setSelectedCategory(cat.id)}
-                    className={`whitespace-nowrap px-3 py-1 rounded-full text-sm flex items-center gap-2 transition-colors ${
-                      selectedCategory === cat.id ? "bg-white text-orange-600 font-bold" : "hover:bg-white/10"
+                    onClick={() => {
+                      if (subs.length > 0) {
+                        // Toggle expand; select main category to show all products in it + subs
+                        if (isExpanded) {
+                          setExpandedMainCategory(null);
+                          setSelectedCategory(null);
+                        } else {
+                          setExpandedMainCategory(cat.id);
+                          setSelectedCategory(cat.id);
+                        }
+                      } else {
+                        setExpandedMainCategory(null);
+                        setSelectedCategory(cat.id);
+                      }
+                    }}
+                    className={`whitespace-nowrap px-3 py-1.5 rounded-full text-sm flex items-center gap-2 transition-colors ${
+                      isSelected || isExpanded ? "bg-white text-orange-600 font-bold" : "hover:bg-white/10"
                     }`}
                     data-testid={`button-category-${cat.id}`}
                   >
                     <Icon className="w-4 h-4" />
-                    {cat.nameAr}
+                    {i18n.language === "ar" ? cat.nameAr : i18n.language === "pt" && cat.namePt ? cat.namePt : cat.name}
+                    {subs.length > 0 && (
+                      <ChevronDown className={`w-3.5 h-3.5 transition-transform ${isExpanded ? "rotate-180" : ""}`} />
+                    )}
                   </button>
                 );
               })}
             </div>
+
+            {/* Subcategories row — shown when a main category is expanded */}
+            {expandedMainCategory && getSubcategories(expandedMainCategory).length > 0 && (
+              <div className="flex items-center gap-2 mt-2 overflow-x-auto scrollbar-hide pb-1">
+                <button
+                  onClick={() => setSelectedCategory(expandedMainCategory)}
+                  className={`whitespace-nowrap px-3 py-1 rounded-full text-xs transition-colors border ${
+                    selectedCategory === expandedMainCategory 
+                      ? "bg-white text-orange-600 font-bold border-white" 
+                      : "border-white/30 hover:bg-white/10"
+                  }`}
+                >
+                  {t("parentStore.allCategories")}
+                </button>
+                {getSubcategories(expandedMainCategory).map((sub: Category) => {
+                  const SubIcon = getCategoryIcon(sub.icon);
+                  return (
+                    <button
+                      key={sub.id}
+                      onClick={() => setSelectedCategory(sub.id)}
+                      className={`whitespace-nowrap px-3 py-1 rounded-full text-xs flex items-center gap-1.5 transition-colors border ${
+                        selectedCategory === sub.id 
+                          ? "bg-white text-orange-600 font-bold border-white" 
+                          : "border-white/30 hover:bg-white/10"
+                      }`}
+                      data-testid={`button-subcategory-${sub.id}`}
+                    >
+                      <SubIcon className="w-3.5 h-3.5" />
+                      {i18n.language === "ar" ? sub.nameAr : i18n.language === "pt" && sub.namePt ? sub.namePt : sub.name}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
       </header>
@@ -791,7 +851,11 @@ export const ParentStore = (): JSX.Element => {
           <div className="flex items-center justify-between mb-4">
             <h2 className={`text-xl font-bold ${isDark ? "text-white" : "text-gray-800"}`}>
               {selectedCategory 
-                ? categories.find((c: Category) => c.id === selectedCategory)?.nameAr || t('parentStore.products')
+                ? (() => {
+                    const cat = categories.find((c: Category) => c.id === selectedCategory);
+                    if (!cat) return t('parentStore.products');
+                    return i18n.language === "ar" ? cat.nameAr : i18n.language === "pt" && cat.namePt ? cat.namePt : cat.name;
+                  })()
                 : searchQuery ? `${t('parentStore.searchResults')}: "${searchQuery}"` : t('parentStore.allProducts')
               }
             </h2>
