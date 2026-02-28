@@ -82,6 +82,7 @@ export const ChildLink = (): JSX.Element => {
   const [loginRequestId, setLoginRequestId] = useState<string | null>(null);
   const [loginRequestKey, setLoginRequestKey] = useState<string | null>(null);
   const [loginStatus, setLoginStatus] = useState<"pending" | "approved" | "rejected" | "expired">("pending");
+  const loginStatusRef = useRef<"pending" | "approved" | "rejected" | "expired">("pending");
   const [pollingInterval, setPollingIntervalId] = useState<NodeJS.Timeout | null>(null);
   const [childDeviceId] = useState<string>(() => getOrCreateChildDeviceId());
   
@@ -122,11 +123,16 @@ export const ChildLink = (): JSX.Element => {
     }
   }, []);
 
-  // Cleanup polling on unmount
+  // Cleanup polling AND camera stream on unmount
   useEffect(() => {
     return () => {
       if (pollingInterval) {
         clearInterval(pollingInterval);
+      }
+      // Stop camera stream if still active
+      if (videoRef.current?.srcObject) {
+        const tracks = (videoRef.current.srcObject as MediaStream).getTracks();
+        tracks.forEach(track => track.stop());
       }
     };
   }, [pollingInterval]);
@@ -197,6 +203,7 @@ export const ChildLink = (): JSX.Element => {
         setLoginRequestId(requestId);
         setLoginRequestKey(requestKey);
         setLoginStatus("pending");
+        loginStatusRef.current = "pending";
         setStep("waiting_approval");
         startPolling(requestId, requestKey);
       }
@@ -228,6 +235,7 @@ export const ChildLink = (): JSX.Element => {
         if (status === "approved" && data.data?.token) {
           clearInterval(interval);
           setLoginStatus("approved");
+          loginStatusRef.current = "approved";
           
           // Auto-login
           localStorage.setItem("childToken", data.data.token);
@@ -269,9 +277,11 @@ export const ChildLink = (): JSX.Element => {
         } else if (status === "rejected") {
           clearInterval(interval);
           setLoginStatus("rejected");
+          loginStatusRef.current = "rejected";
         } else if (status === "expired") {
           clearInterval(interval);
           setLoginStatus("expired");
+          loginStatusRef.current = "expired";
         }
       } catch (error) {
         console.error("Polling error:", error);
@@ -283,8 +293,9 @@ export const ChildLink = (): JSX.Element => {
     // Auto-stop polling after 15 minutes
     setTimeout(() => {
       clearInterval(interval);
-      if (loginStatus === "pending") {
+      if (loginStatusRef.current === "pending") {
         setLoginStatus("expired");
+        loginStatusRef.current = "expired";
       }
     }, 15 * 60 * 1000);
   };
@@ -297,6 +308,7 @@ export const ChildLink = (): JSX.Element => {
     setLoginRequestId(null);
     setLoginRequestKey(null);
     setLoginStatus("pending");
+    loginStatusRef.current = "pending";
     setStep("name_entry");
   };
 
@@ -586,7 +598,8 @@ export const ChildLink = (): JSX.Element => {
                         e.stopPropagation();
                         removeChild(child.childId);
                       }}
-                      className="absolute -top-2 -left-2 w-7 h-7 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center shadow"
+                      className="absolute -top-2 -left-2 w-7 h-7 bg-red-500 text-white rounded-full opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity flex items-center justify-center shadow"
+                      aria-label={t("childLink.removeChild", "إزالة")}
                       data-testid={`button-remove-child-${index}`}
                     >
                       <X className="w-4 h-4" />
@@ -777,6 +790,7 @@ export const ChildLink = (): JSX.Element => {
                   <button
                     onClick={() => {
                       setLoginStatus("pending");
+                      loginStatusRef.current = "pending";
                       setStep("name_entry");
                     }}
                     className="w-full py-3 bg-blue-500 hover:bg-blue-600 text-white font-bold rounded-2xl transition-all"
@@ -801,6 +815,7 @@ export const ChildLink = (): JSX.Element => {
                   <button
                     onClick={() => {
                       setLoginStatus("pending");
+                      loginStatusRef.current = "pending";
                       setStep("name_entry");
                     }}
                     className="w-full py-3 bg-blue-500 hover:bg-blue-600 text-white font-bold rounded-2xl transition-all"

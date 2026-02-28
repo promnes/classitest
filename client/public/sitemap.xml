@@ -114,14 +114,6 @@
     <priority>0.3</priority>
   </url>
 
-  <!-- Registration -->
-  <url>
-    <loc>https://classi-fy.com/register</loc>
-    <lastmod>2026-02-28</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
-  </url>
-
   <!-- Parent Auth / Login -->
   <url>
     <loc>https://classi-fy.com/parent-auth</loc>

@@ -161,7 +161,7 @@ export const Home = (): JSX.Element => {
             decoding="async"
             loading="eager"
             fetchPriority="high"
-            className="h-28 w-28 md:h-36 md:w-36 rounded-full shadow-2xl border-4 border-yellow-400 object-cover animate-bounce"
+            className="h-28 w-28 md:h-36 md:w-36 rounded-full shadow-2xl border-4 border-yellow-400 object-cover hover:scale-105 transition-transform"
           />
         </button>
         
@@ -210,13 +210,13 @@ export const Home = (): JSX.Element => {
       {/* Footer */}
       <footer className="text-center py-6 text-purple-600/70 relative z-10 content-defer">
         <div className="flex flex-wrap justify-center gap-4 mb-3">
-          <button onClick={() => navigate("/privacy-policy")} className="hover:underline text-sm">🔒 {t("home.privacy")}</button>
-          <button onClick={() => navigate("/terms")} className="hover:underline text-sm">📋 {t("home.terms")}</button>
-          <button onClick={() => navigate("/child-safety")} className="hover:underline text-sm">👶 {i18n.language === "ar" ? "سلامة الأطفال" : "Child Safety"}</button>
-          <button onClick={() => navigate("/refund-policy")} className="hover:underline text-sm">💰 {i18n.language === "ar" ? "الاسترداد" : "Refunds"}</button>
+          <a href="/privacy-policy" onClick={(e) => { e.preventDefault(); navigate("/privacy-policy"); }} className="hover:underline text-sm"><span aria-hidden="true">🔒</span> {t("home.privacy")}</a>
+          <a href="/terms" onClick={(e) => { e.preventDefault(); navigate("/terms"); }} className="hover:underline text-sm"><span aria-hidden="true">📋</span> {t("home.terms")}</a>
+          <a href="/child-safety" onClick={(e) => { e.preventDefault(); navigate("/child-safety"); }} className="hover:underline text-sm"><span aria-hidden="true">👶</span> {i18n.language === "ar" ? "سلامة الأطفال" : "Child Safety"}</a>
+          <a href="/refund-policy" onClick={(e) => { e.preventDefault(); navigate("/refund-policy"); }} className="hover:underline text-sm"><span aria-hidden="true">💰</span> {i18n.language === "ar" ? "الاسترداد" : "Refunds"}</a>
         </div>
         <div className="mb-3">
-          <button onClick={() => navigate("/legal")} className="text-xs hover:underline opacity-80">⚖️ {i18n.language === "ar" ? "المركز القانوني" : "Legal Center"}</button>
+          <a href="/legal" onClick={(e) => { e.preventDefault(); navigate("/legal"); }} className="text-xs hover:underline opacity-80"><span aria-hidden="true">⚖️</span> {i18n.language === "ar" ? "المركز القانوني" : "Legal Center"}</a>
         </div>
         <p className="text-xs opacity-70">© {new Date().getFullYear()} Classify by Proomnes. {t("home.allRightsReserved")}</p>
       </footer>

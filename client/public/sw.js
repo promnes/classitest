@@ -18,7 +18,7 @@ const STATIC_ASSETS = [
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then((cache) => cache.addAll(STATIC_ASSETS))
+      .then((cache) => Promise.allSettled(STATIC_ASSETS.map((url) => cache.add(url))))
   );
   self.skipWaiting();
 });
@@ -47,15 +47,23 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Always go to network for API calls, navigation, and HTML
-  if (
-    url.pathname.startsWith('/api/') ||
-    event.request.mode === 'navigate' ||
-    event.request.destination === 'document'
-  ) {
+  // API calls: network-only, return JSON error when offline
+  if (url.pathname.startsWith('/api/')) {
     event.respondWith(
       fetch(event.request)
-        .catch(() => caches.match('/') || new Response('Offline', { status: 503 }))
+        .catch(() => new Response(
+          JSON.stringify({ success: false, error: 'OFFLINE', message: 'No internet connection' }),
+          { status: 503, headers: { 'Content-Type': 'application/json' } }
+        ))
+    );
+    return;
+  }
+
+  // Navigation & HTML: network-first, fallback to cached SPA shell
+  if (event.request.mode === 'navigate' || event.request.destination === 'document') {
+    event.respondWith(
+      fetch(event.request)
+        .catch(() => caches.match('/').then((r) => r || new Response('Offline', { status: 503 })))
     );
     return;
   }
@@ -111,8 +119,8 @@ self.addEventListener('push', (event) => {
       childId: payload.childId || null,
       level: payload.level || null,
     },
-    tag: payload.taskId ? `task-${payload.taskId}` : undefined,
-    renotify: true,
+    tag: payload.taskId ? `task-${payload.taskId}` : 'classify-notification',
+    renotify: !!payload.taskId,
     requireInteraction: payload.level >= 4,
   };
 

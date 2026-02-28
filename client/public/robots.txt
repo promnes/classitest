@@ -22,6 +22,8 @@ Disallow: /parent-dashboard
 Disallow: /parent-store
 Disallow: /parent-inventory
 Disallow: /parent-tasks
+Disallow: /parent-auth
+Disallow: /parent-profile
 Disallow: /wallet
 Disallow: /notifications
 Disallow: /subjects
@@ -49,15 +51,19 @@ Disallow: /task-cart
 Disallow: /settings
 Disallow: /library/
 Disallow: /library-store
+Disallow: /library-login
+Disallow: /school/
+Disallow: /school-login
+Disallow: /teacher/
+Disallow: /teacher-login
+Disallow: /memory-match
+Disallow: /match3
 Disallow: /api/
 
 # Sitemaps
 Sitemap: https://classi-fy.com/sitemap.xml
 
 # Crawl-delay (be friendly to server)
-User-agent: Googlebot
-Crawl-delay: 1
-
 User-agent: Bingbot
 Crawl-delay: 2
 

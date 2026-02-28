@@ -6,6 +6,7 @@ import { NotificationCenter } from "./notifications/NotificationCenter";
 import { ChildTaskNotificationManager } from "./child/SponsoredTaskNotification";
 import { ChildWebPushRegistrar } from "./child/ChildWebPushRegistrar";
 import { ChildMobilePushRegistrar } from "./child/ChildMobilePushRegistrar";
+import { LoadingSpinner } from "./LoadingSpinner";
 
 interface ChildAppWrapperProps {
   children: React.ReactNode;
@@ -35,7 +36,7 @@ export function ChildAppWrapper({ children }: ChildAppWrapperProps) {
     enabled: !!token,
     staleTime: 30000,
     gcTime: 5 * 60 * 1000,
-    retry: false,
+    retry: (count, error) => error.message !== "UNAUTHORIZED" && count < 1,
   });
 
   useEffect(() => {
@@ -64,7 +65,7 @@ export function ChildAppWrapper({ children }: ChildAppWrapperProps) {
   };
 
   if (!isChecked || !token || isAuthLoading || isAuthError) {
-    return null;
+    return <LoadingSpinner />;
   }
 
   if (showPermissions) {

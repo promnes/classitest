@@ -7,7 +7,7 @@ import { useSMSOTP } from "@/hooks/useSMSOTP";
 import { SMSVerification } from "@/components/SMSVerification";
 import { OTPMethodSelector } from "@/components/OTPMethodSelector";
 import { useAutoLogin } from "@/hooks/useAutoLogin";
-import { Loader2 } from "lucide-react";
+import { Loader2, CheckCircle, XCircle } from "lucide-react";
 import { SocialLoginButtons } from "@/components/SocialLoginButtons";
 import { PhoneInput } from "@/components/PhoneInput";
 import { GovernorateSelect } from "@/components/ui/GovernorateSelect";
@@ -30,6 +30,7 @@ export const ParentAuth = (): JSX.Element => {
   const [showSMSVerification, setShowSMSVerification] = useState(false);
   const [otpMethod, setOtpMethod] = useState<"email" | "sms">("email");
   const [availableMethods, setAvailableMethods] = useState<("email" | "sms")[]>(["email"]);
+  const [passwordStrength, setPasswordStrength] = useState<{ score: number; label: string; color: string }>({ score: 0, label: "", color: "" });
   const libraryReferralCode = new URLSearchParams(window.location.search).get("libraryRef")?.trim() || undefined;
   const referralCode = new URLSearchParams(window.location.search).get("ref")?.trim() || undefined;
 
@@ -137,9 +138,38 @@ export const ParentAuth = (): JSX.Element => {
     }
   }, [isChecking, isLoggedIn, navigate]);
 
+  const evaluatePasswordStrength = (pw: string) => {
+    let score = 0;
+    if (pw.length >= 8) score++;
+    if (pw.length >= 12) score++;
+    if (/[A-Z]/.test(pw)) score++;
+    if (/[0-9]/.test(pw)) score++;
+    if (/[^A-Za-z0-9]/.test(pw)) score++;
+    const levels = [
+      { label: t("parentAuth.passwordWeak", "ضعيفة"), color: "bg-red-500" },
+      { label: t("parentAuth.passwordWeak", "ضعيفة"), color: "bg-red-500" },
+      { label: t("parentAuth.passwordFair", "مقبولة"), color: "bg-yellow-500" },
+      { label: t("parentAuth.passwordGood", "جيدة"), color: "bg-blue-500" },
+      { label: t("parentAuth.passwordStrong", "قوية"), color: "bg-green-500" },
+      { label: t("parentAuth.passwordVeryStrong", "قوية جداً"), color: "bg-green-600" },
+    ];
+    return { score, ...levels[score] };
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    // Client-side password validation for registration
+    if (!isLogin) {
+      if (password.length < 8) {
+        setError(t("parentAuth.passwordTooShort", "كلمة المرور يجب أن تكون 8 أحرف على الأقل"));
+        return;
+      }
+      if (passwordStrength.score < 2) {
+        setError(t("parentAuth.passwordTooWeak", "كلمة المرور ضعيفة جداً، أضف أرقام أو رموز"));
+        return;
+      }
+    }
     authMutation.mutate();
   };
 
@@ -332,12 +362,41 @@ export const ParentAuth = (): JSX.Element => {
                   <input
                     type="password"
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    onChange={(e) => {
+                      setPassword(e.target.value);
+                      if (!isLogin) setPasswordStrength(evaluatePasswordStrength(e.target.value));
+                    }}
                     placeholder="••••••••"
                     autoComplete={isLogin ? "current-password" : "new-password"}
+                    minLength={isLogin ? undefined : 8}
+                    aria-describedby={!isLogin ? "password-strength" : undefined}
                     className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-blue-400 text-gray-900 dark:text-white bg-white dark:bg-gray-700"
                     required
                   />
+                  {!isLogin && password.length > 0 && (
+                    <div id="password-strength" className="mt-2">
+                      <div className="flex gap-1 mb-1">
+                        {[1, 2, 3, 4, 5].map((i) => (
+                          <div
+                            key={i}
+                            className={`h-1.5 flex-1 rounded-full transition-all ${
+                              i <= passwordStrength.score ? passwordStrength.color : "bg-gray-200 dark:bg-gray-600"
+                            }`}
+                          />
+                        ))}
+                      </div>
+                      <div className="flex items-center gap-1 text-xs">
+                        {passwordStrength.score >= 3 ? (
+                          <CheckCircle className="w-3 h-3 text-green-500" />
+                        ) : (
+                          <XCircle className="w-3 h-3 text-red-400" />
+                        )}
+                        <span className={passwordStrength.score >= 3 ? "text-green-600" : "text-red-500"}>
+                          {passwordStrength.label}
+                        </span>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* PIN Code - Registration only */}
@@ -378,7 +437,7 @@ export const ParentAuth = (): JSX.Element => {
                   </div>
                 )}
 
-                {error && <p className="text-red-500 text-sm">{error}</p>}
+                {error && <p className="text-red-500 text-sm" role="alert" aria-live="assertive">{error}</p>}
 
                 <button
                   type="submit"

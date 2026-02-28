@@ -206,7 +206,9 @@ function Router() {
   return (
     <Suspense fallback={<PageLoader />}>
       <Switch>
-        <Route path="/" component={Home} />
+        <Route path="/" >
+          <ErrorBoundary><Home /></ErrorBoundary>
+        </Route>
         <Route path="/register" component={RegisterRedirect} />
         <Route path="/download">
           <ErrorBoundary><DownloadApp /></ErrorBoundary>
@@ -239,7 +241,9 @@ function Router() {
         <Route path="/subjects">
           <ErrorBoundary><Subjects /></ErrorBoundary>
         </Route>
-        <Route path="/admin" component={AdminAuth} />
+        <Route path="/admin">
+          <ErrorBoundary><AdminAuth /></ErrorBoundary>
+        </Route>
         <Route path="/admin-dashboard">
           <ErrorBoundary><AdminDashboard /></ErrorBoundary>
         </Route>
@@ -280,23 +284,51 @@ function Router() {
         <Route path="/task-cart">
           <ErrorBoundary><TaskCart /></ErrorBoundary>
         </Route>
-        <Route path="/privacy" component={Privacy} />
-        <Route path="/privacy-policy" component={PrivacyPolicy} />
-        <Route path="/accessibility" component={AccessibilityPolicy} />
-        <Route path="/terms" component={Terms} />
-        <Route path="/delete-account" component={AccountDeletion} />
-        <Route path="/about" component={AboutUs} />
-        <Route path="/contact" component={ContactUs} />
-        <Route path="/cookie-policy" component={CookiePolicy} />
-        <Route path="/child-safety" component={ChildSafety} />
-        <Route path="/refund-policy" component={RefundPolicy} />
-        <Route path="/acceptable-use" component={AcceptableUse} />
-        <Route path="/legal" component={LegalCenter} />
+        <Route path="/privacy">
+          <ErrorBoundary><Privacy /></ErrorBoundary>
+        </Route>
+        <Route path="/privacy-policy">
+          <ErrorBoundary><PrivacyPolicy /></ErrorBoundary>
+        </Route>
+        <Route path="/accessibility">
+          <ErrorBoundary><AccessibilityPolicy /></ErrorBoundary>
+        </Route>
+        <Route path="/terms">
+          <ErrorBoundary><Terms /></ErrorBoundary>
+        </Route>
+        <Route path="/delete-account">
+          <ErrorBoundary><AccountDeletion /></ErrorBoundary>
+        </Route>
+        <Route path="/about">
+          <ErrorBoundary><AboutUs /></ErrorBoundary>
+        </Route>
+        <Route path="/contact">
+          <ErrorBoundary><ContactUs /></ErrorBoundary>
+        </Route>
+        <Route path="/cookie-policy">
+          <ErrorBoundary><CookiePolicy /></ErrorBoundary>
+        </Route>
+        <Route path="/child-safety">
+          <ErrorBoundary><ChildSafety /></ErrorBoundary>
+        </Route>
+        <Route path="/refund-policy">
+          <ErrorBoundary><RefundPolicy /></ErrorBoundary>
+        </Route>
+        <Route path="/acceptable-use">
+          <ErrorBoundary><AcceptableUse /></ErrorBoundary>
+        </Route>
+        <Route path="/legal">
+          <ErrorBoundary><LegalCenter /></ErrorBoundary>
+        </Route>
         <Route path="/settings">
           <ErrorBoundary><Settings /></ErrorBoundary>
         </Route>
-        <Route path="/admin/purchases" component={AdminPurchasesTab} />
-        <Route path="/library/login" component={LibraryLogin} />
+        <Route path="/admin/purchases">
+          <ErrorBoundary><AdminPurchasesTab /></ErrorBoundary>
+        </Route>
+        <Route path="/library/login">
+          <ErrorBoundary><LibraryLogin /></ErrorBoundary>
+        </Route>
         <Route path="/library/dashboard">
           <ErrorBoundary><LibraryDashboard /></ErrorBoundary>
         </Route>
@@ -310,11 +342,15 @@ function Router() {
         <Route path="/memory-match">
           <ErrorBoundary><MemoryMatchPage /></ErrorBoundary>
         </Route>
-        <Route path="/school/login" component={SchoolLogin} />
+        <Route path="/school/login">
+          <ErrorBoundary><SchoolLogin /></ErrorBoundary>
+        </Route>
         <Route path="/school/dashboard">
           <ErrorBoundary><SchoolDashboard /></ErrorBoundary>
         </Route>
-        <Route path="/teacher/login" component={TeacherLogin} />
+        <Route path="/teacher/login">
+          <ErrorBoundary><TeacherLogin /></ErrorBoundary>
+        </Route>
         <Route path="/teacher/dashboard">
           <ErrorBoundary><TeacherDashboard /></ErrorBoundary>
         </Route>
@@ -330,7 +366,7 @@ function Router() {
         <Route path="/parent-profile">
           <ErrorBoundary><ParentProfile /></ErrorBoundary>
         </Route>
-        <Route component={NotFound} />
+        <Route>\n          <ErrorBoundary><NotFound /></ErrorBoundary>\n        </Route>
       </Switch>
     </Suspense>
   );
@@ -382,7 +418,12 @@ function useSwipeBackGesture() {
 
       const isHorizontalSwipe = Math.abs(deltaX) > 70 && Math.abs(deltaX) > Math.abs(deltaY);
       if (isHorizontalSwipe) {
-        window.history.back();
+        // RTL: swipe right-to-left is back; LTR: swipe left-to-right is back
+        const isRTL = document.documentElement.dir === "rtl";
+        const isBackSwipe = isRTL ? deltaX < -70 : deltaX > 70;
+        if (isBackSwipe) {
+          window.history.back();
+        }
       }
 
       isTracking = false;
@@ -540,7 +581,6 @@ function App() {
                 Skip to content
               </a>
               <div className="min-h-screen">
-                <div data-testid="build-marker-2026-02-07" />
                 <main id="main-content">
                   <Router />
                 </main>
