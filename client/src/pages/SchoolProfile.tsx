@@ -77,6 +77,9 @@ export default function SchoolProfile() {
   const [loadingComments, setLoadingComments] = useState<Record<string, boolean>>({});
   const [selectedPollOptions, setSelectedPollOptions] = useState<Record<string, string[]>>({});
   const [votedPolls, setVotedPolls] = useState<Record<string, string[]>>({});
+  const [showEnrollmentForm, setShowEnrollmentForm] = useState(false);
+  const [enrollChildId, setEnrollChildId] = useState("");
+  const [enrollNote, setEnrollNote] = useState("");
 
   const token = localStorage.getItem("token") || localStorage.getItem("childToken");
   const parentToken = localStorage.getItem("token");
@@ -162,6 +165,59 @@ export default function SchoolProfile() {
       setReviewComment("");
       setReviewRating(5);
       toast({ title: t("schoolProfile.reviewSubmitted") });
+    },
+    onError: (err: any) => toast({ title: err.message, variant: "destructive" }),
+  });
+
+  // Enrollment queries
+  const { data: enrollmentStatus } = useQuery({
+    queryKey: ["enrollment-status", schoolId],
+    queryFn: async () => {
+      const res = await fetch(`/api/store/schools/${schoolId}/enrollment-status`);
+      if (!res.ok) return null;
+      return (await res.json()).data;
+    },
+    enabled: !!schoolId,
+  });
+
+  const { data: myChildren = [] } = useQuery<any[]>({
+    queryKey: ["parent-children"],
+    queryFn: async () => {
+      const res = await fetch("/api/family/children", { headers: parentAuthHeaders });
+      if (!res.ok) return [];
+      const body = await res.json();
+      return body.data || body.children || [];
+    },
+    enabled: !!parentToken,
+  });
+
+  const { data: myEnrollments = [] } = useQuery<any[]>({
+    queryKey: ["parent-enrollments"],
+    queryFn: async () => {
+      const res = await fetch("/api/parent/enrollments", { headers: parentAuthHeaders });
+      if (!res.ok) return [];
+      return (await res.json()).data || [];
+    },
+    enabled: !!parentToken,
+  });
+
+  const enrollChild = useMutation({
+    mutationFn: async () => {
+      const res = await fetch("/api/parent/enroll-child", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...parentAuthHeaders },
+        body: JSON.stringify({ childId: enrollChildId, schoolId, parentNote: enrollNote || undefined }),
+      });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.message || "Failed");
+      return body;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["parent-enrollments"] });
+      setShowEnrollmentForm(false);
+      setEnrollChildId("");
+      setEnrollNote("");
+      toast({ title: t("schoolProfile.enrollmentSubmitted") });
     },
     onError: (err: any) => toast({ title: err.message, variant: "destructive" }),
   });
@@ -442,6 +498,75 @@ export default function SchoolProfile() {
                       </a>
                     ))}
                   </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Enrollment Card */}
+            {enrollmentStatus?.enrollmentOpen && parentToken && (
+              <Card className="shadow-sm border-green-200 bg-green-50/50 dark:bg-green-950/20">
+                <CardContent className="p-4 space-y-3">
+                  <h3 className="font-bold text-lg flex items-center gap-2 text-green-700">
+                    <GraduationCap className="h-5 w-5" />
+                    {t("schoolProfile.enrollmentAvailable")}
+                  </h3>
+                  {enrollmentStatus?.conditions?.customNote && (
+                    <p className="text-sm text-muted-foreground">{enrollmentStatus.conditions.customNote}</p>
+                  )}
+
+                  {(() => {
+                    const childEnrollmentsForSchool = myEnrollments.filter((e: any) => e.schoolId === schoolId);
+                    const hasPending = childEnrollmentsForSchool.some((e: any) => e.status === "pending");
+                    if (hasPending) return (
+                      <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">{t("schoolProfile.enrollmentPendingStatus")}</Badge>
+                    );
+                    return null;
+                  })()}
+
+                  {!showEnrollmentForm ? (
+                    <Button className="w-full bg-green-600 hover:bg-green-700" onClick={() => setShowEnrollmentForm(true)}>
+                      <GraduationCap className="h-4 w-4 ml-1" />
+                      {t("schoolProfile.applyForEnrollment")}
+                    </Button>
+                  ) : (
+                    <div className="space-y-3">
+                      <div>
+                        <label className="text-sm font-medium block mb-1">{t("schoolProfile.selectChild")}</label>
+                        <select
+                          className="w-full border rounded-md p-2 text-sm bg-white dark:bg-gray-900"
+                          value={enrollChildId}
+                          onChange={(e) => setEnrollChildId(e.target.value)}
+                        >
+                          <option value="">{t("schoolProfile.chooseChild")}</option>
+                          {myChildren.map((child: any) => (
+                            <option key={child.id} value={child.id}>{child.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium block mb-1">{t("schoolProfile.enrollmentNote")}</label>
+                        <Textarea
+                          value={enrollNote}
+                          onChange={(e) => setEnrollNote(e.target.value)}
+                          placeholder={t("schoolProfile.enrollmentNotePlaceholder")}
+                          maxLength={500}
+                          rows={3}
+                        />
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          className="flex-1 bg-green-600 hover:bg-green-700"
+                          disabled={!enrollChildId || enrollChild.isPending}
+                          onClick={() => enrollChild.mutate()}
+                        >
+                          {enrollChild.isPending ? t("schoolProfile.submitting") : t("schoolProfile.submitEnrollment")}
+                        </Button>
+                        <Button variant="outline" onClick={() => { setShowEnrollmentForm(false); setEnrollChildId(""); setEnrollNote(""); }}>
+                          {t("schoolProfile.cancelEnrollment")}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             )}

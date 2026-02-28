@@ -41,7 +41,16 @@ import {
   Lock,
   Unlock,
   CheckCircle,
+  ClipboardList,
+  XCircle,
+  Filter,
+  Calendar,
+  ChevronDown,
+  ChevronUp,
+  Settings,
 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 type SocialLinks = {
   facebook?: string;
@@ -223,6 +232,18 @@ export default function SchoolDashboard() {
   });
   const [uploadingPollOptionIdx, setUploadingPollOptionIdx] = useState<number | null>(null);
 
+  // Enrollment state
+  const [enrollmentStatusFilter, setEnrollmentStatusFilter] = useState<string>("all");
+  const [enrollmentSearch, setEnrollmentSearch] = useState("");
+  const [debouncedEnrollmentSearch, setDebouncedEnrollmentSearch] = useState("");
+  const [enrollmentPage, setEnrollmentPage] = useState(1);
+  const [selectedEnrollments, setSelectedEnrollments] = useState<string[]>([]);
+  const [showRejectDialog, setShowRejectDialog] = useState(false);
+  const [rejectionReason, setRejectionReason] = useState("");
+  const [bulkAction, setBulkAction] = useState<"approve" | "reject" | null>(null);
+  const [showSettingsPanel, setShowSettingsPanel] = useState(false);
+  const [enrollmentDetailId, setEnrollmentDetailId] = useState<string | null>(null);
+
   const [teacherForm, setTeacherForm] = useState({
     name: "",
     username: "",
@@ -296,6 +317,15 @@ export default function SchoolDashboard() {
   useEffect(() => {
     setReviewsPage(1);
   }, [debouncedReviewsSearch]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedEnrollmentSearch(enrollmentSearch.trim()), 300);
+    return () => clearTimeout(timer);
+  }, [enrollmentSearch]);
+
+  useEffect(() => {
+    setEnrollmentPage(1);
+  }, [debouncedEnrollmentSearch, enrollmentStatusFilter]);
 
   const { data: profile } = useQuery<SchoolProfile>({
     queryKey: ["school-profile"],
@@ -403,6 +433,70 @@ export default function SchoolDashboard() {
       return (await res.json()).data;
     },
     enabled: !!token,
+  });
+
+  // Enrollment queries
+  const { data: enrollmentData, isFetching: isEnrollmentsFetching } = useQuery<any>({
+    queryKey: ["school-enrollments", enrollmentStatusFilter, enrollmentPage, debouncedEnrollmentSearch],
+    queryFn: async () => {
+      const params = new URLSearchParams({ page: String(enrollmentPage), limit: "20" });
+      if (enrollmentStatusFilter !== "all") params.set("status", enrollmentStatusFilter);
+      if (debouncedEnrollmentSearch) params.set("search", debouncedEnrollmentSearch);
+      const res = await fetch(`/api/school/enrollments?${params}`, { headers: authHeaders });
+      if (!res.ok) throw new Error("Failed to fetch enrollments");
+      return (await res.json()).data;
+    },
+    enabled: !!token,
+  });
+
+  const { data: enrollmentSettings } = useQuery<any>({
+    queryKey: ["school-enrollment-settings"],
+    queryFn: async () => {
+      const res = await fetch("/api/school/enrollment-settings", { headers: authHeaders });
+      if (!res.ok) throw new Error("Failed to fetch settings");
+      return (await res.json()).data;
+    },
+    enabled: !!token,
+  });
+
+  const enrollments = enrollmentData?.enrollments || [];
+  const enrollmentCounts = enrollmentData?.counts || { total: 0, pending: 0, approved: 0, rejected: 0 };
+
+  const updateEnrollmentSettings = useMutation({
+    mutationFn: async (payload: any) => {
+      const res = await fetch("/api/school/enrollment-settings", {
+        method: "PUT",
+        headers: { ...authHeaders, "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) throw new Error("Failed to update settings");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["school-enrollment-settings"] });
+      toast({ title: t("schoolDashboard.enrollmentSettingsUpdated") });
+    },
+  });
+
+  const bulkEnrollmentAction = useMutation({
+    mutationFn: async (payload: { ids: string[]; action: "approve" | "reject"; rejectionReason?: string }) => {
+      const res = await fetch("/api/school/enrollments/bulk-action", {
+        method: "POST",
+        headers: { ...authHeaders, "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) throw new Error("Failed to perform action");
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["school-enrollments"] });
+      queryClient.invalidateQueries({ queryKey: ["school-stats"] });
+      setSelectedEnrollments([]);
+      setShowRejectDialog(false);
+      setRejectionReason("");
+      setBulkAction(null);
+      toast({ title: data.message || t("schoolDashboard.enrollmentActionDone") });
+    },
   });
 
   const students = studentsRes?.data || [];
@@ -1153,11 +1247,17 @@ export default function SchoolDashboard() {
         </div>
 
         <Tabs defaultValue="teachers" dir="rtl">
-          <TabsList className="grid w-full grid-cols-7">
+          <TabsList className="grid w-full grid-cols-8">
             <TabsTrigger value="teachers">{t("schoolDashboard.teachersTab")}</TabsTrigger>
             <TabsTrigger value="posts">{t("schoolDashboard.postsTab")}</TabsTrigger>
             <TabsTrigger value="polls">{t("schoolDashboard.pollsTab")}</TabsTrigger>
             <TabsTrigger value="students">{t("schoolDashboard.studentsTab")}</TabsTrigger>
+            <TabsTrigger value="enrollments" className="relative">
+              {t("schoolDashboard.enrollmentsTab")}
+              {enrollmentCounts.pending > 0 && (
+                <span className="absolute -top-1 -left-1 bg-red-500 text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center">{enrollmentCounts.pending}</span>
+              )}
+            </TabsTrigger>
             <TabsTrigger value="reviews">{t("schoolDashboard.reviewsTab")}</TabsTrigger>
             <TabsTrigger value="activity">{t("schoolDashboard.activityTab")}</TabsTrigger>
             <TabsTrigger value="profile">{t("schoolDashboard.profileTab")}</TabsTrigger>
@@ -1458,6 +1558,232 @@ export default function SchoolDashboard() {
                 <Button variant="outline" size="sm" disabled={studentsPage >= studentsPagesCount} onClick={() => setStudentsPage((p) => Math.min(studentsPagesCount, p + 1))}>{t("schoolDashboard.next")}</Button>
               </div>
               </>
+            )}
+          </TabsContent>
+
+          {/* ===== ENROLLMENTS TAB ===== */}
+          <TabsContent value="enrollments" className="space-y-4">
+            <div className="flex flex-wrap justify-between items-center gap-2">
+              <h2 className="text-lg font-bold">{t("schoolDashboard.enrollmentsHeader")}</h2>
+              <Button variant="outline" size="sm" onClick={() => setShowSettingsPanel(!showSettingsPanel)}>
+                <Settings className="h-4 w-4 ml-1" />
+                {t("schoolDashboard.enrollmentSettings")}
+              </Button>
+            </div>
+
+            {/* Settings Panel */}
+            {showSettingsPanel && (
+              <Card>
+                <CardContent className="p-4 space-y-4">
+                  <div className="flex items-center gap-3">
+                    <Label className="font-medium">{t("schoolDashboard.enrollmentOpenLabel")}</Label>
+                    <Switch
+                      checked={enrollmentSettings?.enrollmentOpen || false}
+                      onCheckedChange={(checked) => updateEnrollmentSettings.mutate({ enrollmentOpen: checked })}
+                    />
+                    <Badge variant={enrollmentSettings?.enrollmentOpen ? "default" : "secondary"}>
+                      {enrollmentSettings?.enrollmentOpen ? t("schoolDashboard.enrollmentOpen") : t("schoolDashboard.enrollmentClosed")}
+                    </Badge>
+                  </div>
+                  <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-3">
+                    <div>
+                      <Label className="text-sm">{t("schoolDashboard.enrollmentMinAge")}</Label>
+                      <Input
+                        type="number"
+                        min={3} max={18}
+                        placeholder="3"
+                        defaultValue={enrollmentSettings?.enrollmentConditions?.minAge || ""}
+                        onBlur={(e) => {
+                          const val = parseInt(e.target.value);
+                          if (val) updateEnrollmentSettings.mutate({ enrollmentConditions: { ...enrollmentSettings?.enrollmentConditions, minAge: val } });
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-sm">{t("schoolDashboard.enrollmentMaxAge")}</Label>
+                      <Input
+                        type="number"
+                        min={3} max={18}
+                        placeholder="18"
+                        defaultValue={enrollmentSettings?.enrollmentConditions?.maxAge || ""}
+                        onBlur={(e) => {
+                          const val = parseInt(e.target.value);
+                          if (val) updateEnrollmentSettings.mutate({ enrollmentConditions: { ...enrollmentSettings?.enrollmentConditions, maxAge: val } });
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-sm">{t("schoolDashboard.enrollmentMinActivity")}</Label>
+                      <Input
+                        type="number"
+                        min={0}
+                        placeholder="0"
+                        defaultValue={enrollmentSettings?.enrollmentConditions?.minActivityScore || ""}
+                        onBlur={(e) => {
+                          const val = parseInt(e.target.value);
+                          if (!isNaN(val)) updateEnrollmentSettings.mutate({ enrollmentConditions: { ...enrollmentSettings?.enrollmentConditions, minActivityScore: val } });
+                        }}
+                      />
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-3">
+                    <label className="flex items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        defaultChecked={enrollmentSettings?.enrollmentConditions?.requireCompleteProfile || false}
+                        onChange={(e) => updateEnrollmentSettings.mutate({ enrollmentConditions: { ...enrollmentSettings?.enrollmentConditions, requireCompleteProfile: e.target.checked } })}
+                      />
+                      {t("schoolDashboard.enrollmentRequireProfile")}
+                    </label>
+                    <label className="flex items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        defaultChecked={enrollmentSettings?.enrollmentConditions?.requireAvatar || false}
+                        onChange={(e) => updateEnrollmentSettings.mutate({ enrollmentConditions: { ...enrollmentSettings?.enrollmentConditions, requireAvatar: e.target.checked } })}
+                      />
+                      {t("schoolDashboard.enrollmentRequireAvatar")}
+                    </label>
+                  </div>
+                  <div>
+                    <Label className="text-sm">{t("schoolDashboard.enrollmentCustomNote")}</Label>
+                    <Textarea
+                      placeholder={t("schoolDashboard.enrollmentCustomNotePlaceholder")}
+                      defaultValue={enrollmentSettings?.enrollmentConditions?.customNote || ""}
+                      onBlur={(e) => updateEnrollmentSettings.mutate({ enrollmentConditions: { ...enrollmentSettings?.enrollmentConditions, customNote: e.target.value } })}
+                      maxLength={500}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Stats Badges */}
+            <div className="flex flex-wrap gap-2">
+              <Badge variant={enrollmentStatusFilter === "all" ? "default" : "outline"} className="cursor-pointer" onClick={() => setEnrollmentStatusFilter("all")}>
+                {t("schoolDashboard.enrollmentAll")} ({enrollmentCounts.total})
+              </Badge>
+              <Badge variant={enrollmentStatusFilter === "pending" ? "default" : "outline"} className="cursor-pointer bg-yellow-100 text-yellow-800" onClick={() => setEnrollmentStatusFilter("pending")}>
+                {t("schoolDashboard.enrollmentPending")} ({enrollmentCounts.pending})
+              </Badge>
+              <Badge variant={enrollmentStatusFilter === "approved" ? "default" : "outline"} className="cursor-pointer bg-green-100 text-green-800" onClick={() => setEnrollmentStatusFilter("approved")}>
+                {t("schoolDashboard.enrollmentApproved")} ({enrollmentCounts.approved})
+              </Badge>
+              <Badge variant={enrollmentStatusFilter === "rejected" ? "default" : "outline"} className="cursor-pointer bg-red-100 text-red-800" onClick={() => setEnrollmentStatusFilter("rejected")}>
+                {t("schoolDashboard.enrollmentRejected")} ({enrollmentCounts.rejected})
+              </Badge>
+            </div>
+
+            {/* Search + Bulk Actions */}
+            <div className="flex flex-wrap items-center gap-2">
+              <Input
+                placeholder={t("schoolDashboard.enrollmentSearchPlaceholder")}
+                value={enrollmentSearch}
+                onChange={(e) => setEnrollmentSearch(e.target.value)}
+                className="max-w-xs"
+              />
+              {selectedEnrollments.length > 0 && (
+                <>
+                  <span className="text-sm text-muted-foreground">{selectedEnrollments.length} {t("schoolDashboard.enrollmentSelected")}</span>
+                  <Button size="sm" className="bg-green-600 hover:bg-green-700" onClick={() => bulkEnrollmentAction.mutate({ ids: selectedEnrollments, action: "approve" })} disabled={bulkEnrollmentAction.isPending}>
+                    <CheckCircle className="h-4 w-4 ml-1" />
+                    {t("schoolDashboard.enrollmentApproveBtn")}
+                  </Button>
+                  <Button size="sm" variant="destructive" onClick={() => { setBulkAction("reject"); setShowRejectDialog(true); }} disabled={bulkEnrollmentAction.isPending}>
+                    <XCircle className="h-4 w-4 ml-1" />
+                    {t("schoolDashboard.enrollmentRejectBtn")}
+                  </Button>
+                </>
+              )}
+            </div>
+
+            {/* Enrollment List */}
+            {isEnrollmentsFetching ? (
+              <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin" /></div>
+            ) : enrollments.length === 0 ? (
+              <Card><CardContent className="py-8 text-center text-muted-foreground">{t("schoolDashboard.enrollmentNoResults")}</CardContent></Card>
+            ) : (
+              <div className="space-y-2">
+                {/* Select All */}
+                {enrollmentStatusFilter === "pending" && enrollments.length > 0 && (
+                  <label className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={selectedEnrollments.length === enrollments.filter((e: any) => e.status === "pending").length && selectedEnrollments.length > 0}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedEnrollments(enrollments.filter((en: any) => en.status === "pending").map((en: any) => en.id));
+                        } else {
+                          setSelectedEnrollments([]);
+                        }
+                      }}
+                    />
+                    {t("schoolDashboard.enrollmentSelectAll")}
+                  </label>
+                )}
+
+                {enrollments.map((enrollment: any) => (
+                  <Card key={enrollment.id} className={`${selectedEnrollments.includes(enrollment.id) ? "ring-2 ring-blue-500" : ""}`}>
+                    <CardContent className="p-4">
+                      <div className="flex items-start gap-3">
+                        {enrollment.status === "pending" && (
+                          <input
+                            type="checkbox"
+                            className="mt-1"
+                            checked={selectedEnrollments.includes(enrollment.id)}
+                            onChange={(e) => {
+                              if (e.target.checked) setSelectedEnrollments(prev => [...prev, enrollment.id]);
+                              else setSelectedEnrollments(prev => prev.filter(id => id !== enrollment.id));
+                            }}
+                          />
+                        )}
+                        <div className="flex-shrink-0">
+                          {enrollment.child?.avatarUrl ? (
+                            <img src={enrollment.child.avatarUrl} alt="" className="w-10 h-10 rounded-full object-cover" />
+                          ) : (
+                            <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-sm">
+                              {enrollment.child?.name?.charAt(0) || "?"}
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-medium">{enrollment.child?.name}</span>
+                            <Badge variant={enrollment.status === "pending" ? "outline" : enrollment.status === "approved" ? "default" : "destructive"} className={enrollment.status === "pending" ? "bg-yellow-50 text-yellow-700 border-yellow-200" : enrollment.status === "approved" ? "bg-green-50 text-green-700" : ""}>
+                              {enrollment.status === "pending" ? t("schoolDashboard.enrollmentPending") : enrollment.status === "approved" ? t("schoolDashboard.enrollmentApproved") : t("schoolDashboard.enrollmentRejected")}
+                            </Badge>
+                            {enrollment.child?.age && <span className="text-xs text-muted-foreground">{enrollment.child.age} {t("schoolDashboard.enrollmentYears")}</span>}
+                          </div>
+                          <div className="text-sm text-muted-foreground mt-1">
+                            {t("schoolDashboard.enrollmentParent")}: {enrollment.parent?.name} | {enrollment.child?.governorate || "-"} | {t("schoolDashboard.enrollmentPoints")}: {enrollment.child?.totalPoints || 0}
+                          </div>
+                          {enrollment.parentNote && <p className="text-sm mt-1 text-gray-600">"{enrollment.parentNote}"</p>}
+                          {enrollment.rejectionReason && <p className="text-sm mt-1 text-red-600">{t("schoolDashboard.enrollmentRejectionReason")}: {enrollment.rejectionReason}</p>}
+                          <div className="text-xs text-muted-foreground mt-1">{new Date(enrollment.createdAt).toLocaleString("ar")}</div>
+                        </div>
+                        <div className="flex gap-1">
+                          {enrollment.status === "pending" && (
+                            <>
+                              <Button size="sm" variant="ghost" className="text-green-600 hover:text-green-700" onClick={() => bulkEnrollmentAction.mutate({ ids: [enrollment.id], action: "approve" })} disabled={bulkEnrollmentAction.isPending}>
+                                <CheckCircle className="h-4 w-4" />
+                              </Button>
+                              <Button size="sm" variant="ghost" className="text-red-600 hover:text-red-700" onClick={() => { setSelectedEnrollments([enrollment.id]); setBulkAction("reject"); setShowRejectDialog(true); }} disabled={bulkEnrollmentAction.isPending}>
+                                <XCircle className="h-4 w-4" />
+                              </Button>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+
+                {/* Pagination */}
+                {enrollmentData?.pagination?.hasMore && (
+                  <div className="flex justify-center pt-2">
+                    <Button variant="outline" size="sm" onClick={() => setEnrollmentPage(p => p + 1)}>{t("schoolDashboard.enrollmentLoadMore")}</Button>
+                  </div>
+                )}
+              </div>
             )}
           </TabsContent>
 
@@ -2351,6 +2677,32 @@ export default function SchoolDashboard() {
               }}
             >
               {transferTeacher.isPending ? t("schoolDashboard.transferring") : t("schoolDashboard.confirmTransfer")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Enrollment Reject Dialog */}
+      <Dialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("schoolDashboard.enrollmentRejectTitle")}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <Label>{t("schoolDashboard.enrollmentRejectionReasonLabel")}</Label>
+            <Textarea
+              value={rejectionReason}
+              onChange={(e) => setRejectionReason(e.target.value)}
+              placeholder={t("schoolDashboard.enrollmentRejectionReasonPlaceholder")}
+              maxLength={500}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setShowRejectDialog(false); setRejectionReason(""); }}>{t("schoolDashboard.cancel")}</Button>
+            <Button variant="destructive" disabled={bulkEnrollmentAction.isPending} onClick={() => {
+              bulkEnrollmentAction.mutate({ ids: selectedEnrollments, action: "reject", rejectionReason: rejectionReason || undefined });
+            }}>
+              {bulkEnrollmentAction.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : t("schoolDashboard.enrollmentConfirmReject")}
             </Button>
           </DialogFooter>
         </DialogContent>

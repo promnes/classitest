@@ -25,6 +25,9 @@ import {
   supportSettings,
   tasksSettings,
   outboxEvents,
+  schools,
+  schoolEnrollments,
+  childSchoolAssignment,
 } from "../../shared/schema";
 import {
   parentPurchases,
@@ -4231,6 +4234,214 @@ export async function registerParentRoutes(app: Express) {
     } catch (error: any) {
       console.error("Parent upload proxy error:", error);
       return res.status(500).json({ success: false, message: "Upload proxy failed" });
+    }
+  });
+
+  // ===== SCHOOL ENROLLMENT (PARENT SIDE) =====
+
+  // Submit enrollment request
+  app.post("/api/parent/enroll-child", authMiddleware, async (req: any, res) => {
+    try {
+      const parentId = req.user.userId;
+      const schema = z.object({
+        childId: z.string(),
+        schoolId: z.string(),
+        parentNote: z.string().max(500).optional(),
+        attachments: z.array(z.object({
+          url: z.string(),
+          name: z.string(),
+          type: z.string(),
+          size: z.number(),
+        })).max(5).optional(),
+      });
+      const { childId, schoolId, parentNote, attachments } = schema.parse(req.body);
+
+      // Verify parent owns this child
+      const [pc] = await db.select().from(parentChild).where(and(eq(parentChild.parentId, parentId), eq(parentChild.childId, childId)));
+      if (!pc) return res.status(403).json({ success: false, error: "PARENT_CHILD_MISMATCH" });
+
+      // Check school exists and enrollment is open
+      const [school] = await db.select().from(schools).where(and(eq(schools.id, schoolId), eq(schools.isActive, true)));
+      if (!school) return res.status(404).json({ success: false, error: "NOT_FOUND", message: "المدرسة غير موجودة" });
+      if (!school.enrollmentOpen) return res.status(400).json({ success: false, error: "BAD_REQUEST", message: "التسجيل مغلق حالياً في هذه المدرسة" });
+
+      // Check if child is already assigned to this school
+      const [existingAssignment] = await db.select().from(childSchoolAssignment).where(eq(childSchoolAssignment.childId, childId));
+      if (existingAssignment && existingAssignment.schoolId === schoolId) {
+        return res.status(400).json({ success: false, error: "BAD_REQUEST", message: "الطفل مسجل بالفعل في هذه المدرسة" });
+      }
+
+      // Check if already has a pending enrollment for this school
+      const [existingEnrollment] = await db.select().from(schoolEnrollments)
+        .where(and(eq(schoolEnrollments.childId, childId), eq(schoolEnrollments.schoolId, schoolId), eq(schoolEnrollments.status, "pending")));
+      if (existingEnrollment) {
+        return res.status(400).json({ success: false, error: "BAD_REQUEST", message: "يوجد طلب التحاق معلق بالفعل" });
+      }
+
+      // Get child data for snapshot and conditions check
+      const [child] = await db.select().from(children).where(eq(children.id, childId));
+      if (!child) return res.status(404).json({ success: false, error: "NOT_FOUND" });
+
+      const childAge = child.birthday ? Math.floor((Date.now() - new Date(child.birthday).getTime()) / (365.25 * 24 * 60 * 60 * 1000)) : null;
+
+      // Check enrollment conditions
+      const conditions = school.enrollmentConditions as any;
+      if (conditions) {
+        const rejections: string[] = [];
+        if (conditions.minAge && childAge !== null && childAge < conditions.minAge) {
+          rejections.push(`الحد الأدنى للعمر هو ${conditions.minAge} سنوات`);
+        }
+        if (conditions.maxAge && childAge !== null && childAge > conditions.maxAge) {
+          rejections.push(`الحد الأقصى للعمر هو ${conditions.maxAge} سنوات`);
+        }
+        if (conditions.requiredGovernorates?.length && child.governorate && !conditions.requiredGovernorates.includes(child.governorate)) {
+          rejections.push(`المحافظة غير مقبولة. المحافظات المقبولة: ${conditions.requiredGovernorates.join("، ")}`);
+        }
+        if (conditions.minActivityScore && (child.totalPoints || 0) < conditions.minActivityScore) {
+          rejections.push(`الحد الأدنى لنقاط النشاط هو ${conditions.minActivityScore}`);
+        }
+        if (conditions.requireAvatar && !child.avatarUrl) {
+          rejections.push("يجب أن يكون للطفل صورة شخصية");
+        }
+        if (conditions.requireCompleteProfile) {
+          const hasRequiredFields = child.name && child.birthday && child.governorate;
+          if (!hasRequiredFields) {
+            rejections.push("يجب إكمال ملف الطفل (الاسم، تاريخ الميلاد، المحافظة)");
+          }
+        }
+
+        if (rejections.length > 0) {
+          // Auto-reject with conditions reason
+          const rejectionReason = rejections.join(" | ");
+          const enrollmentId = uuidv4();
+          await db.insert(schoolEnrollments).values({
+            id: enrollmentId,
+            schoolId,
+            parentId,
+            childId,
+            status: "rejected",
+            parentNote: parentNote || null,
+            rejectionReason,
+            attachments: attachments || null,
+            childProfileSnapshot: {
+              name: child.name,
+              age: childAge,
+              birthday: child.birthday,
+              governorate: child.governorate,
+              schoolName: child.schoolName,
+              academicGrade: child.academicGrade,
+              hobbies: child.hobbies,
+              avatarUrl: child.avatarUrl,
+              totalPoints: child.totalPoints,
+              interests: child.interests,
+              bio: child.bio,
+            },
+            reviewedAt: new Date(),
+            reviewedBy: "auto",
+          });
+
+          return res.status(400).json({
+            success: false,
+            error: "BAD_REQUEST",
+            message: "لا يستوفي الطفل شروط التسجيل",
+            data: { reasons: rejections, enrollmentId },
+          });
+        }
+      }
+
+      // Create enrollment
+      const enrollmentId = uuidv4();
+      await db.insert(schoolEnrollments).values({
+        id: enrollmentId,
+        schoolId,
+        parentId,
+        childId,
+        status: "pending",
+        parentNote: parentNote || null,
+        attachments: attachments || null,
+        childProfileSnapshot: {
+          name: child.name,
+          age: childAge,
+          birthday: child.birthday,
+          governorate: child.governorate,
+          schoolName: child.schoolName,
+          academicGrade: child.academicGrade,
+          hobbies: child.hobbies,
+          avatarUrl: child.avatarUrl,
+          totalPoints: child.totalPoints,
+          interests: child.interests,
+          bio: child.bio,
+        },
+      });
+
+      // Notify school (via notifications table with schoolId)
+      await db.insert(notifications).values({
+        id: uuidv4(),
+        schoolId,
+        type: NOTIFICATION_TYPES.ENROLLMENT_SUBMITTED,
+        title: "طلب التحاق جديد",
+        message: `تم تقديم طلب التحاق جديد من ولي أمر ${child.name}`,
+        style: "banner",
+        priority: "high",
+        relatedId: enrollmentId,
+        metadata: { parentId, childId, enrollmentId },
+        isRead: false,
+      });
+
+      res.json({ success: true, data: { enrollmentId }, message: "تم تقديم طلب الالتحاق بنجاح" });
+    } catch (error: any) {
+      if (error instanceof z.ZodError) return res.status(400).json({ success: false, error: "BAD_REQUEST", message: error.errors[0]?.message });
+      console.error("Enroll child error:", error);
+      res.status(500).json({ success: false, error: "INTERNAL_SERVER_ERROR" });
+    }
+  });
+
+  // List parent's enrollment requests
+  app.get("/api/parent/enrollments", authMiddleware, async (req: any, res) => {
+    try {
+      const parentId = req.user.userId;
+      const rows = await db
+        .select({
+          enrollment: schoolEnrollments,
+          schoolName: schools.name,
+          schoolNameAr: schools.nameAr,
+          schoolImageUrl: schools.imageUrl,
+          schoolGovernorate: schools.governorate,
+          childName: children.name,
+          childAvatarUrl: children.avatarUrl,
+        })
+        .from(schoolEnrollments)
+        .innerJoin(schools, eq(schoolEnrollments.schoolId, schools.id))
+        .innerJoin(children, eq(schoolEnrollments.childId, children.id))
+        .where(eq(schoolEnrollments.parentId, parentId))
+        .orderBy(desc(schoolEnrollments.createdAt));
+
+      const data = rows.map((row: any) => ({
+        ...row.enrollment,
+        school: { name: row.schoolName, nameAr: row.schoolNameAr, imageUrl: row.schoolImageUrl, governorate: row.schoolGovernorate },
+        child: { name: row.childName, avatarUrl: row.childAvatarUrl },
+      }));
+
+      res.json({ success: true, data });
+    } catch (error: any) {
+      console.error("List enrollments error:", error);
+      res.status(500).json({ success: false, error: "INTERNAL_SERVER_ERROR" });
+    }
+  });
+
+  // Cancel pending enrollment
+  app.delete("/api/parent/enrollments/:id", authMiddleware, async (req: any, res) => {
+    try {
+      const parentId = req.user.userId;
+      const { id } = req.params;
+      const [enrollment] = await db.select().from(schoolEnrollments)
+        .where(and(eq(schoolEnrollments.id, id), eq(schoolEnrollments.parentId, parentId)));
+      if (!enrollment) return res.status(404).json({ success: false, error: "NOT_FOUND" });
+      if (enrollment.status !== "pending") return res.status(400).json({ success: false, error: "BAD_REQUEST", message: "لا يمكن إلغاء طلب تمت معالجته" });
+      await db.delete(schoolEnrollments).where(eq(schoolEnrollments.id, id));
+      res.json({ success: true, message: "تم إلغاء طلب الالتحاق" });
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: "INTERNAL_SERVER_ERROR" });
     }
   });
 }

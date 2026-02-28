@@ -1843,6 +1843,16 @@ export const schools = pgTable("schools", {
   withdrawalCommissionPct: decimal("withdrawal_commission_pct", { precision: 5, scale: 2 }).default("0.00").notNull(),
   isActive: boolean("is_active").default(true).notNull(),
   isVerified: boolean("is_verified").default(false).notNull(),
+  enrollmentOpen: boolean("enrollment_open").default(false).notNull(),
+  enrollmentConditions: json("enrollment_conditions").$type<{
+    minAge?: number;
+    maxAge?: number;
+    requiredGovernorates?: string[];
+    minActivityScore?: number;
+    requireCompleteProfile?: boolean;
+    requireAvatar?: boolean;
+    customNote?: string;
+  }>(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -2394,3 +2404,42 @@ export type InsertSymbolCategory = z.infer<typeof insertSymbolCategorySchema>;
 export const insertLibrarySymbolSchema = createInsertSchema(librarySymbols).omit({ id: true, createdAt: true });
 export type LibrarySymbol = typeof librarySymbols.$inferSelect;
 export type InsertLibrarySymbol = z.infer<typeof insertLibrarySymbolSchema>;
+
+// ===== School Enrollment System =====
+
+export const schoolEnrollments = pgTable("school_enrollments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  schoolId: varchar("school_id").notNull().references(() => schools.id, { onDelete: "cascade" }),
+  parentId: varchar("parent_id").notNull().references(() => parents.id, { onDelete: "cascade" }),
+  childId: varchar("child_id").notNull().references(() => children.id, { onDelete: "cascade" }),
+  status: varchar("status", { length: 20 }).default("pending").notNull(), // pending | approved | rejected
+  parentNote: text("parent_note"),
+  rejectionReason: text("rejection_reason"),
+  attachments: json("attachments").$type<{ url: string; name: string; type: string; size?: number }[]>().default(sql`'[]'::jsonb`),
+  childProfileSnapshot: json("child_profile_snapshot").$type<{
+    name: string;
+    age?: number;
+    birthday?: string;
+    governorate?: string;
+    schoolName?: string;
+    academicGrade?: string;
+    hobbies?: string;
+    avatarUrl?: string;
+    totalPoints: number;
+    interests?: string[];
+    bio?: string;
+    profileCompleteness: number;
+  }>(),
+  reviewedAt: timestamp("reviewed_at"),
+  reviewedBy: varchar("reviewed_by"), // 'school' or admin identifier
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  schoolIdx: index("enrollment_school_idx").on(table.schoolId),
+  parentIdx: index("enrollment_parent_idx").on(table.parentId),
+  childIdx: index("enrollment_child_idx").on(table.childId),
+  statusIdx: index("enrollment_status_idx").on(table.status),
+}));
+
+export const insertSchoolEnrollmentSchema = createInsertSchema(schoolEnrollments).omit({ id: true, createdAt: true, reviewedAt: true, reviewedBy: true });
+export type SchoolEnrollment = typeof schoolEnrollments.$inferSelect;
+export type InsertSchoolEnrollment = z.infer<typeof insertSchoolEnrollmentSchema>;

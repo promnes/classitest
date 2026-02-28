@@ -49,6 +49,9 @@ export const NOTIFICATION_TYPES = {
   SCHEDULED_SESSION_COMPLETED: "scheduled_session_completed",
   SCHEDULED_SESSION_ACTIVATED: "scheduled_session_activated",
   CHILD_PIN_CHANGED: "child_pin_changed",
+  ENROLLMENT_SUBMITTED: "enrollment_submitted",
+  ENROLLMENT_APPROVED: "enrollment_approved",
+  ENROLLMENT_REJECTED: "enrollment_rejected",
 } as const;
 
 export type NotificationType = (typeof NOTIFICATION_TYPES)[keyof typeof NOTIFICATION_TYPES];

@@ -20,12 +20,15 @@ import {
   follows,
   teacherTransfers,
   notifications,
+  schoolEnrollments,
 } from "../../shared/schema";
-import { eq, desc, and, sql, like, or, count, inArray } from "drizzle-orm";
+import { eq, desc, and, sql, like, or, count, inArray, gte, lte, asc } from "drizzle-orm";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import { createPresignedUpload, finalizeUpload } from "../services/uploadService";
 import { finalizeUploadSchema } from "../../shared/media";
+import { createNotification } from "../notifications";
+import { NOTIFICATION_TYPES } from "../../shared/notificationTypes";
 
 const db = storage.db;
 const JWT_SECRET = process.env["JWT_SECRET"] ?? "";
@@ -1706,6 +1709,309 @@ export async function registerSchoolRoutes(app: Express) {
         .set({ isRead: true, readAt: new Date() })
         .where(and(eq(notifications.id, id), eq(notifications.schoolId, schoolId)));
       res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: "INTERNAL_SERVER_ERROR" });
+    }
+  });
+
+  // ===== ENROLLMENT MANAGEMENT =====
+
+  // Get enrollment settings
+  app.get("/api/school/enrollment-settings", schoolMiddleware, async (req: any, res) => {
+    try {
+      const schoolId = req.school.schoolId;
+      const [school] = await db.select({
+        enrollmentOpen: schools.enrollmentOpen,
+        enrollmentConditions: schools.enrollmentConditions,
+      }).from(schools).where(eq(schools.id, schoolId));
+      if (!school) return res.status(404).json({ success: false, error: "NOT_FOUND" });
+      res.json({ success: true, data: school });
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: "INTERNAL_SERVER_ERROR" });
+    }
+  });
+
+  // Update enrollment settings (open/close + conditions)
+  app.put("/api/school/enrollment-settings", schoolMiddleware, async (req: any, res) => {
+    try {
+      const schoolId = req.school.schoolId;
+      const schema = z.object({
+        enrollmentOpen: z.boolean().optional(),
+        enrollmentConditions: z.object({
+          minAge: z.number().min(3).max(18).optional(),
+          maxAge: z.number().min(3).max(18).optional(),
+          requiredGovernorates: z.array(z.string()).optional(),
+          minActivityScore: z.number().min(0).optional(),
+          requireCompleteProfile: z.boolean().optional(),
+          requireAvatar: z.boolean().optional(),
+          customNote: z.string().max(500).optional(),
+        }).optional(),
+      });
+      const parsed = schema.parse(req.body);
+      const updates: any = { updatedAt: new Date() };
+      if (parsed.enrollmentOpen !== undefined) updates.enrollmentOpen = parsed.enrollmentOpen;
+      if (parsed.enrollmentConditions !== undefined) updates.enrollmentConditions = parsed.enrollmentConditions;
+      await db.update(schools).set(updates).where(eq(schools.id, schoolId));
+      res.json({ success: true, message: "تم تحديث إعدادات التقديم" });
+    } catch (error: any) {
+      if (error instanceof z.ZodError) return res.status(400).json({ success: false, error: "BAD_REQUEST", message: error.errors[0]?.message });
+      res.status(500).json({ success: false, error: "INTERNAL_SERVER_ERROR" });
+    }
+  });
+
+  // List enrollment requests with filters
+  app.get("/api/school/enrollments", schoolMiddleware, async (req: any, res) => {
+    try {
+      const schoolId = req.school.schoolId;
+      const { status, governorate, minAge, maxAge, minActivity, dateFrom, dateTo, search, sort, page = "1", limit = "20" } = req.query;
+      const pageNum = Math.max(1, parseInt(page as string) || 1);
+      const limitNum = Math.min(50, Math.max(1, parseInt(limit as string) || 20));
+      const offset = (pageNum - 1) * limitNum;
+
+      const conditions: any[] = [eq(schoolEnrollments.schoolId, schoolId)];
+
+      if (status && ["pending", "approved", "rejected"].includes(status as string)) {
+        conditions.push(eq(schoolEnrollments.status, status as string));
+      }
+      if (dateFrom) {
+        conditions.push(gte(schoolEnrollments.createdAt, new Date(dateFrom as string)));
+      }
+      if (dateTo) {
+        const endDate = new Date(dateTo as string);
+        endDate.setHours(23, 59, 59, 999);
+        conditions.push(lte(schoolEnrollments.createdAt, endDate));
+      }
+
+      // Get enrollments with parent + child info
+      const enrollmentRows = await db
+        .select({
+          enrollment: schoolEnrollments,
+          parentName: parents.name,
+          parentEmail: parents.email,
+          parentGovernorate: parents.governorate,
+          childName: children.name,
+          childBirthday: children.birthday,
+          childGovernorate: children.governorate,
+          childTotalPoints: children.totalPoints,
+          childAvatarUrl: children.avatarUrl,
+          childAcademicGrade: children.academicGrade,
+          childSchoolName: children.schoolName,
+        })
+        .from(schoolEnrollments)
+        .innerJoin(parents, eq(schoolEnrollments.parentId, parents.id))
+        .innerJoin(children, eq(schoolEnrollments.childId, children.id))
+        .where(and(...conditions))
+        .orderBy(sort === "oldest" ? asc(schoolEnrollments.createdAt) : desc(schoolEnrollments.createdAt))
+        .limit(limitNum + 1)
+        .offset(offset);
+
+      let results = enrollmentRows.map((row: any) => {
+        const childAge = row.childBirthday ? Math.floor((Date.now() - new Date(row.childBirthday).getTime()) / (365.25 * 24 * 60 * 60 * 1000)) : null;
+        return {
+          ...row.enrollment,
+          parent: { name: row.parentName, email: row.parentEmail, governorate: row.parentGovernorate },
+          child: { name: row.childName, age: childAge, birthday: row.childBirthday, governorate: row.childGovernorate, totalPoints: row.childTotalPoints, avatarUrl: row.childAvatarUrl, academicGrade: row.childAcademicGrade, schoolName: row.childSchoolName },
+        };
+      });
+
+      // Apply post-query filters (governorate, age, activity) since they depend on child data
+      if (governorate) {
+        results = results.filter((r: any) => r.child.governorate === governorate);
+      }
+      if (minAge) {
+        const min = parseInt(minAge as string);
+        results = results.filter((r: any) => r.child.age !== null && r.child.age >= min);
+      }
+      if (maxAge) {
+        const max = parseInt(maxAge as string);
+        results = results.filter((r: any) => r.child.age !== null && r.child.age <= max);
+      }
+      if (minActivity) {
+        const minAct = parseInt(minActivity as string);
+        results = results.filter((r: any) => r.child.totalPoints >= minAct);
+      }
+      if (search) {
+        const s = (search as string).toLowerCase();
+        results = results.filter((r: any) => r.child.name.toLowerCase().includes(s) || r.parent.name.toLowerCase().includes(s));
+      }
+
+      const hasMore = enrollmentRows.length > limitNum;
+
+      // Count totals by status
+      const [countResult] = await db.select({
+        total: count(),
+        pending: sql<number>`count(*) filter (where ${schoolEnrollments.status} = 'pending')`,
+        approved: sql<number>`count(*) filter (where ${schoolEnrollments.status} = 'approved')`,
+        rejected: sql<number>`count(*) filter (where ${schoolEnrollments.status} = 'rejected')`,
+      }).from(schoolEnrollments).where(eq(schoolEnrollments.schoolId, schoolId));
+
+      res.json({
+        success: true,
+        data: {
+          enrollments: results.slice(0, limitNum),
+          pagination: { page: pageNum, limit: limitNum, hasMore },
+          counts: {
+            total: Number(countResult?.total || 0),
+            pending: Number(countResult?.pending || 0),
+            approved: Number(countResult?.approved || 0),
+            rejected: Number(countResult?.rejected || 0),
+          },
+        },
+      });
+    } catch (error: any) {
+      console.error("List enrollments error:", error);
+      res.status(500).json({ success: false, error: "INTERNAL_SERVER_ERROR" });
+    }
+  });
+
+  // Get single enrollment detail
+  app.get("/api/school/enrollments/:id", schoolMiddleware, async (req: any, res) => {
+    try {
+      const schoolId = req.school.schoolId;
+      const { id } = req.params;
+      const [row] = await db
+        .select({
+          enrollment: schoolEnrollments,
+          parentName: parents.name,
+          parentEmail: parents.email,
+          parentPhone: parents.phoneNumber,
+          parentGovernorate: parents.governorate,
+          childName: children.name,
+          childBirthday: children.birthday,
+          childGovernorate: children.governorate,
+          childTotalPoints: children.totalPoints,
+          childAvatarUrl: children.avatarUrl,
+          childAcademicGrade: children.academicGrade,
+          childSchoolName: children.schoolName,
+          childBio: children.bio,
+          childHobbies: children.hobbies,
+          childInterests: children.interests,
+          childShareCode: children.shareCode,
+        })
+        .from(schoolEnrollments)
+        .innerJoin(parents, eq(schoolEnrollments.parentId, parents.id))
+        .innerJoin(children, eq(schoolEnrollments.childId, children.id))
+        .where(and(eq(schoolEnrollments.id, id), eq(schoolEnrollments.schoolId, schoolId)));
+      if (!row) return res.status(404).json({ success: false, error: "NOT_FOUND" });
+      const childAge = row.childBirthday ? Math.floor((Date.now() - new Date(row.childBirthday).getTime()) / (365.25 * 24 * 60 * 60 * 1000)) : null;
+      res.json({
+        success: true,
+        data: {
+          ...row.enrollment,
+          parent: { name: row.parentName, email: row.parentEmail, phone: row.parentPhone, governorate: row.parentGovernorate },
+          child: { name: row.childName, age: childAge, birthday: row.childBirthday, governorate: row.childGovernorate, totalPoints: row.childTotalPoints, avatarUrl: row.childAvatarUrl, academicGrade: row.childAcademicGrade, schoolName: row.childSchoolName, bio: row.childBio, hobbies: row.childHobbies, interests: row.childInterests, shareCode: row.childShareCode },
+        },
+      });
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: "INTERNAL_SERVER_ERROR" });
+    }
+  });
+
+  // Bulk approve/reject enrollments
+  app.post("/api/school/enrollments/bulk-action", schoolMiddleware, async (req: any, res) => {
+    try {
+      const schoolId = req.school.schoolId;
+      const schema = z.object({
+        ids: z.array(z.string()).min(1).max(100),
+        action: z.enum(["approve", "reject"]),
+        rejectionReason: z.string().max(500).optional(),
+      });
+      const { ids, action, rejectionReason } = schema.parse(req.body);
+
+      // Fetch school info for notifications
+      const [school] = await db.select({ name: schools.name, nameAr: schools.nameAr }).from(schools).where(eq(schools.id, schoolId));
+      const schoolName = school?.nameAr || school?.name || "المدرسة";
+
+      // Verify all enrollments belong to this school and are pending
+      const enrollmentRows = await db
+        .select()
+        .from(schoolEnrollments)
+        .where(and(eq(schoolEnrollments.schoolId, schoolId), inArray(schoolEnrollments.id, ids), eq(schoolEnrollments.status, "pending")));
+
+      if (enrollmentRows.length === 0) {
+        return res.status(400).json({ success: false, error: "BAD_REQUEST", message: "لا توجد طلبات معلقة بهذه المعرفات" });
+      }
+
+      const validIds = enrollmentRows.map((e: any) => e.id);
+      const now = new Date();
+
+      if (action === "approve") {
+        await db.update(schoolEnrollments)
+          .set({ status: "approved", reviewedAt: now, reviewedBy: "school" })
+          .where(inArray(schoolEnrollments.id, validIds));
+
+        // Auto-assign children to school
+        for (const enrollment of enrollmentRows) {
+          // Check if child already assigned to a school
+          const [existing] = await db.select().from(childSchoolAssignment).where(eq(childSchoolAssignment.childId, enrollment.childId));
+          if (existing) {
+            await db.update(childSchoolAssignment)
+              .set({ schoolId })
+              .where(eq(childSchoolAssignment.childId, enrollment.childId));
+          } else {
+            await db.insert(childSchoolAssignment).values({ childId: enrollment.childId, schoolId });
+          }
+
+          // Notify parent
+          await createNotification({
+            parentId: enrollment.parentId,
+            type: NOTIFICATION_TYPES.ENROLLMENT_APPROVED,
+            title: "تم قبول طلب الالتحاق",
+            message: `تمت الموافقة على طلب التحاق طفلك بمدرسة ${schoolName}`,
+            style: "banner",
+            priority: "urgent",
+            relatedId: enrollment.id,
+            metadata: { schoolId, enrollmentId: enrollment.id, childId: enrollment.childId },
+          });
+        }
+
+        // Update school student count
+        await db.update(schools)
+          .set({ totalStudents: sql`${schools.totalStudents} + ${enrollmentRows.length}` })
+          .where(eq(schools.id, schoolId));
+
+      } else {
+        // Reject
+        await db.update(schoolEnrollments)
+          .set({ status: "rejected", rejectionReason: rejectionReason || null, reviewedAt: now, reviewedBy: "school" })
+          .where(inArray(schoolEnrollments.id, validIds));
+
+        // Notify parents
+        for (const enrollment of enrollmentRows) {
+          const reasonText = rejectionReason ? ` — السبب: ${rejectionReason}` : "";
+          await createNotification({
+            parentId: enrollment.parentId,
+            type: NOTIFICATION_TYPES.ENROLLMENT_REJECTED,
+            title: "تم رفض طلب الالتحاق",
+            message: `تم رفض طلب التحاق طفلك بمدرسة ${schoolName}${reasonText}`,
+            style: "banner",
+            priority: "urgent",
+            relatedId: enrollment.id,
+            metadata: { schoolId, enrollmentId: enrollment.id, childId: enrollment.childId, rejectionReason },
+          });
+        }
+      }
+
+      res.json({ success: true, message: `تم ${action === "approve" ? "قبول" : "رفض"} ${validIds.length} طلب بنجاح`, data: { processedCount: validIds.length } });
+    } catch (error: any) {
+      if (error instanceof z.ZodError) return res.status(400).json({ success: false, error: "BAD_REQUEST", message: error.errors[0]?.message });
+      console.error("Bulk enrollment action error:", error);
+      res.status(500).json({ success: false, error: "INTERNAL_SERVER_ERROR" });
+    }
+  });
+
+  // Public: check enrollment status for a school
+  app.get("/api/store/schools/:schoolId/enrollment-status", async (req, res) => {
+    try {
+      const { schoolId } = req.params;
+      const [school] = await db.select({
+        enrollmentOpen: schools.enrollmentOpen,
+        enrollmentConditions: schools.enrollmentConditions,
+        name: schools.name,
+        nameAr: schools.nameAr,
+      }).from(schools).where(and(eq(schools.id, schoolId), eq(schools.isActive, true)));
+      if (!school) return res.status(404).json({ success: false, error: "NOT_FOUND" });
+      res.json({ success: true, data: { enrollmentOpen: school.enrollmentOpen, conditions: school.enrollmentConditions, schoolName: school.nameAr || school.name } });
     } catch (error: any) {
       res.status(500).json({ success: false, error: "INTERNAL_SERVER_ERROR" });
     }
