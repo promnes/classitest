@@ -376,8 +376,37 @@ Silently continuing is forbidden.
 
 ---
 
+## 🚦 MANDATORY TEST GATE (EVERY CHANGE)
+
+Every code modification — no matter how small — **MUST** pass the full test pipeline before it is considered complete.
+
+### Pipeline (ALL steps required, in order):
+
+1. **TypeScript Check:** `npx tsc --noEmit` — MUST exit 0 (pre-existing server errors in `child.ts`/`parent.ts` are allowed)
+2. **Vite Build:** `npx vite build` — MUST succeed with no errors
+3. **Unit Tests:** `npm run test` — ALL tests MUST pass
+4. **Health Check:** `curl http://localhost:5000/api/health` — MUST return `{"status":"ok"}`
+
+### Decision Rule:
+
+* ✅ **ALL pass** → Change is **APPROVED** → Commit
+* ❌ **ANY fails** → Change is **REJECTED** → Fix immediately, re-run full pipeline
+* 🔄 **Repeat** until all 4 steps pass — no exceptions
+
+### Prohibitions:
+
+* ❌ NO committing without running the pipeline
+* ❌ NO skipping steps ("it's just a typo" is not an excuse)
+* ❌ NO partial pipeline (running only build but not tests)
+* ❌ NO marking task complete if any step failed
+
+Violating this gate invalidates the entire change.
+
+---
+
 ## 🏁 FINAL COMPLETION CHECKLIST (ALL REQUIRED)
 
+* [ ] **Test gate passed** (TypeScript + Build + Tests + Health)
 * [ ] App boots via `node dist/index.js`
 * [ ] Health endpoint returns 200: `GET /api/health`
 * [ ] All assets return 200: `GET /index.html`, `GET /assets/*`
@@ -397,4 +426,4 @@ Only then may the task be declared **COMPLETE**.
 
 **Mode:** STRICT / ZERO-HALLUCINATION
 **Maintained By:** Classify Engineering
-**Last Updated:** 2025-12-16
+**Last Updated:** 2026-02-28

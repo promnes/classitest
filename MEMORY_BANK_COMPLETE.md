@@ -736,10 +736,32 @@ npm run cap:sync     # Capacitor sync (Android)
 npm run cap:build    # Build + sync (Android)
 ```
 
+### 🚦 Mandatory Test Gate (EVERY CHANGE)
+
+Every code modification MUST pass the full pipeline before commit:
+
+```bash
+# Step 1: TypeScript check (pre-existing server 'any' errors allowed)
+npx tsc --noEmit
+
+# Step 2: Vite frontend build
+npx vite build
+
+# Step 3: Unit tests
+npm run test
+
+# Step 4: Health check (dev server must be running)
+curl http://localhost:5000/api/health
+```
+
+**Decision:**
+- ✅ ALL pass → APPROVED → Commit
+- ❌ ANY fails → REJECTED → Fix immediately, re-run full pipeline
+- 🔄 Repeat until all 4 pass — NO exceptions, NO skipping
+
 ### Deploy Checklist
 ```bash
-# 1. TypeScript check
-npx tsc --noEmit
+# 1. Run full test gate (above)
 
 # 2. Commit & push
 git add -A && git commit -m "..." && git push origin main
@@ -747,7 +769,7 @@ git add -A && git commit -m "..." && git push origin main
 # 3. Deploy on VPS
 cd /docker/classitest && git pull origin main && docker compose up -d --build app
 
-# 4. Verify
+# 4. Verify production
 curl https://classi-fy.com/api/health
 docker compose logs -f app
 ```
@@ -756,6 +778,7 @@ docker compose logs -f app
 
 **Mode:** STRICT / ZERO-HALLUCINATION
 **Maintained By:** Classify Engineering + AI Agent
-**Version:** 4.0 — MASTER MEMORY BANK
-**Last Commit:** 355479a
+**Version:** 4.1 — MASTER MEMORY BANK
+**Last Commit:** 4118c22
+**Last Updated:** 2026-02-28
 
