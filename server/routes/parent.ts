@@ -1799,6 +1799,12 @@ export async function registerParentRoutes(app: Express) {
       if (!owned[0] || owned[0].parentId !== req.user.userId) return res.status(403).json({ message: "Unauthorized" });
       if (owned[0].status !== 'active') return res.status(400).json({ message: "Product not available for assignment — must be approved and active" });
 
+      // SEC: Verify parent owns this child
+      const ownership = await db.select().from(parentChild).where(
+        and(eq(parentChild.parentId, req.user.userId), eq(parentChild.childId, childId))
+      );
+      if (!ownership[0]) return res.status(403).json(errorResponse(ErrorCode.FORBIDDEN, "Not authorized for this child"));
+
       const childRow = await db.select({ totalPoints: children.totalPoints }).from(children).where(eq(children.id, childId));
       if (!childRow[0]) return res.status(404).json({ message: "Child not found" });
 

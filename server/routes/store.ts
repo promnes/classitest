@@ -18,12 +18,13 @@ import {
   libraryReferrals,
   libraryActivityLogs,
   libraryReferralSettings,
+  parentChild,
 } from "../../shared/schema";
 import { eq, and, or, desc, asc, sql, isNull } from "drizzle-orm";
-import { authMiddleware, adminMiddleware, JWT_SECRET } from "./middleware";
+import { authMiddleware, adminMiddleware } from "./middleware";
 import { createNotification, notifyChildProductAssigned } from "../notifications";
-import { checkoutLimiter } from "../utils/rateLimiters";
-import jwt from "jsonwebtoken";
+import { checkoutLimiter, publicApiLimiter } from "../utils/rateLimiters";
+import { errorResponse, ErrorCode } from "../utils/apiResponse";
 
 const db = storage.db;
 
@@ -55,7 +56,7 @@ interface StoreProduct {
 export async function registerStoreRoutes(app: Express) {
   // PUBLIC: Get active payment methods visible to ALL users (no auth required)
   // This allows visitors to see available payment methods before registering
-  app.get("/api/public/payment-methods", async (_req, res) => {
+  app.get("/api/public/payment-methods", publicApiLimiter, async (_req, res) => {
     try {
       const methods = await db
         .select({
@@ -630,6 +631,14 @@ export async function registerStoreRoutes(app: Express) {
         return res.status(400).json({ message: "Missing required fields" });
       }
 
+      // SEC: Verify parent owns this child
+      const ownership = await db.select().from(parentChild).where(
+        and(eq(parentChild.parentId, parentId), eq(parentChild.childId, childId))
+      );
+      if (!ownership[0]) {
+        return res.status(403).json(errorResponse(ErrorCode.FORBIDDEN, "Not authorized to assign products to this child"));
+      }
+
       const product = await db.select().from(products).where(eq(products.id, productId));
       if (!product[0]) {
         return res.status(404).json({ message: "Product not found" });
@@ -694,15 +703,12 @@ export async function registerStoreRoutes(app: Express) {
   // LOGIC-001 FIX: Changed from /api/child/gifts to avoid conflict with child.ts:1022
   // This route fetches parent-sent product gifts (from gifts table)
   // While child.ts:/api/child/gifts fetches point-rewards history (from childGifts table)
-  app.get("/api/child/store-gifts", async (req: any, res) => {
+  app.get("/api/child/store-gifts", authMiddleware, async (req: any, res) => {
     try {
-      const token = req.headers.authorization?.split(" ")[1];
-      if (!token) {
-        return res.status(401).json({ message: "Unauthorized" });
+      const childId = req.user?.childId;
+      if (!childId) {
+        return res.status(401).json(errorResponse(ErrorCode.UNAUTHORIZED, "Child token required"));
       }
-
-      const decoded = jwt.verify(token, JWT_SECRET) as any;
-      const childId = decoded.childId;
 
       const childGifts = await db
         .select({

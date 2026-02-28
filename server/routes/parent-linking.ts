@@ -2,6 +2,7 @@ import { Router } from "express";
 import { storage } from "../storage";
 import { successResponse, errorResponse, ErrorCode } from "../utils/apiResponse";
 import { authMiddleware, adminMiddleware } from "./middleware";
+import { parentLinkingLimiter } from "../utils/rateLimiters";
 import {
   parentChildLinkingCodes,
   parentParentSync,
@@ -21,7 +22,7 @@ const db = storage.db;
 // ===== Parent-Child Linking APIs =====
 
 // POST: إنشاء رمز ربط للأب (لربط الطفل أو الأب الآخر)
-router.post("/parent/generate-linking-code", authMiddleware, async (req, res) => {
+router.post("/parent/generate-linking-code", authMiddleware, parentLinkingLimiter, async (req, res) => {
   try {
     const parentId = (req.user as any).parentId;
     
@@ -114,7 +115,7 @@ router.get("/parent/linking-codes", authMiddleware, async (req, res) => {
 });
 
 // POST: ربط طفل باستخدام الرمز (من قبل الأب)
-router.post("/parent/link-child", authMiddleware, async (req, res) => {
+router.post("/parent/link-child", authMiddleware, parentLinkingLimiter, async (req, res) => {
   try {
     const { childId, code } = req.body;
     const parentId = (req.user as any).parentId;
@@ -124,6 +125,34 @@ router.post("/parent/link-child", authMiddleware, async (req, res) => {
         success: false,
         error: "INVALID_INPUT",
         message: "childId and code are required"
+      });
+    }
+    
+    // SEC: Validate the linking code against the database
+    const linkingCode = await db
+      .select()
+      .from(parentChildLinkingCodes)
+      .where(
+        and(
+          eq(parentChildLinkingCodes.code, code.toString().trim().toUpperCase()),
+          eq(parentChildLinkingCodes.isUsed, false)
+        )
+      );
+    
+    if (linkingCode.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: "INVALID_CODE",
+        message: "Invalid or expired linking code"
+      });
+    }
+    
+    // SEC: Check if the code is expired
+    if (linkingCode[0].expiresAt && new Date() > new Date(linkingCode[0].expiresAt)) {
+      return res.status(400).json({
+        success: false,
+        error: "CODE_EXPIRED",
+        message: "This linking code has expired"
       });
     }
     
@@ -169,6 +198,16 @@ router.post("/parent/link-child", authMiddleware, async (req, res) => {
       })
       .returning();
     
+    // SEC: Mark the linking code as used
+    await db
+      .update(parentChildLinkingCodes)
+      .set({
+        isUsed: true,
+        usedByParentId: parentId,
+        usedAt: new Date()
+      })
+      .where(eq(parentChildLinkingCodes.id, linkingCode[0].id));
+    
     res.status(201).json({
       success: true,
       data: newLink[0],
@@ -187,7 +226,7 @@ router.post("/parent/link-child", authMiddleware, async (req, res) => {
 // ===== Parent-Parent Sync APIs (لربط الأب والأم) =====
 
 // POST: الأب الثاني يوافق على مشاركة البيانات باستخدام الرمز
-router.post("/parent/sync-with-code", authMiddleware, async (req, res) => {
+router.post("/parent/sync-with-code", authMiddleware, parentLinkingLimiter, async (req, res) => {
   try {
     const { code } = req.body;
     const secondaryParentId = (req.user as any).parentId;

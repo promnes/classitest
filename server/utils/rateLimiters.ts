@@ -11,7 +11,8 @@ function createCustomLimiter(windowMs: number, max: number, keyGenerator: (req: 
     keyGenerator,
     standardHeaders: true,
     legacyHeaders: false,
-    validate: { xForwardedForHeader: false },
+    // SEC: Disable IP-related validation — we already use ipKeyGenerator() in all key generators
+    validate: { xForwardedForHeader: false, ip: false },
     handler: (req, res) => {
       if (eventType) {
         trackOtpEvent(eventType, {
@@ -48,4 +49,21 @@ export const childLoginStatusLimiter = createCustomLimiter(60 * 1000, 30, (req) 
 export const checkoutLimiter = createCustomLimiter(60 * 1000, 10, (req) => {
   const userId = req.user?.userId || req.user?.parentId || ipKeyGenerator(req.ip || "");
   return `checkout:${userId}`;
+});
+
+// Parent-child linking rate limiter: 5 requests per 15 minutes per authenticated user
+export const parentLinkingLimiter = createCustomLimiter(15 * 60 * 1000, 5, (req) => {
+  const userId = req.user?.userId || req.user?.parentId || ipKeyGenerator(req.ip || "");
+  return `linking:${userId}`;
+});
+
+// Refresh token rate limiter: 5 requests per minute per user
+export const refreshTokenLimiter = createCustomLimiter(60 * 1000, 5, (req) => {
+  const userId = req.user?.userId || req.user?.childId || ipKeyGenerator(req.ip || "");
+  return `refresh:${userId}`;
+});
+
+// Public API rate limiter: 30 requests per minute per IP (for unauthenticated data endpoints)
+export const publicApiLimiter = createCustomLimiter(60 * 1000, 30, (req) => {
+  return `public:${ipKeyGenerator(req.ip || "")}`;
 });

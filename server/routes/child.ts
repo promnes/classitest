@@ -53,7 +53,7 @@ import crypto from "crypto";
 import { eq, and, or, desc, sql, count, ilike, ne, inArray } from "drizzle-orm";
 import jwt from "jsonwebtoken";
 import { authMiddleware, JWT_SECRET } from "./middleware";
-import { childLinkLimiter, childLoginRequestLimiter, childLoginStatusLimiter } from "../utils/rateLimiters";
+import { childLinkLimiter, childLoginRequestLimiter, childLoginStatusLimiter, refreshTokenLimiter, publicApiLimiter } from "../utils/rateLimiters";
 import { emitGiftEvent } from "../giftEvents";
 import { unlockEligibleGifts } from "../giftUnlock";
 import { createNotification } from "../notifications";
@@ -949,7 +949,7 @@ export async function registerChildRoutes(app: Express) {
   });
 
   // Get Games — filtered by child assignments (assigned games + unassigned global games)
-  app.get("/api/games", async (req: any, res) => {
+  app.get("/api/games", publicApiLimiter, async (req: any, res) => {
     try {
       // Try to get child from token
       let childId: string | null = null;
@@ -1335,7 +1335,7 @@ export async function registerChildRoutes(app: Express) {
   });
 
   // Get Subjects
-  app.get("/api/subjects", async (req, res) => {
+  app.get("/api/subjects", publicApiLimiter, async (req, res) => {
     try {
       const result = await db.select().from(subjects).where(eq(subjects.isActive, true));
       res.json(result);
@@ -1346,7 +1346,7 @@ export async function registerChildRoutes(app: Express) {
   });
 
   // Get Template Tasks by Subject
-  app.get("/api/subjects/:subjectId/templates", async (req, res) => {
+  app.get("/api/subjects/:subjectId/templates", publicApiLimiter, async (req, res) => {
     try {
       const { subjectId } = req.params;
       const result = await db
@@ -1361,7 +1361,7 @@ export async function registerChildRoutes(app: Express) {
   });
 
   // Get All Template Tasks
-  app.get("/api/template-tasks", async (req, res) => {
+  app.get("/api/template-tasks", publicApiLimiter, async (req, res) => {
     try {
       const result = await db.select().from(templateTasks).where(eq(templateTasks.isActive, true));
       res.json(result);
@@ -1932,7 +1932,8 @@ export async function registerChildRoutes(app: Express) {
   // ===== Task Notifications (Sponsored Ad Style) =====
   app.get("/api/child/task-notifications", authMiddleware, async (req: any, res) => {
     try {
-      const childId = req.query.childId || req.user?.childId;
+      // SEC: Always use authenticated child's ID — never allow query param override
+      const childId = req.user?.childId;
       
       if (!childId) {
         return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "childId is required"));
@@ -2103,7 +2104,7 @@ export async function registerChildRoutes(app: Express) {
   // PIN-based login removed - now using parent approval flow only
 
   // Child refresh token (auto-login with saved device)
-  app.post("/api/child/refresh-token", async (req, res) => {
+  app.post("/api/child/refresh-token", refreshTokenLimiter, async (req, res) => {
     try {
       const { refreshToken } = req.body;
 
