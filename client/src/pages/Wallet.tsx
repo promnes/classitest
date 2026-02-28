@@ -162,7 +162,7 @@ export const Wallet = (): JSX.Element => {
         {/* Wallet Balance */}
         <div className={`${isDark ? "bg-gradient-to-r from-blue-900 to-purple-900" : "bg-gradient-to-r from-blue-500 to-purple-600"} rounded-2xl p-8 text-white mb-8 shadow-lg`}>
           <p className="text-lg opacity-90">{t("wallet.currentBalance")}</p>
-          <p className="text-5xl font-bold">₪ {Number(walletData?.balance || 0).toFixed(2)}</p>
+          <p className="text-5xl font-bold">$ {Number(walletData?.balance || 0).toFixed(2)}</p>
           <div className="flex gap-4 mt-6 items-center">
             <button
               onClick={() => setShowDeposit(true)}
@@ -202,7 +202,7 @@ export const Wallet = (): JSX.Element => {
                   >
                     <div>
                       <p className={`font-bold text-lg ${isDark ? "text-white" : "text-gray-800"}`}>
-                        ₪{Number(deposit.amount).toFixed(2)}
+                        ${Number(deposit.amount).toFixed(2)}
                       </p>
                       <p className={`text-sm ${isDark ? "text-gray-400" : "text-gray-600"}`}>
                         {new Date(deposit.createdAt).toLocaleDateString(getDateLocale())} — {new Date(deposit.createdAt).toLocaleTimeString(getDateLocale())}

@@ -722,7 +722,7 @@ export async function registerLibraryRoutes(app: Express) {
         await notifyAllAdmins({
           type: NOTIFICATION_TYPES.WITHDRAWAL_APPROVED,
           title: "💰 طلب سحب مكتبة",
-          message: `${libName} طلبت سحب ₪${requestedAmount.toFixed(2)} عبر ${paymentMethod}`,
+          message: `${libName} طلبت سحب $${requestedAmount.toFixed(2)} عبر ${paymentMethod}`,
           style: NOTIFICATION_STYLES.TOAST,
           priority: NOTIFICATION_PRIORITIES.URGENT,
           soundAlert: true,

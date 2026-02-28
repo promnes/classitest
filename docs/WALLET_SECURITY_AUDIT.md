@@ -238,7 +238,7 @@ if (!wallet[0]) {
 **الملف:** `server/routes/parent.ts` سطر 918-926
 **الوصف:** إشعار الأدمن يحتوي على `transactionId` في نص الرسالة وفي `metadata`:
 ```typescript
-message: `${parentName} طلب إيداع ₪${amount} عبر ${method[0].type} (Ref: ${normalizedTransactionId})`
+message: `${parentName} طلب إيداع $${amount} عبر ${method[0].type} (Ref: ${normalizedTransactionId})`
 metadata: { depositId: result[0].id, parentId: req.user.userId, amount, transactionId: normalizedTransactionId }
 ```
 **المخاطرة:** إذا تسربت الإشعارات، يتسرب رقم التحويل المصرفي.

@@ -910,7 +910,7 @@ export const ParentDashboard = (): JSX.Element => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs opacity-80">{t('parentDashboard.walletBalance')}</p>
-                  <p className="text-2xl font-bold">₪{Number(walletData?.balance || 0).toFixed(0)}</p>
+                  <p className="text-2xl font-bold">${Number(walletData?.balance || 0).toFixed(0)}</p>
                 </div>
                 <Wallet className="h-8 w-8 opacity-80" />
               </div>
@@ -1640,7 +1640,7 @@ export const ParentDashboard = (): JSX.Element => {
                           </div>
                           <div className="flex-1">
                             <p className={`text-sm font-medium ${isDark ? "text-white" : "text-gray-900"}`}>{t('parentDashboard.order')} #{order.id?.slice(0, 8)}</p>
-                            <p className={`text-xs ${isDark ? "text-gray-400" : "text-gray-500"}`}>₪{order.totalAmount}</p>
+                            <p className={`text-xs ${isDark ? "text-gray-400" : "text-gray-500"}`}>${order.totalAmount}</p>
                           </div>
                           <Badge variant={order.status === "completed" ? "default" : "secondary"}>
                             {order.status === "completed" ? t('parentDashboard.completed') : t('parentDashboard.processing')}

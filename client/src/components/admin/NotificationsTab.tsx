@@ -1,4 +1,6 @@
 import React, { useState } from "react";
+// سيتم تمرير هذا من AdminDashboard
+// type NotificationItem مطابق لتعريف Notification في هذا الملف تقريباً
 import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Bell, Send, Users, User, Trash2, CheckCircle, Clock, AlertCircle } from "lucide-react";
@@ -18,7 +20,9 @@ interface Notification {
 }
 
 export function NotificationsTab({
-  token }: { token: string }) {
+  token,
+  onNotificationClick
+}: { token: string, onNotificationClick?: (notification: Notification) => void }) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [showSendModal, setShowSendModal] = useState(false);
@@ -169,8 +173,11 @@ export function NotificationsTab({
               {notifications.slice(0, 50).map((notification: Notification) => (
                 <div
                   key={notification.id}
-                  className="p-4 border rounded-lg flex items-start justify-between gap-4"
+                  className="p-4 border rounded-lg flex items-start justify-between gap-4 cursor-pointer hover:bg-blue-50 dark:hover:bg-gray-700 transition"
                   data-testid={`notification-${notification.id}`}
+                  onClick={() => {
+                    if (onNotificationClick) onNotificationClick(notification);
+                  }}
                 >
                   <div className="flex items-start gap-3 flex-1">
                     {getTypeIcon(notification.type)}
@@ -203,7 +210,8 @@ export function NotificationsTab({
                   <Button
                     size="icon"
                     variant="ghost"
-                    onClick={() => {
+                    onClick={e => {
+                      e.stopPropagation();
                       if (confirm("هل أنت متأكد من حذف هذا الإشعار؟")) {
                         deleteNotificationMutation.mutate(notification.id);
                       }

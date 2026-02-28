@@ -938,7 +938,7 @@ export async function registerParentRoutes(app: Express) {
       await notifyAllAdmins({
         type: NOTIFICATION_TYPES.DEPOSIT_REQUEST,
         title: "طلب إيداع جديد",
-        message: `${parentName} طلب إيداع ₪${amount} عبر ${method[0].type} (Ref: ...${normalizedTransactionId.slice(-4)})${notes ? ` — "${String(notes).substring(0, 100)}"` : ""}`,
+        message: `${parentName} طلب إيداع $${amount} عبر ${method[0].type} (Ref: ...${normalizedTransactionId.slice(-4)})${notes ? ` — "${String(notes).substring(0, 100)}"` : ""}`,
         style: NOTIFICATION_STYLES.TOAST,
         priority: NOTIFICATION_PRIORITIES.URGENT,
         soundAlert: true,

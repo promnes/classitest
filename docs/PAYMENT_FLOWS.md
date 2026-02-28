@@ -86,7 +86,7 @@ Validation:
 Creates deposit (status: "pending")
   ↓
 Sends admin notification (priority: urgent, sound: true)
-  - "محمد طلب إيداع ₪500 عبر تحويل بنكي"
+  - "محمد طلب إيداع $500 عبر تحويل بنكي"
 ```
 
 ### Step by Step (User):

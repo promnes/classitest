@@ -593,7 +593,7 @@
 │
 ├── 📌 WALLET BALANCE CARD
 │   │
-│   ├── [Current Balance] - "₪ {balance}"
+│   ├── [Current Balance] - "$ {balance}"
 │   ├── [Deposit Button] 💳 "إيداع أموال"
 │   │   └── onClick → setShowDeposit(true)
 │   │   └── disabled إذا لم يتم اختيار وسيلة دفع

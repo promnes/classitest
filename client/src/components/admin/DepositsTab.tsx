@@ -183,7 +183,7 @@ export function DepositsTab({
         <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800 text-center">
           <p className="text-sm text-blue-700 dark:text-blue-400">المجموع (المفلتر)</p>
           <p className="text-2xl font-bold text-blue-700 dark:text-blue-400">
-            ₪{totalFiltered.toFixed(2)}
+            ${totalFiltered.toFixed(2)}
           </p>
         </div>
       </div>
@@ -274,7 +274,7 @@ export function DepositsTab({
                       </td>
                       <td className="px-4 py-3">
                         <span className="font-bold text-lg">
-                          ₪{parseFloat(typeof deposit.amount === "string" ? deposit.amount : deposit.amount.toString()).toFixed(2)}
+                          ${parseFloat(typeof deposit.amount === "string" ? deposit.amount : deposit.amount.toString()).toFixed(2)}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-sm max-w-[200px]">
@@ -346,7 +346,7 @@ export function DepositsTab({
                             <h4 className="font-bold text-center">مراجعة طلب الإيداع</h4>
                             <div className="bg-white dark:bg-gray-800 p-3 rounded-lg text-sm space-y-1">
                               <p><strong>الوالد:</strong> {deposit.parentName} ({deposit.parentEmail})</p>
-                              <p><strong>المبلغ:</strong> ₪{parseFloat(typeof deposit.amount === "string" ? deposit.amount : deposit.amount.toString()).toFixed(2)}</p>
+                              <p><strong>المبلغ:</strong> ${parseFloat(typeof deposit.amount === "string" ? deposit.amount : deposit.amount.toString()).toFixed(2)}</p>
                               <p><strong>وسيلة الدفع:</strong> {typeInfo.emoji} {typeInfo.label} {deposit.methodBank ? `— ${deposit.methodBank}` : ""}</p>
                               {deposit.transactionId && <p><strong>رقم العملية:</strong> <span className="font-mono">{deposit.transactionId}</span></p>}
                               {deposit.notes && <p><strong>ملاحظات المستخدم:</strong> {deposit.notes}</p>}

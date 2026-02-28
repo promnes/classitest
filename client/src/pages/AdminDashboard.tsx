@@ -199,7 +199,12 @@ export const AdminDashboard = (): JSX.Element => {
           {activeTab === "payment-methods" && <PaymentMethodsTab token={token} />}
           {activeTab === "analytics" && <WalletAnalytics token={token} />}
           {activeTab === "activity" && <ActivityLogTab token={token} />}
-          {activeTab === "notifications" && <NotificationsTab token={token} />}
+          {activeTab === "notifications" && (
+            <NotificationsTab
+              token={token}
+              onNotificationClick={handleAdminNotificationClick}
+            />
+          )}
           {activeTab === "notification-settings" && <NotificationSettingsTab token={token} />}
           {activeTab === "task-notification-levels" && <TaskNotificationLevelsTab token={token} />}
           {activeTab === "gifts" && <GiftsTab token={token} />}
