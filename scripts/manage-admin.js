@@ -93,9 +93,10 @@ async function manageAdminCredentials() {
       console.log(`📝 Creating new admin account: ${ADMIN_EMAIL}\n`);
 
       const hashedPassword = await bcrypt.hash(ADMIN_PASSWORD, 10);
+      const username = ADMIN_EMAIL.split('@')[0];
       await pool.query(
-        'INSERT INTO admins (id, email, password, role, created_at) VALUES (gen_random_uuid(), $1, $2, $3, NOW())',
-        [ADMIN_EMAIL, hashedPassword, 'admin']
+        'INSERT INTO admins (id, username, email, password, role, created_at) VALUES (gen_random_uuid(), $1, $2, $3, $4, NOW())',
+        [username, ADMIN_EMAIL, hashedPassword, 'admin']
       );
 
       console.log('✅ Admin account created successfully\n');
