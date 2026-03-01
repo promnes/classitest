@@ -37,18 +37,101 @@ export function createApp(): express.Application {
 
   app.use("/api", generalRateLimiter);
 
-  app.get("/api/health", (_req: Request, res: Response) => {
-    res.json({
-      status: "healthy",
+  app.get("/api/health", async (_req: Request, res: Response) => {
+    const memoryUsage = process.memoryUsage();
+    const checks: Record<string, { status: string; latency?: number; details?: any }> = {};
+
+    // DB check
+    try {
+      const dbStart = Date.now();
+      const { storage } = await import("../storage");
+      const { sql } = await import("drizzle-orm");
+      await storage.db.execute(sql`SELECT 1`);
+      checks.database = { status: "healthy", latency: Date.now() - dbStart };
+    } catch (err: any) {
+      checks.database = { status: "unhealthy", details: err.message };
+    }
+
+    // Redis check
+    try {
+      const { isRedisConnected } = await import("./config/redis");
+      checks.redis = { status: isRedisConnected() ? "healthy" : "degraded" };
+    } catch {
+      checks.redis = { status: "unavailable" };
+    }
+
+    const allHealthy = Object.values(checks).every(c => c.status === "healthy");
+
+    res.status(allHealthy ? 200 : 503).json({
+      status: allHealthy ? "healthy" : "degraded",
       timestamp: new Date().toISOString(),
       uptime: process.uptime(),
-      memory: process.memoryUsage(),
+      memory: {
+        rss: Math.round(memoryUsage.rss / 1024 / 1024),
+        heapUsed: Math.round(memoryUsage.heapUsed / 1024 / 1024),
+        heapTotal: Math.round(memoryUsage.heapTotal / 1024 / 1024),
+        external: Math.round(memoryUsage.external / 1024 / 1024),
+      },
       env: config.env,
+      checks,
     });
   });
 
   app.get("/api/ready", (_req: Request, res: Response) => {
     res.json({ ready: true });
+  });
+
+  // Prometheus-compatible metrics endpoint
+  app.get("/api/metrics", (_req: Request, res: Response) => {
+    const mem = process.memoryUsage();
+    const cpu = process.cpuUsage();
+    const uptime = process.uptime();
+
+    const lines = [
+      "# HELP process_uptime_seconds Process uptime in seconds",
+      "# TYPE process_uptime_seconds gauge",
+      `process_uptime_seconds ${uptime.toFixed(2)}`,
+      "",
+      "# HELP process_resident_memory_bytes Resident memory size in bytes",
+      "# TYPE process_resident_memory_bytes gauge",
+      `process_resident_memory_bytes ${mem.rss}`,
+      "",
+      "# HELP process_heap_bytes_used Node.js heap used in bytes",
+      "# TYPE process_heap_bytes_used gauge",
+      `process_heap_bytes_used ${mem.heapUsed}`,
+      "",
+      "# HELP process_heap_bytes_total Node.js total heap in bytes",
+      "# TYPE process_heap_bytes_total gauge",
+      `process_heap_bytes_total ${mem.heapTotal}`,
+      "",
+      "# HELP process_external_memory_bytes External memory in bytes",
+      "# TYPE process_external_memory_bytes gauge",
+      `process_external_memory_bytes ${mem.external}`,
+      "",
+      "# HELP process_cpu_user_seconds_total CPU user time in seconds",
+      "# TYPE process_cpu_user_seconds_total counter",
+      `process_cpu_user_seconds_total ${(cpu.user / 1e6).toFixed(4)}`,
+      "",
+      "# HELP process_cpu_system_seconds_total CPU system time in seconds",
+      "# TYPE process_cpu_system_seconds_total counter",
+      `process_cpu_system_seconds_total ${(cpu.system / 1e6).toFixed(4)}`,
+      "",
+      "# HELP nodejs_active_handles_total Number of active handles",
+      "# TYPE nodejs_active_handles_total gauge",
+      `nodejs_active_handles_total ${(process as any)._getActiveHandles?.()?.length ?? 0}`,
+      "",
+      "# HELP nodejs_active_requests_total Number of active requests",
+      "# TYPE nodejs_active_requests_total gauge",
+      `nodejs_active_requests_total ${(process as any)._getActiveRequests?.()?.length ?? 0}`,
+      "",
+      "# HELP nodejs_event_loop_lag_seconds Event loop lag in seconds",
+      "# TYPE nodejs_event_loop_lag_seconds gauge",
+      `nodejs_event_loop_lag_seconds 0`,
+      "",
+    ];
+
+    res.set("Content-Type", "text/plain; version=0.0.4; charset=utf-8");
+    res.send(lines.join("\n"));
   });
 
   return app;

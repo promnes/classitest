@@ -50,3 +50,12 @@ scrape_configs:
     relabel_configs:
       - source_labels: [__address__]
         target_label: container_host
+
+  # Classify application metrics
+  - job_name: 'classify-app'
+    metrics_path: '/api/metrics'
+    static_configs:
+      - targets: ['classify_app:5000']
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: app_instance
