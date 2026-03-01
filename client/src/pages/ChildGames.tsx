@@ -440,6 +440,13 @@ export const ChildGames = (): JSX.Element => {
                   <div className="w-full h-full bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center">
                     <span className="text-5xl drop-shadow-lg">💎</span>
                   </div>
+                ) : game.embedUrl === "/games/chess/index.html" ? (
+                  <div className="w-full h-full bg-gradient-to-br from-gray-800 to-gray-950 flex items-center justify-center relative">
+                    <span className="text-5xl drop-shadow-lg">♟️</span>
+                    <div className="absolute inset-0 opacity-10 flex flex-wrap items-center justify-center gap-2 text-white text-lg overflow-hidden">
+                      <span>♔</span><span>♕</span><span>♖</span><span>♗</span><span>♘</span><span>♙</span>
+                    </div>
+                  </div>
                 ) : (
                   <Gamepad2 className="w-12 h-12 text-purple-400" />
                 )}

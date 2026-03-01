@@ -121,6 +121,23 @@ app.use(helmet({
   crossOriginOpenerPolicy: false,
   crossOriginEmbedderPolicy: false,
 }));
+
+// Godot games require SharedArrayBuffer → COOP/COEP headers + relaxed CSP for WASM
+app.use("/games/chess", (req, res, next) => {
+  res.setHeader("Cross-Origin-Opener-Policy", "same-origin");
+  res.setHeader("Cross-Origin-Embedder-Policy", "require-corp");
+  res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
+  // Override CSP for Godot WASM: allow wasm-unsafe-eval + blob workers
+  res.setHeader("Content-Security-Policy",
+    "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' blob:; " +
+    "style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; " +
+    "connect-src 'self' blob:; worker-src 'self' blob:; " +
+    "font-src 'self' data:; media-src 'self' blob:; " +
+    "frame-src 'self'; object-src 'none'"
+  );
+  next();
+});
+
 app.use(compression());
 
 // Serve uploaded files (task images, etc.)

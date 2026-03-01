@@ -169,6 +169,21 @@ const BUILTIN_GAMES: BuiltinGame[] = [
     maxPlaysPerDay: 0,
     gradient: "from-cyan-400 to-blue-600",
   },
+  {
+    id: "builtin-chess",
+    title: "Chess",
+    titleAr: "شطرنج ♟️",
+    description: "Classic chess game! Develop strategic thinking and planning skills. Play against the computer and challenge yourself!",
+    descriptionAr: "لعبة الشطرنج الكلاسيكية! طوّر مهارات التفكير الاستراتيجي والتخطيط المسبق. العب ضد الكمبيوتر وتحدَّ نفسك!",
+    embedUrl: "/games/chess/index.html",
+    thumbnailEmoji: "♟️",
+    category: "educational",
+    minAge: 6,
+    maxAge: 18,
+    pointsPerPlay: 10,
+    maxPlaysPerDay: 0,
+    gradient: "from-gray-700 to-gray-900",
+  },
 ];
 
 // Legacy URL mappings for backwards compatibility
@@ -505,7 +520,7 @@ export function GamesTab({ token }: { token: string }) {
         </h2>
         <div className="flex flex-wrap gap-2">
           <button
-            onClick={() => { resetForm(); setShowForm(true); setAddMethod(null); }}
+            onClick={() => { setForm(emptyForm); setEditingId(null); setUploadProgress(null); setAddMethod(null); setShowForm(true); }}
             className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
           >
             <Plus className="w-5 h-5" />
@@ -521,6 +536,236 @@ export function GamesTab({ token }: { token: string }) {
           </button>
         </div>
       </div>
+
+      {/* ========== ADD GAME FORM ========== */}
+      {showForm && (
+        <div className="bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-xl shadow-lg overflow-hidden">
+          {/* Form Header */}
+          <div className="flex justify-between items-center p-5 border-b dark:border-gray-700 bg-gradient-to-l from-blue-50 to-white dark:from-gray-800 dark:to-gray-800">
+            <h3 className="text-lg font-bold text-gray-800 dark:text-white flex items-center gap-2">
+              {editingId ? <><Pencil className="w-5 h-5 text-blue-600" /> تعديل لعبة</> : <><Plus className="w-5 h-5 text-blue-600" /> إضافة لعبة جديدة</>}
+            </h3>
+            <button onClick={resetForm} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full text-gray-600 dark:text-gray-300">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          {/* Method Selection (only for new games) */}
+          {!editingId && !addMethod && (
+            <div className="p-6">
+              <p className="text-sm text-gray-600 dark:text-gray-300 mb-4 font-medium">{t("admin.games.chooseMethod")}</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <button
+                  onClick={() => setAddMethod("url")}
+                  className="flex flex-col items-center gap-3 p-6 border-2 border-dashed border-blue-300 dark:border-blue-600 rounded-xl hover:border-blue-500 hover:bg-blue-50/50 dark:hover:bg-blue-900/10 transition group"
+                >
+                  <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center group-hover:scale-110 transition">
+                    <Link className="w-8 h-8 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <div className="font-bold text-blue-700 dark:text-blue-300 text-lg">{t("admin.games.externalUrl")}</div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 text-center">ألصق رابط لعبة من موقع خارجي مثل itch.io أو CrazyGames أو أي رابط HTML</p>
+                </button>
+                <button
+                  onClick={() => setAddMethod("upload")}
+                  className="flex flex-col items-center gap-3 p-6 border-2 border-dashed border-green-300 dark:border-green-600 rounded-xl hover:border-green-500 hover:bg-green-50/50 dark:hover:bg-green-900/10 transition group"
+                >
+                  <div className="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center group-hover:scale-110 transition">
+                    <FileUp className="w-8 h-8 text-green-600 dark:text-green-400" />
+                  </div>
+                  <div className="font-bold text-green-700 dark:text-green-300 text-lg">{t("admin.games.uploadHtml")}</div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 text-center">ارفع ملف .html من جهازك — يتم تخزينه على السيرفر والرابط يتولّد تلقائياً</p>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Upload Zone (for upload method) */}
+          {addMethod === "upload" && !editingId && (
+            <div className="p-6 border-b dark:border-gray-700">
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-sm font-medium text-gray-700 dark:text-gray-200 flex items-center gap-2">
+                  <FileUp className="w-4 h-4 text-green-600" /> رفع ملف اللعبة
+                </p>
+                <button onClick={() => setAddMethod(null)} className="text-xs text-blue-600 hover:underline flex items-center gap-1">
+                  <RefreshCw className="w-3 h-3" /> تغيير الطريقة
+                </button>
+              </div>
+              <div
+                onDrop={handleDrop}
+                onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                onClick={() => fileInputRef.current?.click()}
+                className="border-2 border-dashed border-green-300 dark:border-green-600 rounded-xl p-8 text-center cursor-pointer hover:border-green-500 hover:bg-green-50/30 dark:hover:bg-green-900/10 transition"
+              >
+                <Upload className="w-12 h-12 text-green-400 mx-auto mb-3" />
+                <p className="text-sm font-medium text-gray-700 dark:text-gray-200">{t("admin.games.dropHtmlHere")}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{t("admin.games.acceptsHtml")}</p>
+              </div>
+              <input ref={fileInputRef} type="file" accept=".html,.htm" className="hidden" onChange={(e) => { if (e.target.files?.[0]) handleFileUpload(e.target.files[0]); }} />
+              {uploadProgress && (
+                <div className={`mt-3 text-sm p-3 rounded-lg ${uploadProgress.startsWith("✅") ? "bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-300" : uploadProgress.startsWith("❌") ? "bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-300" : "bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300"}`}>
+                  {uploadProgress}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* URL input hint */}
+          {addMethod === "url" && !editingId && (
+            <div className="px-6 pt-4">
+              <div className="flex items-center justify-between mb-1">
+                <p className="text-sm font-medium text-gray-700 dark:text-gray-200 flex items-center gap-2">
+                  <Link className="w-4 h-4 text-blue-600" /> إضافة عبر رابط
+                </p>
+                <button onClick={() => setAddMethod(null)} className="text-xs text-blue-600 hover:underline flex items-center gap-1">
+                  <RefreshCw className="w-3 h-3" /> تغيير الطريقة
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Game Details Form */}
+          {(addMethod || editingId) && (
+            <form onSubmit={handleSubmit} className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-200">{t("admin.games.gameTitle")}</label>
+                <input
+                  type="text"
+                  value={form.title}
+                  onChange={(e) => setForm({ ...form, title: e.target.value })}
+                  required
+                  placeholder={t("admin.games.gameTitlePlaceholder")}
+                  className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:border-blue-600 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-200">
+                  رابط التضمين (Embed URL) *
+                  {form.embedUrl && (
+                    <button type="button" onClick={() => setPreviewUrl(form.embedUrl)} className="mr-2 text-blue-600 hover:underline text-xs">{t("admin.games.preview")}</button>
+                  )}
+                </label>
+                <input
+                  type="text"
+                  value={form.embedUrl}
+                  onChange={(e) => setForm({ ...form, embedUrl: e.target.value })}
+                  required
+                  placeholder={addMethod === "upload" ? "سيتم ملؤه تلقائياً بعد الرفع" : "https://example.com/game أو /games/file.html"}
+                  className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:border-blue-600 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  dir="ltr"
+                  readOnly={addMethod === "upload" && !!form.embedUrl}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-200">{t("admin.games.description")}</label>
+                <input
+                  type="text"
+                  value={form.description}
+                  onChange={(e) => setForm({ ...form, description: e.target.value })}
+                  placeholder={t("admin.games.descPlaceholder")}
+                  className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:border-blue-600 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-200">{t("admin.games.thumbnailUrl")}</label>
+                <input
+                  type="url"
+                  value={form.thumbnailUrl}
+                  onChange={(e) => setForm({ ...form, thumbnailUrl: e.target.value })}
+                  placeholder="https://example.com/image.png"
+                  className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:border-blue-600 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  dir="ltr"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-200">{t("admin.games.category")}</label>
+                <select
+                  value={form.category}
+                  onChange={(e) => setForm({ ...form, category: e.target.value })}
+                  className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:border-blue-600 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                >
+                  {CATEGORIES.map(c => (
+                    <option key={c.value} value={c.value}>{c.icon} {c.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-200">{t("admin.games.pointsPerGame")}</label>
+                <input
+                  type="number"
+                  min="0"
+                  value={form.pointsPerPlay}
+                  onChange={(e) => setForm({ ...form, pointsPerPlay: e.target.value })}
+                  className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:border-blue-600 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-200">{t("admin.games.maxDailyPlays")}</label>
+                <input
+                  type="number"
+                  min="0"
+                  value={form.maxPlaysPerDay}
+                  onChange={(e) => setForm({ ...form, maxPlaysPerDay: e.target.value })}
+                  className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:border-blue-600 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  placeholder={t("admin.games.noLimit")}
+                />
+              </div>
+              <div className="flex gap-4">
+                <div className="flex-1">
+                  <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-200">{t("admin.games.minAge")}</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="18"
+                    value={form.minAge}
+                    onChange={(e) => setForm({ ...form, minAge: e.target.value })}
+                    className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:border-blue-600 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                    placeholder={t("admin.games.optional")}
+                  />
+                </div>
+                <div className="flex-1">
+                  <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-200">{t("admin.games.maxAge")}</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="18"
+                    value={form.maxAge}
+                    onChange={(e) => setForm({ ...form, maxAge: e.target.value })}
+                    className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:border-blue-600 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                    placeholder={t("admin.games.optional")}
+                  />
+                </div>
+              </div>
+              <div className="md:col-span-2 flex gap-2 justify-end pt-2 border-t dark:border-gray-700">
+                <button
+                  type="button"
+                  onClick={resetForm}
+                  className="px-5 py-2 border rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 dark:border-gray-600 text-gray-700 dark:text-gray-200 transition"
+                >
+                  إلغاء
+                </button>
+                {form.embedUrl && (
+                  <button
+                    type="button"
+                    onClick={() => setPreviewUrl(form.embedUrl)}
+                    className="flex items-center gap-2 px-5 py-2 border border-purple-300 dark:border-purple-600 text-purple-700 dark:text-purple-300 rounded-lg hover:bg-purple-50 dark:hover:bg-purple-900/20 transition"
+                  >
+                    <Eye className="w-4 h-4" />
+                    معاينة
+                  </button>
+                )}
+                <button
+                  type="submit"
+                  disabled={createMutation.isPending || updateMutation.isPending || !form.embedUrl}
+                  className="flex items-center gap-2 bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition disabled:opacity-50"
+                >
+                  <Save className="w-4 h-4" />
+                  {editingId ? "تحديث" : "إنشاء اللعبة"}
+                </button>
+              </div>
+            </form>
+          )}
+        </div>
+      )}
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
@@ -782,236 +1027,6 @@ export function GamesTab({ token }: { token: string }) {
               <p>⚠️ النقاط تُمنح عند ضغط الطفل "أنهيت اللعبة"</p>
             </div>
           </div>
-        </div>
-      )}
-
-      {/* ========== ADD GAME FORM ========== */}
-      {showForm && (
-        <div className="bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-xl shadow-lg overflow-hidden">
-          {/* Form Header */}
-          <div className="flex justify-between items-center p-5 border-b dark:border-gray-700 bg-gradient-to-l from-blue-50 to-white dark:from-gray-800 dark:to-gray-800">
-            <h3 className="text-lg font-bold text-gray-800 dark:text-white flex items-center gap-2">
-              {editingId ? <><Pencil className="w-5 h-5 text-blue-600" /> تعديل لعبة</> : <><Plus className="w-5 h-5 text-blue-600" /> إضافة لعبة جديدة</>}
-            </h3>
-            <button onClick={resetForm} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full text-gray-600 dark:text-gray-300">
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-
-          {/* Method Selection (only for new games) */}
-          {!editingId && !addMethod && (
-            <div className="p-6">
-              <p className="text-sm text-gray-600 dark:text-gray-300 mb-4 font-medium">{t("admin.games.chooseMethod")}</p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <button
-                  onClick={() => setAddMethod("url")}
-                  className="flex flex-col items-center gap-3 p-6 border-2 border-dashed border-blue-300 dark:border-blue-600 rounded-xl hover:border-blue-500 hover:bg-blue-50/50 dark:hover:bg-blue-900/10 transition group"
-                >
-                  <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center group-hover:scale-110 transition">
-                    <Link className="w-8 h-8 text-blue-600 dark:text-blue-400" />
-                  </div>
-                  <div className="font-bold text-blue-700 dark:text-blue-300 text-lg">{t("admin.games.externalUrl")}</div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 text-center">ألصق رابط لعبة من موقع خارجي مثل itch.io أو CrazyGames أو أي رابط HTML</p>
-                </button>
-                <button
-                  onClick={() => setAddMethod("upload")}
-                  className="flex flex-col items-center gap-3 p-6 border-2 border-dashed border-green-300 dark:border-green-600 rounded-xl hover:border-green-500 hover:bg-green-50/50 dark:hover:bg-green-900/10 transition group"
-                >
-                  <div className="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center group-hover:scale-110 transition">
-                    <FileUp className="w-8 h-8 text-green-600 dark:text-green-400" />
-                  </div>
-                  <div className="font-bold text-green-700 dark:text-green-300 text-lg">{t("admin.games.uploadHtml")}</div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 text-center">ارفع ملف .html من جهازك — يتم تخزينه على السيرفر والرابط يتولّد تلقائياً</p>
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Upload Zone (for upload method) */}
-          {addMethod === "upload" && !editingId && (
-            <div className="p-6 border-b dark:border-gray-700">
-              <div className="flex items-center justify-between mb-3">
-                <p className="text-sm font-medium text-gray-700 dark:text-gray-200 flex items-center gap-2">
-                  <FileUp className="w-4 h-4 text-green-600" /> رفع ملف اللعبة
-                </p>
-                <button onClick={() => setAddMethod(null)} className="text-xs text-blue-600 hover:underline flex items-center gap-1">
-                  <RefreshCw className="w-3 h-3" /> تغيير الطريقة
-                </button>
-              </div>
-              <div
-                onDrop={handleDrop}
-                onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
-                onClick={() => fileInputRef.current?.click()}
-                className="border-2 border-dashed border-green-300 dark:border-green-600 rounded-xl p-8 text-center cursor-pointer hover:border-green-500 hover:bg-green-50/30 dark:hover:bg-green-900/10 transition"
-              >
-                <Upload className="w-12 h-12 text-green-400 mx-auto mb-3" />
-                <p className="text-sm font-medium text-gray-700 dark:text-gray-200">{t("admin.games.dropHtmlHere")}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{t("admin.games.acceptsHtml")}</p>
-              </div>
-              <input ref={fileInputRef} type="file" accept=".html,.htm" className="hidden" onChange={(e) => { if (e.target.files?.[0]) handleFileUpload(e.target.files[0]); }} />
-              {uploadProgress && (
-                <div className={`mt-3 text-sm p-3 rounded-lg ${uploadProgress.startsWith("✅") ? "bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-300" : uploadProgress.startsWith("❌") ? "bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-300" : "bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300"}`}>
-                  {uploadProgress}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* URL input hint */}
-          {addMethod === "url" && !editingId && (
-            <div className="px-6 pt-4">
-              <div className="flex items-center justify-between mb-1">
-                <p className="text-sm font-medium text-gray-700 dark:text-gray-200 flex items-center gap-2">
-                  <Link className="w-4 h-4 text-blue-600" /> إضافة عبر رابط
-                </p>
-                <button onClick={() => setAddMethod(null)} className="text-xs text-blue-600 hover:underline flex items-center gap-1">
-                  <RefreshCw className="w-3 h-3" /> تغيير الطريقة
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Game Details Form */}
-          {(addMethod || editingId) && (
-            <form onSubmit={handleSubmit} className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-200">{t("admin.games.gameTitle")}</label>
-                <input
-                  type="text"
-                  value={form.title}
-                  onChange={(e) => setForm({ ...form, title: e.target.value })}
-                  required
-                  placeholder={t("admin.games.gameTitlePlaceholder")}
-                  className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:border-blue-600 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-200">
-                  رابط التضمين (Embed URL) *
-                  {form.embedUrl && (
-                    <button type="button" onClick={() => setPreviewUrl(form.embedUrl)} className="mr-2 text-blue-600 hover:underline text-xs">{t("admin.games.preview")}</button>
-                  )}
-                </label>
-                <input
-                  type="text"
-                  value={form.embedUrl}
-                  onChange={(e) => setForm({ ...form, embedUrl: e.target.value })}
-                  required
-                  placeholder={addMethod === "upload" ? "سيتم ملؤه تلقائياً بعد الرفع" : "https://example.com/game أو /games/file.html"}
-                  className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:border-blue-600 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                  dir="ltr"
-                  readOnly={addMethod === "upload" && !!form.embedUrl}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-200">{t("admin.games.description")}</label>
-                <input
-                  type="text"
-                  value={form.description}
-                  onChange={(e) => setForm({ ...form, description: e.target.value })}
-                  placeholder={t("admin.games.descPlaceholder")}
-                  className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:border-blue-600 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-200">{t("admin.games.thumbnailUrl")}</label>
-                <input
-                  type="url"
-                  value={form.thumbnailUrl}
-                  onChange={(e) => setForm({ ...form, thumbnailUrl: e.target.value })}
-                  placeholder="https://example.com/image.png"
-                  className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:border-blue-600 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                  dir="ltr"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-200">{t("admin.games.category")}</label>
-                <select
-                  value={form.category}
-                  onChange={(e) => setForm({ ...form, category: e.target.value })}
-                  className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:border-blue-600 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                >
-                  {CATEGORIES.map(c => (
-                    <option key={c.value} value={c.value}>{c.icon} {c.label}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-200">{t("admin.games.pointsPerGame")}</label>
-                <input
-                  type="number"
-                  min="0"
-                  value={form.pointsPerPlay}
-                  onChange={(e) => setForm({ ...form, pointsPerPlay: e.target.value })}
-                  className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:border-blue-600 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-200">{t("admin.games.maxDailyPlays")}</label>
-                <input
-                  type="number"
-                  min="0"
-                  value={form.maxPlaysPerDay}
-                  onChange={(e) => setForm({ ...form, maxPlaysPerDay: e.target.value })}
-                  className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:border-blue-600 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                  placeholder={t("admin.games.noLimit")}
-                />
-              </div>
-              <div className="flex gap-4">
-                <div className="flex-1">
-                  <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-200">{t("admin.games.minAge")}</label>
-                  <input
-                    type="number"
-                    min="0"
-                    max="18"
-                    value={form.minAge}
-                    onChange={(e) => setForm({ ...form, minAge: e.target.value })}
-                    className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:border-blue-600 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                    placeholder={t("admin.games.optional")}
-                  />
-                </div>
-                <div className="flex-1">
-                  <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-200">{t("admin.games.maxAge")}</label>
-                  <input
-                    type="number"
-                    min="0"
-                    max="18"
-                    value={form.maxAge}
-                    onChange={(e) => setForm({ ...form, maxAge: e.target.value })}
-                    className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:border-blue-600 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                    placeholder={t("admin.games.optional")}
-                  />
-                </div>
-              </div>
-              <div className="md:col-span-2 flex gap-2 justify-end pt-2 border-t dark:border-gray-700">
-                <button
-                  type="button"
-                  onClick={resetForm}
-                  className="px-5 py-2 border rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 dark:border-gray-600 text-gray-700 dark:text-gray-200 transition"
-                >
-                  إلغاء
-                </button>
-                {form.embedUrl && (
-                  <button
-                    type="button"
-                    onClick={() => setPreviewUrl(form.embedUrl)}
-                    className="flex items-center gap-2 px-5 py-2 border border-purple-300 dark:border-purple-600 text-purple-700 dark:text-purple-300 rounded-lg hover:bg-purple-50 dark:hover:bg-purple-900/20 transition"
-                  >
-                    <Eye className="w-4 h-4" />
-                    معاينة
-                  </button>
-                )}
-                <button
-                  type="submit"
-                  disabled={createMutation.isPending || updateMutation.isPending || !form.embedUrl}
-                  className="flex items-center gap-2 bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition disabled:opacity-50"
-                >
-                  <Save className="w-4 h-4" />
-                  {editingId ? "تحديث" : "إنشاء اللعبة"}
-                </button>
-              </div>
-            </form>
-          )}
         </div>
       )}
 
