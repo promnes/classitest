@@ -66,6 +66,16 @@ async function seedDefaultGames() {
         pointsPerPlay: 10,
         maxPlaysPerDay: 0,
       },
+      {
+        title: "مغامرة الفواكه - Fruit Adventure 🐍",
+        description: "لعبة ثعبان ثلاثية الأبعاد! 9 مستويات، 5 أشكال للثعبان، 8 قدرات خارقة، نظام طقس، كاميرا ذكية، خريطة مصغرة، وتأثيرات بصرية مذهلة!",
+        embedUrl: "/games/snake-3d.html",
+        category: "puzzle",
+        minAge: 5,
+        maxAge: 14,
+        pointsPerPlay: 10,
+        maxPlaysPerDay: 0,
+      },
     ];
 
     for (const game of builtinGames) {
