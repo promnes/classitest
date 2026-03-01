@@ -76,6 +76,16 @@ async function seedDefaultGames() {
         pointsPerPlay: 10,
         maxPlaysPerDay: 0,
       },
+      {
+        title: "مملكة القطة التعليمية - Cat Kingdom 🐱👑",
+        description: "100 مستوى تعليمي عبر 10 عوالم! ألوان، أشكال، أرقام، جمع، طرح، حروف عربية وإنجليزية، كلمات، أنماط، تحديات مختلطة! نظام قطة أليفة، متجر أشكال، زعماء، شارات إنجاز!",
+        embedUrl: "/games/cat-kingdom.html",
+        category: "education",
+        minAge: 4,
+        maxAge: 12,
+        pointsPerPlay: 10,
+        maxPlaysPerDay: 0,
+      },
     ];
 
     for (const game of builtinGames) {
