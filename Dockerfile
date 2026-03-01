@@ -60,11 +60,18 @@ RUN apk add --no-cache curl busybox-extras
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 appuser
 
-# Copy package files
+# Create writable directories BEFORE switching user
+RUN mkdir -p /app/uploads /app/logs && \
+    chown -R appuser:nodejs /app /app/uploads /app/logs
+
+# Switch to non-root user BEFORE npm install (avoids slow chown -R on node_modules)
+USER appuser
+
+# Copy package files (owned by appuser since USER is set)
 COPY --chown=appuser:nodejs package*.json ./
 COPY --chown=appuser:nodejs .npmrc* ./
 
-# Install ONLY production deps + migration tools
+# Install ONLY production deps + migration tools as appuser
 # (drizzle-kit, tsx needed for db:push at startup)
 RUN if [ -f package-lock.json ]; then \
       npm ci --omit=dev --no-audit --no-fund; \
@@ -74,7 +81,7 @@ RUN if [ -f package-lock.json ]; then \
     npm install --no-save drizzle-kit tsx && \
     npm cache clean --force
 
-# Copy built application from builder (already owned by appuser)
+# Copy built application from builder
 COPY --chown=appuser:nodejs --from=builder /app/dist ./dist
 
 # Copy database schema and migrations (needed for db:push)
@@ -86,11 +93,6 @@ COPY --chown=appuser:nodejs --from=builder /app/tsconfig.json ./
 # Copy scripts (entrypoint + maintenance tools)
 COPY --chown=appuser:nodejs --from=builder /app/scripts ./scripts
 RUN chmod +x ./scripts/docker-entrypoint.sh
-
-# Create persistent directories and fix ownership for writable dirs only
-# (node_modules ownership stays root — read-only is fine, avoids slow recursive chown)
-RUN mkdir -p /app/uploads /app/logs && \
-    chown -R appuser:nodejs /app/uploads /app/logs /app/node_modules
 
 # Switch to non-root user
 USER appuser
