@@ -76,3 +76,20 @@ classify-googleplay.*
 
 # APK builds (except the published one)
 android/app/build/
+
+# Replit artifacts
+.replit
+replit.nix
+.local/
+ecosystem.config.cjs
+
+# AI/temp artifacts
+docs/_ai-temp/
+attached_assets/
+debug.png
+test-results/
+
+# Redundant env examples
+.env.example.production
+.env.production.example
+.env.staging.example
