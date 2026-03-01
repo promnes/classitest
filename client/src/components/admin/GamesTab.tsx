@@ -154,6 +154,21 @@ const BUILTIN_GAMES: BuiltinGame[] = [
     maxPlaysPerDay: 0,
     gradient: "from-orange-400 to-pink-500",
   },
+  {
+    id: "builtin-ice-kingdom",
+    title: "Ice Kingdom Academy",
+    titleAr: "مملكة الجليد التعليمية ❄️🌍",
+    description: "100 educational levels across 10 ice worlds! Colors, animals, weather, numbers, addition, subtraction, geography, science, dinosaurs! Penguin pet, daily bonus, power-ups, skin store!",
+    descriptionAr: "100 مستوى تعليمي عبر 10 عوالم جليدية! ألوان، حيوانات، طقس، أرقام، جمع، طرح، جغرافيا، علوم، ديناصورات! نظام بطريق أليف، مكافأة يومية، قدرات خارقة، متجر أشكال!",
+    embedUrl: "/games/ice-kingdom.html",
+    thumbnailEmoji: "❄️",
+    category: "educational",
+    minAge: 4,
+    maxAge: 12,
+    pointsPerPlay: 10,
+    maxPlaysPerDay: 0,
+    gradient: "from-cyan-400 to-blue-600",
+  },
 ];
 
 // Legacy URL mappings for backwards compatibility

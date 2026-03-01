@@ -86,6 +86,16 @@ async function seedDefaultGames() {
         pointsPerPlay: 10,
         maxPlaysPerDay: 0,
       },
+      {
+        title: "مملكة الجليد التعليمية - Ice Kingdom Academy ❄️🌍",
+        description: "100 مستوى تعليمي عبر 10 عوالم جليدية! ألوان، حيوانات، طقس، أرقام، جمع، طرح، جغرافيا، علوم، ديناصورات! نظام بطريق أليف، مكافأة يومية، قدرات خارقة، متجر أشكال!",
+        embedUrl: "/games/ice-kingdom.html",
+        category: "educational",
+        minAge: 4,
+        maxAge: 12,
+        pointsPerPlay: 10,
+        maxPlaysPerDay: 0,
+      },
     ];
 
     for (const game of builtinGames) {
