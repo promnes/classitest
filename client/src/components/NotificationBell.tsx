@@ -86,6 +86,8 @@ const NAV_MAP: Record<string, string> = {
   referral_reward: "/parent-dashboard", new_referral: "/parent-dashboard",
   child_linked: "/parent-dashboard", child_activity: "/parent-dashboard",
   child_logout: "/parent-dashboard", low_points_warning: "/parent-dashboard",
+  parent_link_request: "/parent-dashboard", parent_link_approved: "/parent-dashboard",
+  parent_link_rejected: "/parent-dashboard",
   gift_unlocked: "/parent-dashboard", gift_activated: "/parent-dashboard",
   product_assigned: "/parent-dashboard", reward: "/parent-dashboard",
   reward_unlocked: "/parent-dashboard", achievement: "/parent-dashboard",
@@ -152,6 +154,22 @@ export function ParentNotificationBell() {
       toast({
         title: variables.action === "approve" ? t("notifications.approved") : t("notifications.rejected"),
         description: variables.action === "approve" ? t("notifications.loginApproved") : t("notifications.loginRejected"),
+      });
+    },
+    onError: () => {
+      toast({ title: t("notifications.error"), description: t("notifications.tryAgain"), variant: "destructive" });
+    },
+  });
+
+  const respondToLinkMutation = useMutation({
+    mutationFn: ({ notificationId, action }: { notificationId: string; action: "approve" | "reject" }) =>
+      apiRequest("POST", `/api/parent/notifications/${notificationId}/respond-link`, { action }),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/parent/notifications"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/parent/notifications/unread-count"] });
+      toast({
+        title: variables.action === "approve" ? "✅ تمت الموافقة" : "❌ تم الرفض",
+        description: variables.action === "approve" ? "تم ربط الحساب بنجاح" : "تم رفض طلب الربط",
       });
     },
     onError: () => {
@@ -312,12 +330,15 @@ export function ParentNotificationBell() {
               ) : (
                 notifications.map((notification) => {
                   const isLogin = notification.type === "login_code_request";
+                  const isLinkRequest = notification.type === "parent_link_request";
                   const loginStatus = notification.loginRequestStatus || "pending";
                   const canRespond = isLogin && loginStatus === "pending";
+                  const linkRequestStatus = notification.metadata?.linkRequestStatus || (notification.metadata?.linkRequestIds ? "pending" : undefined);
+                  const canRespondLink = isLinkRequest && !notification.isRead && linkRequestStatus === "pending";
                   const parentCode = notification.metadata?.parentCode;
                   const iconCfg = getIconConfig(notification.type);
                   const navTarget = NAV_MAP[notification.type];
-                  const isClickable = !isLogin && !!navTarget;
+                  const isClickable = !isLogin && !isLinkRequest && !!navTarget;
 
                   return (
                     <div
@@ -414,6 +435,50 @@ export function ParentNotificationBell() {
                                 {respondToLoginMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <><X className="w-3 h-3" /> {t("notifications.reject")}</>}
                               </button>
                             </div>
+                          </div>
+                        )}
+
+                        {/* Parent link request: approve/reject buttons */}
+                        {isLinkRequest && canRespondLink && (
+                          <div className="mt-2 space-y-1.5">
+                            <div className={`px-2.5 py-1.5 rounded-lg text-xs ${
+                              isDark ? "bg-[#3a3b3c]" : "bg-orange-50"
+                            }`}>
+                              <span className={isDark ? "text-gray-300" : "text-gray-700"}>
+                                🔗 {notification.metadata?.requestingParentName} يريد الارتباط بحساب أطفالك
+                              </span>
+                            </div>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={(e) => { e.stopPropagation(); respondToLinkMutation.mutate({ notificationId: notification.id, action: "approve" }); }}
+                                disabled={respondToLinkMutation.isPending}
+                                className="flex-1 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-1 transition-colors disabled:opacity-50"
+                              >
+                                {respondToLinkMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <><Check className="w-3 h-3" /> موافقة</>}
+                              </button>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); respondToLinkMutation.mutate({ notificationId: notification.id, action: "reject" }); }}
+                                disabled={respondToLinkMutation.isPending}
+                                className="flex-1 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-1 transition-colors disabled:opacity-50"
+                              >
+                                {respondToLinkMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <><X className="w-3 h-3" /> رفض</>}
+                              </button>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Parent link request: already responded status */}
+                        {isLinkRequest && !canRespondLink && (
+                          <div className="mt-1.5">
+                            <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold ${
+                              notification.metadata?.linkRequestStatus === "approved" || (notification.isRead && !linkRequestStatus)
+                                ? "text-green-700 bg-green-100"
+                                : "text-red-700 bg-red-100"
+                            }`}>
+                              {notification.metadata?.linkRequestStatus === "approved" || (notification.isRead && !linkRequestStatus)
+                                ? "✅ تمت الموافقة"
+                                : "❌ تم الرفض"}
+                            </span>
                           </div>
                         )}
                       </div>

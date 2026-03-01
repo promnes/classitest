@@ -863,6 +863,18 @@ export const parentChildLinkingCodes = pgTable("parent_child_linking_codes", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// جدول طلبات ربط والد جديد بحساب طفل (يحتاج موافقة الوالد الأول)
+export const parentLinkRequests = pgTable("parent_link_requests", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  requestingParentId: varchar("requesting_parent_id").notNull().references(() => parents.id, { onDelete: "cascade" }),
+  primaryParentId: varchar("primary_parent_id").notNull().references(() => parents.id, { onDelete: "cascade" }),
+  childId: varchar("child_id").notNull().references(() => children.id, { onDelete: "cascade" }),
+  status: varchar("status", { length: 20 }).default("pending").notNull(), // "pending" | "approved" | "rejected"
+  respondedAt: timestamp("responded_at"),
+  notificationId: varchar("notification_id"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // جدول حالة مشاركة البيانات بين الآباء والأطفال
 export const parentParentSync = pgTable("parent_parent_sync", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),

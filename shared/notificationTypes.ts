@@ -52,6 +52,9 @@ export const NOTIFICATION_TYPES = {
   ENROLLMENT_SUBMITTED: "enrollment_submitted",
   ENROLLMENT_APPROVED: "enrollment_approved",
   ENROLLMENT_REJECTED: "enrollment_rejected",
+  PARENT_LINK_REQUEST: "parent_link_request",
+  PARENT_LINK_APPROVED: "parent_link_approved",
+  PARENT_LINK_REJECTED: "parent_link_rejected",
 } as const;
 
 export type NotificationType = (typeof NOTIFICATION_TYPES)[keyof typeof NOTIFICATION_TYPES];
