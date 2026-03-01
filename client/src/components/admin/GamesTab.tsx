@@ -139,6 +139,21 @@ const BUILTIN_GAMES: BuiltinGame[] = [
     maxPlaysPerDay: 0,
     gradient: "from-emerald-500 to-teal-500",
   },
+  {
+    id: "builtin-cat-kingdom",
+    title: "Cat Kingdom",
+    titleAr: "مملكة القطة التعليمية 🐱👑",
+    description: "100 educational levels across 10 worlds! Colors, shapes, numbers, addition, subtraction, Arabic & English letters, words, patterns, mixed challenges! Cat pet system, skin store, bosses, achievement badges!",
+    descriptionAr: "100 مستوى تعليمي عبر 10 عوالم! ألوان، أشكال، أرقام، جمع، طرح، حروف عربية وإنجليزية، كلمات، أنماط، تحديات مختلطة! نظام قطة أليفة، متجر أشكال، زعماء، شارات إنجاز!",
+    embedUrl: "/games/cat-kingdom.html",
+    thumbnailEmoji: "🐱",
+    category: "educational",
+    minAge: 4,
+    maxAge: 12,
+    pointsPerPlay: 10,
+    maxPlaysPerDay: 0,
+    gradient: "from-orange-400 to-pink-500",
+  },
 ];
 
 // Legacy URL mappings for backwards compatibility
