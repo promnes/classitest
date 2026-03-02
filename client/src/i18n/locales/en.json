@@ -2558,7 +2558,9 @@
     "unknownDevice": "Unknown Device",
     "currentDevice": "Current • ",
     "noTrustedDevices": "No trusted devices",
-    "languageChanged": "Language changed",
+    "languageChanged": "Language Changed",
+    "languageChangedTo": "Changed to {{lang}}",
+    "footerGreeting": "Hello {{name}} 👋",
     "arabic": "Arabic",
     "welcome": "Welcome",
     "settings": "Settings",
@@ -3915,11 +3917,6 @@
     "privacy": "Privacy",
     "terms": "Terms",
     "allRightsReserved": "All rights reserved."
-  },
-  "childSettings": {
-    "languageChanged": "Language Changed",
-    "languageChangedTo": "Changed to {{lang}}",
-    "footerGreeting": "Hello {{name}} 👋"
   },
   "childProgress": {
     "points": "Points",

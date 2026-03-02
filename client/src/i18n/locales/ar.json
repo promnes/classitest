@@ -2563,6 +2563,8 @@
     "currentDevice": "الجهاز الحالي • ",
     "noTrustedDevices": "لا توجد أجهزة موثوقة",
     "languageChanged": "تم تغيير اللغة",
+    "languageChangedTo": "تم التغيير إلى {{lang}}",
+    "footerGreeting": "مرحباً {{name}} 👋",
     "arabic": "العربية",
     "welcome": "مرحباً",
     "settings": "الإعدادات",
@@ -3918,11 +3920,6 @@
     "privacy": "الخصوصية",
     "terms": "الشروط",
     "allRightsReserved": "جميع الحقوق محفوظة."
-  },
-  "childSettings": {
-    "languageChanged": "تم تغيير اللغة",
-    "languageChangedTo": "تم التغيير إلى {{lang}}",
-    "footerGreeting": "مرحباً {{name}} 👋"
   },
   "childProgress": {
     "points": "نقطة",
