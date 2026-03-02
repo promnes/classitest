@@ -893,82 +893,92 @@ export const ParentDashboard = (): JSX.Element => {
 
       <main className="max-w-7xl mx-auto px-4 py-6 space-y-6">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Card className={`${isDark ? "bg-gradient-to-br from-blue-900/50 to-blue-800/50 border-blue-700/50" : "bg-gradient-to-br from-blue-500 to-blue-600"} text-white border-0`}>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs opacity-80">{t('parentDashboard.children')}</p>
-                  <p className="text-2xl font-bold">{childrenList.length}</p>
+          <button onClick={() => setActiveTab("children")} className="text-start focus:outline-none focus:ring-2 focus:ring-blue-400 rounded-xl transition-transform hover:scale-105 active:scale-95">
+            <Card className={`${isDark ? "bg-gradient-to-br from-blue-900/50 to-blue-800/50 border-blue-700/50" : "bg-gradient-to-br from-blue-500 to-blue-600"} text-white border-0 h-full`}>
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs opacity-80">{t('parentDashboard.children')}</p>
+                    <p className="text-2xl font-bold">{childrenList.length}</p>
+                  </div>
+                  <Users className="h-8 w-8 opacity-80" />
                 </div>
-                <Users className="h-8 w-8 opacity-80" />
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </button>
 
-          <Card className={`${isDark ? "bg-gradient-to-br from-green-900/50 to-green-800/50 border-green-700/50" : "bg-gradient-to-br from-green-500 to-green-600"} text-white border-0`}>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs opacity-80">{t('parentDashboard.walletBalance')}</p>
-                  <p className="text-2xl font-bold">${Number(walletData?.balance || 0).toFixed(0)}</p>
+          <button onClick={() => navigate("/wallet")} className="text-start focus:outline-none focus:ring-2 focus:ring-green-400 rounded-xl transition-transform hover:scale-105 active:scale-95">
+            <Card className={`${isDark ? "bg-gradient-to-br from-green-900/50 to-green-800/50 border-green-700/50" : "bg-gradient-to-br from-green-500 to-green-600"} text-white border-0 h-full`}>
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs opacity-80">{t('parentDashboard.walletBalance')}</p>
+                    <p className="text-2xl font-bold">${Number(walletData?.balance || 0).toFixed(0)}</p>
+                  </div>
+                  <Wallet className="h-8 w-8 opacity-80" />
                 </div>
-                <Wallet className="h-8 w-8 opacity-80" />
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </button>
 
-          <Card className={`${isDark ? "bg-gradient-to-br from-purple-900/50 to-purple-800/50 border-purple-700/50" : "bg-gradient-to-br from-purple-500 to-purple-600"} text-white border-0`}>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs opacity-80">{t('parentDashboard.totalPoints')}</p>
-                  <p className="text-2xl font-bold">{totalChildrenPoints}</p>
+          <button onClick={() => setActiveTab("children")} className="text-start focus:outline-none focus:ring-2 focus:ring-purple-400 rounded-xl transition-transform hover:scale-105 active:scale-95">
+            <Card className={`${isDark ? "bg-gradient-to-br from-purple-900/50 to-purple-800/50 border-purple-700/50" : "bg-gradient-to-br from-purple-500 to-purple-600"} text-white border-0 h-full`}>
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs opacity-80">{t('parentDashboard.totalPoints')}</p>
+                    <p className="text-2xl font-bold">{totalChildrenPoints}</p>
+                  </div>
+                  <Star className="h-8 w-8 opacity-80" />
                 </div>
-                <Star className="h-8 w-8 opacity-80" />
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </button>
 
-          <Card className={`${isDark ? "bg-gradient-to-br from-orange-900/50 to-orange-800/50 border-orange-700/50" : "bg-gradient-to-br from-orange-500 to-orange-600"} text-white border-0`}>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs opacity-80">{t('parentDashboard.notifications')}</p>
-                  <p className="text-2xl font-bold">{unreadNotifications}</p>
+          <button onClick={() => navigate("/parent-store")} className="text-start focus:outline-none focus:ring-2 focus:ring-orange-400 rounded-xl transition-transform hover:scale-105 active:scale-95">
+            <Card className={`${isDark ? "bg-gradient-to-br from-orange-900/50 to-orange-800/50 border-orange-700/50" : "bg-gradient-to-br from-orange-500 to-orange-600"} text-white border-0 h-full`}>
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs opacity-80">{t('parentDashboard.store')}</p>
+                    <p className="text-2xl font-bold">{availableInventoryCount || 0}</p>
+                  </div>
+                  <ShoppingBag className="h-8 w-8 opacity-80" />
                 </div>
-                <Bell className="h-8 w-8 opacity-80" />
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </button>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className={`w-full justify-start overflow-x-auto ${isDark ? "bg-gray-800" : "bg-white"} p-1 rounded-xl shadow-sm`}>
-            <TabsTrigger value="overview" className="gap-2 flex-shrink-0" data-testid="tab-overview">
-              <Target className="h-4 w-4" />
-              {t('parentDashboard.overview')}
-            </TabsTrigger>
-            <TabsTrigger value="children" className="gap-2 flex-shrink-0" data-testid="tab-children">
-              <Users className="h-4 w-4" />
-              {t('parentDashboard.children')}
-            </TabsTrigger>
-            <TabsTrigger value="tasks" className="gap-2 flex-shrink-0" data-testid="tab-tasks">
-              <Trophy className="h-4 w-4" />
-              {t('parentDashboard.tasks')}
-            </TabsTrigger>
-            <TabsTrigger value="store" className="gap-2 flex-shrink-0" data-testid="tab-store">
-              <ShoppingBag className="h-4 w-4" />
-              {t('parentDashboard.store')}
-            </TabsTrigger>
-            <TabsTrigger value="referral" className="gap-2 flex-shrink-0" data-testid="tab-referral">
-              <Share2 className="h-4 w-4" />
-              {t('parentDashboard.referrals')}
-            </TabsTrigger>
-            <TabsTrigger value="reports" className="gap-2 flex-shrink-0" data-testid="tab-reports">
-              <BookOpen className="h-4 w-4" />
-              {t('parentDashboard.reports')}
-            </TabsTrigger>
-          </TabsList>
+          <div className="w-full overflow-x-auto scrollbar-hide -mx-4 px-4">
+            <TabsList className={`inline-flex w-max min-w-full ${isDark ? "bg-gray-800" : "bg-white"} p-1 rounded-xl shadow-sm gap-0.5`}>
+              <TabsTrigger value="overview" className="gap-1.5 flex-1 min-w-0 px-2 sm:px-3 text-xs sm:text-sm whitespace-nowrap" data-testid="tab-overview">
+                <Target className="h-4 w-4 flex-shrink-0" />
+                <span className="truncate">{t('parentDashboard.overview')}</span>
+              </TabsTrigger>
+              <TabsTrigger value="children" className="gap-1.5 flex-1 min-w-0 px-2 sm:px-3 text-xs sm:text-sm whitespace-nowrap" data-testid="tab-children">
+                <Users className="h-4 w-4 flex-shrink-0" />
+                <span className="truncate">{t('parentDashboard.children')}</span>
+              </TabsTrigger>
+              <TabsTrigger value="tasks" className="gap-1.5 flex-1 min-w-0 px-2 sm:px-3 text-xs sm:text-sm whitespace-nowrap" data-testid="tab-tasks">
+                <Trophy className="h-4 w-4 flex-shrink-0" />
+                <span className="truncate">{t('parentDashboard.tasks')}</span>
+              </TabsTrigger>
+              <TabsTrigger value="store" className="gap-1.5 flex-1 min-w-0 px-2 sm:px-3 text-xs sm:text-sm whitespace-nowrap" data-testid="tab-store">
+                <ShoppingBag className="h-4 w-4 flex-shrink-0" />
+                <span className="truncate">{t('parentDashboard.store')}</span>
+              </TabsTrigger>
+              <TabsTrigger value="referral" className="gap-1.5 flex-1 min-w-0 px-2 sm:px-3 text-xs sm:text-sm whitespace-nowrap" data-testid="tab-referral">
+                <Share2 className="h-4 w-4 flex-shrink-0" />
+                <span className="truncate">{t('parentDashboard.referrals')}</span>
+              </TabsTrigger>
+              <TabsTrigger value="reports" className="gap-1.5 flex-1 min-w-0 px-2 sm:px-3 text-xs sm:text-sm whitespace-nowrap" data-testid="tab-reports">
+                <BookOpen className="h-4 w-4 flex-shrink-0" />
+                <span className="truncate">{t('parentDashboard.reports')}</span>
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
           <TabsContent value="overview" className="mt-6 space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
