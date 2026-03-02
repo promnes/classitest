@@ -3,10 +3,9 @@ import { useTranslation } from "react-i18next";
 import { useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTheme } from "@/contexts/ThemeContext";
-import { ChildNotificationBell } from "@/components/ChildNotificationBell";
-import { LanguageSelector } from "@/components/LanguageSelector";
 import { useToast } from "@/hooks/use-toast";
 import { MandatoryTaskModal } from "@/components/MandatoryTaskModal";
+import { ChildBottomNav } from "@/components/ChildBottomNav";
 
 export const ChildGifts = (): JSX.Element => {
   const { t, i18n } = useTranslation();
@@ -71,14 +70,14 @@ export const ChildGifts = (): JSX.Element => {
   const currentPoints = childInfo?.totalPoints || 0;
 
   return (
-    <div className={`min-h-screen ${isDark ? "bg-gradient-to-br from-purple-900 to-indigo-900" : "bg-gradient-to-br from-purple-400 to-pink-400"} p-4 md:p-8`} dir={isRTL ? "rtl" : "ltr"}>
+    <div className={`min-h-screen pb-24 ${isDark ? "bg-gradient-to-br from-purple-900 to-indigo-900" : "bg-gradient-to-br from-purple-400 to-pink-400"} p-4 md:p-8`} dir={isRTL ? "rtl" : "ltr"}>
       {/* Mandatory Task Modal */}
       {childInfo?.id && <MandatoryTaskModal childId={childInfo.id} />}
       
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-8">
-          <div className="text-center md:text-right">
+          <div className="text-center md:text-start">
             <h1 className="text-4xl md:text-5xl font-bold text-white mb-2">
               🎁 {t("child.myGifts")}
             </h1>
@@ -95,10 +94,6 @@ export const ChildGifts = (): JSX.Element => {
                 {currentPoints}
               </p>
             </div>
-            
-            <LanguageSelector />
-            
-            <ChildNotificationBell />
             
             <button
               onClick={() => window.history.length > 1 ? window.history.back() : navigate("/child-games")}
@@ -164,7 +159,7 @@ export const ChildGifts = (): JSX.Element => {
                       <span className="text-7xl">🎁</span>
                     )}
                     {canRedeem && (
-                      <div className="absolute top-3 right-3 bg-green-500 text-white px-3 py-1 rounded-full text-sm font-bold">
+                      <div className="absolute top-3 end-3 bg-green-500 text-white px-3 py-1 rounded-full text-sm font-bold">
                         ✓ {t("child.available")}
                       </div>
                     )}
@@ -272,6 +267,8 @@ export const ChildGifts = (): JSX.Element => {
           </div>
         </div>
       )}
+
+      <ChildBottomNav activeTab="gifts" />
     </div>
   );
 };

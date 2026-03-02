@@ -4,8 +4,9 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTheme } from "@/contexts/ThemeContext";
 import { getDateLocale } from "@/i18n/config";
 import { MandatoryTaskModal } from "@/components/MandatoryTaskModal";
-import { Bell, Gift, Star, Trophy, Target, CheckCircle, Clock, Gamepad2, ShoppingBag } from "lucide-react";
-import { LanguageSelector } from "@/components/LanguageSelector";
+import { ChildBottomNav } from "@/components/ChildBottomNav";
+import { motion, AnimatePresence } from "framer-motion";
+import { Bell, Gift, Star, Trophy, Target, CheckCircle, Clock, ArrowLeft, ArrowRight, Loader2 } from "lucide-react";
 
 interface Notification {
   id: string;
@@ -76,9 +77,10 @@ const getNotificationConfig = (type: string, priority: string) => {
 };
 
 export const ChildNotifications = (): JSX.Element => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [, navigate] = useLocation();
   const { isDark } = useTheme();
+  const isRTL = i18n.language === "ar";
   const token = localStorage.getItem("childToken");
   const queryClient = useQueryClient();
 
@@ -184,200 +186,212 @@ export const ChildNotifications = (): JSX.Element => {
   const currentPoints = childInfo?.totalPoints || 0;
 
   return (
-    <div className={`min-h-screen ${isDark ? "bg-gradient-to-br from-gray-900 to-gray-800" : "bg-gradient-to-br from-orange-300 to-orange-500"} p-4 md:p-8`}>
+    <div className={`min-h-screen ${isDark ? "bg-gradient-to-br from-gray-900 to-gray-800" : "bg-gradient-to-br from-orange-300 to-orange-500"} pb-24`} dir={isRTL ? "rtl" : "ltr"}>
       {childInfo?.id && <MandatoryTaskModal childId={childInfo.id} />}
-      
-      <div className="max-w-4xl mx-auto">
-        <div className="flex flex-wrap justify-between items-center gap-4 mb-8">
-          <div>
-            <h1 className="text-3xl md:text-4xl font-bold text-white mb-2 flex items-center gap-3">
-              <Bell className="w-10 h-10" />
-              {t("childNotifications.title")}
-              {unreadCount > 0 && (
-                <span className="bg-red-500 text-white text-sm px-3 py-1 rounded-full">
-                  {t("childNotifications.newCount", { count: unreadCount })}
-                </span>
-              )}
-            </h1>
-            <p className="text-white text-opacity-80 flex items-center gap-2">
-              <Star className="w-5 h-5 text-yellow-400" />
-              {t("childNotifications.points", { count: currentPoints })}
-            </p>
-          </div>
-          <div className="flex items-center gap-3">
-            <LanguageSelector />
-            <button
-              onClick={() => window.history.length > 1 ? window.history.back() : navigate("/child-games")}
-              className={`px-6 py-3 ${isDark ? "bg-gray-700 hover:bg-gray-600" : "bg-white bg-opacity-30 hover:bg-opacity-40"} text-white font-bold rounded-xl transition-all`}
-              data-testid="button-back"
-            >
-              {t("common.back")}
-            </button>
+
+      {/* Sticky Header */}
+      <header className="sticky top-0 z-40 bg-gradient-to-r from-orange-500 via-amber-500 to-yellow-500 shadow-lg">
+        <div className="max-w-4xl mx-auto px-4 py-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <motion.button
+                whileTap={{ scale: 0.85 }}
+                onClick={() => navigate("/child-games")}
+                className="p-2 bg-white/20 hover:bg-white/30 rounded-xl text-white transition-all"
+              >
+                {isRTL ? <ArrowRight className="w-5 h-5" /> : <ArrowLeft className="w-5 h-5" />}
+              </motion.button>
+              <div className="flex items-center gap-2">
+                <motion.div
+                  animate={{ rotate: [0, -15, 15, -15, 0] }}
+                  transition={{ duration: 2, repeat: Infinity, repeatDelay: 4 }}
+                >
+                  <Bell className="w-7 h-7 text-white" />
+                </motion.div>
+                <h1 className="text-xl font-bold text-white">{t("childNotifications.title")}</h1>
+                {unreadCount > 0 && (
+                  <motion.span
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    className="bg-red-500 text-white text-xs px-2.5 py-0.5 rounded-full font-bold shadow-lg"
+                  >
+                    {unreadCount}
+                  </motion.span>
+                )}
+              </div>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <motion.div
+                className="flex items-center gap-1 bg-white/20 px-2.5 py-1 rounded-xl"
+                whileHover={{ scale: 1.05 }}
+              >
+                <Star className="w-3.5 h-3.5 text-yellow-200 fill-yellow-200" />
+                <span className="text-xs font-bold text-white">{currentPoints}</span>
+              </motion.div>
+            </div>
           </div>
         </div>
+        <div className="w-full overflow-hidden leading-[0] -mb-[1px]">
+          <svg viewBox="0 0 1200 40" preserveAspectRatio="none" className="w-full h-3">
+            <path d="M0,20 C200,35 400,5 600,20 C800,35 1000,5 1200,20 L1200,40 L0,40 Z" fill={isDark ? "rgb(30, 30, 40)" : "rgb(210, 150, 80)"} fillOpacity="0.3" />
+          </svg>
+        </div>
+      </header>
 
-        <div className="space-y-4">
+      <div className="max-w-4xl mx-auto px-4 py-6">
+        <div className="space-y-3">
           {notificationsLoading ? (
-            <div className="flex justify-center items-center h-40">
-              <div className="animate-spin rounded-full h-12 w-12 border-4 border-white border-t-transparent"></div>
+            <div className="flex flex-col justify-center items-center h-48 gap-3">
+              <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }}>
+                <Loader2 className="w-10 h-10 text-white/70" />
+              </motion.div>
+              <p className="text-white/60 text-sm animate-pulse">{isRTL ? "جاري التحميل..." : "Loading..."}</p>
             </div>
           ) : notifications && notifications.length > 0 ? (
-            notifications.map((notification) => {
-              const config = getNotificationConfig(notification.type, notification.priority);
-              const isUrgent = notification.priority === "urgent" || notification.priority === "blocking";
-              const isUnread = !notification.isRead;
-              
-              return (
-                <div
-                  key={notification.id}
-                  className={`${isDark ? "bg-gray-800" : "bg-white"} rounded-2xl overflow-hidden shadow-lg transition-all hover:shadow-xl cursor-pointer ${isUnread ? "ring-2 ring-offset-2 ring-yellow-500" : ""} ${isUrgent ? "animate-pulse" : ""}`}
-                  data-testid={`notification-${notification.id}`}
-                  onClick={() => handleCTA(notification)}
-                >
-                  <div className={`h-2 bg-gradient-to-r ${config.bgColor}`} />
-                  <div className="p-6">
-                    <div className="flex items-start gap-4">
-                      <div className={`w-14 h-14 rounded-2xl ${config.iconBg} flex items-center justify-center flex-shrink-0 shadow-lg`}>
-                        {config.icon}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h4 className={`font-bold text-lg ${isDark ? "text-white" : "text-gray-800"}`}>
-                            {notification.title || notification.type.replace(/_/g, " ")}
-                          </h4>
-                          {isUnread && (
-                            <span className="w-2 h-2 bg-yellow-500 rounded-full" />
-                          )}
-                        </div>
-                        <p className={`${isDark ? "text-gray-400" : "text-gray-600"} mb-3`}>
-                          {notification.message}
-                        </p>
-                        
-                        {notification.metadata && (
-                          <div className="flex flex-wrap gap-2 mb-3">
-                            {notification.metadata.pointsEarned && (
-                              <span className="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm font-bold">
-                                {t("childNotifications.pointsEarned", { count: notification.metadata.pointsEarned })}
-                              </span>
+            <AnimatePresence>
+              {notifications.map((notification, index) => {
+                const config = getNotificationConfig(notification.type, notification.priority);
+                const isUrgent = notification.priority === "urgent" || notification.priority === "blocking";
+                const isUnread = !notification.isRead;
+
+                return (
+                  <motion.div
+                    key={notification.id}
+                    initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    transition={{ delay: index * 0.06, type: "spring", stiffness: 200 }}
+                    whileTap={{ scale: 0.98 }}
+                    className={`${isDark ? "bg-gray-800/90 border border-gray-700/50" : "bg-white/90 border border-white/50"} rounded-2xl overflow-hidden shadow-xl cursor-pointer backdrop-blur-sm ${isUnread ? "ring-2 ring-yellow-400/50" : ""}`}
+                    data-testid={`notification-${notification.id}`}
+                    onClick={() => handleCTA(notification)}
+                  >
+                    <div className={`h-1.5 bg-gradient-to-r ${config.bgColor}`} />
+                    <div className="p-4">
+                      <div className="flex items-start gap-3">
+                        <motion.div
+                          whileHover={{ scale: 1.1, rotate: 5 }}
+                          className={`w-11 h-11 rounded-xl ${config.iconBg} flex items-center justify-center shrink-0 shadow-lg`}
+                        >
+                          {config.icon}
+                        </motion.div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-0.5">
+                            <h4 className={`font-bold text-sm ${isDark ? "text-white" : "text-gray-800"} truncate`}>
+                              {notification.title || notification.type.replace(/_/g, " ")}
+                            </h4>
+                            {isUnread && (
+                              <motion.span
+                                animate={{ scale: [1, 1.3, 1] }}
+                                transition={{ duration: 2, repeat: Infinity }}
+                                className="w-2 h-2 bg-yellow-500 rounded-full shrink-0"
+                              />
                             )}
-                            {notification.metadata.requiredPoints && (
-                              <span className="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm font-bold">
-                                {t("childNotifications.goalTarget", { count: notification.metadata.requiredPoints })}
-                              </span>
-                            )}
-                            {notification.metadata.percentage && (
-                              <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-bold">
-                                {t("childNotifications.progressPercent", { pct: notification.metadata.percentage })}
-                              </span>
+                            {isUrgent && (
+                              <span className="text-xs">🔔</span>
                             )}
                           </div>
-                        )}
-                        
-                        <div className="flex flex-wrap gap-2">
-                          {notification.ctaAction && (
-                            <button 
-                              onClick={() => handleCTA(notification)}
-                              className="px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg font-bold hover:from-blue-600 hover:to-blue-700 transition-all text-sm"
-                              data-testid={`button-cta-${notification.id}`}
-                            >
-                              {notification.ctaAction === "view_goal" ? t("childNotifications.viewGoal") :
-                               notification.ctaAction === "view_reward" ? t("childNotifications.viewReward") :
-                               notification.ctaAction === "view_task" ? t("childNotifications.viewTask") :
-                               notification.ctaAction === "start_challenge" ? t("childNotifications.startChallenge") :
-                               t("view")}
-                            </button>
+                          <p className={`text-xs ${isDark ? "text-gray-400" : "text-gray-500"} mb-2 line-clamp-2`}>
+                            {notification.message}
+                          </p>
+
+                          {notification.metadata && (
+                            <div className="flex flex-wrap gap-1.5 mb-2">
+                              {notification.metadata.pointsEarned && (
+                                <span className={`px-2 py-0.5 rounded-lg text-xs font-bold ${isDark ? "bg-yellow-500/20 text-yellow-300" : "bg-yellow-100 text-yellow-700"}`}>
+                                  ⭐ +{notification.metadata.pointsEarned}
+                                </span>
+                              )}
+                              {notification.metadata.requiredPoints && (
+                                <span className={`px-2 py-0.5 rounded-lg text-xs font-bold ${isDark ? "bg-purple-500/20 text-purple-300" : "bg-purple-100 text-purple-700"}`}>
+                                  🎯 {notification.metadata.requiredPoints}
+                                </span>
+                              )}
+                              {notification.metadata.percentage && (
+                                <span className={`px-2 py-0.5 rounded-lg text-xs font-bold ${isDark ? "bg-blue-500/20 text-blue-300" : "bg-blue-100 text-blue-700"}`}>
+                                  📊 {notification.metadata.percentage}%
+                                </span>
+                              )}
+                            </div>
                           )}
-                          {!notification.isRead && (
-                            <button 
-                              onClick={() => markAsRead(notification.id)}
-                              className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg font-bold hover:bg-gray-300 transition-all text-sm flex items-center gap-1"
-                              data-testid={`button-mark-read-${notification.id}`}
-                            >
-                              <CheckCircle className="w-4 h-4" />
-                              {t("childNotifications.markRead")}
-                            </button>
-                          )}
+
+                          <div className="flex items-center justify-between">
+                            <p className={`text-xs ${isDark ? "text-gray-500" : "text-gray-400"}`}>
+                              {new Date(notification.createdAt).toLocaleDateString(getDateLocale(), {
+                                month: "short",
+                                day: "numeric",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
+                            </p>
+                            {!notification.isRead && (
+                              <motion.button
+                                whileTap={{ scale: 0.9 }}
+                                onClick={(e) => { e.stopPropagation(); markAsRead(notification.id); }}
+                                className={`px-2.5 py-1 rounded-lg text-xs font-bold flex items-center gap-1 ${isDark ? "bg-gray-700 text-gray-300 hover:bg-gray-600" : "bg-gray-100 text-gray-600 hover:bg-gray-200"} transition-all`}
+                                data-testid={`button-mark-read-${notification.id}`}
+                              >
+                                <CheckCircle className="w-3 h-3" />
+                                {t("childNotifications.markRead")}
+                              </motion.button>
+                            )}
+                          </div>
                         </div>
-                        
-                        <p className={`text-xs mt-3 ${isDark ? "text-gray-500" : "text-gray-400"}`}>
-                          {new Date(notification.createdAt).toLocaleDateString(getDateLocale(), {
-                            year: "numeric",
-                            month: "short",
-                            day: "numeric",
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
-                        </p>
                       </div>
                     </div>
-                  </div>
-                </div>
-              );
-            })
+                  </motion.div>
+                );
+              })}
+            </AnimatePresence>
           ) : (
-            <div className={`${isDark ? "bg-gray-800" : "bg-white"} rounded-2xl p-12 text-center`}>
-              <Bell className={`w-20 h-20 mx-auto mb-4 ${isDark ? "text-gray-600" : "text-gray-300"}`} />
-              <h3 className={`text-2xl font-bold mb-2 ${isDark ? "text-white" : "text-gray-800"}`}>
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="text-center py-16"
+            >
+              <motion.div
+                animate={{ y: [0, -10, 0] }}
+                transition={{ duration: 3, repeat: Infinity }}
+                className="mb-6"
+              >
+                <span className="text-7xl">🔔</span>
+              </motion.div>
+              <h3 className="text-2xl font-bold text-white mb-2">
                 {t("childNotifications.noNotifications")}
               </h3>
-              <p className={`${isDark ? "text-gray-400" : "text-gray-600"}`}>
+              <p className="text-white/60 text-sm max-w-xs mx-auto">
                 {t("childNotifications.emptyMessage")}
               </p>
-            </div>
+            </motion.div>
           )}
-          
-          <div className={`${isDark ? "bg-gray-800" : "bg-white"} rounded-2xl p-6 shadow-lg`}>
-            <div className="flex items-start gap-4">
-              <div className="w-14 h-14 rounded-2xl bg-green-500 flex items-center justify-center">
-                <Star className="w-6 h-6 text-white" />
-              </div>
-              <div className="flex-1">
-                <h3 className={`font-bold text-lg ${isDark ? "text-white" : "text-gray-800"}`}>
-                  {t("childNotifications.hello", { name: childInfo?.name || "" })}
-                </h3>
-                <p className={`${isDark ? "text-gray-400" : "text-gray-600"}`}>
-                  {t("childNotifications.encouragement", { count: currentPoints })}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
 
-        <div className="mt-8 grid grid-cols-2 md:grid-cols-4 gap-4">
-          <button
-            onClick={() => navigate("/child-games")}
-            className="p-4 bg-purple-500 hover:bg-purple-600 text-white rounded-xl font-bold transition-all flex flex-col items-center gap-2"
-            data-testid="button-games"
-          >
-            <Gamepad2 className="w-8 h-8" />
-            {t("childNav.play")}
-          </button>
-          <button
-            onClick={() => navigate("/child-store")}
-            className="p-4 bg-pink-500 hover:bg-pink-600 text-white rounded-xl font-bold transition-all flex flex-col items-center gap-2"
-            data-testid="button-store"
-          >
-            <ShoppingBag className="w-8 h-8" />
-            {t("childNav.store")}
-          </button>
-          <button
-            onClick={() => navigate("/child-gifts")}
-            className="p-4 bg-yellow-500 hover:bg-yellow-600 text-white rounded-xl font-bold transition-all flex flex-col items-center gap-2"
-            data-testid="button-gifts"
-          >
-            <Gift className="w-8 h-8" />
-            {t("childNav.gifts")}
-          </button>
-          <button
-            onClick={() => navigate("/child-tasks")}
-            className="p-4 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-bold transition-all flex flex-col items-center gap-2"
-            data-testid="button-tasks"
-          >
-            <Target className="w-8 h-8" />
-            {t("childNav.tasks")}
-          </button>
+          {/* Encouragement Card */}
+          {childInfo?.name && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className={`${isDark ? "bg-gray-800/90 border border-gray-700/50" : "bg-white/90 border border-white/50"} rounded-2xl p-4 shadow-xl backdrop-blur-sm`}
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center shadow-lg">
+                  <Star className="w-5 h-5 text-white" />
+                </div>
+                <div className="flex-1">
+                  <h3 className={`font-bold text-sm ${isDark ? "text-white" : "text-gray-800"}`}>
+                    {t("childNotifications.hello", { name: childInfo.name })} 🌟
+                  </h3>
+                  <p className={`text-xs ${isDark ? "text-gray-400" : "text-gray-500"}`}>
+                    {t("childNotifications.encouragement", { count: currentPoints })}
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+          )}
         </div>
       </div>
+
+      {/* Bottom Navigation */}
+      <ChildBottomNav activeTab="games" />
     </div>
   );
 };

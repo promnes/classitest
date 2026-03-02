@@ -15,9 +15,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import { useTheme } from "@/contexts/ThemeContext";
-import { ChildNotificationBell } from "@/components/ChildNotificationBell";
-import { LanguageSelector } from "@/components/LanguageSelector";
 import { getDateLocale } from "@/i18n/config";
+import { ChildBottomNav } from "@/components/ChildBottomNav";
 import { apiRequest } from "@/lib/queryClient";
 import { motion } from "framer-motion";
 
@@ -145,7 +144,7 @@ export default function ChildSettings() {
   const NavChevron = isRTL ? ChevronLeft : ChevronRight;
 
   return (
-    <div className={`min-h-screen ${isDark ? "bg-gray-900" : "bg-gradient-to-br from-indigo-50 via-purple-50 to-violet-50"}`} dir={isRTL ? "rtl" : "ltr"}>
+    <div className={`min-h-screen pb-24 ${isDark ? "bg-gray-900" : "bg-gradient-to-br from-indigo-50 via-purple-50 to-violet-50"}`} dir={isRTL ? "rtl" : "ltr"}>
       {/* Header */}
       <header className="bg-gradient-to-r from-indigo-600 via-purple-600 to-violet-600 text-white sticky top-0 z-50 shadow-lg">
         <div className="max-w-2xl mx-auto px-4 py-4">
@@ -163,8 +162,6 @@ export default function ChildSettings() {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <LanguageSelector />
-              <ChildNotificationBell />
               <div className="flex items-center gap-1.5 bg-white/15 px-3 py-1.5 rounded-full">
                 <Star className="w-4 h-4 text-yellow-300" />
                 <span className="text-sm font-bold">{childInfo?.totalPoints || 0}</span>
@@ -444,6 +441,8 @@ export default function ChildSettings() {
           {t("childSettings.footerGreeting", { name: childInfo?.name || "" })}
         </div>
       </main>
+
+      <ChildBottomNav activeTab="settings" />
     </div>
   );
 }

@@ -13,10 +13,9 @@ import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import { useTheme } from "@/contexts/ThemeContext";
-import { ChildNotificationBell } from "@/components/ChildNotificationBell";
-import { LanguageSelector } from "@/components/LanguageSelector";
 import { apiRequest } from "@/lib/queryClient";
 import { motion, AnimatePresence } from "framer-motion";
+import { ChildBottomNav } from "@/components/ChildBottomNav";
 
 type FilterType = "all" | "children" | "schools" | "teachers";
 
@@ -134,7 +133,7 @@ export default function ChildDiscover() {
   const hasResults = (data?.children?.length || 0) + (data?.schools?.length || 0) + (data?.teachers?.length || 0) > 0;
 
   return (
-    <div className={`min-h-screen pb-20 ${isDark ? "bg-gray-900" : "bg-gradient-to-br from-violet-50 via-purple-50 to-fuchsia-50"}`} dir={isRTL ? "rtl" : "ltr"}>
+    <div className={`min-h-screen pb-24 ${isDark ? "bg-gray-900" : "bg-gradient-to-br from-violet-50 via-purple-50 to-fuchsia-50"}`} dir={isRTL ? "rtl" : "ltr"}>
       {/* Header */}
       <div className={`sticky top-0 z-50 px-4 pt-4 pb-3 ${isDark ? "bg-gray-900/95" : "bg-white/95"} backdrop-blur-sm border-b ${isDark ? "border-gray-800" : "border-gray-200"}`}>
         <div className="flex items-center gap-3 mb-3">
@@ -145,8 +144,6 @@ export default function ChildDiscover() {
           <h1 className={`text-lg font-bold flex-1 ${isDark ? "text-white" : "text-gray-800"}`}>
             {t("discover.title")}
           </h1>
-          <LanguageSelector />
-          <ChildNotificationBell />
         </div>
 
         {/* Search Bar */}
@@ -421,6 +418,8 @@ export default function ChildDiscover() {
           </AnimatePresence>
         )}
       </main>
+
+      <ChildBottomNav activeTab="games" />
     </div>
   );
 }

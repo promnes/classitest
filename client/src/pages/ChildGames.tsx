@@ -8,7 +8,8 @@ import { GrowthTree } from "@/components/GrowthTree";
 import { useTheme } from "@/contexts/ThemeContext";
 import { ChildNotificationBell } from "@/components/ChildNotificationBell";
 import { useChildAuth } from "@/hooks/useChildAuth";
-import { Gamepad2, Star, Gift, Bell, ShoppingBag, X, Trophy, Play, BookOpen, TrendingUp, LogOut, Settings, User, Loader2, Share2, Link2 } from "lucide-react";
+import { Gamepad2, Star, Gift, Bell, ShoppingBag, X, Trophy, Play, BookOpen, TrendingUp, LogOut, Settings, User, Loader2, Share2, Link2, Sparkles } from "lucide-react";
+import { ChildBottomNav } from "@/components/ChildBottomNav";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -287,69 +288,86 @@ export const ChildGames = (): JSX.Element => {
   const isRTL = i18n.language === 'ar';
 
   return (
-    <div className={`min-h-screen ${isDark ? "bg-gradient-to-br from-purple-900 via-indigo-900 to-slate-900" : "bg-gradient-to-br from-purple-400 via-purple-500 to-indigo-500"} p-3 sm:p-4`} dir={isRTL ? "rtl" : "ltr"}>
+    <div className={`min-h-screen ${isDark ? "bg-gradient-to-br from-purple-900 via-indigo-900 to-slate-900" : "bg-gradient-to-br from-purple-400 via-purple-500 to-indigo-500"} pb-24`} dir={isRTL ? "rtl" : "ltr"}>
       {childInfo?.id && <MandatoryTaskModal childId={childInfo.id} />}
       
-      <div className="max-w-6xl mx-auto mb-4 flex flex-wrap justify-between items-center gap-3">
-        <div className="flex items-center gap-3">
-          <div className="cursor-pointer" onClick={() => navigate("/child-profile")} role="button" tabIndex={0} aria-label="Go to profile" onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate("/child-profile"); } }}>
-            <Avatar className={`w-10 h-10 border-2 ${isDark ? "border-purple-300" : "border-white/70"} shadow-lg`}>
-              <AvatarImage src={childInfo?.avatarUrl || undefined} className="object-cover" />
-              <AvatarFallback className="bg-gradient-to-br from-yellow-400 to-orange-500 text-white text-base font-bold">
-                {childInfo?.name?.charAt(0) || "؟"}
-              </AvatarFallback>
-            </Avatar>
-          </div>
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-white">
-              {t("childGames.greeting", { name: childInfo?.name || "" })}
-            </h1>
-            <p className="text-white text-opacity-80 flex items-center gap-1.5 text-sm">
-              <Star className="w-4 h-4 text-yellow-400" />
-              {t("pointsLabel")} {childInfo?.totalPoints || 0}
-            </p>
+      {/* ─── Sticky Header ─────────────────────────────────── */}
+      <header className="sticky top-0 z-40 bg-gradient-to-r from-purple-600 via-violet-600 to-indigo-600 shadow-lg">
+        <div className="max-w-6xl mx-auto px-3 sm:px-4 py-3">
+          <div className="flex items-center justify-between">
+            {/* Left: Avatar + Greeting */}
+            <div className="flex items-center gap-3">
+              <motion.div
+                whileTap={{ scale: 0.9 }}
+                className="cursor-pointer"
+                onClick={() => navigate("/child-profile")}
+                role="button"
+                tabIndex={0}
+                aria-label="Go to profile"
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate("/child-profile"); } }}
+              >
+                <Avatar className={`w-11 h-11 border-2 ${isDark ? "border-purple-300" : "border-white/70"} shadow-lg ring-2 ring-yellow-400/50`}>
+                  <AvatarImage src={childInfo?.avatarUrl || undefined} className="object-cover" />
+                  <AvatarFallback className="bg-gradient-to-br from-yellow-400 to-orange-500 text-white text-base font-bold">
+                    {childInfo?.name?.charAt(0) || "؟"}
+                  </AvatarFallback>
+                </Avatar>
+              </motion.div>
+              <div>
+                <h1 className="text-lg sm:text-xl font-bold text-white leading-tight">
+                  {t("childGames.greeting", { name: childInfo?.name || "" })} 👋
+                </h1>
+                <div className="flex items-center gap-1.5">
+                  <motion.div
+                    className="flex items-center gap-1 bg-yellow-500/30 px-2 py-0.5 rounded-full"
+                    whileHover={{ scale: 1.05 }}
+                  >
+                    <Star className="w-3.5 h-3.5 text-yellow-300 fill-yellow-300" />
+                    <span className="text-xs font-bold text-yellow-100">{childInfo?.totalPoints || 0}</span>
+                  </motion.div>
+                </div>
+              </div>
+            </div>
+
+            {/* Right: Compact Actions */}
+            <div className="flex items-center gap-1.5">
+              <LanguageSelector />
+              <ChildNotificationBell />
+              <PWAInstallButton 
+                variant="outline" 
+                size="sm" 
+                showText={false}
+                className="bg-white/15 hover:bg-white/25 text-white border-0 rounded-xl px-2.5 py-2.5 min-h-[40px] min-w-[40px]"
+              />
+              <motion.button
+                whileTap={{ scale: 0.85 }}
+                onClick={() => navigate("/child-settings")}
+                className="p-2.5 bg-white/15 hover:bg-white/25 text-white rounded-xl transition-all min-h-[40px] min-w-[40px] flex items-center justify-center"
+                data-testid="button-child-settings"
+                aria-label={t("childNav.settings")}
+              >
+                <Settings className="w-4.5 h-4.5" />
+              </motion.button>
+              <motion.button
+                whileTap={{ scale: 0.85 }}
+                onClick={() => setShowLogoutConfirm(true)}
+                className="p-2.5 bg-red-500/20 hover:bg-red-500/40 text-red-200 rounded-xl transition-all min-h-[40px] min-w-[40px] flex items-center justify-center"
+                data-testid="button-child-logout"
+                disabled={isLoggingOut}
+                aria-label={t("logoutTitle")}
+              >
+                <LogOut className="w-4 h-4" />
+              </motion.button>
+            </div>
           </div>
         </div>
-        <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
-          <LanguageSelector />
-          <PWAInstallButton 
-            variant="outline" 
-            size="sm" 
-            showText={false}
-            className="bg-cyan-500 hover:bg-cyan-600 text-white border-cyan-400 rounded-xl px-3 py-2.5"
-          />
-          <ChildNotificationBell />
-          <button
-            onClick={() => navigate("/child-gifts")}
-            className="px-3 py-2.5 bg-yellow-500 hover:bg-yellow-600 text-white font-bold rounded-xl shadow-md transition-all"
-            data-testid="button-child-gifts"
-          >
-            <Gift className="w-4 h-4" />
-          </button>
-          <button
-            onClick={() => navigate("/child-store")}
-            className="px-3 py-2.5 bg-pink-500 hover:bg-pink-600 text-white font-bold rounded-xl shadow-md transition-all flex items-center gap-1.5"
-            data-testid="button-child-store"
-          >
-            <ShoppingBag className="w-4 h-4" />
-          </button>
-          <button
-            onClick={() => navigate("/child-settings")}
-            className="px-3 py-2.5 bg-purple-500 hover:bg-purple-600 text-white font-bold rounded-xl shadow-md transition-all"
-            data-testid="button-child-settings"
-          >
-            <Settings className="w-4 h-4" />
-          </button>
-          <button
-            onClick={() => setShowLogoutConfirm(true)}
-            className="px-3 py-2.5 bg-red-500 hover:bg-red-600 text-white font-bold rounded-xl shadow-md transition-all"
-            data-testid="button-child-logout"
-            disabled={isLoggingOut}
-          >
-            <LogOut className="w-4 h-4" />
-          </button>
+        {/* Wave separator */}
+        <div className="w-full overflow-hidden leading-[0] -mb-[1px]">
+          <svg viewBox="0 0 1200 40" preserveAspectRatio="none" className="w-full h-3">
+            <path d="M0,20 C200,35 400,5 600,20 C800,35 1000,5 1200,20 L1200,40 L0,40 Z" fill={isDark ? "rgb(30, 15, 60)" : "rgb(147, 114, 210)"} fillOpacity="0.3" />
+          </svg>
         </div>
-      </div>
+      </header>
 
       {/* Logout Confirmation Modal */}
       <AnimatePresence>
@@ -400,59 +418,116 @@ export const ChildGames = (): JSX.Element => {
         <GrowthTree />
       </div>
 
+      {/* Quick Actions */}
+      <div className="max-w-6xl mx-auto px-3 sm:px-4 mb-4">
+        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+          {[
+            { icon: Gift, label: isRTL ? 'الهدايا' : 'Gifts', path: '/child-gifts', gradient: 'from-yellow-400 to-orange-500', emoji: '🎁' },
+            { icon: ShoppingBag, label: isRTL ? 'المتجر' : 'Store', path: '/child-store', gradient: 'from-pink-400 to-rose-500', emoji: '🛒' },
+            { icon: TrendingUp, label: isRTL ? 'التقدم' : 'Progress', path: '/child-progress', gradient: 'from-emerald-400 to-teal-500', emoji: '📊' },
+          ].map((action, i) => (
+            <motion.button
+              key={action.path}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.08 }}
+              whileTap={{ scale: 0.93 }}
+              onClick={() => navigate(action.path)}
+              className={`flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r ${action.gradient} text-white font-bold rounded-2xl shadow-lg whitespace-nowrap text-sm`}
+            >
+              <span className="text-base">{action.emoji}</span>
+              {action.label}
+            </motion.button>
+          ))}
+        </div>
+      </div>
+
       {/* Games Section Header */}
-      <div className="max-w-6xl mx-auto mb-4">
+      <div className="max-w-6xl mx-auto px-3 sm:px-4 mb-4">
         <div className="flex items-center gap-2">
-          <Gamepad2 className="w-6 h-6 text-white/80" />
+          <motion.div
+            animate={{ rotate: [0, -10, 10, -10, 0] }}
+            transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
+          >
+            <Sparkles className="w-6 h-6 text-yellow-300" />
+          </motion.div>
           <h2 className="text-xl font-bold text-white">{t("gamesLabel") || t("gamesAndTasks")}</h2>
+          <div className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${isDark ? 'bg-white/10 text-white/70' : 'bg-white/20 text-white/90'}`}>
+            {games?.length || 0}
+          </div>
         </div>
       </div>
 
       {isLoading ? (
-        <div className="flex justify-center items-center h-40">
-          <div className="animate-spin rounded-full h-12 w-12 border-4 border-white border-t-transparent"></div>
+        <div className="flex flex-col justify-center items-center h-40 gap-3">
+          <motion.div
+            animate={{ rotate: 360 }}
+            transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+          >
+            <Loader2 className="w-10 h-10 text-white/70" />
+          </motion.div>
+          <p className="text-white/60 text-sm animate-pulse">{isRTL ? 'جاري تحميل الألعاب...' : 'Loading games...'}</p>
         </div>
       ) : (
-        <div className="max-w-6xl mx-auto grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+        <div className="max-w-6xl mx-auto px-3 sm:px-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
           {games?.map((game, index) => (
             <motion.div
               key={game.id}
-              initial={{ opacity: 0, y: 20, scale: 0.95 }}
+              initial={{ opacity: 0, y: 20, scale: 0.9 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
-              transition={{ duration: 0.3, delay: index * 0.05 }}
-              whileHover={{ y: -4, scale: 1.03 }}
+              transition={{ duration: 0.4, delay: index * 0.06, type: 'spring', stiffness: 200 }}
+              whileHover={{ y: -6, scale: 1.04 }}
+              whileTap={{ scale: 0.96 }}
               onClick={() => handlePlayGame(game)}
-              className={`${isDark ? "bg-gray-800" : "bg-white"} rounded-xl overflow-hidden shadow-md cursor-pointer active:scale-95 transition-transform`}
+              className={`${isDark ? "bg-gray-800/90 border border-gray-700/50" : "bg-white/95 border border-white/50"} rounded-2xl overflow-hidden shadow-xl cursor-pointer backdrop-blur-sm group`}
               data-testid={`game-card-${game.id}`}
             >
               <div className={`aspect-[4/3] ${isDark ? "bg-gray-700" : "bg-purple-100"} flex items-center justify-center relative overflow-hidden`}>
                 {game.thumbnailUrl ? (
-                  <img src={game.thumbnailUrl} alt={game.title} className="w-full h-full object-cover" />
+                  <img src={game.thumbnailUrl} alt={game.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                 ) : game.embedUrl === "/games/memory-match.html" ? (
-                  <div className="w-full h-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
-                    <span className="text-5xl drop-shadow-lg">🧠</span>
+                  <div className="w-full h-full bg-gradient-to-br from-purple-500 via-purple-400 to-pink-500 flex items-center justify-center">
+                    <motion.span className="text-5xl drop-shadow-lg" animate={{ y: [0, -5, 0] }} transition={{ duration: 2, repeat: Infinity }}>🧠</motion.span>
                   </div>
                 ) : game.embedUrl === "/games/math-challenge.html" ? (
-                  <div className="w-full h-full bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center">
-                    <span className="text-5xl drop-shadow-lg">🔢</span>
+                  <div className="w-full h-full bg-gradient-to-br from-green-500 via-emerald-400 to-teal-500 flex items-center justify-center">
+                    <motion.span className="text-5xl drop-shadow-lg" animate={{ rotate: [0, 10, -10, 0] }} transition={{ duration: 3, repeat: Infinity }}>🔢</motion.span>
                   </div>
                 ) : game.embedUrl === "/games/gem-kingdom.html" ? (
-                  <div className="w-full h-full bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center">
-                    <span className="text-5xl drop-shadow-lg">💎</span>
+                  <div className="w-full h-full bg-gradient-to-br from-indigo-500 via-violet-500 to-purple-600 flex items-center justify-center">
+                    <motion.span className="text-5xl drop-shadow-lg" animate={{ scale: [1, 1.15, 1] }} transition={{ duration: 2, repeat: Infinity }}>💎</motion.span>
                   </div>
                 ) : game.embedUrl === "/games/chess/index.html" ? (
                   <div className="w-full h-full bg-gradient-to-br from-gray-800 to-gray-950 flex items-center justify-center relative">
-                    <span className="text-5xl drop-shadow-lg">♟️</span>
+                    <motion.span className="text-5xl drop-shadow-lg" animate={{ y: [0, -3, 0] }} transition={{ duration: 2.5, repeat: Infinity }}>♟️</motion.span>
                     <div className="absolute inset-0 opacity-10 flex flex-wrap items-center justify-center gap-2 text-white text-lg overflow-hidden">
                       <span>♔</span><span>♕</span><span>♖</span><span>♗</span><span>♘</span><span>♙</span>
                     </div>
                   </div>
                 ) : (
-                  <Gamepad2 className="w-12 h-12 text-purple-400" />
+                  <div className="w-full h-full bg-gradient-to-br from-purple-400 to-indigo-500 flex items-center justify-center">
+                    <Gamepad2 className="w-12 h-12 text-white/80" />
+                  </div>
                 )}
-                <div className="absolute top-2 left-2 bg-yellow-500/90 text-white px-2 py-0.5 rounded-full text-xs font-bold flex items-center gap-1">
-                  <Star className="w-3 h-3" />
+                {/* Points Badge */}
+                <motion.div
+                  className="absolute top-2 ltr:left-2 rtl:right-2 bg-yellow-500/95 backdrop-blur-sm text-white px-2.5 py-1 rounded-xl text-xs font-bold flex items-center gap-1 shadow-lg"
+                  animate={{ scale: [1, 1.05, 1] }}
+                  transition={{ duration: 3, repeat: Infinity }}
+                >
+                  <Star className="w-3 h-3 fill-white" />
                   +{game.pointsPerPlay}
+                </motion.div>
+                {/* Play overlay on hover */}
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all duration-300 flex items-center justify-center">
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.5 }}
+                    className="opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                  >
+                    <div className="w-12 h-12 bg-white/90 rounded-full flex items-center justify-center shadow-xl">
+                      <Play className="w-6 h-6 text-purple-600 fill-purple-600 ml-0.5" />
+                    </div>
+                  </motion.div>
                 </div>
               </div>
               <div className="p-3">
@@ -465,7 +540,7 @@ export const ChildGames = (): JSX.Element => {
                   </p>
                 )}
                 <div
-                  className="w-full px-3 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold rounded-lg flex items-center justify-center gap-1.5 text-xs"
+                  className="w-full px-3 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold rounded-xl flex items-center justify-center gap-1.5 text-xs shadow-md group-hover:from-purple-600 group-hover:to-pink-600 transition-all"
                 >
                   <Play className="w-3.5 h-3.5" />
                   {t("playNow")}
@@ -475,10 +550,15 @@ export const ChildGames = (): JSX.Element => {
           ))}
           
           {(!games || games.length === 0) && (
-            <div className="col-span-full text-center py-12">
-              <Gamepad2 className="w-24 h-24 mx-auto mb-4 text-white opacity-50" />
-              <p className="text-white text-xl">{t("noGamesAvailable")}</p>
-              <p className="text-white text-opacity-70 mt-2">{t("gamesComingSoon")}</p>
+            <div className="col-span-full text-center py-16">
+              <motion.div
+                animate={{ y: [0, -10, 0] }}
+                transition={{ duration: 3, repeat: Infinity }}
+              >
+                <Gamepad2 className="w-20 h-20 mx-auto mb-4 text-white/40" />
+              </motion.div>
+              <p className="text-white text-xl font-bold mb-1">{t("noGamesAvailable")}</p>
+              <p className="text-white/60 text-sm">{t("gamesComingSoon")}</p>
             </div>
           )}
         </div>
@@ -651,6 +731,9 @@ export const ChildGames = (): JSX.Element => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Bottom Navigation */}
+      <ChildBottomNav activeTab="games" />
     </div>
   );
 };

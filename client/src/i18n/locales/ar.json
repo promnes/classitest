@@ -3952,9 +3952,17 @@
   },
   "childNav": {
     "play": "العب",
+    "games": "ألعاب",
     "store": "المتجر",
-    "gifts": "الهدايا",
-    "tasks": "المهام"
+    "gifts": "هدايا",
+    "tasks": "مهام",
+    "progress": "تقدمي",
+    "profile": "ملفي",
+    "discover": "اكتشف",
+    "settings": "إعدادات",
+    "notifications": "إشعارات",
+    "rewards": "مكافآت",
+    "safety": "الأمان"
   },
   "notificationsPage": {
     "title": "🔔 الإشعارات",

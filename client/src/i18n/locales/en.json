@@ -3953,9 +3953,17 @@
   },
   "childNav": {
     "play": "Play",
+    "games": "Games",
     "store": "Store",
     "gifts": "Gifts",
-    "tasks": "Tasks"
+    "tasks": "Tasks",
+    "progress": "Progress",
+    "profile": "Profile",
+    "discover": "Discover",
+    "settings": "Settings",
+    "notifications": "Alerts",
+    "rewards": "Rewards",
+    "safety": "Safety"
   },
   "notificationsPage": {
     "title": "🔔 Notifications",

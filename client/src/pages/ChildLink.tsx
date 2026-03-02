@@ -62,7 +62,8 @@ function getOrCreateChildDeviceId(): string {
 }
 
 export const ChildLink = (): JSX.Element => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isRTL = i18n.language === "ar";
   const [, navigate] = useLocation();
   const handleLogoTap = useHiddenParentAccess(navigate);
   const [step, setStep] = useState<LoginStep>("welcome");
@@ -482,7 +483,7 @@ export const ChildLink = (): JSX.Element => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-purple-400 via-pink-300 to-yellow-200 flex flex-col items-center justify-center p-4 overflow-auto">
+    <div className="min-h-screen bg-gradient-to-b from-purple-400 via-pink-300 to-yellow-200 flex flex-col items-center justify-center p-4 overflow-auto" dir={isRTL ? "rtl" : "ltr"}>
       {/* Hidden elements for QR scanning */}
       <canvas ref={canvasRef} className="hidden" />
       <input

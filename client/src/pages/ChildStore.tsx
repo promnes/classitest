@@ -2,23 +2,23 @@ import { useState, useMemo } from "react";
 import { useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
+import { motion, AnimatePresence } from "framer-motion";
 import { 
   Search, ShoppingCart, Star, 
   Grid3X3, List, Package, Truck, Shield, Clock, 
   Smartphone, Gamepad2, BookOpen, Dumbbell, Shirt, Book, Palette, Gift,
-  X, Plus, Minus, MapPin, Check, ArrowLeft, Sparkles, Bell, ChevronDown
+  X, Plus, Minus, MapPin, Check, ArrowLeft, ArrowRight, Sparkles, Bell, ChevronDown, Loader2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ChildNotificationBell } from "@/components/ChildNotificationBell";
-import { LanguageSelector } from "@/components/LanguageSelector";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { MandatoryTaskModal } from "@/components/MandatoryTaskModal";
 import { ProductImageCarousel } from "@/components/ProductImageCarousel";
+import { ChildBottomNav } from "@/components/ChildBottomNav";
 
 const categoryIcons: Record<string, any> = {
   Smartphone, Gamepad2, BookOpen, Dumbbell, Shirt, Book, Palette, Gift, Package
@@ -67,6 +67,7 @@ export const ChildStore = (): JSX.Element => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const { t, i18n } = useTranslation();
+  const isRTL = i18n.language === "ar";
   const token = localStorage.getItem("childToken");
   
   const [searchQuery, setSearchQuery] = useState("");
@@ -233,11 +234,13 @@ export const ChildStore = (): JSX.Element => {
     return IconComponent;
   };
 
+  const BackArrow = isRTL ? ArrowRight : ArrowLeft;
+
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-24" dir={isRTL ? "rtl" : "ltr"}>
       {childInfo?.id && <MandatoryTaskModal childId={childInfo.id} />}
       
-      <header className="bg-gradient-to-r from-orange-500 via-orange-600 to-red-500 text-white sticky top-0 z-50 shadow-lg">
+      <header className="bg-gradient-to-r from-orange-500 via-amber-500 to-yellow-500 text-white sticky top-0 z-50 shadow-lg">
         <div className="max-w-7xl mx-auto px-2 sm:px-4">
           <div className="flex items-center justify-between py-2 sm:py-3 gap-2">
             <button 
@@ -245,9 +248,9 @@ export const ChildStore = (): JSX.Element => {
               className="flex items-center gap-1 sm:gap-2 hover:opacity-80 transition-opacity min-h-[44px] shrink-0"
               data-testid="button-back-games"
             >
-              <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
+              <BackArrow className="w-4 h-4 sm:w-5 sm:h-5" />
               <div className="flex items-center gap-1 sm:gap-2">
-                <Sparkles className="w-4 h-4 sm:w-5 sm:h-5" />
+                <span className="text-xl">🛍️</span>
                 <span className="text-sm sm:text-lg font-bold hidden xs:inline">{t("childStore.storeName")}</span>
               </div>
             </button>
@@ -259,42 +262,50 @@ export const ChildStore = (): JSX.Element => {
                   placeholder={t('childStore.searchPlaceholder')}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-8 sm:pl-10 pr-3 py-1.5 sm:py-2 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 border-0 text-sm min-h-[36px]"
+                  className="w-full ps-8 sm:ps-10 pe-3 py-1.5 sm:py-2 rounded-xl bg-white/90 dark:bg-gray-700 text-gray-800 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 border-0 text-sm min-h-[36px] backdrop-blur-sm"
                   data-testid="input-search"
                 />
-                <Search className="absolute left-2 sm:left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Search className="absolute start-2 sm:start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               </div>
             </div>
 
             <div className="flex items-center gap-1 sm:gap-3">
-              <div className="text-right hidden lg:block">
-                <p className="text-xs opacity-80">{t("childStore.pointsBalance")}</p>
-                <p className="font-bold flex items-center gap-1 text-sm">
-                  <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
-                  {childInfo?.totalPoints || 0}
-                </p>
+              <div className="hidden lg:flex items-center gap-2 bg-white/20 backdrop-blur-sm rounded-xl px-3 py-1.5">
+                <span className="text-lg">⭐</span>
+                <div>
+                  <p className="text-[10px] opacity-80">{t("childStore.pointsBalance")}</p>
+                  <p className="font-bold text-sm">{childInfo?.totalPoints || 0}</p>
+                </div>
               </div>
-
-              <LanguageSelector />
-              <ChildNotificationBell />
               
               <button
                 onClick={() => setShowCart(true)}
-                className="relative p-2 sm:p-2.5 hover:bg-white/10 rounded-lg transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+                className="relative p-2 sm:p-2.5 hover:bg-white/20 rounded-xl transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center backdrop-blur-sm"
                 data-testid="button-open-cart"
               >
                 <ShoppingCart className="w-5 h-5" />
                 {cart.length > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 bg-yellow-400 text-gray-900 text-xs font-bold w-4 h-4 sm:w-5 sm:h-5 rounded-full flex items-center justify-center text-[10px] sm:text-xs">
+                  <motion.span 
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    className="absolute -top-0.5 -end-0.5 bg-yellow-400 text-gray-900 text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center text-[10px]"
+                  >
                     {cart.length}
-                  </span>
+                  </motion.span>
                 )}
               </button>
             </div>
           </div>
         </div>
 
-        <div className="bg-orange-700/50 py-1.5 sm:py-2">
+        {/* Wave separator */}
+        <div className="relative -mb-1">
+          <svg viewBox="0 0 1440 40" className="w-full h-6 sm:h-8 text-orange-600/50" preserveAspectRatio="none">
+            <path fill="currentColor" d="M0,20 C360,40 720,0 1080,20 C1260,30 1380,15 1440,20 L1440,0 L0,0 Z" />
+          </svg>
+        </div>
+
+        <div className="bg-orange-600/50 backdrop-blur-sm py-1.5 sm:py-2">
           <div className="max-w-7xl mx-auto px-2 sm:px-4">
             {/* Main categories row */}
             <div className="flex items-center gap-2 sm:gap-4 overflow-x-auto scrollbar-hide pb-1">
@@ -445,18 +456,29 @@ export const ChildStore = (): JSX.Element => {
 
       <main className="max-w-7xl mx-auto px-2 sm:px-4 py-3 sm:py-6">
         {!selectedCategory && !searchQuery && featuredProducts.length > 0 && (
-          <section className="mb-4 sm:mb-8">
+          <motion.section 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-4 sm:mb-8"
+          >
             <div className="flex items-center justify-between mb-3 sm:mb-4">
               <h2 className="text-base sm:text-xl font-bold text-gray-800 dark:text-white flex items-center gap-1.5 sm:gap-2">
-                <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-orange-500" />
+                <span className="text-xl">✨</span>
                 {t("childStore.featuredProducts")}
               </h2>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-4">
-              {featuredProducts.map((product: Product) => (
+              {featuredProducts.map((product: Product, index: number) => (
+                <motion.div
+                  key={product.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.05 }}
+                  whileHover={{ y: -4 }}
+                  whileTap={{ scale: 0.97 }}
+                >
                 <Card 
-                  key={product.id} 
-                  className="group cursor-pointer hover:shadow-xl transition-all duration-300 overflow-hidden border-0 bg-white dark:bg-gray-800"
+                  className="group cursor-pointer hover:shadow-xl transition-all duration-300 overflow-hidden border-0 bg-white dark:bg-gray-800 rounded-2xl"
                   onClick={() => setSelectedProduct(product)}
                   data-testid={`card-featured-product-${product.id}`}
                 >
@@ -480,17 +502,17 @@ export const ChildStore = (): JSX.Element => {
                       </div>
                     )}
                     {(childInfo?.totalPoints || 0) >= product.pointsPrice && (
-                      <Badge className="absolute top-2 right-2 bg-green-500 text-white text-xs">
+                      <Badge className="absolute top-2 end-2 bg-green-500 text-white text-xs">
                         {t("childStore.availableToYou")}
                       </Badge>
                     )}
                     {product.discountPercent && product.discountPercent > 0 && (
-                      <Badge className="absolute top-2 left-2 bg-red-500 text-white text-xs font-bold z-10">
+                      <Badge className="absolute top-2 start-2 bg-red-500 text-white text-xs font-bold z-10">
                         -{product.discountPercent}%
                       </Badge>
                     )}
                     {product.isLibraryProduct && (
-                      <Badge className="absolute bottom-2 left-2 bg-purple-500 text-white text-xs">
+                      <Badge className="absolute bottom-2 start-2 bg-purple-500 text-white text-xs">
                         {product.libraryName || t('childStore.library')}
                       </Badge>
                     )}
@@ -525,9 +547,10 @@ export const ChildStore = (): JSX.Element => {
                     </div>
                   </CardContent>
                 </Card>
+                </motion.div>
               ))}
             </div>
-          </section>
+          </motion.section>
         )}
 
         <section>
@@ -542,34 +565,43 @@ export const ChildStore = (): JSX.Element => {
           </div>
 
           {loadingProducts ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 sm:gap-4">
-              {[...Array(10)].map((_, i) => (
-                <Card key={i} className="animate-pulse">
-                  <div className="aspect-square bg-gray-200 dark:bg-gray-700" />
-                  <CardContent className="p-3 space-y-2">
-                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/2" />
-                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded" />
-                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4" />
-                  </CardContent>
-                </Card>
-              ))}
+            <div className="flex flex-col items-center justify-center py-16 gap-4">
+              <Loader2 className="w-10 h-10 text-orange-500 animate-spin" />
+              <p className="text-gray-500 dark:text-gray-400 animate-pulse">{t("childStore.allProducts")}...</p>
             </div>
           ) : products.length === 0 ? (
-            <div className="text-center py-10 sm:py-16">
-              <Package className="w-12 h-12 sm:w-16 sm:h-16 mx-auto text-gray-300 mb-3 sm:mb-4" />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="text-center py-10 sm:py-16"
+            >
+              <motion.div
+                animate={{ y: [0, -10, 0] }}
+                transition={{ repeat: Infinity, duration: 2 }}
+                className="text-5xl sm:text-6xl mb-4"
+              >
+                📦
+              </motion.div>
               <h3 className="text-base sm:text-lg font-medium text-gray-600 dark:text-gray-400 mb-2">{t("childStore.noProducts")}</h3>
               <p className="text-sm text-gray-400">{t("childStore.tryDifferentSearch")}</p>
-            </div>
+            </motion.div>
           ) : (
             <div className={viewMode === "grid" 
               ? "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 sm:gap-4"
               : "space-y-2 sm:space-y-4"
             }>
-              {products.map((product: Product) => (
+              {products.map((product: Product, index: number) => (
                 viewMode === "grid" ? (
+                  <motion.div
+                    key={product.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.03 }}
+                    whileHover={{ y: -4 }}
+                    whileTap={{ scale: 0.97 }}
+                  >
                   <Card 
-                    key={product.id} 
-                    className="group cursor-pointer hover:shadow-xl transition-all duration-300 overflow-hidden border-0 bg-white dark:bg-gray-800"
+                    className="group cursor-pointer hover:shadow-xl transition-all duration-300 overflow-hidden border-0 bg-white dark:bg-gray-800 rounded-2xl"
                     data-testid={`card-product-${product.id}`}
                   >
                     <div 
@@ -595,17 +627,17 @@ export const ChildStore = (): JSX.Element => {
                         </div>
                       )}
                       {(childInfo?.totalPoints || 0) >= product.pointsPrice && (
-                        <Badge className="absolute top-2 left-2 bg-green-500 text-white text-xs">
+                        <Badge className="absolute top-2 start-2 bg-green-500 text-white text-xs">
                           {t("childStore.availableToYou")}
                         </Badge>
                       )}
                       {product.discountPercent && product.discountPercent > 0 && (
-                        <Badge className="absolute top-2 right-2 bg-red-500 text-white text-xs font-bold">
+                        <Badge className="absolute top-2 end-2 bg-red-500 text-white text-xs font-bold">
                           -{product.discountPercent}%
                         </Badge>
                       )}
                       {product.isLibraryProduct && (
-                        <Badge className="absolute bottom-2 left-2 bg-purple-500 text-white text-xs">
+                        <Badge className="absolute bottom-2 start-2 bg-purple-500 text-white text-xs">
                           {product.libraryName || t('childStore.library')}
                         </Badge>
                       )}
@@ -635,16 +667,22 @@ export const ChildStore = (): JSX.Element => {
                           onClick={(e) => { e.stopPropagation(); addToCart(product); }}
                           data-testid={`button-add-cart-${product.id}`}
                         >
-                          <ShoppingCart className="w-4 h-4 ml-1" />
+                          <ShoppingCart className="w-4 h-4 me-1" />
                           {t("childStore.addBtn")}
                         </Button>
                       </div>
                     </CardContent>
                   </Card>
+                  </motion.div>
                 ) : (
+                  <motion.div
+                    key={product.id}
+                    initial={{ opacity: 0, x: isRTL ? 20 : -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: index * 0.03 }}
+                  >
                   <Card 
-                    key={product.id} 
-                    className="flex overflow-hidden hover:shadow-lg transition-shadow cursor-pointer dark:bg-gray-800"
+                    className="flex overflow-hidden hover:shadow-lg transition-shadow cursor-pointer dark:bg-gray-800 rounded-2xl"
                     onClick={() => setSelectedProduct(product)}
                     data-testid={`card-product-list-${product.id}`}
                   >
@@ -668,12 +706,12 @@ export const ChildStore = (): JSX.Element => {
                         </div>
                       )}
                       {product.discountPercent && product.discountPercent > 0 && (
-                        <Badge className="absolute top-2 right-2 bg-red-500 text-white text-xs font-bold">
+                        <Badge className="absolute top-2 end-2 bg-red-500 text-white text-xs font-bold">
                           -{product.discountPercent}%
                         </Badge>
                       )}
                       {product.isLibraryProduct && (
-                        <Badge className="absolute bottom-2 left-2 bg-purple-500 text-white text-xs">
+                        <Badge className="absolute bottom-2 start-2 bg-purple-500 text-white text-xs">
                           {product.libraryName || t('childStore.library')}
                         </Badge>
                       )}
@@ -704,12 +742,13 @@ export const ChildStore = (): JSX.Element => {
                           className="bg-orange-500 hover:bg-orange-600"
                           onClick={(e) => { e.stopPropagation(); addToCart(product); }}
                         >
-                          <ShoppingCart className="w-4 h-4 ml-2" />
+                          <ShoppingCart className="w-4 h-4 me-2" />
                           {t("childStore.addToCart")}
                         </Button>
                       </div>
                     </CardContent>
                   </Card>
+                  </motion.div>
                 )
               ))}
             </div>
@@ -810,7 +849,7 @@ export const ChildStore = (): JSX.Element => {
                       className="bg-green-500 hover:bg-green-600"
                       data-testid="button-play-games-cart"
                     >
-                      <Gamepad2 className="w-4 h-4 ml-2" />
+                      <Gamepad2 className="w-4 h-4 me-2" />
                       {t("childStore.playToEarn")}
                     </Button>
                   </div>
@@ -822,7 +861,7 @@ export const ChildStore = (): JSX.Element => {
                     onClick={() => { setShowCart(false); setShowCheckout(true); }}
                     data-testid="button-proceed-checkout"
                   >
-                    <Star className="w-4 h-4 ml-2" />
+                    <Star className="w-4 h-4 me-2" />
                     {t("childStore.completePurchasePoints")}
                   </Button>
                 )}
@@ -970,7 +1009,7 @@ export const ChildStore = (): JSX.Element => {
                     {selectedProduct.pointsPrice} {t("productDetail.point")}
                   </div>
                 </div>
-                <div className="text-right">
+                <div className="text-end">
                   <p className="text-sm text-gray-500 dark:text-gray-400">{t("productDetail.yourBalance")}</p>
                   <p className={`text-xl font-bold ${(childInfo?.totalPoints || 0) >= selectedProduct.pointsPrice ? "text-green-600" : "text-red-600"}`}>
                     {childInfo?.totalPoints || 0} {t("productDetail.point")}
@@ -984,7 +1023,7 @@ export const ChildStore = (): JSX.Element => {
                   onClick={() => { addToCart(selectedProduct); setSelectedProduct(null); }}
                   data-testid="button-add-to-cart"
                 >
-                  <ShoppingCart className="w-5 h-5 ml-2" />
+                  <ShoppingCart className="w-5 h-5 me-2" />
                   {t("productDetail.addToCart")}
                 </Button>
               ) : (
@@ -997,7 +1036,7 @@ export const ChildStore = (): JSX.Element => {
                     onClick={() => navigate("/child-games")}
                     className="bg-green-500 hover:bg-green-600"
                   >
-                    <Gamepad2 className="w-4 h-4 ml-2" />
+                    <Gamepad2 className="w-4 h-4 me-2" />
                     {t("productDetail.playToEarn")}
                   </Button>
                 </div>
@@ -1006,6 +1045,8 @@ export const ChildStore = (): JSX.Element => {
           )}
         </DialogContent>
       </Dialog>
+
+      <ChildBottomNav activeTab="games" />
     </div>
   );
 };

@@ -17,12 +17,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import { useTheme } from "@/contexts/ThemeContext";
-import { ChildNotificationBell } from "@/components/ChildNotificationBell";
-import { LanguageSelector } from "@/components/LanguageSelector";
 import { ShareMenu } from "@/components/ui/ShareMenu";
 import { apiRequest } from "@/lib/queryClient";
 import { motion, AnimatePresence } from "framer-motion";
 import ImageCropper from "@/components/ImageCropper";
+import { ChildBottomNav } from "@/components/ChildBottomNav";
 
 // ======= INTERFACES =======
 interface ShowcaseData {
@@ -713,7 +712,7 @@ export default function ChildProfile() {
 
   // ======= RENDER =======
   return (
-    <div className={`min-h-screen pb-20 ${isDark ? "bg-gray-900" : "bg-gradient-to-br from-violet-50 via-purple-50 to-fuchsia-50"}`} dir={isRTL ? "rtl" : "ltr"}>
+    <div className={`min-h-screen pb-24 ${isDark ? "bg-gray-900" : "bg-gradient-to-br from-violet-50 via-purple-50 to-fuchsia-50"}`} dir={isRTL ? "rtl" : "ltr"}>
       {/* ===== COVER & AVATAR HERO ===== */}
       <div className="relative">
         {/* Cover Image */}
@@ -753,10 +752,6 @@ export default function ChildProfile() {
           </button>
 
           {/* Top utilities */}
-          <div className="absolute top-3 end-28 flex items-center gap-1">
-            <LanguageSelector />
-            <ChildNotificationBell />
-          </div>
         </div>
 
         {/* Avatar */}
@@ -1582,6 +1577,8 @@ export default function ChildProfile() {
         onCropComplete={handleCroppedAvatar}
         mode="avatar"
       />
+
+      <ChildBottomNav activeTab="profile" />
     </div>
   );
 }

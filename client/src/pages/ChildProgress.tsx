@@ -2,8 +2,8 @@ import { useTranslation } from "react-i18next";
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { useTheme } from "@/contexts/ThemeContext";
-import { ChildNotificationBell } from "@/components/ChildNotificationBell";
-import { LanguageSelector } from "@/components/LanguageSelector";
+import { ChildBottomNav } from "@/components/ChildBottomNav";
+import { motion } from "framer-motion";
 import { 
   Star, 
   Trophy, 
@@ -13,8 +13,10 @@ import {
   Calendar, 
   TrendingUp,
   Gamepad2,
-  ChevronLeft,
-  Flame
+  ArrowLeft,
+  ArrowRight,
+  Flame,
+  Loader2
 } from "lucide-react";
 
 interface ProgressData {
@@ -42,9 +44,10 @@ const getSpeedLevelConfig = (t: any): Record<string, { label: string; color: str
 });
 
 export const ChildProgress = (): JSX.Element => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [, navigate] = useLocation();
   const { isDark } = useTheme();
+  const isRTL = i18n.language === "ar";
   const token = localStorage.getItem("childToken");
 
   const { data: progressData, isLoading } = useQuery<{ success: boolean; data: ProgressData }>({
@@ -77,195 +80,278 @@ export const ChildProgress = (): JSX.Element => {
   const speedConfig = progress ? speedLevelConfig[progress.speedLevel] || speedLevelConfig.slow : speedLevelConfig.slow;
 
   return (
-    <div className={`min-h-screen ${isDark ? "bg-gradient-to-br from-indigo-900 to-purple-900" : "bg-gradient-to-br from-blue-400 to-purple-500"} p-4 md:p-8`}>
-      <div className="max-w-4xl mx-auto">
-        <div className="flex flex-wrap justify-between items-center gap-4 mb-8">
-          <div>
-            <h1 className="text-3xl md:text-4xl font-bold text-white mb-2 flex items-center gap-3">
-              <Trophy className="w-10 h-10 text-yellow-400" />
-              {t("progress.myProgress")}
-            </h1>
-            <p className="text-white text-opacity-80">
-              {t("progress.hello")} {childInfo?.name || ""}! {t("progress.seeAchievements")}
-            </p>
-          </div>
-          <div className="flex items-center gap-3">
-            <LanguageSelector />
-            <ChildNotificationBell />
-            <button
-              onClick={() => window.history.length > 1 ? window.history.back() : navigate("/child-games")}
-              className={`px-6 py-3 ${isDark ? "bg-gray-700 hover:bg-gray-600" : "bg-white bg-opacity-30 hover:bg-opacity-40"} text-white font-bold rounded-xl transition-all flex items-center gap-2`}
-              data-testid="button-back"
-            >
-              <ChevronLeft className="w-5 h-5" />
-              {t("common.back")}
-            </button>
+    <div className={`min-h-screen ${isDark ? "bg-gradient-to-br from-indigo-900 to-purple-900" : "bg-gradient-to-br from-blue-400 to-purple-500"} pb-24`} dir={isRTL ? "rtl" : "ltr"}>
+      {/* Sticky Header */}
+      <header className="sticky top-0 z-40 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 shadow-lg">
+        <div className="max-w-4xl mx-auto px-4 py-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <motion.button
+                whileTap={{ scale: 0.85 }}
+                onClick={() => navigate("/child-games")}
+                className="p-2 bg-white/20 hover:bg-white/30 rounded-xl text-white transition-all"
+              >
+                {isRTL ? <ArrowRight className="w-5 h-5" /> : <ArrowLeft className="w-5 h-5" />}
+              </motion.button>
+              <div className="flex items-center gap-2">
+                <motion.div
+                  animate={{ rotate: [0, -10, 10, -10, 0], scale: [1, 1.1, 1] }}
+                  transition={{ duration: 2, repeat: Infinity, repeatDelay: 4 }}
+                >
+                  <Trophy className="w-7 h-7 text-yellow-300" />
+                </motion.div>
+                <h1 className="text-xl font-bold text-white">{t("progress.myProgress")}</h1>
+              </div>
+            </div>
+            {childInfo?.name && (
+              <p className="text-white/70 text-sm hidden sm:block">
+                {t("progress.hello")} {childInfo.name}! 🌟
+              </p>
+            )}
           </div>
         </div>
+        <div className="w-full overflow-hidden leading-[0] -mb-[1px]">
+          <svg viewBox="0 0 1200 40" preserveAspectRatio="none" className="w-full h-3">
+            <path d="M0,20 C200,35 400,5 600,20 C800,35 1000,5 1200,20 L1200,40 L0,40 Z" fill={isDark ? "rgb(30, 20, 60)" : "rgb(100, 120, 200)"} fillOpacity="0.3" />
+          </svg>
+        </div>
+      </header>
+
+      <div className="max-w-4xl mx-auto px-4 py-6">
 
         {isLoading ? (
-          <div className="flex justify-center items-center h-64">
-            <div className="animate-spin rounded-full h-16 w-16 border-4 border-white border-t-transparent"></div>
+          <div className="flex flex-col justify-center items-center h-48 gap-3">
+            <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }}>
+              <Loader2 className="w-10 h-10 text-white/70" />
+            </motion.div>
+            <p className="text-white/60 text-sm animate-pulse">{isRTL ? "جاري التحميل..." : "Loading..."}</p>
           </div>
         ) : progress ? (
           <div className="space-y-6">
-            <div className={`${isDark ? "bg-gray-800" : "bg-white"} rounded-3xl p-6 shadow-xl`}>
-              <div className="flex items-center gap-4 mb-6">
-                <div className={`w-16 h-16 rounded-2xl bg-gradient-to-r ${speedConfig.color} flex items-center justify-center text-white shadow-lg`}>
+            {/* Speed Level Card */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4 }}
+              className={`${isDark ? "bg-gray-800/90 border border-gray-700/50" : "bg-white/90 border border-white/50"} rounded-2xl p-5 shadow-xl backdrop-blur-sm`}
+            >
+              <div className="flex items-center gap-4 mb-5">
+                <motion.div
+                  whileHover={{ scale: 1.1, rotate: 5 }}
+                  className={`w-14 h-14 rounded-2xl bg-gradient-to-r ${speedConfig.color} flex items-center justify-center text-white shadow-lg`}
+                >
                   {speedConfig.icon}
-                </div>
+                </motion.div>
                 <div className="flex-1">
-                  <p className={`text-sm ${isDark ? "text-gray-400" : "text-gray-600"}`}>{t("childProgress.speedLevel")}</p>
-                  <h2 className={`text-2xl font-bold ${isDark ? "text-white" : "text-gray-800"}`}>
+                  <p className={`text-xs ${isDark ? "text-gray-400" : "text-gray-500"}`}>{t("childProgress.speedLevel")}</p>
+                  <h2 className={`text-xl font-bold ${isDark ? "text-white" : "text-gray-800"}`}>
                     {speedConfig.label}
                   </h2>
                 </div>
                 <div className="text-center">
-                  <p className={`text-3xl font-bold ${isDark ? "text-white" : "text-gray-800"}`}>
+                  <motion.p
+                    key={progress.pointsPerDay}
+                    initial={{ scale: 0.5 }}
+                    animate={{ scale: 1 }}
+                    className={`text-2xl font-bold ${isDark ? "text-white" : "text-gray-800"}`}
+                  >
                     {progress.pointsPerDay}
-                  </p>
-                  <p className={`text-xs ${isDark ? "text-gray-400" : "text-gray-600"}`}>{t("childProgress.pointsPerDay")}</p>
+                  </motion.p>
+                  <p className={`text-xs ${isDark ? "text-gray-400" : "text-gray-500"}`}>{t("childProgress.pointsPerDay")}</p>
                 </div>
               </div>
-              <div className={`p-4 rounded-2xl ${isDark ? "bg-gray-700" : "bg-blue-50"}`}>
-                <p className={`text-lg text-center font-medium ${isDark ? "text-white" : "text-gray-800"}`}>
-                  {progress.motivationalMessage}
+              <div className={`p-3.5 rounded-xl ${isDark ? "bg-gray-700/50" : "bg-blue-50"}`}>
+                <p className={`text-sm text-center font-medium ${isDark ? "text-white/80" : "text-gray-700"}`}>
+                  💪 {progress.motivationalMessage}
                 </p>
               </div>
+            </motion.div>
+
+            {/* Stats Grid */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {[
+                { icon: Star, value: progress.currentPoints, label: t("childProgress.points"), color: "text-yellow-500", bg: "from-yellow-400 to-amber-500", emoji: "⭐" },
+                { icon: Trophy, value: progress.tasksCompleted, label: t("childProgress.completedTask"), color: "text-green-500", bg: "from-green-400 to-emerald-500", emoji: "🏆" },
+                { icon: Gift, value: progress.claimedGiftsCount, label: t("childProgress.giftsReceived"), color: "text-pink-500", bg: "from-pink-400 to-rose-500", emoji: "🎁" },
+                { icon: Calendar, value: progress.daysSinceJoined, label: t("childProgress.days"), color: "text-blue-500", bg: "from-blue-400 to-indigo-500", emoji: "📅" },
+              ].map((stat, index) => (
+                <motion.div
+                  key={stat.label}
+                  initial={{ opacity: 0, y: 20, scale: 0.9 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  transition={{ delay: index * 0.1, type: "spring", stiffness: 200 }}
+                  whileHover={{ y: -4, scale: 1.03 }}
+                  className={`${isDark ? "bg-gray-800/90 border border-gray-700/50" : "bg-white/90 border border-white/50"} rounded-2xl p-4 text-center shadow-xl backdrop-blur-sm`}
+                >
+                  <motion.div
+                    className="text-3xl mb-2"
+                    animate={{ y: [0, -3, 0] }}
+                    transition={{ duration: 2, repeat: Infinity, delay: index * 0.3 }}
+                  >
+                    {stat.emoji}
+                  </motion.div>
+                  <motion.p
+                    key={stat.value}
+                    initial={{ scale: 0.5 }}
+                    animate={{ scale: 1 }}
+                    className={`text-2xl font-bold ${isDark ? "text-white" : "text-gray-800"}`}
+                  >
+                    {stat.value}
+                  </motion.p>
+                  <p className={`text-xs mt-1 ${isDark ? "text-gray-400" : "text-gray-500"}`}>{stat.label}</p>
+                </motion.div>
+              ))}
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className={`${isDark ? "bg-gray-800" : "bg-white"} rounded-2xl p-5 text-center shadow-lg`}>
-                <Star className="w-10 h-10 mx-auto mb-2 text-yellow-500" />
-                <p className={`text-3xl font-bold ${isDark ? "text-white" : "text-gray-800"}`}>
-                  {progress.currentPoints}
-                </p>
-                <p className={`text-sm ${isDark ? "text-gray-400" : "text-gray-600"}`}>{t("childProgress.points")}</p>
-              </div>
-              <div className={`${isDark ? "bg-gray-800" : "bg-white"} rounded-2xl p-5 text-center shadow-lg`}>
-                <Trophy className="w-10 h-10 mx-auto mb-2 text-green-500" />
-                <p className={`text-3xl font-bold ${isDark ? "text-white" : "text-gray-800"}`}>
-                  {progress.tasksCompleted}
-                </p>
-                <p className={`text-sm ${isDark ? "text-gray-400" : "text-gray-600"}`}>{t("childProgress.completedTask")}</p>
-              </div>
-              <div className={`${isDark ? "bg-gray-800" : "bg-white"} rounded-2xl p-5 text-center shadow-lg`}>
-                <Gift className="w-10 h-10 mx-auto mb-2 text-pink-500" />
-                <p className={`text-3xl font-bold ${isDark ? "text-white" : "text-gray-800"}`}>
-                  {progress.claimedGiftsCount}
-                </p>
-                <p className={`text-sm ${isDark ? "text-gray-400" : "text-gray-600"}`}>{t("childProgress.giftsReceived")}</p>
-              </div>
-              <div className={`${isDark ? "bg-gray-800" : "bg-white"} rounded-2xl p-5 text-center shadow-lg`}>
-                <Calendar className="w-10 h-10 mx-auto mb-2 text-blue-500" />
-                <p className={`text-3xl font-bold ${isDark ? "text-white" : "text-gray-800"}`}>
-                  {progress.daysSinceJoined}
-                </p>
-                <p className={`text-sm ${isDark ? "text-gray-400" : "text-gray-600"}`}>{t("childProgress.days")}</p>
-              </div>
-            </div>
-
-            <div className={`${isDark ? "bg-gray-800" : "bg-white"} rounded-3xl p-6 shadow-xl`}>
+            {/* Next Goal */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5 }}
+              className={`${isDark ? "bg-gray-800/90 border border-gray-700/50" : "bg-white/90 border border-white/50"} rounded-2xl p-5 shadow-xl backdrop-blur-sm`}
+            >
               <div className="flex items-center justify-between mb-4">
-                <h3 className={`text-xl font-bold ${isDark ? "text-white" : "text-gray-800"}`}>
-                  {t("childProgress.nextGoal")}
+                <h3 className={`text-lg font-bold ${isDark ? "text-white" : "text-gray-800"} flex items-center gap-2`}>
+                  🎯 {t("childProgress.nextGoal")}
                 </h3>
-                <span className="px-3 py-1 bg-yellow-500 text-white rounded-full text-sm font-bold">
+                <span className="px-3 py-1 bg-gradient-to-r from-yellow-400 to-orange-500 text-white rounded-xl text-xs font-bold shadow-md">
                   {t("childProgress.pointsCount", { count: progress.nextMilestone })}
                 </span>
               </div>
-              <div className="mb-4">
-                <div className="flex justify-between text-sm mb-2">
-                  <span className={isDark ? "text-gray-400" : "text-gray-600"}>
+              <div className="mb-3">
+                <div className="flex justify-between text-xs mb-1.5">
+                  <span className={isDark ? "text-gray-400" : "text-gray-500"}>
                     {progress.currentPoints} / {progress.nextMilestone}
                   </span>
-                  <span className={isDark ? "text-gray-400" : "text-gray-600"}>
+                  <span className={`font-bold ${isDark ? "text-yellow-300" : "text-orange-600"}`}>
                     {progress.milestoneProgress}%
                   </span>
                 </div>
-                <div className={`h-4 rounded-full ${isDark ? "bg-gray-700" : "bg-gray-200"} overflow-hidden`}>
-                  <div 
-                    className="h-full bg-gradient-to-r from-yellow-500 to-orange-500 rounded-full transition-all duration-500"
-                    style={{ width: `${Math.min(progress.milestoneProgress, 100)}%` }}
+                <div className={`h-3.5 rounded-full ${isDark ? "bg-gray-700" : "bg-gray-200"} overflow-hidden`}>
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${Math.min(progress.milestoneProgress, 100)}%` }}
+                    transition={{ duration: 1, delay: 0.7, ease: "easeOut" }}
+                    className="h-full bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full"
                   />
                 </div>
               </div>
-              <p className={`text-center ${isDark ? "text-gray-400" : "text-gray-600"}`}>
-                {t("childProgress.remainingToGoal", { count: progress.nextMilestone - progress.currentPoints })}
+              <p className={`text-center text-sm ${isDark ? "text-gray-400" : "text-gray-500"}`}>
+                ✨ {t("childProgress.remainingToGoal", { count: progress.nextMilestone - progress.currentPoints })}
               </p>
-            </div>
+            </motion.div>
 
             {progress.closestGoal && (
-              <div className={`${isDark ? "bg-gray-800" : "bg-white"} rounded-3xl p-6 shadow-xl`}>
-                <div className="flex items-center gap-4 mb-4">
-                  <Target className="w-8 h-8 text-purple-500" />
-                  <h3 className={`text-xl font-bold ${isDark ? "text-white" : "text-gray-800"}`}>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.6 }}
+                className={`${isDark ? "bg-gray-800/90 border border-gray-700/50" : "bg-white/90 border border-white/50"} rounded-2xl p-5 shadow-xl backdrop-blur-sm`}
+              >
+                <div className="flex items-center gap-3 mb-4">
+                  <motion.div
+                    animate={{ rotate: [0, 360] }}
+                    transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
+                  >
+                    <Target className="w-7 h-7 text-purple-500" />
+                  </motion.div>
+                  <h3 className={`text-lg font-bold ${isDark ? "text-white" : "text-gray-800"}`}>
                     {t("childProgress.closestGift")}
                   </h3>
                 </div>
-                <div className="mb-4">
-                  <div className={`h-4 rounded-full ${isDark ? "bg-gray-700" : "bg-gray-200"} overflow-hidden`}>
-                    <div 
-                      className="h-full bg-gradient-to-r from-purple-500 to-pink-500 rounded-full transition-all duration-500"
-                      style={{ width: `${Math.min(progress.closestGoal.progress, 100)}%` }}
+                <div className="mb-3">
+                  <div className={`h-3.5 rounded-full ${isDark ? "bg-gray-700" : "bg-gray-200"} overflow-hidden`}>
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{ width: `${Math.min(progress.closestGoal.progress, 100)}%` }}
+                      transition={{ duration: 1, delay: 0.8, ease: "easeOut" }}
+                      className="h-full bg-gradient-to-r from-purple-500 to-pink-500 rounded-full"
                     />
                   </div>
                 </div>
-                <p className={`text-center ${isDark ? "text-gray-400" : "text-gray-600"}`}>
-                  {progress.closestGoal.progress}% - {t("childProgress.remaining", { count: progress.closestGoal.pointsNeeded })}
+                <p className={`text-center text-sm ${isDark ? "text-gray-400" : "text-gray-500"}`}>
+                  🎁 {progress.closestGoal.progress}% - {t("childProgress.remaining", { count: progress.closestGoal.pointsNeeded })}
                 </p>
-              </div>
+              </motion.div>
             )}
 
             {progress.pendingGiftsCount > 0 && (
-              <button
+              <motion.button
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.7 }}
+                whileTap={{ scale: 0.97 }}
+                whileHover={{ scale: 1.02 }}
                 onClick={() => navigate("/child-gifts")}
-                className="w-full p-4 bg-gradient-to-r from-pink-500 to-rose-500 text-white rounded-2xl font-bold flex items-center justify-center gap-3 hover:shadow-lg transition-all"
+                className="w-full p-4 bg-gradient-to-r from-pink-500 to-rose-500 text-white rounded-2xl font-bold flex items-center justify-center gap-3 shadow-xl transition-all"
                 data-testid="button-pending-gifts"
               >
                 <Gift className="w-6 h-6" />
                 {t("childProgress.pendingGifts", { count: progress.pendingGiftsCount })}
-              </button>
+              </motion.button>
             )}
 
-            <div className="grid grid-cols-2 gap-4">
-              <button
+            <div className="grid grid-cols-2 gap-3">
+              <motion.button
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.8 }}
+                whileTap={{ scale: 0.95 }}
                 onClick={() => navigate("/child-games")}
-                className="p-5 bg-gradient-to-r from-purple-500 to-indigo-500 text-white rounded-2xl font-bold flex flex-col items-center gap-2 hover:shadow-lg transition-all"
+                className="p-5 bg-gradient-to-r from-purple-500 to-indigo-500 text-white rounded-2xl font-bold flex flex-col items-center gap-2 shadow-xl"
                 data-testid="button-games"
               >
-                <Gamepad2 className="w-10 h-10" />
-                {t("childProgress.playAndEarn")}
-              </button>
-              <button
+                <Gamepad2 className="w-9 h-9" />
+                <span className="text-sm">{t("childProgress.playAndEarn")}</span>
+              </motion.button>
+              <motion.button
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.8 }}
+                whileTap={{ scale: 0.95 }}
                 onClick={() => navigate("/child-gifts")}
-                className="p-5 bg-gradient-to-r from-yellow-500 to-orange-500 text-white rounded-2xl font-bold flex flex-col items-center gap-2 hover:shadow-lg transition-all"
+                className="p-5 bg-gradient-to-r from-yellow-500 to-orange-500 text-white rounded-2xl font-bold flex flex-col items-center gap-2 shadow-xl"
                 data-testid="button-gifts"
               >
-                <Gift className="w-10 h-10" />
-                {t("childProgress.myGifts")}
-              </button>
+                <Gift className="w-9 h-9" />
+                <span className="text-sm">{t("childProgress.myGifts")}</span>
+              </motion.button>
             </div>
           </div>
         ) : (
-          <div className={`${isDark ? "bg-gray-800" : "bg-white"} rounded-2xl p-12 text-center`}>
-            <Trophy className={`w-20 h-20 mx-auto mb-4 ${isDark ? "text-gray-600" : "text-gray-300"}`} />
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            className={`${isDark ? "bg-gray-800/90 border border-gray-700/50" : "bg-white/90 border border-white/50"} rounded-2xl p-10 text-center shadow-xl backdrop-blur-sm`}
+          >
+            <motion.div
+              animate={{ y: [0, -10, 0] }}
+              transition={{ duration: 3, repeat: Infinity }}
+              className="mb-4"
+            >
+              <span className="text-6xl">🏆</span>
+            </motion.div>
             <h3 className={`text-2xl font-bold mb-2 ${isDark ? "text-white" : "text-gray-800"}`}>
               {t("childProgress.startJourney")}
             </h3>
-            <p className={`${isDark ? "text-gray-400" : "text-gray-600"} mb-6`}>
+            <p className={`${isDark ? "text-gray-400" : "text-gray-500"} mb-6 text-sm`}>
               {t("childProgress.emptyMessage")}
             </p>
-            <button
+            <motion.button
+              whileTap={{ scale: 0.95 }}
+              whileHover={{ scale: 1.03 }}
               onClick={() => navigate("/child-games")}
-              className="px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl font-bold hover:shadow-lg transition-all"
+              className="px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-2xl font-bold shadow-xl"
               data-testid="button-start"
             >
-              {t("childProgress.startNow")}
-            </button>
-          </div>
+              {t("childProgress.startNow")} ✨
+            </motion.button>
+          </motion.div>
         )}
       </div>
+
+      {/* Bottom Navigation */}
+      <ChildBottomNav activeTab="progress" />
     </div>
   );
 };

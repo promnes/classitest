@@ -262,7 +262,100 @@
     content-visibility: auto;
     contain-intrinsic-size: auto 500px;
   }
+  /* Safe area for bottom nav (iOS notch) */
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
 }
+
+/* ═══════════════════════════════════════════════════════════ */
+/*  KID-FRIENDLY ANIMATIONS                                  */
+/* ═══════════════════════════════════════════════════════════ */
+
+@keyframes kid-bounce-in {
+  0% { opacity: 0; transform: scale(0.3) translateY(40px); }
+  50% { opacity: 1; transform: scale(1.08) translateY(-5px); }
+  70% { transform: scale(0.96) translateY(2px); }
+  100% { transform: scale(1) translateY(0); }
+}
+
+@keyframes kid-wiggle {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-5deg); }
+  75% { transform: rotate(5deg); }
+}
+
+@keyframes kid-float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-8px); }
+}
+
+@keyframes kid-pulse-glow {
+  0%, 100% { box-shadow: 0 0 5px rgba(168, 85, 247, 0.3); }
+  50% { box-shadow: 0 0 20px rgba(168, 85, 247, 0.6); }
+}
+
+@keyframes kid-sparkle {
+  0%, 100% { opacity: 0; transform: scale(0) rotate(0deg); }
+  50% { opacity: 1; transform: scale(1) rotate(180deg); }
+}
+
+@keyframes kid-confetti {
+  0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(-150px) rotate(720deg); opacity: 0; }
+}
+
+@keyframes kid-slide-up {
+  0% { opacity: 0; transform: translateY(30px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes kid-pop {
+  0% { transform: scale(0); }
+  60% { transform: scale(1.15); }
+  100% { transform: scale(1); }
+}
+
+@keyframes kid-shake-happy {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-3px); }
+  20%, 40%, 60%, 80% { transform: translateX(3px); }
+}
+
+.animate-kid-bounce-in {
+  animation: kid-bounce-in 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;
+}
+.animate-kid-wiggle {
+  animation: kid-wiggle 1s ease-in-out infinite;
+}
+.animate-kid-float {
+  animation: kid-float 3s ease-in-out infinite;
+}
+.animate-kid-pulse-glow {
+  animation: kid-pulse-glow 2s ease-in-out infinite;
+}
+.animate-kid-sparkle {
+  animation: kid-sparkle 1.5s ease-in-out infinite;
+}
+.animate-kid-slide-up {
+  animation: kid-slide-up 0.5s ease-out forwards;
+}
+.animate-kid-pop {
+  animation: kid-pop 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;
+}
+.animate-kid-shake-happy {
+  animation: kid-shake-happy 0.5s ease-in-out;
+}
+
+/* Staggered animation delays for lists */
+.kid-stagger-1 { animation-delay: 0.05s; }
+.kid-stagger-2 { animation-delay: 0.1s; }
+.kid-stagger-3 { animation-delay: 0.15s; }
+.kid-stagger-4 { animation-delay: 0.2s; }
+.kid-stagger-5 { animation-delay: 0.25s; }
+.kid-stagger-6 { animation-delay: 0.3s; }
+.kid-stagger-7 { animation-delay: 0.35s; }
+.kid-stagger-8 { animation-delay: 0.4s; }
 
 @keyframes fadeInUp {
   from {

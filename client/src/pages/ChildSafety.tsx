@@ -1,9 +1,9 @@
 import { useTranslation } from "react-i18next";
 import { useLocation } from "wouter";
 import { useTheme } from "@/contexts/ThemeContext";
-import { LanguageSelector } from "@/components/LanguageSelector";
 import { Baby, ArrowLeft, ArrowRight, Shield, Eye, Lock, Users, AlertTriangle, FileText, Mail, Heart, Smartphone, ChevronDown } from "lucide-react";
 import { useState } from "react";
+import { ChildBottomNav } from "@/components/ChildBottomNav";
 
 const ar = {
   title: "سلامة الأطفال وحماية القُصّر",
@@ -64,14 +64,13 @@ export const ChildSafety = (): JSX.Element => {
   const [openToc, setOpenToc] = useState(false);
 
   return (
-    <div className={`min-h-screen ${isDark ? "bg-gray-900" : "bg-gradient-to-b from-green-50 to-white"}`} dir={isRTL ? "rtl" : "ltr"}>
+    <div className={`min-h-screen pb-24 ${isDark ? "bg-gray-900" : "bg-gradient-to-b from-green-50 to-white"}`} dir={isRTL ? "rtl" : "ltr"}>
       <header className="bg-gradient-to-r from-green-600 to-teal-700 text-white">
         <div className="max-w-4xl mx-auto px-4 py-5 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button onClick={() => window.history.length > 1 ? window.history.back() : navigate("/")} className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors"><BackArrow className="w-5 h-5" /></button>
             <div className="flex items-center gap-2"><Baby className="w-6 h-6" /><h1 className="text-xl md:text-2xl font-bold">{c.title}</h1></div>
           </div>
-          <LanguageSelector />
         </div>
       </header>
       <main className="max-w-4xl mx-auto px-4 py-8">
@@ -132,6 +131,8 @@ export const ChildSafety = (): JSX.Element => {
         </div>
         <div className="text-center py-6"><p className={`text-sm ${isDark ? "text-gray-500" : "text-gray-400"}`}>© {new Date().getFullYear()} Classify by Proomnes. {lang === "ar" ? "جميع الحقوق محفوظة." : "All rights reserved."}</p></div>
       </main>
+
+      <ChildBottomNav activeTab="games" />
     </div>
   );
 };
