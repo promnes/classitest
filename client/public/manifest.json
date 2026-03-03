@@ -1,18 +1,55 @@
 {
   "name": "Classify — منصة تعليمية تفاعلية للأطفال",
   "short_name": "Classify",
-  "description": "منصة تعليمية ممتعة للأطفال مع رقابة أبوية ذكية وألعاب تفاعلية — Fun educational platform for kids with smart parental controls",
+  "description": "منصة تعليمية ممتعة للأطفال مع رقابة أبوية ذكية وألعاب تفاعلية — Fun educational platform for kids with smart parental controls and interactive games",
   "lang": "ar",
   "dir": "auto",
   "start_url": "/",
   "scope": "/",
   "id": "/",
   "display": "standalone",
-  "display_override": ["standalone", "minimal-ui"],
+  "display_override": ["standalone", "minimal-ui", "window-controls-overlay"],
   "background_color": "#ffffff",
   "theme_color": "#6B4D9D",
   "orientation": "portrait-primary",
   "prefer_related_applications": false,
+  "handle_links": "preferred",
+  "launch_handler": {
+    "client_mode": ["navigate-existing", "auto"]
+  },
+  "edge_side_panel": {
+    "preferred_width": 400
+  },
+  "scope_extensions": [
+    { "origin": "https://classi-fy.com" }
+  ],
+  "share_target": {
+    "action": "/child-games",
+    "method": "GET",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
+  },
+  "protocol_handlers": [
+    {
+      "protocol": "web+classify",
+      "url": "/%s"
+    }
+  ],
+  "related_applications": [
+    {
+      "platform": "play",
+      "url": "https://play.google.com/store/apps/details?id=com.classify.app",
+      "id": "com.classify.app"
+    },
+    {
+      "platform": "webapp",
+      "url": "https://classi-fy.com/manifest.json"
+    }
+  ],
+  "iarc_rating_id": "e84b072d-71b3-4d3e-86ae-31a8ce4e53b7",
   "icons": [
     {
       "src": "/icons/icon-36.png",
@@ -99,22 +136,72 @@
       "purpose": "maskable"
     }
   ],
-  "categories": ["education", "productivity", "lifestyle"],
-  "screenshots": [],
+  "categories": ["education", "kids", "productivity", "lifestyle"],
+  "screenshots": [
+    {
+      "src": "/screenshots/mobile-home.png",
+      "sizes": "540x1200",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Classify — الصفحة الرئيسية"
+    },
+    {
+      "src": "/screenshots/mobile-games.png",
+      "sizes": "540x1200",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "ألعاب تعليمية ممتعة"
+    },
+    {
+      "src": "/screenshots/mobile-parent.png",
+      "sizes": "540x1200",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "لوحة تحكم الوالدين"
+    },
+    {
+      "src": "/screenshots/desktop-home.png",
+      "sizes": "1920x1080",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Classify — Desktop View"
+    },
+    {
+      "src": "/screenshots/desktop-dashboard.png",
+      "sizes": "1920x1080",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Parent Dashboard — Desktop"
+    }
+  ],
   "shortcuts": [
     {
       "name": "Parent Dashboard",
       "short_name": "Parent",
-      "description": "Go to parent dashboard",
+      "description": "Go to parent dashboard — لوحة تحكم الوالدين",
       "url": "/parent-dashboard",
-      "icons": [{ "src": "/icons/icon-96.png", "sizes": "96x96" }]
+      "icons": [{ "src": "/icons/icon-96.png", "sizes": "96x96", "type": "image/png" }]
     },
     {
       "name": "Child Games",
       "short_name": "Games",
-      "description": "Play educational games",
+      "description": "Play educational games — ألعاب تعليمية",
       "url": "/child-games",
-      "icons": [{ "src": "/icons/icon-96.png", "sizes": "96x96" }]
+      "icons": [{ "src": "/icons/icon-96.png", "sizes": "96x96", "type": "image/png" }]
+    },
+    {
+      "name": "Child Tasks",
+      "short_name": "Tasks",
+      "description": "View and complete tasks — المهام",
+      "url": "/child-tasks",
+      "icons": [{ "src": "/icons/icon-96.png", "sizes": "96x96", "type": "image/png" }]
+    },
+    {
+      "name": "Notifications",
+      "short_name": "Alerts",
+      "description": "Check notifications — الإشعارات",
+      "url": "/child-notifications",
+      "icons": [{ "src": "/icons/icon-96.png", "sizes": "96x96", "type": "image/png" }]
     }
   ]
 }

@@ -130,14 +130,50 @@
     <script type="module" src="/src/main.tsx"></script>
     <script defer>
       if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js')
-            .then((registration) => {
-              console.log('SW registered:', registration.scope);
-            })
-            .catch((error) => {
-              console.log('SW registration failed:', error);
+        window.addEventListener('load', async () => {
+          try {
+            const registration = await navigator.serviceWorker.register('/sw.js');
+            console.log('SW registered:', registration.scope);
+
+            // Register periodic background sync if supported
+            if ('periodicSync' in registration) {
+              try {
+                const status = await navigator.permissions.query({ name: 'periodic-background-sync' });
+                if (status.state === 'granted') {
+                  await registration.periodicSync.register('classify-content-sync', {
+                    minInterval: 12 * 60 * 60 * 1000 // 12 hours
+                  });
+                }
+              } catch (e) {
+                // Periodic sync not available
+              }
+            }
+
+            // Listen for SW updates
+            registration.addEventListener('updatefound', () => {
+              const newWorker = registration.installing;
+              if (newWorker) {
+                newWorker.addEventListener('statechange', () => {
+                  if (newWorker.state === 'activated' && navigator.serviceWorker.controller) {
+                    // New content available — can prompt user to refresh
+                    console.log('New content available, refresh for updates.');
+                  }
+                });
+              }
             });
+          } catch (error) {
+            console.log('SW registration failed:', error);
+          }
+        });
+
+        // Listen for navigation messages from SW
+        navigator.serviceWorker.addEventListener('message', (event) => {
+          if (event.data && event.data.type === 'NAVIGATE') {
+            window.location.href = event.data.url;
+          }
+          if (event.data && event.data.type === 'CONTENT_UPDATED') {
+            // Optionally notify user of fresh content
+          }
         });
       }
     </script>
