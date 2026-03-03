@@ -252,11 +252,11 @@ services:
     networks:
       - classify-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/ready"]
+      test: ["CMD", "mc", "ready", "local"]
       interval: 10s
       timeout: 5s
-      retries: 5
-      start_period: 10s
+      retries: 10
+      start_period: 30s
     logging:
       driver: json-file
       options:
