@@ -1691,9 +1691,9 @@ export type InsertChildLoginRequest = z.infer<typeof insertChildLoginRequestSche
 export const seoSettings = pgTable("seo_settings", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   // Basic Meta Tags
-  siteTitle: text("site_title").default("Classify - تطبيق الرقابة الأبوية").notNull(),
-  siteDescription: text("site_description").default("تطبيق عربي للرقابة الأبوية يساعد الآباء في إدارة علاقتهم مع أطفالهم").notNull(),
-  keywords: text("keywords").default("رقابة أبوية, تطبيق أطفال, مهام, مكافآت, ألعاب تعليمية").notNull(),
+  siteTitle: text("site_title").default("Classify — تطبيق تعليمي للأطفال مع رقابة أبوية").notNull(),
+  siteDescription: text("site_description").default("أفضل تطبيق تعليمي للأطفال من 6-17 سنة. ألعاب تعليمية تفاعلية مع نظام رقابة أبوية كامل وتحكم في وقت الشاشة.").notNull(),
+  keywords: text("keywords").default("تطبيق تعليمي للأطفال, رقابة أبوية, ألعاب تعليمية, التحكم في وقت الشاشة, تطبيق أطفال آمن, مهام ومكافآت").notNull(),
   
   // Open Graph
   ogTitle: text("og_title"),
@@ -1740,7 +1740,7 @@ export const seoSettings = pgTable("seo_settings", {
   hreflangTags: json("hreflang_tags").$type<Array<{lang: string, url: string}>>(),
   
   // PWA
-  themeColor: varchar("theme_color", { length: 7 }).default("#7c3aed"),
+  themeColor: varchar("theme_color", { length: 7 }).default("#6B4D9D"),
   manifestName: text("manifest_name"),
   manifestShortName: text("manifest_short_name"),
   

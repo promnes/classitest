@@ -19,24 +19,24 @@ const isBrowser = typeof window !== "undefined";
 
 // Per-route SEO metadata so each page gets a unique title/description
 const ROUTE_SEO: Record<string, { title: string; description: string }> = {
-  "/": { title: "Classify — منصة تعليمية تفاعلية للأطفال", description: "منصة تعليمية ممتعة للأطفال مع رقابة أبوية ذكية وألعاب تفاعلية. Fun educational platform for kids." },
-  "/parent-auth": { title: "دخول ولي الأمر | Classify", description: "تسجيل الدخول أو إنشاء حساب ولي أمر جديد لإدارة تعليم أطفالك." },
-  "/child-link": { title: "دخول الطفل | Classify", description: "سجّل دخول طفلك للبدء باللعب والتعلم." },
-  "/parent-dashboard": { title: "لوحة تحكم ولي الأمر | Classify", description: "إدارة ومتابعة تقدم أطفالك التعليمي." },
-  "/child-games": { title: "ألعاب تعليمية | Classify", description: "العب ألعاب تعليمية ممتعة وتعلم مهارات جديدة." },
-  "/parent-store": { title: "المتجر | Classify", description: "تصفح المنتجات والمكافآت التعليمية لأطفالك." },
+  "/": { title: "Classify — تطبيق تعليمي للأطفال مع رقابة أبوية | Kids Educational App with Parental Controls", description: "Classify — أفضل تطبيق تعليمي للأطفال من 6-17 سنة. ألعاب تعليمية تفاعلية في الرياضيات والذاكرة والتهجئة مع نظام رقابة أبوية كامل. تحكم في وقت الشاشة، تتبع التقدم، مهام ومكافآت. حمّل مجاناً!" },
+  "/parent-auth": { title: "دخول ولي الأمر | Classify", description: "تسجيل الدخول أو إنشاء حساب ولي أمر جديد لإدارة تعليم أطفالك ومتابعة تقدمهم." },
+  "/child-link": { title: "دخول الطفل | Classify", description: "سجّل دخول طفلك للبدء باللعب والتعلم في بيئة آمنة." },
+  "/parent-dashboard": { title: "لوحة تحكم ولي الأمر | Classify", description: "إدارة ومتابعة تقدم أطفالك التعليمي، التحكم في وقت الشاشة، وإدارة المهام والمكافآت." },
+  "/child-games": { title: "ألعاب تعليمية تفاعلية للأطفال | Classify", description: "العب ألعاب تعليمية ممتعة في الرياضيات والذاكرة والتهجئة والشطرنج. تعلم مهارات جديدة!" },
+  "/parent-store": { title: "متجر المكافآت | Classify", description: "تصفح المنتجات والمكافآت التعليمية لتحفيز أطفالك." },
   "/child-store": { title: "متجر الطفل | Classify", description: "تصفح المكافآت والهدايا المتاحة لك." },
-  "/privacy-policy": { title: "سياسة الخصوصية | Classify", description: "سياسة الخصوصية وحماية البيانات الشخصية لمنصة Classify." },
+  "/privacy-policy": { title: "سياسة الخصوصية | Classify", description: "سياسة الخصوصية وحماية البيانات الشخصية لمنصة Classify التعليمية. متوافق مع COPPA وGDPR." },
   "/privacy": { title: "الخصوصية | Classify", description: "معلومات حول خصوصية بياناتك في Classify." },
   "/terms": { title: "شروط الاستخدام | Classify", description: "شروط وأحكام استخدام منصة Classify التعليمية." },
-  "/about": { title: "من نحن | Classify", description: "تعرف على فريق Classify ورسالتنا التعليمية." },
-  "/contact": { title: "تواصل معنا | Classify", description: "تواصل مع فريق دعم Classify." },
-  "/child-safety": { title: "سلامة الأطفال | Classify", description: "كيف نحمي أطفالك ونضمن سلامتهم على المنصة." },
+  "/about": { title: "من نحن — Classify | تطبيق تعليمي آمن للأطفال", description: "تعرف على فريق Classify ورسالتنا: تقديم تعليم تفاعلي آمن للأطفال مع رقابة أبوية ذكية." },
+  "/contact": { title: "تواصل معنا | Classify", description: "تواصل مع فريق دعم Classify للمساعدة والاستفسارات." },
+  "/child-safety": { title: "سلامة الأطفال على الإنترنت | Classify", description: "كيف نحمي أطفالك ونضمن سلامتهم الرقمية على المنصة. حماية الأطفال أولويتنا." },
   "/refund-policy": { title: "سياسة الاسترداد | Classify", description: "سياسة استرداد المبالغ والمشتريات في Classify." },
   "/cookie-policy": { title: "سياسة ملفات الارتباط | Classify", description: "كيف نستخدم ملفات تعريف الارتباط في Classify." },
   "/legal": { title: "المركز القانوني | Classify", description: "جميع السياسات والشروط القانونية لمنصة Classify." },
-  "/download": { title: "تحميل التطبيق | Classify", description: "حمّل تطبيق Classify على هاتفك." },
-  "/trial-games": { title: "ألعاب تجريبية | Classify", description: "جرب ألعابنا التعليمية مجاناً." },
+  "/download": { title: "تحميل تطبيق Classify مجاناً | ألعاب تعليمية ورقابة أبوية", description: "حمّل تطبيق Classify المجاني على أندرويد. ألعاب تعليمية تفاعلية مع رقابة أبوية كاملة وتحكم في وقت الشاشة." },
+  "/trial-games": { title: "جرب ألعاب Classify التعليمية مجاناً | ألعاب ذكاء للأطفال", description: "جرب ألعابنا التعليمية مجاناً — رياضيات، ذاكرة، تهجئة، شطرنج. ألعاب آمنة للأطفال بدون تسجيل." },
   "/wallet": { title: "المحفظة | Classify", description: "إدارة رصيدك ومعاملاتك المالية." },
   "/notifications": { title: "الإشعارات | Classify", description: "إشعاراتك ومستجداتك." },
   "/subjects": { title: "المواد الدراسية | Classify", description: "تصفح المواد والموضوعات التعليمية." },
@@ -56,15 +56,15 @@ export function useSEO() {
       const res = await fetch("/api/seo-settings");
       if (!res.ok) {
         return {
-          siteTitle: "Classify - تطبيق الرقابة الأبوية",
-          siteDescription: "تطبيق شامل للرقابة الأبوية يساعد الآباء في متابعة أطفالهم وتعليمهم",
-          keywords: "رقابة أبوية, تعليم أطفال, مهام, ألعاب تعليمية, مكافآت",
-          ogImage: "",
+          siteTitle: "Classify — تطبيق تعليمي للأطفال مع رقابة أبوية",
+          siteDescription: "أفضل تطبيق تعليمي للأطفال من 6-17 سنة. ألعاب تعليمية تفاعلية مع نظام رقابة أبوية كامل وتحكم في وقت الشاشة.",
+          keywords: "تطبيق تعليمي للأطفال, رقابة أبوية, ألعاب تعليمية, التحكم في وقت الشاشة, تطبيق أطفال آمن, مهام ومكافآت, parental control app, kids educational games, screen time control",
+          ogImage: "/screenshots/mobile-home.png",
           favicon: "",
           twitterHandle: "",
           googleVerification: "",
-          robots: "index, follow",
-          canonicalUrl: "",
+          robots: "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1",
+          canonicalUrl: "https://classi-fy.com",
           themeColor: "#6B4D9D"
         };
       }
@@ -85,10 +85,9 @@ export function useSEO() {
 
     document.title = pageTitle;
 
-    // Set html lang and dir based on current language
+    // Set html dir based on current language (preserve lang attribute set elsewhere)
     const htmlEl = document.documentElement;
     const currentLang = htmlEl.getAttribute("lang") || "ar";
-    htmlEl.setAttribute("dir", currentLang === "ar" ? "rtl" : "ltr");
 
     const updateMeta = (name: string, content: string, isProperty?: boolean) => {
       if (!content) return;

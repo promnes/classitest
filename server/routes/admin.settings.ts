@@ -58,10 +58,11 @@ function tableForName(name: string) {
 
 // Default SEO settings for new installations
 const DEFAULT_SEO_SETTINGS = {
-  siteTitle: "Classify - تطبيق الرقابة الأبوية",
-  siteDescription: "تطبيق عربي شامل للرقابة الأبوية يساعد الآباء في إدارة علاقتهم مع أطفالهم من خلال المهام والألعاب والمكافآت",
-  keywords: "رقابة أبوية, تطبيق أطفال, مهام, مكافآت, ألعاب تعليمية, تعليم الأطفال",
+  siteTitle: "Classify — تطبيق تعليمي للأطفال مع رقابة أبوية",
+  siteDescription: "أفضل تطبيق تعليمي للأطفال من 6-17 سنة. ألعاب تعليمية تفاعلية في الرياضيات والذاكرة والتهجئة مع نظام رقابة أبوية كامل. تحكم في وقت الشاشة، تتبع التقدم، مهام ومكافآت.",
+  keywords: "تطبيق تعليمي للأطفال, رقابة أبوية, ألعاب تعليمية, التحكم في وقت الشاشة, تطبيق أطفال آمن, مهام ومكافآت, تعليم تفاعلي, حماية الأطفال على الإنترنت, parental control app, kids educational games, screen time control, child safety app",
   ogType: "website",
+  ogImage: "https://classi-fy.com/screenshots/mobile-home.png",
   twitterCard: "summary_large_image",
   robotsIndex: true,
   robotsFollow: true,
@@ -74,7 +75,7 @@ const DEFAULT_SEO_SETTINGS = {
   sitemapPriority: "0.8",
   schemaOrgType: "SoftwareApplication",
   defaultLanguage: "ar",
-  themeColor: "#7c3aed",
+  themeColor: "#6B4D9D",
 };
 
 // Default Support settings for new installations
