@@ -91,6 +91,17 @@ export function ChildNotificationBell() {
 
   const unreadCount = unreadCountData?.count || 0;
 
+  // ─── App Badge API — sync badge with unread count ─────────
+  useEffect(() => {
+    if ('setAppBadge' in navigator) {
+      if (unreadCount > 0) {
+        (navigator as any).setAppBadge(unreadCount).catch(() => {});
+      } else {
+        (navigator as any).clearAppBadge().catch(() => {});
+      }
+    }
+  }, [unreadCount]);
+
   const markAsRead = async (id: string) => {
     try {
       await fetch(`/api/child/notifications/${id}/read`, {

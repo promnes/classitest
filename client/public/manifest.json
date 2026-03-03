@@ -23,6 +23,54 @@
   "scope_extensions": [
     { "origin": "https://classi-fy.com" }
   ],
+  "note_taking": {
+    "new_note_url": "/child-tasks?action=new"
+  },
+  "file_handlers": [
+    {
+      "action": "/child-games",
+      "accept": {
+        "application/json": [".json"],
+        "text/plain": [".txt", ".csv"]
+      },
+      "icons": [
+        { "src": "/icons/icon-96.png", "sizes": "96x96", "type": "image/png" }
+      ],
+      "launch_type": "single-client"
+    }
+  ],
+  "widgets": [
+    {
+      "name": "Classify Tasks",
+      "short_name": "Tasks",
+      "description": "عرض مهام الطفل — View child tasks",
+      "tag": "classify-tasks",
+      "ms_ac_template": "widget/tasks",
+      "data": "/api/child/tasks",
+      "type": "application/json",
+      "screenshots": [
+        { "src": "/screenshots/mobile-home.png", "sizes": "540x1200", "label": "Tasks Widget" }
+      ],
+      "icons": [
+        { "src": "/icons/icon-96.png", "sizes": "96x96", "type": "image/png" }
+      ],
+      "backgrounds": [
+        { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png" }
+      ]
+    }
+  ],
+  "tab_strip": {
+    "home_tab": {
+      "scope_patterns": [
+        { "pathname": "/" },
+        { "pathname": "/child-dashboard" },
+        { "pathname": "/child-games" }
+      ]
+    },
+    "new_tab_button": {
+      "url": "/child-tasks"
+    }
+  },
   "share_target": {
     "action": "/child-games",
     "method": "GET",
@@ -180,28 +228,28 @@
       "short_name": "Parent",
       "description": "Go to parent dashboard — لوحة تحكم الوالدين",
       "url": "/parent-dashboard",
-      "icons": [{ "src": "/icons/icon-96.png", "sizes": "96x96", "type": "image/png" }]
+      "icons": [{ "src": "/icons/icon-96.png", "sizes": "96x96", "type": "image/png", "purpose": "any" }]
     },
     {
       "name": "Child Games",
       "short_name": "Games",
       "description": "Play educational games — ألعاب تعليمية",
       "url": "/child-games",
-      "icons": [{ "src": "/icons/icon-96.png", "sizes": "96x96", "type": "image/png" }]
+      "icons": [{ "src": "/icons/icon-96.png", "sizes": "96x96", "type": "image/png", "purpose": "any" }]
     },
     {
       "name": "Child Tasks",
       "short_name": "Tasks",
       "description": "View and complete tasks — المهام",
       "url": "/child-tasks",
-      "icons": [{ "src": "/icons/icon-96.png", "sizes": "96x96", "type": "image/png" }]
+      "icons": [{ "src": "/icons/icon-96.png", "sizes": "96x96", "type": "image/png", "purpose": "any" }]
     },
     {
       "name": "Notifications",
       "short_name": "Alerts",
       "description": "Check notifications — الإشعارات",
       "url": "/child-notifications",
-      "icons": [{ "src": "/icons/icon-96.png", "sizes": "96x96", "type": "image/png" }]
+      "icons": [{ "src": "/icons/icon-96.png", "sizes": "96x96", "type": "image/png", "purpose": "any" }]
     }
   ]
 }

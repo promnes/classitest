@@ -1,5 +1,5 @@
-// Classify Service Worker v6 — Full PWA
-const CACHE_NAME = 'classify-v6';
+// Classify Service Worker v7 — Maximum PWA
+const CACHE_NAME = 'classify-v7';
 const OFFLINE_URL = '/offline.html';
 const PRECACHE_ASSETS = [
   '/',
@@ -12,12 +12,16 @@ const PRECACHE_ASSETS = [
   '/icons/icon-152.png',
   '/icons/icon-180.png',
   '/icons/icon-192.png',
+  '/icons/icon-256.png',
   '/icons/icon-384.png',
   '/icons/icon-512.png',
   '/icons/icon-maskable-192.png',
   '/icons/icon-maskable-512.png',
   '/logo.webp',
-  '/logo.jpg'
+  '/logo.jpg',
+  '/screenshots/mobile-home.png',
+  '/screenshots/mobile-games.png',
+  '/screenshots/mobile-parent.png'
 ];
 
 // ─── INSTALL ────────────────────────────────────────────────
@@ -267,5 +271,61 @@ self.addEventListener('message', (event) => {
   }
   if (event.data && event.data.type === 'GET_VERSION') {
     event.source.postMessage({ type: 'VERSION', version: CACHE_NAME });
+  }
+  if (event.data && event.data.type === 'CACHE_URLS') {
+    const urls = event.data.urls || [];
+    event.waitUntil(
+      caches.open(CACHE_NAME).then((cache) =>
+        Promise.allSettled(urls.map((url) => cache.add(url)))
+      )
+    );
+  }
+});
+
+// ─── WIDGET INSTALL (PWA Widgets API) ───────────────────────
+self.addEventListener('widgetinstall', (event) => {
+  event.waitUntil(updateWidget(event));
+});
+
+self.addEventListener('widgetresume', (event) => {
+  event.waitUntil(updateWidget(event));
+});
+
+self.addEventListener('widgetclick', (event) => {
+  if (event.action === 'open-app') {
+    event.waitUntil(clients.openWindow('/child-tasks'));
+  }
+});
+
+async function updateWidget(event) {
+  try {
+    const widget = event.widget;
+    const response = await fetch('/api/child/tasks');
+    const data = await response.json();
+    await self.widgets.updateByTag(widget.definition.tag, {
+      data: JSON.stringify(data)
+    });
+  } catch (e) {
+    // Widget update failed — silently continue
+  }
+}
+
+// ─── FILE HANDLER LAUNCH ────────────────────────────────────
+self.addEventListener('launch', (event) => {
+  if (event.files && event.files.length > 0) {
+    event.waitUntil(
+      (async () => {
+        const allClients = await clients.matchAll({ type: 'window' });
+        if (allClients.length > 0) {
+          allClients[0].focus();
+          allClients[0].postMessage({
+            type: 'FILE_OPENED',
+            files: event.files.map((f) => f.name)
+          });
+        } else {
+          await clients.openWindow('/child-games');
+        }
+      })()
+    );
   }
 });

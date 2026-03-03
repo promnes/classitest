@@ -14,6 +14,7 @@ import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
+import { useWakeLock } from "@/hooks/useWakeLock";
 
 interface Game {
   id: string;
@@ -41,6 +42,9 @@ export const ChildGames = (): JSX.Element => {
   const [mutationError, setMutationError] = useState<string | null>(null);
   const [gameShared, setGameShared] = useState(false);
   const [sharedGameData, setSharedGameData] = useState<{ gameName: string; score: number; stars: number } | null>(null);
+
+  // Keep screen awake while playing a game
+  useWakeLock(!!selectedGame);
 
   // Refs for stable access in postMessage handler
   const selectedGameRef = useRef<Game | null>(null);
