@@ -74,12 +74,12 @@ const DEFAULT_CONFIG: AppConfig = {
   appBuildNumber: "1",
   appDescription: "Kids Educational & Parental Control Platform",
   appDescriptionAr: "منصة تعليمية ممتعة للأطفال مع رقابة أبوية ذكية",
-  packageName: "com.classify.app",
+  packageName: "com.classi_fy.twa",
   appIconUrl: "/logo.jpg",
   
   apkEnabled: true,
   apkUrl: "/classify-app.apk",
-  apkSize: "6 MB",
+  apkSize: "2.6 MB",
   minAndroidVersion: "6.0",
   iosEnabled: false,
   iosUrl: "",
@@ -281,7 +281,7 @@ export function MobileAppSettingsTab({ token }: { token: string }) {
                 </div>
                 <div className="space-y-2">
                   <Label>{isRTL ? "اسم الحزمة" : "Package Name"}</Label>
-                  <Input value={config.packageName} onChange={(e) => handleChange("packageName", e.target.value)} placeholder="com.classify.app" dir="ltr" />
+                  <Input value={config.packageName} onChange={(e) => handleChange("packageName", e.target.value)} placeholder="com.classi_fy.twa" dir="ltr" />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">

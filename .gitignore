@@ -88,6 +88,9 @@ docs/_ai-temp/
 attached_assets/
 debug.png
 test-results/
+_gplay_extract/
+signing-key-info.txt
+Classify - Google Play package.zip
 
 # Redundant env examples
 .env.example.production
