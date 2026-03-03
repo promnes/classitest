@@ -1,6 +1,7 @@
-# Classify - Educational Platform for Kids
+# Classify — Kids Educational App with Parental Controls
 # https://classi-fy.com
 
+# ─── All Search Engines ──────────────────────────────────────
 User-agent: *
 Allow: /
 Allow: /privacy-policy
@@ -16,13 +17,19 @@ Allow: /accessibility
 Allow: /download
 Allow: /trial-games
 Allow: /delete-account
+Allow: /parent-auth
+Allow: /icons/
+Allow: /screenshots/
+Allow: /logo.webp
+Allow: /logo.jpg
+Allow: /manifest.json
+Allow: /offline.html
 
-# Block private/authenticated areas
+# Block private/authenticated areas (no public content)
 Disallow: /parent-dashboard
 Disallow: /parent-store
 Disallow: /parent-inventory
 Disallow: /parent-tasks
-Disallow: /parent-auth
 Disallow: /parent-profile
 Disallow: /wallet
 Disallow: /notifications
@@ -43,6 +50,7 @@ Disallow: /child-profile
 Disallow: /child-settings
 Disallow: /child-discover
 Disallow: /child-link
+Disallow: /child-dashboard
 Disallow: /create-task
 Disallow: /assign-task
 Disallow: /subject-tasks
@@ -58,14 +66,93 @@ Disallow: /teacher/
 Disallow: /teacher-login
 Disallow: /memory-match
 Disallow: /match3
+
+# Block API and server paths
+Disallow: /api/
+Disallow: /objects/
+
+# ─── Google ──────────────────────────────────────────────────
+User-agent: Googlebot
+Allow: /
+Crawl-delay: 1
+
+User-agent: Googlebot-Image
+Allow: /icons/
+Allow: /screenshots/
+Allow: /logo.webp
 Disallow: /api/
 
-# Sitemaps
-Sitemap: https://classi-fy.com/sitemap.xml
-
-# Crawl-delay (be friendly to server)
+# ─── Bing ────────────────────────────────────────────────────
 User-agent: Bingbot
+Allow: /
 Crawl-delay: 2
 
+# ─── Yandex ──────────────────────────────────────────────────
 User-agent: Yandex
+Allow: /
 Crawl-delay: 3
+
+# ─── Apple / Applebot (for App Store & Siri) ─────────────────
+User-agent: Applebot
+Allow: /
+Allow: /download
+Allow: /about
+Allow: /privacy-policy
+Crawl-delay: 1
+
+# ─── Social Media Crawlers ───────────────────────────────────
+User-agent: Twitterbot
+Allow: /
+
+User-agent: facebookexternalhit
+Allow: /
+
+User-agent: LinkedInBot
+Allow: /
+
+User-agent: WhatsApp
+Allow: /
+
+User-agent: TelegramBot
+Allow: /
+
+# ─── AI Crawlers (Block by default) ─────────────────────────
+User-agent: GPTBot
+Disallow: /
+
+User-agent: ChatGPT-User
+Disallow: /
+
+User-agent: Claude-Web
+Disallow: /
+
+User-agent: anthropic-ai
+Disallow: /
+
+User-agent: CCBot
+Disallow: /
+
+User-agent: Google-Extended
+Disallow: /
+
+User-agent: Bytespider
+Disallow: /
+
+User-agent: PetalBot
+Disallow: /
+
+# ─── SEO Spam Bots ──────────────────────────────────────────
+User-agent: AhrefsBot
+Crawl-delay: 10
+
+User-agent: SemrushBot
+Crawl-delay: 10
+
+User-agent: DotBot
+Disallow: /
+
+User-agent: MJ12bot
+Disallow: /
+
+# ─── Sitemaps ────────────────────────────────────────────────
+Sitemap: https://classi-fy.com/sitemap.xml
