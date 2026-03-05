@@ -116,14 +116,14 @@ export function ParentNotificationBell() {
     queryKey: ["/api/parent/notifications", 1, 20],
     queryFn: () => authenticatedFetch<NotificationPage>("/api/parent/notifications?includeMeta=1&limit=20&offset=0"),
     enabled: !!token,
-    refetchInterval: token ? 15000 : false,
+    refetchInterval: token ? 60000 : false, // Reduced: SSE handles real-time
   });
 
   const { data: unreadCountData } = useQuery<{ count: number }>({
     queryKey: ["/api/parent/notifications/unread-count"],
     queryFn: () => authenticatedFetch<{ count: number }>("/api/parent/notifications/unread-count"),
     enabled: !!token,
-    refetchInterval: token ? 15000 : false,
+    refetchInterval: token ? 60000 : false, // Reduced: SSE handles real-time
   });
 
   const unreadCount = unreadCountData?.count || 0;

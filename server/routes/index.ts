@@ -29,6 +29,7 @@ import { registerObjectStorageRoutes } from "../replit_integrations/object_stora
 import { registerMediaUploadRoutes } from "./media-uploads";
 import { registerSymbolRoutes } from "./symbols";
 import { ensureOtpProviders } from "../providers/otp/bootstrap";
+import { registerSwaggerDocs } from "../swagger";
 
 // Seed built-in games if they don't exist yet
 async function seedDefaultGames() {
@@ -221,6 +222,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api", trustedDevicesRouter);
   app.use("/api", adsRouter);
   app.use("/api", parentLinkingRouter);
+
+  // Register Swagger API documentation
+  registerSwaggerDocs(app);
 
   // ✅ Create HTTP server (will be returned)
   const httpServer = createServer(app);

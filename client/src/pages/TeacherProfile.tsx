@@ -8,11 +8,13 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { ProfileHeader } from "@/components/ui/ProfileHeader";
 import {
   GraduationCap, Star, MessageSquare, BookOpen, Heart,
-  Users, Briefcase, Clock, Send, ShoppingCart, Loader2
+  Users, Briefcase, Clock, Send, ShoppingCart, Loader2, UserPlus, Check
 } from "lucide-react";
 import { ShareMenu } from "@/components/ui/ShareMenu";
 import { LanguageSelector } from "@/components/LanguageSelector";
@@ -36,6 +38,9 @@ export default function TeacherProfile() {
   const [taskLikesLocal, setTaskLikesLocal] = useState<Record<string, number>>({});
   const [taskInCart, setTaskInCart] = useState<Record<string, boolean>>({});
   const [taskPurchased, setTaskPurchased] = useState<Record<string, boolean>>({});
+  const [showAssignmentModal, setShowAssignmentModal] = useState(false);
+  const [selectedChildIds, setSelectedChildIds] = useState<string[]>([]);
+  const [monthlyPoints, setMonthlyPoints] = useState("");
 
   const token = localStorage.getItem("token") || localStorage.getItem("childToken");
   const authHeaders: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
@@ -188,6 +193,51 @@ export default function TeacherProfile() {
     onError: (err: any) => toast({ title: err.message, variant: "destructive" }),
   });
 
+  // Parent's children for assignment request
+  const parentToken = localStorage.getItem("token");
+  const { data: parentChildren = [] } = useQuery({
+    queryKey: ["parent-children-for-assign"],
+    queryFn: async () => {
+      const res = await fetch("/api/family/children", {
+        headers: { Authorization: `Bearer ${parentToken}` },
+      });
+      if (!res.ok) return [];
+      const json = await res.json();
+      return json.data || [];
+    },
+    enabled: !!parentToken && showAssignmentModal,
+  });
+
+  // Send assignment request
+  const sendAssignmentRequest = useMutation({
+    mutationFn: async () => {
+      const res = await fetch("/api/parent/teacher-assignment-request", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${parentToken}`,
+        },
+        body: JSON.stringify({
+          teacherId: Number(teacherId),
+          childIds: selectedChildIds.map(Number),
+          monthlyPoints: Number(monthlyPoints),
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ message: "فشل الإرسال" }));
+        throw new Error(err.message || "فشل إرسال الطلب");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      setShowAssignmentModal(false);
+      setSelectedChildIds([]);
+      setMonthlyPoints("");
+      toast({ title: "تم إرسال طلب التعيين بنجاح ✅" });
+    },
+    onError: (err: any) => toast({ title: err.message, variant: "destructive" }),
+  });
+
   // Check liked posts
   const checkLikedPosts = useCallback(async (posts: any[]) => {
     if (!token || !posts?.length) return;
@@ -333,6 +383,16 @@ export default function TeacherProfile() {
               {teacher.totalTasksSold || 0} {t("teacherProfile.tasksSold")}
             </span>
           </div>
+          {/* Assignment Request Button - only for logged-in parents */}
+          {parentToken && (
+            <Button
+              className="mt-3 gap-2 bg-green-600 hover:bg-green-700"
+              onClick={() => setShowAssignmentModal(true)}
+            >
+              <UserPlus className="h-4 w-4" />
+              طلب تعيين معلم لأطفالي
+            </Button>
+          )}
         </ProfileHeader>
 
         <Tabs defaultValue="tasks" className="mt-4">
@@ -670,6 +730,94 @@ export default function TeacherProfile() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Assignment Request Dialog */}
+      <Dialog open={showAssignmentModal} onOpenChange={setShowAssignmentModal}>
+        <DialogContent className="max-w-md" dir="rtl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <UserPlus className="h-5 w-5 text-green-600" />
+              طلب تعيين المعلم لأطفالي
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="p-3 bg-blue-50 dark:bg-blue-950 rounded-lg text-sm text-blue-700 dark:text-blue-300">
+              سيتم إرسال طلب للمعلم <strong>{teacher?.name}</strong> لتعيينه لإرسال مهام لأطفالك المحددين. المعلم يمكنه قبول أو رفض الطلب.
+            </div>
+
+            {/* Children selection */}
+            <div>
+              <Label className="text-sm font-bold">اختر الأطفال</Label>
+              <div className="mt-2 space-y-2">
+                {parentChildren.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">لا يوجد أطفال مسجلين</p>
+                ) : (
+                  parentChildren.map((child: any) => (
+                    <label
+                      key={child.id}
+                      className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${
+                        selectedChildIds.includes(String(child.id))
+                          ? "border-green-500 bg-green-50 dark:bg-green-950"
+                          : "border-gray-200 dark:border-gray-700 hover:border-gray-300"
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedChildIds.includes(String(child.id))}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedChildIds(prev => [...prev, String(child.id)]);
+                          } else {
+                            setSelectedChildIds(prev => prev.filter(id => id !== String(child.id)));
+                          }
+                        }}
+                        className="rounded accent-green-600"
+                      />
+                      <div className="flex items-center gap-2">
+                        {child.avatarUrl ? (
+                          <img src={child.avatarUrl} alt="" className="w-8 h-8 rounded-full object-cover" />
+                        ) : (
+                          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white text-sm font-bold">
+                            {child.name?.[0] || "؟"}
+                          </div>
+                        )}
+                        <span className="font-medium text-sm">{child.name}</span>
+                      </div>
+                      {selectedChildIds.includes(String(child.id)) && (
+                        <Check className="h-4 w-4 text-green-600 mr-auto" />
+                      )}
+                    </label>
+                  ))
+                )}
+              </div>
+            </div>
+
+            {/* Monthly Points */}
+            <div>
+              <Label className="text-sm font-bold">عدد النقاط الشهرية</Label>
+              <p className="text-xs text-muted-foreground mb-1">عدد النقاط التي ستدفعها شهرياً للمعلم</p>
+              <Input
+                type="number"
+                min="1"
+                max="100000"
+                value={monthlyPoints}
+                onChange={(e) => setMonthlyPoints(e.target.value)}
+                placeholder="مثال: 500"
+              />
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setShowAssignmentModal(false)}>إلغاء</Button>
+            <Button
+              className="bg-green-600 hover:bg-green-700"
+              onClick={() => sendAssignmentRequest.mutate()}
+              disabled={selectedChildIds.length === 0 || !monthlyPoints || sendAssignmentRequest.isPending}
+            >
+              {sendAssignmentRequest.isPending ? "جاري الإرسال..." : "إرسال الطلب"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

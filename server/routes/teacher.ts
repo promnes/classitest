@@ -23,6 +23,15 @@ import {
   schoolPolls,
   schoolPollVotes,
   notifications,
+  teacherAssignmentRequests,
+  teacherAssignmentRequestChildren,
+  teacherChildPermissions,
+  taskHelpRequests,
+  taskHelpMessages,
+  tasks,
+  teacherPushSubscriptions,
+  parentTeacherConversations,
+  parentTeacherMessages,
 } from "../../shared/schema";
 import { eq, desc, and, sql, lte, count } from "drizzle-orm";
 import jwt from "jsonwebtoken";
@@ -30,6 +39,7 @@ import bcrypt from "bcrypt";
 import { createPresignedUpload, finalizeUpload } from "../services/uploadService";
 import { finalizeUploadSchema } from "../../shared/media";
 import { notifyAllAdmins } from "../notifications";
+import { getVapidPublicKey } from "../services/webPushService";
 import { NOTIFICATION_TYPES, NOTIFICATION_STYLES, NOTIFICATION_PRIORITIES } from "../../shared/notificationTypes";
 
 const db = storage.db;
@@ -38,6 +48,55 @@ const JWT_SECRET = process.env["JWT_SECRET"] ?? "";
 if (!JWT_SECRET) {
   throw new Error("CRITICAL: JWT_SECRET environment variable is required. Teacher authentication cannot start without it.");
 }
+
+// ===== Zod Validation Schemas =====
+
+const answerSchema = z.object({
+  id: z.string().optional(),
+  text: z.string().min(1, "نص الإجابة مطلوب"),
+  isCorrect: z.boolean(),
+  imageUrl: z.string().optional(),
+  videoUrl: z.string().optional(),
+});
+
+const createTeacherTaskSchema = z.object({
+  title: z.string().min(1, "العنوان مطلوب"),
+  question: z.string().min(1, "السؤال مطلوب"),
+  answers: z.array(answerSchema).min(2, "يجب أن يكون هناك إجابتان على الأقل")
+    .refine(arr => arr.some(a => a.isCorrect), "يجب تحديد إجابة صحيحة واحدة على الأقل"),
+  imageUrl: z.string().nullable().optional(),
+  gifUrl: z.string().nullable().optional(),
+  videoUrl: z.string().nullable().optional(),
+  coverImageUrl: z.string().nullable().optional(),
+  questionImages: z.array(z.string()).optional(),
+  subjectLabel: z.string().nullable().optional(),
+  pointsReward: z.number().min(1).max(10000).optional().default(10),
+  price: z.union([z.string(), z.number()]).refine(val => parseFloat(String(val)) >= 0, "السعر يجب أن يكون 0 أو أكثر"),
+});
+
+const sendTaskToChildSchema = z.object({
+  childId: z.string().min(1, "معرف الطفل مطلوب"),
+  question: z.string().min(1, "السؤال مطلوب"),
+  answers: z.array(answerSchema).min(2, "يجب أن يكون هناك إجابتان على الأقل")
+    .refine(arr => arr.some(a => a.isCorrect), "يجب تحديد إجابة صحيحة واحدة على الأقل"),
+  pointsReward: z.number().min(1).max(10000),
+  imageUrl: z.string().nullable().optional(),
+  gifUrl: z.string().nullable().optional(),
+  subjectId: z.string().nullable().optional(),
+});
+
+const createTaskFromTemplateSchema = z.object({
+  templateId: z.string().min(1, "معرف القالب مطلوب"),
+  price: z.union([z.string(), z.number()]).refine(val => parseFloat(String(val)) >= 0, "السعر يجب أن يكون 0 أو أكثر"),
+  title: z.string().optional(),
+  pointsReward: z.number().min(1).max(10000).optional(),
+});
+
+const withdrawalSchema = z.object({
+  amount: z.union([z.string(), z.number()]).refine(val => parseFloat(String(val)) > 0, "مبلغ السحب غير صحيح"),
+  paymentMethod: z.string().min(1, "طريقة الدفع مطلوبة"),
+  paymentDetails: z.any().optional(),
+});
 
 // ===== Teacher Middleware =====
 
@@ -503,20 +562,11 @@ export async function registerTeacherRoutes(app: Express) {
   app.post("/api/teacher/tasks", teacherMiddleware, async (req: TeacherRequest, res) => {
     try {
       const teacherId = req.teacher!.teacherId;
-      const { title, question, answers, imageUrl, gifUrl, videoUrl, coverImageUrl, questionImages, subjectLabel, pointsReward, price } = req.body;
-
-      if (!title || !question || !answers || !price) {
-        return res.status(400).json({ message: "العنوان والسؤال والإجابات والسعر مطلوبة" });
+      const parsed = createTeacherTaskSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ message: parsed.error.errors[0]?.message || "بيانات غير صحيحة" });
       }
-
-      if (!Array.isArray(answers) || answers.length < 2) {
-        return res.status(400).json({ message: "يجب أن يكون هناك إجابتان على الأقل" });
-      }
-
-      const hasCorrect = answers.some((a: any) => a.isCorrect);
-      if (!hasCorrect) {
-        return res.status(400).json({ message: "يجب تحديد إجابة صحيحة واحدة على الأقل" });
-      }
+      const { title, question, answers, imageUrl, gifUrl, videoUrl, coverImageUrl, questionImages, subjectLabel, pointsReward, price } = parsed.data;
 
       const task = await db.insert(teacherTasks).values({
         teacherId,
@@ -675,12 +725,13 @@ export async function registerTeacherRoutes(app: Express) {
   app.post("/api/teacher/withdrawals", teacherMiddleware, async (req: TeacherRequest, res) => {
     try {
       const teacherId = req.teacher!.teacherId;
-      const { amount, paymentMethod, paymentDetails } = req.body || {};
-
-      const requestedAmount = parseFloat(String(amount || 0));
-      if (!requestedAmount || requestedAmount <= 0) {
-        return res.status(400).json({ success: false, message: "مبلغ السحب غير صحيح" });
+      const parsed = withdrawalSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ success: false, message: parsed.error.errors[0]?.message || "بيانات غير صحيحة" });
       }
+      const { amount, paymentMethod, paymentDetails } = parsed.data;
+
+      const requestedAmount = parseFloat(String(amount));
       if (!paymentMethod) {
         return res.status(400).json({ success: false, message: "طريقة الدفع مطلوبة" });
       }
@@ -1188,11 +1239,11 @@ export async function registerTeacherRoutes(app: Express) {
   app.post("/api/teacher/create-task-from-template", teacherMiddleware, async (req: TeacherRequest, res) => {
     try {
       const teacherId = req.teacher!.teacherId;
-      const { templateId, price, title, pointsReward } = req.body;
-
-      if (!templateId || !price) {
-        return res.status(400).json({ message: "القالب والسعر مطلوبان" });
+      const parsed = createTaskFromTemplateSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ message: parsed.error.errors[0]?.message || "بيانات غير صحيحة" });
       }
+      const { templateId, price, title, pointsReward } = parsed.data;
 
       // Get template
       const template = await db.select().from(templateTasks).where(eq(templateTasks.id, templateId));
@@ -1364,6 +1415,541 @@ export async function registerTeacherRoutes(app: Express) {
     }
   });
 
+  // ===== Teacher Assignment Requests (طلبات تعيين المعلم) =====
+
+  // List assignment requests for this teacher
+  app.get("/api/teacher/assignment-requests", teacherMiddleware, async (req: TeacherRequest, res) => {
+    try {
+      const teacherId = req.teacher!.teacherId;
+      const status = (req.query.status as string) || undefined;
+
+      let query = db.select({
+        request: teacherAssignmentRequests,
+        parent: {
+          id: parents.id,
+          name: parents.name,
+          avatarUrl: parents.avatarUrl,
+        },
+      })
+        .from(teacherAssignmentRequests)
+        .leftJoin(parents, eq(teacherAssignmentRequests.parentId, parents.id))
+        .where(eq(teacherAssignmentRequests.teacherId, teacherId))
+        .orderBy(desc(teacherAssignmentRequests.createdAt));
+
+      if (status) {
+        query = db.select({
+          request: teacherAssignmentRequests,
+          parent: {
+            id: parents.id,
+            name: parents.name,
+            avatarUrl: parents.avatarUrl,
+          },
+        })
+          .from(teacherAssignmentRequests)
+          .leftJoin(parents, eq(teacherAssignmentRequests.parentId, parents.id))
+          .where(and(eq(teacherAssignmentRequests.teacherId, teacherId), eq(teacherAssignmentRequests.status, status)))
+          .orderBy(desc(teacherAssignmentRequests.createdAt));
+      }
+
+      const requests = await query;
+
+      // Get children for each request
+      const result = await Promise.all(requests.map(async (r: any) => {
+        const childrenRows = await db.select({
+          id: children.id,
+          name: children.name,
+          avatarUrl: children.avatarUrl,
+        })
+          .from(teacherAssignmentRequestChildren)
+          .innerJoin(children, eq(teacherAssignmentRequestChildren.childId, children.id))
+          .where(eq(teacherAssignmentRequestChildren.requestId, r.request.id));
+
+        return {
+          ...r.request,
+          parent: r.parent,
+          children: childrenRows,
+        };
+      }));
+
+      res.json({ success: true, data: result });
+    } catch (error: any) {
+      console.error("Get teacher assignment requests error:", error);
+      res.status(500).json({ message: "فشل جلب الطلبات" });
+    }
+  });
+
+  // Respond to assignment request (accept/reject)
+  app.put("/api/teacher/assignment-requests/:id/respond", teacherMiddleware, async (req: TeacherRequest, res) => {
+    try {
+      const teacherId = req.teacher!.teacherId;
+      const { id } = req.params;
+      const { action, rejectionReason } = req.body;
+
+      if (!action || !["accept", "reject"].includes(action)) {
+        return res.status(400).json({ message: "الإجراء مطلوب (accept أو reject)" });
+      }
+
+      const request = await db.select().from(teacherAssignmentRequests)
+        .where(and(eq(teacherAssignmentRequests.id, id), eq(teacherAssignmentRequests.teacherId, teacherId)));
+
+      if (!request[0]) {
+        return res.status(404).json({ message: "الطلب غير موجود" });
+      }
+
+      if (request[0].status !== "pending") {
+        return res.status(400).json({ message: "تم الرد على هذا الطلب مسبقاً" });
+      }
+
+      const newStatus = action === "accept" ? "accepted" : "rejected";
+      const now = new Date();
+
+      await db.update(teacherAssignmentRequests).set({
+        status: newStatus,
+        rejectionReason: action === "reject" ? (rejectionReason || null) : null,
+        respondedAt: now,
+      }).where(eq(teacherAssignmentRequests.id, id));
+
+      // If accepted, create permissions for each child
+      if (action === "accept") {
+        const requestChildren = await db.select().from(teacherAssignmentRequestChildren)
+          .where(eq(teacherAssignmentRequestChildren.requestId, id));
+
+        for (const rc of requestChildren) {
+          // Check if permission already exists
+          const existing = await db.select().from(teacherChildPermissions)
+            .where(and(
+              eq(teacherChildPermissions.teacherId, teacherId),
+              eq(teacherChildPermissions.childId, rc.childId)
+            ));
+
+          if (!existing[0]) {
+            await db.insert(teacherChildPermissions).values({
+              teacherId,
+              childId: rc.childId,
+              parentId: request[0].parentId,
+              requestId: id,
+              monthlyPoints: request[0].monthlyPoints,
+            });
+          }
+
+          // Also create childTeacherAssignment if needed
+          const existingAssignment = await db.select().from(childTeacherAssignment)
+            .where(and(eq(childTeacherAssignment.childId, rc.childId), eq(childTeacherAssignment.teacherId, teacherId)));
+
+          if (!existingAssignment[0]) {
+            const teacher = await db.select().from(schoolTeachers).where(eq(schoolTeachers.id, teacherId));
+            await db.insert(childTeacherAssignment).values({
+              childId: rc.childId,
+              teacherId,
+              subjectLabel: teacher[0]?.subject || null,
+            });
+
+            await db.update(schoolTeachers).set({
+              totalStudents: sql`${schoolTeachers.totalStudents} + 1`,
+              updatedAt: now,
+            }).where(eq(schoolTeachers.id, teacherId));
+          }
+        }
+      }
+
+      // Notify parent about the response
+      await db.insert(notifications).values({
+        parentId: request[0].parentId,
+        type: action === "accept"
+          ? NOTIFICATION_TYPES.TEACHER_ASSIGNMENT_ACCEPTED
+          : NOTIFICATION_TYPES.TEACHER_ASSIGNMENT_REJECTED,
+        title: action === "accept" ? "تم قبول طلب التعيين" : "تم رفض طلب التعيين",
+        message: action === "accept"
+          ? "وافق المعلم على طلب تعيينه لأطفالك"
+          : `رفض المعلم الطلب${rejectionReason ? `: ${rejectionReason}` : ""}`,
+        relatedId: id,
+        metadata: { requestId: id, teacherId },
+      });
+
+      res.json({ success: true, message: action === "accept" ? "تم قبول الطلب" : "تم رفض الطلب" });
+    } catch (error: any) {
+      console.error("Respond to assignment request error:", error);
+      res.status(500).json({ message: "فشل الرد على الطلب" });
+    }
+  });
+
+  // Get assigned children (children teacher has permission to send tasks to)
+  app.get("/api/teacher/assigned-children", teacherMiddleware, async (req: TeacherRequest, res) => {
+    try {
+      const teacherId = req.teacher!.teacherId;
+
+      const permissions = await db.select({
+        permission: teacherChildPermissions,
+        child: {
+          id: children.id,
+          name: children.name,
+          avatarUrl: children.avatarUrl,
+          totalPoints: children.totalPoints,
+        },
+        parent: {
+          id: parents.id,
+          name: parents.name,
+        },
+      })
+        .from(teacherChildPermissions)
+        .innerJoin(children, eq(teacherChildPermissions.childId, children.id))
+        .innerJoin(parents, eq(teacherChildPermissions.parentId, parents.id))
+        .where(and(eq(teacherChildPermissions.teacherId, teacherId), eq(teacherChildPermissions.isActive, true)));
+
+      const result = permissions.map((p: any) => ({
+        childId: p.child.id,
+        childName: p.child.name,
+        childAvatar: p.child.avatarUrl,
+        childPoints: p.child.totalPoints,
+        parentName: p.parent.name,
+        parentId: p.parent.id,
+        monthlyPoints: p.permission.monthlyPoints,
+        assignedAt: p.permission.createdAt,
+      }));
+
+      res.json({ success: true, data: result });
+    } catch (error: any) {
+      console.error("Get assigned children error:", error);
+      res.status(500).json({ message: "فشل جلب الأطفال المعينين" });
+    }
+  });
+
+  // Send task to assigned child
+  app.post("/api/teacher/send-task-to-child", teacherMiddleware, async (req: TeacherRequest, res) => {
+    try {
+      const teacherId = req.teacher!.teacherId;
+      const parsed = sendTaskToChildSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ message: parsed.error.errors[0]?.message || "بيانات غير صحيحة" });
+      }
+      const { childId, question, answers, pointsReward, imageUrl, gifUrl, subjectId } = parsed.data;
+
+      // Verify teacher has permission for this child
+      const permission = await db.select().from(teacherChildPermissions)
+        .where(and(
+          eq(teacherChildPermissions.teacherId, teacherId),
+          eq(teacherChildPermissions.childId, childId),
+          eq(teacherChildPermissions.isActive, true)
+        ));
+
+      if (!permission[0]) {
+        return res.status(403).json({ message: "ليس لديك صلاحية إرسال مهام لهذا الطفل" });
+      }
+
+      // Normalize answers with IDs
+      const normalizedAnswers = answers.map((a: any, i: number) => ({
+        id: a.id || String(i + 1),
+        text: a.text,
+        isCorrect: a.isCorrect,
+        imageUrl: a.imageUrl || undefined,
+      }));
+
+      // Create task in the main tasks table with senderType = "teacher"
+      const task = await db.insert(tasks).values({
+        parentId: null,
+        childId,
+        teacherId,
+        senderType: "teacher",
+        subjectId: subjectId || null,
+        question,
+        answers: normalizedAnswers,
+        pointsReward: Math.min(Math.max(1, pointsReward), 10000),
+        imageUrl: imageUrl || null,
+        gifUrl: gifUrl || null,
+      }).returning();
+
+      // Notify the child
+      await db.insert(notifications).values({
+        childId,
+        type: NOTIFICATION_TYPES.TEACHER_TASK_ASSIGNED,
+        title: "مهمة جديدة من المعلم!",
+        message: `لديك مهمة جديدة: ${question.substring(0, 50)}...`,
+        relatedId: task[0].id,
+        metadata: { taskId: task[0].id, teacherId },
+      });
+
+      // Update teacher activity score
+      await db.update(schoolTeachers).set({
+        activityScore: sql`${schoolTeachers.activityScore} + 2`,
+        updatedAt: new Date(),
+      }).where(eq(schoolTeachers.id, teacherId));
+
+      res.json({ success: true, data: { taskId: task[0].id } });
+    } catch (error: any) {
+      console.error("Send task to child error:", error);
+      res.status(500).json({ message: "فشل إرسال المهمة" });
+    }
+  });
+
+  // Get reports for an assigned child
+  app.get("/api/teacher/child-reports/:childId", teacherMiddleware, async (req: TeacherRequest, res) => {
+    try {
+      const teacherId = req.teacher!.teacherId;
+      const { childId } = req.params;
+
+      // Verify teacher has permission
+      const permission = await db.select().from(teacherChildPermissions)
+        .where(and(
+          eq(teacherChildPermissions.teacherId, teacherId),
+          eq(teacherChildPermissions.childId, childId),
+          eq(teacherChildPermissions.isActive, true)
+        ));
+
+      if (!permission[0]) {
+        return res.status(403).json({ message: "ليس لديك صلاحية عرض تقارير هذا الطفل" });
+      }
+
+      // Get child info
+      const child = await db.select().from(children).where(eq(children.id, childId));
+      if (!child[0]) {
+        return res.status(404).json({ message: "الطفل غير موجود" });
+      }
+
+      // Get tasks sent by this teacher to this child
+      const teacherTasks = await db.select().from(tasks)
+        .where(and(eq(tasks.childId, childId), eq(tasks.teacherId, teacherId)));
+
+      const totalTasks = teacherTasks.length;
+      const completedTasks = teacherTasks.filter((t: any) => t.status === "completed").length;
+      const pendingTasks = teacherTasks.filter((t: any) => t.status === "pending").length;
+      const totalPoints = teacherTasks.filter((t: any) => t.status === "completed")
+        .reduce((sum: number, t: any) => sum + (t.pointsReward || 0), 0);
+
+      res.json({
+        success: true,
+        data: {
+          child: {
+            id: child[0].id,
+            name: child[0].name,
+            avatarUrl: child[0].avatarUrl,
+            totalPoints: child[0].totalPoints,
+          },
+          stats: {
+            totalTasks,
+            completedTasks,
+            pendingTasks,
+            completionRate: totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0,
+            totalPointsEarned: totalPoints,
+          },
+          recentTasks: teacherTasks.slice(0, 20).map((t: any) => ({
+            id: t.id,
+            question: t.question,
+            status: t.status,
+            pointsReward: t.pointsReward,
+            createdAt: t.createdAt,
+          })),
+        },
+      });
+    } catch (error: any) {
+      console.error("Get child reports error:", error);
+      res.status(500).json({ message: "فشل جلب تقارير الطفل" });
+    }
+  });
+
+  // ===== Help Chat System (نظام المساعدة) =====
+
+  // Get help requests for this teacher
+  app.get("/api/teacher/help-requests", teacherMiddleware, async (req: TeacherRequest, res) => {
+    try {
+      const teacherId = req.teacher!.teacherId;
+      const page = Math.max(1, parseInt(String(req.query.page)) || 1);
+      const limit = Math.min(50, Math.max(1, parseInt(String(req.query.limit)) || 50));
+      const offset = (page - 1) * limit;
+
+      const helpReqs = await db.select({
+        helpRequest: taskHelpRequests,
+        child: {
+          id: children.id,
+          name: children.name,
+          avatarUrl: children.avatarUrl,
+        },
+        task: {
+          id: tasks.id,
+          question: tasks.question,
+        },
+      })
+        .from(taskHelpRequests)
+        .innerJoin(children, eq(taskHelpRequests.childId, children.id))
+        .innerJoin(tasks, eq(taskHelpRequests.taskId, tasks.id))
+        .where(and(
+          eq(taskHelpRequests.helperType, "teacher"),
+          eq(taskHelpRequests.helperId, teacherId)
+        ))
+        .orderBy(desc(taskHelpRequests.createdAt))
+        .limit(limit)
+        .offset(offset);
+
+      const result = helpReqs.map((h: any) => ({
+        id: h.helpRequest.id,
+        taskId: h.task.id,
+        taskQuestion: h.task.question,
+        childId: h.child.id,
+        childName: h.child.name,
+        childAvatar: h.child.avatarUrl,
+        status: h.helpRequest.status,
+        createdAt: h.helpRequest.createdAt,
+        resolvedAt: h.helpRequest.resolvedAt,
+      }));
+
+      res.json({ success: true, data: result });
+    } catch (error: any) {
+      console.error("Get teacher help requests error:", error);
+      res.status(500).json({ message: "فشل جلب طلبات المساعدة" });
+    }
+  });
+
+  // Get messages for a help request (teacher)
+  app.get("/api/teacher/help-chat/:helpRequestId/messages", teacherMiddleware, async (req: TeacherRequest, res) => {
+    try {
+      const teacherId = req.teacher!.teacherId;
+      const { helpRequestId } = req.params;
+
+      // Verify this help request belongs to this teacher
+      const helpReq = await db.select().from(taskHelpRequests)
+        .where(and(
+          eq(taskHelpRequests.id, helpRequestId),
+          eq(taskHelpRequests.helperType, "teacher"),
+          eq(taskHelpRequests.helperId, teacherId)
+        ));
+
+      if (!helpReq[0]) {
+        return res.status(404).json({ message: "طلب المساعدة غير موجود" });
+      }
+
+      const messages = await db.select().from(taskHelpMessages)
+        .where(eq(taskHelpMessages.helpRequestId, helpRequestId))
+        .orderBy(taskHelpMessages.createdAt);
+
+      res.json({ success: true, data: messages });
+    } catch (error: any) {
+      console.error("Get help chat messages error:", error);
+      res.status(500).json({ message: "فشل جلب الرسائل" });
+    }
+  });
+
+  // Send message in help chat (teacher)
+  app.post("/api/teacher/help-chat/:helpRequestId/messages", teacherMiddleware, async (req: TeacherRequest, res) => {
+    try {
+      const teacherId = req.teacher!.teacherId;
+      const { helpRequestId } = req.params;
+      const { messageType, content, mediaUrl } = req.body;
+
+      if (!messageType || !["text", "image", "voice"].includes(messageType)) {
+        return res.status(400).json({ message: "نوع الرسالة مطلوب" });
+      }
+
+      if (messageType === "text" && !content) {
+        return res.status(400).json({ message: "محتوى الرسالة مطلوب" });
+      }
+
+      if ((messageType === "image" || messageType === "voice") && !mediaUrl) {
+        return res.status(400).json({ message: "رابط الوسائط مطلوب" });
+      }
+
+      // Verify this help request belongs to this teacher
+      const helpReq = await db.select().from(taskHelpRequests)
+        .where(and(
+          eq(taskHelpRequests.id, helpRequestId),
+          eq(taskHelpRequests.helperType, "teacher"),
+          eq(taskHelpRequests.helperId, teacherId)
+        ));
+
+      if (!helpReq[0]) {
+        return res.status(404).json({ message: "طلب المساعدة غير موجود" });
+      }
+
+      const message = await db.insert(taskHelpMessages).values({
+        helpRequestId,
+        senderType: "teacher",
+        senderId: teacherId,
+        messageType,
+        content: content || null,
+        mediaUrl: mediaUrl || null,
+      }).returning();
+
+      // Notify the child
+      await db.insert(notifications).values({
+        childId: helpReq[0].childId,
+        type: NOTIFICATION_TYPES.TASK_HELP_MESSAGE,
+        title: "رسالة مساعدة جديدة",
+        message: messageType === "text" ? (content?.substring(0, 50) || "لديك رسالة جديدة") : "لديك رسالة مساعدة جديدة (وسائط)",
+        relatedId: helpRequestId,
+        metadata: { helpRequestId, messageId: message[0].id },
+      });
+
+      res.json({ success: true, data: message[0] });
+    } catch (error: any) {
+      console.error("Send help chat message error:", error);
+      res.status(500).json({ message: "فشل إرسال الرسالة" });
+    }
+  });
+
+  // Resolve (close) a help request (teacher)
+  app.put("/api/teacher/help-requests/:helpRequestId/resolve", teacherMiddleware, async (req: TeacherRequest, res) => {
+    try {
+      const teacherId = req.teacher!.teacherId;
+      const { helpRequestId } = req.params;
+
+      const helpReq = await db.select().from(taskHelpRequests)
+        .where(and(
+          eq(taskHelpRequests.id, helpRequestId),
+          eq(taskHelpRequests.helperType, "teacher"),
+          eq(taskHelpRequests.helperId, teacherId)
+        ));
+
+      if (!helpReq[0]) {
+        return res.status(404).json({ message: "طلب المساعدة غير موجود" });
+      }
+
+      if (helpReq[0].status === "resolved") {
+        return res.json({ success: true, message: "تم الحل مسبقاً" });
+      }
+
+      await db.update(taskHelpRequests)
+        .set({ status: "resolved", resolvedAt: new Date() })
+        .where(eq(taskHelpRequests.id, helpRequestId));
+
+      res.json({ success: true, message: "تم إغلاق طلب المساعدة" });
+    } catch (error: any) {
+      console.error("Resolve help request error:", error);
+      res.status(500).json({ message: "فشل إغلاق طلب المساعدة" });
+    }
+  });
+
+  // Upload media for help chat (teacher)
+  app.post("/api/teacher/help-chat/upload-media", teacherMiddleware, async (req: TeacherRequest, res) => {
+    try {
+      const multer = (await import("multer")).default;
+      const path = await import("path");
+      const fs = await import("fs");
+      const uploadDir = path.resolve(process.cwd(), "uploads", "help-chat");
+      if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+      const store = multer.diskStorage({
+        destination: (_r: any, _f: any, cb: any) => cb(null, uploadDir),
+        filename: (_r: any, file: any, cb: any) => cb(null, `${Date.now()}-${Math.random().toString(36).slice(2)}${path.extname(file.originalname)}`),
+      });
+      const upload = multer({
+        storage: store,
+        limits: { fileSize: 10 * 1024 * 1024 },
+        fileFilter: (_r: any, f: any, cb: any) => {
+          if (f.mimetype.startsWith("image/") || f.mimetype.startsWith("audio/")) cb(null, true);
+          else cb(new Error("Only images and audio files are allowed"));
+        },
+      }).single("file");
+      upload(req as any, res as any, (err: any) => {
+        if (err) return res.status(400).json({ message: err.message });
+        const file = (req as any).file;
+        if (!file) return res.status(400).json({ message: "No file uploaded" });
+        const url = `/uploads/help-chat/${file.filename}`;
+        const type = file.mimetype.startsWith("audio/") ? "voice" : "image";
+        res.json({ success: true, data: { url, type } });
+      });
+    } catch (error: any) {
+      console.error("Upload help chat media error:", error);
+      res.status(500).json({ message: "فشل رفع الملف" });
+    }
+  });
+
   // ===== Teacher Notifications =====
 
   app.get("/api/teacher/notifications", teacherMiddleware, async (req: any, res) => {
@@ -1419,6 +2005,175 @@ export async function registerTeacherRoutes(app: Express) {
         .where(and(eq(notifications.id, id), eq(notifications.teacherId, teacherId)));
       res.json({ success: true });
     } catch (error: any) {
+      res.status(500).json({ success: false, error: "INTERNAL_SERVER_ERROR" });
+    }
+  });
+
+  // ===== Teacher Push Notifications =====
+
+  app.get("/api/teacher/push-public-key", teacherMiddleware, async (_req: TeacherRequest, res) => {
+    try {
+      const publicKey = getVapidPublicKey();
+      if (!publicKey) {
+        return res.status(503).json({ success: false, error: "WEB_PUSH_NOT_CONFIGURED", message: "Web push is not configured" });
+      }
+      res.json({ success: true, data: { publicKey } });
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: "INTERNAL_SERVER_ERROR" });
+    }
+  });
+
+  app.post("/api/teacher/push-subscriptions", teacherMiddleware, async (req: TeacherRequest, res) => {
+    try {
+      const teacherId = req.teacher!.teacherId;
+      const { platform, endpoint, token, p256dh, auth, deviceId } = req.body || {};
+
+      if (!platform || !["web", "android", "ios"].includes(platform)) {
+        return res.status(400).json({ success: false, error: "BAD_REQUEST", message: "platform must be web, android, or ios" });
+      }
+      if (!endpoint && !token) {
+        return res.status(400).json({ success: false, error: "BAD_REQUEST", message: "endpoint or token is required" });
+      }
+
+      const existing = await db.select().from(teacherPushSubscriptions)
+        .where(eq(teacherPushSubscriptions.teacherId, teacherId));
+
+      const match = existing.find((row: any) => {
+        if (deviceId && row.deviceId === deviceId && row.platform === platform) return true;
+        if (endpoint && row.endpoint === endpoint) return true;
+        if (token && row.token === token) return true;
+        return false;
+      });
+
+      if (match) {
+        const [updated] = await db.update(teacherPushSubscriptions).set({
+          platform, endpoint: endpoint || null, token: token || null,
+          p256dh: p256dh || null, auth: auth || null, deviceId: deviceId || null,
+          isActive: true, lastSeenAt: new Date(), updatedAt: new Date(),
+        }).where(eq(teacherPushSubscriptions.id, match.id)).returning();
+        return res.json({ success: true, data: updated });
+      }
+
+      const [created] = await db.insert(teacherPushSubscriptions).values({
+        teacherId, platform, endpoint: endpoint || null, token: token || null,
+        p256dh: p256dh || null, auth: auth || null, deviceId: deviceId || null, isActive: true,
+      }).returning();
+      res.json({ success: true, data: created });
+    } catch (error: any) {
+      console.error("Teacher push subscription error:", error);
+      res.status(500).json({ success: false, error: "INTERNAL_SERVER_ERROR" });
+    }
+  });
+
+  app.delete("/api/teacher/push-subscriptions/:id", teacherMiddleware, async (req: TeacherRequest, res) => {
+    try {
+      const teacherId = req.teacher!.teacherId;
+      const { id } = req.params;
+      await db.delete(teacherPushSubscriptions)
+        .where(and(eq(teacherPushSubscriptions.id, id), eq(teacherPushSubscriptions.teacherId, teacherId)));
+      res.json({ success: true, message: "تم حذف الاشتراك" });
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: "INTERNAL_SERVER_ERROR" });
+    }
+  });
+
+  // ======= TEACHER-PARENT DIRECT MESSAGING =======
+
+  // Get conversations list
+  app.get("/api/teacher/messages/conversations", teacherMiddleware, async (req: TeacherRequest, res) => {
+    try {
+      const teacherId = req.teacher!.teacherId;
+      const conversations = await db.select({
+        conversation: parentTeacherConversations,
+        parentName: parents.name,
+        parentAvatar: parents.avatarUrl,
+      })
+        .from(parentTeacherConversations)
+        .innerJoin(parents, eq(parentTeacherConversations.parentId, parents.id))
+        .where(eq(parentTeacherConversations.teacherId, teacherId))
+        .orderBy(desc(parentTeacherConversations.lastMessageAt));
+
+      res.json({ success: true, data: conversations });
+    } catch (error: any) {
+      console.error("Teacher get conversations error:", error);
+      res.status(500).json({ success: false, error: "INTERNAL_SERVER_ERROR" });
+    }
+  });
+
+  // Get messages in a conversation
+  app.get("/api/teacher/messages/:conversationId", teacherMiddleware, async (req: TeacherRequest, res) => {
+    try {
+      const teacherId = req.teacher!.teacherId;
+      const { conversationId } = req.params;
+      const page = Math.max(1, parseInt(req.query.page as string) || 1);
+      const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 50));
+      const offset = (page - 1) * limit;
+
+      const conv = await db.select().from(parentTeacherConversations)
+        .where(and(
+          eq(parentTeacherConversations.id, conversationId),
+          eq(parentTeacherConversations.teacherId, teacherId),
+        ));
+      if (!conv[0]) return res.status(404).json({ success: false, error: "NOT_FOUND" });
+
+      const messages = await db.select().from(parentTeacherMessages)
+        .where(eq(parentTeacherMessages.conversationId, conversationId))
+        .orderBy(desc(parentTeacherMessages.createdAt))
+        .limit(limit)
+        .offset(offset);
+
+      // Mark teacher unread as read
+      await db.update(parentTeacherConversations).set({ teacherUnreadCount: 0 })
+        .where(eq(parentTeacherConversations.id, conversationId));
+      await db.update(parentTeacherMessages).set({ isRead: true })
+        .where(and(
+          eq(parentTeacherMessages.conversationId, conversationId),
+          eq(parentTeacherMessages.senderType, "parent"),
+          eq(parentTeacherMessages.isRead, false),
+        ));
+
+      res.json({ success: true, data: { messages: messages.reverse(), conversation: conv[0] } });
+    } catch (error: any) {
+      console.error("Teacher get messages error:", error);
+      res.status(500).json({ success: false, error: "INTERNAL_SERVER_ERROR" });
+    }
+  });
+
+  // Send message in conversation
+  app.post("/api/teacher/messages/:conversationId", teacherMiddleware, async (req: TeacherRequest, res) => {
+    try {
+      const teacherId = req.teacher!.teacherId;
+      const { conversationId } = req.params;
+      const { messageType, content, mediaUrl } = req.body;
+
+      if (!content && !mediaUrl) {
+        return res.status(400).json({ success: false, error: "BAD_REQUEST", message: "Message content or media is required" });
+      }
+
+      const conv = await db.select().from(parentTeacherConversations)
+        .where(and(
+          eq(parentTeacherConversations.id, conversationId),
+          eq(parentTeacherConversations.teacherId, teacherId),
+        ));
+      if (!conv[0]) return res.status(404).json({ success: false, error: "NOT_FOUND" });
+
+      const [msg] = await db.insert(parentTeacherMessages).values({
+        conversationId,
+        senderId: teacherId,
+        senderType: "teacher",
+        content: content || null,
+        mediaUrl: mediaUrl || null,
+        messageType: messageType || "text",
+      }).returning();
+
+      await db.update(parentTeacherConversations).set({
+        lastMessageAt: new Date(),
+        parentUnreadCount: sql`${parentTeacherConversations.parentUnreadCount} + 1`,
+      }).where(eq(parentTeacherConversations.id, conversationId));
+
+      res.status(201).json({ success: true, data: msg });
+    } catch (error: any) {
+      console.error("Teacher send message error:", error);
       res.status(500).json({ success: false, error: "INTERNAL_SERVER_ERROR" });
     }
   });

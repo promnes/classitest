@@ -67,3 +67,35 @@ export const refreshTokenLimiter = createCustomLimiter(60 * 1000, 5, (req) => {
 export const publicApiLimiter = createCustomLimiter(60 * 1000, 30, (req) => {
   return `public:${ipKeyGenerator(req.ip || "")}`;
 });
+
+// ===== Sensitive Parent Operation Rate Limiters =====
+
+// Deposit rate limiter: 5 requests per 15 minutes per user
+export const depositLimiter = createCustomLimiter(15 * 60 * 1000, 5, (req) => {
+  const userId = req.user?.userId || ipKeyGenerator(req.ip || "");
+  return `deposit:${userId}`;
+});
+
+// Wallet operations: 10 per minute per user
+export const walletLimiter = createCustomLimiter(60 * 1000, 10, (req) => {
+  const userId = req.user?.userId || ipKeyGenerator(req.ip || "");
+  return `wallet:${userId}`;
+});
+
+// Sensitive parent operations (password change, delete account, gift send): 3 per 15 minutes
+export const sensitiveParentLimiter = createCustomLimiter(15 * 60 * 1000, 3, (req) => {
+  const userId = req.user?.userId || ipKeyGenerator(req.ip || "");
+  return `sensitive:${userId}`;
+});
+
+// Screen time settings: 10 per minute per user
+export const screenTimeLimiter = createCustomLimiter(60 * 1000, 10, (req) => {
+  const userId = req.user?.userId || ipKeyGenerator(req.ip || "");
+  return `screentime:${userId}`;
+});
+
+// Teacher assignment: 5 per 15 minutes per user
+export const teacherAssignmentLimiter = createCustomLimiter(15 * 60 * 1000, 5, (req) => {
+  const userId = req.user?.userId || ipKeyGenerator(req.ip || "");
+  return `teacher-assign:${userId}`;
+});

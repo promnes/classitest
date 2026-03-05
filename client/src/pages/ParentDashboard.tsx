@@ -1,4 +1,4 @@
-import { useEffect, useState, lazy, Suspense } from "react";
+import { useEffect, useState, lazy, Suspense, memo, useMemo, useCallback } from "react";
 import { useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
@@ -8,8 +8,15 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { LanguageSelector } from "@/components/LanguageSelector";
 import { PWAInstallButton } from "@/components/PWAInstallButton";
 import { ParentNotificationBell } from "@/components/NotificationBell";
-import { ChildGamesControl } from "@/components/parent/ChildGamesControl";
+import { ParentWebPushRegistrar } from "@/components/ParentWebPushRegistrar";
+import { useParentSSE } from "@/hooks/useParentSSE";
 import { GovernorateSelect } from "@/components/ui/GovernorateSelect";
+
+// Lazy-load dialogs and wizards (only shown on user interaction)
+const OnboardingWizard = lazy(() => import("@/components/OnboardingWizard").then(m => ({ default: m.OnboardingWizard })));
+const ScreenTimeDialog = lazy(() => import("@/components/parent/ScreenTimeDialog").then(m => ({ default: m.ScreenTimeDialog })));
+const ChildGamesControl = lazy(() => import("@/components/parent/ChildGamesControl").then(m => ({ default: m.ChildGamesControl })));
+const ChildReportPDF = lazy(() => import("@/components/parent/ChildReportPDF").then(m => ({ default: m.ChildReportPDF })));
 import { ACADEMIC_GRADES } from "@shared/constants";
 
 // Lazy-load heavy chart library (recharts ~200KB + framer-motion ~30KB)
@@ -73,7 +80,7 @@ import {
   CalendarClock
 } from "lucide-react";
 
-function ChildReportCard({ child, token, isDark, t }: { child: any; token: string | null; isDark: boolean; t: (key: string, options?: any) => string }) {
+const ChildReportCard = memo(function ChildReportCard({ child, token, isDark, t }: { child: any; token: string | null; isDark: boolean; t: (key: string, options?: any) => string }) {
   const [period, setPeriod] = useState<"daily" | "weekly" | "monthly">("weekly");
   
   const { data: reportData, isLoading } = useQuery({
@@ -107,7 +114,11 @@ function ChildReportCard({ child, token, isDark, t }: { child: any; token: strin
             </p>
           </div>
         </div>
-        <div className="flex gap-1">
+        <div className="flex items-center gap-2">
+          <Suspense fallback={null}>
+            <ChildReportPDF childId={child.id} childName={child.name} />
+          </Suspense>
+          <div className="flex gap-1">
           {(["daily", "weekly", "monthly"] as const).map((p) => (
             <button
               key={p}
@@ -124,6 +135,7 @@ function ChildReportCard({ child, token, isDark, t }: { child: any; token: strin
               {p === "daily" ? t('parentDashboard.daily') : p === "weekly" ? t('parentDashboard.weekly') : t('parentDashboard.monthly')}
             </button>
           ))}
+          </div>
         </div>
       </div>
 
@@ -197,7 +209,7 @@ function ChildReportCard({ child, token, isDark, t }: { child: any; token: strin
       )}
     </div>
   );
-}
+});
 
 // Parse error message from apiRequest errors (format: "statusCode: {json}")
 function extractErrorMessage(err: any): string {
@@ -218,12 +230,17 @@ export const ParentDashboard = (): JSX.Element => {
   const isRTL = i18n.language === "ar";
   const { isDark, toggleTheme } = useTheme();
   const token = localStorage.getItem("token");
+  
+  // Real-time SSE notifications
+  useParentSSE();
+  
   const [cartCount, setCartCount] = useState(0);
   const [showQR, setShowQR] = useState(false);
   const [copied, setCopied] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
   const [showLinkCode, setShowLinkCode] = useState(false);
   const [gamesChild, setGamesChild] = useState<any>(null);
+  const [screenTimeChild, setScreenTimeChild] = useState<any>(null);
   const [selectedReportChild, setSelectedReportChild] = useState<string>("all");
   
   // PIN management state
@@ -568,16 +585,16 @@ export const ParentDashboard = (): JSX.Element => {
     : Array.isArray(notifications)
     ? notifications
     : [];
-  const childrenList = Array.isArray(children) ? children : [];
-  const tasksList = Array.isArray(tasks) ? tasks : [];
+  const childrenList = useMemo(() => Array.isArray(children) ? children : [], [children]);
+  const tasksList = useMemo(() => Array.isArray(tasks) ? tasks : [], [tasks]);
   const subjectsList = Array.isArray(subjects) ? subjects : [];
   const tasksBySubjectList = Array.isArray(tasksBySubject) ? tasksBySubject : [];
-  const ordersList = Array.isArray(recentOrders) ? recentOrders : (recentOrders as any)?.data || [];
-  const ownedProductsList = Array.isArray(ownedProducts) ? ownedProducts : (ownedProducts as any)?.data || [];
-  const purchaseRequestsList = Array.isArray(purchaseRequests) ? purchaseRequests : [];
-  const availableInventoryCount = ownedProductsList.filter((p: any) => p.status === "active").length;
-  const activeOrdersCount = ordersList.filter((o: any) => !["FAILED", "REFUNDED"].includes(o.status)).length;
-  const pendingPurchaseRequests = purchaseRequestsList.filter((r: any) => r.status === "pending");
+  const ordersList = useMemo(() => Array.isArray(recentOrders) ? recentOrders : (recentOrders as any)?.data || [], [recentOrders]);
+  const ownedProductsList = useMemo(() => Array.isArray(ownedProducts) ? ownedProducts : (ownedProducts as any)?.data || [], [ownedProducts]);
+  const purchaseRequestsList = useMemo(() => Array.isArray(purchaseRequests) ? purchaseRequests : [], [purchaseRequests]);
+  const availableInventoryCount = useMemo(() => ownedProductsList.filter((p: any) => p.status === "active").length, [ownedProductsList]);
+  const activeOrdersCount = useMemo(() => ordersList.filter((o: any) => !["FAILED", "REFUNDED"].includes(o.status)).length, [ordersList]);
+  const pendingPurchaseRequests = useMemo(() => purchaseRequestsList.filter((r: any) => r.status === "pending"), [purchaseRequestsList]);
   const parentData = parentInfo as any || {};
   const walletData = wallet as any || {};
   const referralData = (referralStats as any)?.data || referralStats as any || {};
@@ -588,9 +605,9 @@ export const ParentDashboard = (): JSX.Element => {
   const unreadNotifications = typeof unreadNotificationsData?.count === "number"
     ? unreadNotificationsData.count
     : notificationsList.filter((n: any) => !n.isRead).length || 0;
-  const totalChildrenPoints = childrenList.reduce((sum: number, c: any) => sum + (c.totalPoints || 0), 0) || 0;
-  const pendingTasks = tasksList.filter((t: any) => t.status === "pending").length || 0;
-  const completedTasks = tasksList.filter((t: any) => t.status === "completed").length || 0;
+  const totalChildrenPoints = useMemo(() => childrenList.reduce((sum: number, c: any) => sum + (c.totalPoints || 0), 0) || 0, [childrenList]);
+  const pendingTasks = useMemo(() => tasksList.filter((t: any) => t.status === "pending").length || 0, [tasksList]);
+  const completedTasks = useMemo(() => tasksList.filter((t: any) => t.status === "completed").length || 0, [tasksList]);
 
   useEffect(() => {
     const updateCartCount = () => {
@@ -624,6 +641,8 @@ export const ParentDashboard = (): JSX.Element => {
 
   return (
     <div className={`min-h-screen ${isDark ? "bg-gray-950" : "bg-gradient-to-br from-slate-50 to-blue-50"}`}>
+      <ParentWebPushRegistrar />
+      <Suspense fallback={null}><OnboardingWizard /></Suspense>
       <header className={`sticky top-0 z-40 ${isDark ? "bg-gray-900/95 border-gray-800" : "bg-white/95 border-gray-200"} border-b backdrop-blur-sm`}>
         <div className="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
           <div className="flex items-center gap-3">
@@ -1379,6 +1398,16 @@ export const ParentDashboard = (): JSX.Element => {
                               {t('parentDashboard.games')}
                             </Button>
                             <Button 
+                              onClick={() => setScreenTimeChild(child)}
+                              variant="outline"
+                              size="sm"
+                              className="flex-1 gap-1 min-w-[80px]"
+                              data-testid={`button-screen-time-${child.id}`}
+                            >
+                              <Clock className="h-4 w-4" />
+                              {isRTL ? "وقت الشاشة" : "Screen Time"}
+                            </Button>
+                            <Button 
                               onClick={() => navigate("/parent-inventory")}
                               variant="outline"
                               size="sm"
@@ -2026,13 +2055,24 @@ export const ParentDashboard = (): JSX.Element => {
 
       {/* Child Games Control Dialog */}
       {gamesChild && (
-        <ChildGamesControl
-          childId={gamesChild.id}
-          childName={gamesChild.name}
-          token={token || ""}
-          onClose={() => setGamesChild(null)}
-        />
+        <Suspense fallback={null}>
+          <ChildGamesControl
+            childId={gamesChild.id}
+            childName={gamesChild.name}
+            token={token || ""}
+            onClose={() => setGamesChild(null)}
+          />
+        </Suspense>
       )}
+
+      {/* Screen Time Dialog */}
+      <Suspense fallback={null}>
+        <ScreenTimeDialog
+          child={screenTimeChild}
+          open={!!screenTimeChild}
+          onClose={() => setScreenTimeChild(null)}
+        />
+      </Suspense>
 
       {/* Add Child with PIN Modal - Multi-Step */}
       {showAddChildPin && (

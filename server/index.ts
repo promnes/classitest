@@ -8,6 +8,7 @@ import { serveStatic, log } from "./static";
 import { initializeGiftNotificationHandlers } from "./notificationHandlers";
 import { startMediaWorker } from "./services/mediaWorker";
 import { startTaskNotificationWorker } from "./services/taskNotificationWorker";
+import { startMonthlySubscriptionWorker } from "./services/monthlySubscriptionWorker";
 import compression from "compression";
 import helmet from "helmet";
 import { errorResponse, ErrorCode } from "./utils/apiResponse";
@@ -266,6 +267,7 @@ async function startHttpServer() {
     // Background worker: media cleanup / purge
     startMediaWorker();
     startTaskNotificationWorker();
+    startMonthlySubscriptionWorker();
 
     // Explicit API 404 guard to enforce JSON contract for unknown API routes
     app.use("/api", (req, res) => {

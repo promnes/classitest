@@ -55,6 +55,12 @@ export const NOTIFICATION_TYPES = {
   PARENT_LINK_REQUEST: "parent_link_request",
   PARENT_LINK_APPROVED: "parent_link_approved",
   PARENT_LINK_REJECTED: "parent_link_rejected",
+  TEACHER_ASSIGNMENT_REQUEST: "teacher_assignment_request",
+  TEACHER_ASSIGNMENT_ACCEPTED: "teacher_assignment_accepted",
+  TEACHER_ASSIGNMENT_REJECTED: "teacher_assignment_rejected",
+  TASK_HELP_REQUESTED: "task_help_requested",
+  TASK_HELP_MESSAGE: "task_help_message",
+  TEACHER_TASK_ASSIGNED: "teacher_task_assigned",
 } as const;
 
 export type NotificationType = (typeof NOTIFICATION_TYPES)[keyof typeof NOTIFICATION_TYPES];

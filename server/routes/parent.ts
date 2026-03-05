@@ -2,6 +2,40 @@ import type { Express } from "express";
 import { z } from "zod";
 import { storage } from "../storage";
 import { successResponse, errorResponse, ErrorCode } from "../utils/apiResponse";
+import { validateBody } from "../validators";
+import {
+  updateProfileSchema,
+  changePasswordSchema,
+  deleteAccountSchema,
+  depositSchema,
+  createTaskSchema,
+  createProductSchema,
+  updateProductSchema,
+  storePurchaseSchema,
+  checkoutPreviewSchema,
+  checkoutConfirmSchema,
+  assignProductToChildSchema,
+  requestShippingSchema,
+  sendGiftSchema,
+  revokeGiftSchema,
+  teacherAssignmentSchema,
+  helpChatMessageSchema,
+  respondLoginSchema,
+  updateChildGamesSchema,
+  createPostSchema,
+  checkLikesSchema,
+  commentSchema,
+  socialLinksSchema,
+  pushSubscriptionSchema,
+  screenTimeSchema,
+  createTaskFromTemplateSchema,
+  createCustomTaskSchema,
+  createAndSendTaskSchema,
+  sendTemplateTaskSchema,
+  scheduledTaskSchema,
+  scheduledSessionSchema,
+  storeCheckoutSchema,
+} from "../validators/parentSchemas";
 import { ensureWallet } from "../utils/walletHelper";
 import { trackOtpEvent } from "../utils/otpMonitoring";
 import {
@@ -28,6 +62,12 @@ import {
   schools,
   schoolEnrollments,
   childSchoolAssignment,
+  teacherAssignmentRequests,
+  teacherAssignmentRequestChildren,
+  teacherChildPermissions,
+  taskHelpRequests,
+  taskHelpMessages,
+  schoolTeachers,
 } from "../../shared/schema";
 import {
   parentPurchases,
@@ -61,10 +101,17 @@ import {
   parentPostLikes,
   scheduledSessions,
   scheduledSessionTasks,
+  parentPushSubscriptions,
+  screenTimeSettings,
+  childDailyUsage,
+  parentAuditLogs,
+  parentTeacherConversations,
+  parentTeacherMessages,
 } from "../../shared/schema";
 import jwt from "jsonwebtoken";
 import { JWT_SECRET } from "./middleware";
 import { createNotification, notifyAllAdmins } from "../notifications";
+import { getVapidPublicKey } from "../services/webPushService";
 import { emitGiftEvent } from "../giftEvents";
 import { eq, and, sql, isNull, inArray, or, desc, gte, count } from "drizzle-orm";
 import bcrypt from "bcrypt";
@@ -84,6 +131,15 @@ import {
 import { NOTIFICATION_TYPES, NOTIFICATION_STYLES, NOTIFICATION_PRIORITIES } from "../../shared/notificationTypes";
 import { createPresignedUpload, finalizeUpload } from "../services/uploadService";
 import { finalizeUploadSchema } from "../../shared/media";
+import {
+  depositLimiter,
+  sensitiveParentLimiter,
+  screenTimeLimiter,
+  teacherAssignmentLimiter,
+  walletLimiter,
+} from "../utils/rateLimiters";
+import { logParentAction } from "../utils/auditLog";
+import { sseManager } from "../utils/sseManager";
 
 const db = storage.db;
 const stripeSecret = process.env.STRIPE_SECRET_KEY;
@@ -129,6 +185,37 @@ export async function registerParentRoutes(app: Express) {
     } catch (error: any) {
       console.error("Fetch parent info error:", error);
       res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to fetch parent info"));
+    }
+  });
+
+  // SSE endpoint for real-time notifications
+  app.get("/api/parent/events", async (req: any, res) => {
+    // SSE can't send auth headers, so accept token via query param
+    const token = (req.query.token as string) || req.headers.authorization?.split(" ")[1];
+    if (!token) return res.status(401).json({ error: "UNAUTHORIZED" });
+
+    try {
+      const decoded = jwt.verify(token, JWT_SECRET) as any;
+      if (!decoded?.userId) return res.status(401).json({ error: "UNAUTHORIZED" });
+
+      res.writeHead(200, {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        Connection: "keep-alive",
+        "X-Accel-Buffering": "no",
+      });
+      res.write("event: connected\ndata: {}\n\n");
+
+      sseManager.addClient(decoded.userId, "parent", res);
+
+      // Keep-alive ping every 30s
+      const keepAlive = setInterval(() => {
+        try { res.write(": ping\n\n"); } catch { clearInterval(keepAlive); }
+      }, 30000);
+
+      req.on("close", () => clearInterval(keepAlive));
+    } catch {
+      return res.status(401).json({ error: "UNAUTHORIZED" });
     }
   });
 
@@ -302,10 +389,9 @@ export async function registerParentRoutes(app: Express) {
   // Update Parent Profile
   app.post("/api/parent/profile/update", authMiddleware, async (req: any, res) => {
     try {
-      const { name, phoneNumber, governorate, bio, city, avatarUrl, coverImageUrl } = req.body;
-      if (!name && !phoneNumber && !governorate && bio === undefined && !city && avatarUrl === undefined && coverImageUrl === undefined) {
-        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "At least one field is required"));
-      }
+      const v = validateBody(updateProfileSchema, req.body);
+      if (!v.success) return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, v.error));
+      const { name, phoneNumber, governorate, bio, city, avatarUrl, coverImageUrl } = v.data;
 
       const updates: any = {};
       if (name) updates.name = name;
@@ -318,6 +404,7 @@ export async function registerParentRoutes(app: Express) {
 
       await db.update(parents).set(updates).where(eq(parents.id, req.user.userId));
 
+      logParentAction(req.user.userId, "PROFILE_UPDATED", "profile", req.user.userId, { fields: Object.keys(updates) }, req);
       res.json(successResponse({ updated: true }, "Profile updated"));
     } catch (error: any) {
       console.error("Update profile error:", error);
@@ -326,17 +413,13 @@ export async function registerParentRoutes(app: Express) {
   });
 
   // Change Parent Password
-  app.post("/api/parent/profile/change-password", authMiddleware, async (req: any, res) => {
+  app.post("/api/parent/profile/change-password", authMiddleware, sensitiveParentLimiter, async (req: any, res) => {
     try {
-      const { oldPassword, newPassword, otpCode, code, otpId } = req.body;
-      const finalOtpCode = otpCode || code;
-      if (!oldPassword || !newPassword || !finalOtpCode) {
-        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Old password, new password, and OTP are required"));
-      }
-
-      if (newPassword.length < 8) {
-        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "New password must be at least 8 characters"));
-      }
+      const v = validateBody(changePasswordSchema, req.body);
+      if (!v.success) return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, v.error));
+      const { oldPassword, newPassword, otpMethod } = v.data;
+      const finalOtpCode = v.data.otpCode || v.data.code;
+      const otpId = v.data.otpId;
 
       const parent = await db.select().from(parents).where(eq(parents.id, req.user.userId));
       if (!parent[0]) {
@@ -346,11 +429,6 @@ export async function registerParentRoutes(app: Express) {
       const passwordMatch = await bcrypt.compare(oldPassword, parent[0].password);
       if (!passwordMatch) {
         return res.status(401).json(errorResponse(ErrorCode.UNAUTHORIZED, "Old password is incorrect"));
-      }
-
-      const otpMethod = req.body.otpMethod || "email";
-      if (!new Set(["email", "sms"]).has(otpMethod)) {
-        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Invalid OTP method"));
       }
 
       if (otpMethod === "sms" && (!parent[0].phoneNumber || !parent[0].smsEnabled)) {
@@ -478,6 +556,7 @@ export async function registerParentRoutes(app: Express) {
         action: "consume",
       });
 
+      logParentAction(req.user.userId, "PASSWORD_CHANGED", "password", req.user.userId, null, req);
       res.json(successResponse({ changed: true }, "Password changed successfully"));
     } catch (error: any) {
       console.error("Change password error:", error);
@@ -486,12 +565,11 @@ export async function registerParentRoutes(app: Express) {
   });
 
   // Delete Parent Account
-  app.post("/api/parent/delete-account", authMiddleware, async (req: any, res) => {
+  app.post("/api/parent/delete-account", authMiddleware, sensitiveParentLimiter, async (req: any, res) => {
     try {
-      const { confirmPassword } = req.body;
-      if (!confirmPassword) {
-        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Password is required"));
-      }
+      const v = validateBody(deleteAccountSchema, req.body);
+      if (!v.success) return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, v.error));
+      const { confirmPassword } = v.data;
 
       const parent = await db.select().from(parents).where(eq(parents.id, req.user.userId));
       if (!parent[0]) {
@@ -656,11 +734,9 @@ export async function registerParentRoutes(app: Express) {
   // Create Task
   app.post("/api/parent/create-task", authMiddleware, async (req: any, res) => {
     try {
-      const { childId, subjectId, question, answers, pointsReward, imageUrl, gifUrl } = req.body;
-
-      if (!childId || !question || !answers || !pointsReward) {
-        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "All fields are required"));
-      }
+      const v = validateBody(createTaskSchema, req.body);
+      if (!v.success) return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, v.error));
+      const { childId, subjectId, question, answers, pointsReward, imageUrl, gifUrl } = v.data;
 
       // Validate pointsReward: must be a positive integer within bounds
       const pointsRewardNum = Number(pointsReward);
@@ -753,11 +829,9 @@ export async function registerParentRoutes(app: Express) {
   // Create Product
   app.post("/api/parent/create-product", authMiddleware, async (req: any, res) => {
     try {
-      const { name, description, price, pointsPrice, image, stock } = req.body;
-
-      if (!name || !price || !pointsPrice) {
-        return res.status(400).json({ message: "Name, price, and pointsPrice are required" });
-      }
+      const v = validateBody(createProductSchema, req.body);
+      if (!v.success) return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, v.error));
+      const { name, description, price, pointsPrice, image, stock } = v.data;
 
       const result = await db
         .insert(products)
@@ -782,7 +856,9 @@ export async function registerParentRoutes(app: Express) {
   // Update Product
   app.post("/api/parent/products", authMiddleware, async (req: any, res) => {
     try {
-      const { id, name, description, price, pointsPrice, image, stock } = req.body;
+      const v = validateBody(updateProductSchema, req.body);
+      if (!v.success) return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, v.error));
+      const { id, name, description, price, pointsPrice, image, stock } = v.data;
 
       const product = await db.select().from(products).where(eq(products.id, id));
       if (!product[0] || product[0].parentId !== req.user.userId) {
@@ -856,17 +932,14 @@ export async function registerParentRoutes(app: Express) {
   });
 
   // Create Deposit (parent confirms external payment)
-  app.post("/api/parent/deposit", authMiddleware, async (req: any, res) => {
+  app.post("/api/parent/deposit", authMiddleware, depositLimiter, async (req: any, res) => {
     try {
-      const { paymentMethodId, amount, notes, transactionId, receiptUrl } = req.body;
+      const v = validateBody(depositSchema, req.body);
+      if (!v.success) return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, v.error));
+      const { paymentMethodId, amount: parsedAmount, notes, transactionId: rawTxId, receiptUrl: rawReceipt } = v.data;
 
-      const parsedAmount = parseFloat(amount);
-      if (!paymentMethodId || !amount || isNaN(parsedAmount) || parsedAmount <= 0) {
-        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Payment method and valid amount are required"));
-      }
-
-      const normalizedTransactionId = typeof transactionId === "string" ? transactionId.trim() : "";
-      const normalizedReceiptUrl = typeof receiptUrl === "string" ? receiptUrl.trim() : "";
+      const normalizedTransactionId = typeof rawTxId === "string" ? rawTxId.trim() : "";
+      const normalizedReceiptUrl = typeof rawReceipt === "string" ? rawReceipt.trim() : "";
 
       if (!normalizedTransactionId) {
         return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Transaction ID is required"));
@@ -949,6 +1022,7 @@ export async function registerParentRoutes(app: Express) {
         metadata: { depositId: result[0].id, parentId: req.user.userId, amount },
       });
 
+      logParentAction(req.user.userId, "DEPOSIT_REQUESTED", "deposit", result[0].id, { amount: parsedAmount, paymentMethodId }, req);
       res.json(successResponse({ depositId: result[0].id }, "Deposit request created"));
     } catch (error: any) {
       console.error("Create deposit error:", error);
@@ -1183,11 +1257,9 @@ export async function registerParentRoutes(app: Express) {
   app.post("/api/parent/notifications/:id/respond-login", authMiddleware, async (req: any, res) => {
     try {
       const { id } = req.params;
-      const { action } = req.body;
-
-      if (!action || !["approve", "reject"].includes(action)) {
-        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Invalid action"));
-      }
+      const v = validateBody(respondLoginSchema, req.body);
+      if (!v.success) return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, v.error));
+      const { action } = v.data;
 
       const notification = await db.select().from(notifications).where(eq(notifications.id, id));
       if (!notification[0]) {
@@ -1882,17 +1954,11 @@ export async function registerParentRoutes(app: Express) {
   });
 
   // ===== Phase 1.3: Gifts - Send Gift =====
-  app.post("/api/parent/gifts/send", authMiddleware, async (req: any, res) => {
+  app.post("/api/parent/gifts/send", authMiddleware, walletLimiter, async (req: any, res) => {
     try {
-      const { entitlementId, childId, pointsThreshold, message } = req.body;
-
-      if (!entitlementId || !childId || !pointsThreshold) {
-        return res.status(400).json({ message: "entitlementId, childId, and pointsThreshold are required" });
-      }
-
-      if (pointsThreshold <= 0) {
-        return res.status(400).json({ message: "pointsThreshold must be positive" });
-      }
+      const v = validateBody(sendGiftSchema, req.body);
+      if (!v.success) return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, v.error));
+      const { entitlementId, childId, pointsThreshold, message } = v.data;
 
       // Verify entitlement belongs to parent, is parent-owned, and ACTIVE
       const ent = await db.select().from(entitlements).where(eq(entitlements.id, entitlementId));
@@ -1968,6 +2034,7 @@ export async function registerParentRoutes(app: Express) {
         timestamp: new Date(),
       });
 
+      logParentAction(req.user.userId, "GIFT_SENT", "gift", gift[0].id, { childId, pointsThreshold }, req);
       res.status(201).json({ success: true, data: gift[0] });
     } catch (error: any) {
       console.error("Send gift error:", error);
@@ -1995,7 +2062,9 @@ export async function registerParentRoutes(app: Express) {
   app.post("/api/parent/gifts/:id/revoke", authMiddleware, async (req: any, res) => {
     try {
       const { id } = req.params;
-      const { reason } = req.body;
+      const v = validateBody(revokeGiftSchema, req.body);
+      if (!v.success) return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, v.error));
+      const { reason } = v.data;
 
       // Lock gift row
       const gift = await db.select().from(gifts).where(eq(gifts.id, id));
@@ -2059,6 +2128,334 @@ export async function registerParentRoutes(app: Express) {
     } catch (error: any) {
       console.error("Revoke gift error:", error);
       res.status(500).json({ message: "Failed to revoke gift" });
+    }
+  });
+
+  // ===== TEACHER ASSIGNMENT REQUESTS (طلبات تعيين المعلمين) =====
+
+  // Send assignment request to teacher
+  app.post("/api/parent/teacher-assignment-request", authMiddleware, teacherAssignmentLimiter, async (req: any, res) => {
+    try {
+      const parentId = req.user.userId;
+      const v = validateBody(teacherAssignmentSchema, req.body);
+      if (!v.success) return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, v.error));
+      const { teacherId, childIds, monthlyPoints } = v.data;
+
+      // Verify teacher exists and is active
+      const teacher = await db.select().from(schoolTeachers)
+        .where(and(eq(schoolTeachers.id, teacherId), eq(schoolTeachers.isActive, true)));
+      if (!teacher[0]) {
+        return res.status(404).json(errorResponse(ErrorCode.NOT_FOUND, "المعلم غير موجود"));
+      }
+
+      // Verify all children belong to this parent
+      for (const childId of childIds) {
+        const link = await db.select().from(parentChild)
+          .where(and(eq(parentChild.parentId, parentId), eq(parentChild.childId, childId)));
+        if (!link[0]) {
+          return res.status(403).json(errorResponse(ErrorCode.PARENT_CHILD_MISMATCH, `الطفل ${childId} ليس مرتبطاً بحسابك`));
+        }
+      }
+
+      // Check for existing pending request
+      const existingPending = await db.select().from(teacherAssignmentRequests)
+        .where(and(
+          eq(teacherAssignmentRequests.parentId, parentId),
+          eq(teacherAssignmentRequests.teacherId, teacherId),
+          eq(teacherAssignmentRequests.status, "pending")
+        ));
+
+      if (existingPending[0]) {
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "لديك طلب معلق بالفعل لهذا المعلم"));
+      }
+
+      // Create the request
+      const request = await db.insert(teacherAssignmentRequests).values({
+        parentId,
+        teacherId,
+        monthlyPoints,
+      }).returning();
+
+      // Add children to the request
+      for (const childId of childIds) {
+        await db.insert(teacherAssignmentRequestChildren).values({
+          requestId: request[0].id,
+          childId,
+        });
+      }
+
+      // Notify the teacher
+      const parent = await db.select({ name: parents.name }).from(parents).where(eq(parents.id, parentId));
+      await db.insert(notifications).values({
+        teacherId,
+        type: NOTIFICATION_TYPES.TEACHER_ASSIGNMENT_REQUEST,
+        title: "طلب تعيين جديد",
+        message: `${parent[0]?.name || "ولي أمر"} يطلب تعيينك لتدريس ${childIds.length} ${childIds.length === 1 ? "طفل" : "أطفال"} مقابل ${monthlyPoints} نقطة شهرياً`,
+        relatedId: request[0].id,
+        metadata: { requestId: request[0].id, parentId, childIds },
+      });
+
+      res.json(successResponse({ requestId: request[0].id }));
+    } catch (error: any) {
+      console.error("Create teacher assignment request error:", error);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "فشل إرسال الطلب"));
+    }
+  });
+
+  // List parent's assignment requests
+  app.get("/api/parent/teacher-assignment-requests", authMiddleware, async (req: any, res) => {
+    try {
+      const parentId = req.user.userId;
+
+      const requests = await db.select({
+        request: teacherAssignmentRequests,
+        teacher: {
+          id: schoolTeachers.id,
+          name: schoolTeachers.name,
+          avatarUrl: schoolTeachers.avatarUrl,
+          subject: schoolTeachers.subject,
+        },
+      })
+        .from(teacherAssignmentRequests)
+        .leftJoin(schoolTeachers, eq(teacherAssignmentRequests.teacherId, schoolTeachers.id))
+        .where(eq(teacherAssignmentRequests.parentId, parentId))
+        .orderBy(desc(teacherAssignmentRequests.createdAt));
+
+      const result = await Promise.all(requests.map(async (r: any) => {
+        const childrenRows = await db.select({
+          id: children.id,
+          name: children.name,
+          avatarUrl: children.avatarUrl,
+        })
+          .from(teacherAssignmentRequestChildren)
+          .innerJoin(children, eq(teacherAssignmentRequestChildren.childId, children.id))
+          .where(eq(teacherAssignmentRequestChildren.requestId, r.request.id));
+
+        return {
+          ...r.request,
+          teacher: r.teacher,
+          children: childrenRows,
+        };
+      }));
+
+      res.json(successResponse(result));
+    } catch (error: any) {
+      console.error("Get parent assignment requests error:", error);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "فشل جلب الطلبات"));
+    }
+  });
+
+  // Get parent's help chat requests
+  app.get("/api/parent/help-requests", authMiddleware, async (req: any, res) => {
+    try {
+      const parentId = req.user.userId;
+
+      const helpReqs = await db.select({
+        helpRequest: taskHelpRequests,
+        child: {
+          id: children.id,
+          name: children.name,
+          avatarUrl: children.avatarUrl,
+        },
+        task: {
+          id: tasks.id,
+          question: tasks.question,
+        },
+      })
+        .from(taskHelpRequests)
+        .innerJoin(children, eq(taskHelpRequests.childId, children.id))
+        .innerJoin(tasks, eq(taskHelpRequests.taskId, tasks.id))
+        .where(and(
+          eq(taskHelpRequests.helperType, "parent"),
+          eq(taskHelpRequests.helperId, parentId)
+        ))
+        .orderBy(desc(taskHelpRequests.createdAt));
+
+      const result = helpReqs.map((h: any) => ({
+        id: h.helpRequest.id,
+        taskId: h.task.id,
+        taskQuestion: h.task.question,
+        childId: h.child.id,
+        childName: h.child.name,
+        childAvatar: h.child.avatarUrl,
+        status: h.helpRequest.status,
+        createdAt: h.helpRequest.createdAt,
+        resolvedAt: h.helpRequest.resolvedAt,
+      }));
+
+      res.json(successResponse(result));
+    } catch (error: any) {
+      console.error("Get parent help requests error:", error);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "فشل جلب طلبات المساعدة"));
+    }
+  });
+
+  // Get messages for a help request (parent)
+  app.get("/api/parent/help-chat/:helpRequestId/messages", authMiddleware, async (req: any, res) => {
+    try {
+      const parentId = req.user.userId;
+      const { helpRequestId } = req.params;
+
+      const helpReq = await db.select().from(taskHelpRequests)
+        .where(and(
+          eq(taskHelpRequests.id, helpRequestId),
+          eq(taskHelpRequests.helperType, "parent"),
+          eq(taskHelpRequests.helperId, parentId)
+        ));
+
+      if (!helpReq[0]) {
+        return res.status(404).json(errorResponse(ErrorCode.NOT_FOUND, "طلب المساعدة غير موجود"));
+      }
+
+      const messages = await db.select().from(taskHelpMessages)
+        .where(eq(taskHelpMessages.helpRequestId, helpRequestId))
+        .orderBy(taskHelpMessages.createdAt);
+
+      res.json(successResponse(messages));
+    } catch (error: any) {
+      console.error("Get parent help chat messages error:", error);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "فشل جلب الرسائل"));
+    }
+  });
+
+  // Send message in help chat (parent)
+  app.post("/api/parent/help-chat/:helpRequestId/messages", authMiddleware, async (req: any, res) => {
+    try {
+      const parentId = req.user.userId;
+      const { helpRequestId } = req.params;
+      const v = validateBody(helpChatMessageSchema, req.body);
+      if (!v.success) return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, v.error));
+      const { messageType, content, mediaUrl } = v.data;
+
+      const helpReq = await db.select().from(taskHelpRequests)
+        .where(and(
+          eq(taskHelpRequests.id, helpRequestId),
+          eq(taskHelpRequests.helperType, "parent"),
+          eq(taskHelpRequests.helperId, parentId)
+        ));
+
+      if (!helpReq[0]) {
+        return res.status(404).json(errorResponse(ErrorCode.NOT_FOUND, "طلب المساعدة غير موجود"));
+      }
+
+      const message = await db.insert(taskHelpMessages).values({
+        helpRequestId,
+        senderType: "parent",
+        senderId: parentId,
+        messageType,
+        content: content || null,
+        mediaUrl: mediaUrl || null,
+      }).returning();
+
+      // Notify the child
+      await db.insert(notifications).values({
+        childId: helpReq[0].childId,
+        type: NOTIFICATION_TYPES.TASK_HELP_MESSAGE,
+        title: "رسالة مساعدة جديدة",
+        message: messageType === "text" ? (content?.substring(0, 50) || "لديك رسالة جديدة") : "لديك رسالة مساعدة جديدة",
+        relatedId: helpRequestId,
+        metadata: { helpRequestId, messageId: message[0].id },
+      });
+
+      res.json(successResponse(message[0]));
+    } catch (error: any) {
+      console.error("Send parent help chat message error:", error);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "فشل إرسال الرسالة"));
+    }
+  });
+
+  // Resolve (close) a help request (parent)
+  app.put("/api/parent/help-requests/:helpRequestId/resolve", authMiddleware, async (req: any, res) => {
+    try {
+      const parentId = req.user.userId;
+      const { helpRequestId } = req.params;
+
+      const helpReq = await db.select().from(taskHelpRequests)
+        .where(and(
+          eq(taskHelpRequests.id, helpRequestId),
+          eq(taskHelpRequests.helperType, "parent"),
+          eq(taskHelpRequests.helperId, parentId)
+        ));
+
+      if (!helpReq[0]) {
+        return res.status(404).json(errorResponse(ErrorCode.NOT_FOUND, "طلب المساعدة غير موجود"));
+      }
+
+      if (helpReq[0].status === "resolved") {
+        return res.json(successResponse({ message: "تم الحل مسبقاً" }));
+      }
+
+      await db.update(taskHelpRequests)
+        .set({ status: "resolved", resolvedAt: new Date() })
+        .where(eq(taskHelpRequests.id, helpRequestId));
+
+      res.json(successResponse({ message: "تم إغلاق طلب المساعدة" }));
+    } catch (error: any) {
+      console.error("Resolve parent help request error:", error);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "فشل إغلاق طلب المساعدة"));
+    }
+  });
+
+  // Upload media for help chat (parent)
+  app.post("/api/parent/help-chat/upload-media", authMiddleware, async (req: any, res) => {
+    try {
+      const multer = (await import("multer")).default;
+      const path = await import("path");
+      const fs = await import("fs");
+      const uploadDir = path.resolve(process.cwd(), "uploads", "help-chat");
+      if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+      const store = multer.diskStorage({
+        destination: (_r: any, _f: any, cb: any) => cb(null, uploadDir),
+        filename: (_r: any, file: any, cb: any) => cb(null, `${Date.now()}-${Math.random().toString(36).slice(2)}${path.extname(file.originalname)}`),
+      });
+      const upload = multer({
+        storage: store,
+        limits: { fileSize: 10 * 1024 * 1024 },
+        fileFilter: (_r: any, f: any, cb: any) => {
+          if (f.mimetype.startsWith("image/") || f.mimetype.startsWith("audio/")) cb(null, true);
+          else cb(new Error("Only images and audio files are allowed"));
+        },
+      }).single("file");
+      upload(req, res, (err: any) => {
+        if (err) return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, err.message));
+        const file = req.file;
+        if (!file) return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "No file uploaded"));
+        const url = `/uploads/help-chat/${file.filename}`;
+        const type = file.mimetype.startsWith("audio/") ? "voice" : "image";
+        res.json(successResponse({ url, type }));
+      });
+    } catch (error: any) {
+      console.error("Upload parent help chat media error:", error);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "فشل رفع الملف"));
+    }
+  });
+
+  // Cancel pending assignment request (parent)
+  app.delete("/api/parent/teacher-assignment-request/:id", authMiddleware, async (req: any, res) => {
+    try {
+      const parentId = req.user.userId;
+      const { id } = req.params;
+
+      const request = await db.select().from(teacherAssignmentRequests)
+        .where(and(
+          eq(teacherAssignmentRequests.id, id),
+          eq(teacherAssignmentRequests.parentId, parentId),
+          eq(teacherAssignmentRequests.status, "pending")
+        ));
+
+      if (!request[0]) {
+        return res.status(404).json(errorResponse(ErrorCode.NOT_FOUND, "الطلب غير موجود أو تم الرد عليه"));
+      }
+
+      await db.delete(teacherAssignmentRequestChildren)
+        .where(eq(teacherAssignmentRequestChildren.requestId, id));
+      await db.delete(teacherAssignmentRequests)
+        .where(eq(teacherAssignmentRequests.id, id));
+
+      res.json(successResponse({ message: "تم إلغاء الطلب" }));
+    } catch (error: any) {
+      console.error("Cancel assignment request error:", error);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "فشل إلغاء الطلب"));
     }
   });
 
@@ -3981,13 +4378,9 @@ export async function registerParentRoutes(app: Express) {
   app.post("/api/parent/posts", authMiddleware, async (req, res) => {
     try {
       const parentId = (req as any).user.userId;
-      const { content, mediaUrls, mediaTypes } = req.body;
-      if (!content?.trim() && (!mediaUrls || mediaUrls.length === 0)) {
-        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Post must have content or media"));
-      }
-      if (content && content.length > 5000) {
-        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Content too long"));
-      }
+      const v = validateBody(createPostSchema, req.body);
+      if (!v.success) return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, v.error));
+      const { content, mediaUrls, mediaTypes } = v.data;
       const [post] = await db.insert(parentPosts).values({
         parentId,
         content: content?.trim() || "",
@@ -4442,6 +4835,352 @@ export async function registerParentRoutes(app: Express) {
       res.json({ success: true, message: "تم إلغاء طلب الالتحاق" });
     } catch (error: any) {
       res.status(500).json({ success: false, error: "INTERNAL_SERVER_ERROR" });
+    }
+  });
+
+  // ===== Parent Push Notifications =====
+
+  app.get("/api/parent/push-public-key", authMiddleware, async (_req: any, res) => {
+    try {
+      const publicKey = getVapidPublicKey();
+      if (!publicKey) {
+        return res.status(503).json({ success: false, error: "WEB_PUSH_NOT_CONFIGURED", message: "Web push is not configured" });
+      }
+      res.json({ success: true, data: { publicKey } });
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: "INTERNAL_SERVER_ERROR" });
+    }
+  });
+
+  app.post("/api/parent/push-subscriptions", authMiddleware, async (req: any, res) => {
+    try {
+      const parentId = req.user.userId;
+      const v = validateBody(pushSubscriptionSchema, req.body || {});
+      if (!v.success) return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, v.error));
+      const { platform, endpoint, token, p256dh, auth, deviceId } = v.data;
+
+      if (!endpoint && !token) {
+        return res.status(400).json({ success: false, error: "BAD_REQUEST", message: "endpoint or token is required" });
+      }
+
+      const existing = await db.select().from(parentPushSubscriptions)
+        .where(eq(parentPushSubscriptions.parentId, parentId));
+
+      const match = existing.find((row: any) => {
+        if (deviceId && row.deviceId === deviceId && row.platform === platform) return true;
+        if (endpoint && row.endpoint === endpoint) return true;
+        if (token && row.token === token) return true;
+        return false;
+      });
+
+      if (match) {
+        const [updated] = await db.update(parentPushSubscriptions).set({
+          platform, endpoint: endpoint || null, token: token || null,
+          p256dh: p256dh || null, auth: auth || null, deviceId: deviceId || null,
+          isActive: true, lastSeenAt: new Date(), updatedAt: new Date(),
+        }).where(eq(parentPushSubscriptions.id, match.id)).returning();
+        return res.json({ success: true, data: updated });
+      }
+
+      const [created] = await db.insert(parentPushSubscriptions).values({
+        parentId, platform, endpoint: endpoint || null, token: token || null,
+        p256dh: p256dh || null, auth: auth || null, deviceId: deviceId || null, isActive: true,
+      }).returning();
+      res.json({ success: true, data: created });
+    } catch (error: any) {
+      console.error("Parent push subscription error:", error);
+      res.status(500).json({ success: false, error: "INTERNAL_SERVER_ERROR" });
+    }
+  });
+
+  app.delete("/api/parent/push-subscriptions/:id", authMiddleware, async (req: any, res) => {
+    try {
+      const parentId = req.user.userId;
+      const { id } = req.params;
+      await db.delete(parentPushSubscriptions)
+        .where(and(eq(parentPushSubscriptions.id, id), eq(parentPushSubscriptions.parentId, parentId)));
+      res.json({ success: true, message: "تم حذف الاشتراك" });
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: "INTERNAL_SERVER_ERROR" });
+    }
+  });
+
+  // ===== Screen Time Settings =====
+
+  app.get("/api/parent/screen-time/:childId", authMiddleware, async (req: any, res) => {
+    try {
+      const parentId = req.user.userId;
+      const { childId } = req.params;
+      
+      // Verify parent owns child
+      const pc = await db.select().from(parentChild)
+        .where(and(eq(parentChild.parentId, parentId), eq(parentChild.childId, childId)));
+      if (!pc.length) {
+        return res.status(403).json({ success: false, error: "PARENT_CHILD_MISMATCH" });
+      }
+
+      const [settings] = await db.select().from(screenTimeSettings)
+        .where(eq(screenTimeSettings.childId, childId));
+      
+      // Get today's usage
+      const today = new Date().toISOString().split("T")[0];
+      const [usage] = await db.select().from(childDailyUsage)
+        .where(and(eq(childDailyUsage.childId, childId), eq(childDailyUsage.date, today)));
+      
+      res.json({
+        success: true,
+        data: {
+          settings: settings || { dailyLimitMinutes: 120, isEnabled: false, allowedStartTime: "08:00", allowedEndTime: "20:00" },
+          todayUsage: usage || { totalMinutes: 0, sessionsCount: 0 },
+        },
+      });
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: "INTERNAL_SERVER_ERROR" });
+    }
+  });
+
+  app.put("/api/parent/screen-time/:childId", authMiddleware, screenTimeLimiter, async (req: any, res) => {
+    try {
+      const parentId = req.user.userId;
+      const { childId } = req.params;
+      const v = validateBody(screenTimeSchema, req.body || {});
+      if (!v.success) return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, v.error));
+      const { dailyLimitMinutes, isEnabled, allowedStartTime, allowedEndTime } = v.data;
+
+      // Verify parent owns child
+      const pc = await db.select().from(parentChild)
+        .where(and(eq(parentChild.parentId, parentId), eq(parentChild.childId, childId)));
+      if (!pc.length) {
+        return res.status(403).json({ success: false, error: "PARENT_CHILD_MISMATCH" });
+      }
+
+      const existing = await db.select().from(screenTimeSettings)
+        .where(eq(screenTimeSettings.childId, childId));
+      
+      const values: any = { updatedAt: new Date() };
+      if (dailyLimitMinutes !== undefined) values.dailyLimitMinutes = Math.max(15, Math.min(480, Number(dailyLimitMinutes)));
+      if (isEnabled !== undefined) values.isEnabled = Boolean(isEnabled);
+      if (allowedStartTime) values.allowedStartTime = String(allowedStartTime).slice(0, 5);
+      if (allowedEndTime) values.allowedEndTime = String(allowedEndTime).slice(0, 5);
+
+      let result;
+      if (existing.length) {
+        [result] = await db.update(screenTimeSettings).set(values)
+          .where(eq(screenTimeSettings.childId, childId)).returning();
+      } else {
+        [result] = await db.insert(screenTimeSettings).values({
+          childId, parentId, ...values,
+          dailyLimitMinutes: values.dailyLimitMinutes || 120,
+          isEnabled: values.isEnabled ?? false,
+        }).returning();
+      }
+
+      res.json({ success: true, data: result });
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: "INTERNAL_SERVER_ERROR" });
+    }
+  });
+
+  app.get("/api/parent/screen-time/:childId/history", authMiddleware, async (req: any, res) => {
+    try {
+      const parentId = req.user.userId;
+      const { childId } = req.params;
+      const days = Math.min(30, Number(req.query.days) || 7);
+
+      // Verify parent owns child
+      const pc = await db.select().from(parentChild)
+        .where(and(eq(parentChild.parentId, parentId), eq(parentChild.childId, childId)));
+      if (!pc.length) {
+        return res.status(403).json({ success: false, error: "PARENT_CHILD_MISMATCH" });
+      }
+
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - days);
+      const startDateStr = startDate.toISOString().split("T")[0];
+
+      const history = await db.select().from(childDailyUsage)
+        .where(and(
+          eq(childDailyUsage.childId, childId),
+          sql`${childDailyUsage.date} >= ${startDateStr}`
+        ))
+        .orderBy(desc(childDailyUsage.date));
+
+      res.json({ success: true, data: history });
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: "INTERNAL_SERVER_ERROR" });
+    }
+  });
+
+  // ======= PARENT AUDIT LOG =======
+
+  // Get parent audit log
+  app.get("/api/parent/audit-log", authMiddleware, async (req: any, res) => {
+    try {
+      const parentId = req.user.userId;
+      const page = Math.max(1, parseInt(req.query.page as string) || 1);
+      const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 20));
+      const offset = (page - 1) * limit;
+      const action = req.query.action as string;
+      const entity = req.query.entity as string;
+
+      const conditions = [eq(parentAuditLogs.parentId, parentId)];
+      if (action) conditions.push(eq(parentAuditLogs.action, action));
+      if (entity) conditions.push(eq(parentAuditLogs.entity, entity));
+
+      const [logs, totalResult] = await Promise.all([
+        db.select().from(parentAuditLogs)
+          .where(and(...conditions))
+          .orderBy(desc(parentAuditLogs.createdAt))
+          .limit(limit)
+          .offset(offset),
+        db.select({ count: count() }).from(parentAuditLogs)
+          .where(and(...conditions)),
+      ]);
+
+      res.json(successResponse({
+        logs,
+        pagination: { page, limit, total: totalResult[0]?.count || 0 },
+      }));
+    } catch (error: any) {
+      console.error("Audit log error:", error);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to fetch audit log"));
+    }
+  });
+
+  // ======= PARENT-TEACHER DIRECT MESSAGING =======
+
+  // Get conversations list
+  app.get("/api/parent/messages/conversations", authMiddleware, async (req: any, res) => {
+    try {
+      const parentId = req.user.userId;
+      const conversations = await db.select({
+        conversation: parentTeacherConversations,
+        teacherName: schoolTeachers.name,
+        teacherAvatar: schoolTeachers.avatarUrl,
+      })
+        .from(parentTeacherConversations)
+        .innerJoin(schoolTeachers, eq(parentTeacherConversations.teacherId, schoolTeachers.id))
+        .where(eq(parentTeacherConversations.parentId, parentId))
+        .orderBy(desc(parentTeacherConversations.lastMessageAt));
+
+      res.json(successResponse(conversations));
+    } catch (error: any) {
+      console.error("Get conversations error:", error);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to fetch conversations"));
+    }
+  });
+
+  // Start or get conversation with teacher
+  app.post("/api/parent/messages/conversations", authMiddleware, async (req: any, res) => {
+    try {
+      const parentId = req.user.userId;
+      const { teacherId } = req.body;
+      if (!teacherId) return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "teacherId is required"));
+
+      // Get existing or create new
+      const existing = await db.select().from(parentTeacherConversations)
+        .where(and(
+          eq(parentTeacherConversations.parentId, parentId),
+          eq(parentTeacherConversations.teacherId, teacherId),
+        ));
+
+      if (existing[0]) return res.json(successResponse(existing[0]));
+
+      // Verify teacher exists
+      const teacher = await db.select({ id: schoolTeachers.id }).from(schoolTeachers).where(eq(schoolTeachers.id, teacherId));
+      if (!teacher[0]) return res.status(404).json(errorResponse(ErrorCode.NOT_FOUND, "Teacher not found"));
+
+      const [conv] = await db.insert(parentTeacherConversations).values({
+        parentId,
+        teacherId,
+      }).returning();
+
+      logParentAction(parentId, "CONVERSATION_STARTED", "message", conv.id, { teacherId }, req);
+      res.status(201).json(successResponse(conv));
+    } catch (error: any) {
+      console.error("Create conversation error:", error);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to create conversation"));
+    }
+  });
+
+  // Get messages in a conversation
+  app.get("/api/parent/messages/:conversationId", authMiddleware, async (req: any, res) => {
+    try {
+      const parentId = req.user.userId;
+      const { conversationId } = req.params;
+      const page = Math.max(1, parseInt(req.query.page as string) || 1);
+      const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 50));
+      const offset = (page - 1) * limit;
+
+      // Verify ownership
+      const conv = await db.select().from(parentTeacherConversations)
+        .where(and(
+          eq(parentTeacherConversations.id, conversationId),
+          eq(parentTeacherConversations.parentId, parentId),
+        ));
+      if (!conv[0]) return res.status(404).json(errorResponse(ErrorCode.NOT_FOUND, "Conversation not found"));
+
+      const messages = await db.select().from(parentTeacherMessages)
+        .where(eq(parentTeacherMessages.conversationId, conversationId))
+        .orderBy(desc(parentTeacherMessages.createdAt))
+        .limit(limit)
+        .offset(offset);
+
+      // Mark parent's unread as read
+      await db.update(parentTeacherConversations).set({ parentUnreadCount: 0 })
+        .where(eq(parentTeacherConversations.id, conversationId));
+
+      // Mark incoming messages as read
+      await db.update(parentTeacherMessages).set({ isRead: true })
+        .where(and(
+          eq(parentTeacherMessages.conversationId, conversationId),
+          eq(parentTeacherMessages.senderType, "teacher"),
+          eq(parentTeacherMessages.isRead, false),
+        ));
+
+      res.json(successResponse({ messages: messages.reverse(), conversation: conv[0] }));
+    } catch (error: any) {
+      console.error("Get messages error:", error);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to fetch messages"));
+    }
+  });
+
+  // Send message in conversation
+  app.post("/api/parent/messages/:conversationId", authMiddleware, async (req: any, res) => {
+    try {
+      const parentId = req.user.userId;
+      const { conversationId } = req.params;
+      const v = validateBody(helpChatMessageSchema, req.body);
+      if (!v.success) return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, v.error));
+      const { messageType, content, mediaUrl } = v.data;
+
+      // Verify ownership
+      const conv = await db.select().from(parentTeacherConversations)
+        .where(and(
+          eq(parentTeacherConversations.id, conversationId),
+          eq(parentTeacherConversations.parentId, parentId),
+        ));
+      if (!conv[0]) return res.status(404).json(errorResponse(ErrorCode.NOT_FOUND, "Conversation not found"));
+
+      const [msg] = await db.insert(parentTeacherMessages).values({
+        conversationId,
+        senderId: parentId,
+        senderType: "parent",
+        content: content || null,
+        mediaUrl: mediaUrl || null,
+        messageType: messageType || "text",
+      }).returning();
+
+      // Update conversation
+      await db.update(parentTeacherConversations).set({
+        lastMessageAt: new Date(),
+        teacherUnreadCount: sql`${parentTeacherConversations.teacherUnreadCount} + 1`,
+      }).where(eq(parentTeacherConversations.id, conversationId));
+
+      res.status(201).json(successResponse(msg));
+    } catch (error: any) {
+      console.error("Send message error:", error);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to send message"));
     }
   });
 }

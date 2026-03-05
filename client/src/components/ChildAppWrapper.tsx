@@ -6,7 +6,13 @@ import { NotificationCenter } from "./notifications/NotificationCenter";
 import { ChildTaskNotificationManager } from "./child/SponsoredTaskNotification";
 import { ChildWebPushRegistrar } from "./child/ChildWebPushRegistrar";
 import { ChildMobilePushRegistrar } from "./child/ChildMobilePushRegistrar";
+import { useScreenTimeHeartbeat } from "@/hooks/useScreenTimeHeartbeat";
 import { LoadingSpinner } from "./LoadingSpinner";
+
+function ScreenTimeHeartbeatRunner() {
+  useScreenTimeHeartbeat();
+  return null;
+}
 
 interface ChildAppWrapperProps {
   children: React.ReactNode;
@@ -76,6 +82,7 @@ export function ChildAppWrapper({ children }: ChildAppWrapperProps) {
     <div data-testid="child-wrapper-root">
       <ChildWebPushRegistrar />
       <ChildMobilePushRegistrar />
+      <ScreenTimeHeartbeatRunner />
       <NotificationCenter />
       <ChildTaskNotificationManager />
       {children}

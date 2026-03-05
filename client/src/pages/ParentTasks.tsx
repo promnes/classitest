@@ -17,10 +17,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { ArrowRight, Plus, Star, Users, BookOpen, Send, Coins, Loader2, Calendar, Clock, X, Pencil, Wallet, ShoppingCart, Heart, Sparkles, Search, ShoppingBag, Library, Infinity, RotateCcw } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { ArrowRight, Plus, Star, Users, BookOpen, Send, Coins, Loader2, Calendar, Clock, X, Pencil, Wallet, ShoppingCart, Heart, Sparkles, Search, ShoppingBag, Library, Infinity, RotateCcw, HelpCircle, MessageCircle, UserPlus, Trash2, GraduationCap } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { TaskForm, type TaskFormValue } from "@/components/forms/TaskForm";
 import { ScheduledSessionsManager } from "@/components/ScheduledSessionsManager";
+import { HelpChatDialog } from "@/components/HelpChatDialog";
 
 export default function ParentTasks() {
   const { t } = useTranslation();
@@ -50,6 +52,8 @@ export default function ParentTasks() {
   const [libraryCustomize, setLibraryCustomize] = useState(false);
   const [libraryChildId, setLibraryChildId] = useState<string>("");
   const [libraryCustomPoints, setLibraryCustomPoints] = useState<number>(0);
+  const [helpChatOpen, setHelpChatOpen] = useState(false);
+  const [selectedHelpRequest, setSelectedHelpRequest] = useState<any>(null);
   const NO_CHILD_VALUE = "__none__";
 
   const { data: subjectsData } = useQuery<any>({
@@ -184,6 +188,50 @@ export default function ParentTasks() {
 
   const browseTasks = browseData?.tasks || [];
   const cartCount = cartData?.count || 0;
+
+  const { data: parentHelpRequests = [], isLoading: loadingHelpRequests } = useQuery<any[]>({
+    queryKey: ["parent-help-requests"],
+    queryFn: async () => {
+      const res = await fetch("/api/parent/help-requests", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error("Failed");
+      const json = await res.json();
+      return json.data || [];
+    },
+    enabled: activeTab === "help" && !!token,
+  });
+
+  const { data: assignmentRequests = [], isLoading: loadingAssignmentRequests } = useQuery<any[]>({
+    queryKey: ["parent-assignment-requests"],
+    queryFn: async () => {
+      const res = await fetch("/api/parent/teacher-assignment-requests", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error("Failed");
+      const json = await res.json();
+      return json.data || [];
+    },
+    enabled: activeTab === "assignments" && !!token,
+  });
+
+  const cancelAssignmentRequest = useMutation({
+    mutationFn: async (requestId: string) => {
+      const res = await fetch(`/api/parent/teacher-assignment-request/${requestId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error("Failed");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["parent-assignment-requests"] });
+      toast({ title: "تم إلغاء الطلب بنجاح" });
+    },
+    onError: () => {
+      toast({ title: "فشل إلغاء الطلب", variant: "destructive" });
+    },
+  });
 
   const subjects = subjectsData?.data || subjectsData || [];
   const children = childrenData?.data || childrenData || [];
@@ -715,7 +763,7 @@ export default function ParentTasks() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-4 lg:grid-cols-7">
             <TabsTrigger value="classy" data-testid="tab-classy">
               <BookOpen className="h-4 w-4 ml-2" />
               {t("parentTasks.tabClassy")}
@@ -738,6 +786,24 @@ export default function ParentTasks() {
               {cartCount > 0 && (
                 <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] rounded-full h-4 w-4 flex items-center justify-center font-bold">
                   {cartCount}
+                </span>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="help" data-testid="tab-help" className="relative">
+              <HelpCircle className="h-4 w-4 ml-2" />
+              طلبات المساعدة
+              {parentHelpRequests.filter((r: any) => r.status === "active").length > 0 && (
+                <span className="absolute -top-1 -right-1 bg-orange-500 text-white text-[10px] rounded-full h-4 w-4 flex items-center justify-center font-bold">
+                  {parentHelpRequests.filter((r: any) => r.status === "active").length}
+                </span>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="assignments" data-testid="tab-assignments" className="relative">
+              <UserPlus className="h-4 w-4 ml-2" />
+              طلباتي للمعلمين
+              {assignmentRequests.filter((r: any) => r.status === "pending").length > 0 && (
+                <span className="absolute -top-1 -right-1 bg-blue-500 text-white text-[10px] rounded-full h-4 w-4 flex items-center justify-center font-bold">
+                  {assignmentRequests.filter((r: any) => r.status === "pending").length}
                 </span>
               )}
             </TabsTrigger>
@@ -1054,8 +1120,188 @@ export default function ParentTasks() {
               </>
             )}
           </TabsContent>
+
+          <TabsContent value="help" className="mt-4">
+            {loadingHelpRequests ? (
+              <div className="flex justify-center p-8">
+                <Loader2 className="h-8 w-8 animate-spin" />
+              </div>
+            ) : parentHelpRequests.length === 0 ? (
+              <Card className={isDark ? "bg-gray-800" : ""}>
+                <CardContent className="p-8 text-center">
+                  <HelpCircle className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                  <p className="text-muted-foreground">لا توجد طلبات مساعدة حالياً</p>
+                  <p className="text-sm text-muted-foreground mt-2">عندما يطلب أطفالك المساعدة في المهام، ستظهر الطلبات هنا</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid gap-3">
+                {parentHelpRequests.map((hr: any) => (
+                  <Card key={hr.id} className={`${isDark ? "bg-gray-800 border-gray-700" : ""} hover:shadow-md transition-shadow`}>
+                    <CardContent className="p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-2">
+                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-sm font-bold">
+                              {hr.childName?.charAt(0) || "؟"}
+                            </div>
+                            <div>
+                              <p className="font-bold text-sm">{hr.childName || "طفل"}</p>
+                              <p className="text-xs text-muted-foreground">طلب مساعدة</p>
+                            </div>
+                          </div>
+                          <p className="text-sm text-muted-foreground line-clamp-2">
+                            <strong>السؤال:</strong> {hr.taskQuestion || "بدون سؤال"}
+                          </p>
+                          {hr.initialQuestion && (
+                            <p className="text-xs text-muted-foreground mt-1">
+                              <strong>رسالة الطفل:</strong> {hr.initialQuestion}
+                            </p>
+                          )}
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {new Date(hr.createdAt).toLocaleDateString("ar")}
+                          </p>
+                        </div>
+                        <div className="flex flex-col items-end gap-2">
+                          <Badge variant={hr.status === "active" ? "default" : "secondary"} className={hr.status === "active" ? "bg-green-600" : ""}>
+                            {hr.status === "active" ? "نشط" : hr.status === "resolved" ? "تم الحل" : "مغلق"}
+                          </Badge>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              setSelectedHelpRequest(hr);
+                              setHelpChatOpen(true);
+                            }}
+                          >
+                            <MessageCircle className="h-4 w-4 ml-1" />
+                            فتح المحادثة
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="assignments" className="mt-4">
+            {loadingAssignmentRequests ? (
+              <div className="flex justify-center p-8">
+                <Loader2 className="h-8 w-8 animate-spin" />
+              </div>
+            ) : assignmentRequests.length === 0 ? (
+              <Card className={isDark ? "bg-gray-800" : ""}>
+                <CardContent className="p-8 text-center">
+                  <UserPlus className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                  <p className="text-muted-foreground">لم ترسل أي طلبات تعيين للمعلمين بعد</p>
+                  <p className="text-sm text-muted-foreground mt-2">يمكنك طلب تعيين معلم لأطفالك من صفحة المعلم</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid gap-3">
+                {assignmentRequests.map((req: any) => (
+                  <Card key={req.id} className={`${isDark ? "bg-gray-800 border-gray-700" : ""} hover:shadow-md transition-shadow`}>
+                    <CardContent className="p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-2">
+                            {req.teacher?.avatarUrl ? (
+                              <img src={req.teacher.avatarUrl} alt="" className="w-10 h-10 rounded-full object-cover" />
+                            ) : (
+                              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-green-400 to-blue-500 flex items-center justify-center text-white font-bold">
+                                <GraduationCap className="h-5 w-5" />
+                              </div>
+                            )}
+                            <div>
+                              <p className="font-bold text-sm">{req.teacher?.name || "معلم"}</p>
+                              {req.teacher?.subject && <p className="text-xs text-muted-foreground">{req.teacher.subject}</p>}
+                            </div>
+                          </div>
+                          {/* Children list */}
+                          <div className="flex flex-wrap gap-1 mt-2">
+                            {req.children?.map((child: any) => (
+                              <Badge key={child.id} variant="outline" className="text-xs">
+                                {child.name}
+                              </Badge>
+                            ))}
+                          </div>
+                          {req.message && (
+                            <p className="text-xs text-muted-foreground mt-2">رسالة: {req.message}</p>
+                          )}
+                          {req.rejectionReason && (
+                            <p className="text-xs text-red-500 mt-1">سبب الرفض: {req.rejectionReason}</p>
+                          )}
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {new Date(req.createdAt).toLocaleDateString("ar")}
+                          </p>
+                        </div>
+                        <div className="flex flex-col items-end gap-2">
+                          <Badge
+                            variant={req.status === "pending" ? "secondary" : req.status === "accepted" ? "default" : "destructive"}
+                            className={req.status === "accepted" ? "bg-green-600" : req.status === "pending" ? "bg-yellow-500 text-white" : ""}
+                          >
+                            {req.status === "pending" ? "⏳ قيد الانتظار" : req.status === "accepted" ? "✅ مقبول" : "❌ مرفوض"}
+                          </Badge>
+                          {req.status === "pending" && (
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="text-red-500 border-red-300 hover:bg-red-50 gap-1"
+                                  disabled={cancelAssignmentRequest.isPending}
+                                >
+                                  <Trash2 className="h-3 w-3" />
+                                  إلغاء
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent dir="rtl">
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>تأكيد الإلغاء</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    هل أنت متأكد من إلغاء طلب تعيين المعلم؟ لا يمكن التراجع عن هذا الإجراء.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>تراجع</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => cancelAssignmentRequest.mutate(req.id)}
+                                    className="bg-red-600 hover:bg-red-700"
+                                  >
+                                    نعم، إلغاء الطلب
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          )}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </TabsContent>
         </Tabs>
       </div>
+
+      {/* Help Chat Dialog */}
+      {helpChatOpen && selectedHelpRequest && (
+        <HelpChatDialog
+          open={helpChatOpen}
+          onClose={() => {
+            setHelpChatOpen(false);
+            setSelectedHelpRequest(null);
+          }}
+          helpRequestId={selectedHelpRequest.id}
+          userType="parent"
+          token={token || ""}
+          taskQuestion={selectedHelpRequest.taskQuestion}
+          status={selectedHelpRequest.status}
+        />
+      )}
 
       <Dialog open={showSendDialog} onOpenChange={(open: boolean) => {
         setShowSendDialog(open);

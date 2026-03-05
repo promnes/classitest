@@ -296,8 +296,10 @@ export const parentChild = pgTable("parent_child", {
 
 export const tasks = pgTable("tasks", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  parentId: varchar("parent_id").notNull().references(() => parents.id, { onDelete: "cascade" }),
+  parentId: varchar("parent_id").references(() => parents.id, { onDelete: "cascade" }),
   childId: varchar("child_id").notNull().references(() => children.id, { onDelete: "cascade" }),
+  teacherId: varchar("teacher_id").references(() => schoolTeachers.id, { onDelete: "set null" }),
+  senderType: varchar("sender_type", { length: 10 }).default("parent").notNull(), // "parent" | "teacher"
   subjectId: varchar("subject_id").references(() => subjects.id, { onDelete: "set null" }),
   question: text("question").notNull(),
   imageUrl: text("image_url"),
@@ -730,6 +732,71 @@ export const childPushSubscriptions = pgTable("child_push_subscriptions", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (table) => ({
   byChildActiveIdx: index("idx_child_push_subscriptions_child_active").on(table.childId, table.isActive),
+}));
+
+// Parent push subscriptions
+export const parentPushSubscriptions = pgTable("parent_push_subscriptions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  parentId: varchar("parent_id").notNull().references(() => parents.id, { onDelete: "cascade" }),
+  platform: varchar("platform", { length: 20 }).notNull(),
+  endpoint: text("endpoint"),
+  token: text("token"),
+  p256dh: text("p256dh"),
+  auth: text("auth"),
+  deviceId: text("device_id"),
+  isActive: boolean("is_active").default(true).notNull(),
+  lastSeenAt: timestamp("last_seen_at").defaultNow().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => ({
+  byParentActiveIdx: index("idx_parent_push_subscriptions_parent_active").on(table.parentId, table.isActive),
+}));
+
+// Teacher push subscriptions
+export const teacherPushSubscriptions = pgTable("teacher_push_subscriptions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  teacherId: varchar("teacher_id").notNull().references(() => schoolTeachers.id, { onDelete: "cascade" }),
+  platform: varchar("platform", { length: 20 }).notNull(),
+  endpoint: text("endpoint"),
+  token: text("token"),
+  p256dh: text("p256dh"),
+  auth: text("auth"),
+  deviceId: text("device_id"),
+  isActive: boolean("is_active").default(true).notNull(),
+  lastSeenAt: timestamp("last_seen_at").defaultNow().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => ({
+  byTeacherActiveIdx: index("idx_teacher_push_subscriptions_teacher_active").on(table.teacherId, table.isActive),
+}));
+
+// إعدادات وقت الشاشة للأطفال
+export const screenTimeSettings = pgTable("screen_time_settings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  childId: varchar("child_id").notNull().references(() => children.id, { onDelete: "cascade" }),
+  parentId: varchar("parent_id").notNull().references(() => parents.id, { onDelete: "cascade" }),
+  dailyLimitMinutes: integer("daily_limit_minutes").default(120).notNull(), // Default 2 hours
+  isEnabled: boolean("is_enabled").default(false).notNull(),
+  allowedStartTime: varchar("allowed_start_time", { length: 5 }).default("08:00"), // HH:MM
+  allowedEndTime: varchar("allowed_end_time", { length: 5 }).default("20:00"),     // HH:MM
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => ({
+  byChildIdx: index("idx_screen_time_settings_child").on(table.childId),
+}));
+
+// سجل الاستخدام اليومي للأطفال
+export const childDailyUsage = pgTable("child_daily_usage", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  childId: varchar("child_id").notNull().references(() => children.id, { onDelete: "cascade" }),
+  date: varchar("date", { length: 10 }).notNull(), // YYYY-MM-DD
+  totalMinutes: integer("total_minutes").default(0).notNull(),
+  sessionsCount: integer("sessions_count").default(0).notNull(),
+  lastActivityAt: timestamp("last_activity_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => ({
+  byChildDateIdx: index("idx_child_daily_usage_child_date").on(table.childId, table.date),
 }));
 
 // سجل محاولات تسليم إشعارات المهام
@@ -2457,3 +2524,152 @@ export const schoolEnrollments = pgTable("school_enrollments", {
 export const insertSchoolEnrollmentSchema = createInsertSchema(schoolEnrollments).omit({ id: true, createdAt: true, reviewedAt: true, reviewedBy: true });
 export type SchoolEnrollment = typeof schoolEnrollments.$inferSelect;
 export type InsertSchoolEnrollment = z.infer<typeof insertSchoolEnrollmentSchema>;
+
+// ===== Teacher Assignment Requests (طلبات تعيين المعلمين) =====
+export const teacherAssignmentRequests = pgTable("teacher_assignment_requests", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  parentId: varchar("parent_id").notNull().references(() => parents.id, { onDelete: "cascade" }),
+  teacherId: varchar("teacher_id").notNull().references(() => schoolTeachers.id, { onDelete: "cascade" }),
+  monthlyPoints: integer("monthly_points").notNull(),
+  status: varchar("status", { length: 20 }).default("pending").notNull(), // pending | accepted | rejected
+  rejectionReason: text("rejection_reason"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  respondedAt: timestamp("responded_at"),
+}, (table) => ({
+  parentIdx: index("tar_parent_idx").on(table.parentId),
+  teacherIdx: index("tar_teacher_idx").on(table.teacherId),
+  statusIdx: index("tar_status_idx").on(table.status),
+}));
+
+export const teacherAssignmentRequestChildren = pgTable("teacher_assignment_request_children", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  requestId: varchar("request_id").notNull().references(() => teacherAssignmentRequests.id, { onDelete: "cascade" }),
+  childId: varchar("child_id").notNull().references(() => children.id, { onDelete: "cascade" }),
+}, (table) => ({
+  requestIdx: index("tarc_request_idx").on(table.requestId),
+  childIdx: index("tarc_child_idx").on(table.childId),
+}));
+
+// ===== Teacher Child Permissions (صلاحيات المعلم للأطفال) =====
+export const teacherChildPermissions = pgTable("teacher_child_permissions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  teacherId: varchar("teacher_id").notNull().references(() => schoolTeachers.id, { onDelete: "cascade" }),
+  childId: varchar("child_id").notNull().references(() => children.id, { onDelete: "cascade" }),
+  parentId: varchar("parent_id").notNull().references(() => parents.id, { onDelete: "cascade" }),
+  requestId: varchar("request_id").notNull().references(() => teacherAssignmentRequests.id, { onDelete: "cascade" }),
+  monthlyPoints: integer("monthly_points").notNull(),
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  teacherIdx: index("tcp_teacher_idx").on(table.teacherId),
+  childIdx: index("tcp_child_idx").on(table.childId),
+  parentIdx: index("tcp_parent_idx").on(table.parentId),
+  uniquePermission: uniqueIndex("tcp_unique_idx").on(table.teacherId, table.childId),
+}));
+
+// ===== Task Help Requests (طلبات المساعدة في المهام) =====
+export const taskHelpRequests = pgTable("task_help_requests", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  taskId: varchar("task_id").notNull().references(() => tasks.id, { onDelete: "cascade" }),
+  childId: varchar("child_id").notNull().references(() => children.id, { onDelete: "cascade" }),
+  helperType: varchar("helper_type", { length: 10 }).notNull(), // "parent" | "teacher"
+  helperId: varchar("helper_id").notNull(), // parentId or teacherId
+  status: varchar("status", { length: 20 }).default("active").notNull(), // active | resolved
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  resolvedAt: timestamp("resolved_at"),
+}, (table) => ({
+  taskIdx: index("thr_task_idx").on(table.taskId),
+  childIdx: index("thr_child_idx").on(table.childId),
+  helperIdx: index("thr_helper_idx").on(table.helperType, table.helperId),
+}));
+
+// ===== Task Help Messages (رسائل المساعدة) =====
+export const taskHelpMessages = pgTable("task_help_messages", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  helpRequestId: varchar("help_request_id").notNull().references(() => taskHelpRequests.id, { onDelete: "cascade" }),
+  senderType: varchar("sender_type", { length: 10 }).notNull(), // "child" | "parent" | "teacher"
+  senderId: varchar("sender_id").notNull(),
+  messageType: varchar("message_type", { length: 10 }).notNull(), // "text" | "image" | "voice"
+  content: text("content"), // text content
+  mediaUrl: text("media_url"), // for images and voice recordings
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  helpRequestIdx: index("thm_help_request_idx").on(table.helpRequestId),
+  createdIdx: index("thm_created_idx").on(table.createdAt),
+}));
+
+export type TeacherAssignmentRequest = typeof teacherAssignmentRequests.$inferSelect;
+export type TeacherAssignmentRequestChild = typeof teacherAssignmentRequestChildren.$inferSelect;
+export type TeacherChildPermission = typeof teacherChildPermissions.$inferSelect;
+export type TaskHelpRequest = typeof taskHelpRequests.$inferSelect;
+export type TaskHelpMessage = typeof taskHelpMessages.$inferSelect;
+
+// ===== Monthly Subscription Deductions =====
+export const monthlySubscriptionDeductions = pgTable("monthly_subscription_deductions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  permissionId: varchar("permission_id").notNull().references(() => teacherChildPermissions.id, { onDelete: "cascade" }),
+  parentId: varchar("parent_id").notNull().references(() => parents.id, { onDelete: "cascade" }),
+  teacherId: varchar("teacher_id").notNull().references(() => schoolTeachers.id, { onDelete: "cascade" }),
+  childId: varchar("child_id").notNull().references(() => children.id, { onDelete: "cascade" }),
+  pointsDeducted: integer("points_deducted").notNull(),
+  month: varchar("month", { length: 7 }).notNull(), // YYYY-MM
+  status: varchar("status", { length: 20 }).default("success").notNull(), // success | failed | insufficient_balance
+  failureReason: text("failure_reason"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  permissionMonthIdx: uniqueIndex("msd_permission_month_idx").on(table.permissionId, table.month),
+  parentMonthIdx: index("msd_parent_month_idx").on(table.parentId, table.month),
+}));
+
+export type MonthlySubscriptionDeduction = typeof monthlySubscriptionDeductions.$inferSelect;
+
+// ===== Parent Audit Logs =====
+export const parentAuditLogs = pgTable("parent_audit_logs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  parentId: varchar("parent_id").notNull().references(() => parents.id, { onDelete: "cascade" }),
+  action: varchar("action", { length: 100 }).notNull(),
+  entity: varchar("entity", { length: 50 }).notNull(), // profile, password, wallet, deposit, gift, child, task, teacher, screen_time
+  entityId: varchar("entity_id"),
+  details: jsonb("details"),
+  ipAddress: varchar("ip_address", { length: 45 }),
+  userAgent: text("user_agent"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  parentIdx: index("pal_parent_idx").on(table.parentId),
+  actionIdx: index("pal_action_idx").on(table.action),
+  createdIdx: index("pal_created_idx").on(table.createdAt),
+}));
+
+export type ParentAuditLog = typeof parentAuditLogs.$inferSelect;
+
+// ===== Parent-Teacher Direct Messages =====
+export const parentTeacherConversations = pgTable("parent_teacher_conversations", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  parentId: varchar("parent_id").notNull().references(() => parents.id, { onDelete: "cascade" }),
+  teacherId: varchar("teacher_id").notNull().references(() => schoolTeachers.id, { onDelete: "cascade" }),
+  lastMessageAt: timestamp("last_message_at").defaultNow(),
+  parentUnreadCount: integer("parent_unread_count").default(0),
+  teacherUnreadCount: integer("teacher_unread_count").default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  parentTeacherIdx: uniqueIndex("ptc_parent_teacher_idx").on(table.parentId, table.teacherId),
+  lastMsgIdx: index("ptc_last_msg_idx").on(table.lastMessageAt),
+}));
+
+export const parentTeacherMessages = pgTable("parent_teacher_messages", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  conversationId: varchar("conversation_id").notNull().references(() => parentTeacherConversations.id, { onDelete: "cascade" }),
+  senderId: varchar("sender_id").notNull(),
+  senderType: varchar("sender_type", { length: 10 }).notNull(), // "parent" | "teacher"
+  content: text("content"),
+  mediaUrl: text("media_url"),
+  messageType: varchar("message_type", { length: 10 }).default("text").notNull(), // "text" | "image" | "voice"
+  isRead: boolean("is_read").default(false),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  conversationIdx: index("ptm_conversation_idx").on(table.conversationId),
+  createdIdx: index("ptm_created_idx").on(table.createdAt),
+}));
+
+export type ParentTeacherConversation = typeof parentTeacherConversations.$inferSelect;
+export type ParentTeacherMessage = typeof parentTeacherMessages.$inferSelect;

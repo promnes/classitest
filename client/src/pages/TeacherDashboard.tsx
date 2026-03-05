@@ -1,8 +1,10 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, lazy, Suspense } from "react";
 import { useTranslation } from 'react-i18next';
 import { useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import ImageCropper from "@/components/ImageCropper";
+// Lazy-load heavy image cropper component
+const ImageCropper = lazy(() => import("@/components/ImageCropper"));
+import { TeacherWebPushRegistrar } from "@/components/TeacherWebPushRegistrar";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,11 +18,13 @@ import { queryClient } from "@/lib/queryClient";
 import { ShareMenu } from "@/components/ui/ShareMenu";
 import { TeacherNotificationBell } from "@/components/AccountNotificationBell";
 import { LanguageSelector } from "@/components/LanguageSelector";
+import { HelpChatDialog } from "@/components/HelpChatDialog";
 import {
   GraduationCap, BookOpen, Users, Star, LogOut, Plus, Edit, Trash2,
   DollarSign, TrendingUp, ArrowDownToLine, CheckCircle, Clock, MessageSquare,
   Image, Video, Upload, X, FileText, Settings, Camera, Link2, User,
-  BarChart3, Lock, Unlock, Pin, PinOff,
+  BarChart3, Lock, Unlock, Pin, PinOff, UserPlus, Send, XCircle, HelpCircle,
+  Download, Search,
 } from "lucide-react";
 
 interface Task {
@@ -167,6 +171,22 @@ export default function TeacherDashboard() {
   });
   const [uploadingPollOptionIdx, setUploadingPollOptionIdx] = useState<number | null>(null);
 
+  // Assignment & Help states
+  const [showSendTaskModal, setShowSendTaskModal] = useState(false);
+  const [selectedChildForTask, setSelectedChildForTask] = useState<any>(null);
+  const [sendTaskForm, setSendTaskForm] = useState({ question: "", pointsReward: "", answers: [{ id: "s1", text: "", isCorrect: true }, { id: "s2", text: "", isCorrect: false }] });
+  const [selectedHelpRequest, setSelectedHelpRequest] = useState<any>(null);
+  const [respondingRequestId, setRespondingRequestId] = useState<string | null>(null);
+  const [rejectionReason, setRejectionReason] = useState("");
+  const [showRejectDialog, setShowRejectDialog] = useState(false);
+  // Child reports states
+  const [showReportsDialog, setShowReportsDialog] = useState(false);
+  // Help filter/search states
+  const [helpFilterStatus, setHelpFilterStatus] = useState<"all" | "active" | "resolved">("all");
+  const [helpSearchQuery, setHelpSearchQuery] = useState("");
+  const [reportsChildId, setReportsChildId] = useState<string | null>(null);
+  const [reportsChildName, setReportsChildName] = useState("");
+
   const [taskForm, setTaskForm] = useState({
     title: "",
     question: "",
@@ -299,6 +319,62 @@ export default function TeacherDashboard() {
       return (await res.json()).data;
     },
     enabled: !!token && !!selectedSubjectId,
+  });
+
+  // Assignment requests
+  const { data: assignmentRequests = [] } = useQuery<any[]>({
+    queryKey: ["teacher-assignment-requests"],
+    queryFn: async () => {
+      const res = await fetch("/api/teacher/assignment-requests", { headers: authHeaders });
+      if (!res.ok) return [];
+      return (await res.json()).data || [];
+    },
+    enabled: !!token,
+  });
+
+  // Assigned children
+  const { data: assignedChildren = [] } = useQuery<any[]>({
+    queryKey: ["teacher-assigned-children"],
+    queryFn: async () => {
+      const res = await fetch("/api/teacher/assigned-children", { headers: authHeaders });
+      if (!res.ok) return [];
+      return (await res.json()).data || [];
+    },
+    enabled: !!token,
+  });
+
+  // Help requests
+  // Child reports query
+  const { data: childReportsData, isLoading: isLoadingReports } = useQuery({
+    queryKey: ["teacher-child-reports", reportsChildId],
+    queryFn: async () => {
+      const res = await fetch(`/api/teacher/child-reports/${reportsChildId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) return null;
+      const json = await res.json();
+      return json.data;
+    },
+    enabled: !!reportsChildId && showReportsDialog,
+  });
+
+  const { data: helpRequests = [] } = useQuery<any[]>({
+    queryKey: ["teacher-help-requests"],
+    queryFn: async () => {
+      const res = await fetch("/api/teacher/help-requests", { headers: authHeaders });
+      if (!res.ok) return [];
+      return (await res.json()).data || [];
+    },
+    enabled: !!token,
+  });
+
+  // Filtered help requests based on status filter and search query
+  const filteredHelpRequests = helpRequests.filter((hr: any) => {
+    const matchesStatus = helpFilterStatus === "all" || hr.status === helpFilterStatus;
+    const matchesSearch = !helpSearchQuery.trim() ||
+      (hr.childName || "").toLowerCase().includes(helpSearchQuery.toLowerCase()) ||
+      (hr.taskQuestion || "").toLowerCase().includes(helpSearchQuery.toLowerCase());
+    return matchesStatus && matchesSearch;
   });
 
   // ===== Mutations =====
@@ -508,6 +584,54 @@ export default function TeacherDashboard() {
       toast({ title: t('teacherDashboard.pollDeleted') });
     },
     onError: (err: any) => toast({ title: err.message || t('teacherDashboard.deleteFailed'), variant: "destructive" }),
+  });
+
+  // Respond to assignment request
+  const respondToRequest = useMutation({
+    mutationFn: async ({ id, status, rejectionReason }: { id: string; status: "accepted" | "rejected"; rejectionReason?: string }) => {
+      const res = await fetch(`/api/teacher/assignment-requests/${id}/respond`, {
+        method: "PUT",
+        headers: { ...authHeaders, "Content-Type": "application/json" },
+        body: JSON.stringify({ status, rejectionReason }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ message: "فشل" }));
+        throw new Error(err.message || "فشل");
+      }
+      return res.json();
+    },
+    onSuccess: (_, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["teacher-assignment-requests"] });
+      queryClient.invalidateQueries({ queryKey: ["teacher-assigned-children"] });
+      setRespondingRequestId(null);
+      setRejectionReason("");
+      setShowRejectDialog(false);
+      toast({ title: vars.status === "accepted" ? "تم قبول الطلب ✅" : "تم رفض الطلب" });
+    },
+    onError: (err: any) => toast({ title: err.message, variant: "destructive" }),
+  });
+
+  // Send task to assigned child
+  const sendTaskToChild = useMutation({
+    mutationFn: async (data: any) => {
+      const res = await fetch("/api/teacher/send-task-to-child", {
+        method: "POST",
+        headers: { ...authHeaders, "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ message: "فشل" }));
+        throw new Error(err.message || "فشل إرسال المهمة");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      setShowSendTaskModal(false);
+      setSelectedChildForTask(null);
+      setSendTaskForm({ question: "", pointsReward: "", answers: [{ id: "s1", text: "", isCorrect: true }, { id: "s2", text: "", isCorrect: false }] });
+      toast({ title: "تم إرسال المهمة للطفل بنجاح ✅" });
+    },
+    onError: (err: any) => toast({ title: err.message, variant: "destructive" }),
   });
 
   function resetPollForm() {
@@ -788,6 +912,7 @@ export default function TeacherDashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900" dir="rtl">
+      <TeacherWebPushRegistrar />
       {/* Header */}
       <div className="bg-green-600 text-white p-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
@@ -855,9 +980,26 @@ export default function TeacherDashboard() {
 
         {/* Tabs */}
         <Tabs defaultValue="tasks" dir="rtl">
-          <TabsList className="grid w-full grid-cols-7">
+          <TabsList className="grid w-full grid-cols-5 lg:grid-cols-10">
             <TabsTrigger value="tasks">{t('teacherDashboard.tabTasks')}</TabsTrigger>
             <TabsTrigger value="templates">{t('teacherDashboard.tabTemplates')}</TabsTrigger>
+            <TabsTrigger value="assignment-requests" className="relative">
+              طلبات التعيين
+              {assignmentRequests.filter((r: any) => r.status === "pending").length > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center">
+                  {assignmentRequests.filter((r: any) => r.status === "pending").length}
+                </span>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="assigned-children">طلابي</TabsTrigger>
+            <TabsTrigger value="help-requests" className="relative">
+              طلبات المساعدة
+              {helpRequests.filter((r: any) => r.status === "active").length > 0 && (
+                <span className="absolute -top-1 -right-1 bg-orange-500 text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center">
+                  {helpRequests.filter((r: any) => r.status === "active").length}
+                </span>
+              )}
+            </TabsTrigger>
             <TabsTrigger value="orders">{t('teacherDashboard.tabOrders')}</TabsTrigger>
             <TabsTrigger value="balance">{t('teacherDashboard.tabWallet')}</TabsTrigger>
             <TabsTrigger value="posts">{t('teacherDashboard.tabPosts')}</TabsTrigger>
@@ -971,6 +1113,223 @@ export default function TeacherDashboard() {
                         <FileText className="h-3 w-3" />
                         {t('teacherDashboard.useTemplate')}
                       </Button>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
+          {/* Assignment Requests Tab */}
+          <TabsContent value="assignment-requests" className="space-y-4">
+            <h2 className="text-lg font-bold flex items-center gap-2">
+              <UserPlus className="h-5 w-5 text-green-600" />
+              طلبات تعيين من أولياء الأمور
+            </h2>
+            {assignmentRequests.length === 0 ? (
+              <Card><CardContent className="p-8 text-center text-muted-foreground">
+                <UserPlus className="h-12 w-12 mx-auto text-gray-300 mb-3" />
+                <p>لا توجد طلبات تعيين بعد</p>
+              </CardContent></Card>
+            ) : (
+              <div className="space-y-3">
+                {assignmentRequests.map((req: any) => (
+                  <Card key={req.id} className={req.status === "pending" ? "border-yellow-300 dark:border-yellow-700" : ""}>
+                    <CardContent className="p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="font-bold">{req.parentName || "ولي أمر"}</span>
+                            <Badge variant={req.status === "pending" ? "secondary" : req.status === "accepted" ? "default" : "destructive"}>
+                              {req.status === "pending" ? "⏳ معلق" : req.status === "accepted" ? "✅ مقبول" : "❌ مرفوض"}
+                            </Badge>
+                          </div>
+                          <p className="text-sm text-muted-foreground">
+                            النقاط الشهرية: <strong className="text-green-600">{req.monthlyPoints}</strong> نقطة
+                          </p>
+                          <div className="mt-2 flex flex-wrap gap-1">
+                            {req.children?.map((child: any) => (
+                              <Badge key={child.id} variant="outline" className="text-xs gap-1">
+                                👧 {child.name}
+                              </Badge>
+                            ))}
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-2">
+                            {new Date(req.createdAt).toLocaleDateString("ar-EG", { year: "numeric", month: "long", day: "numeric" })}
+                          </p>
+                        </div>
+                        {req.status === "pending" && (
+                          <div className="flex gap-2 shrink-0">
+                            <Button
+                              size="sm"
+                              className="bg-green-600 hover:bg-green-700 gap-1"
+                              onClick={() => respondToRequest.mutate({ id: String(req.id), status: "accepted" })}
+                              disabled={respondToRequest.isPending}
+                            >
+                              <CheckCircle className="h-3 w-3" />
+                              قبول
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              className="gap-1"
+                              onClick={() => { setRespondingRequestId(String(req.id)); setShowRejectDialog(true); }}
+                            >
+                              <XCircle className="h-3 w-3" />
+                              رفض
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                      {req.rejectionReason && (
+                        <p className="mt-2 text-sm text-red-600 bg-red-50 dark:bg-red-950 p-2 rounded">سبب الرفض: {req.rejectionReason}</p>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
+          {/* Assigned Children Tab */}
+          <TabsContent value="assigned-children" className="space-y-4">
+            <h2 className="text-lg font-bold flex items-center gap-2">
+              <Users className="h-5 w-5 text-blue-600" />
+              طلابي المعينين
+            </h2>
+            {assignedChildren.length === 0 ? (
+              <Card><CardContent className="p-8 text-center text-muted-foreground">
+                <Users className="h-12 w-12 mx-auto text-gray-300 mb-3" />
+                <p>لا يوجد طلاب معينين بعد</p>
+                <p className="text-xs mt-1">اقبل طلبات التعيين من أولياء الأمور لإضافة طلاب</p>
+              </CardContent></Card>
+            ) : (
+              <div className="grid md:grid-cols-2 gap-4">
+                {assignedChildren.map((child: any) => (
+                  <Card key={child.childId} className="hover:shadow-md transition-shadow">
+                    <CardContent className="p-4">
+                      <div className="flex items-center gap-3 mb-3">
+                        {child.avatarUrl ? (
+                          <img src={child.avatarUrl} alt="" className="w-10 h-10 rounded-full object-cover" />
+                        ) : (
+                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white font-bold">
+                            {child.childName?.[0] || "؟"}
+                          </div>
+                        )}
+                        <div className="flex-1">
+                          <h3 className="font-bold">{child.childName}</h3>
+                          <p className="text-xs text-muted-foreground">ولي الأمر: {child.parentName}</p>
+                        </div>
+                        <Badge variant="outline" className="text-xs">
+                          {child.monthlyPoints} نقطة/شهر
+                        </Badge>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          className="flex-1 bg-blue-600 hover:bg-blue-700 gap-1"
+                          onClick={() => { setSelectedChildForTask(child); setShowSendTaskModal(true); }}
+                        >
+                          <Send className="h-3 w-3" />
+                          إرسال مهمة
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="flex-1 gap-1"
+                          onClick={() => {
+                            setReportsChildId(child.childId);
+                            setReportsChildName(child.childName);
+                            setShowReportsDialog(true);
+                          }}
+                        >
+                          <BarChart3 className="h-3 w-3" />
+                          التقارير
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
+          {/* Help Requests Tab */}
+          <TabsContent value="help-requests" className="space-y-4">
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <h2 className="text-lg font-bold flex items-center gap-2">
+                <HelpCircle className="h-5 w-5 text-orange-500" />
+                طلبات المساعدة
+              </h2>
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  variant={helpFilterStatus === "all" ? "default" : "outline"}
+                  onClick={() => setHelpFilterStatus("all")}
+                  className="text-xs h-7"
+                >
+                  الكل ({helpRequests.length})
+                </Button>
+                <Button
+                  size="sm"
+                  variant={helpFilterStatus === "active" ? "default" : "outline"}
+                  onClick={() => setHelpFilterStatus("active")}
+                  className="text-xs h-7"
+                >
+                  🔴 نشط ({helpRequests.filter((hr: any) => hr.status === "active").length})
+                </Button>
+                <Button
+                  size="sm"
+                  variant={helpFilterStatus === "resolved" ? "default" : "outline"}
+                  onClick={() => setHelpFilterStatus("resolved")}
+                  className="text-xs h-7"
+                >
+                  ✅ تم الحل ({helpRequests.filter((hr: any) => hr.status === "resolved").length})
+                </Button>
+              </div>
+            </div>
+            {/* Search */}
+            <div className="relative">
+              <Input
+                placeholder="🔍 بحث باسم الطفل أو السؤال..."
+                value={helpSearchQuery}
+                onChange={(e) => setHelpSearchQuery(e.target.value)}
+                className="h-9 text-sm"
+                dir="rtl"
+              />
+            </div>
+            {filteredHelpRequests.length === 0 ? (
+              <Card><CardContent className="p-8 text-center text-muted-foreground">
+                <HelpCircle className="h-12 w-12 mx-auto text-gray-300 mb-3" />
+                <p>لا توجد طلبات مساعدة</p>
+              </CardContent></Card>
+            ) : (
+              <div className="space-y-3">
+                {filteredHelpRequests.map((hr: any) => (
+                  <Card key={hr.id} className={hr.status === "active" ? "border-orange-300 dark:border-orange-700" : ""}>
+                    <CardContent className="p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="font-bold text-sm">🧒 {hr.childName || "طفل"}</span>
+                            <Badge variant={hr.status === "active" ? "secondary" : "default"}>
+                              {hr.status === "active" ? "🔴 نشط" : "✅ تم الحل"}
+                            </Badge>
+                          </div>
+                          <p className="text-sm mt-1">📝 {hr.taskQuestion}</p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {new Date(hr.createdAt).toLocaleDateString("ar-EG", { year: "numeric", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                          </p>
+                        </div>
+                        <Button
+                          size="sm"
+                          className="gap-1"
+                          onClick={() => setSelectedHelpRequest(hr)}
+                        >
+                          <MessageSquare className="h-3 w-3" />
+                          فتح المحادثة
+                        </Button>
+                      </div>
                     </CardContent>
                   </Card>
                 ))}
@@ -1922,13 +2281,271 @@ export default function TeacherDashboard() {
       </Dialog>
 
       {/* Image Cropper */}
-      <ImageCropper
-        open={cropperOpen}
-        onClose={() => { setCropperOpen(false); setCropperImage(""); }}
-        imageSrc={cropperImage}
-        onCropComplete={handleCroppedTeacherImage}
-        mode={cropperMode}
-      />
+      <Suspense fallback={null}>
+        <ImageCropper
+          open={cropperOpen}
+          onClose={() => { setCropperOpen(false); setCropperImage(""); }}
+          imageSrc={cropperImage}
+          onCropComplete={handleCroppedTeacherImage}
+          mode={cropperMode}
+        />
+      </Suspense>
+
+      {/* Reject Assignment Dialog */}
+      <Dialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
+        <DialogContent className="max-w-sm" dir="rtl">
+          <DialogHeader><DialogTitle>رفض طلب التعيين</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <Label>سبب الرفض (اختياري)</Label>
+            <Textarea
+              value={rejectionReason}
+              onChange={(e) => setRejectionReason(e.target.value)}
+              placeholder="اكتب سبب الرفض..."
+            />
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => { setShowRejectDialog(false); setRespondingRequestId(null); }}>إلغاء</Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                if (respondingRequestId) {
+                  respondToRequest.mutate({ id: respondingRequestId, status: "rejected", rejectionReason: rejectionReason || undefined });
+                }
+              }}
+              disabled={respondToRequest.isPending}
+            >
+              {respondToRequest.isPending ? "جاري..." : "تأكيد الرفض"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Send Task to Child Modal */}
+      <Dialog open={showSendTaskModal} onOpenChange={setShowSendTaskModal}>
+        <DialogContent className="max-w-md" dir="rtl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Send className="h-5 w-5 text-blue-600" />
+              إرسال مهمة إلى {selectedChildForTask?.childName}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label>السؤال</Label>
+              <Textarea
+                value={sendTaskForm.question}
+                onChange={(e) => setSendTaskForm(f => ({ ...f, question: e.target.value }))}
+                placeholder="اكتب السؤال..."
+              />
+            </div>
+            <div>
+              <Label>عدد النقاط (المكافأة)</Label>
+              <Input
+                type="number"
+                min="1"
+                value={sendTaskForm.pointsReward}
+                onChange={(e) => setSendTaskForm(f => ({ ...f, pointsReward: e.target.value }))}
+                placeholder="10"
+              />
+            </div>
+            <div>
+              <Label>الإجابات (حدد الصحيحة)</Label>
+              <div className="space-y-2 mt-1">
+                {sendTaskForm.answers.map((ans, i) => (
+                  <div key={ans.id} className="flex items-center gap-2">
+                    <input
+                      type="radio"
+                      name="correctSendAnswer"
+                      checked={ans.isCorrect}
+                      onChange={() => setSendTaskForm(f => ({
+                        ...f,
+                        answers: f.answers.map((a, j) => ({ ...a, isCorrect: j === i })),
+                      }))}
+                      className="accent-green-600"
+                    />
+                    <Input
+                      placeholder={`إجابة ${i + 1}`}
+                      value={ans.text}
+                      onChange={(e) => setSendTaskForm(f => ({
+                        ...f,
+                        answers: f.answers.map((a, j) => j === i ? { ...a, text: e.target.value } : a),
+                      }))}
+                      className="flex-1"
+                    />
+                    {sendTaskForm.answers.length > 2 && (
+                      <button
+                        onClick={() => setSendTaskForm(f => ({
+                          ...f,
+                          answers: f.answers.filter((_, j) => j !== i),
+                        }))}
+                        className="text-red-400 hover:text-red-600"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    )}
+                  </div>
+                ))}
+                {sendTaskForm.answers.length < 6 && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="w-full gap-1"
+                    onClick={() => setSendTaskForm(f => ({
+                      ...f,
+                      answers: [...f.answers, { id: `s${Date.now()}`, text: "", isCorrect: false }],
+                    }))}
+                  >
+                    <Plus className="h-3 w-3" />
+                    إضافة إجابة
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setShowSendTaskModal(false)}>إلغاء</Button>
+            <Button
+              className="bg-blue-600 hover:bg-blue-700"
+              onClick={() => {
+                const filteredAnswers = sendTaskForm.answers.filter(a => a.text.trim());
+                if (!sendTaskForm.question.trim() || filteredAnswers.length < 2 || !sendTaskForm.pointsReward) {
+                  toast({ title: "السؤال والنقاط وإجابتين على الأقل مطلوبة", variant: "destructive" });
+                  return;
+                }
+                if (!filteredAnswers.some(a => a.isCorrect)) {
+                  toast({ title: "يجب تحديد إجابة صحيحة", variant: "destructive" });
+                  return;
+                }
+                sendTaskToChild.mutate({
+                  childId: selectedChildForTask?.childId,
+                  question: sendTaskForm.question,
+                  pointsReward: Number(sendTaskForm.pointsReward),
+                  answers: filteredAnswers.map(a => ({ text: a.text, isCorrect: a.isCorrect })),
+                });
+              }}
+              disabled={sendTaskToChild.isPending}
+            >
+              {sendTaskToChild.isPending ? "جاري الإرسال..." : "إرسال المهمة"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Help Chat Dialog */}
+      {selectedHelpRequest && (
+        <HelpChatDialog
+          open={!!selectedHelpRequest}
+          onClose={() => setSelectedHelpRequest(null)}
+          helpRequestId={selectedHelpRequest.id}
+          userType="teacher"
+          token={token || ""}
+          taskQuestion={selectedHelpRequest.taskQuestion}
+          status={selectedHelpRequest.status}
+        />
+      )}
+
+      {/* Child Reports Dialog */}
+      <Dialog open={showReportsDialog} onOpenChange={(open) => { if (!open) { setShowReportsDialog(false); setReportsChildId(null); } }}>
+        <DialogContent className="max-w-md" dir="rtl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <BarChart3 className="h-5 w-5 text-blue-600" />
+              تقارير {reportsChildName}
+            </DialogTitle>
+          </DialogHeader>
+          {isLoadingReports ? (
+            <div className="flex justify-center py-8">
+              <div className="h-8 w-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : childReportsData ? (
+            <div className="space-y-4">
+              {/* Stats Grid */}
+              <div className="grid grid-cols-2 gap-3">
+                <Card className="bg-blue-50 dark:bg-blue-950/30 border-blue-200">
+                  <CardContent className="p-3 text-center">
+                    <p className="text-2xl font-bold text-blue-600">{childReportsData.stats.totalTasks}</p>
+                    <p className="text-xs text-muted-foreground">إجمالي المهام</p>
+                  </CardContent>
+                </Card>
+                <Card className="bg-green-50 dark:bg-green-950/30 border-green-200">
+                  <CardContent className="p-3 text-center">
+                    <p className="text-2xl font-bold text-green-600">{childReportsData.stats.completedTasks}</p>
+                    <p className="text-xs text-muted-foreground">مكتملة</p>
+                  </CardContent>
+                </Card>
+                <Card className="bg-yellow-50 dark:bg-yellow-950/30 border-yellow-200">
+                  <CardContent className="p-3 text-center">
+                    <p className="text-2xl font-bold text-yellow-600">{childReportsData.stats.pendingTasks}</p>
+                    <p className="text-xs text-muted-foreground">قيد الانتظار</p>
+                  </CardContent>
+                </Card>
+                <Card className="bg-purple-50 dark:bg-purple-950/30 border-purple-200">
+                  <CardContent className="p-3 text-center">
+                    <p className="text-2xl font-bold text-purple-600">{childReportsData.stats.completionRate}%</p>
+                    <p className="text-xs text-muted-foreground">نسبة الإكمال</p>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Total Points */}
+              <Card>
+                <CardContent className="p-3 flex items-center justify-between">
+                  <span className="text-sm font-medium">النقاط المكتسبة</span>
+                  <Badge className="bg-amber-100 text-amber-700 text-sm">⭐ {childReportsData.stats.totalPointsEarned}</Badge>
+                </CardContent>
+              </Card>
+
+              {/* Recent Tasks */}
+              {childReportsData.recentTasks.length > 0 && (
+                <div>
+                  <h4 className="font-bold text-sm mb-2">آخر المهام</h4>
+                  <div className="space-y-2 max-h-48 overflow-y-auto">
+                    {childReportsData.recentTasks.map((task: any) => (
+                      <div key={task.id} className="flex items-center justify-between gap-2 p-2 rounded-lg bg-gray-50 dark:bg-gray-800">
+                        <p className="text-xs flex-1 line-clamp-1">{task.question}</p>
+                        <Badge variant={task.status === "completed" ? "default" : "secondary"} className="text-[10px] shrink-0">
+                          {task.status === "completed" ? "✅ مكتمل" : "⏳ قيد الانتظار"}
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Export Button */}
+              <Button
+                variant="outline"
+                className="w-full gap-2"
+                onClick={() => {
+                  const stats = childReportsData.stats;
+                  const tasks = childReportsData.recentTasks;
+                  const csvHeader = "السؤال,الحالة,النقاط,التاريخ\n";
+                  const csvRows = tasks.map((t: any) => 
+                    `"${(t.question || "").replace(/"/g, '""')}",${t.status === "completed" ? "مكتمل" : "قيد الانتظار"},${t.pointsReward || 0},${new Date(t.createdAt).toLocaleDateString("ar")}`
+                  ).join("\n");
+                  const summary = `\n\nملخص التقرير\nإجمالي المهام,${stats.totalTasks}\nمكتملة,${stats.completedTasks}\nقيد الانتظار,${stats.pendingTasks}\nنسبة الإكمال,${stats.completionRate}%\nالنقاط المكتسبة,${stats.totalPointsEarned}`;
+                  const bom = "\uFEFF";
+                  const blob = new Blob([bom + csvHeader + csvRows + summary], { type: "text/csv;charset=utf-8;" });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement("a");
+                  a.href = url;
+                  a.download = `تقرير_${reportsChildName}_${new Date().toLocaleDateString("ar")}.csv`;
+                  a.click();
+                  URL.revokeObjectURL(url);
+                }}
+              >
+                <Download className="h-4 w-4" />
+                تصدير التقرير (CSV)
+              </Button>
+            </div>
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              <BarChart3 className="h-12 w-12 mx-auto text-gray-300 mb-3" />
+              <p>لا توجد بيانات متاحة</p>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

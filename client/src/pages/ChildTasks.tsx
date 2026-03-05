@@ -5,9 +5,13 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { ChildBottomNav } from "@/components/ChildBottomNav";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
-import { CheckCircle, XCircle, Clock, ArrowLeft, ArrowRight, BookOpen, Star, Award, Loader2 } from "lucide-react";
+import { CheckCircle, XCircle, Clock, ArrowLeft, ArrowRight, BookOpen, Star, Award, Loader2, HelpCircle, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { ChildScheduledSessions } from "@/components/ChildScheduledSessions";
+import { HelpChatDialog } from "@/components/HelpChatDialog";
+import { TaskCardSkeleton } from "@/components/skeletons/TaskCardSkeleton";
 
 interface Task {
   id: string;
@@ -29,6 +33,12 @@ export const ChildTasks = (): JSX.Element => {
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [showResult, setShowResult] = useState<{ correct: boolean; points: number } | null>(null);
+  const [helpChatOpen, setHelpChatOpen] = useState(false);
+  const [activeHelpRequestId, setActiveHelpRequestId] = useState<string | null>(null);
+  const [helpTaskQuestion, setHelpTaskQuestion] = useState("");
+  const [helpQuestionDialogOpen, setHelpQuestionDialogOpen] = useState(false);
+  const [helpQuestionText, setHelpQuestionText] = useState("");
+  const [helpQuestionTaskId, setHelpQuestionTaskId] = useState<string | null>(null);
 
   const { data: tasksRaw, isLoading } = useQuery({
     queryKey: ["/api/child/tasks"],
@@ -81,13 +91,52 @@ export const ChildTasks = (): JSX.Element => {
     },
   });
 
+  // Request help mutation
+  const requestHelpMutation = useMutation({
+    mutationFn: async ({ taskId, initialQuestion }: { taskId: string; initialQuestion?: string }) => {
+      const res = await fetch("/api/child/request-help", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ taskId, initialQuestion }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ message: "فشل" }));
+        throw new Error(err.message || "فشل طلب المساعدة");
+      }
+      return res.json();
+    },
+    onSuccess: (data, variables) => {
+      const helpRequest = data.data;
+      setActiveHelpRequestId(String(helpRequest.id));
+      const task = tasks.find(t => t.id === variables.taskId);
+      setHelpTaskQuestion(task?.question || "");
+      setHelpChatOpen(true);
+      setHelpQuestionDialogOpen(false);
+      setHelpQuestionText("");
+      setHelpQuestionTaskId(null);
+    },
+  });
+
   if (isLoading) {
     return (
-      <div className={`min-h-screen flex flex-col items-center justify-center gap-3 ${isDark ? "bg-gradient-to-br from-blue-900 via-indigo-900 to-slate-900" : "bg-gradient-to-br from-blue-400 via-cyan-400 to-teal-500"}`}>
-        <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }}>
-          <Loader2 className="w-10 h-10 text-white/70" />
-        </motion.div>
-        <p className="text-white/60 text-sm animate-pulse">{isRTL ? "جاري التحميل..." : "Loading..."}</p>
+      <div className={`min-h-screen ${isDark ? "bg-gradient-to-br from-blue-900 via-indigo-900 to-slate-900" : "bg-gradient-to-br from-blue-400 via-cyan-400 to-teal-500"} pb-24`} dir={isRTL ? "rtl" : "ltr"}>
+        <header className="sticky top-0 z-40 bg-gradient-to-r from-blue-600 via-cyan-600 to-teal-600 shadow-lg">
+          <div className="max-w-4xl mx-auto px-4 py-3">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-white/20 rounded-xl">
+                <BookOpen className="w-5 h-5 text-white/50" />
+              </div>
+              <h1 className="text-xl font-bold text-white/70">{t("child.myTasks")}</h1>
+            </div>
+          </div>
+        </header>
+        <div className="max-w-4xl mx-auto px-4 py-6">
+          <TaskCardSkeleton count={4} />
+        </div>
+        <ChildBottomNav activeTab="tasks" />
       </div>
     );
   }
@@ -197,16 +246,32 @@ export const ChildTasks = (): JSX.Element => {
                             {task.question}
                           </p>
                         </div>
-                        <motion.div
-                          animate={{ scale: [1, 1.1, 1] }}
-                          transition={{ duration: 2, repeat: Infinity }}
-                          className="flex items-center gap-1 bg-gradient-to-r from-yellow-400 to-orange-500 px-2.5 py-1.5 rounded-xl shrink-0 shadow-md"
-                        >
-                          <Star className="h-3.5 w-3.5 text-white fill-white" />
-                          <span className="font-bold text-white text-xs">
-                            +{task.pointsReward}
-                          </span>
-                        </motion.div>
+                        <div className="flex flex-col items-center gap-1.5">
+                          <motion.div
+                            animate={{ scale: [1, 1.1, 1] }}
+                            transition={{ duration: 2, repeat: Infinity }}
+                            className="flex items-center gap-1 bg-gradient-to-r from-yellow-400 to-orange-500 px-2.5 py-1.5 rounded-xl shrink-0 shadow-md"
+                          >
+                            <Star className="h-3.5 w-3.5 text-white fill-white" />
+                            <span className="font-bold text-white text-xs">
+                              +{task.pointsReward}
+                            </span>
+                          </motion.div>
+                          <motion.button
+                            whileTap={{ scale: 0.9 }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setHelpQuestionTaskId(task.id);
+                              setHelpQuestionText("");
+                              setHelpQuestionDialogOpen(true);
+                            }}
+                            disabled={requestHelpMutation.isPending}
+                            className="flex items-center gap-1 bg-orange-500/80 hover:bg-orange-600 px-2 py-1 rounded-lg text-white text-[10px] font-bold transition-all"
+                          >
+                            <HelpCircle className="h-3 w-3" />
+                            مساعدة
+                          </motion.button>
+                        </div>
                       </div>
                     </motion.div>
                   ))}
@@ -313,6 +378,20 @@ export const ChildTasks = (): JSX.Element => {
                   </Button>
                   <Button
                     variant="outline"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setHelpQuestionTaskId(selectedTask.id);
+                      setHelpQuestionText("");
+                      setHelpQuestionDialogOpen(true);
+                    }}
+                    disabled={requestHelpMutation.isPending}
+                    className="rounded-xl gap-1 text-orange-600 border-orange-300 hover:bg-orange-50"
+                  >
+                    <HelpCircle className="h-4 w-4" />
+                    {isRTL ? "مساعدة" : "Help"}
+                  </Button>
+                  <Button
+                    variant="outline"
                     onClick={() => {
                       setSelectedTask(null);
                       setSelectedAnswer(null);
@@ -376,8 +455,72 @@ export const ChildTasks = (): JSX.Element => {
         </AnimatePresence>
       </div>
 
+      {/* Help Question Dialog */}
+      <Dialog open={helpQuestionDialogOpen} onOpenChange={setHelpQuestionDialogOpen}>
+        <DialogContent className="max-w-sm" dir={isRTL ? "rtl" : "ltr"}>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base">
+              <MessageCircle className="h-5 w-5 text-orange-500" />
+              {isRTL ? "طلب مساعدة" : "Request Help"}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              {isRTL ? "وضّح مشكلتك أو سؤالك حتى يتمكن المساعد من مساعدتك بشكل أفضل" : "Describe your problem so the helper can assist you better"}
+            </p>
+            <Textarea
+              placeholder={isRTL ? "اكتب سؤالك هنا..." : "Write your question here..."}
+              value={helpQuestionText}
+              onChange={(e) => setHelpQuestionText(e.target.value)}
+              className="min-h-[100px] resize-none"
+              dir={isRTL ? "rtl" : "ltr"}
+            />
+          </div>
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setHelpQuestionDialogOpen(false);
+                setHelpQuestionText("");
+                setHelpQuestionTaskId(null);
+              }}
+            >
+              {isRTL ? "إلغاء" : "Cancel"}
+            </Button>
+            <Button
+              onClick={() => {
+                if (helpQuestionTaskId) {
+                  requestHelpMutation.mutate({
+                    taskId: helpQuestionTaskId,
+                    initialQuestion: helpQuestionText.trim() || undefined,
+                  });
+                }
+              }}
+              disabled={requestHelpMutation.isPending}
+              className="bg-orange-500 hover:bg-orange-600 text-white gap-1"
+            >
+              {requestHelpMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <HelpCircle className="h-4 w-4" />}
+              {isRTL ? "إرسال" : "Send"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Bottom Navigation */}
       <ChildBottomNav activeTab="tasks" />
+
+      {/* Help Chat Dialog */}
+      {helpChatOpen && activeHelpRequestId && (
+        <HelpChatDialog
+          open={helpChatOpen}
+          onClose={() => { setHelpChatOpen(false); setActiveHelpRequestId(null); }}
+          helpRequestId={activeHelpRequestId}
+          userType="child"
+          token={token || ""}
+          taskQuestion={helpTaskQuestion}
+          status="active"
+        />
+      )}
     </div>
   );
 };

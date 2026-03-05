@@ -1,6 +1,34 @@
 import type { Express } from "express";
 import { storage } from "../storage";
 import { successResponse, errorResponse, ErrorCode } from "../utils/apiResponse";
+import { validateBody } from "../validators";
+import {
+  childLinkSchema,
+  childLoginRequestSchema,
+  childRequestLoginByNameSchema,
+  childLogoutSchema,
+  childRefreshTokenSchema,
+  childUpdateProfileSchema,
+  childShowcaseSettingsSchema,
+  childSubmitTaskSchema,
+  childAnswerTaskSchema,
+  childCompleteGameSchema,
+  childTaskNotificationCompleteSchema,
+  childPurchaseRequestSchema,
+  childHelpRequestSchema,
+  childHelpChatMessageSchema,
+  childNotificationSettingsSchema,
+  childPushSubscriptionSchema,
+  childCreatePostSchema,
+  childCheckLikesSchema,
+  childCommentSchema,
+  childFriendRequestSchema,
+  childFriendActionSchema,
+  childFollowSchema,
+  childFollowCheckSchema,
+  childNotifyAchievementSchema,
+  childScreenTimeHeartbeatSchema,
+} from "../validators/childSchemas";
 import {
   parents,
   children,
@@ -47,6 +75,10 @@ import {
   schoolTeachers,
   scheduledSessions,
   scheduledSessionTasks,
+  taskHelpRequests,
+  taskHelpMessages,
+  screenTimeSettings,
+  childDailyUsage,
 } from "../../shared/schema";
 import bcrypt from "bcrypt";
 import crypto from "crypto";
@@ -210,17 +242,12 @@ export async function registerChildRoutes(app: Express) {
   // Link Child (from QR Code)
   app.post("/api/child/link", childLinkLimiter, async (req, res) => {
     try {
-      const { childName, code } = req.body;
-
-      if (!childName || !code) {
-        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Child name and parent code are required"));
-      }
+      const v = validateBody(childLinkSchema, req.body);
+      if (!v.success) return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, v.error));
+      const { childName, code } = v.data;
 
       // Validate child name
       const trimmedName = childName.trim();
-      if (trimmedName.length < 2 || trimmedName.length > 100) {
-        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Child name must be between 2 and 100 characters"));
-      }
 
       // Import parents table at top
       // Find parent by unique code (NOT parentChild.parentId)
@@ -670,11 +697,9 @@ export async function registerChildRoutes(app: Express) {
   // Submit Task
   app.post("/api/child/submit-task", authMiddleware, async (req: any, res) => {
     try {
-      const { taskId, selectedAnswerId } = req.body;
-
-      if (!taskId || !selectedAnswerId) {
-        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Task ID and answer are required"));
-      }
+      const v = validateBody(childSubmitTaskSchema, req.body);
+      if (!v.success) return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, v.error));
+      const { taskId, selectedAnswerId } = v.data;
 
       const task = await db
         .select()
@@ -817,11 +842,9 @@ export async function registerChildRoutes(app: Express) {
   // Answer Task
   app.post("/api/child/answer-task", authMiddleware, async (req: any, res) => {
     try {
-      const { taskId, selectedAnswerId } = req.body;
-
-      if (!taskId || !selectedAnswerId) {
-        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Task ID and answer are required"));
-      }
+      const v = validateBody(childAnswerTaskSchema, req.body);
+      if (!v.success) return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, v.error));
+      const { taskId, selectedAnswerId } = v.data;
 
       const task = await db
         .select()
@@ -991,11 +1014,9 @@ export async function registerChildRoutes(app: Express) {
   app.post("/api/child/complete-game", authMiddleware, async (req: any, res) => {
     try {
       const childId = req.user.childId;
-      const { gameId, score: gameScore, totalQuestions: gameTotalQ } = req.body;
-
-      if (!gameId) {
-        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "gameId is required"));
-      }
+      const v = validateBody(childCompleteGameSchema, req.body);
+      if (!v.success) return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, v.error));
+      const { gameId, score: gameScore, totalQuestions: gameTotalQ } = v.data;
 
       // Verify game exists and is active
       const [game] = await db.select().from(flashGames).where(and(eq(flashGames.id, gameId), eq(flashGames.isActive, true)));
@@ -1678,12 +1699,10 @@ export async function registerChildRoutes(app: Express) {
   // تعديل إعدادات الإشعارات للطفل
   app.post("/api/child/notification-settings", authMiddleware, async (req: any, res) => {
     try {
-      const { mode, repeatDelayMinutes, requireOverlayPermission } = req.body;
+      const v = validateBody(childNotificationSettingsSchema, req.body);
+      if (!v.success) return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, v.error));
+      const { mode, repeatDelayMinutes, requireOverlayPermission } = v.data;
       const childId = req.user.childId;
-
-      if (!mode || !["popup_strict", "popup_soft", "floating_bubble"].includes(mode)) {
-        return res.status(400).json({ message: "Invalid notification mode" });
-      }
 
       // التحقق من وجود الإعدادات
       const existing = await db
@@ -2100,6 +2119,261 @@ export async function registerChildRoutes(app: Express) {
     }
   });
 
+  // ===== Task Help System (نظام المساعدة في المهام) =====
+
+  // Request help on a task
+  app.post("/api/child/request-help", authMiddleware, async (req: any, res) => {
+    try {
+      const childId = req.user.childId;
+      const v = validateBody(childHelpRequestSchema, req.body);
+      if (!v.success) return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, v.error));
+      const { taskId, initialQuestion } = v.data;
+
+      // Get the task
+      const task = await db.select().from(tasks)
+        .where(and(eq(tasks.id, taskId), eq(tasks.childId, childId)));
+
+      if (!task[0]) {
+        return res.status(404).json(errorResponse(ErrorCode.NOT_FOUND, "المهمة غير موجودة"));
+      }
+
+      // Check if help request already exists and is active
+      const existingHelp = await db.select().from(taskHelpRequests)
+        .where(and(
+          eq(taskHelpRequests.taskId, taskId),
+          eq(taskHelpRequests.childId, childId),
+          eq(taskHelpRequests.status, "active")
+        ));
+
+      if (existingHelp[0]) {
+        return res.json(successResponse({ helpRequestId: existingHelp[0].id, existing: true }));
+      }
+
+      // Determine who the helper is (parent or teacher)
+      const senderType = task[0].senderType || "parent";
+      let helperId: string;
+      let helperType: "parent" | "teacher";
+
+      if (senderType === "teacher" && task[0].teacherId) {
+        helperType = "teacher";
+        helperId = task[0].teacherId;
+      } else if (task[0].parentId) {
+        helperType = "parent";
+        helperId = task[0].parentId;
+      } else {
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "لا يمكن تحديد المرسل"));
+      }
+
+      // Create help request
+      const helpReq = await db.insert(taskHelpRequests).values({
+        taskId,
+        childId,
+        helperType,
+        helperId,
+      }).returning();
+
+      // Insert initial question as first message if provided
+      if (initialQuestion && typeof initialQuestion === "string" && initialQuestion.trim()) {
+        await db.insert(taskHelpMessages).values({
+          helpRequestId: helpReq[0].id,
+          senderType: "child",
+          senderId: childId,
+          messageType: "text",
+          content: initialQuestion.trim(),
+        });
+      }
+
+      // Get child name for notification
+      const child = await db.select({ name: children.name }).from(children).where(eq(children.id, childId));
+      const childName = child[0]?.name || "طفل";
+
+      // Notify the helper
+      if (helperType === "parent") {
+        await db.insert(notifications).values({
+          parentId: helperId,
+          type: "task_help_requested",
+          title: "طلب مساعدة!",
+          message: `${childName} يحتاج مساعدة في مهمة: ${task[0].question.substring(0, 40)}...`,
+          relatedId: helpReq[0].id,
+          metadata: { helpRequestId: helpReq[0].id, taskId, childId },
+        });
+      } else {
+        await db.insert(notifications).values({
+          teacherId: helperId,
+          type: "task_help_requested",
+          title: "طلب مساعدة!",
+          message: `${childName} يحتاج مساعدة في مهمة: ${task[0].question.substring(0, 40)}...`,
+          relatedId: helpReq[0].id,
+          metadata: { helpRequestId: helpReq[0].id, taskId, childId },
+        });
+      }
+
+      res.json(successResponse({ helpRequestId: helpReq[0].id }));
+    } catch (error: any) {
+      console.error("Request help error:", error);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "فشل طلب المساعدة"));
+    }
+  });
+
+  // Get child's help requests
+  app.get("/api/child/help-requests", authMiddleware, async (req: any, res) => {
+    try {
+      const childId = req.user.childId;
+      const page = Math.max(1, parseInt(String(req.query.page)) || 1);
+      const limit = Math.min(50, Math.max(1, parseInt(String(req.query.limit)) || 20));
+      const offset = (page - 1) * limit;
+
+      const helpReqs = await db.select({
+        helpRequest: taskHelpRequests,
+        task: {
+          id: tasks.id,
+          question: tasks.question,
+          senderType: tasks.senderType,
+        },
+      })
+        .from(taskHelpRequests)
+        .innerJoin(tasks, eq(taskHelpRequests.taskId, tasks.id))
+        .where(eq(taskHelpRequests.childId, childId))
+        .orderBy(desc(taskHelpRequests.createdAt))
+        .limit(limit)
+        .offset(offset);
+
+      const result = helpReqs.map((h: any) => ({
+        id: h.helpRequest.id,
+        taskId: h.task.id,
+        taskQuestion: h.task.question,
+        helperType: h.helpRequest.helperType,
+        status: h.helpRequest.status,
+        createdAt: h.helpRequest.createdAt,
+        resolvedAt: h.helpRequest.resolvedAt,
+      }));
+
+      res.json(successResponse(result));
+    } catch (error: any) {
+      console.error("Get child help requests error:", error);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "فشل جلب طلبات المساعدة"));
+    }
+  });
+
+  // Get messages for a help request (child)
+  app.get("/api/child/help-chat/:helpRequestId/messages", authMiddleware, async (req: any, res) => {
+    try {
+      const childId = req.user.childId;
+      const { helpRequestId } = req.params;
+
+      // Verify this help request belongs to this child
+      const helpReq = await db.select().from(taskHelpRequests)
+        .where(and(eq(taskHelpRequests.id, helpRequestId), eq(taskHelpRequests.childId, childId)));
+
+      if (!helpReq[0]) {
+        return res.status(404).json(errorResponse(ErrorCode.NOT_FOUND, "طلب المساعدة غير موجود"));
+      }
+
+      const messages = await db.select().from(taskHelpMessages)
+        .where(eq(taskHelpMessages.helpRequestId, helpRequestId))
+        .orderBy(taskHelpMessages.createdAt);
+
+      res.json(successResponse(messages));
+    } catch (error: any) {
+      console.error("Get child help chat messages error:", error);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "فشل جلب الرسائل"));
+    }
+  });
+
+  // Send message in help chat (child)
+  app.post("/api/child/help-chat/:helpRequestId/messages", authMiddleware, async (req: any, res) => {
+    try {
+      const childId = req.user.childId;
+      const { helpRequestId } = req.params;
+      const { messageType, content, mediaUrl } = req.body;
+
+      if (!messageType || !["text", "image", "voice"].includes(messageType)) {
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "نوع الرسالة مطلوب"));
+      }
+
+      if (messageType === "text" && !content) {
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "محتوى الرسالة مطلوب"));
+      }
+
+      // Verify this help request belongs to this child
+      const helpReq = await db.select().from(taskHelpRequests)
+        .where(and(eq(taskHelpRequests.id, helpRequestId), eq(taskHelpRequests.childId, childId)));
+
+      if (!helpReq[0]) {
+        return res.status(404).json(errorResponse(ErrorCode.NOT_FOUND, "طلب المساعدة غير موجود"));
+      }
+
+      const message = await db.insert(taskHelpMessages).values({
+        helpRequestId,
+        senderType: "child",
+        senderId: childId,
+        messageType,
+        content: content || null,
+        mediaUrl: mediaUrl || null,
+      }).returning();
+
+      // Notify the helper (parent or teacher)
+      if (helpReq[0].helperType === "parent") {
+        await db.insert(notifications).values({
+          parentId: helpReq[0].helperId,
+          type: "task_help_message",
+          title: "رد على طلب المساعدة",
+          message: messageType === "text" ? (content?.substring(0, 50) || "رسالة جديدة") : "رسالة وسائط جديدة",
+          relatedId: helpRequestId,
+          metadata: { helpRequestId, messageId: message[0].id, childId },
+        });
+      } else {
+        await db.insert(notifications).values({
+          teacherId: helpReq[0].helperId,
+          type: "task_help_message",
+          title: "رد على طلب المساعدة",
+          message: messageType === "text" ? (content?.substring(0, 50) || "رسالة جديدة") : "رسالة وسائط جديدة",
+          relatedId: helpRequestId,
+          metadata: { helpRequestId, messageId: message[0].id, childId },
+        });
+      }
+
+      res.json(successResponse(message[0]));
+    } catch (error: any) {
+      console.error("Send child help chat message error:", error);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "فشل إرسال الرسالة"));
+    }
+  });
+
+  // Upload media for help chat (child)
+  app.post("/api/child/help-chat/upload-media", authMiddleware, async (req: any, res) => {
+    try {
+      const multer = (await import("multer")).default;
+      const path = await import("path");
+      const fs = await import("fs");
+      const uploadDir = path.resolve(process.cwd(), "uploads", "help-chat");
+      if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+      const store = multer.diskStorage({
+        destination: (_r: any, _f: any, cb: any) => cb(null, uploadDir),
+        filename: (_r: any, file: any, cb: any) => cb(null, `${Date.now()}-${Math.random().toString(36).slice(2)}${path.extname(file.originalname)}`),
+      });
+      const upload = multer({
+        storage: store,
+        limits: { fileSize: 10 * 1024 * 1024 },
+        fileFilter: (_r: any, f: any, cb: any) => {
+          if (f.mimetype.startsWith("image/") || f.mimetype.startsWith("audio/")) cb(null, true);
+          else cb(new Error("Only images and audio files are allowed"));
+        },
+      }).single("file");
+      upload(req, res, (err: any) => {
+        if (err) return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, err.message));
+        const file = req.file;
+        if (!file) return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "No file uploaded"));
+        const url = `/uploads/help-chat/${file.filename}`;
+        const type = file.mimetype.startsWith("audio/") ? "voice" : "image";
+        res.json(successResponse({ url, type }));
+      });
+    } catch (error: any) {
+      console.error("Upload child help chat media error:", error);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "فشل رفع الملف"));
+    }
+  });
+
   // ===== Child Login System =====
   // PIN-based login removed - now using parent approval flow only
 
@@ -2163,11 +2437,9 @@ export async function registerChildRoutes(app: Express) {
   // Step 1: Child requests login - creates request and notifies parent
   app.post("/api/child/login-request", childLoginRequestLimiter, async (req, res) => {
     try {
-      const { childName, parentCode, deviceId } = req.body;
-
-      if (!childName || !parentCode) {
-        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Child name and parent code are required"));
-      }
+      const v = validateBody(childLoginRequestSchema, req.body);
+      if (!v.success) return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, v.error));
+      const { childName, parentCode, deviceId } = v.data;
 
       // Find parent by code
       const parent = await db.select().from(parents).where(eq(parents.uniqueCode, parentCode.toUpperCase()));
@@ -4316,6 +4588,97 @@ export async function registerChildRoutes(app: Express) {
     } catch (error: any) {
       console.error("Add comment error:", error);
       res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to add comment"));
+    }
+  });
+
+  // ===== Screen Time =====
+
+  app.get("/api/child/screen-time-status", authMiddleware, async (req: any, res) => {
+    try {
+      const childId = req.user.childId;
+      const today = new Date().toISOString().split("T")[0];
+
+      const [settings] = await db.select().from(screenTimeSettings)
+        .where(eq(screenTimeSettings.childId, childId));
+      
+      const [usage] = await db.select().from(childDailyUsage)
+        .where(and(eq(childDailyUsage.childId, childId), eq(childDailyUsage.date, today)));
+
+      const isEnabled = settings?.isEnabled ?? false;
+      const dailyLimit = settings?.dailyLimitMinutes ?? 120;
+      const usedMinutes = usage?.totalMinutes ?? 0;
+      const remainingMinutes = Math.max(0, dailyLimit - usedMinutes);
+      const isLimitReached = isEnabled && usedMinutes >= dailyLimit;
+
+      // Check time window
+      let isWithinAllowedTime = true;
+      if (isEnabled && settings?.allowedStartTime && settings?.allowedEndTime) {
+        const now = new Date();
+        const currentTime = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+        isWithinAllowedTime = currentTime >= settings.allowedStartTime && currentTime <= settings.allowedEndTime;
+      }
+
+      res.json({
+        success: true,
+        data: {
+          isEnabled,
+          dailyLimitMinutes: dailyLimit,
+          usedMinutes,
+          remainingMinutes,
+          isLimitReached,
+          isWithinAllowedTime,
+          allowedStartTime: settings?.allowedStartTime || "08:00",
+          allowedEndTime: settings?.allowedEndTime || "20:00",
+        },
+      });
+    } catch (error: any) {
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to get screen time status"));
+    }
+  });
+
+  app.post("/api/child/screen-time-heartbeat", authMiddleware, async (req: any, res) => {
+    try {
+      const childId = req.user.childId;
+      const today = new Date().toISOString().split("T")[0];
+      const incrementMinutes = Math.min(5, Math.max(1, Number(req.body?.minutes) || 1));
+
+      const [existing] = await db.select().from(childDailyUsage)
+        .where(and(eq(childDailyUsage.childId, childId), eq(childDailyUsage.date, today)));
+
+      if (existing) {
+        await db.update(childDailyUsage).set({
+          totalMinutes: existing.totalMinutes + incrementMinutes,
+          sessionsCount: existing.sessionsCount + 1,
+          lastActivityAt: new Date(),
+          updatedAt: new Date(),
+        }).where(eq(childDailyUsage.id, existing.id));
+      } else {
+        await db.insert(childDailyUsage).values({
+          childId,
+          date: today,
+          totalMinutes: incrementMinutes,
+          sessionsCount: 1,
+          lastActivityAt: new Date(),
+        });
+      }
+
+      // Check limit
+      const [settings] = await db.select().from(screenTimeSettings)
+        .where(eq(screenTimeSettings.childId, childId));
+      const dailyLimit = settings?.dailyLimitMinutes ?? 120;
+      const usedNow = (existing?.totalMinutes ?? 0) + incrementMinutes;
+      const isLimitReached = settings?.isEnabled && usedNow >= dailyLimit;
+
+      res.json({
+        success: true,
+        data: {
+          usedMinutes: usedNow,
+          remainingMinutes: Math.max(0, dailyLimit - usedNow),
+          isLimitReached: !!isLimitReached,
+        },
+      });
+    } catch (error: any) {
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to update screen time"));
     }
   });
 

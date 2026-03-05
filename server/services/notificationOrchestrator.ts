@@ -3,6 +3,7 @@ import { storage } from "../storage";
 import type { NotificationPriority, NotificationStyle, NotificationType } from "../../shared/notificationTypes";
 import { notificationBus } from "./notificationBus";
 import { sendNotificationEmail } from "../mailer";
+import { sseManager } from "../utils/sseManager";
 import { eq } from "drizzle-orm";
 
 const db = storage.db;
@@ -102,6 +103,16 @@ class NotificationOrchestrator {
     // Real-time push for admins
     if (created && input.recipientType === "admin" && created.adminId) {
       notificationBus.publishToAdmin(created.adminId, created as Record<string, any>);
+    }
+
+    // Real-time SSE push for parents
+    if (created && input.recipientType === "parent" && created.parentId) {
+      sseManager.sendToUser(created.parentId, "parent", "notification", {
+        id: created.id,
+        type: created.type,
+        title: created.title,
+        message: created.message,
+      });
     }
 
     try {
