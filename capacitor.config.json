@@ -14,14 +14,14 @@
     "allowMixedContent": false,
     "captureInput": true,
     "webContentsDebuggingEnabled": false,
-    "backgroundColor": "#667eea",
+    "backgroundColor": "#FFFFFF",
     "overrideUserAgent": "Classify-Android/2.1.0"
   },
   "ios": {
     "contentInset": "automatic",
     "allowsLinkPreview": true,
     "scrollEnabled": true,
-    "backgroundColor": "#667eea",
+    "backgroundColor": "#FFFFFF",
     "scheme": "classify"
   },
   "plugins": {

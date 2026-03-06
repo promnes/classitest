@@ -12,6 +12,13 @@ export const LanguageSelector: React.FC = () => {
     { code: "ar", name: "العربية", nativeName: "العربية" },
     { code: "en", name: "English", nativeName: "English" },
     { code: "pt", name: "Português", nativeName: "Português" },
+    { code: "es", name: "Español", nativeName: "Español" },
+    { code: "fr", name: "Français", nativeName: "Français" },
+    { code: "de", name: "Deutsch", nativeName: "Deutsch" },
+    { code: "tr", name: "Türkçe", nativeName: "Türkçe" },
+    { code: "ru", name: "Русский", nativeName: "Русский" },
+    { code: "zh", name: "中文", nativeName: "中文" },
+    { code: "hi", name: "हिन्दी", nativeName: "हिन्दी" },
   ];
 
   const currentLang = languages.find((l) => l.code === i18n.language) || languages[0];

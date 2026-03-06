@@ -8,6 +8,13 @@ const translationLoaders: Record<string, () => Promise<any>> = {
   ar: () => import('./locales/ar.json').then(m => m.default),
   en: () => import('./locales/en.json').then(m => m.default),
   pt: () => import('./locales/pt.json').then(m => m.default),
+  es: () => import('./locales/es.json').then(m => m.default),
+  fr: () => import('./locales/fr.json').then(m => m.default),
+  de: () => import('./locales/de.json').then(m => m.default),
+  tr: () => import('./locales/tr.json').then(m => m.default),
+  ru: () => import('./locales/ru.json').then(m => m.default),
+  zh: () => import('./locales/zh.json').then(m => m.default),
+  hi: () => import('./locales/hi.json').then(m => m.default),
 };
 
 // Custom lazy backend plugin for i18next
@@ -61,6 +68,6 @@ export default i18n;
 
 /** Map i18n language code to the proper Intl locale string */
 export function getDateLocale(): string {
-  const map: Record<string, string> = { ar: "ar-EG", en: "en-US", pt: "pt-BR" };
+  const map: Record<string, string> = { ar: "ar-EG", en: "en-US", pt: "pt-BR", es: "es-ES", fr: "fr-FR", de: "de-DE", tr: "tr-TR", ru: "ru-RU", zh: "zh-CN", hi: "hi-IN" };
   return map[i18n.language] || "en-US";
 }
