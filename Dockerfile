@@ -44,6 +44,8 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 # Build frontend (Vite) and backend (esbuild)
+# Increase Node.js heap size for large locale file processing
+ENV NODE_OPTIONS="--max-old-space-size=4096"
 RUN npm run build
 
 # ------------------------------------------------------------------------------
