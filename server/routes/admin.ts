@@ -136,7 +136,7 @@ export async function registerAdminRoutes(app: Express) {
   app.post("/api/admin/register", async (req, res) => {
     try {
       const { username, email, password, adminSecret } = req.body;
-      
+
       // SEC-001 FIX: Require admin creation secret
       const ADMIN_CREATION_SECRET = process.env['ADMIN_CREATION_SECRET'];
       if (!ADMIN_CREATION_SECRET || adminSecret !== ADMIN_CREATION_SECRET) {
@@ -144,7 +144,7 @@ export async function registerAdminRoutes(app: Express) {
           .status(403)
           .json(errorResponse(ErrorCode.UNAUTHORIZED, "Admin registration not allowed"));
       }
-      
+
       if (!username || !password) {
         return res
           .status(400)
@@ -1193,7 +1193,7 @@ export async function registerAdminRoutes(app: Express) {
   app.get("/api/admin/growth-tree-settings", adminMiddleware, async (req: any, res) => {
     try {
       const settings = await db.select().from(growthTreeSettings);
-      
+
       if (!settings[0]) {
         // Create default settings
         const defaultSettings = await db.insert(growthTreeSettings).values({
@@ -1218,7 +1218,7 @@ export async function registerAdminRoutes(app: Express) {
       const { wateringEnabled, wateringCostPoints, wateringGrowthPoints, maxWateringsPerDay, stageIcons, stageRequirements } = req.body;
 
       let settings = await db.select().from(growthTreeSettings);
-      
+
       if (!settings[0]) {
         // Create if not exists
         const created = await db.insert(growthTreeSettings).values({
@@ -1330,7 +1330,7 @@ export async function registerAdminRoutes(app: Express) {
         // Update the stageIcons array in settings
         let settings = await db.select().from(growthTreeSettings);
         if (!settings[0]) {
-          const defaultIcons = ["seed","sprout","sapling","youngPlant","bush","smallTree","growingTree","mediumTree","tallTree","strongTree","largeTree","matureTree","fruitTree","grandTree","ancientTree","goldenTree","crystalTree","diamondTree","legendaryTree","cosmicTree"];
+          const defaultIcons = ["seed", "sprout", "sapling", "youngPlant", "bush", "smallTree", "growingTree", "mediumTree", "tallTree", "strongTree", "largeTree", "matureTree", "fruitTree", "grandTree", "ancientTree", "goldenTree", "crystalTree", "diamondTree", "legendaryTree", "cosmicTree"];
           defaultIcons[stageIndex] = iconUrl;
           const created = await db.insert(growthTreeSettings).values({
             stageIcons: defaultIcons,
@@ -1344,7 +1344,7 @@ export async function registerAdminRoutes(app: Express) {
 
         const currentIcons = (settings[0].stageIcons as string[]) || [];
         // Ensure array has 20 entries
-        const icons = Array.from({ length: 20 }, (_, i) => currentIcons[i] || ["seed","sprout","sapling","youngPlant","bush","smallTree","growingTree","mediumTree","tallTree","strongTree","largeTree","matureTree","fruitTree","grandTree","ancientTree","goldenTree","crystalTree","diamondTree","legendaryTree","cosmicTree"][i]);
+        const icons = Array.from({ length: 20 }, (_, i) => currentIcons[i] || ["seed", "sprout", "sapling", "youngPlant", "bush", "smallTree", "growingTree", "mediumTree", "tallTree", "strongTree", "largeTree", "matureTree", "fruitTree", "grandTree", "ancientTree", "goldenTree", "crystalTree", "diamondTree", "legendaryTree", "cosmicTree"][i]);
 
         // Delete old custom icon file if it was a custom upload
         const oldIcon = icons[stageIndex];
@@ -1383,7 +1383,7 @@ export async function registerAdminRoutes(app: Express) {
         return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "stageIndex must be 0-19"));
       }
 
-      const defaultNames = ["seed","sprout","sapling","youngPlant","bush","smallTree","growingTree","mediumTree","tallTree","strongTree","largeTree","matureTree","fruitTree","grandTree","ancientTree","goldenTree","crystalTree","diamondTree","legendaryTree","cosmicTree"];
+      const defaultNames = ["seed", "sprout", "sapling", "youngPlant", "bush", "smallTree", "growingTree", "mediumTree", "tallTree", "strongTree", "largeTree", "matureTree", "fruitTree", "grandTree", "ancientTree", "goldenTree", "crystalTree", "diamondTree", "legendaryTree", "cosmicTree"];
 
       let settings = await db.select().from(growthTreeSettings);
       if (!settings[0]) {
@@ -1608,7 +1608,7 @@ export async function registerAdminRoutes(app: Express) {
       const { targetType, targetId } = req.query;
 
       let query = db.select().from(pointAdjustments);
-      
+
       if (targetType && targetId) {
         query = query.where(and(
           eq(pointAdjustments.targetType, targetType),
@@ -1757,7 +1757,7 @@ export async function registerAdminRoutes(app: Express) {
           throw new Error("DEPOSIT_ALREADY_CANCELLED");
         }
 
-        const updateData: any = { 
+        const updateData: any = {
           status,
           reviewedAt: new Date(),
         };
@@ -1771,7 +1771,7 @@ export async function registerAdminRoutes(app: Express) {
           const depositAmount = parseFloat(deposit.amount as string);
 
           const [existingWallet] = await tx.select().from(parentWallet).where(eq(parentWallet.parentId, deposit.parentId));
-          
+
           if (existingWallet) {
             await tx.update(parentWallet).set({
               balance: sql`${parentWallet.balance} + ${depositAmount}`,
@@ -1811,7 +1811,7 @@ export async function registerAdminRoutes(app: Express) {
           parentId: txResult.parentId,
           type: NOTIFICATION_TYPES.DEPOSIT_REJECTED,
           title: "❌ تم رفض الإيداع",
-          message: adminNotes 
+          message: adminNotes
             ? `تم رفض طلب الإيداع بمبلغ ${depositAmount.toFixed(2)}. السبب: ${adminNotes}`
             : `تم رفض طلب الإيداع بمبلغ ${depositAmount.toFixed(2)}. يرجى التواصل مع الدعم`,
           style: NOTIFICATION_STYLES.MODAL,
@@ -2683,7 +2683,7 @@ export async function registerAdminRoutes(app: Express) {
   });
 
   // ================= GAMES MANAGEMENT =================
-  
+
   // Get all games (admin)
   app.get("/api/admin/games", adminMiddleware, async (req: any, res) => {
     try {
@@ -2701,7 +2701,7 @@ export async function registerAdminRoutes(app: Express) {
   app.post("/api/admin/games", adminMiddleware, async (req: any, res) => {
     try {
       const { title, description, embedUrl, thumbnailUrl, pointsPerPlay, category, minAge, maxAge, maxPlaysPerDay } = req.body;
-      
+
       if (!title || !embedUrl) {
         return res
           .status(400)
@@ -2793,7 +2793,7 @@ export async function registerAdminRoutes(app: Express) {
   app.delete("/api/admin/games/:id", adminMiddleware, async (req: any, res) => {
     try {
       const { id } = req.params;
-      
+
       const game = await db.select().from(flashGames).where(eq(flashGames.id, id));
       if (!game[0]) {
         return res
@@ -2824,7 +2824,7 @@ export async function registerAdminRoutes(app: Express) {
   app.patch("/api/admin/games/:id/toggle", adminMiddleware, async (req: any, res) => {
     try {
       const { id } = req.params;
-      
+
       const game = await db.select().from(flashGames).where(eq(flashGames.id, id));
       if (!game[0]) {
         return res
@@ -3360,7 +3360,7 @@ export async function registerAdminRoutes(app: Express) {
     try {
       const { subjectId } = req.query;
       let query = db.select().from(templateTasks);
-      
+
       if (subjectId) {
         query = query.where(eq(templateTasks.subjectId, subjectId as string));
       }
@@ -3930,7 +3930,7 @@ export async function registerAdminRoutes(app: Express) {
   });
 
   // ===== Referrals Management =====
-  
+
   // Get all referrals
   app.get("/api/admin/referrals", adminMiddleware, async (req: any, res) => {
     try {
@@ -3947,9 +3947,9 @@ export async function registerAdminRoutes(app: Express) {
         referrerName: parents.name,
         referrerEmail: parents.email,
       })
-      .from(referrals)
-      .leftJoin(parents, eq(referrals.referrerId, parents.id))
-      .orderBy(desc(referrals.referredAt));
+        .from(referrals)
+        .leftJoin(parents, eq(referrals.referrerId, parents.id))
+        .orderBy(desc(referrals.referredAt));
 
       // Get referred parent info
       const enrichedReferrals = await Promise.all(allReferrals.map(async (ref: any) => {
@@ -4016,9 +4016,9 @@ export async function registerAdminRoutes(app: Express) {
         parentName: parents.name,
         parentEmail: parents.email,
       })
-      .from(parentReferralCodes)
-      .leftJoin(parents, eq(parentReferralCodes.parentId, parents.id))
-      .orderBy(desc(parentReferralCodes.totalReferrals));
+        .from(parentReferralCodes)
+        .leftJoin(parents, eq(parentReferralCodes.parentId, parents.id))
+        .orderBy(desc(parentReferralCodes.totalReferrals));
 
       res.json(successResponse(codes));
     } catch (error: any) {
@@ -4030,7 +4030,7 @@ export async function registerAdminRoutes(app: Express) {
   });
 
   // ===== Ads Management =====
-  
+
   // Get all ads
   app.get("/api/admin/ads", adminMiddleware, async (req: any, res) => {
     try {
@@ -4056,7 +4056,7 @@ export async function registerAdminRoutes(app: Express) {
   app.post("/api/admin/ads", adminMiddleware, async (req: any, res) => {
     try {
       const { title, content, imageUrl, linkUrl, targetAudience, priority, isActive, startDate, endDate } = req.body;
-      
+
       if (!title || !content) {
         return res
           .status(400)
@@ -4184,7 +4184,7 @@ export async function registerAdminRoutes(app: Express) {
       const allAds = await query.orderBy(desc(ads.priority));
 
       // Filter by audience
-      const filteredAds = allAds.filter((ad: any) => 
+      const filteredAds = allAds.filter((ad: any) =>
         ad.targetAudience === "all" || ad.targetAudience === audience
       );
 
@@ -4230,7 +4230,7 @@ export async function registerAdminRoutes(app: Express) {
           if (parentId) {
             await db.insert(adClicks).values({ adId: id, parentId });
           }
-        } catch {}
+        } catch { }
       }
 
       res.json(successResponse());
@@ -4295,10 +4295,10 @@ export async function registerAdminRoutes(app: Express) {
         clickCount: sql<number>`count(*)`,
         lastClick: sql<string>`max(${adClicks.clickedAt})`,
       })
-      .from(adClicks)
-      .leftJoin(parents, eq(adClicks.parentId, parents.id))
-      .where(eq(adClicks.adId, id))
-      .groupBy(adClicks.parentId, parents.name, parents.email);
+        .from(adClicks)
+        .leftJoin(parents, eq(adClicks.parentId, parents.id))
+        .where(eq(adClicks.adId, id))
+        .groupBy(adClicks.parentId, parents.name, parents.email);
 
       // Get shares grouped by user
       const shares = await db.select({
@@ -4310,10 +4310,10 @@ export async function registerAdminRoutes(app: Express) {
         platforms: sql<string>`string_agg(DISTINCT ${adShares.platform}, ', ')`,
         lastShare: sql<string>`max(${adShares.sharedAt})`,
       })
-      .from(adShares)
-      .leftJoin(parents, eq(adShares.parentId, parents.id))
-      .where(eq(adShares.adId, id))
-      .groupBy(adShares.parentId, parents.name, parents.email);
+        .from(adShares)
+        .leftJoin(parents, eq(adShares.parentId, parents.id))
+        .where(eq(adShares.adId, id))
+        .groupBy(adShares.parentId, parents.name, parents.email);
 
       res.json(successResponse({ clicks, shares }));
     } catch (error: any) {
@@ -4334,9 +4334,9 @@ export async function registerAdminRoutes(app: Express) {
         totalClicks: sql<number>`count(*)`,
         adsClicked: sql<number>`count(DISTINCT ${adClicks.adId})`,
       })
-      .from(adClicks)
-      .leftJoin(parents, eq(adClicks.parentId, parents.id))
-      .groupBy(adClicks.parentId, parents.name, parents.email);
+        .from(adClicks)
+        .leftJoin(parents, eq(adClicks.parentId, parents.id))
+        .groupBy(adClicks.parentId, parents.name, parents.email);
 
       const userShares = await db.select({
         parentId: adShares.parentId,
@@ -4346,9 +4346,9 @@ export async function registerAdminRoutes(app: Express) {
         totalPointsEarned: sql<number>`COALESCE(sum(${adShares.pointsAwarded}), 0)`,
         adsShared: sql<number>`count(DISTINCT ${adShares.adId})`,
       })
-      .from(adShares)
-      .leftJoin(parents, eq(adShares.parentId, parents.id))
-      .groupBy(adShares.parentId, parents.name, parents.email);
+        .from(adShares)
+        .leftJoin(parents, eq(adShares.parentId, parents.id))
+        .groupBy(adShares.parentId, parents.name, parents.email);
 
       // Merge clicks and shares by parentId
       const userMap: Record<string, any> = {};
@@ -4389,7 +4389,7 @@ export async function registerAdminRoutes(app: Express) {
   });
 
   // ===== Referral Settings Management =====
-  
+
   // Get referral settings
   app.get("/api/admin/referral-settings", adminMiddleware, async (req: any, res) => {
     try {
@@ -4418,10 +4418,10 @@ export async function registerAdminRoutes(app: Express) {
   app.put("/api/admin/referral-settings", adminMiddleware, async (req: any, res) => {
     try {
       const { pointsPerReferral, pointsPerAdShare, commissionRate, minActiveDays, isActive } = req.body;
-      
+
       const settings = await db.select().from(referralSettings);
       let updated;
-      
+
       if (!settings[0]) {
         updated = await db.insert(referralSettings).values({
           pointsPerReferral: pointsPerReferral || 100,
@@ -4443,7 +4443,7 @@ export async function registerAdminRoutes(app: Express) {
           .where(eq(referralSettings.id, settings[0].id))
           .returning();
       }
-      
+
       res.json(successResponse(updated[0]));
     } catch (error: any) {
       console.error("Update referral settings error:", error);
@@ -4469,12 +4469,12 @@ export async function registerAdminRoutes(app: Express) {
   });
 
   // ===== Parents Management =====
-  
+
   // Get all parents with details
   app.get("/api/admin/parents", adminMiddleware, async (req: any, res) => {
     try {
       const allParents = await db.select().from(parents).orderBy(desc(parents.createdAt));
-      
+
       // Get children count for each parent
       const parentsWithDetails = await Promise.all(allParents.map(async (parent: typeof parents.$inferSelect) => {
         const childrenLinks = await db.select().from(parentChild).where(eq(parentChild.parentId, parent.id));
@@ -4482,16 +4482,16 @@ export async function registerAdminRoutes(app: Express) {
           const child = await db.select().from(children).where(eq(children.id, link.childId));
           return child[0];
         }));
-        
+
         // Get wallet balance
         const wallet = await db.select().from(parentWallet).where(eq(parentWallet.parentId, parent.id));
-        
+
         // Get tasks count
         const tasksList = await db.select().from(tasks).where(eq(tasks.parentId, parent.id));
-        
+
         // Get template tasks count (public tasks)
         const templateTasksList = await db.select().from(templateTasks).where(eq(templateTasks.parentId, parent.id));
-        
+
         return {
           ...parent,
           password: undefined,
@@ -4502,7 +4502,7 @@ export async function registerAdminRoutes(app: Express) {
           publicTasksCount: templateTasksList.filter((t: typeof templateTasks.$inferSelect) => t.isPublic).length,
         };
       }));
-      
+
       res.json(successResponse(parentsWithDetails));
     } catch (error: any) {
       console.error("Get parents error:", error);
@@ -4517,33 +4517,33 @@ export async function registerAdminRoutes(app: Express) {
     try {
       const { id } = req.params;
       const parent = await db.select().from(parents).where(eq(parents.id, id));
-      
+
       if (!parent[0]) {
         return res
           .status(404)
           .json(errorResponse(ErrorCode.NOT_FOUND, "Parent not found"));
       }
-      
+
       // Get children
       const childrenLinks = await db.select().from(parentChild).where(eq(parentChild.parentId, id));
       const childrenData = await Promise.all(childrenLinks.map(async (link: typeof parentChild.$inferSelect) => {
         const child = await db.select().from(children).where(eq(children.id, link.childId));
         return child[0];
       }));
-      
+
       // Get wallet
       const wallet = await db.select().from(parentWallet).where(eq(parentWallet.parentId, id));
-      
+
       // Get tasks
       const tasksList = await db.select().from(tasks).where(eq(tasks.parentId, id));
-      
+
       // Get template tasks
       const templateTasksList = await db.select().from(templateTasks).where(eq(templateTasks.parentId, id));
-      
+
       // Get profit transactions (as seller)
       const sellerProfits = await db.select().from(profitTransactions).where(eq(profitTransactions.sellerId, id));
       const totalEarnings = sellerProfits.reduce((sum: number, t: typeof profitTransactions.$inferSelect) => sum + t.sellerEarnings, 0);
-      
+
       // Get referral info
       const referralCode = await db.select().from(parentReferralCodes).where(eq(parentReferralCodes.parentId, id));
 
@@ -4565,11 +4565,11 @@ export async function registerAdminRoutes(app: Express) {
             ...deposit,
             paymentMethod: method[0]
               ? {
-                  id: method[0].id,
-                  name: method[0].name,
-                  type: method[0].type,
-                  bankName: method[0].bankName,
-                }
+                id: method[0].id,
+                name: method[0].name,
+                type: method[0].type,
+                bankName: method[0].bankName,
+              }
               : null,
           };
         })
@@ -4622,7 +4622,7 @@ export async function registerAdminRoutes(app: Express) {
           purchase.paymentStatus === "paid" ? sum + Number(purchase.totalAmount || 0) : sum,
         0
       );
-      
+
       res.json(successResponse({
         ...parent[0],
         password: undefined,
@@ -4660,20 +4660,20 @@ export async function registerAdminRoutes(app: Express) {
       const { id } = req.params;
       const { title, message, imageUrl } = req.body;
       const adminId = req.admin.adminId;
-      
+
       if (!title || !message) {
         return res
           .status(400)
           .json(errorResponse(ErrorCode.BAD_REQUEST, "Title and message are required"));
       }
-      
+
       const parent = await db.select().from(parents).where(eq(parents.id, id));
       if (!parent[0]) {
         return res
           .status(404)
           .json(errorResponse(ErrorCode.NOT_FOUND, "Parent not found"));
       }
-      
+
       const notification = await db.insert(parentNotifications).values({
         parentId: id,
         adminId,
@@ -4681,7 +4681,7 @@ export async function registerAdminRoutes(app: Express) {
         message,
         imageUrl: imageUrl || null,
       }).returning();
-      
+
       res.json(successResponse(notification[0]));
     } catch (error: any) {
       console.error("Send notification error:", error);
@@ -4692,16 +4692,16 @@ export async function registerAdminRoutes(app: Express) {
   });
 
   // ===== Profit System Management =====
-  
+
   // Get profit summary
   app.get("/api/admin/profits/summary", adminMiddleware, async (req: any, res) => {
     try {
       const allTransactions = await db.select().from(profitTransactions).orderBy(desc(profitTransactions.createdAt));
-      
+
       const totalAppCommission = allTransactions.reduce((sum: number, t: typeof profitTransactions.$inferSelect) => sum + t.appCommission, 0);
       const totalSellerEarnings = allTransactions.reduce((sum: number, t: typeof profitTransactions.$inferSelect) => sum + t.sellerEarnings, 0);
       const totalPoints = allTransactions.reduce((sum: number, t: typeof profitTransactions.$inferSelect) => sum + t.totalPoints, 0);
-      
+
       // Group by seller
       const sellerStats: Record<string, { earnings: number; transactions: number }> = {};
       for (const t of allTransactions) {
@@ -4711,7 +4711,7 @@ export async function registerAdminRoutes(app: Express) {
         sellerStats[t.sellerId]!.earnings += t.sellerEarnings;
         sellerStats[t.sellerId]!.transactions += 1;
       }
-      
+
       // Get top sellers
       const topSellers = await Promise.all(
         Object.entries(sellerStats)
@@ -4728,8 +4728,8 @@ export async function registerAdminRoutes(app: Express) {
             };
           })
       );
-      
-      res.json({ 
+
+      res.json({
         success: true,
         data: {
           totalAppCommission,
@@ -4752,12 +4752,12 @@ export async function registerAdminRoutes(app: Express) {
   app.get("/api/admin/profits/transactions", adminMiddleware, async (req: any, res) => {
     try {
       const allTransactions = await db.select().from(profitTransactions).orderBy(desc(profitTransactions.createdAt));
-      
+
       const transactionsWithDetails = await Promise.all(allTransactions.map(async (t: typeof profitTransactions.$inferSelect) => {
         const seller = await db.select().from(parents).where(eq(parents.id, t.sellerId));
         const buyer = await db.select().from(parents).where(eq(parents.id, t.buyerId));
         const task = t.templateTaskId ? await db.select().from(templateTasks).where(eq(templateTasks.id, t.templateTaskId)) : [];
-        
+
         return {
           ...t,
           seller: seller[0] ? { id: seller[0].id, name: seller[0].name, email: seller[0].email } : null,
@@ -4765,7 +4765,7 @@ export async function registerAdminRoutes(app: Express) {
           task: task[0] || null,
         };
       }));
-      
+
       res.json(successResponse(transactionsWithDetails));
     } catch (error: any) {
       console.error("Get profit transactions error:", error);
@@ -4779,7 +4779,7 @@ export async function registerAdminRoutes(app: Express) {
   app.get("/api/admin/parent-notifications", adminMiddleware, async (req: any, res) => {
     try {
       const notificationsList = await db.select().from(parentNotifications).orderBy(desc(parentNotifications.createdAt));
-      
+
       const notificationsWithParent = await Promise.all(notificationsList.map(async (n: typeof parentNotifications.$inferSelect) => {
         const parent = await db.select().from(parents).where(eq(parents.id, n.parentId));
         return {
@@ -4788,7 +4788,7 @@ export async function registerAdminRoutes(app: Express) {
           parentEmail: parent[0]?.email || "",
         };
       }));
-      
+
       res.json(successResponse(notificationsWithParent));
     } catch (error: any) {
       console.error("Get parent notifications error:", error);
@@ -4799,7 +4799,7 @@ export async function registerAdminRoutes(app: Express) {
   });
 
   // ===== Library Merchants Management =====
-  
+
   // Get all libraries
   app.get("/api/admin/libraries", adminMiddleware, async (req: any, res) => {
     try {
@@ -4823,7 +4823,7 @@ export async function registerAdminRoutes(app: Express) {
           .status(404)
           .json(errorResponse(ErrorCode.NOT_FOUND, "Library not found"));
       }
-      
+
       const products = await db.select().from(libraryProducts).where(eq(libraryProducts.libraryId, id));
       const referrals = await db.select().from(libraryReferrals).where(eq(libraryReferrals.libraryId, id));
       const activityLogs = await db.select().from(libraryActivityLogs).where(eq(libraryActivityLogs.libraryId, id)).orderBy(desc(libraryActivityLogs.createdAt)).limit(50);
@@ -4831,7 +4831,7 @@ export async function registerAdminRoutes(app: Express) {
       const withdrawals = await db.select().from(libraryWithdrawalRequests).where(eq(libraryWithdrawalRequests.libraryId, id)).orderBy(desc(libraryWithdrawalRequests.createdAt)).limit(100);
       const balanceRows = await db.select().from(libraryBalances).where(eq(libraryBalances.libraryId, id)).limit(1);
       const balance = balanceRows[0] || null;
-      
+
       res.json(successResponse({
         ...library[0],
         products,
@@ -4862,13 +4862,13 @@ export async function registerAdminRoutes(app: Express) {
   app.post("/api/admin/libraries", adminMiddleware, async (req: any, res) => {
     try {
       const { name, description, location, imageUrl, username, password, commissionRatePct } = req.body;
-      
+
       if (!name || !username || !password) {
         return res
           .status(400)
           .json(errorResponse(ErrorCode.BAD_REQUEST, "Name, username and password are required"));
       }
-      
+
       // Check username unique
       const existing = await db.select().from(libraries).where(eq(libraries.username, username));
       if (existing[0]) {
@@ -4876,10 +4876,10 @@ export async function registerAdminRoutes(app: Express) {
           .status(400)
           .json(errorResponse(ErrorCode.CONFLICT, "Username already exists"));
       }
-      
+
       const hashedPassword = await bcrypt.hash(password, 10);
       const referralCode = `LIB${Date.now().toString(36).toUpperCase()}`;
-      
+
       const newLibrary = await db.insert(libraries).values({
         name,
         description: description || null,
@@ -4911,7 +4911,7 @@ export async function registerAdminRoutes(app: Express) {
       } catch (notifErr) {
         console.error("Failed to send new library notifications:", notifErr);
       }
-      
+
       res.json(successResponse(newLibrary[0]));
     } catch (error: any) {
       console.error("Create library error:", error);
@@ -4926,14 +4926,14 @@ export async function registerAdminRoutes(app: Express) {
     try {
       const { id } = req.params;
       const { name, description, location, imageUrl, username, password, isActive } = req.body;
-      
+
       const library = await db.select().from(libraries).where(eq(libraries.id, id));
       if (!library[0]) {
         return res
           .status(404)
           .json(errorResponse(ErrorCode.NOT_FOUND, "Library not found"));
       }
-      
+
       // Check username unique if changed
       if (username && username !== library[0].username) {
         const existing = await db.select().from(libraries).where(eq(libraries.username, username));
@@ -4943,7 +4943,7 @@ export async function registerAdminRoutes(app: Express) {
             .json(errorResponse(ErrorCode.CONFLICT, "Username already exists"));
         }
       }
-      
+
       const updates: any = { updatedAt: new Date() };
       if (name) updates.name = name;
       if (description !== undefined) updates.description = description;
@@ -4952,7 +4952,7 @@ export async function registerAdminRoutes(app: Express) {
       if (username) updates.username = username;
       if (password) updates.password = await bcrypt.hash(password, 10);
       if (typeof isActive === "boolean") updates.isActive = isActive;
-      
+
       const updated = await db.update(libraries).set(updates).where(eq(libraries.id, id)).returning();
       res.json(successResponse(updated[0]));
     } catch (error: any) {
@@ -4998,7 +4998,7 @@ export async function registerAdminRoutes(app: Express) {
   app.put("/api/admin/library-referral-settings", adminMiddleware, async (req: any, res) => {
     try {
       const { pointsPerReferral, pointsPerSale, pointsPerProductAdd, isActive } = req.body;
-      
+
       let settings = await db.select().from(libraryReferralSettings);
       if (!settings[0]) {
         const created = await db.insert(libraryReferralSettings).values({
@@ -5009,7 +5009,7 @@ export async function registerAdminRoutes(app: Express) {
         }).returning();
         return res.json(successResponse(created[0]));
       }
-      
+
       const updated = await db.update(libraryReferralSettings).set({
         pointsPerReferral: pointsPerReferral ?? settings[0].pointsPerReferral,
         pointsPerSale: pointsPerSale ?? settings[0].pointsPerSale,
@@ -5017,7 +5017,7 @@ export async function registerAdminRoutes(app: Express) {
         isActive: isActive !== undefined ? isActive : settings[0].isActive,
         updatedAt: new Date(),
       }).where(eq(libraryReferralSettings.id, settings[0].id)).returning();
-      
+
       res.json(successResponse(updated[0]));
     } catch (error: any) {
       console.error("Update library referral settings error:", error);
@@ -5763,18 +5763,18 @@ export async function registerAdminRoutes(app: Express) {
   });
 
   // ===== Social Login Providers Management =====
-  
+
   // Get all social login providers
   app.get("/api/admin/social-login-providers", adminMiddleware, async (req: any, res) => {
     try {
       const providers = await db.select().from(socialLoginProviders).orderBy(socialLoginProviders.sortOrder);
-      
+
       // Don't return clientSecret to frontend (mask it)
       const safeProviders = providers.map((p: typeof socialLoginProviders.$inferSelect) => ({
         ...p,
         clientSecret: p.clientSecret ? "********" : null,
       }));
-      
+
       res.json(successResponse(safeProviders));
     } catch (error: any) {
       console.error("Get social login providers error:", error);
@@ -5787,27 +5787,27 @@ export async function registerAdminRoutes(app: Express) {
   // Create social login provider
   app.post("/api/admin/social-login-providers", adminMiddleware, async (req: any, res) => {
     try {
-      const { 
-        provider, 
-        displayName, 
+      const {
+        provider,
+        displayName,
         displayNameAr,
         iconUrl,
         iconName,
-        clientId, 
-        clientSecret, 
+        clientId,
+        clientSecret,
         redirectUri,
         scopes,
         isActive,
         sortOrder,
-        settings 
+        settings
       } = req.body;
-      
+
       if (!provider || !displayName) {
         return res
           .status(400)
           .json(errorResponse(ErrorCode.BAD_REQUEST, "Provider and display name are required"));
       }
-      
+
       // Check if provider already exists
       const existing = await db.select().from(socialLoginProviders).where(eq(socialLoginProviders.provider, provider));
       if (existing[0]) {
@@ -5815,7 +5815,7 @@ export async function registerAdminRoutes(app: Express) {
           .status(400)
           .json(errorResponse(ErrorCode.CONFLICT, "Provider already exists"));
       }
-      
+
       const newProvider = await db.insert(socialLoginProviders).values({
         provider,
         displayName,
@@ -5830,7 +5830,7 @@ export async function registerAdminRoutes(app: Express) {
         sortOrder: sortOrder ?? 0,
         settings: settings || null,
       }).returning();
-      
+
       res.json(successResponse({ ...newProvider[0], clientSecret: newProvider[0].clientSecret ? "********" : null }));
     } catch (error: any) {
       console.error("Create social login provider error:", error);
@@ -5844,27 +5844,27 @@ export async function registerAdminRoutes(app: Express) {
   app.put("/api/admin/social-login-providers/:id", adminMiddleware, async (req: any, res) => {
     try {
       const { id } = req.params;
-      const { 
-        displayName, 
+      const {
+        displayName,
         displayNameAr,
         iconUrl,
         iconName,
-        clientId, 
-        clientSecret, 
+        clientId,
+        clientSecret,
         redirectUri,
         scopes,
         isActive,
         sortOrder,
-        settings 
+        settings
       } = req.body;
-      
+
       const existing = await db.select().from(socialLoginProviders).where(eq(socialLoginProviders.id, id));
       if (!existing[0]) {
         return res
           .status(404)
           .json(errorResponse(ErrorCode.NOT_FOUND, "Provider not found"));
       }
-      
+
       const updates: any = { updatedAt: new Date() };
       if (displayName !== undefined) updates.displayName = displayName;
       if (displayNameAr !== undefined) updates.displayNameAr = displayNameAr;
@@ -5880,9 +5880,9 @@ export async function registerAdminRoutes(app: Express) {
       if (typeof isActive === "boolean") updates.isActive = isActive;
       if (sortOrder !== undefined) updates.sortOrder = sortOrder;
       if (settings !== undefined) updates.settings = settings;
-      
+
       const updated = await db.update(socialLoginProviders).set(updates).where(eq(socialLoginProviders.id, id)).returning();
-      
+
       res.json(successResponse({ ...updated[0], clientSecret: updated[0].clientSecret ? "********" : null }));
     } catch (error: any) {
       console.error("Update social login provider error:", error);
@@ -5910,19 +5910,19 @@ export async function registerAdminRoutes(app: Express) {
   app.patch("/api/admin/social-login-providers/:id/toggle", adminMiddleware, async (req: any, res) => {
     try {
       const { id } = req.params;
-      
+
       const existing = await db.select().from(socialLoginProviders).where(eq(socialLoginProviders.id, id));
       if (!existing[0]) {
         return res
           .status(404)
           .json(errorResponse(ErrorCode.NOT_FOUND, "Provider not found"));
       }
-      
+
       const updated = await db.update(socialLoginProviders).set({
         isActive: !existing[0].isActive,
         updatedAt: new Date(),
       }).where(eq(socialLoginProviders.id, id)).returning();
-      
+
       res.json(successResponse({ ...updated[0], clientSecret: updated[0].clientSecret ? "********" : null }));
     } catch (error: any) {
       console.error("Toggle social login provider error:", error);
@@ -5945,7 +5945,7 @@ export async function registerAdminRoutes(app: Express) {
         { provider: "linkedin", displayName: "LinkedIn", displayNameAr: "لينكد إن", iconName: "Linkedin", sortOrder: 7 },
         { provider: "discord", displayName: "Discord", displayNameAr: "ديسكورد", iconName: "MessageCircle", sortOrder: 8 },
       ];
-      
+
       const created = [];
       for (const prov of defaultProviders) {
         const existing = await db.select().from(socialLoginProviders).where(eq(socialLoginProviders.provider, prov.provider));
@@ -5957,7 +5957,7 @@ export async function registerAdminRoutes(app: Express) {
           created.push(newProv[0]);
         }
       }
-      
+
       res.json(successResponse({ created: created.length }, `${created.length} providers initialized`));
     } catch (error: any) {
       console.error("Initialize social login providers error:", error);
@@ -5968,18 +5968,18 @@ export async function registerAdminRoutes(app: Express) {
   });
 
   // ===== OTP Providers Management =====
-  
+
   // Get all OTP providers
   app.get("/api/admin/otp-providers", adminMiddleware, async (req: any, res) => {
     try {
       const providers = await db.select().from(otpProviders).orderBy(otpProviders.sortOrder);
-      
+
       // Don't return sensitive settings to frontend (mask API keys)
       const safeProviders = providers.map((p: typeof otpProviders.$inferSelect) => ({
         ...p,
         settings: p.settings ? { ...p.settings, apiKey: (p.settings as any).apiKey ? "********" : undefined } : null,
       }));
-      
+
       res.json(successResponse(safeProviders));
     } catch (error: any) {
       console.error("Get OTP providers error:", error);
@@ -5993,8 +5993,8 @@ export async function registerAdminRoutes(app: Express) {
   app.put("/api/admin/otp-providers/:id", adminMiddleware, async (req: any, res) => {
     try {
       const { id } = req.params;
-      const { 
-        displayName, 
+      const {
+        displayName,
         displayNameAr,
         description,
         descriptionAr,
@@ -6005,16 +6005,16 @@ export async function registerAdminRoutes(app: Express) {
         expiryMinutes,
         maxAttempts,
         cooldownMinutes,
-        settings 
+        settings
       } = req.body;
-      
+
       const existing = await db.select().from(otpProviders).where(eq(otpProviders.id, id));
       if (!existing[0]) {
         return res
           .status(404)
           .json(errorResponse(ErrorCode.NOT_FOUND, "OTP Provider not found"));
       }
-      
+
       const updates: any = { updatedAt: new Date() };
       if (displayName !== undefined) updates.displayName = displayName;
       if (displayNameAr !== undefined) updates.displayNameAr = displayNameAr;
@@ -6032,15 +6032,15 @@ export async function registerAdminRoutes(app: Express) {
         const existingSettings = existing[0].settings || {};
         updates.settings = { ...existingSettings, ...settings };
       }
-      
+
       const updated = await db.update(otpProviders).set(updates).where(eq(otpProviders.id, id)).returning();
-      
+
       // Mask sensitive data in response
       const safeProvider = {
         ...updated[0],
         settings: updated[0].settings ? { ...updated[0].settings, apiKey: updated[0].settings.apiKey ? "********" : undefined } : null,
       };
-      
+
       res.json(successResponse(safeProvider));
     } catch (error: any) {
       console.error("Update OTP provider error:", error);
@@ -6054,25 +6054,25 @@ export async function registerAdminRoutes(app: Express) {
   app.put("/api/admin/otp-providers/:id/toggle", adminMiddleware, async (req: any, res) => {
     try {
       const { id } = req.params;
-      
+
       const existing = await db.select().from(otpProviders).where(eq(otpProviders.id, id));
       if (!existing[0]) {
         return res
           .status(404)
           .json(errorResponse(ErrorCode.NOT_FOUND, "OTP Provider not found"));
       }
-      
+
       const updated = await db.update(otpProviders).set({
         isActive: !existing[0].isActive,
         updatedAt: new Date(),
       }).where(eq(otpProviders.id, id)).returning();
-      
+
       // Mask sensitive data in response
       const safeProvider = {
         ...updated[0],
         settings: updated[0].settings ? { ...updated[0].settings, apiKey: updated[0].settings.apiKey ? "********" : undefined } : null,
       };
-      
+
       res.json(successResponse(safeProvider));
     } catch (error: any) {
       console.error("Toggle OTP provider error:", error);
@@ -6086,13 +6086,13 @@ export async function registerAdminRoutes(app: Express) {
   app.post("/api/admin/otp-providers/initialize", adminMiddleware, async (req: any, res) => {
     try {
       const defaultProviders = [
-        { 
-          provider: "email", 
-          displayName: "Email", 
-          displayNameAr: "البريد الإلكتروني", 
+        {
+          provider: "email",
+          displayName: "Email",
+          displayNameAr: "البريد الإلكتروني",
           description: "Send OTP via email using Resend",
           descriptionAr: "إرسال رمز التحقق عبر البريد الإلكتروني",
-          iconName: "Mail", 
+          iconName: "Mail",
           sortOrder: 1,
           codeLength: 6,
           expiryMinutes: 5,
@@ -6100,13 +6100,13 @@ export async function registerAdminRoutes(app: Express) {
           cooldownMinutes: 1,
           isActive: true, // Email is active by default since Resend is configured
         },
-        { 
-          provider: "sms", 
-          displayName: "SMS", 
-          displayNameAr: "رسالة نصية", 
+        {
+          provider: "sms",
+          displayName: "SMS",
+          displayNameAr: "رسالة نصية",
           description: "Send OTP via SMS using Twilio",
           descriptionAr: "إرسال رمز التحقق عبر الرسائل النصية",
-          iconName: "Smartphone", 
+          iconName: "Smartphone",
           sortOrder: 2,
           codeLength: 6,
           expiryMinutes: 5,
@@ -6115,7 +6115,7 @@ export async function registerAdminRoutes(app: Express) {
           isActive: false, // SMS is disabled by default until Twilio is configured
         },
       ];
-      
+
       const created = [];
       for (const prov of defaultProviders) {
         const existing = await db.select().from(otpProviders).where(eq(otpProviders.provider, prov.provider));
@@ -6124,7 +6124,7 @@ export async function registerAdminRoutes(app: Express) {
           created.push(newProv[0]);
         }
       }
-      
+
       res.json(successResponse({ created: created.length }, `${created.length} OTP providers initialized`));
     } catch (error: any) {
       console.error("Initialize OTP providers error:", error);
@@ -6136,15 +6136,21 @@ export async function registerAdminRoutes(app: Express) {
 
   // ===== Legal Pages Management (Privacy & Terms) =====
 
-  // GET /api/admin/legal — Get privacy & terms content (admin)
+  // GET /api/admin/legal — Get all legal pages content (admin)
   app.get("/api/admin/legal", adminMiddleware, async (req: any, res) => {
     try {
       const settings = await db.select().from(siteSettings).where(
         or(
           eq(siteSettings.key, 'legal_privacy'),
           eq(siteSettings.key, 'legal_terms'),
+          eq(siteSettings.key, 'legal_child_safety'),
+          eq(siteSettings.key, 'legal_refund'),
+          eq(siteSettings.key, 'legal_center'),
           eq(siteSettings.key, 'legal_privacy_updated_at'),
-          eq(siteSettings.key, 'legal_terms_updated_at')
+          eq(siteSettings.key, 'legal_terms_updated_at'),
+          eq(siteSettings.key, 'legal_child_safety_updated_at'),
+          eq(siteSettings.key, 'legal_refund_updated_at'),
+          eq(siteSettings.key, 'legal_center_updated_at')
         )
       );
       const getValue = (key: string) => {
@@ -6154,8 +6160,14 @@ export async function registerAdminRoutes(app: Express) {
       res.json(successResponse({
         privacy: getValue('legal_privacy'),
         terms: getValue('legal_terms'),
+        childSafety: getValue('legal_child_safety'),
+        refund: getValue('legal_refund'),
+        legalCenter: getValue('legal_center'),
         privacyUpdatedAt: getValue('legal_privacy_updated_at'),
         termsUpdatedAt: getValue('legal_terms_updated_at'),
+        childSafetyUpdatedAt: getValue('legal_child_safety_updated_at'),
+        refundUpdatedAt: getValue('legal_refund_updated_at'),
+        legalCenterUpdatedAt: getValue('legal_center_updated_at'),
       }));
     } catch (error: any) {
       console.error("Fetch legal pages error:", error);
@@ -6163,19 +6175,36 @@ export async function registerAdminRoutes(app: Express) {
     }
   });
 
-  // POST /api/admin/legal — Save privacy or terms + notify all parents
+  // POST /api/admin/legal — Save any legal page + notify all parents
   app.post("/api/admin/legal", adminMiddleware, async (req: any, res) => {
     try {
       const { type, content } = req.body;
-      if (!type || !['privacy', 'terms'].includes(type)) {
-        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "type must be 'privacy' or 'terms'"));
+      const validTypes = ['privacy', 'terms', 'child-safety', 'refund', 'legal-center'];
+      if (!type || !validTypes.includes(type)) {
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Invalid type"));
       }
       if (!content || typeof content !== 'string' || content.trim().length < 10) {
         return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Content must be at least 10 characters"));
       }
 
-      const key = type === 'privacy' ? 'legal_privacy' : 'legal_terms';
+      const keyMap: Record<string, string> = {
+        'privacy': 'legal_privacy',
+        'terms': 'legal_terms',
+        'child-safety': 'legal_child_safety',
+        'refund': 'legal_refund',
+        'legal-center': 'legal_center',
+      };
+      const labelMap: Record<string, string> = {
+        'privacy': 'سياسة الخصوصية',
+        'terms': 'شروط الاستخدام',
+        'child-safety': 'سلامة الأطفال',
+        'refund': 'سياسة الاسترداد',
+        'legal-center': 'المركز القانوني',
+      };
+
+      const key = keyMap[type];
       const timestampKey = `${key}_updated_at`;
+      const label = labelMap[type];
       const now = new Date().toISOString();
 
       // Upsert content
@@ -6190,11 +6219,9 @@ export async function registerAdminRoutes(app: Express) {
 
       // Notify all parents
       const allParentsList = await db.select({ id: parents.id }).from(parents);
-      const label = type === 'privacy' ? 'سياسة الخصوصية' : 'شروط الاستخدام';
       const notifTitle = `📋 تحديث ${label}`;
       const notifMessage = `تم تحديث ${label}. يرجى مراجعتها من خلال الإعدادات أو الصفحة الرئيسية.`;
 
-      // Insert notification for each parent
       for (const p of allParentsList) {
         await db.insert(parentNotifications).values({
           parentId: p.id,
@@ -6215,14 +6242,21 @@ export async function registerAdminRoutes(app: Express) {
     }
   });
 
-  // GET /api/legal/:type — Public endpoint (no auth) for privacy/terms
+  // GET /api/legal/:type — Public endpoint (no auth) for all legal pages
   app.get("/api/legal/:type", async (req, res) => {
     try {
       const { type } = req.params;
-      if (!['privacy', 'terms'].includes(type)) {
-        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "type must be 'privacy' or 'terms'"));
+      const keyMap: Record<string, string> = {
+        'privacy': 'legal_privacy',
+        'terms': 'legal_terms',
+        'child-safety': 'legal_child_safety',
+        'refund': 'legal_refund',
+        'legal-center': 'legal_center',
+      };
+      if (!keyMap[type]) {
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Invalid type"));
       }
-      const key = type === 'privacy' ? 'legal_privacy' : 'legal_terms';
+      const key = keyMap[type];
       const timestampKey = `${key}_updated_at`;
 
       const settings = await db.select().from(siteSettings).where(

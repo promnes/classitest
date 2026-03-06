@@ -970,30 +970,26 @@ export const ParentDashboard = (): JSX.Element => {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <div className="w-full overflow-x-auto scrollbar-hide -mx-4 px-4">
-            <TabsList className={`inline-flex w-max min-w-full ${isDark ? "bg-gray-800" : "bg-white"} p-1 rounded-xl shadow-sm gap-0.5`}>
-              <TabsTrigger value="overview" className="gap-1.5 flex-1 min-w-0 px-2 sm:px-3 text-xs sm:text-sm whitespace-nowrap" data-testid="tab-overview">
-                <Target className="h-4 w-4 flex-shrink-0" />
+          <div className="w-full">
+            <TabsList className={`flex w-full ${isDark ? "bg-gray-800" : "bg-white"} p-1 rounded-xl shadow-sm gap-0.5`}>
+              <TabsTrigger value="overview" className="gap-1 flex-1 min-w-0 px-1 sm:px-3 text-[10px] sm:text-sm" data-testid="tab-overview">
+                <Target className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
                 <span className="truncate">{t('parentDashboard.overview')}</span>
               </TabsTrigger>
-              <TabsTrigger value="children" className="gap-1.5 flex-1 min-w-0 px-2 sm:px-3 text-xs sm:text-sm whitespace-nowrap" data-testid="tab-children">
-                <Users className="h-4 w-4 flex-shrink-0" />
+              <TabsTrigger value="children" className="gap-1 flex-1 min-w-0 px-1 sm:px-3 text-[10px] sm:text-sm" data-testid="tab-children">
+                <Users className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
                 <span className="truncate">{t('parentDashboard.children')}</span>
               </TabsTrigger>
-              <TabsTrigger value="tasks" className="gap-1.5 flex-1 min-w-0 px-2 sm:px-3 text-xs sm:text-sm whitespace-nowrap" data-testid="tab-tasks">
-                <Trophy className="h-4 w-4 flex-shrink-0" />
+              <TabsTrigger value="tasks" className="gap-1 flex-1 min-w-0 px-1 sm:px-3 text-[10px] sm:text-sm" data-testid="tab-tasks">
+                <Trophy className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
                 <span className="truncate">{t('parentDashboard.tasks')}</span>
               </TabsTrigger>
-              <TabsTrigger value="store" className="gap-1.5 flex-1 min-w-0 px-2 sm:px-3 text-xs sm:text-sm whitespace-nowrap" data-testid="tab-store">
-                <ShoppingBag className="h-4 w-4 flex-shrink-0" />
-                <span className="truncate">{t('parentDashboard.store')}</span>
-              </TabsTrigger>
-              <TabsTrigger value="referral" className="gap-1.5 flex-1 min-w-0 px-2 sm:px-3 text-xs sm:text-sm whitespace-nowrap" data-testid="tab-referral">
-                <Share2 className="h-4 w-4 flex-shrink-0" />
+              <TabsTrigger value="referral" className="gap-1 flex-1 min-w-0 px-1 sm:px-3 text-[10px] sm:text-sm" data-testid="tab-referral">
+                <Share2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
                 <span className="truncate">{t('parentDashboard.referrals')}</span>
               </TabsTrigger>
-              <TabsTrigger value="reports" className="gap-1.5 flex-1 min-w-0 px-2 sm:px-3 text-xs sm:text-sm whitespace-nowrap" data-testid="tab-reports">
-                <BookOpen className="h-4 w-4 flex-shrink-0" />
+              <TabsTrigger value="reports" className="gap-1 flex-1 min-w-0 px-1 sm:px-3 text-[10px] sm:text-sm" data-testid="tab-reports">
+                <BookOpen className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
                 <span className="truncate">{t('parentDashboard.reports')}</span>
               </TabsTrigger>
             </TabsList>
@@ -1571,7 +1567,7 @@ export const ParentDashboard = (): JSX.Element => {
             )}
           </TabsContent>
 
-          <TabsContent value="store" className="mt-6">
+          <TabsContent value="store" className="mt-6" hidden>
             <Card className={isDark ? "bg-gray-900 border-gray-800" : ""}>
               <CardHeader className="pb-3 flex-row items-center justify-between">
                 <CardTitle className="text-lg flex items-center gap-2">

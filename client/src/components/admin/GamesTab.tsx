@@ -169,21 +169,6 @@ const BUILTIN_GAMES: BuiltinGame[] = [
     maxPlaysPerDay: 0,
     gradient: "from-cyan-400 to-blue-600",
   },
-  {
-    id: "builtin-chess",
-    title: "Chess",
-    titleAr: "شطرنج ♟️",
-    description: "Classic chess game! Develop strategic thinking and planning skills. Play against the computer and challenge yourself!",
-    descriptionAr: "لعبة الشطرنج الكلاسيكية! طوّر مهارات التفكير الاستراتيجي والتخطيط المسبق. العب ضد الكمبيوتر وتحدَّ نفسك!",
-    embedUrl: "/games/chess/index.html",
-    thumbnailEmoji: "♟️",
-    category: "educational",
-    minAge: 6,
-    maxAge: 18,
-    pointsPerPlay: 10,
-    maxPlaysPerDay: 0,
-    gradient: "from-gray-700 to-gray-900",
-  },
 ];
 
 // Legacy URL mappings for backwards compatibility

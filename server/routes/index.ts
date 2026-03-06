@@ -97,16 +97,6 @@ async function seedDefaultGames() {
         pointsPerPlay: 10,
         maxPlaysPerDay: 0,
       },
-      {
-        title: "شطرنج - Chess ♟️",
-        description: "لعبة الشطرنج الكلاسيكية! طوّر مهارات التفكير الاستراتيجي والتخطيط المسبق. العب ضد الكمبيوتر وتحدَّ نفسك!",
-        embedUrl: "/games/chess/index.html",
-        category: "educational",
-        minAge: 6,
-        maxAge: 18,
-        pointsPerPlay: 10,
-        maxPlaysPerDay: 0,
-      },
     ];
 
     for (const game of builtinGames) {
@@ -217,7 +207,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   registerObjectStorageRoutes(app);
   registerMediaUploadRoutes(app);
   registerSymbolRoutes(app);
-  
+
   // Register new feature routes
   app.use("/api", trustedDevicesRouter);
   app.use("/api", adsRouter);

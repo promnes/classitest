@@ -123,21 +123,7 @@ app.use(helmet({
   crossOriginEmbedderPolicy: false,
 }));
 
-// Godot games require SharedArrayBuffer → COOP/COEP headers + relaxed CSP for WASM
-app.use("/games/chess", (req, res, next) => {
-  res.setHeader("Cross-Origin-Opener-Policy", "same-origin");
-  res.setHeader("Cross-Origin-Embedder-Policy", "require-corp");
-  res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
-  // Override CSP for Godot WASM: allow wasm-unsafe-eval + blob workers
-  res.setHeader("Content-Security-Policy",
-    "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' blob:; " +
-    "style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; " +
-    "connect-src 'self' blob:; worker-src 'self' blob:; " +
-    "font-src 'self' data:; media-src 'self' blob:; " +
-    "frame-src 'self'; object-src 'none'"
-  );
-  next();
-});
+
 
 app.use(compression());
 
@@ -260,7 +246,7 @@ const WORKER_COUNT = Math.max(1, Number(process.env["WEB_CONCURRENCY"] || String
 async function startHttpServer() {
   try {
     const server = await registerRoutes(app);
-    
+
     // Initialize Phase 1.4: Gift event → notification handlers
     await initializeGiftNotificationHandlers();
 
@@ -293,10 +279,10 @@ async function startHttpServer() {
         },
       });
 
-      res.status(status).json({ 
+      res.status(status).json({
         success: false,
         error: err.code || "INTERNAL_SERVER_ERROR",
-        message: message 
+        message: message
       });
     });
 
@@ -323,7 +309,7 @@ async function startHttpServer() {
     // It is the only port that is not firewalled.
     const port = parseInt(process.env.PORT || '5000', 10);
     const host = process.env.HOST || "0.0.0.0";
-    
+
     const reusePort = process.platform !== "win32";
     server.listen({
       port,
@@ -338,7 +324,7 @@ async function startHttpServer() {
       // Recover any pending scheduled session unlocks lost due to server restart
       import("./services/scheduledSessionService").then(({ recoverPendingSessionUnlocks }) => {
         recoverPendingSessionUnlocks().catch(err => console.error("Session recovery error:", err));
-      }).catch(() => {});
+      }).catch(() => { });
     });
 
     // Graceful shutdown

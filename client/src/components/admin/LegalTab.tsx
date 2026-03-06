@@ -1,24 +1,80 @@
 import React, { useState } from "react";
-import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Shield, FileText, Save, Loader2, RefreshCw, Clock, Users, Eye, EyeOff, AlertTriangle } from "lucide-react";
+import { Shield, FileText, Save, Loader2, RefreshCw, Clock, Users, Eye, EyeOff, AlertTriangle, Heart, DollarSign, Scale } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+
+type SectionType = "privacy" | "terms" | "child-safety" | "refund" | "legal-center";
+
+interface SectionConfig {
+  id: SectionType;
+  emoji: string;
+  label: string;
+  activeBg: string;
+  activeShadow: string;
+  icon: React.ReactNode;
+}
+
+const SECTIONS: SectionConfig[] = [
+  {
+    id: "privacy",
+    emoji: "🔒",
+    label: "سياسة الخصوصية",
+    activeBg: "bg-indigo-600 hover:bg-indigo-700",
+    activeShadow: "shadow-indigo-200 dark:shadow-indigo-900/50",
+    icon: <Shield className="w-5 h-5" />,
+  },
+  {
+    id: "terms",
+    emoji: "📜",
+    label: "شروط الاستخدام",
+    activeBg: "bg-emerald-600 hover:bg-emerald-700",
+    activeShadow: "shadow-emerald-200 dark:shadow-emerald-900/50",
+    icon: <FileText className="w-5 h-5" />,
+  },
+  {
+    id: "child-safety",
+    emoji: "😊",
+    label: "سلامة الأطفال",
+    activeBg: "bg-blue-600 hover:bg-blue-700",
+    activeShadow: "shadow-blue-200 dark:shadow-blue-900/50",
+    icon: <Heart className="w-5 h-5" />,
+  },
+  {
+    id: "refund",
+    emoji: "💰",
+    label: "سياسة الاسترداد",
+    activeBg: "bg-amber-600 hover:bg-amber-700",
+    activeShadow: "shadow-amber-200 dark:shadow-amber-900/50",
+    icon: <DollarSign className="w-5 h-5" />,
+  },
+  {
+    id: "legal-center",
+    emoji: "⚡",
+    label: "المركز القانوني",
+    activeBg: "bg-purple-600 hover:bg-purple-700",
+    activeShadow: "shadow-purple-200 dark:shadow-purple-900/50",
+    icon: <Scale className="w-5 h-5" />,
+  },
+];
 
 interface LegalTabProps {
   token: string;
 }
 
 export const LegalTab = ({ token }: LegalTabProps): JSX.Element => {
-  const { t } = useTranslation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [activeSection, setActiveSection] = useState<"privacy" | "terms">("privacy");
-  const [privacyContent, setPrivacyContent] = useState("");
-  const [termsContent, setTermsContent] = useState("");
+  const [activeSection, setActiveSection] = useState<SectionType>("privacy");
+  const [contents, setContents] = useState<Record<SectionType, string>>({
+    "privacy": "",
+    "terms": "",
+    "child-safety": "",
+    "refund": "",
+    "legal-center": "",
+  });
   const [showPreview, setShowPreview] = useState(false);
   const [initialized, setInitialized] = useState(false);
 
-  // Fetch current legal content
   const { data, isLoading, refetch } = useQuery({
     queryKey: ["admin-legal"],
     queryFn: async () => {
@@ -30,25 +86,34 @@ export const LegalTab = ({ token }: LegalTabProps): JSX.Element => {
       return json.data as {
         privacy: string;
         terms: string;
+        childSafety: string;
+        refund: string;
+        legalCenter: string;
         privacyUpdatedAt: string;
         termsUpdatedAt: string;
+        childSafetyUpdatedAt: string;
+        refundUpdatedAt: string;
+        legalCenterUpdatedAt: string;
       };
     },
     refetchOnWindowFocus: false,
   });
 
-  // Set content when data loads
   React.useEffect(() => {
     if (data && !initialized) {
-      setPrivacyContent(data.privacy || "");
-      setTermsContent(data.terms || "");
+      setContents({
+        "privacy": data.privacy || "",
+        "terms": data.terms || "",
+        "child-safety": data.childSafety || "",
+        "refund": data.refund || "",
+        "legal-center": data.legalCenter || "",
+      });
       setInitialized(true);
     }
   }, [data, initialized]);
 
-  // Save mutation
   const saveMutation = useMutation({
-    mutationFn: async (params: { type: "privacy" | "terms"; content: string }) => {
+    mutationFn: async (params: { type: SectionType; content: string }) => {
       const res = await fetch("/api/admin/legal", {
         method: "POST",
         headers: {
@@ -81,7 +146,7 @@ export const LegalTab = ({ token }: LegalTabProps): JSX.Element => {
   });
 
   const handleSave = () => {
-    const content = activeSection === "privacy" ? privacyContent : termsContent;
+    const content = contents[activeSection];
     if (!content.trim() || content.trim().length < 10) {
       toast({
         title: "⚠️ المحتوى قصير جداً",
@@ -93,9 +158,17 @@ export const LegalTab = ({ token }: LegalTabProps): JSX.Element => {
     saveMutation.mutate({ type: activeSection, content });
   };
 
-  const currentContent = activeSection === "privacy" ? privacyContent : termsContent;
-  const setCurrentContent = activeSection === "privacy" ? setPrivacyContent : setTermsContent;
-  const updatedAt = activeSection === "privacy" ? data?.privacyUpdatedAt : data?.termsUpdatedAt;
+  const activeConfig = SECTIONS.find(s => s.id === activeSection)!;
+  const currentContent = contents[activeSection];
+
+  const updatedAtMap: Record<SectionType, string | undefined> = {
+    "privacy": data?.privacyUpdatedAt,
+    "terms": data?.termsUpdatedAt,
+    "child-safety": data?.childSafetyUpdatedAt,
+    "refund": data?.refundUpdatedAt,
+    "legal-center": data?.legalCenterUpdatedAt,
+  };
+  const updatedAt = updatedAtMap[activeSection];
 
   return (
     <div className="space-y-6">
@@ -107,7 +180,7 @@ export const LegalTab = ({ token }: LegalTabProps): JSX.Element => {
           </div>
           <div>
             <h2 className="text-2xl font-bold">الصفحات القانونية</h2>
-            <p className="text-sm text-gray-500 dark:text-gray-400">تعديل سياسة الخصوصية وشروط الاستخدام</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">تعديل جميع الصفحات القانونية للمنصة</p>
           </div>
         </div>
         <button
@@ -119,30 +192,22 @@ export const LegalTab = ({ token }: LegalTabProps): JSX.Element => {
         </button>
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-2">
-        <button
-          onClick={() => setActiveSection("privacy")}
-          className={`flex items-center gap-2 px-5 py-3 rounded-xl font-semibold transition-all ${
-            activeSection === "privacy"
-              ? "bg-indigo-600 text-white shadow-lg shadow-indigo-200 dark:shadow-indigo-900/50"
-              : "bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600"
-          }`}
-        >
-          <Shield className="w-5 h-5" />
-          🔒 سياسة الخصوصية
-        </button>
-        <button
-          onClick={() => setActiveSection("terms")}
-          className={`flex items-center gap-2 px-5 py-3 rounded-xl font-semibold transition-all ${
-            activeSection === "terms"
-              ? "bg-emerald-600 text-white shadow-lg shadow-emerald-200 dark:shadow-emerald-900/50"
-              : "bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600"
-          }`}
-        >
-          <FileText className="w-5 h-5" />
-          📋 شروط الاستخدام
-        </button>
+      {/* Section Tabs */}
+      <div className="flex flex-wrap gap-2">
+        {SECTIONS.map((section) => (
+          <button
+            key={section.id}
+            onClick={() => { setActiveSection(section.id); setShowPreview(false); }}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold transition-all text-sm ${
+              activeSection === section.id
+                ? `${section.activeBg} text-white shadow-lg ${section.activeShadow}`
+                : "bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600"
+            }`}
+          >
+            {section.icon}
+            {section.emoji} {section.label}
+          </button>
+        ))}
       </div>
 
       {isLoading ? (
@@ -181,7 +246,7 @@ export const LegalTab = ({ token }: LegalTabProps): JSX.Element => {
             <div className="text-sm">
               <p className="font-bold text-amber-700 dark:text-amber-300">تنبيه مهم</p>
               <p className="text-amber-600 dark:text-amber-400 mt-1">
-                عند الحفظ سيتم <strong>إشعار جميع أولياء الأمور</strong> تلقائياً بأن {activeSection === "privacy" ? "سياسة الخصوصية" : "شروط الاستخدام"} قد تم تحديثها.
+                عند الحفظ سيتم <strong>إشعار جميع أولياء الأمور</strong> تلقائياً بأن {activeConfig.label} قد تم تحديثها.
               </p>
             </div>
           </div>
@@ -189,14 +254,14 @@ export const LegalTab = ({ token }: LegalTabProps): JSX.Element => {
           {/* Editor */}
           <div className="relative">
             <label className="block text-sm font-semibold mb-2">
-              {activeSection === "privacy" ? "محتوى سياسة الخصوصية" : "محتوى شروط الاستخدام"}
+              محتوى {activeConfig.label}
             </label>
             <textarea
               value={currentContent}
-              onChange={(e) => setCurrentContent(e.target.value)}
+              onChange={(e) => setContents(prev => ({ ...prev, [activeSection]: e.target.value }))}
               rows={18}
               className="w-full p-4 rounded-xl border-2 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 font-mono text-sm leading-relaxed resize-y focus:border-indigo-400 focus:ring-2 focus:ring-indigo-200 dark:focus:ring-indigo-800 outline-none transition"
-              placeholder={`اكتب ${activeSection === "privacy" ? "سياسة الخصوصية" : "شروط الاستخدام"} هنا...\n\nيمكنك استخدام HTML للتنسيق:\n<h3>عنوان</h3>\n<p>فقرة</p>\n<ul><li>عنصر</li></ul>`}
+              placeholder={`اكتب محتوى ${activeConfig.label} هنا...\n\nيمكنك استخدام HTML للتنسيق:\n<h3>عنوان</h3>\n<p>فقرة</p>\n<ul><li>عنصر</li></ul>`}
               dir="auto"
             />
           </div>
@@ -224,18 +289,14 @@ export const LegalTab = ({ token }: LegalTabProps): JSX.Element => {
             <button
               onClick={handleSave}
               disabled={saveMutation.isPending}
-              className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-white transition-all ${
-                activeSection === "privacy"
-                  ? "bg-indigo-600 hover:bg-indigo-700 shadow-lg shadow-indigo-200 dark:shadow-indigo-900/50"
-                  : "bg-emerald-600 hover:bg-emerald-700 shadow-lg shadow-emerald-200 dark:shadow-emerald-900/50"
-              } ${saveMutation.isPending ? "opacity-60 cursor-not-allowed" : ""}`}
+              className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-white transition-all shadow-lg ${activeConfig.activeBg} ${activeConfig.activeShadow} ${saveMutation.isPending ? "opacity-60 cursor-not-allowed" : ""}`}
             >
               {saveMutation.isPending ? (
                 <Loader2 className="w-5 h-5 animate-spin" />
               ) : (
                 <Save className="w-5 h-5" />
               )}
-              {saveMutation.isPending ? "جاري الحفظ..." : `حفظ ${activeSection === "privacy" ? "سياسة الخصوصية" : "شروط الاستخدام"} وإشعار الجميع`}
+              {saveMutation.isPending ? "جاري الحفظ..." : `حفظ ${activeConfig.label} وإشعار الجميع`}
             </button>
           </div>
         </div>
