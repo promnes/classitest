@@ -6,7 +6,7 @@
  * Exports: getWorldIntro(worldIdx), getRandomFact(worldIdx), getQuiz(worldIdx)
  */
 
-import { LANG, WORLD_MASCOTS, WORLD_MASCOT_NAMES } from './config.js';
+import { LANG, SUPPORTED_LANGS, WORLD_MASCOTS, WORLD_MASCOT_NAMES } from './config.js';
 
 // ===== WORLD INTRODUCTIONS =====
 // Shown when player first enters a world (level 0)
@@ -235,6 +235,10 @@ const INTROS = {
     ['Bienvenue au Palais de Diamant ! 💎', 'C\'est le défi final et le plus difficile !', 'Tu affronteras tous les types d\'obstacles ensemble !', 'Prouve que tu es un vrai héros et bats le Roi des Ombres ! 👑'],
   ],
 };
+
+for (const lang of SUPPORTED_LANGS) {
+  if (!INTROS[lang]) INTROS[lang] = INTROS.en;
+}
 
 // ===== DID YOU KNOW? — Educational Facts =====
 // 10 facts per world, content available in ar/en/pt (others fall back to en)
@@ -617,6 +621,10 @@ const FACTS = {
   ],
 };
 
+for (const lang of SUPPORTED_LANGS) {
+  if (!FACTS[lang]) FACTS[lang] = FACTS.en;
+}
+
 // ===== QUIZ SYSTEM =====
 // Quick bonus quiz after level completion (optional)
 const QUIZZES = {
@@ -798,6 +806,10 @@ const QUIZZES = {
   ],
 };
 
+for (const lang of SUPPORTED_LANGS) {
+  if (!QUIZZES[lang]) QUIZZES[lang] = QUIZZES.en;
+}
+
 // ===== PUBLIC API =====
 
 export function getWorldIntro(worldIdx) {
@@ -828,7 +840,7 @@ export function getQuiz(worldIdx) {
 }
 
 export function getAllFacts(worldIdx) {
-  const lang = LANG === 'ar' ? 'ar' : LANG === 'pt' ? 'pt' : 'en';
+  const lang = FACTS[LANG] ? LANG : 'en';
   return FACTS[lang]?.[worldIdx] || [];
 }
 

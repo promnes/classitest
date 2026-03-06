@@ -3,7 +3,7 @@
 // Central orchestrator — wires all modules together
 
 import {
-  LANG, BOARD, TIMING, SCORING, XP, SPECIAL, OBSTACLE,
+  LANG, DIR, SUPPORTED_LANGS, LANGUAGE_LABELS, BOARD, TIMING, SCORING, XP, SPECIAL, OBSTACLE,
   WORLD_GEMS, WORLD_GRADIENTS, WORLD_ACCENTS, WORLD_NAMES, WORLD_ICONS, WORLD_MASCOTS,
   WORLD_MASCOT_NAMES, ACHIEVEMENTS, KEYS, STORAGE_PREFIX,
   t, loadProgress, saveProgress, createDefaultProgress,
@@ -231,7 +231,7 @@ export async function initGame() {
 
   // Set direction
   document.documentElement.lang = LANG;
-  document.documentElement.dir = LANG === 'ar' ? 'rtl' : 'ltr';
+  document.documentElement.dir = DIR;
 
   // Load optional modules in parallel
   await Promise.allSettled([loadWorlds(), loadAudio(), loadIntelligence(), loadStory(), loadEconomy(), loadEngagement(), loadReports()]);
@@ -432,7 +432,7 @@ function showScreen(name) {
     case 'done': renderDoneScreen(); break;
     case 'shop': renderShopScreen(); break;
     case 'achieve': renderAchieveScreen(); break;
-    case 'stats': renderStatsScreen(); { const sb = qs('#report-send'); if (sb) { sb.textContent = '📤 إرسال للوالدين'; sb.classList.remove('sent'); } } break;
+    case 'stats': renderStatsScreen(); { const sb = qs('#report-send'); if (sb) { sb.textContent = t('reportSend'); sb.classList.remove('sent'); } } break;
     case 'settings': renderSettingsScreen(); break;
     case 'album': renderAlbumScreen(); break;
   }
@@ -441,7 +441,7 @@ function showScreen(name) {
 // ===== WORLD SELECT =====
 function renderWorldScreen() {
   const p = S.progress;
-  const nameKey = LANG === 'pt' ? 'pt' : LANG === 'ar' ? 'ar' : 'en';
+  const names = WORLD_NAMES[LANG] || WORLD_NAMES.en;
 
   // Update HUD
   qs('#ws-coins span').textContent = p.coins;
@@ -467,8 +467,6 @@ function renderWorldScreen() {
     const totalPossible = 30; // 10 levels × 3 stars
     const prevStars = w === 0 ? Infinity : getWorldStars(w - 1);
     const isUnlocked = w === 0 || prevStars >= 15; // Need 15 stars from prev world
-    const names = WORLD_NAMES[nameKey] || WORLD_NAMES.en;
-
     const card = document.createElement('div');
     card.className = `wc ${isUnlocked ? '' : 'locked'}`;
     card.style.background = WORLD_GRADIENTS[w];
@@ -710,8 +708,7 @@ function setupGameCanvas() {
 
 // ===== GAME HUD =====
 function updateGameHUD() {
-  const nameKey = LANG === 'pt' ? 'pt' : LANG === 'ar' ? 'ar' : 'en';
-  const names = WORLD_NAMES[nameKey] || WORLD_NAMES.en;
+  const names = WORLD_NAMES[LANG] || WORLD_NAMES.en;
 
   qs('#g-title').textContent = `${WORLD_ICONS[S.currentWorld]} ${names[S.currentWorld]}`;
   qs('#g-level').textContent = `${t('level')} ${S.currentLevel + 1}`;
@@ -853,7 +850,7 @@ function setupEventListeners() {
       } catch(e) {}
     }
     const btn = qs('#report-send');
-    btn.textContent = '✅ تم الإرسال';
+    btn.textContent = t('reportSent');
     btn.classList.add('sent');
   });
 
@@ -2109,8 +2106,6 @@ function renderAchieveScreen() {
   const grid = qs('#ach-grid');
   grid.innerHTML = '';
 
-  const nameKey = LANG === 'pt' ? 'namePt' : LANG === 'ar' ? 'nameAr' : 'nameEn';
-
   for (const ach of ACHIEVEMENTS) {
     const unlocked = p.achievementsUnlocked.includes(ach.id);
     const current = getAchievementProgress(p, ach);
@@ -2121,7 +2116,7 @@ function renderAchieveScreen() {
     item.innerHTML = `
       <div class="ach-icon">${ach.icon}</div>
       <div class="ach-info">
-        <div class="ach-name">${ach[nameKey]}</div>
+        <div class="ach-name">${ach.names?.[LANG] || ach.nameEn}</div>
         <div class="ach-progress"><div class="ach-progress-fill" style="width:${pct}%"></div></div>
       </div>
       <div class="ach-reward">${unlocked ? '✅' : `🪙${ach.coins}`}</div>
@@ -2189,14 +2184,13 @@ function checkAchievements() {
 }
 
 function showAchievementNotification(ach) {
-  const nameKey = LANG === 'pt' ? 'namePt' : LANG === 'ar' ? 'nameAr' : 'nameEn';
   const overlay = document.createElement('div');
   overlay.className = 'overlay';
   overlay.innerHTML = `
     <div class="modal">
       <h2>${t('newAchievement')}</h2>
       <div style="font-size:48px;margin:8px 0">${ach.icon}</div>
-      <p style="font-size:18px;font-weight:800">${ach[nameKey]}</p>
+      <p style="font-size:18px;font-weight:800">${ach.names?.[LANG] || ach.nameEn}</p>
       <p>🪙 +${ach.coins}</p>
       <button class="btn btn-primary" id="ach-dismiss">${t('excellent')}</button>
     </div>
@@ -2430,7 +2424,7 @@ function isDailyChallengeCompleted() {
 function showDailyChallengeInReward(overlay) {
   const challenge = getDailyChallenge();
   const completed = isDailyChallengeCompleted();
-  const worldName = (WORLD_NAMES?.[LANG === 'ar' ? 'ar' : LANG === 'pt' ? 'pt' : 'en'] || WORLD_NAMES.en)[challenge.worldIdx] || '';
+  const worldName = (WORLD_NAMES?.[LANG] || WORLD_NAMES.en)[challenge.worldIdx] || '';
   const worldIcon = WORLD_ICONS?.[challenge.worldIdx] || '💎';
 
   const section = document.createElement('div');
@@ -2704,7 +2698,9 @@ function renderSettingsScreen() {
       <h3>🌐 ${t('language')}</h3>
       <div class="settings-row">
         <span class="settings-label">${t('language')}</span>
-        <span class="stats-value">${LANG === 'ar' ? 'العربية' : LANG === 'pt' ? 'Português' : 'English'}</span>
+        <select id="set-language" class="settings-label" style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);border-radius:8px;padding:6px;color:#fff;min-width:170px">
+          ${SUPPORTED_LANGS.map((lang) => `<option value="${lang}" ${lang === LANG ? 'selected' : ''} style="color:#111">${LANGUAGE_LABELS[lang] || lang}</option>`).join('')}
+        </select>
       </div>
     </div>
     <div class="settings-card settings-danger" style="margin-top:12px">
@@ -2725,6 +2721,14 @@ function renderSettingsScreen() {
     setColorBlindMode(S.colorBlindMode);
     saveProgress(p);
     renderSettingsScreen();
+  });
+
+  // Language selector: persist via URL query param used by config LANG.
+  content.querySelector('#set-language')?.addEventListener('change', (ev) => {
+    const nextLang = ev.target.value;
+    const url = new URL(window.location.href);
+    url.searchParams.set('lang', nextLang);
+    window.location.href = url.toString();
   });
 
   // Reset data
@@ -2749,8 +2753,7 @@ function renderAlbumScreen() {
     return;
   }
 
-  const nameKey = LANG === 'pt' ? 'pt' : LANG === 'ar' ? 'ar' : 'en';
-  const names = WORLD_NAMES[nameKey] || WORLD_NAMES.en;
+  const names = WORLD_NAMES[LANG] || WORLD_NAMES.en;
 
   let hasAnyFacts = false;
   for (let w = 0; w < 10; w++) {
@@ -2899,17 +2902,18 @@ function showStoryDialog(dialog) {
 
 // ===== SHARE =====
 function shareResult() {
-  const nameKey = LANG === 'pt' ? 'pt' : LANG === 'ar' ? 'ar' : 'en';
-  const worldName = (WORLD_NAMES[nameKey] || WORLD_NAMES.en)[S.currentWorld];
-
-  const text = LANG === 'ar'
-    ? `💎 حققت ${S.score} نقطة في ${worldName} - المستوى ${S.currentLevel + 1} ⭐${'⭐'.repeat(S.stars)}\n🎮 مملكة الجواهر — Classify`
-    : `💎 Scored ${S.score} in ${worldName} - Level ${S.currentLevel + 1} ⭐${'⭐'.repeat(S.stars)}\n🎮 Gem Kingdom — Classify`;
+  const worldName = (WORLD_NAMES[LANG] || WORLD_NAMES.en)[S.currentWorld] || '';
+  const text = t('shareResult', {
+    score: S.score,
+    world: worldName,
+    level: S.currentLevel + 1,
+    stars: `⭐${'⭐'.repeat(S.stars)}`,
+  });
 
   // Use native Web Share API if available
   if (navigator.share) {
     navigator.share({
-      title: LANG === 'ar' ? 'مملكة الجواهر' : 'Gem Kingdom',
+      title: t('shareTitle'),
       text,
     }).catch(() => { /* user cancelled or error — ignore */ });
   }

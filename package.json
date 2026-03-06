@@ -24,7 +24,7 @@
     "db:push": "drizzle-kit push",
     "admin:setup": "node scripts/manage-admin.js",
     "admin:reset": "node scripts/manage-admin.js",
-    "test": "node --experimental-vm-modules node_modules/.bin/jest --forceExit"
+    "test": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --forceExit"
   },
   "dependencies": {
     "@capacitor/android": "^7.4.4",

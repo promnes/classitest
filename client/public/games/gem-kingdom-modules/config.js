@@ -2,6 +2,18 @@
 // Constants, internationalization (ar/en/pt), emoji pools, storage keys
 
 export const LANG = new URLSearchParams(location.search).get('lang') || 'ar';
+export const SUPPORTED_LANGS = [
+  'ar', 'en', 'pt', 'es', 'fr', 'de', 'it', 'ru', 'zh', 'ja',
+  'ko', 'hi', 'tr', 'nl', 'sv', 'pl', 'uk', 'id', 'ms', 'th',
+  'vi', 'fa', 'ur', 'bn', 'sw',
+];
+export const LANGUAGE_LABELS = {
+  ar: 'العربية', en: 'English', pt: 'Português', es: 'Español', fr: 'Français',
+  de: 'Deutsch', it: 'Italiano', ru: 'Русский', zh: '中文', ja: '日本語',
+  ko: '한국어', hi: 'हिन्दी', tr: 'Türkçe', nl: 'Nederlands', sv: 'Svenska',
+  pl: 'Polski', uk: 'Українська', id: 'Bahasa Indonesia', ms: 'Bahasa Melayu', th: 'ไทย',
+  vi: 'Tiếng Việt', fa: 'فارسی', ur: 'اردو', bn: 'বাংলা', sw: 'Kiswahili',
+};
 export const STORAGE_PREFIX = 'classify_gem';
 export const KEYS = {
   PROGRESS: `${STORAGE_PREFIX}_progress`,
@@ -874,8 +886,63 @@ const STRINGS = {
   },
 };
 
+const EXTRA_STRINGS = {
+  reportSend: {
+    ar: '📤 إرسال للوالدين', en: '📤 Send to parents', pt: '📤 Enviar aos pais', es: '📤 Enviar a los padres', fr: '📤 Envoyer aux parents',
+    de: '📤 An Eltern senden', it: '📤 Invia ai genitori', ru: '📤 Отправить родителям', zh: '📤 发送给家长', ja: '📤 保護者に送信',
+    ko: '📤 부모에게 보내기', hi: '📤 माता-पिता को भेजें', tr: '📤 Ebeveynlere gonder', nl: '📤 Naar ouders sturen', sv: '📤 Skicka till foraldrar',
+    pl: '📤 Wyslij do rodzicow', uk: '📤 Надіслати батькам', id: '📤 Kirim ke orang tua', ms: '📤 Hantar kepada ibu bapa', th: '📤 ส่งให้ผู้ปกครอง',
+    vi: '📤 Gui cho phu huynh', fa: '📤 ارسال به والدین', ur: '📤 والدین کو بھیجیں', bn: '📤 অভিভাবকদের পাঠান', sw: '📤 Tuma kwa wazazi',
+  },
+  reportSent: {
+    ar: '✅ تم الإرسال', en: '✅ Sent', pt: '✅ Enviado', es: '✅ Enviado', fr: '✅ Envoye',
+    de: '✅ Gesendet', it: '✅ Inviato', ru: '✅ Отправлено', zh: '✅ 已发送', ja: '✅ 送信済み',
+    ko: '✅ 전송됨', hi: '✅ भेजा गया', tr: '✅ Gonderildi', nl: '✅ Verzonden', sv: '✅ Skickat',
+    pl: '✅ Wyslano', uk: '✅ Надіслано', id: '✅ Terkirim', ms: '✅ Dihantar', th: '✅ ส่งแล้ว',
+    vi: '✅ Da gui', fa: '✅ ارسال شد', ur: '✅ بھیج دیا گیا', bn: '✅ পাঠানো হয়েছে', sw: '✅ Imetumwa',
+  },
+  shareTitle: {
+    ar: 'مملكة الجواهر', en: 'Gem Kingdom', pt: 'Reino das Gemas', es: 'Reino de Gemas', fr: 'Royaume des Gemmes',
+    de: 'Edelsteinreich', it: 'Regno delle Gemme', ru: 'Королевство самоцветов', zh: '宝石王国', ja: 'ジェムキングダム',
+    ko: '보석 왕국', hi: 'रत्न साम्राज्य', tr: 'Mucevher Kralligi', nl: 'Edelstenenrijk', sv: 'Adelstensriket',
+    pl: 'Krolestwo Klejnotow', uk: 'Королівство коштовностей', id: 'Kerajaan Permata', ms: 'Kerajaan Permata', th: 'อาณาจักรอัญมณี',
+    vi: 'Vuong quoc da quy', fa: 'پادشاهی جواهرات', ur: 'جواہرات کی سلطنت', bn: 'রত্ন রাজ্য', sw: 'Ufalme wa Vito',
+  },
+  shareResult: {
+    ar: '💎 حققت {score} نقطة في {world} - المستوى {level} {stars}\n🎮 مملكة الجواهر — Classify',
+    en: '💎 Scored {score} in {world} - Level {level} {stars}\n🎮 Gem Kingdom — Classify',
+    pt: '💎 Fiz {score} em {world} - Nivel {level} {stars}\n🎮 Reino das Gemas — Classify',
+    es: '💎 Consegui {score} en {world} - Nivel {level} {stars}\n🎮 Reino de Gemas — Classify',
+    fr: '💎 J\'ai marque {score} dans {world} - Niveau {level} {stars}\n🎮 Royaume des Gemmes — Classify',
+    de: '💎 Ich habe {score} in {world} erzielt - Level {level} {stars}\n🎮 Edelsteinreich — Classify',
+    it: '💎 Ho fatto {score} in {world} - Livello {level} {stars}\n🎮 Regno delle Gemme — Classify',
+    ru: '💎 Я набрал(а) {score} в {world} - Уровень {level} {stars}\n🎮 Королевство самоцветов — Classify',
+    zh: '💎 我在 {world} 的第 {level} 关获得了 {score} 分 {stars}\n🎮 宝石王国 — Classify',
+    ja: '💎 {world} レベル {level} で {score} 点！{stars}\n🎮 ジェムキングダム — Classify',
+    ko: '💎 {world} {level}레벨에서 {score}점 달성! {stars}\n🎮 보석 왕국 — Classify',
+    hi: '💎 मैंने {world} के स्तर {level} में {score} स्कोर किया {stars}\n🎮 रत्न साम्राज्य — Classify',
+    tr: '💎 {world} - Seviye {level} icin {score} puan! {stars}\n🎮 Mucevher Kralligi — Classify',
+    nl: '💎 {score} punten in {world} - Level {level} {stars}\n🎮 Edelstenenrijk — Classify',
+    sv: '💎 Fick {score} i {world} - Niva {level} {stars}\n🎮 Adelstensriket — Classify',
+    pl: '💎 Zdobyto {score} w {world} - Poziom {level} {stars}\n🎮 Krolestwo Klejnotow — Classify',
+    uk: '💎 Отримано {score} у {world} - Рівень {level} {stars}\n🎮 Королівство коштовностей — Classify',
+    id: '💎 Mendapat {score} di {world} - Level {level} {stars}\n🎮 Kerajaan Permata — Classify',
+    ms: '💎 Dapat {score} di {world} - Tahap {level} {stars}\n🎮 Kerajaan Permata — Classify',
+    th: '💎 ได้ {score} ใน {world} - ด่าน {level} {stars}\n🎮 อาณาจักรอัญมณี — Classify',
+    vi: '💎 Dat {score} tai {world} - Cap {level} {stars}\n🎮 Vuong quoc da quy — Classify',
+    fa: '💎 من در {world} مرحله {level} امتياز {score} گرفتم {stars}\n🎮 پادشاهی جواهرات — Classify',
+    ur: '💎 میں نے {world} میں لیول {level} پر {score} اسکور کیا {stars}\n🎮 جواہرات کی سلطنت — Classify',
+    bn: '💎 {world} এর লেভেল {level} এ {score} স্কোর করেছি {stars}\n🎮 রত্ন রাজ্য — Classify',
+    sw: '💎 Nimepata {score} katika {world} - Kiwango {level} {stars}\n🎮 Ufalme wa Vito — Classify',
+  },
+};
+
 export const t = (key, replacements) => {
-  let str = (STRINGS[LANG] || STRINGS.en || STRINGS.ar)[key] || (STRINGS.en)[key] || (STRINGS.ar)[key] || key;
+  let str = (STRINGS[LANG] || STRINGS.en || STRINGS.ar)[key] || (STRINGS.en)[key] || (STRINGS.ar)[key];
+  if (!str && EXTRA_STRINGS[key]) {
+    str = EXTRA_STRINGS[key][LANG] || EXTRA_STRINGS[key].en || EXTRA_STRINGS[key].ar;
+  }
+  if (!str) str = key;
   if (replacements) {
     for (const [k, v] of Object.entries(replacements)) {
       str = str.replace(`{${k}}`, v);
@@ -1032,6 +1099,10 @@ export const WORLD_NAMES = {
   pt: ['Jardim das Frutas','Profundezas do Oceano','Lab de Cores','Reino Animal','Estação Espacial','Floresta Musical','Fábrica de Doces','Lab do Trovão','Cidade dos Livros','Pico Diamante'],
 };
 
+for (const lang of SUPPORTED_LANGS) {
+  if (!WORLD_NAMES[lang]) WORLD_NAMES[lang] = [...WORLD_NAMES.en];
+}
+
 export const WORLD_ICONS = ['🍎','🐠','🎨','🦁','🚀','🎵','🍬','⚡','📚','💎'];
 
 export const WORLD_MASCOTS = ['🧑‍🌾','🧜‍♀️','🧑‍🔬','🐵','👨‍🚀','🎅','🤖','🧙','🦉','👑'];
@@ -1042,8 +1113,12 @@ export const WORLD_MASCOT_NAMES = {
   pt: ['Saeed','Marina','Fred','Zaki','Ameer','Tarek','Choco','Noor','Hakima','Maas'],
 };
 
+for (const lang of SUPPORTED_LANGS) {
+  if (!WORLD_MASCOT_NAMES[lang]) WORLD_MASCOT_NAMES[lang] = [...WORLD_MASCOT_NAMES.en];
+}
+
 // ===== ACHIEVEMENT DEFINITIONS =====
-export const ACHIEVEMENTS = [
+const ACHIEVEMENTS_BASE = [
   { id: 'first_level', type: 'levelsCompleted', goal: 1, coins: 10, icon: '🎮', nameAr: 'المبتدئ', nameEn: 'Beginner', namePt: 'Iniciante' },
   { id: 'collector_100', type: 'gemsCollected', goal: 100, coins: 20, icon: '💎', nameAr: 'الجامع', nameEn: 'Collector', namePt: 'Coletor' },
   { id: 'combo_3', type: 'maxCombo', goal: 3, coins: 30, icon: '🔥', nameAr: 'المتسلسل ×3', nameEn: 'Combo ×3', namePt: 'Combo ×3' },
@@ -1085,6 +1160,16 @@ export const ACHIEVEMENTS = [
   { id: 'lightning_5', type: 'lightningsUsed', goal: 5, coins: 80, icon: '⚡', nameAr: 'سيد البرق', nameEn: 'Lightning Master', namePt: 'Mestre Raio' },
   { id: 'legend', type: 'completionPct', goal: 100, coins: 1000, icon: '🏆', nameAr: 'أسطورة الجواهر', nameEn: 'Gem Legend', namePt: 'Lenda das Gemas' },
 ];
+
+export const ACHIEVEMENTS = ACHIEVEMENTS_BASE.map((ach) => {
+  const names = {};
+  for (const lang of SUPPORTED_LANGS) {
+    if (lang === 'ar') names[lang] = ach.nameAr;
+    else if (lang === 'pt') names[lang] = ach.namePt;
+    else names[lang] = ach.nameEn;
+  }
+  return { ...ach, names };
+});
 
 // ===== DEFAULT PROGRESS =====
 export function createDefaultProgress() {

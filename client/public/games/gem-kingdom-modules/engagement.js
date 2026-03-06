@@ -225,7 +225,6 @@ export function getStreakMessage(streak) {
  * @returns {Object} {title, stats: [{label, value, icon}], message}
  */
 export function getSessionSummary(session) {
-  const lang = L();
   const {
     levelsPlayed = 0,
     levelsWon = 0,
