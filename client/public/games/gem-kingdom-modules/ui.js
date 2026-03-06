@@ -31,11 +31,23 @@ const THEME_CELL_COLORS = {
 // ===== PERFORMANCE DETECTION =====
 let PERF = 'high'; // 'high' | 'medium' | 'low'
 export function detectPerformance() {
+  try {
+    const cached = localStorage.getItem('classify_gem_perf');
+    if (cached === 'high' || cached === 'medium' || cached === 'low') {
+      PERF = cached;
+      return PERF;
+    }
+  } catch { /* ignore */ }
+
   const canvas = document.createElement('canvas');
   canvas.width = 200; canvas.height = 200;
   const ctx = canvas.getContext('2d');
+  if (!ctx) {
+    PERF = 'low';
+    return PERF;
+  }
   const start = performance.now();
-  for (let i = 0; i < 500; i++) {
+  for (let i = 0; i < 200; i++) {
     ctx.fillStyle = `hsl(${i},80%,60%)`;
     ctx.beginPath();
     ctx.arc(100, 100, 50, 0, Math.PI * 2);
@@ -45,6 +57,7 @@ export function detectPerformance() {
   if (elapsed < 15) PERF = 'high';
   else if (elapsed < 40) PERF = 'medium';
   else PERF = 'low';
+  try { localStorage.setItem('classify_gem_perf', PERF); } catch { /* ignore */ }
   return PERF;
 }
 

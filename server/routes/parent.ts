@@ -418,7 +418,7 @@ export async function registerParentRoutes(app: Express) {
       const v = validateBody(changePasswordSchema, req.body);
       if (!v.success) return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, v.error));
       const { oldPassword, newPassword, otpMethod } = v.data;
-      const finalOtpCode = v.data.otpCode || v.data.code;
+      const finalOtpCode = (v.data.otpCode || v.data.code || "").trim();
       const otpId = v.data.otpId;
 
       const parent = await db.select().from(parents).where(eq(parents.id, req.user.userId));
@@ -433,6 +433,10 @@ export async function registerParentRoutes(app: Express) {
 
       if (otpMethod === "sms" && (!parent[0].phoneNumber || !parent[0].smsEnabled)) {
         return res.status(400).json(errorResponse(ErrorCode.SMS_NOT_ENABLED, "SMS OTP is not enabled for this account"));
+      }
+
+      if (!finalOtpCode) {
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "OTP code is required"));
       }
 
       const destination = otpMethod === "sms" ? parent[0].phoneNumber : parent[0].email;
@@ -1014,12 +1018,12 @@ export async function registerParentRoutes(app: Express) {
       await notifyAllAdmins({
         type: NOTIFICATION_TYPES.DEPOSIT_REQUEST,
         title: "طلب إيداع جديد",
-        message: `${parentName} طلب إيداع $${amount} عبر ${method[0].type} (Ref: ...${normalizedTransactionId.slice(-4)})${notes ? ` — "${String(notes).substring(0, 100)}"` : ""}`,
+        message: `${parentName} طلب إيداع $${parsedAmount} عبر ${method[0].type} (Ref: ...${normalizedTransactionId.slice(-4)})${notes ? ` — "${String(notes).substring(0, 100)}"` : ""}`,
         style: NOTIFICATION_STYLES.TOAST,
         priority: NOTIFICATION_PRIORITIES.URGENT,
         soundAlert: true,
         relatedId: result[0].id,
-        metadata: { depositId: result[0].id, parentId: req.user.userId, amount },
+        metadata: { depositId: result[0].id, parentId: req.user.userId, amount: parsedAmount },
       });
 
       logParentAction(req.user.userId, "DEPOSIT_REQUESTED", "deposit", result[0].id, { amount: parsedAmount, paymentMethodId }, req);
@@ -1071,7 +1075,7 @@ export async function registerParentRoutes(app: Express) {
     if (loginNotifications.length === 0) return items;
 
     const loginRequestIds = loginNotifications.map((n: any) => n.metadata.loginRequestId);
-    const loginRequests = await db
+    const loginRequests: any[] = await db
       .select()
       .from(childLoginRequests)
       .where(inArray(childLoginRequests.id, loginRequestIds));
@@ -1084,7 +1088,7 @@ export async function registerParentRoutes(app: Express) {
     return items.map((n: any) => {
       if (n.type !== "login_code_request" || !n.metadata?.loginRequestId) return n;
 
-      const lr = loginRequestMap.get(n.metadata.loginRequestId);
+      const lr: any = loginRequestMap.get(n.metadata.loginRequestId);
       if (!lr) {
         return { ...n, loginRequestStatus: "expired" };
       }
@@ -4433,7 +4437,7 @@ export async function registerParentRoutes(app: Express) {
         .orderBy(desc(parentPosts.createdAt));
       // Attach author info
       const [parent] = await db.select({ name: parents.name, avatarUrl: parents.avatarUrl }).from(parents).where(eq(parents.id, parentId));
-      const enriched = posts.map(p => ({ ...p, authorName: parent?.name || "", authorAvatar: parent?.avatarUrl || null }));
+      const enriched = posts.map((p: any) => ({ ...p, authorName: parent?.name || "", authorAvatar: parent?.avatarUrl || null }));
       res.json(successResponse(enriched));
     } catch (error: any) {
       console.error("Get parent posts error:", error);
@@ -4449,7 +4453,7 @@ export async function registerParentRoutes(app: Express) {
         .where(and(eq(parentPosts.parentId, parentId), eq(parentPosts.isActive, true)))
         .orderBy(desc(parentPosts.createdAt));
       const [parent] = await db.select({ name: parents.name, avatarUrl: parents.avatarUrl }).from(parents).where(eq(parents.id, parentId));
-      const enriched = posts.map(p => ({ ...p, authorName: parent?.name || "", authorAvatar: parent?.avatarUrl || null }));
+      const enriched = posts.map((p: any) => ({ ...p, authorName: parent?.name || "", authorAvatar: parent?.avatarUrl || null }));
       res.json(successResponse(enriched));
     } catch (error: any) {
       res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to fetch posts"));
@@ -4479,7 +4483,7 @@ export async function registerParentRoutes(app: Express) {
       const likes = await db.select().from(parentPostLikes)
         .where(and(inArray(parentPostLikes.postId, postIds), eq(parentPostLikes.userId, userId)));
       const map: Record<string, boolean> = {};
-      likes.forEach(l => { map[l.postId] = true; });
+      likes.forEach((l: any) => { map[l.postId] = true; });
       res.json(successResponse(map));
     } catch (error: any) {
       res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to check likes"));

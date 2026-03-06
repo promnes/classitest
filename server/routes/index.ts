@@ -117,7 +117,7 @@ async function seedDefaultGames() {
 
       if (rows.length > 1) {
         // Keep first, delete rest
-        const idsToDelete = rows.slice(1).map(r => r.id);
+        const idsToDelete = rows.slice(1).map((r: any) => r.id);
         for (const dupId of idsToDelete) {
           await db.delete(flashGames).where(eq(flashGames.id, dupId));
         }

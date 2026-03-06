@@ -24,12 +24,14 @@ export function initGrid(rows, cols, gemCount, obstacles = []) {
   for (let r = 0; r < rows; r++) {
     grid[r] = [];
     for (let c = 0; c < cols; c++) {
-      let type;
-      let attempts = 0;
-      do {
-        type = Math.floor(Math.random() * gemCount);
-        attempts++;
-      } while (attempts < 50 && wouldMatch(grid, r, c, type, rows, cols));
+      const candidates = [];
+      for (let t = 0; t < gemCount; t++) {
+        if (!wouldMatch(grid, r, c, t, rows, cols)) candidates.push(t);
+      }
+      // Fallback keeps generation safe even on highly constrained boards.
+      const type = candidates.length > 0
+        ? candidates[Math.floor(Math.random() * candidates.length)]
+        : Math.floor(Math.random() * gemCount);
       const gem = createGem(type, r, c);
       // Apply obstacles
       const obs = obstacles.find(o => o.row === r && o.col === c);

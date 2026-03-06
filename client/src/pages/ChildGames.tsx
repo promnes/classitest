@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { MandatoryTaskModal } from "@/components/MandatoryTaskModal";
@@ -26,6 +26,18 @@ interface Game {
   isActive: boolean;
 }
 
+interface GemTelemetryEvent {
+  ts: number;
+  gameId: string | null;
+  event: string;
+  sessionId: string | null;
+  world: number | null;
+  level: number | null;
+  payload: Record<string, unknown>;
+}
+
+type GemTuneProfile = "balanced" | "performance" | "easy";
+
 export const ChildGames = (): JSX.Element => {
   const { t, i18n } = useTranslation();
   const [, navigate] = useLocation();
@@ -42,6 +54,26 @@ export const ChildGames = (): JSX.Element => {
   const [mutationError, setMutationError] = useState<string | null>(null);
   const [gameShared, setGameShared] = useState(false);
   const [sharedGameData, setSharedGameData] = useState<{ gameName: string; score: number; stars: number } | null>(null);
+  const [telemetryVersion, setTelemetryVersion] = useState(0);
+  const [ultraClarity, setUltraClarity] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem("child_games_ultra_clarity");
+      if (saved === null) return true; // default ON for first-time users
+      return saved === "1";
+    } catch {
+      return true;
+    }
+  });
+  const [gemTuneProfile, setGemTuneProfile] = useState<GemTuneProfile>(() => {
+    try {
+      const saved = localStorage.getItem("child_games_gem_tune_profile");
+      if (saved === "performance" || saved === "easy" || saved === "balanced") return saved;
+      return "balanced";
+    } catch {
+      return "balanced";
+    }
+  });
+  const gameIframeRef = useRef<HTMLIFrameElement | null>(null);
 
   // Keep screen awake while playing a game
   useWakeLock(!!selectedGame);
@@ -95,6 +127,30 @@ export const ChildGames = (): JSX.Element => {
         const total = Math.max(1, Math.min(e.data.total || 10, 10000));
         setGameResult({ score, total });
       }
+
+      if (e.data?.type === 'GAME_TELEMETRY' && e.data?.game === 'gem') {
+        try {
+          const key = 'child_games_telemetry_buffer';
+          const raw = sessionStorage.getItem(key);
+          const prev = raw ? JSON.parse(raw) : [];
+          const event = {
+            ts: Date.now(),
+            gameId: selectedGameRef.current?.id || null,
+            event: e.data.event || 'unknown',
+            sessionId: e.data.sessionId || null,
+            world: e.data.world || null,
+            level: e.data.level || null,
+            payload: e.data.payload || {},
+          };
+
+          const next = [...prev, event].slice(-300);
+          sessionStorage.setItem(key, JSON.stringify(next));
+          setTelemetryVersion((v) => v + 1);
+        } catch {
+          // Ignore telemetry buffering issues.
+        }
+      }
+
       // Handle achievement sharing to child profile — rich game card post (share once per session)
       if (e.data?.type === 'SHARE_ACHIEVEMENT' && token) {
         const { game, level, score, stars, world } = e.data;
@@ -279,6 +335,87 @@ export const ChildGames = (): JSX.Element => {
     setSharedGameData(null);
   };
 
+  const applyGameClarityEnhancements = useCallback(() => {
+    const iframe = gameIframeRef.current;
+    if (!iframe) return;
+
+    iframe.style.filter = ultraClarity
+      ? "contrast(1.12) saturate(1.08) brightness(1.03)"
+      : "none";
+
+    iframe.style.transform = "translateZ(0)";
+    iframe.style.backfaceVisibility = "hidden";
+
+    // Same-origin only: all local HTML games are same-origin, external embeds are skipped safely.
+    try {
+      const doc = iframe.contentDocument;
+      if (!doc) return;
+
+      const STYLE_ID = "classify-game-clarity-style";
+      if (!doc.getElementById(STYLE_ID)) {
+        const style = doc.createElement("style");
+        style.id = STYLE_ID;
+        style.textContent = `
+          html, body {
+            text-rendering: geometricPrecision;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+          }
+
+          canvas, img, svg, video {
+            image-rendering: auto;
+            shape-rendering: geometricPrecision;
+          }
+
+          :root[data-clarity='ultra'] {
+            --classify-clarity-ultra: 1;
+          }
+
+          :root[data-clarity='ultra'] canvas,
+          :root[data-clarity='ultra'] img,
+          :root[data-clarity='ultra'] svg,
+          :root[data-clarity='ultra'] video {
+            image-rendering: -webkit-optimize-contrast;
+          }
+        `;
+        (doc.head || doc.documentElement).appendChild(style);
+      }
+
+      doc.documentElement.setAttribute("data-clarity", ultraClarity ? "ultra" : "high");
+    } catch {
+      // Cross-origin iframe; cannot access content.
+    }
+  }, [ultraClarity]);
+
+  const buildGameSrc = useCallback((embedUrl: string, language: string) => {
+    const separator = embedUrl.includes("?") ? "&" : "?";
+    const clarityLevel = ultraClarity ? "ultra" : "high";
+    const isGem = embedUrl.includes("gem-kingdom");
+    const tuneParam = isGem ? `&tune=${gemTuneProfile}` : "";
+    return `${embedUrl}${separator}lang=${language}&quality=high&clarity=${clarityLevel}${tuneParam}`;
+  }, [ultraClarity, gemTuneProfile]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("child_games_ultra_clarity", ultraClarity ? "1" : "0");
+    } catch {
+      // Ignore storage quota/security issues.
+    }
+  }, [ultraClarity]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("child_games_gem_tune_profile", gemTuneProfile);
+    } catch {
+      // Ignore storage quota/security issues.
+    }
+  }, [gemTuneProfile]);
+
+  useEffect(() => {
+    if (!selectedGame || iframeLoading) return;
+    applyGameClarityEnhancements();
+  }, [selectedGame, iframeLoading, ultraClarity, applyGameClarityEnhancements]);
+
   const handleCompleteGame = () => {
     if (selectedGame && gameResult) {
       completeGameMutation.mutate({
@@ -290,6 +427,678 @@ export const ChildGames = (): JSX.Element => {
   };
 
   const isRTL = i18n.language === 'ar';
+  const isGemGameOpen = !!selectedGame?.embedUrl?.includes("gem-kingdom");
+
+  const gemTelemetryInsights = useMemo(() => {
+    if (!isGemGameOpen) return null;
+
+    try {
+      const raw = sessionStorage.getItem("child_games_telemetry_buffer");
+      const buffer: GemTelemetryEvent[] = raw ? JSON.parse(raw) : [];
+      const forCurrentGame = buffer.filter(
+        (evt) => evt && evt.event && (evt.gameId === selectedGame?.id || evt.gameId === null)
+      );
+      if (!forCurrentGame.length) return null;
+
+      const latestSessionId = [...forCurrentGame].reverse().find((evt) => evt.event === "session_started")?.sessionId || null;
+      const sessionEvents = latestSessionId
+        ? forCurrentGame.filter((evt) => evt.sessionId === latestSessionId)
+        : forCurrentGame.slice(-150);
+
+      const levelStarted = sessionEvents.filter((evt) => evt.event === "level_started").length;
+      const levelCompletedEvents = sessionEvents.filter((evt) => evt.event === "level_completed");
+      const levelCompleted = levelCompletedEvents.length;
+      const levelWon = levelCompletedEvents.filter((evt) => evt.payload?.won === true).length;
+      const levelAbandoned = sessionEvents.filter((evt) => evt.event === "level_abandoned").length;
+      const tutorialStarted = sessionEvents.filter((evt) => evt.event === "tutorial_started").length;
+      const tutorialCompleted = sessionEvents.filter((evt) => evt.event === "tutorial_completed").length;
+      const storyShown = sessionEvents.filter((evt) => evt.event === "story_dialog_shown").length;
+      const storyClosed = sessionEvents.filter((evt) => evt.event === "story_dialog_closed").length;
+      const moduleLoadFailed = sessionEvents.filter((evt) => evt.event === "module_load_failed").length;
+      const gameReady = sessionEvents.find((evt) => evt.event === "game_ready");
+      const startupMsRaw = Number(gameReady?.payload?.initMs);
+      const startupMs = Number.isFinite(startupMsRaw) && startupMsRaw >= 0 ? Math.round(startupMsRaw) : null;
+
+      const qosHeartbeats = sessionEvents.filter((evt) => evt.event === "qos_heartbeat");
+      const qosSummaries = sessionEvents.filter((evt) => evt.event === "level_qos_summary");
+      const reducedEffectsEvents = sessionEvents.filter((evt) => evt.event === "qos_effects_reduced");
+
+      const heartbeatDrops = qosHeartbeats
+        .map((evt) => Number(evt.payload?.frameDropsWindow))
+        .filter((value) => Number.isFinite(value) && value >= 0) as number[];
+      const heartbeatLongFrames = qosHeartbeats
+        .map((evt) => Number(evt.payload?.longFramesWindow))
+        .filter((value) => Number.isFinite(value) && value >= 0) as number[];
+
+      const summaryFrameDrops = qosSummaries
+        .map((evt) => Number(evt.payload?.totalFrameDrops))
+        .filter((value) => Number.isFinite(value) && value >= 0) as number[];
+      const summaryLongFrames = qosSummaries
+        .map((evt) => Number(evt.payload?.totalLongFrames))
+        .filter((value) => Number.isFinite(value) && value >= 0) as number[];
+
+      const avgFrameDropsWindow = heartbeatDrops.length
+        ? Math.round((heartbeatDrops.reduce((sum, value) => sum + value, 0) / heartbeatDrops.length) * 10) / 10
+        : null;
+      const avgLongFramesWindow = heartbeatLongFrames.length
+        ? Math.round((heartbeatLongFrames.reduce((sum, value) => sum + value, 0) / heartbeatLongFrames.length) * 10) / 10
+        : null;
+      const avgLevelFrameDrops = summaryFrameDrops.length
+        ? Math.round((summaryFrameDrops.reduce((sum, value) => sum + value, 0) / summaryFrameDrops.length) * 10) / 10
+        : null;
+      const avgLevelLongFrames = summaryLongFrames.length
+        ? Math.round((summaryLongFrames.reduce((sum, value) => sum + value, 0) / summaryLongFrames.length) * 10) / 10
+        : null;
+
+      const elapsedValues = levelCompletedEvents
+        .map((evt) => Number(evt.payload?.elapsedSec))
+        .filter((value) => Number.isFinite(value) && value > 0) as number[];
+      const avgLevelSec = elapsedValues.length
+        ? Math.round((elapsedValues.reduce((sum, value) => sum + value, 0) / elapsedValues.length) * 10) / 10
+        : null;
+
+      return {
+        sessionId: latestSessionId,
+        sampleSize: sessionEvents.length,
+        levelStarted,
+        levelCompleted,
+        levelWon,
+        levelAbandoned,
+        completionRate: levelStarted > 0 ? Math.round((levelCompleted / levelStarted) * 100) : null,
+        winRate: levelCompleted > 0 ? Math.round((levelWon / levelCompleted) * 100) : null,
+        abandonRate: levelStarted > 0 ? Math.round((levelAbandoned / levelStarted) * 100) : null,
+        tutorialStarted,
+        tutorialCompleted,
+        storyShown,
+        storyClosed,
+        moduleLoadFailed,
+        avgLevelSec,
+        startupMs,
+        qosHeartbeatCount: qosHeartbeats.length,
+        qosSummaryCount: qosSummaries.length,
+        qosReducedEffectsCount: reducedEffectsEvents.length,
+        avgFrameDropsWindow,
+        avgLongFramesWindow,
+        avgLevelFrameDrops,
+        avgLevelLongFrames,
+      };
+    } catch {
+      return null;
+    }
+  }, [isGemGameOpen, selectedGame?.id, telemetryVersion]);
+
+  const gemAdaptiveBaseline = useMemo(() => {
+    const defaults = {
+      enabled: false,
+      sampleCount: 0,
+      abandonWarn: 35,
+      completionLow: 55,
+      winLow: 45,
+      startupWarnMs: 3000,
+      frameDropsWarn: 25,
+      longFramesWarn: 8,
+    };
+
+    if (!isGemGameOpen) return defaults;
+
+    try {
+      const raw = localStorage.getItem("child_games_gem_session_health_history");
+      const history = raw ? JSON.parse(raw) : [];
+      if (!Array.isArray(history)) return defaults;
+
+      const sameTune = history.filter((entry: any) => entry?.tune === gemTuneProfile);
+      const scoped = (sameTune.length >= 5 ? sameTune : history).slice(-20);
+      if (scoped.length < 5) return defaults;
+
+      const percentile = (values: number[], p: number) => {
+        if (!values.length) return null;
+        const sorted = [...values].sort((a, b) => a - b);
+        const idx = Math.min(sorted.length - 1, Math.max(0, Math.floor((p / 100) * (sorted.length - 1))));
+        return sorted[idx];
+      };
+
+      const abandons = scoped.map((x: any) => Number(x?.abandonRate)).filter((v: number) => Number.isFinite(v) && v >= 0);
+      const completions = scoped.map((x: any) => Number(x?.completionRate)).filter((v: number) => Number.isFinite(v) && v >= 0);
+      const wins = scoped.map((x: any) => Number(x?.winRate)).filter((v: number) => Number.isFinite(v) && v >= 0);
+      const startups = scoped.map((x: any) => Number(x?.startupMs)).filter((v: number) => Number.isFinite(v) && v > 0);
+      const frameDrops = scoped.map((x: any) => Number(x?.avgLevelFrameDrops)).filter((v: number) => Number.isFinite(v) && v >= 0);
+      const longFrames = scoped.map((x: any) => Number(x?.avgLongFramesWindow)).filter((v: number) => Number.isFinite(v) && v >= 0);
+
+      const abandonP75 = percentile(abandons, 75);
+      const completionP25 = percentile(completions, 25);
+      const winP25 = percentile(wins, 25);
+      const startupP75 = percentile(startups, 75);
+      const frameDropsP75 = percentile(frameDrops, 75);
+      const longFramesP75 = percentile(longFrames, 75);
+
+      return {
+        enabled: true,
+        sampleCount: scoped.length,
+        abandonWarn: abandonP75 !== null ? Math.max(20, Math.min(55, Math.round(abandonP75 + 8))) : defaults.abandonWarn,
+        completionLow: completionP25 !== null ? Math.max(35, Math.min(75, Math.round(completionP25 - 8))) : defaults.completionLow,
+        winLow: winP25 !== null ? Math.max(30, Math.min(70, Math.round(winP25 - 8))) : defaults.winLow,
+        startupWarnMs: startupP75 !== null ? Math.max(1800, Math.min(5000, Math.round(startupP75 + 500))) : defaults.startupWarnMs,
+        frameDropsWarn: frameDropsP75 !== null ? Math.max(10, Math.min(60, Math.round(frameDropsP75 + 6))) : defaults.frameDropsWarn,
+        longFramesWarn: longFramesP75 !== null ? Math.max(4, Math.min(20, Math.round(longFramesP75 + 3))) : defaults.longFramesWarn,
+      };
+    } catch {
+      return defaults;
+    }
+  }, [isGemGameOpen, gemTuneProfile, telemetryVersion]);
+
+  const gemAdaptiveWeights = useMemo(() => {
+    const defaults = {
+      enabled: false,
+      module: 1,
+      abandon: 1,
+      completion: 1,
+      win: 1,
+      startup: 1,
+      qos: 1,
+      tutorial: 1,
+    };
+
+    if (!isGemGameOpen) return defaults;
+
+    const byTune = {
+      balanced: { ...defaults, enabled: true },
+      performance: { ...defaults, enabled: true, completion: 0.85, win: 0.85, startup: 1.1, qos: 1.2, tutorial: 0.8 },
+      easy: { ...defaults, enabled: true, abandon: 1.1, completion: 1.2, win: 1.15, startup: 0.8, qos: 0.8 },
+    } as const;
+
+    const active = { ...byTune[gemTuneProfile] };
+
+    try {
+      const raw = localStorage.getItem("child_games_gem_session_health_history");
+      const history = raw ? JSON.parse(raw) : [];
+      if (!Array.isArray(history) || history.length < 5) return active;
+
+      const sameTune = history.filter((entry: any) => entry?.tune === gemTuneProfile);
+      const scoped = (sameTune.length >= 5 ? sameTune : history).slice(-20);
+      if (scoped.length < 5) return active;
+
+      const avg = (values: number[]) => values.length
+        ? values.reduce((sum, value) => sum + value, 0) / values.length
+        : 0;
+
+      const avgCompletion = avg(scoped.map((x: any) => Number(x?.completionRate)).filter((v: number) => Number.isFinite(v) && v >= 0));
+      const avgWin = avg(scoped.map((x: any) => Number(x?.winRate)).filter((v: number) => Number.isFinite(v) && v >= 0));
+      const avgFrameDrops = avg(scoped.map((x: any) => Number(x?.avgLevelFrameDrops)).filter((v: number) => Number.isFinite(v) && v >= 0));
+      const avgLongFrames = avg(scoped.map((x: any) => Number(x?.avgLongFramesWindow)).filter((v: number) => Number.isFinite(v) && v >= 0));
+
+      // If performance is poor across history, prioritize completion/win penalties.
+      if (avgCompletion > 0 && avgCompletion < 50) active.completion = Math.min(1.35, active.completion + 0.15);
+      if (avgWin > 0 && avgWin < 40) active.win = Math.min(1.3, active.win + 0.15);
+
+      // If device appears consistently constrained, soften QoS/startup penalties to avoid over-penalization.
+      const deviceConstrained = avgFrameDrops > gemAdaptiveBaseline.frameDropsWarn * 1.2 || avgLongFrames > gemAdaptiveBaseline.longFramesWarn * 1.2;
+      if (deviceConstrained) {
+        active.qos = Math.max(0.65, active.qos - 0.2);
+        active.startup = Math.max(0.7, active.startup - 0.15);
+      }
+    } catch {
+      // Keep tune defaults.
+    }
+
+    return active;
+  }, [isGemGameOpen, gemTuneProfile, gemAdaptiveBaseline.frameDropsWarn, gemAdaptiveBaseline.longFramesWarn, telemetryVersion]);
+
+  const gemSessionHealth = useMemo(() => {
+    if (!isGemGameOpen || !gemTelemetryInsights) return null;
+
+    const alerts: Array<{ severity: "critical" | "warning" | "info"; label: string }> = [];
+    const recommendations: string[] = [];
+    const penaltyBreakdown: Array<{ key: string; label: string; base: number; weight: number; applied: number; value: string }> = [];
+    let score = 100;
+    const penalize = (key: string, label: string, base: number, weight: number, value: string) => {
+      const penalty = Math.max(1, Math.round(base * weight));
+      score -= penalty;
+      penaltyBreakdown.push({ key, label, base, weight, applied: penalty, value });
+    };
+
+    if (gemTelemetryInsights.moduleLoadFailed > 0) {
+      alerts.push({
+        severity: "critical",
+        label: isRTL
+          ? `فشل تحميل وحدات: ${gemTelemetryInsights.moduleLoadFailed}`
+          : `Module load failures: ${gemTelemetryInsights.moduleLoadFailed}`,
+      });
+      recommendations.push(
+        isRTL
+          ? "تحقق من استقرار تحميل الملفات داخل iframe قبل بدء الجلسة."
+          : "Validate module loading stability in the iframe before starting gameplay."
+      );
+      penalize(
+        "module",
+        isRTL ? "فشل تحميل الوحدات" : "Module Load Failure",
+        30,
+        gemAdaptiveWeights.module,
+        `${gemTelemetryInsights.moduleLoadFailed}`
+      );
+    }
+
+    if ((gemTelemetryInsights.abandonRate ?? 0) >= gemAdaptiveBaseline.abandonWarn) {
+      alerts.push({
+        severity: "warning",
+        label: isRTL
+          ? `تخلي مرتفع: ${gemTelemetryInsights.abandonRate}%`
+          : `High abandon rate: ${gemTelemetryInsights.abandonRate}%`,
+      });
+      recommendations.push(
+        isRTL
+          ? "قلل الحمل في أول 30 ثانية (نصوص أقل، انتقالات أخف، تعليمات أوضح)."
+          : "Reduce first-30s friction (lighter transitions, clearer first actions, less cognitive load)."
+      );
+      penalize(
+        "abandon",
+        isRTL ? "معدل التخلي" : "Abandon Rate",
+        18,
+        gemAdaptiveWeights.abandon,
+        `${gemTelemetryInsights.abandonRate ?? "-"}%`
+      );
+    }
+
+    if ((gemTelemetryInsights.completionRate ?? 100) < gemAdaptiveBaseline.completionLow && gemTelemetryInsights.levelStarted >= 3) {
+      alerts.push({
+        severity: "warning",
+        label: isRTL
+          ? `إكمال منخفض: ${gemTelemetryInsights.completionRate}%`
+          : `Low completion rate: ${gemTelemetryInsights.completionRate}%`,
+      });
+      recommendations.push(
+        isRTL
+          ? "اضبط صعوبة أول المراحل تدريجيًا وارفع المساعدة السياقية."
+          : "Smooth early difficulty ramp and add contextual guidance during first levels."
+      );
+      penalize(
+        "completion",
+        isRTL ? "معدل الإكمال" : "Completion Rate",
+        14,
+        gemAdaptiveWeights.completion,
+        `${gemTelemetryInsights.completionRate ?? "-"}%`
+      );
+    }
+
+    if ((gemTelemetryInsights.winRate ?? 100) < gemAdaptiveBaseline.winLow && gemTelemetryInsights.levelCompleted >= 3) {
+      alerts.push({
+        severity: "warning",
+        label: isRTL
+          ? `فوز منخفض: ${gemTelemetryInsights.winRate}%`
+          : `Low win rate: ${gemTelemetryInsights.winRate}%`,
+      });
+      recommendations.push(
+        isRTL
+          ? "راجع توازن الأهداف مقابل عدد الحركات في المراحل المبكرة."
+          : "Rebalance objectives versus available moves in early levels."
+      );
+      penalize(
+        "win",
+        isRTL ? "معدل الفوز" : "Win Rate",
+        12,
+        gemAdaptiveWeights.win,
+        `${gemTelemetryInsights.winRate ?? "-"}%`
+      );
+    }
+
+    if ((gemTelemetryInsights.startupMs ?? 0) > gemAdaptiveBaseline.startupWarnMs) {
+      alerts.push({
+        severity: "warning",
+        label: isRTL
+          ? `بدء بطيء: ${gemTelemetryInsights.startupMs}ms`
+          : `Slow startup: ${gemTelemetryInsights.startupMs}ms`,
+      });
+      recommendations.push(
+        isRTL
+          ? "قلل التهيئة المتزامنة عند الإقلاع وانقل غير الضروري لما بعد أول شاشة."
+          : "Reduce synchronous startup work and defer non-critical setup after first screen render."
+      );
+      penalize(
+        "startup",
+        isRTL ? "زمن البدء" : "Startup Latency",
+        10,
+        gemAdaptiveWeights.startup,
+        `${gemTelemetryInsights.startupMs ?? "-"}ms`
+      );
+    }
+
+    if ((gemTelemetryInsights.avgLevelFrameDrops ?? 0) > gemAdaptiveBaseline.frameDropsWarn || (gemTelemetryInsights.avgLongFramesWindow ?? 0) > gemAdaptiveBaseline.longFramesWarn) {
+      alerts.push({
+        severity: "warning",
+        label: isRTL
+          ? "ضغط أداء أثناء اللعب"
+          : "Performance pressure detected",
+      });
+      recommendations.push(
+        isRTL
+          ? "قلل كثافة المؤثرات البصرية في الكومبوهات العالية على الأجهزة الضعيفة."
+          : "Lower combo VFX density on lower-tier devices to preserve frame stability."
+      );
+      penalize(
+        "qos",
+        isRTL ? "ضغط الأداء" : "Performance Pressure",
+        10,
+        gemAdaptiveWeights.qos,
+        `${gemTelemetryInsights.avgLevelFrameDrops ?? "-"}/${gemTelemetryInsights.avgLongFramesWindow ?? "-"}`
+      );
+    }
+
+    if (gemTelemetryInsights.qosReducedEffectsCount > 0) {
+      alerts.push({
+        severity: "info",
+        label: isRTL
+          ? `تم تفعيل وضع خفيف ${gemTelemetryInsights.qosReducedEffectsCount} مرة`
+          : `Reduced effects triggered ${gemTelemetryInsights.qosReducedEffectsCount}x`,
+      });
+      penalize(
+        "qos_reduced",
+        isRTL ? "وضع خفيف مفعل" : "Reduced Effects Triggered",
+        4,
+        gemAdaptiveWeights.qos,
+        `${gemTelemetryInsights.qosReducedEffectsCount}`
+      );
+    }
+
+    if (gemTelemetryInsights.tutorialStarted > gemTelemetryInsights.tutorialCompleted) {
+      alerts.push({
+        severity: "info",
+        label: isRTL ? "تسرب في إكمال الدليل" : "Tutorial completion drop-off",
+      });
+      recommendations.push(
+        isRTL
+          ? "اختصر خطوات الدليل الأولى واجعل الإجراء الأول تفاعليًا خلال 5 ثوانٍ."
+          : "Compress tutorial opening and force a meaningful action within the first 5 seconds."
+      );
+      penalize(
+        "tutorial",
+        isRTL ? "تسرب الدليل" : "Tutorial Drop-off",
+        6,
+        gemAdaptiveWeights.tutorial,
+        `${gemTelemetryInsights.tutorialStarted}/${gemTelemetryInsights.tutorialCompleted}`
+      );
+    }
+
+    let priorityInsight: string | null = null;
+    let priorityInsightMeta: { key: string; shownAt: number; variantIndex: number; cooldownMs: number; tune: GemTuneProfile } | null = null;
+    try {
+      const raw = localStorage.getItem("child_games_gem_session_health_history");
+      const history = raw ? JSON.parse(raw) : [];
+      if (Array.isArray(history) && history.length > 0) {
+        const recent = history.slice(-10);
+        const counts = new Map<string, number>();
+        for (const session of recent) {
+          const penalties = Array.isArray(session?.topPenalties) ? session.topPenalties : [];
+          for (const item of penalties) {
+            const key = String(item?.key || "unknown");
+            counts.set(key, (counts.get(key) || 0) + 1);
+          }
+        }
+
+        let topKey = "";
+        let topCount = 0;
+        for (const [key, count] of counts.entries()) {
+          if (count > topCount) {
+            topKey = key;
+            topCount = count;
+          }
+        }
+
+        if (topCount >= 3) {
+          const variantsByKey: Record<string, string[]> = isRTL
+            ? {
+                module: [
+                  "الأولوية: أصلح استقرار تحميل الوحدات لأنه السبب الأكثر تكرارًا.",
+                  "نصيحة تنفيذية: عالج أعطال تحميل الوحدات أولًا قبل أي تحسين آخر.",
+                ],
+                abandon: [
+                  "الأولوية: قلل التخلي بتحسين أول 30 ثانية ومسار البداية.",
+                  "نصيحة تنفيذية: اجعل أول تفاعل أسهل وأوضح لتقليل التخلي المبكر.",
+                ],
+                completion: [
+                  "الأولوية: ارفع الإكمال عبر تبسيط أهداف المراحل الأولى.",
+                  "نصيحة تنفيذية: قلل تعقيد المرحلة المبكرة لرفع معدل الإكمال.",
+                ],
+                win: [
+                  "الأولوية: عاير صعوبة البداية لتحسين معدل الفوز.",
+                  "نصيحة تنفيذية: زِد توازن فرص الفوز في أول المستويات.",
+                ],
+                startup: [
+                  "الأولوية: خفف تهيئة البداية لتقليل زمن الإقلاع.",
+                  "نصيحة تنفيذية: أجّل الأعمال غير الحرجة بعد أول عرض للشاشة.",
+                ],
+                qos: [
+                  "الأولوية: خفف الحمل الرسومي لأن مشاكل الأداء تتكرر.",
+                  "نصيحة تنفيذية: قلل كثافة المؤثرات الثقيلة في الأجهزة الأبطأ.",
+                ],
+                qos_reduced: [
+                  "الأولوية: راقب أسباب تفعيل الوضع الخفيف وقلل المؤثرات المكلفة.",
+                  "نصيحة تنفيذية: استهدف المشاهد التي تفعل reduced-effects باستمرار.",
+                ],
+                tutorial: [
+                  "الأولوية: اختصر الدليل الأولي لأنه مصدر تسرب متكرر.",
+                  "نصيحة تنفيذية: اجعل الدليل قصيرًا مع خطوة تفاعلية مبكرة.",
+                ],
+              }
+            : {
+                module: [
+                  "Priority: stabilize module loading; it is the most recurring cause.",
+                  "Execution tip: fix module-load failures before deeper tuning work.",
+                ],
+                abandon: [
+                  "Priority: reduce abandonment by improving first-30s onboarding flow.",
+                  "Execution tip: make the first interaction easier and clearer to prevent early exits.",
+                ],
+                completion: [
+                  "Priority: improve completion by simplifying early-level objectives.",
+                  "Execution tip: lower early-level complexity to lift completion.",
+                ],
+                win: [
+                  "Priority: rebalance early difficulty to improve win rate.",
+                  "Execution tip: tune opening levels for healthier win odds.",
+                ],
+                startup: [
+                  "Priority: reduce startup work to lower launch latency.",
+                  "Execution tip: defer non-critical setup until after first paint.",
+                ],
+                qos: [
+                  "Priority: reduce rendering pressure; performance degradation is recurring.",
+                  "Execution tip: lower heavy visual-effect density on constrained devices.",
+                ],
+                qos_reduced: [
+                  "Priority: inspect reduced-effects triggers and remove expensive effects.",
+                  "Execution tip: target the scenes that repeatedly trigger reduced-effects mode.",
+                ],
+                tutorial: [
+                  "Priority: shorten tutorial opening; repeated drop-off is detected.",
+                  "Execution tip: compress tutorial and force meaningful action earlier.",
+                ],
+              };
+
+          const fallback = isRTL
+            ? "الأولوية: السبب الأكثر تكرارًا يحتاج معالجة مباشرة."
+            : "Priority: address the most recurring degradation cause first.";
+
+          const variants = variantsByKey[topKey] || [fallback];
+          const now = Date.now();
+          const cooldownByTune: Record<GemTuneProfile, number> = {
+            easy: 20 * 60 * 1000,
+            balanced: 35 * 60 * 1000,
+            performance: 55 * 60 * 1000,
+          };
+          const baseCooldownMs = cooldownByTune[gemTuneProfile];
+
+          // Adaptive cooldown: longer when one cause dominates, shorter when causes are volatile.
+          const sessionTopKeys: string[] = [];
+          for (const session of recent) {
+            const penalties = Array.isArray(session?.topPenalties) ? session.topPenalties : [];
+            if (penalties.length > 0) {
+              const top = penalties[0];
+              sessionTopKeys.push(String(top?.key || "unknown"));
+            }
+          }
+          const uniqueTopKeys = new Set(sessionTopKeys).size;
+          const dominance = recent.length > 0 ? topCount / recent.length : 0;
+
+          let adaptiveCooldownMs = baseCooldownMs;
+          if (dominance >= 0.6) {
+            adaptiveCooldownMs += 15 * 60 * 1000;
+          } else if (dominance <= 0.35 || uniqueTopKeys >= 4) {
+            adaptiveCooldownMs -= 10 * 60 * 1000;
+          }
+
+          const cooldownMs = Math.max(10 * 60 * 1000, Math.min(90 * 60 * 1000, adaptiveCooldownMs));
+          const stateKey = "child_games_gem_priority_insight_state";
+
+          let lastState: { key?: string; shownAt?: number; variantIndex?: number; cooldownMs?: number; tune?: GemTuneProfile } = {};
+          try {
+            const stateRaw = localStorage.getItem(stateKey);
+            lastState = stateRaw ? JSON.parse(stateRaw) : {};
+          } catch {
+            lastState = {};
+          }
+
+          const isSameKey = lastState?.key === topKey;
+          const effectiveCooldownMs = isSameKey ? Number(lastState?.cooldownMs || cooldownMs) : cooldownMs;
+          const withinCooldown = isSameKey && Number(lastState?.shownAt || 0) > 0 && (now - Number(lastState.shownAt)) < effectiveCooldownMs;
+
+          if (!withinCooldown) {
+            const nextVariantIndex = isSameKey
+              ? (Number(lastState?.variantIndex || 0) + 1) % variants.length
+              : 0;
+            priorityInsight = variants[nextVariantIndex] || fallback;
+            priorityInsightMeta = {
+              key: topKey,
+              shownAt: now,
+              variantIndex: nextVariantIndex,
+              cooldownMs,
+              tune: gemTuneProfile,
+            };
+          }
+        }
+      }
+    } catch {
+      // Ignore malformed history.
+    }
+
+    if (priorityInsight && !recommendations.includes(priorityInsight)) {
+      recommendations.unshift(priorityInsight);
+    }
+
+    if (recommendations.length === 0) {
+      recommendations.push(
+        isRTL
+          ? "الجلسة مستقرة. استمر في جمع بيانات أكثر قبل أي تعديل كبير."
+          : "Session health is stable. Keep collecting more samples before major tuning changes."
+      );
+    }
+
+    const qualityScore = Math.max(0, Math.min(100, score));
+    const topPenalties = [...penaltyBreakdown]
+      .sort((a, b) => b.applied - a.applied)
+      .slice(0, 3);
+    return { qualityScore, alerts, recommendations, topPenalties, priorityInsight, priorityInsightMeta };
+  }, [isGemGameOpen, gemTelemetryInsights, isRTL, gemAdaptiveBaseline, gemAdaptiveWeights, gemTuneProfile]);
+
+  useEffect(() => {
+    if (!isGemGameOpen || !gemSessionHealth || !gemTelemetryInsights?.sessionId) return;
+    try {
+      const key = "child_games_gem_session_health_history";
+      const raw = localStorage.getItem(key);
+      const prev = raw ? JSON.parse(raw) : [];
+      const sessionId = gemTelemetryInsights.sessionId;
+      const nextEntry = {
+        sessionId,
+        ts: Date.now(),
+        qualityScore: gemSessionHealth.qualityScore,
+        completionRate: gemTelemetryInsights.completionRate,
+        winRate: gemTelemetryInsights.winRate,
+        abandonRate: gemTelemetryInsights.abandonRate,
+        startupMs: gemTelemetryInsights.startupMs,
+        avgLevelFrameDrops: gemTelemetryInsights.avgLevelFrameDrops,
+        avgLongFramesWindow: gemTelemetryInsights.avgLongFramesWindow,
+        topPenalties: gemSessionHealth.topPenalties.map((p) => ({ key: p.key, label: p.label, applied: p.applied })),
+        tune: gemTuneProfile,
+      };
+
+      const withoutCurrent = Array.isArray(prev)
+        ? prev.filter((entry: any) => entry?.sessionId !== sessionId)
+        : [];
+      const next = [...withoutCurrent, nextEntry].slice(-20);
+      localStorage.setItem(key, JSON.stringify(next));
+    } catch {
+      // Ignore storage issues.
+    }
+  }, [isGemGameOpen, gemSessionHealth, gemTelemetryInsights?.sessionId, gemTelemetryInsights?.completionRate, gemTelemetryInsights?.winRate, gemTelemetryInsights?.abandonRate, gemTelemetryInsights?.startupMs, gemTelemetryInsights?.avgLevelFrameDrops, gemTelemetryInsights?.avgLongFramesWindow, gemTuneProfile]);
+
+  useEffect(() => {
+    const meta = gemSessionHealth?.priorityInsightMeta;
+    if (!meta) return;
+    try {
+      localStorage.setItem("child_games_gem_priority_insight_state", JSON.stringify(meta));
+    } catch {
+      // Ignore storage issues.
+    }
+  }, [gemSessionHealth?.priorityInsightMeta]);
+
+  const gemHealthTrend = useMemo(() => {
+    if (!isGemGameOpen) return [] as Array<{ ts: number; qualityScore: number; tune: GemTuneProfile }>;
+    try {
+      const raw = localStorage.getItem("child_games_gem_session_health_history");
+      const history = raw ? JSON.parse(raw) : [];
+      if (!Array.isArray(history)) return [];
+      return history
+        .map((entry: any) => ({
+          ts: Number(entry?.ts) || 0,
+          qualityScore: Number(entry?.qualityScore) || 0,
+          tune: (entry?.tune === "performance" || entry?.tune === "easy" || entry?.tune === "balanced") ? entry.tune : "balanced",
+        }))
+        .filter((entry: { ts: number; qualityScore: number; tune: GemTuneProfile }) => entry.ts > 0)
+        .slice(-10);
+    } catch {
+      return [];
+    }
+  }, [isGemGameOpen, telemetryVersion, gemSessionHealth?.qualityScore]);
+
+  const gemPenaltyTrend = useMemo(() => {
+    if (!isGemGameOpen) return [] as Array<{ key: string; label: string; count: number }>;
+    try {
+      const raw = localStorage.getItem("child_games_gem_session_health_history");
+      const history = raw ? JSON.parse(raw) : [];
+      if (!Array.isArray(history)) return [];
+
+      const recent = history.slice(-10);
+      const map = new Map<string, { label: string; count: number }>();
+
+      for (const session of recent) {
+        const penalties = Array.isArray(session?.topPenalties) ? session.topPenalties : [];
+        for (const item of penalties) {
+          const key = String(item?.key || "unknown");
+          const label = String(item?.label || key);
+          const prev = map.get(key);
+          if (prev) prev.count += 1;
+          else map.set(key, { label, count: 1 });
+        }
+      }
+
+      return [...map.entries()]
+        .map(([key, data]) => ({ key, label: data.label, count: data.count }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 3);
+    } catch {
+      return [];
+    }
+  }, [isGemGameOpen, telemetryVersion, gemSessionHealth?.qualityScore]);
+
+  const thumbnailVisualStyle = ultraClarity
+    ? {
+        filter: "contrast(1.12) saturate(1.08) brightness(1.03)",
+        imageRendering: "auto" as const,
+        transform: "translateZ(0)",
+      }
+    : {
+        filter: "none",
+        imageRendering: "auto" as const,
+        transform: "translateZ(0)",
+      };
 
   return (
     <div className={`min-h-screen ${isDark ? "bg-gradient-to-br from-purple-900 via-indigo-900 to-slate-900" : "bg-gradient-to-br from-purple-400 via-purple-500 to-indigo-500"} pb-24`} dir={isRTL ? "rtl" : "ltr"}>
@@ -488,7 +1297,12 @@ export const ChildGames = (): JSX.Element => {
             >
               <div className={`aspect-[4/3] ${isDark ? "bg-gray-700" : "bg-purple-100"} flex items-center justify-center relative overflow-hidden`}>
                 {game.thumbnailUrl ? (
-                  <img src={game.thumbnailUrl} alt={game.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                  <img
+                    src={game.thumbnailUrl}
+                    alt={game.title}
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                    style={thumbnailVisualStyle}
+                  />
                 ) : game.embedUrl === "/games/memory-match.html" ? (
                   <div className="w-full h-full bg-gradient-to-br from-purple-500 via-purple-400 to-pink-500 flex items-center justify-center">
                     <motion.span className="text-5xl drop-shadow-lg" animate={{ y: [0, -5, 0] }} transition={{ duration: 2, repeat: Infinity }}>🧠</motion.span>
@@ -580,6 +1394,18 @@ export const ChildGames = (): JSX.Element => {
                   +{selectedGame.pointsPerPlay} {t("pointsEarned")}
                 </span>
                 <button
+                  onClick={() => setUltraClarity((prev) => !prev)}
+                  className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all border ${ultraClarity ? "bg-cyan-500 text-white border-cyan-300" : "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 border-gray-300 dark:border-gray-600"}`}
+                  data-testid="button-ultra-clarity"
+                  title={isRTL ? "وضع الوضوح الفائق" : "Ultra Clarity Mode"}
+                >
+                  <span className="inline-flex items-center gap-1">
+                    <Sparkles className="w-3.5 h-3.5" />
+                    {isRTL ? "وضوح فائق" : "Ultra Clarity"}
+                    {ultraClarity ? " ON" : " OFF"}
+                  </span>
+                </button>
+                <button
                   onClick={() => { setSelectedGame(null); setGameResult(null); setMutationError(null); }}
                   className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-all"
                   data-testid="button-close-game"
@@ -598,11 +1424,15 @@ export const ChildGames = (): JSX.Element => {
                 </div>
               )}
               <iframe
-                src={`${selectedGame.embedUrl}${selectedGame.embedUrl.includes('?') ? '&' : '?'}lang=${i18n.language}`}
+                ref={gameIframeRef}
+                src={buildGameSrc(selectedGame.embedUrl, i18n.language)}
                 className="w-full h-full border-0"
                 allowFullScreen
                 title={selectedGame.title}
-                onLoad={() => setIframeLoading(false)}
+                onLoad={() => {
+                  setIframeLoading(false);
+                  applyGameClarityEnhancements();
+                }}
                 {...(!selectedGame.embedUrl.startsWith("/") ? { sandbox: "allow-scripts allow-same-origin allow-popups" } : {})}
               />
           </div>
@@ -610,6 +1440,220 @@ export const ChildGames = (): JSX.Element => {
               {mutationError && (
                 <div className="w-full px-4 py-2 bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700 rounded-xl text-center">
                   <p className="text-sm font-semibold text-red-600 dark:text-red-400">{mutationError}</p>
+                </div>
+              )}
+              {isGemGameOpen && gemTelemetryInsights && (
+                <div className={`w-full px-3 py-2 rounded-xl border ${isDark ? "bg-gray-900/70 border-gray-700" : "bg-slate-50 border-slate-200"}`}>
+                  <div className="flex items-center justify-between mb-2">
+                    <p className={`text-xs font-bold ${isDark ? "text-cyan-300" : "text-cyan-700"}`}>
+                      {isRTL ? "Gem Insights (جلسة حالية)" : "Gem Insights (Current Session)"}
+                    </p>
+                    <span className={`text-[11px] ${isDark ? "text-gray-400" : "text-gray-500"}`}>
+                      {isRTL ? `احداث: ${gemTelemetryInsights.sampleSize}` : `events: ${gemTelemetryInsights.sampleSize}`}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                    <div className={`rounded-lg px-2 py-1.5 ${isDark ? "bg-gray-800 text-gray-200" : "bg-white text-gray-700"}`}>
+                      {isRTL ? "بدء المراحل" : "Levels Started"}: {gemTelemetryInsights.levelStarted}
+                    </div>
+                    <div className={`rounded-lg px-2 py-1.5 ${isDark ? "bg-gray-800 text-gray-200" : "bg-white text-gray-700"}`}>
+                      {isRTL ? "اكتمال المراحل" : "Levels Completed"}: {gemTelemetryInsights.levelCompleted}
+                    </div>
+                    <div className={`rounded-lg px-2 py-1.5 ${isDark ? "bg-gray-800 text-gray-200" : "bg-white text-gray-700"}`}>
+                      {isRTL ? "معدل الاكمال" : "Completion Rate"}: {gemTelemetryInsights.completionRate ?? "-"}{gemTelemetryInsights.completionRate !== null ? "%" : ""}
+                    </div>
+                    <div className={`rounded-lg px-2 py-1.5 ${isDark ? "bg-gray-800 text-gray-200" : "bg-white text-gray-700"}`}>
+                      {isRTL ? "معدل الفوز" : "Win Rate"}: {gemTelemetryInsights.winRate ?? "-"}{gemTelemetryInsights.winRate !== null ? "%" : ""}
+                    </div>
+                    <div className={`rounded-lg px-2 py-1.5 ${isDark ? "bg-gray-800 text-gray-200" : "bg-white text-gray-700"}`}>
+                      {isRTL ? "دروس بدأت/اكتملت" : "Tutorial Start/Done"}: {gemTelemetryInsights.tutorialStarted}/{gemTelemetryInsights.tutorialCompleted}
+                    </div>
+                    <div className={`rounded-lg px-2 py-1.5 ${isDark ? "bg-gray-800 text-gray-200" : "bg-white text-gray-700"}`}>
+                      {isRTL ? "القصة عرض/إغلاق" : "Story Show/Close"}: {gemTelemetryInsights.storyShown}/{gemTelemetryInsights.storyClosed}
+                    </div>
+                    <div className={`rounded-lg px-2 py-1.5 ${isDark ? "bg-gray-800 text-gray-200" : "bg-white text-gray-700"}`}>
+                      {isRTL ? "زمن المرحلة المتوسط" : "Avg Level Time"}: {gemTelemetryInsights.avgLevelSec ?? "-"}{gemTelemetryInsights.avgLevelSec !== null ? (isRTL ? "ث" : "s") : ""}
+                    </div>
+                    <div className={`rounded-lg px-2 py-1.5 ${gemTelemetryInsights.moduleLoadFailed > 0 ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300" : isDark ? "bg-gray-800 text-gray-200" : "bg-white text-gray-700"}`}>
+                      {isRTL ? "اخفاق تحميل الوحدات" : "Module Load Fail"}: {gemTelemetryInsights.moduleLoadFailed}
+                    </div>
+                    <div className={`rounded-lg px-2 py-1.5 ${isDark ? "bg-gray-800 text-gray-200" : "bg-white text-gray-700"}`}>
+                      {isRTL ? "معدل التخلي" : "Abandon Rate"}: {gemTelemetryInsights.abandonRate ?? "-"}{gemTelemetryInsights.abandonRate !== null ? "%" : ""}
+                    </div>
+                    <div className={`rounded-lg px-2 py-1.5 ${isDark ? "bg-gray-800 text-gray-200" : "bg-white text-gray-700"}`}>
+                      {isRTL ? "بدء اللعبة" : "Startup"}: {gemTelemetryInsights.startupMs ?? "-"}{gemTelemetryInsights.startupMs !== null ? "ms" : ""}
+                    </div>
+                    <div className={`rounded-lg px-2 py-1.5 ${isDark ? "bg-gray-800 text-gray-200" : "bg-white text-gray-700"}`}>
+                      {isRTL ? "متوسط تباطؤ القلب" : "Avg Heartbeat Drops"}: {gemTelemetryInsights.avgFrameDropsWindow ?? "-"}
+                    </div>
+                    <div className={`rounded-lg px-2 py-1.5 ${isDark ? "bg-gray-800 text-gray-200" : "bg-white text-gray-700"}`}>
+                      {isRTL ? "متوسط الإطارات الطويلة" : "Avg Heartbeat Long"}: {gemTelemetryInsights.avgLongFramesWindow ?? "-"}
+                    </div>
+                    <div className={`rounded-lg px-2 py-1.5 ${isDark ? "bg-gray-800 text-gray-200" : "bg-white text-gray-700"}`}>
+                      {isRTL ? "سقوط الإطارات/مستوى" : "Drops Per Level"}: {gemTelemetryInsights.avgLevelFrameDrops ?? "-"}
+                    </div>
+                    <div className={`rounded-lg px-2 py-1.5 ${isDark ? "bg-gray-800 text-gray-200" : "bg-white text-gray-700"}`}>
+                      {isRTL ? "إطارات طويلة/مستوى" : "Long Frames/Level"}: {gemTelemetryInsights.avgLevelLongFrames ?? "-"}
+                    </div>
+                    <div className={`rounded-lg px-2 py-1.5 ${gemTelemetryInsights.qosReducedEffectsCount > 0 ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300" : isDark ? "bg-gray-800 text-gray-200" : "bg-white text-gray-700"}`}>
+                      {isRTL ? "تخفيض التأثيرات" : "Effects Reduced"}: {gemTelemetryInsights.qosReducedEffectsCount}
+                    </div>
+                  </div>
+
+                  {gemSessionHealth && (
+                    <div className={`mt-3 rounded-lg border px-2.5 py-2 ${isDark ? "border-cyan-700/50 bg-cyan-900/20" : "border-cyan-200 bg-cyan-50"}`}>
+                      <div className="mb-2">
+                        <p className={`text-[11px] font-semibold mb-1 ${isDark ? "text-cyan-200" : "text-cyan-800"}`}>
+                          {isRTL ? "تطبيق نمط ضبط مباشر" : "Apply Live Tuning Profile"}
+                        </p>
+                        <p className={`text-[10px] mb-1 ${isDark ? "text-cyan-300/80" : "text-cyan-700/80"}`}>
+                          {gemAdaptiveBaseline.enabled
+                            ? (isRTL
+                              ? `Adaptive Thresholds ON (${gemAdaptiveBaseline.sampleCount} جلسات)`
+                              : `Adaptive Thresholds ON (${gemAdaptiveBaseline.sampleCount} sessions)`)
+                            : (isRTL ? "Adaptive Thresholds OFF (بيانات غير كافية)" : "Adaptive Thresholds OFF (insufficient history)")}
+                        </p>
+                        {gemAdaptiveBaseline.enabled && (
+                          <p className={`text-[10px] mb-1 ${isDark ? "text-cyan-300/70" : "text-cyan-700/70"}`}>
+                            {isRTL
+                              ? `QoS حدود: Drops>${gemAdaptiveBaseline.frameDropsWarn} | Long>${gemAdaptiveBaseline.longFramesWarn}`
+                              : `QoS limits: Drops>${gemAdaptiveBaseline.frameDropsWarn} | Long>${gemAdaptiveBaseline.longFramesWarn}`}
+                          </p>
+                        )}
+                        <p className={`text-[10px] mb-1 ${isDark ? "text-cyan-300/65" : "text-cyan-700/65"}`}>
+                          {isRTL
+                            ? `Adaptive Weights: ${gemAdaptiveWeights.enabled ? "ON" : "OFF"}`
+                            : `Adaptive Weights: ${gemAdaptiveWeights.enabled ? "ON" : "OFF"}`}
+                        </p>
+                        <div className="flex flex-wrap gap-1.5">
+                          <button
+                            onClick={() => setGemTuneProfile("balanced")}
+                            className={`text-[11px] px-2 py-1 rounded-full border ${gemTuneProfile === "balanced" ? "bg-indigo-500 text-white border-indigo-300" : "bg-white/80 text-gray-700 border-gray-300 dark:bg-gray-800 dark:text-gray-200 dark:border-gray-600"}`}
+                          >
+                            {isRTL ? "متوازن" : "Balanced"}
+                          </button>
+                          <button
+                            onClick={() => setGemTuneProfile("performance")}
+                            className={`text-[11px] px-2 py-1 rounded-full border ${gemTuneProfile === "performance" ? "bg-amber-500 text-white border-amber-300" : "bg-white/80 text-gray-700 border-gray-300 dark:bg-gray-800 dark:text-gray-200 dark:border-gray-600"}`}
+                          >
+                            {isRTL ? "أداء" : "Performance"}
+                          </button>
+                          <button
+                            onClick={() => setGemTuneProfile("easy")}
+                            className={`text-[11px] px-2 py-1 rounded-full border ${gemTuneProfile === "easy" ? "bg-emerald-500 text-white border-emerald-300" : "bg-white/80 text-gray-700 border-gray-300 dark:bg-gray-800 dark:text-gray-200 dark:border-gray-600"}`}
+                          >
+                            {isRTL ? "أسهل" : "Easy"}
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between gap-2 mb-2">
+                        <p className={`text-xs font-bold ${isDark ? "text-cyan-200" : "text-cyan-800"}`}>
+                          {isRTL ? "Session Health" : "Session Health"}
+                        </p>
+                        <span
+                          className={`text-xs font-bold px-2 py-1 rounded-full ${gemSessionHealth.qualityScore >= 80 ? "bg-emerald-500 text-white" : gemSessionHealth.qualityScore >= 60 ? "bg-amber-500 text-white" : "bg-rose-500 text-white"}`}
+                        >
+                          {isRTL ? `جودة ${gemSessionHealth.qualityScore}/100` : `Quality ${gemSessionHealth.qualityScore}/100`}
+                        </span>
+                      </div>
+
+                      {gemSessionHealth.alerts.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5 mb-2">
+                          {gemSessionHealth.alerts.map((alert, idx) => (
+                            <span
+                              key={`${alert.label}-${idx}`}
+                              className={`text-[11px] px-2 py-1 rounded-full border ${alert.severity === "critical" ? "bg-rose-100 text-rose-700 border-rose-300 dark:bg-rose-900/30 dark:text-rose-300 dark:border-rose-700" : alert.severity === "warning" ? "bg-amber-100 text-amber-700 border-amber-300 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-700" : "bg-slate-100 text-slate-700 border-slate-300 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-600"}`}
+                            >
+                              {alert.label}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+
+                      <div className="space-y-1">
+                        {gemSessionHealth.recommendations.slice(0, 3).map((rec, idx) => (
+                          <p key={`${rec}-${idx}`} className={`text-[11px] ${isDark ? "text-cyan-100" : "text-cyan-900"}`}>
+                            {`${idx + 1}. ${rec}`}
+                          </p>
+                        ))}
+                      </div>
+
+                      {gemSessionHealth.priorityInsight && (
+                        <div className={`mt-2 rounded-md border px-2 py-1.5 ${isDark ? "border-amber-700/40 bg-amber-950/25" : "border-amber-200 bg-amber-50/80"}`}>
+                          <p className={`text-[10px] font-semibold ${isDark ? "text-amber-200" : "text-amber-800"}`}>
+                            {isRTL ? "أولوية التحسين" : "Priority Insight"}
+                          </p>
+                          <p className={`text-[10px] ${isDark ? "text-amber-100" : "text-amber-900"}`}>
+                            {gemSessionHealth.priorityInsight}
+                          </p>
+                          {gemSessionHealth.priorityInsightMeta && (
+                            <p className={`text-[10px] mt-0.5 ${isDark ? "text-amber-200/80" : "text-amber-800/80"}`}>
+                              {isRTL
+                                ? `Cooldown: ${Math.round(gemSessionHealth.priorityInsightMeta.cooldownMs / 60000)} دقيقة (${gemSessionHealth.priorityInsightMeta.tune})`
+                                : `Cooldown: ${Math.round(gemSessionHealth.priorityInsightMeta.cooldownMs / 60000)} min (${gemSessionHealth.priorityInsightMeta.tune})`}
+                            </p>
+                          )}
+                        </div>
+                      )}
+
+                      {gemSessionHealth.topPenalties.length > 0 && (
+                        <div className={`mt-2 rounded-md border px-2 py-1.5 ${isDark ? "border-cyan-700/40 bg-cyan-950/30" : "border-cyan-200 bg-white/70"}`}>
+                          <p className={`text-[11px] font-semibold mb-1 ${isDark ? "text-cyan-200" : "text-cyan-800"}`}>
+                            {isRTL ? "أكبر أسباب خفض الدرجة" : "Top Score Deductions"}
+                          </p>
+                          <div className="space-y-1">
+                            {gemSessionHealth.topPenalties.map((item, idx) => (
+                              <p key={`${item.key}-${idx}`} className={`text-[10px] ${isDark ? "text-cyan-100" : "text-cyan-900"}`}>
+                                {`${idx + 1}. ${item.label}: -${item.applied} (w=${item.weight.toFixed(2)}, v=${item.value})`}
+                              </p>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {gemPenaltyTrend.length > 0 && (
+                        <div className={`mt-2 rounded-md border px-2 py-1.5 ${isDark ? "border-violet-700/40 bg-violet-950/25" : "border-violet-200 bg-violet-50/70"}`}>
+                          <p className={`text-[11px] font-semibold mb-1 ${isDark ? "text-violet-200" : "text-violet-800"}`}>
+                            {isRTL ? "الأسباب المتكررة (آخر 10 جلسات)" : "Recurring Causes (Last 10 Sessions)"}
+                          </p>
+                          <div className="space-y-1">
+                            {gemPenaltyTrend.map((item, idx) => (
+                              <p key={`${item.key}-${idx}`} className={`text-[10px] ${isDark ? "text-violet-100" : "text-violet-900"}`}>
+                                {`${idx + 1}. ${item.label}: ${item.count}x`}
+                              </p>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {gemHealthTrend.length > 1 && (
+                        <div className="mt-2">
+                          <p className={`text-[11px] font-semibold mb-1 ${isDark ? "text-cyan-200" : "text-cyan-800"}`}>
+                            {isRTL ? "اتجاه الجودة عبر الجلسات" : "Quality Trend Across Sessions"}
+                          </p>
+                          <div className="flex items-end gap-1 h-14 rounded-md px-2 py-1 bg-black/10 dark:bg-white/5">
+                            {gemHealthTrend.map((point, idx) => {
+                              const h = Math.max(10, Math.min(52, Math.round((point.qualityScore / 100) * 52)));
+                              const tone = point.qualityScore >= 80
+                                ? "bg-emerald-400"
+                                : point.qualityScore >= 60
+                                  ? "bg-amber-400"
+                                  : "bg-rose-400";
+                              return (
+                                <div
+                                  key={`${point.ts}-${idx}`}
+                                  className={`w-3 rounded-sm ${tone}`}
+                                  style={{ height: `${h}px` }}
+                                  title={`${isRTL ? "جودة" : "Quality"}: ${point.qualityScore} | ${point.tune}`}
+                                />
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
               {gameResult ? (

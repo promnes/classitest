@@ -37,7 +37,48 @@ async function loadReports() {
   try {
     const mod = await import('./reports.js');
     REPORTS = mod;
-  } catch (e) { /* optional */ }
+  } catch (e) { recordModuleLoadFailure('reports.js', e); }
+}
+
+function createSessionId() {
+  return `gem_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function trackTelemetry(event, payload = {}) {
+  try {
+    window.parent.postMessage({
+      type: 'GAME_TELEMETRY',
+      game: 'gem',
+      event,
+      ts: Date.now(),
+      sessionId: S.telemetrySessionId,
+      world: S.currentWorld + 1,
+      level: S.currentLevel + 1,
+      screen: S.screen,
+      payload,
+    }, '*');
+  } catch { /* ignore */ }
+}
+
+function recordModuleLoadFailure(moduleName, error) {
+  if (!S.moduleErrors.includes(moduleName)) S.moduleErrors.push(moduleName);
+  console.error(`[Gem Kingdom] Failed to load ${moduleName}`, error);
+  trackTelemetry('module_load_failed', { module: moduleName });
+  try {
+    window.parent.postMessage({
+      type: 'GAME_MODULE_LOAD_FAILED',
+      game: 'gem',
+      module: moduleName,
+    }, '*');
+  } catch { /* ignore */ }
+}
+
+function getTuneProfileFromQuery() {
+  try {
+    const tune = new URLSearchParams(window.location.search).get('tune');
+    if (tune === 'performance' || tune === 'easy' || tune === 'balanced') return tune;
+  } catch { /* ignore */ }
+  return 'balanced';
 }
 
 // ===== STATE =====
@@ -105,7 +146,28 @@ const S = {
   // Daily challenge
   isDailyChallenge: false,
   dailyChallengeTarget: 0,
+  moduleErrors: [],
+  telemetrySessionId: null,
+  initStartedAt: 0,
+  levelCompletionMarked: false,
+  qosFrameDrops: 0,
+  qosLongFrames: 0,
+  qosWindowStartedAt: 0,
+  lastQosEmitAt: 0,
+  tuneProfile: 'balanced',
 };
+
+function trackLevelAbandoned(reason) {
+  if (S.screen !== 'game') return;
+  if (!S.levelStartTime || S.levelCompletionMarked) return;
+  const elapsedSec = Math.max(0, Math.round((Date.now() - S.levelStartTime) / 1000));
+  trackTelemetry('level_abandoned', {
+    reason,
+    score: S.score,
+    movesLeft: S.movesLeft,
+    elapsedSec,
+  });
+}
 
 // ===== WORLDS / LEVELS =====
 let WORLDS = null; // loaded dynamically
@@ -116,7 +178,7 @@ async function loadWorlds() {
     const mod = await import('./worlds.js');
     WORLDS = mod.WORLDS;
   } catch (e) {
-    console.warn('worlds.js not loaded, using placeholder');
+    recordModuleLoadFailure('worlds.js', e);
     WORLDS = generatePlaceholderWorlds();
   }
   return WORLDS;
@@ -151,7 +213,7 @@ async function loadBoss(worldIdx, levelIdx) {
       const mod = await import('./boss.js');
       BOSSES = mod;
     } catch (e) {
-      console.warn('boss.js not loaded');
+      recordModuleLoadFailure('boss.js', e);
       return null;
     }
   }
@@ -168,7 +230,7 @@ async function loadAudio() {
     AUDIO = mod;
     return AUDIO;
   } catch (e) {
-    console.warn('audio.js not loaded');
+    recordModuleLoadFailure('audio.js', e);
     return null;
   }
 }
@@ -185,7 +247,7 @@ async function loadIntelligence() {
   try {
     const mod = await import('./intelligence.js');
     INTEL = mod;
-  } catch (e) { /* optional */ }
+  } catch (e) { recordModuleLoadFailure('intelligence.js', e); }
 }
 
 // ===== STORY =====
@@ -195,7 +257,7 @@ async function loadStory() {
   try {
     const mod = await import('./story.js');
     STORY = mod;
-  } catch (e) { /* optional */ }
+  } catch (e) { recordModuleLoadFailure('story.js', e); }
 }
 
 // ===== ECONOMY =====
@@ -205,7 +267,7 @@ async function loadEconomy() {
   try {
     const mod = await import('./economy.js');
     ECONOMY = mod;
-  } catch (e) { /* optional */ }
+  } catch (e) { recordModuleLoadFailure('economy.js', e); }
 }
 
 // ===== ENGAGEMENT =====
@@ -215,11 +277,16 @@ async function loadEngagement() {
   try {
     const mod = await import('./engagement.js');
     ENGAGE = mod;
-  } catch (e) { /* optional */ }
+  } catch (e) { recordModuleLoadFailure('engagement.js', e); }
 }
 
 // ===== INIT =====
 export async function initGame() {
+  S.initStartedAt = performance.now();
+  S.tuneProfile = getTuneProfileFromQuery();
+  S.telemetrySessionId = createSessionId();
+  trackTelemetry('session_started', { lang: LANG, tune: S.tuneProfile });
+
   detectPerformance();
 
   // Show loading indicator
@@ -229,18 +296,33 @@ export async function initGame() {
   S.progress = loadProgress();
   S.muted = localStorage.getItem(KEYS.MUTED) === 'true';
 
+  // Legacy cleanup: daily resume snapshot was never restored.
+  if (S.progress && S.progress._dailyResume) {
+    delete S.progress._dailyResume;
+    saveProgress(S.progress);
+  }
+
   // Set direction
   document.documentElement.lang = LANG;
   document.documentElement.dir = DIR;
 
   // Load optional modules in parallel
   await Promise.allSettled([loadWorlds(), loadAudio(), loadIntelligence(), loadStory(), loadEconomy(), loadEngagement(), loadReports()]);
+  trackTelemetry('modules_loaded', {
+    hadModuleErrors: S.moduleErrors.length > 0,
+    failedModules: S.moduleErrors.slice(),
+  });
 
   // Hide loading indicator
   if (loadingEl) loadingEl.style.display = 'none';
 
   setupEventListeners();
   showScreen('world');
+  trackTelemetry('game_ready', {
+    perf: getPerf(),
+    initMs: Math.max(0, Math.round(performance.now() - S.initStartedAt)),
+    tune: S.tuneProfile,
+  });
 
   // Start render loop
   S.lastTime = performance.now();
@@ -249,15 +331,8 @@ export async function initGame() {
   // Auto-save on tab hide / app switch
   document.addEventListener('visibilitychange', () => {
     if (document.hidden && S.progress) {
+      trackLevelAbandoned('app_hidden');
       S.progress.lastPlayTimestamp = Date.now();
-      // Persist daily challenge state so it survives page close
-      if (S.isDailyChallenge) {
-        S.progress._dailyResume = {
-          worldIdx: S.currentWorld,
-          levelIdx: S.currentLevel,
-          target: S.dailyChallengeTarget,
-        };
-      }
       saveProgress(S.progress);
     }
   });
@@ -308,13 +383,34 @@ function gameLoop(now) {
   const frameTime = performance.now() - frameStart;
   if (frameTime > FRAME_BUDGET_MS) {
     _frameDropCount++;
+    S.qosFrameDrops++;
+    if (frameTime > FRAME_BUDGET_MS * 2) S.qosLongFrames++;
     if (_frameDropCount > 30 && !_reducedEffects) {
       _reducedEffects = true;
       // Switch to low-quality mode automatically if supported
       detectPerformance();
+      trackTelemetry('qos_effects_reduced', {
+        perf: getPerf(),
+        frameTimeMs: Math.round(frameTime),
+      });
     }
   } else {
     if (_frameDropCount > 0) _frameDropCount--;
+  }
+
+  if (S.screen === 'game' && S.lastQosEmitAt > 0 && now - S.lastQosEmitAt >= 10000) {
+    const windowSec = Math.max(1, Math.round((Date.now() - S.qosWindowStartedAt) / 1000));
+    trackTelemetry('qos_heartbeat', {
+      perf: getPerf(),
+      reducedEffects: _reducedEffects,
+      frameDropsWindow: S.qosFrameDrops,
+      longFramesWindow: S.qosLongFrames,
+      windowSec,
+    });
+    S.lastQosEmitAt = now;
+    S.qosWindowStartedAt = Date.now();
+    S.qosFrameDrops = 0;
+    S.qosLongFrames = 0;
   }
 
   requestAnimationFrame(gameLoop);
@@ -402,6 +498,7 @@ function renderBackground() {
 function showScreen(name) {
   S.prevScreen = S.screen;
   S.screen = name;
+  trackTelemetry('screen_view', { from: S.prevScreen, to: name });
 
   document.querySelectorAll('.screen').forEach(s => {
     s.classList.remove('active', 'fade-in');
@@ -563,10 +660,22 @@ async function startLevel() {
   const levelDef = worldLevels?.[l] || { rows: 8, cols: 8, gemCount: 6, moves: 25, starThresholds: [500, 1000, 2000], objectives: [{ type: 'score', target: 500 }], obstacles: [] };
 
   S.levelDef = levelDef;
+  if (S.tuneProfile === 'easy') {
+    S.levelDef = {
+      ...S.levelDef,
+      moves: Math.max((S.levelDef.moves || 20) + 4, S.levelDef.moves || 20),
+      gemCount: Math.max(5, (S.levelDef.gemCount || 6) - 1),
+    };
+  }
+
+  if (S.tuneProfile === 'performance') {
+    _reducedEffects = true;
+  }
+
   S.rows = levelDef.rows;
   S.cols = levelDef.cols;
-  S.gemCount = levelDef.gemCount;
-  S.movesLeft = levelDef.moves;
+  S.gemCount = S.levelDef.gemCount;
+  S.movesLeft = S.levelDef.moves;
   S.score = 0;
   S.combo = 0;
   S.maxCombo = 0;
@@ -585,6 +694,17 @@ async function startLevel() {
   S.processing = false;
   S.playerHP = 5;
   S.levelStartTime = Date.now();
+  S.levelCompletionMarked = false;
+  S.qosFrameDrops = 0;
+  S.qosLongFrames = 0;
+  S.qosWindowStartedAt = Date.now();
+  S.lastQosEmitAt = performance.now();
+  trackTelemetry('level_started', {
+    world: w + 1,
+    level: l + 1,
+    isDailyChallenge: !!S.isDailyChallenge,
+    tune: S.tuneProfile,
+  });
   S.undoState = null;
   S.undoStack = [];
   S.colorBlindMode = S.progress.settings?.colorBlind || false;
@@ -639,10 +759,20 @@ async function startLevel() {
   // Render boosters
   renderBoosters();
 
+  const shouldShowTutorial = (w === 0 && l === 0);
+
   // Story intro?
+  let storyShown = false;
   if (STORY && l === 0) {
     const dialog = STORY.getWorldIntro(w);
-    if (dialog) showStoryDialog(dialog);
+    if (dialog) {
+      storyShown = true;
+      showStoryDialog(dialog, () => {
+        if (shouldShowTutorial) {
+          setTimeout(() => showTutorial(), 400);
+        }
+      });
+    }
   }
 
   // DDA adjustment
@@ -660,13 +790,21 @@ async function startLevel() {
   }
 
   // Show tutorial for first-time players on World 0 Level 0
-  if (w === 0 && l === 0) {
+  if (shouldShowTutorial && !storyShown) {
     setTimeout(() => showTutorial(), 500);
   }
 
   // Reset undo button
   const undoBtn = qs('#g-undo');
   if (undoBtn) undoBtn.classList.add('disabled');
+
+  trackTelemetry('level_ready', {
+    rows: S.rows,
+    cols: S.cols,
+    gemCount: S.gemCount,
+    moves: S.movesLeft,
+    hasBoss: !!S.boss,
+  });
 }
 
 function setupGameCanvas() {
@@ -824,6 +962,7 @@ function setupEventListeners() {
 
   // Game back
   qs('#g-back').addEventListener('click', () => {
+    trackLevelAbandoned('back_button');
     showScreen('level');
     playSound('tap');
   });
@@ -1501,9 +1640,11 @@ async function bossAttack() {
 // ===== END LEVEL =====
 async function endLevel() {
   S.phase = 'gameover';
+  S.levelCompletionMarked = true;
   const won = objectivesComplete(S.objectiveTracker);
   const stars = won ? calcStars(S.score, S.levelDef.starThresholds) : 0;
   S.stars = stars;
+  let wasNewHighScore = false;
 
   // Calculate coins via economy.js or fallback
   if (ECONOMY && won) {
@@ -1577,6 +1718,7 @@ async function endLevel() {
     p.totalGemsCollected += S.totalGemsRemoved;
     p.totalSpecialsUsed += S.specialsUsed;
     p.maxCombo = Math.max(p.maxCombo, S.maxCombo);
+    wasNewHighScore = S.score > (p.highScore || 0);
     p.highScore = Math.max(p.highScore, S.score);
     p.levelsCompleted++;
     if (elapsed < 30) p.speedLevels++;
@@ -1671,7 +1813,7 @@ async function endLevel() {
       playSound('levelComplete');
     }
     // New high score celebration
-    if (S.score > (S.progress.highScore || 0)) {
+    if (wasNewHighScore) {
       setTimeout(() => playSound('newRecord'), 600);
     }
     // Daily challenge win celebration
@@ -1685,6 +1827,24 @@ async function endLevel() {
   } else {
     playSound('levelFail');
   }
+
+  trackTelemetry('level_completed', {
+    won,
+    score: S.score,
+    stars: S.stars,
+    movesLeft: S.movesLeft,
+    elapsedSec: elapsed,
+    coinsEarned: S.coinsEarned,
+    isBossLevel: !!S.levelDef?.isBoss,
+    isMiniBossLevel: !!S.levelDef?.isMiniBoss,
+  });
+
+  trackTelemetry('level_qos_summary', {
+    perf: getPerf(),
+    reducedEffects: _reducedEffects,
+    totalFrameDrops: S.qosFrameDrops,
+    totalLongFrames: S.qosLongFrames,
+  });
 
   await delay(800);
   showScreen('done');
@@ -2477,7 +2637,6 @@ async function startDailyChallenge(challenge) {
   S.currentLevel = 0;
 
   // Override level def for the challenge
-  const oldLevelDef = S.levelDef;
   S.levelDef = {
     rows: 8, cols: 8,
     gemCount: challenge.gemCount,
@@ -2509,6 +2668,11 @@ async function startDailyChallenge(challenge) {
   S.processing = false;
   S.playerHP = 5;
   S.levelStartTime = Date.now();
+  S.levelCompletionMarked = false;
+  S.qosFrameDrops = 0;
+  S.qosLongFrames = 0;
+  S.qosWindowStartedAt = Date.now();
+  S.lastQosEmitAt = performance.now();
   S.undoState = null;
   S.undoStack = [];
   S.boss = null;
@@ -2807,6 +2971,8 @@ function showTutorial() {
   // Only for first-time players
   if (S.progress.tutorialComplete) return;
 
+  trackTelemetry('tutorial_started', { world: S.currentWorld + 1, level: S.currentLevel + 1 });
+
   let step = 0;
   const overlay = qs('#tutorial-overlay');
   if (!overlay) return;
@@ -2819,6 +2985,7 @@ function showTutorial() {
       overlay.innerHTML = '';
       S.progress.tutorialComplete = true;
       saveProgress(S.progress);
+      trackTelemetry('tutorial_completed', {});
       return;
     }
 
@@ -2846,11 +3013,13 @@ function showTutorial() {
     `;
 
     overlay.querySelector('#tut-next')?.addEventListener('click', () => {
+      trackTelemetry('tutorial_step_advanced', { step: step + 1, action: 'next' });
       step++;
       renderStep();
     });
 
     overlay.querySelector('.tutorial-mask')?.addEventListener('click', () => {
+      trackTelemetry('tutorial_step_advanced', { step: step + 1, action: 'mask_click' });
       step++;
       renderStep();
     });
@@ -2860,12 +3029,24 @@ function showTutorial() {
 }
 
 // ===== STORY DIALOG =====
-function showStoryDialog(dialog) {
+function showStoryDialog(dialog, onClose = null) {
   if (!dialog || !dialog.lines || dialog.lines.length === 0) return;
+
+  trackTelemetry('story_dialog_shown', { lines: dialog.lines.length });
 
   let lineIdx = 0;
   const overlay = document.createElement('div');
   overlay.className = 'story-overlay';
+  let closed = false;
+  let closeReason = 'completed';
+
+  function closeDialog() {
+    if (closed) return;
+    closed = true;
+    overlay.remove();
+    trackTelemetry('story_dialog_closed', { reason: closeReason });
+    if (typeof onClose === 'function') onClose();
+  }
 
   function renderLine() {
     const line = dialog.lines[lineIdx];
@@ -2882,13 +3063,14 @@ function showStoryDialog(dialog) {
     `;
 
     overlay.querySelector('#story-skip').addEventListener('click', () => {
-      overlay.remove();
+      closeReason = 'skip';
+      closeDialog();
     });
 
     overlay.querySelector('#story-next').addEventListener('click', () => {
       lineIdx++;
       if (lineIdx >= dialog.lines.length) {
-        overlay.remove();
+        closeDialog();
       } else {
         renderLine();
       }
@@ -2907,7 +3089,7 @@ function shareResult() {
     score: S.score,
     world: worldName,
     level: S.currentLevel + 1,
-    stars: `⭐${'⭐'.repeat(S.stars)}`,
+    stars: '⭐'.repeat(Math.max(0, S.stars)),
   });
 
   // Use native Web Share API if available

@@ -28,6 +28,7 @@ import {
 import { getProviderOrFallback } from "../providers/otp/providerFactory";
 import { NOTIFICATION_TYPES, NOTIFICATION_STYLES, NOTIFICATION_PRIORITIES } from "../../shared/notificationTypes";
 import { activateOnLoginSessions, resumePausedSessions } from "../services/scheduledSessionService";
+import { createNotification } from "../notifications";
 
 const MAX_FAILED_LOGIN_ATTEMPTS = 5;
 const LOCKOUT_MINUTES = 15;
@@ -2878,7 +2879,7 @@ export async function registerAuthRoutes(app: Express) {
             title: "تم إزالة رمز PIN",
             message: `تم إزالة رمز PIN للطفل — يمكنه الآن الدخول بدون رمز`,
             style: NOTIFICATION_STYLES.TOAST,
-            priority: NOTIFICATION_PRIORITIES.LOW,
+            priority: NOTIFICATION_PRIORITIES.NORMAL,
             metadata: { childId, action: "removed" },
           });
         } catch (notifyErr: any) {
@@ -2930,7 +2931,7 @@ export async function registerAuthRoutes(app: Express) {
           title: "تم تغيير رمز PIN",
           message: `تم تحديث رمز PIN للطفل بنجاح`,
           style: NOTIFICATION_STYLES.TOAST,
-          priority: NOTIFICATION_PRIORITIES.LOW,
+          priority: NOTIFICATION_PRIORITIES.NORMAL,
           metadata: { childId, action: "set" },
         });
       } catch (notifyErr: any) {

@@ -641,7 +641,7 @@ export async function registerChildRoutes(app: Express) {
         .orderBy(desc(scheduledSessions.createdAt));
 
       const result = await Promise.all(
-        sessionList.map(async (session) => {
+        sessionList.map(async (session: any) => {
           const sessionTasks = await db
             .select()
             .from(scheduledSessionTasks)
@@ -649,7 +649,7 @@ export async function registerChildRoutes(app: Express) {
             .orderBy(scheduledSessionTasks.orderIndex);
 
           // Find the current unlocked task and get its real task data
-          const currentTask = sessionTasks.find((t) => t.status === "unlocked");
+          const currentTask = sessionTasks.find((t: any) => t.status === "unlocked");
           let currentTaskData = null;
           if (currentTask?.taskId) {
             const taskRow = await db.select().from(tasks).where(eq(tasks.id, currentTask.taskId));
@@ -672,7 +672,7 @@ export async function registerChildRoutes(app: Express) {
             totalPointsReward: session.totalPointsReward,
             actualStartAt: session.actualStartAt,
             createdAt: session.createdAt,
-            tasks: sessionTasks.map((t) => ({
+            tasks: sessionTasks.map((t: any) => ({
               id: t.id,
               orderIndex: t.orderIndex,
               status: t.status,
@@ -3318,7 +3318,7 @@ export async function registerChildRoutes(app: Express) {
         let checkDate = new Date(today);
         for (let i = 0; i < 60; i++) {
           const dayStr = checkDate.toISOString().split("T")[0];
-          const hasTask = recentTasks.some(t => {
+          const hasTask = recentTasks.some((t: any) => {
             const tDate = new Date(t.completedAt!);
             return tDate.toISOString().split("T")[0] === dayStr;
           });
@@ -3647,7 +3647,7 @@ export async function registerChildRoutes(app: Express) {
         )
       );
 
-      const friendIds = friendships.map(f => f.requesterId === childId ? f.addresseeId : f.requesterId);
+      const friendIds = friendships.map((f: any) => f.requesterId === childId ? f.addresseeId : f.requesterId);
       if (friendIds.length === 0) return res.json(successResponse({ friends: [], pending: [] }));
 
       const friends = await db.select({
@@ -3657,12 +3657,12 @@ export async function registerChildRoutes(app: Express) {
         schoolName: children.schoolName,
         governorate: children.governorate,
         totalPoints: children.totalPoints,
-      }).from(children).where(sql`${children.id} IN (${sql.join(friendIds.map(id => sql`${id}`), sql`, `)})`);
+      }).from(children).where(sql`${children.id} IN (${sql.join(friendIds.map((id: any) => sql`${id}`), sql`, `)})`);
 
       // Add friendship ID and growth tree stage
-      const friendsWithMeta = await Promise.all(friends.map(async (f) => {
+      const friendsWithMeta = await Promise.all(friends.map(async (f: any) => {
         const tree = await db.select({ currentStage: childGrowthTrees.currentStage }).from(childGrowthTrees).where(eq(childGrowthTrees.childId, f.id));
-        const friendship = friendships.find(fs => fs.requesterId === f.id || fs.addresseeId === f.id);
+        const friendship = friendships.find((fs: any) => fs.requesterId === f.id || fs.addresseeId === f.id);
         return { ...f, treeStage: tree[0]?.currentStage || 1, friendshipId: friendship?.id };
       }));
 
@@ -3671,7 +3671,7 @@ export async function registerChildRoutes(app: Express) {
         and(eq(childFriendships.addresseeId, childId), eq(childFriendships.status, "pending"))
       );
 
-      const pendingDetails = await Promise.all(pending.map(async (p) => {
+      const pendingDetails = await Promise.all(pending.map(async (p: any) => {
         const child = await db.select({ id: children.id, name: children.name, avatarUrl: children.avatarUrl, schoolName: children.schoolName })
           .from(children).where(eq(children.id, p.requesterId));
         return { ...p, requester: child[0] || null };
@@ -3696,7 +3696,7 @@ export async function registerChildRoutes(app: Express) {
         or(eq(childFriendships.requesterId, childId), eq(childFriendships.addresseeId, childId))
       );
       const excludeIds = new Set<string>([childId]);
-      existingFriendships.forEach(f => {
+      existingFriendships.forEach((f: any) => {
         excludeIds.add(f.requesterId);
         excludeIds.add(f.addresseeId);
       });
@@ -3721,8 +3721,8 @@ export async function registerChildRoutes(app: Express) {
       const myGrade = child[0].academicGrade;
 
       const scored = allChildren
-        .filter(c => !excludeIds.has(c.id))
-        .map(c => {
+        .filter((c: any) => !excludeIds.has(c.id))
+        .map((c: any) => {
           let score = 0;
           const reasons: string[] = [];
 
@@ -3743,7 +3743,7 @@ export async function registerChildRoutes(app: Express) {
 
           // Shared hobbies (+10 each)
           const theirHobbies = (c.hobbies || "").toLowerCase().split(/[,،\s]+/).filter(Boolean);
-          const hobbyMatch = myHobbies.filter(h => theirHobbies.includes(h)).length;
+          const hobbyMatch = myHobbies.filter((h: any) => theirHobbies.includes(h)).length;
           if (hobbyMatch > 0) { score += hobbyMatch * 10; reasons.push("hobbies"); }
 
           // Shared interests (+8 each)
@@ -3753,8 +3753,8 @@ export async function registerChildRoutes(app: Express) {
 
           return { ...c, score, reasons };
         })
-        .filter(c => c.score > 0)
-        .sort((a, b) => b.score - a.score)
+        .filter((c: any) => c.score > 0)
+        .sort((a: any, b: any) => b.score - a.score)
         .slice(0, 20);
 
       res.json(successResponse({ suggestions: scored }));
@@ -3774,7 +3774,7 @@ export async function registerChildRoutes(app: Express) {
         .limit(50);
 
       // Enrich with friend names
-      const enriched = await Promise.all(notifs.map(async (n) => {
+      const enriched = await Promise.all(notifs.map(async (n: any) => {
         const friend = await db.select({ name: children.name, avatarUrl: children.avatarUrl })
           .from(children).where(eq(children.id, n.fromChildId));
         return { ...n, friendName: friend[0]?.name, friendAvatar: friend[0]?.avatarUrl };
@@ -3825,10 +3825,10 @@ export async function registerChildRoutes(app: Express) {
         )
       );
 
-      const friendIds = friendships.map(f => f.requesterId === childId ? f.addresseeId : f.requesterId);
+      const friendIds = friendships.map((f: any) => f.requesterId === childId ? f.addresseeId : f.requesterId);
       if (friendIds.length === 0) return;
 
-      const notifications = friendIds.map(fId => ({
+      const notifications = friendIds.map((fId: any) => ({
         childId: fId,
         fromChildId: childId,
         type,
@@ -3961,7 +3961,7 @@ export async function registerChildRoutes(app: Express) {
       const follows = await db.select().from(childFollows).where(and(...conditions)).orderBy(desc(childFollows.createdAt));
 
       // Enrich with entity details
-      const enriched = await Promise.all(follows.map(async (f) => {
+      const enriched = await Promise.all(follows.map(async (f: any) => {
         if (f.followingType === "child") {
           const [child] = await db.select({
             id: children.id, name: children.name, avatarUrl: children.avatarUrl,
@@ -4006,7 +4006,7 @@ export async function registerChildRoutes(app: Express) {
         .orderBy(desc(childFollows.createdAt));
 
       // Enrich with child details
-      const enriched = await Promise.all(followers.map(async (f) => {
+      const enriched = await Promise.all(followers.map(async (f: any) => {
         const [child] = await db.select({
           id: children.id, name: children.name, avatarUrl: children.avatarUrl,
           schoolName: children.schoolName, governorate: children.governorate, totalPoints: children.totalPoints,
@@ -4104,7 +4104,7 @@ export async function registerChildRoutes(app: Express) {
           .limit(20);
 
         // Check follow status for children
-        const childrenWithFollow = await Promise.all(childResults.map(async (c) => {
+        const childrenWithFollow = await Promise.all(childResults.map(async (c: any) => {
           const [follow] = await db.select({ id: childFollows.id }).from(childFollows)
             .where(and(
               eq(childFollows.followerId, childId),
@@ -4137,7 +4137,7 @@ export async function registerChildRoutes(app: Express) {
           ))
           .limit(20);
 
-        const schoolsWithFollow = await Promise.all(schoolResults.map(async (s) => {
+        const schoolsWithFollow = await Promise.all(schoolResults.map(async (s: any) => {
           const [follow] = await db.select({ id: childFollows.id }).from(childFollows)
             .where(and(
               eq(childFollows.followerId, childId),
@@ -4167,7 +4167,7 @@ export async function registerChildRoutes(app: Express) {
           .limit(20);
 
         // Enrich teachers with school name
-        const teachersEnriched = await Promise.all(teacherResults.map(async (t) => {
+        const teachersEnriched = await Promise.all(teacherResults.map(async (t: any) => {
           const [school] = await db.select({ name: schools.name, nameAr: schools.nameAr })
             .from(schools).where(eq(schools.id, sql`(SELECT school_id FROM school_teachers WHERE id = ${t.id})`));
           const [follow] = await db.select({ id: childFollows.id }).from(childFollows)
@@ -4204,7 +4204,7 @@ export async function registerChildRoutes(app: Express) {
         .orderBy(desc(children.totalPoints))
         .limit(10);
 
-      const childrenWithFollow = await Promise.all(popularChildren.map(async (c) => {
+      const childrenWithFollow = await Promise.all(popularChildren.map(async (c: any) => {
         const [follow] = await db.select({ id: childFollows.id }).from(childFollows)
           .where(and(
             eq(childFollows.followerId, childId),
@@ -4224,7 +4224,7 @@ export async function registerChildRoutes(app: Express) {
         .orderBy(desc(schools.activityScore))
         .limit(10);
 
-      const schoolsWithFollow = await Promise.all(activeSchools.map(async (s) => {
+      const schoolsWithFollow = await Promise.all(activeSchools.map(async (s: any) => {
         const [follow] = await db.select({ id: childFollows.id }).from(childFollows)
           .where(and(
             eq(childFollows.followerId, childId),
@@ -4243,7 +4243,7 @@ export async function registerChildRoutes(app: Express) {
         .orderBy(desc(schoolTeachers.activityScore))
         .limit(10);
 
-      const teachersWithFollow = await Promise.all(activeTeachers.map(async (t) => {
+      const teachersWithFollow = await Promise.all(activeTeachers.map(async (t: any) => {
         const [school] = await db.select({ name: schools.name, nameAr: schools.nameAr })
           .from(schools).where(eq(schools.id, sql`(SELECT school_id FROM school_teachers WHERE id = ${t.id})`));
         const [follow] = await db.select({ id: childFollows.id }).from(childFollows)
@@ -4366,7 +4366,7 @@ export async function registerChildRoutes(app: Express) {
               eq(childFriendships.status, "accepted")
             ));
 
-          const followerIds = new Set(followers.map(f => f.followerId));
+          const followerIds = new Set(followers.map((f: any) => f.followerId));
           for (const fr of friendships) {
             const friendId = fr.requesterId === childId ? fr.addresseeId : fr.requesterId;
             if (followerIds.has(friendId)) continue; // skip if already notified as follower
@@ -4442,7 +4442,7 @@ export async function registerChildRoutes(app: Express) {
       const child = await db.select({ name: children.name, avatarUrl: children.avatarUrl })
         .from(children).where(eq(children.id, childId));
       
-      const postsWithAuthor = posts.map(p => ({
+      const postsWithAuthor = posts.map((p: any) => ({
         ...p,
         authorName: child[0]?.name || "",
         authorAvatar: child[0]?.avatarUrl || null,
@@ -4466,7 +4466,7 @@ export async function registerChildRoutes(app: Express) {
       const child = await db.select({ name: children.name, avatarUrl: children.avatarUrl })
         .from(children).where(eq(children.id, targetChildId));
       
-      const postsWithAuthor = posts.map(p => ({
+      const postsWithAuthor = posts.map((p: any) => ({
         ...p,
         authorName: child[0]?.name || "",
         authorAvatar: child[0]?.avatarUrl || null,
@@ -4509,7 +4509,7 @@ export async function registerChildRoutes(app: Express) {
       const likes = await db.select({ postId: childPostLikes.postId }).from(childPostLikes)
         .where(and(eq(childPostLikes.childId, childId), inArray(childPostLikes.postId, safePostIds)));
       const likedMap: Record<string, boolean> = {};
-      likes.forEach(l => { likedMap[l.postId] = true; });
+      likes.forEach((l: any) => { likedMap[l.postId] = true; });
       res.json({ success: true, data: likedMap });
     } catch (error: any) {
       console.error("Check likes error:", error);
