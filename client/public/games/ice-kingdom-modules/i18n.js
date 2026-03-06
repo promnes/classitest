@@ -59,6 +59,50 @@ const S = {
     streak7: 'أسطوري! 7 متتالية 👑',
     streak10: 'لا يُهزم! 10 متتالية 🌟',
 
+    // DDA / Intelligence
+    skillLevel: 'مستوى المهارة',
+    difficulty: 'الصعوبة',
+    easy: 'سهل',
+    normal: 'عادي',
+    hard: 'صعب',
+    expert: 'خبير',
+
+    // Story
+    storyIntro: 'مقدمة العالم',
+    letsGo: 'هيا بنا! 🚀',
+    funFact: 'هل تعلم؟ 💡',
+    skip: 'تخطي',
+
+    // Reports
+    viewReport: 'تقرير الأداء 📊',
+    performance: 'الأداء',
+    strengths: 'نقاط القوة',
+    needsPractice: 'يحتاج تحسين',
+    recommendations: 'توصيات',
+    accuracy: 'الدقة',
+    time: 'الوقت',
+    bestStreak: 'أفضل سلسلة',
+
+    // Shield
+    powerShield: 'درع 🛡️',
+    shieldActive: 'الدرع نشط!',
+    shieldUsed: 'الدرع حماك! 🛡️',
+
+    // Extra
+    penguin: 'بطريقي',
+    claim: 'احصل عليها!',
+    next: 'التالي',
+    retry: 'إعادة',
+    levels: 'المستويات',
+    levelUp: 'ارتقيت! 🎉',
+    tryAgain: 'حاول مرة أخرى!',
+    fight: 'قاتل!',
+    bossChallenge: 'تحدي الزعيم!',
+    questions: 'أسئلة',
+    feed: 'أطعم',
+    pet: 'العب',
+    close: 'إغلاق',
+
     // Worlds
     w1: 'قرية الثلج',     ws1: 'ألوان وأشكال',
     w2: 'جزيرة البطاريق', ws2: 'حيوانات وطبيعة',
@@ -131,6 +175,50 @@ const S = {
     streak7: 'Legendary! 7 in a row 👑',
     streak10: 'Unstoppable! 10 in a row 🌟',
 
+    // DDA / Intelligence
+    skillLevel: 'Skill Level',
+    difficulty: 'Difficulty',
+    easy: 'Easy',
+    normal: 'Normal',
+    hard: 'Hard',
+    expert: 'Expert',
+
+    // Story
+    storyIntro: 'World Intro',
+    letsGo: 'Let\'s go! 🚀',
+    funFact: 'Did you know? 💡',
+    skip: 'Skip',
+
+    // Reports
+    viewReport: 'Performance Report 📊',
+    performance: 'Performance',
+    strengths: 'Strengths',
+    needsPractice: 'Needs Practice',
+    recommendations: 'Recommendations',
+    accuracy: 'Accuracy',
+    time: 'Time',
+    bestStreak: 'Best Streak',
+
+    // Shield
+    powerShield: 'Shield 🛡️',
+    shieldActive: 'Shield Active!',
+    shieldUsed: 'Shield saved you! 🛡️',
+
+    // Extra
+    penguin: 'My Penguin',
+    claim: 'Claim!',
+    next: 'Next',
+    retry: 'Retry',
+    levels: 'Levels',
+    levelUp: 'Level Up! 🎉',
+    tryAgain: 'Try Again!',
+    fight: 'Fight!',
+    bossChallenge: 'Boss Challenge!',
+    questions: 'questions',
+    feed: 'Feed',
+    pet: 'Pet',
+    close: 'Close',
+
     w1: 'Snow Village',      ws1: 'Colors & Shapes',
     w2: 'Penguin Island',    ws2: 'Animals & Nature',
     w3: 'Storm Valley',      ws3: 'Weather & Seasons',
@@ -200,6 +288,50 @@ const S = {
     streak5: 'Incrível! 5 seguidas 💫',
     streak7: 'Lendário! 7 seguidas 👑',
     streak10: 'Imparável! 10 seguidas 🌟',
+
+    // DDA / Intelligence
+    skillLevel: 'Nível de Habilidade',
+    difficulty: 'Dificuldade',
+    easy: 'Fácil',
+    normal: 'Normal',
+    hard: 'Difícil',
+    expert: 'Expert',
+
+    // Story
+    storyIntro: 'Introdução do Mundo',
+    letsGo: 'Vamos lá! 🚀',
+    funFact: 'Você sabia? 💡',
+    skip: 'Pular',
+
+    // Reports
+    viewReport: 'Relatório de Desempenho 📊',
+    performance: 'Desempenho',
+    strengths: 'Pontos Fortes',
+    needsPractice: 'Precisa Praticar',
+    recommendations: 'Recomendações',
+    accuracy: 'Precisão',
+    time: 'Tempo',
+    bestStreak: 'Melhor Sequência',
+
+    // Shield
+    powerShield: 'Escudo 🛡️',
+    shieldActive: 'Escudo Ativo!',
+    shieldUsed: 'O escudo te salvou! 🛡️',
+
+    // Extra
+    penguin: 'Meu Pinguim',
+    claim: 'Coletar!',
+    next: 'Próximo',
+    retry: 'Tentar novamente',
+    levels: 'Níveis',
+    levelUp: 'Subiu de Nível! 🎉',
+    tryAgain: 'Tente Novamente!',
+    fight: 'Lutar!',
+    bossChallenge: 'Desafio do Chefe!',
+    questions: 'perguntas',
+    feed: 'Alimentar',
+    pet: 'Brincar',
+    close: 'Fechar',
 
     w1: 'Vila da Neve',       ws1: 'Cores e Formas',
     w2: 'Ilha dos Pinguins',  ws2: 'Animais e Natureza',

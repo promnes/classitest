@@ -62,6 +62,13 @@ export function sfxCorrect() {
   osc(784, 'sine', 0.2, 0.2, 0.25);
 }
 
+export function sfxCorrectWorld(worldId) {
+  const baseFreq = 490 + ((worldId || 1) * 15);
+  osc(baseFreq, 'sine', 0.15, 0, 0.25);
+  osc(baseFreq + 136, 'sine', 0.15, 0.1, 0.25);
+  osc(baseFreq + 261, 'sine', 0.2, 0.2, 0.25);
+}
+
 export function sfxWrong() {
   osc(200, 'sawtooth', 0.3, 0, 0.15);
   osc(150, 'sawtooth', 0.3, 0.15, 0.1);
@@ -125,6 +132,13 @@ export function sfxEat() {
   osc(550, 'sine', 0.1, 0.12, 0.2);
 }
 
+export function sfxPurchase() {
+  osc(660, 'sine', 0.1, 0, 0.2);
+  osc(880, 'sine', 0.1, 0.08, 0.2);
+  osc(1100, 'triangle', 0.15, 0.15, 0.15);
+  osc(440, 'sine', 0.1, 0.25, 0.1);
+}
+
 /* ── ambient: simple looping pads ── */
 let ambientOsc = null;
 let ambientGain = null;
@@ -158,4 +172,19 @@ export function startAmbient(worldId) {
 
 export function stopAmbient() {
   if (ambientOsc) { try { ambientOsc.stop(); } catch(e) {} ambientOsc = null; }
+}
+
+/* ── Volume control ── */
+export function setVolume(vol) {
+  const v = Math.max(0, Math.min(1, vol));
+  if (masterGain) masterGain.gain.value = muted ? 0 : v * 0.6;
+  try { localStorage.setItem('catk_volume', String(v)); } catch(e) {}
+}
+
+export function getVolume() {
+  try {
+    const raw = localStorage.getItem('catk_volume');
+    if (raw !== null) return parseFloat(raw) || 0.6;
+  } catch(e) {}
+  return 0.6;
 }

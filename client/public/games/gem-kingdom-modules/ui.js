@@ -8,6 +8,26 @@ import {
   BOARD, TIMING, LANG,
 } from './config.js';
 
+// ===== COLOR-BLIND MODE =====
+let _colorBlindMode = false;
+export function setColorBlindMode(enabled) { _colorBlindMode = !!enabled; }
+
+// ===== THEME & GEM STYLE =====
+let _gemStyle = 'classic';   // 'classic' | 'glass' | 'neon'
+let _boardTheme = 'classic'; // 'classic' | 'ocean' | 'candy' | 'forest'
+export function setGemStyle(style) { _gemStyle = style || 'classic'; }
+export function setBoardTheme(theme) { _boardTheme = theme || 'classic'; }
+
+const GEM_COLORS = [
+  '#e74c3c', '#e67e22', '#9b59b6', '#2ecc71', '#3498db', '#1abc9c', '#f1c40f',
+];
+const THEME_CELL_COLORS = {
+  classic: ['rgba(255,255,255,0.12)', 'rgba(255,255,255,0.06)'],
+  ocean:   ['rgba(0,100,200,0.18)',   'rgba(0,80,180,0.10)'],
+  candy:   ['rgba(255,120,180,0.16)', 'rgba(255,100,160,0.08)'],
+  forest:  ['rgba(30,140,50,0.16)',   'rgba(20,120,40,0.08)'],
+};
+
 // ===== PERFORMANCE DETECTION =====
 let PERF = 'high'; // 'high' | 'medium' | 'low'
 export function detectPerformance() {
@@ -375,7 +395,111 @@ export function drawGem(ctx, gem, x, y, cellSize, worldIdx, time) {
   }
 
   ctx.shadowBlur = 0;
-  ctx.fillText(emoji, cx, cy);
+
+  // Render gem based on gemStyle
+  if (_gemStyle === 'glass') {
+    // Glass orb style
+    const color = GEM_COLORS[gem.type % GEM_COLORS.length];
+    const grad = ctx.createRadialGradient(cx - cellSize * 0.1, cy - cellSize * 0.1, cellSize * 0.05, cx, cy, cellSize * 0.38);
+    grad.addColorStop(0, 'rgba(255,255,255,0.9)');
+    grad.addColorStop(0.4, color);
+    grad.addColorStop(1, 'rgba(0,0,0,0.3)');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(cx, cy, cellSize * 0.38, 0, Math.PI * 2);
+    ctx.fill();
+  } else if (_gemStyle === 'neon') {
+    // Neon glow style
+    const color = GEM_COLORS[gem.type % GEM_COLORS.length];
+    ctx.shadowColor = color;
+    ctx.shadowBlur = 10;
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.arc(cx, cy, cellSize * 0.34, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.font = `${emojiSize * 0.7}px sans-serif`;
+    ctx.fillText(emoji, cx, cy);
+    ctx.shadowBlur = 0;
+  } else {
+    // Classic emoji style
+    ctx.fillText(emoji, cx, cy);
+  }
+
+  // Color-blind shape overlay
+  if (_colorBlindMode && gem.type >= 0) {
+    const sr = cellSize * 0.16; // shape radius
+    ctx.strokeStyle = 'rgba(255,255,255,0.9)';
+    ctx.fillStyle = 'rgba(255,255,255,0.3)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    switch (gem.type % 7) {
+      case 0: // Circle
+        ctx.arc(cx, cy, sr, 0, Math.PI * 2);
+        break;
+      case 1: // Square
+        ctx.rect(cx - sr, cy - sr, sr * 2, sr * 2);
+        break;
+      case 2: // Triangle
+        ctx.moveTo(cx, cy - sr);
+        ctx.lineTo(cx + sr, cy + sr * 0.8);
+        ctx.lineTo(cx - sr, cy + sr * 0.8);
+        ctx.closePath();
+        break;
+      case 3: // Diamond
+        ctx.moveTo(cx, cy - sr);
+        ctx.lineTo(cx + sr, cy);
+        ctx.lineTo(cx, cy + sr);
+        ctx.lineTo(cx - sr, cy);
+        ctx.closePath();
+        break;
+      case 4: { // Star (5-point)
+        for (let i = 0; i < 5; i++) {
+          const outerA = -Math.PI / 2 + (i * 2 * Math.PI) / 5;
+          const innerA = outerA + Math.PI / 5;
+          const ox = cx + Math.cos(outerA) * sr;
+          const oy = cy + Math.sin(outerA) * sr;
+          const ix = cx + Math.cos(innerA) * sr * 0.45;
+          const iy = cy + Math.sin(innerA) * sr * 0.45;
+          if (i === 0) ctx.moveTo(ox, oy);
+          else ctx.lineTo(ox, oy);
+          ctx.lineTo(ix, iy);
+        }
+        ctx.closePath();
+        break;
+      }
+      case 5: { // Hexagon
+        for (let i = 0; i < 6; i++) {
+          const a = -Math.PI / 2 + (i * Math.PI) / 3;
+          const hx = cx + Math.cos(a) * sr;
+          const hy = cy + Math.sin(a) * sr;
+          if (i === 0) ctx.moveTo(hx, hy);
+          else ctx.lineTo(hx, hy);
+        }
+        ctx.closePath();
+        break;
+      }
+      case 6: { // Cross / Plus
+        const half = sr * 0.4;
+        ctx.moveTo(cx - half, cy - sr);
+        ctx.lineTo(cx + half, cy - sr);
+        ctx.lineTo(cx + half, cy - half);
+        ctx.lineTo(cx + sr, cy - half);
+        ctx.lineTo(cx + sr, cy + half);
+        ctx.lineTo(cx + half, cy + half);
+        ctx.lineTo(cx + half, cy + sr);
+        ctx.lineTo(cx - half, cy + sr);
+        ctx.lineTo(cx - half, cy + half);
+        ctx.lineTo(cx - sr, cy + half);
+        ctx.lineTo(cx - sr, cy - half);
+        ctx.lineTo(cx - half, cy - half);
+        ctx.closePath();
+        break;
+      }
+    }
+    ctx.fill();
+    ctx.stroke();
+  }
 
   // Special indicator
   if (gem.special !== SPECIAL.NONE) {
@@ -572,11 +696,9 @@ function drawObstacleUnder(ctx, gem, x, y, cellSize, time) {
       ctx.fill();
       break;
     }
-    case OBSTACLE.PORTAL_IN:
-    case OBSTACLE.PORTAL_OUT: {
-      const isIn = gem.obstacle === OBSTACLE.PORTAL_IN;
-      const rot = time * (isIn ? 2 : -2);
-      ctx.strokeStyle = isIn ? 'rgba(0,200,255,0.5)' : 'rgba(255,100,200,0.5)';
+    case OBSTACLE.PORTAL: {
+      const rot = time * 2;
+      ctx.strokeStyle = 'rgba(0,200,255,0.5)';
       ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.arc(x + cellSize / 2, y + cellSize / 2, cellSize * 0.42, rot, rot + Math.PI * 1.5);
@@ -655,6 +777,48 @@ function drawObstacleOver(ctx, gem, x, y, cellSize, time) {
       ctx.stroke();
       break;
     }
+    case OBSTACLE.CAGE: {
+      // Draw cage bars over the gem
+      ctx.strokeStyle = 'rgba(139,90,43,0.85)';
+      ctx.lineWidth = 2;
+      const pad = cellSize * 0.1;
+      // Vertical bars
+      for (let i = 0; i < 4; i++) {
+        const bx = x + pad + (i * (cellSize - 2 * pad) / 3);
+        ctx.beginPath();
+        ctx.moveTo(bx, y + pad);
+        ctx.lineTo(bx, y + cellSize - pad);
+        ctx.stroke();
+      }
+      // Horizontal bars (top and bottom)
+      ctx.beginPath();
+      ctx.moveTo(x + pad, y + pad);
+      ctx.lineTo(x + cellSize - pad, y + pad);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(x + pad, y + cellSize - pad);
+      ctx.lineTo(x + cellSize - pad, y + cellSize - pad);
+      ctx.stroke();
+      break;
+    }
+    case OBSTACLE.MOSS: {
+      // Green moss overlay with vine tendrils
+      const mossPulse = 0.35 + Math.sin(time * 1.5) * 0.08;
+      ctx.fillStyle = `rgba(34,120,50,${mossPulse})`;
+      roundRect(ctx, x + 1, y + 1, cellSize - 2, cellSize - 2, 6);
+      ctx.fill();
+      // Vine tendrils
+      ctx.strokeStyle = 'rgba(20,80,30,0.6)';
+      ctx.lineWidth = 1.5;
+      for (let i = 0; i < 3; i++) {
+        const sx = x + cellSize * (0.2 + i * 0.3);
+        ctx.beginPath();
+        ctx.moveTo(sx, y + cellSize);
+        ctx.quadraticCurveTo(sx + 6, y + cellSize * 0.5, sx - 4, y);
+        ctx.stroke();
+      }
+      break;
+    }
   }
 
   ctx.restore();
@@ -682,6 +846,7 @@ export function drawGrid(ctx, grid, rows, cols, offsetX, offsetY, cellSize, worl
   ctx.fill();
 
   // Cell backgrounds
+  const cellColors = THEME_CELL_COLORS[_boardTheme] || THEME_CELL_COLORS.classic;
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
       const x = offsetX + c * cellSize;
@@ -689,8 +854,8 @@ export function drawGrid(ctx, grid, rows, cols, offsetX, offsetY, cellSize, worl
 
       // Checkerboard
       ctx.fillStyle = (r + c) % 2 === 0
-        ? 'rgba(255,255,255,0.12)'
-        : 'rgba(255,255,255,0.06)';
+        ? cellColors[0]
+        : cellColors[1];
       roundRect(ctx, x + 1, y + 1, cellSize - 2, cellSize - 2, 4);
       ctx.fill();
     }

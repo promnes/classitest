@@ -66,4 +66,5 @@ export const POWER_UPS = {
   freeze: { cost: 20, icon: '⏸️', effect: 'freeze_timer' },
   double: { cost: 25, icon: '×2', effect: 'double_score' },
   life:   { cost: 30, icon: '❤️', effect: 'extra_life' },
+  shield: { cost: 35, icon: '🛡️', effect: 'absorb_mistake' },
 };

@@ -69,7 +69,32 @@ Games (MUST READ for any game-related task):
 - `server/routes/index.ts` - seedDefaultGames() function
 - `server/routes/child.ts` - POST /api/child/complete-game endpoint
 
+Internationalization (i18n):
+- `client/public/games/cat-kingdom-modules/i18n.js` - 25-language translation file
+
 If a file exists and is relevant but NOT read → **IMMEDIATE FAILURE**.
+
+---
+
+## 🌍 MANDATORY MULTI-LANGUAGE RULE (STANDING INSTRUCTION)
+
+**ALL changes to any game** that contains an i18n/translation system **MUST** include translations for **ALL 25 supported languages** automatically — without being asked.
+
+### Supported Languages (25):
+`ar` (Arabic-RTL), `en` (English), `pt` (Portuguese), `es` (Spanish), `fr` (French), `de` (German), `it` (Italian), `ru` (Russian), `zh` (Chinese), `ja` (Japanese), `ko` (Korean), `hi` (Hindi), `tr` (Turkish), `nl` (Dutch), `sv` (Swedish), `pl` (Polish), `uk` (Ukrainian), `id` (Indonesian), `ms` (Malay), `th` (Thai), `vi` (Vietnamese), `fa` (Persian-RTL), `ur` (Urdu-RTL), `bn` (Bengali), `sw` (Swahili)
+
+### Rules:
+1. **Any new UI text** added to a game MUST be added to `i18n.js` in ALL 25 languages
+2. **Any modified text** MUST be updated in ALL 25 languages
+3. **Any new `t.key`** MUST have entries in ALL 25 language blocks in the `S` object
+4. **Any new `L()` call** MUST provide at least `ar`, `en`, `pt` arguments
+5. **RTL languages** (`ar`, `fa`, `ur`) MUST be tested for correct text direction
+6. **Never add text in only one language** — this is a CRITICAL VIOLATION
+
+### Verification:
+After any i18n change, confirm ALL 25 language blocks have the new/modified key.
+
+Failing to translate = **IMMEDIATE FAILURE**.
 
 The agent is **FORBIDDEN** from responding based on:
 

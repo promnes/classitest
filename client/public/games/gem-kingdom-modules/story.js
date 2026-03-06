@@ -627,12 +627,36 @@ const QUIZZES = {
       { q: 'ما أكبر كوكب في نظامنا الشمسي؟', a: ['زحل', 'المشتري', 'نبتون'], correct: 1 },
       { q: 'كم يستغرق الضوء من الشمس إلينا؟', a: ['8 ثوانٍ', '8 دقائق', '8 ساعات'], correct: 1 },
     ],
-    // World 5-9 (shorter for brevity)
-    [{ q: 'كم مفتاح في البيانو؟', a: ['66', '78', '88'], correct: 2 }],
-    [{ q: 'من أين تأتي الشوكولاتة؟', a: ['الكاكاو', 'القمح', 'الأرز'], correct: 0 }],
-    [{ q: 'عند أي درجة يتجمد الماء؟', a: ['-10°C', '0°C', '10°C'], correct: 1 }],
-    [{ q: 'أين طُبع أول كتاب؟', a: ['مصر', 'الصين', 'ألمانيا'], correct: 1 }],
-    [{ q: 'ما أصلب مادة طبيعية؟', a: ['الحديد', 'الألماس', 'الذهب'], correct: 1 }],
+    // World 5 — Music Forest 🎵
+    [
+      { q: 'كم مفتاح في البيانو؟', a: ['66', '78', '88'], correct: 2 },
+      { q: 'ما أكبر آلة في الأوركسترا؟', a: ['الطبل الكبير', 'الكمان', 'البيانو الكبير'], correct: 2 },
+      { q: 'كم وتر للجيتار الكلاسيكي؟', a: ['4', '6', '8'], correct: 1 },
+    ],
+    // World 6 — Candy Factory 🍬
+    [
+      { q: 'من أين تأتي الشوكولاتة؟', a: ['الكاكاو', 'القمح', 'الأرز'], correct: 0 },
+      { q: 'ما المادة الأساسية في الحلوى؟', a: ['الملح', 'السكر', 'الدقيق'], correct: 1 },
+      { q: 'أي بلد يُنتج أكثر شوكولاتة؟', a: ['سويسرا', 'بلجيكا', 'ساحل العاج'], correct: 2 },
+    ],
+    // World 7 — Thunder Lab ⚡
+    [
+      { q: 'عند أي درجة يتجمد الماء؟', a: ['-10°C', '0°C', '10°C'], correct: 1 },
+      { q: 'ما الذي يسبب البرق؟', a: ['الرياح', 'الشحنات الكهربائية', 'المطر'], correct: 1 },
+      { q: 'ما سرعة الضوء تقريباً؟', a: ['100,000 كم/ث', '300,000 كم/ث', '500,000 كم/ث'], correct: 1 },
+    ],
+    // World 8 — Book City 📚
+    [
+      { q: 'أين طُبع أول كتاب؟', a: ['مصر', 'الصين', 'ألمانيا'], correct: 1 },
+      { q: 'من كتب "هاري بوتر"؟', a: ['ج.ك. رولينغ', 'ج.ر.ر. تولكين', 'سي.إس. لويس'], correct: 0 },
+      { q: 'ما أقدم قصة مكتوبة معروفة؟', a: ['الإلياذة', 'ملحمة جلجامش', 'المهابهاراتا'], correct: 1 },
+    ],
+    // World 9 — Diamond Peak 💎
+    [
+      { q: 'ما أصلب مادة طبيعية؟', a: ['الحديد', 'الألماس', 'الذهب'], correct: 1 },
+      { q: 'ما لون الزمرد؟', a: ['أحمر', 'أزرق', 'أخضر'], correct: 2 },
+      { q: 'من أين يتشكل الألماس؟', a: ['البحر', 'البراكين', 'أعماق الأرض'], correct: 2 },
+    ],
   ],
   en: [
     [
@@ -660,11 +684,36 @@ const QUIZZES = {
       { q: 'What is the largest planet?', a: ['Saturn', 'Jupiter', 'Neptune'], correct: 1 },
       { q: 'How long does sunlight take to reach us?', a: ['8 seconds', '8 minutes', '8 hours'], correct: 1 },
     ],
-    [{ q: 'How many keys on a piano?', a: ['66', '78', '88'], correct: 2 }],
-    [{ q: 'Where does chocolate come from?', a: ['Cacao', 'Wheat', 'Rice'], correct: 0 }],
-    [{ q: 'At what temperature does water freeze?', a: ['-10°C', '0°C', '10°C'], correct: 1 }],
-    [{ q: 'Where was the first book printed?', a: ['Egypt', 'China', 'Germany'], correct: 1 }],
-    [{ q: 'What is the hardest natural material?', a: ['Iron', 'Diamond', 'Gold'], correct: 1 }],
+    // World 5 — Music Forest 🎵
+    [
+      { q: 'How many keys on a piano?', a: ['66', '78', '88'], correct: 2 },
+      { q: 'What is the largest instrument in an orchestra?', a: ['Bass drum', 'Violin', 'Grand piano'], correct: 2 },
+      { q: 'How many strings does a classical guitar have?', a: ['4', '6', '8'], correct: 1 },
+    ],
+    // World 6 — Candy Factory 🍬
+    [
+      { q: 'Where does chocolate come from?', a: ['Cacao', 'Wheat', 'Rice'], correct: 0 },
+      { q: 'What is the main ingredient in candy?', a: ['Salt', 'Sugar', 'Flour'], correct: 1 },
+      { q: 'Which country produces the most cocoa?', a: ['Switzerland', 'Belgium', 'Ivory Coast'], correct: 2 },
+    ],
+    // World 7 — Thunder Lab ⚡
+    [
+      { q: 'At what temperature does water freeze?', a: ['-10°C', '0°C', '10°C'], correct: 1 },
+      { q: 'What causes lightning?', a: ['Wind', 'Electric charges', 'Rain'], correct: 1 },
+      { q: 'What is the approximate speed of light?', a: ['100,000 km/s', '300,000 km/s', '500,000 km/s'], correct: 1 },
+    ],
+    // World 8 — Book City 📚
+    [
+      { q: 'Where was the first book printed?', a: ['Egypt', 'China', 'Germany'], correct: 1 },
+      { q: 'Who wrote "Harry Potter"?', a: ['J.K. Rowling', 'J.R.R. Tolkien', 'C.S. Lewis'], correct: 0 },
+      { q: 'What is the oldest known written story?', a: ['The Iliad', 'Epic of Gilgamesh', 'Mahabharata'], correct: 1 },
+    ],
+    // World 9 — Diamond Peak 💎
+    [
+      { q: 'What is the hardest natural material?', a: ['Iron', 'Diamond', 'Gold'], correct: 1 },
+      { q: 'What color is an emerald?', a: ['Red', 'Blue', 'Green'], correct: 2 },
+      { q: 'Where do diamonds form?', a: ['Ocean', 'Volcanoes', 'Deep underground'], correct: 2 },
+    ],
   ],
   pt: [
     [
@@ -692,11 +741,36 @@ const QUIZZES = {
       { q: 'Qual o maior planeta?', a: ['Saturno', 'Júpiter', 'Netuno'], correct: 1 },
       { q: 'Quanto tempo a luz do Sol leva até nós?', a: ['8 segundos', '8 minutos', '8 horas'], correct: 1 },
     ],
-    [{ q: 'Quantas teclas tem um piano?', a: ['66', '78', '88'], correct: 2 }],
-    [{ q: 'De onde vem o chocolate?', a: ['Cacau', 'Trigo', 'Arroz'], correct: 0 }],
-    [{ q: 'A que temperatura a água congela?', a: ['-10°C', '0°C', '10°C'], correct: 1 }],
-    [{ q: 'Onde foi impresso o primeiro livro?', a: ['Egito', 'China', 'Alemanha'], correct: 1 }],
-    [{ q: 'Qual o material natural mais duro?', a: ['Ferro', 'Diamante', 'Ouro'], correct: 1 }],
+    // World 5 — Music Forest 🎵
+    [
+      { q: 'Quantas teclas tem um piano?', a: ['66', '78', '88'], correct: 2 },
+      { q: 'Qual o maior instrumento de uma orquestra?', a: ['Bumbo', 'Violino', 'Piano de cauda'], correct: 2 },
+      { q: 'Quantas cordas tem um violão clássico?', a: ['4', '6', '8'], correct: 1 },
+    ],
+    // World 6 — Candy Factory 🍬
+    [
+      { q: 'De onde vem o chocolate?', a: ['Cacau', 'Trigo', 'Arroz'], correct: 0 },
+      { q: 'Qual o ingrediente principal dos doces?', a: ['Sal', 'Açúcar', 'Farinha'], correct: 1 },
+      { q: 'Qual país produz mais cacau?', a: ['Suíça', 'Bélgica', 'Costa do Marfim'], correct: 2 },
+    ],
+    // World 7 — Thunder Lab ⚡
+    [
+      { q: 'A que temperatura a água congela?', a: ['-10°C', '0°C', '10°C'], correct: 1 },
+      { q: 'O que causa os relâmpagos?', a: ['Vento', 'Cargas elétricas', 'Chuva'], correct: 1 },
+      { q: 'Qual a velocidade aproximada da luz?', a: ['100.000 km/s', '300.000 km/s', '500.000 km/s'], correct: 1 },
+    ],
+    // World 8 — Book City 📚
+    [
+      { q: 'Onde foi impresso o primeiro livro?', a: ['Egito', 'China', 'Alemanha'], correct: 1 },
+      { q: 'Quem escreveu "Harry Potter"?', a: ['J.K. Rowling', 'J.R.R. Tolkien', 'C.S. Lewis'], correct: 0 },
+      { q: 'Qual a história escrita mais antiga conhecida?', a: ['A Ilíada', 'Epopeia de Gilgamesh', 'Mahabharata'], correct: 1 },
+    ],
+    // World 9 — Diamond Peak 💎
+    [
+      { q: 'Qual o material natural mais duro?', a: ['Ferro', 'Diamante', 'Ouro'], correct: 1 },
+      { q: 'Qual a cor de uma esmeralda?', a: ['Vermelho', 'Azul', 'Verde'], correct: 2 },
+      { q: 'Onde os diamantes se formam?', a: ['Oceano', 'Vulcões', 'Sob a terra'], correct: 2 },
+    ],
   ],
 };
 
@@ -732,4 +806,9 @@ export function getQuiz(worldIdx) {
 export function getAllFacts(worldIdx) {
   const lang = LANG === 'ar' ? 'ar' : LANG === 'pt' ? 'pt' : 'en';
   return FACTS[lang]?.[worldIdx] || [];
+}
+
+/** Alias used by core.js */
+export function getFacts(worldIdx) {
+  return getAllFacts(worldIdx);
 }

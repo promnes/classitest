@@ -6,7 +6,7 @@
  * Exports: createBoss(worldIdx, levelIdx) → boss object
  */
 
-import { LANG } from './config.js';
+import { LANG, OBSTACLE } from './config.js';
 
 // ===== BOSS DEFINITIONS =====
 // Mini-bosses: HP 80-150, 1 phase, attack every 3-4 turns
@@ -141,16 +141,16 @@ const WORLD_BOSSES = [
 // ===== ATTACK EFFECT MAPPING =====
 // Each attack type converts to an obstacle type on random empty cells
 const ATTACK_MAP = {
-  ice:     { obstacle: 1, count: 3, hp: 1 },  // ICE_1
-  chain:   { obstacle: 3, count: 2, hp: 1 },  // CHAIN
-  stone:   { obstacle: 4, count: 2, hp: 2 },  // STONE
-  dark:    { obstacle: 5, count: 3, hp: 1 },  // DARK
-  lock:    { obstacle: 6, count: 2, hp: 1 },  // LOCK
-  bomb:    { obstacle: 7, count: 2, hp: 1 },  // BOMB_TIMER
-  shadow:  { obstacle: 12, count: 3, hp: 1 },  // SHADOW
-  cage:    { obstacle: 11, count: 2, hp: 1 },  // CAGE
-  portal:  { obstacle: 8, count: 2, hp: 1 },  // PORTAL
-  shuffle: { obstacle: -1, count: 0, hp: 0 },  // Special: shuffle board
+  ice:     { obstacle: OBSTACLE.ICE_1,      count: 3, hp: 1 },
+  chain:   { obstacle: OBSTACLE.CHAIN,      count: 2, hp: 1 },
+  stone:   { obstacle: OBSTACLE.STONE,      count: 2, hp: 2 },
+  dark:    { obstacle: OBSTACLE.DARK,       count: 3, hp: 1 },
+  lock:    { obstacle: OBSTACLE.LOCK,       count: 2, hp: 1 },
+  bomb:    { obstacle: OBSTACLE.BOMB_TIMER, count: 2, hp: 1 },
+  shadow:  { obstacle: OBSTACLE.SHADOW,     count: 3, hp: 1 },
+  cage:    { obstacle: OBSTACLE.CAGE,       count: 2, hp: 1 },
+  portal:  { obstacle: OBSTACLE.PORTAL,     count: 2, hp: 1 },
+  shuffle: { obstacle: -1,                  count: 0, hp: 0 },
 };
 
 // ===== BOSS CREATION =====

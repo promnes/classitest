@@ -39,6 +39,7 @@ export function initGrid(rows, cols, gemCount, obstacles = []) {
         if (obs.type === OBSTACLE.BOMB_TIMER) gem.bombTimer = obs.timer || 8;
         if (obs.type === OBSTACLE.CAGE) gem.caged = true;
         if (obs.type === OBSTACLE.STONE) { gem.type = -1; gem.special = SPECIAL.NONE; }
+        if (obs.type === OBSTACLE.MOSS) { gem.mossTimer = obs.mossTimer || 5; }
       }
       grid[r][c] = gem;
     }
@@ -54,6 +55,7 @@ function getDefaultObstacleHP(type) {
   if (type === OBSTACLE.DARK) return 1;
   if (type === OBSTACLE.LOCK) return 1;
   if (type === OBSTACLE.SHADOW) return 1;
+  if (type === OBSTACLE.MOSS) return 2;
   return 1;
 }
 
@@ -247,7 +249,30 @@ export function getSpecialClearPositions(special, row, col, grid, rows, cols) {
       for (let i = 0; i < Math.min(3, available.length); i++) positions.push(available[i]);
       break;
     case SPECIAL.MAGIC:
-      // Converts to most needed type, then matches naturally
+      // Converts to most needed type: find the type with the most gems on board, then clear all of that type
+      const typeCounts = {};
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          if (grid[r][c] && grid[r][c].type >= 0 && (r !== row || c !== col)) {
+            typeCounts[grid[r][c].type] = (typeCounts[grid[r][c].type] || 0) + 1;
+          }
+        }
+      }
+      // Find the most common type on the board
+      let bestType = -1, bestCount = 0;
+      for (const [tp, cnt] of Object.entries(typeCounts)) {
+        if (cnt > bestCount) { bestCount = cnt; bestType = Number(tp); }
+      }
+      // Clear all gems of that type
+      if (bestType >= 0) {
+        for (let r = 0; r < rows; r++) {
+          for (let c = 0; c < cols; c++) {
+            if (grid[r][c] && grid[r][c].type === bestType) {
+              positions.push({ row: r, col: c });
+            }
+          }
+        }
+      }
       break;
   }
 
@@ -510,6 +535,10 @@ function damageObstacle(gem) {
     case OBSTACLE.SHADOW:
       gem.obstacle = OBSTACLE.NONE;
       return true;
+    case OBSTACLE.MOSS:
+      gem.obstacleHP--;
+      if (gem.obstacleHP <= 0) gem.obstacle = OBSTACLE.NONE;
+      return true;
     default:
       return false;
   }
@@ -550,16 +579,43 @@ export function applyGravity(grid, rows, cols) {
 
 /**
  * Spawn new gems for empty spaces at top
+ * @param {number} spawnBias - DDA bias (-2 to +2); negative favours types already on grid
  * @returns {Array<{gem, row, col, fallFrom}>}
  */
-export function spawnNewGems(grid, rows, cols, gemCount) {
+export function spawnNewGems(grid, rows, cols, gemCount, spawnBias = 0) {
   const spawns = [];
+
+  // Build frequency map of current types on grid for bias
+  let weights = null;
+  if (spawnBias < 0) {
+    const freq = new Array(gemCount).fill(0);
+    for (let r = 0; r < rows; r++)
+      for (let c = 0; c < cols; c++)
+        if (grid[r][c] && grid[r][c].type >= 0 && grid[r][c].type < gemCount)
+          freq[grid[r][c].type]++;
+    const total = freq.reduce((a, b) => a + b, 0) || 1;
+    weights = freq.map(f => f / total + 0.05); // slight floor so no type has 0 chance
+    const wTotal = weights.reduce((a, b) => a + b, 0);
+    weights = weights.map(w => w / wTotal);
+  }
 
   for (let c = 0; c < cols; c++) {
     let spawnRow = -1;
     for (let r = 0; r < rows; r++) {
       if (!grid[r][c]) {
-        const type = Math.floor(Math.random() * gemCount);
+        let type;
+        if (weights) {
+          // Weighted random: favour existing types (easier matches)
+          const roll = Math.random();
+          let acc = 0;
+          type = gemCount - 1;
+          for (let i = 0; i < gemCount; i++) {
+            acc += weights[i];
+            if (roll < acc) { type = i; break; }
+          }
+        } else {
+          type = Math.floor(Math.random() * gemCount);
+        }
         const gem = createGem(type, r, c);
         grid[r][c] = gem;
         spawns.push({ gem, row: r, col: c, fallFrom: spawnRow });
@@ -742,6 +798,35 @@ export function spreadShadows(grid, rows, cols) {
     }
   }
   return newShadows;
+}
+
+// ===== MOSS SPREAD =====
+export function spreadMoss(grid, rows, cols) {
+  const newMoss = [];
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const gem = grid[r][c];
+      if (gem && gem.obstacle === OBSTACLE.MOSS) {
+        // Moss spreads slower than shadow (15% per turn vs 30%)
+        const adj = [
+          { row: r-1, col: c }, { row: r+1, col: c },
+          { row: r, col: c-1 }, { row: r, col: c+1 }
+        ].filter(p => p.row >= 0 && p.row < rows && p.col >= 0 && p.col < cols);
+        shuffle(adj);
+        for (const p of adj) {
+          const ng = grid[p.row][p.col];
+          if (ng && ng.obstacle === OBSTACLE.NONE && Math.random() < 0.15) {
+            ng.obstacle = OBSTACLE.MOSS;
+            ng.obstacleHP = 2;
+            ng.mossTimer = 5;
+            newMoss.push(p);
+            break;
+          }
+        }
+      }
+    }
+  }
+  return newMoss;
 }
 
 // ===== CAGED ITEMS =====

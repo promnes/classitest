@@ -10,6 +10,9 @@ import { getQuestions } from './questions.js';
 import { initRenderer, startParticles, stopParticles, burstAt, shake, flashCorrect, flashWrong, coinRain, revealStars, animateXPBar, frozenReveal, penguinBounce, updateTimerRing } from './renderer.js';
 import { loadPenguin, getPenguin, getPenguinEmoji, addXP, reactCorrect, reactWrong, reactWorldComplete, feedPenguin, renderPenguinWidget, getAvailableSkins, buySkin, setSkin, getLevel as getPenguinLevel, getXP as getPenguinXP, getXPNeeded } from './penguin.js';
 import { createTracker, trackAnswer, getStreakMessage, getNearMissMessage, checkMicroBadges, getSessionSummary, getMilestoneMessage, getComebackMessage } from './engagement.js';
+import { loadDDA, saveDDA, updateDDA, getDDAModifier, getSkillLabel } from './intelligence.js';
+import { getWorldIntro, markIntroSeen, isIntroSeen, getFunFact, getEncouragement } from './story.js';
+import { generateReport, renderReportHTML } from './reports.js';
 
 const STORAGE_KEY = 'icek_progress';
 const $ = id => document.getElementById(id);
@@ -29,11 +32,13 @@ let state = {
   timeTotal: 0,
   coins: 0,
   tracker: null,
-  powerUps: { hint: 0, freeze: 0, double: 0, life: 0 },
+  powerUps: { hint: 0, freeze: 0, double: 0, life: 0, shield: 0 },
   doubleActive: false,
   frozen: false,
+  shieldActive: false,
   lives: 3,
   startTime: 0,
+  dda: null,
 };
 
 /* ─── Progress Persistence ──────── */
@@ -43,7 +48,7 @@ function loadProgress() {
     state.progress = raw ? JSON.parse(raw) : defaultProgress();
   } catch { state.progress = defaultProgress(); }
   state.coins = state.progress.coins || 0;
-  state.powerUps = state.progress.powerUps || { hint: 0, freeze: 0, double: 0, life: 0 };
+  state.powerUps = state.progress.powerUps || { hint: 0, freeze: 0, double: 0, life: 0, shield: 0 };
 }
 
 function defaultProgress() {
@@ -51,7 +56,7 @@ function defaultProgress() {
     worlds: {},
     coins: 0,
     totalCoins: 0,
-    powerUps: { hint: 0, freeze: 0, double: 0, life: 0 },
+    powerUps: { hint: 0, freeze: 0, double: 0, life: 0, shield: 0 },
     dailyBonus: { lastDate: null, streak: 0, totalClaimed: 0 },
     lastPlayDate: null,
     gamesPlayed: 0,
@@ -150,6 +155,7 @@ function renderMenu() {
   const menuEl = $('screen-menu');
   const penguin = getPenguinEmoji();
   const bonus = checkDailyBonus();
+  const skillLabel = state.dda ? getSkillLabel(state.dda) : '';
   
   menuEl.innerHTML = `
     <div class="icek-menu">
@@ -157,6 +163,7 @@ function renderMenu() {
         <div class="icek-logo-emoji">${penguin}</div>
         <h1 class="icek-title">${t.title}</h1>
         <p class="icek-subtitle">${t.subtitle}</p>
+        ${skillLabel ? `<div class="icek-skill-badge">${t.skillLevel}: ${skillLabel}</div>` : ''}
       </div>
       <div class="icek-coins-display">🪙 ${state.coins}</div>
       ${bonus ? `<button class="icek-btn icek-btn-bonus" id="btnDailyBonus">🎁 ${t.dailyBonus}</button>` : ''}
@@ -164,6 +171,7 @@ function renderMenu() {
       <div class="icek-menu-row">
         <button class="icek-btn icek-btn-sm" id="btnStore">🏪 ${t.store}</button>
         <button class="icek-btn icek-btn-sm" id="btnPenguin">${penguin} ${t.penguin}</button>
+        <button class="icek-btn icek-btn-sm" id="btnReport">📊 ${t.viewReport}</button>
         <button class="icek-btn icek-btn-sm" id="btnMute">${isMuted() ? '🔇' : '🔊'}</button>
       </div>
     </div>
@@ -172,6 +180,7 @@ function renderMenu() {
   $('btnPlay')?.addEventListener('click', () => { sfxClick(); showWorldMap(); });
   $('btnStore')?.addEventListener('click', () => { sfxClick(); showStore(); });
   $('btnPenguin')?.addEventListener('click', () => { sfxClick(); showPenguinScreen(); });
+  $('btnReport')?.addEventListener('click', () => { sfxClick(); showReportScreen(); });
   $('btnMute')?.addEventListener('click', () => { toggleMute(); sfxClick(); renderMenu(); });
   $('btnDailyBonus')?.addEventListener('click', () => { sfxClick(); showDailyBonus(bonus); });
 
@@ -237,7 +246,12 @@ function showWorldMap() {
     card.addEventListener('click', () => {
       sfxClick();
       state.currentWorld = parseInt(card.dataset.world);
-      showLevelSelect();
+      // Show story intro on first visit
+      if (!isIntroSeen(state.currentWorld)) {
+        showStoryIntro(state.currentWorld);
+      } else {
+        showLevelSelect();
+      }
     });
   });
 
@@ -315,6 +329,14 @@ function showBossIntro() {
 function startLevel() {
   const w = getWorld(state.currentWorld);
   const cfg = getLevelConfig(state.currentWorld, state.currentLevel);
+
+  // Apply DDA adjustments
+  const ddaMod = state.dda ? getDDAModifier(state.dda, w.subject) : null;
+  if (ddaMod) {
+    cfg.totalQuestions = Math.max(5, Math.min(18, cfg.totalQuestions + ddaMod.questionAdjust));
+    cfg.timePerQuestion = Math.max(5, Math.min(25, cfg.timePerQuestion + ddaMod.timeAdjust));
+  }
+
   state.questions = getQuestions(w.subject, cfg.totalQuestions);
   state.questionIdx = 0;
   state.correct = 0;
@@ -322,6 +344,7 @@ function startLevel() {
   state.lives = 3;
   state.doubleActive = false;
   state.frozen = false;
+  state.shieldActive = false;
   state.startTime = Date.now();
   state.tracker = createTracker();
 
@@ -368,11 +391,16 @@ function renderGameplay(cfg) {
 function renderPowerBar() {
   const bar = $('powerBar');
   if (!bar) return;
+  const ddaMod = state.dda ? getDDAModifier(state.dda, getWorld(state.currentWorld)?.subject) : null;
+  const diffLabel = ddaMod ? ddaMod.difficultyLabel : '';
   bar.innerHTML = `
+    ${diffLabel ? `<span class="icek-dda-label">${t.difficulty}: ${diffLabel}</span>` : ''}
     <button class="icek-power-btn" data-power="hint" title="${t.powerHint || 'Hint'}">💡 ${state.powerUps.hint}</button>
     <button class="icek-power-btn" data-power="freeze" title="${t.powerFreeze || 'Freeze'}">🧊 ${state.powerUps.freeze}</button>
     <button class="icek-power-btn" data-power="double" title="${t.powerDouble || 'Double'}">✖️2 ${state.powerUps.double}</button>
     <button class="icek-power-btn" data-power="life" title="${t.powerLife || 'Life'}">❤️ ${state.powerUps.life}</button>
+    <button class="icek-power-btn" data-power="shield" title="${t.powerShield || 'Shield'}">🛡️ ${state.powerUps.shield}</button>
+    ${state.shieldActive ? `<span class="icek-shield-indicator">🛡️</span>` : ''}
   `;
   bar.querySelectorAll('.icek-power-btn').forEach(btn => {
     btn.addEventListener('click', () => handlePowerUp(btn.dataset.power));
@@ -411,6 +439,10 @@ function handlePowerUp(type) {
     case 'life':
       state.lives = Math.min(5, state.lives + 1);
       $('hudLives').textContent = '❤️'.repeat(state.lives);
+      break;
+    case 'shield':
+      state.shieldActive = true;
+      showMilestoneToast(t.shieldActive || 'Shield Active! 🛡️');
       break;
   }
   renderPowerBar();

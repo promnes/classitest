@@ -165,7 +165,7 @@ export function generateReport(progressOverride) {
   for (let w = 0; w < 10; w++) {
     let ws = 0;
     for (let l = 0; l < 10; l++) {
-      const s = progress?.stars?.[w]?.[l] || 0;
+      const s = progress?.worlds?.[w]?.stars?.[l] || 0;
       if (s > 0) levelsCompleted++;
       ws += s;
     }
@@ -248,7 +248,7 @@ export function getWorldBreakdown(progress) {
     let complete = 0;
 
     for (let l = 0; l < 10; l++) {
-      const s = progress?.stars?.[w]?.[l] || 0;
+      const s = progress?.worlds?.[w]?.stars?.[l] || 0;
       stars += s;
       if (s > 0) complete++;
     }
@@ -397,7 +397,7 @@ export function createCompactReport(progress) {
   let levelsCompleted = 0;
   for (let w = 0; w < 10; w++) {
     for (let l = 0; l < 10; l++) {
-      const s = progress?.stars?.[w]?.[l] || 0;
+      const s = progress?.worlds?.[w]?.stars?.[l] || 0;
       if (s > 0) levelsCompleted++;
       totalStars += s;
     }
@@ -428,7 +428,7 @@ export function estimateGradeLevel(progress) {
   let levelsCompleted = 0;
   for (let w = 0; w < 10; w++) {
     for (let l = 0; l < 10; l++) {
-      const s = progress?.stars?.[w]?.[l] || 0;
+      const s = progress?.worlds?.[w]?.stars?.[l] || 0;
       if (s > 0) levelsCompleted++;
       totalStars += s;
     }

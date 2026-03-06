@@ -719,6 +719,81 @@ When building a new game, follow this checklist:
 - **Note:** Simplified 4×4 grid, CSS 3D flip. Separate from the HTML Memory Kingdom
 - **Status:** Legacy, do not extend
 
+### 5. مملكة القطط — Cat Kingdom 🐱
+- **Files:** `cat-kingdom.html` + `cat-kingdom-modules/{config.js, core.js, engine.js, i18n.js, sounds.js, ui.js, worlds.js, cats.js, intelligence.js, story.js, reports.js, economy.js, daily.js}`
+- **Total Code:** ~3,300+ lines across 14 files
+- **Structure:** 10 worlds × 5 levels = 50 levels (quiz-based)
+- **Subjects:** 10 (Math, Science, Arabic, English, Geography, History, Art, Music, Sports, Tech)
+- **Features:**
+  - Quiz gameplay with 4 answer options, timer, lives system (3 lives)
+  - Cat avatar system (12 cats, purchasable with coins)
+  - Boss levels (every world's last level)
+  - Shop with two tabs: Skins (cat avatars) + Power-ups
+  - 5 Power-ups: Hint (removes 2 wrong, 30 coins), Freeze (stops timer 10s, 50 coins), Extra Life (+1 life, 60 coins), Double Score (2x points, 80 coins), Shield (absorbs 1 mistake, 40 coins)
+  - Power-up HUD during gameplay (usable via click)
+  - DDA v2 (Dynamic Difficulty Adjustment): EMA-smoothed performance tracking per subject, adjusts question count (-2 to +2) and time per question (-3s to +3s)
+  - Story module: World intros (10 worlds × 3 langs), fun facts (8+ per subject × 3 langs), encouragement messages
+  - Reports module: Parent performance report with subject bars, strengths/weaknesses, badges, recommendations, RTL-aware HTML output
+  - Daily login rewards: 11 tier levels (Day 1→150 coins + power-ups), streak tracking, calendar view
+  - Skill level display on menu (Beginner/Intermediate/Advanced/Expert/Master)
+  - Daily streak info on menu
+- **Engagement Module:** Built into engine.js — encouragement messages, fun facts after levels, story intros on first world visit
+- **Storage Keys:** `catk_progress`, `catk_cat`, `catk_mute`, `catk_intelligence`, `catk_story`, `catk_economy`, `catk_daily`
+- **Category:** general (multi-subject)
+- **Module Breakdown:**
+  - `config.js` — Constants, subjects, world definitions, coin rewards
+  - `core.js` — Question generation for 10 subjects, scoring, star calc
+  - `engine.js` — Main game loop, screen management, all integrations (~950 lines)
+  - `i18n.js` — Full i18n (ar/en/pt) with ~60 keys including DDA, story, reports, economy, daily
+  - `sounds.js` — Web Audio oscillator-based SFX
+  - `ui.js` — DOM rendering, confetti, background canvas
+  - `worlds.js` — 10 world configs with names, icons, gradients
+  - `cats.js` — 12 cat emoji avatars with names, costs, unlock logic
+  - `intelligence.js` — DDA engine: EMA smoothing (α=0.2), per-subject tracking, skill levels, performance trends
+  - `story.js` — World intros, fun facts, encouragement; uses `catk_story` storage
+  - `reports.js` — Generates parent report objects, renders styled HTML with progress bars and badges
+  - `economy.js` — 5 power-up definitions, buy/use logic, activation tracking
+  - `daily.js` — 11-tier daily rewards, streak system, calendar data generation
+
+### 6. مملكة الجواهر — Gem Kingdom 💎
+- **Files:** `gem-kingdom.html` + `gem-kingdom-modules/{config.js, core.js, ui.js, worlds.js, story.js, engagement.js, boss.js, economy.js, intelligence.js, reports.js}`
+- **Total Code:** ~8,442 lines across 11 files
+- **Structure:** 10 worlds × 10 levels + bosses = 100+ levels
+- **Mechanics:** Match-3 puzzle (swap gems, match 3+, special gems, cascades)
+- **Features:** Boss battles, 30 badges, shop, power-ups, DDA v2, story module, engagement module, cognitive report
+- **Storage Keys:** `classify_gem_*`
+- **Category:** puzzle
+- **Status:** Tier S — fully featured
+
+### 7. مملكة الثلج — Ice Kingdom 🧊
+- **Files:** `ice-kingdom.html` + `ice-kingdom-modules/{config.js, core.js, engine.js, i18n.js, sounds.js, cats.js}`
+- **Total Code:** ~2,382 lines across 7 files
+- **Structure:** 10 worlds × 5 levels = 50 levels (quiz-based)
+- **Features:** Quiz gameplay with winter theme, cat avatars, basic shop
+- **Missing:** DDA, story module, reports, economy (power-ups), daily rewards
+- **Storage Keys:** `ick_*`
+- **Category:** general
+- **Status:** Tier A — needs feature expansion (same pattern as Cat Kingdom upgrade)
+
+### 8. الثعبان ثلاثي الأبعاد — Snake 3D 🐍
+- **Files:** `snake-3d.html` + `snake-3d-modules/{config.js, core.js, engine.js, i18n.js, sounds.js}`
+- **Total Code:** ~3,312 lines across 6 files
+- **Structure:** Progressive snake gameplay with educational questions between rounds
+- **Features:** 3D-styled snake with CSS transforms, world themes, quiz integration
+- **Missing:** DDA, story module, reports, economy, daily rewards, engagement module
+- **Storage Keys:** `snake3d_*`
+- **Category:** general
+- **Status:** Tier A — needs feature expansion
+
+### 9. الشطرنج — Chess ♟️
+- **Files:** `chess-game.html` (14,226 lines — Godot WASM export)
+- **Total Code:** ~14,226 lines (single file + WASM binary)
+- **Structure:** Full chess game via Godot engine compiled to WebAssembly
+- **Features:** AI opponent, standard chess rules
+- **Note:** Architectural outlier — not modular JS. Limited customization possible.
+- **Category:** logic
+- **Status:** Tier ? — works but hard to extend due to Godot WASM architecture
+
 ---
 
 ## 🎯 GAME IDEAS PIPELINE

@@ -15,7 +15,7 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',Tahoma,s
 
 /* ── Screens ── */
 .screen{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;z-index:1;transition:opacity .3s}
-.screen.active{display:flex}
+.screen.active{display:flex;animation:fadeIn .3s ease}
 
 /* ── Animations ── */
 @keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
@@ -159,6 +159,39 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',Tahoma,s
 #toast.show{transform:translateX(-50%) translateY(0)}
 
 /* ═══════════════════════════════════════════
+   STORY INTRO SCREEN
+   ═══════════════════════════════════════════ */
+#storyIntro-screen{background:radial-gradient(ellipse at 50% 30%,#1a2a44 0%,#0a0a1a 100%);gap:14px;padding:24px;text-align:center}
+#story-emoji{font-size:72px;animation:bounce 2s infinite}
+#story-title{font-size:22px;font-weight:900;color:#fbbf24}
+#story-text{font-size:15px;line-height:1.8;color:#ddd;max-width:400px;text-align:center}
+#story-tip{font-size:14px;color:#43e97b;margin-top:8px}
+
+/* ═══════════════════════════════════════════
+   REPORTS SCREEN
+   ═══════════════════════════════════════════ */
+#reports-screen{background:radial-gradient(ellipse at 50% 30%,#1a1a3e 0%,#0a0a1a 100%);overflow-y:auto;justify-content:flex-start;padding:16px}
+#reports-content{width:100%;max-width:500px}
+
+/* ═══════════════════════════════════════════
+   STORE TABS
+   ═══════════════════════════════════════════ */
+.store-tabs{display:flex;gap:6px;margin:8px 0}
+.store-tab{padding:8px 18px;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;border:2px solid rgba(255,255,255,.15);background:rgba(255,255,255,.04);color:#aaa;transition:all .2s;font-family:inherit}
+.store-tab.active{background:rgba(251,191,36,.15);border-color:#fbbf24;color:#fbbf24}
+
+/* ═══════════════════════════════════════════
+   POWERUP HUD (in gameplay)
+   ═══════════════════════════════════════════ */
+#powerup-hud{display:flex;gap:6px;justify-content:center;flex-wrap:wrap}
+.powerup-btn{position:relative !important}
+
+/* ═══════════════════════════════════════════
+   DAILY INFO
+   ═══════════════════════════════════════════ */
+#menu-daily-info{font-size:12px;color:#43e97b;margin:4px 0;display:none;text-align:center}
+
+/* ═══════════════════════════════════════════
    RESPONSIVE
    ═══════════════════════════════════════════ */
 @media(max-height:600px){
@@ -177,6 +210,49 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',Tahoma,s
   #q-options{gap:6px}
   .opt-btn{padding:10px 4px;font-size:14px}
 }
+
+/* ═══════════════════════════════════════════
+   CHALLENGE / PROFILE / SETTINGS SCREENS
+   ═══════════════════════════════════════════ */
+#challenge-screen,#profile-screen,#settings-screen,#achievements-screen,#catcare-screen,#leaderboard-screen{background:radial-gradient(ellipse at 50% 30%,#1a1a3e 0%,#0a0a1a 100%);overflow-y:auto;justify-content:flex-start;padding:16px}
+#challenge-content,#profile-content,#settings-content,#achievements-content,#catcare-content,#leaderboard-content{width:100%;max-width:500px}
+
+/* Menu recommendation */
+#menu-recommendation{font-size:13px;color:#43e97b;margin:4px 0;display:none;text-align:center;cursor:pointer;padding:6px 12px;border-radius:10px;background:rgba(67,233,123,.08);border:1px solid rgba(67,233,123,.2)}
+
+/* ═══════════════════════════════════════════
+   TUTORIAL OVERLAY
+   ═══════════════════════════════════════════ */
+#tutorial-overlay{position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:99998;display:none;align-items:center;justify-content:center;backdrop-filter:blur(6px)}
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-4px)}40%{transform:translateX(4px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
+
+/* C1: Boss HP bar animation */
+#boss-hp-bar{display:none;margin:4px auto;max-width:500px;width:100%}
+.boss-hp-fill{transition:width .4s ease}
+@keyframes bossHPPulse{0%,100%{box-shadow:0 0 0 rgba(245,87,108,0)}50%{box-shadow:0 0 12px rgba(245,87,108,.5)}}
+
+/* C3: Pause overlay */
+#pause-overlay{position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:99997;display:none;align-items:center;justify-content:center;flex-direction:column;gap:16px;backdrop-filter:blur(6px)}
+#pause-overlay .pause-title{font-size:48px;font-weight:900;color:#fbbf24}
+
+/* C4: Question transition */
+.q-area{transition:opacity .2s ease}
+.q-area.q-transitioning{opacity:0;transform:translateY(8px)}
+
+/* C8: Cat mood reactions in HUD */
+@keyframes catMoodPop{0%{transform:scale(1)}50%{transform:scale(1.3)}100%{transform:scale(1)}}
+.cat-mood-pop{animation:catMoodPop .3s ease!important}
+@keyframes catMoodShake{0%,100%{transform:rotate(0)}25%{transform:rotate(-8deg)}75%{transform:rotate(8deg)}}
+.cat-mood-shake{animation:catMoodShake .3s ease!important}
+
+/* C9: Calendar grid */
+.calendar-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;max-width:280px;margin:8px auto}
+.calendar-cell{width:100%;aspect-ratio:1;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:11px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08)}
+.calendar-cell.claimed{background:rgba(67,233,123,.15);border-color:rgba(67,233,123,.3)}
+.calendar-cell.today{border-color:#fbbf24;box-shadow:0 0 6px rgba(251,191,36,.3)}
+
+/* C7: Practice mode btn */
+#btn-practice{display:none}
 </style>
 </head>
 <body>
@@ -187,13 +263,30 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',Tahoma,s
   <div class="menu-title" id="menu-title">مملكة القطة التعليمية</div>
   <div class="menu-subtitle" id="menu-subtitle">مغامرة تعلّم مع القطة!</div>
   <div id="comeback-msg"></div>
+  <div id="menu-cat-notify" style="font-size:13px;color:#f5576c;margin:4px 0;display:none;text-align:center;padding:6px 12px;border-radius:10px;background:rgba(245,87,108,.08);border:1px solid rgba(245,87,108,.2);cursor:pointer"></div>
+  <div id="menu-daily-info"></div>
+  <div id="menu-recommendation"></div>
   <div class="menu-cat-stats" id="menu-cat-stats"></div>
   <div class="menu-btns">
-    <button class="btn btn-primary" id="btn-play">ابدأ المغامرة</button>
-    <button class="btn btn-gold" id="btn-store">🛍️</button>
+    <button class="btn btn-primary" id="btn-play" aria-label="Play">ابدأ المغامرة</button>
+    <div style="display:flex;gap:8px;width:100%">
+      <button class="btn btn-gold" id="btn-store" style="flex:1" aria-label="Store">🛒️</button>
+      <button class="btn btn-secondary" id="btn-report" style="flex:1" aria-label="Reports">📋</button>
+    </div>
+    <div style="display:flex;gap:8px;width:100%">
+      <button class="btn btn-danger" id="btn-challenge" style="flex:1" aria-label="Challenge">🎯</button>
+      <button class="btn btn-secondary" id="btn-profile" style="flex:1" aria-label="Profile">👤</button>
+      <button class="btn btn-icon" id="btn-settings" style="flex:none;width:44px;height:44px" aria-label="Settings">⚙️</button>
+    </div>
+    <div style="display:flex;gap:8px;width:100%">
+      <button class="btn btn-small btn-gold" id="btn-achievements" style="flex:1" aria-label="Achievements">🏆</button>
+      <button class="btn btn-small btn-secondary" id="btn-catcare" style="flex:1" aria-label="Cat Care">🐱</button>
+      <button class="btn btn-small btn-secondary" id="btn-leaderboard" style="flex:1" aria-label="Leaderboard">🏅</button>
+    </div>
+    <button class="btn btn-small btn-secondary" id="btn-practice" style="width:100%" aria-label="Practice">📝</button>
   </div>
   <div class="menu-row">
-    <button class="btn-icon" id="btn-mute">🔊</button>
+    <button class="btn-icon" id="btn-mute" aria-label="Toggle Sound">🔊</button>
   </div>
 </div>
 
@@ -232,10 +325,13 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',Tahoma,s
     <div class="hud-item" id="hud-streak"></div>
     <div class="hud-item"><span id="hud-lives">❤️❤️❤️</span></div>
     <div class="q-timer-wrap"><span id="q-timer">15</span></div>
+    <button class="btn-icon" id="btn-pause" aria-label="Pause" style="margin-inline-start:4px">⏸️</button>
   </div>
+  <div id="boss-hp-bar"></div>
   <div class="hud" style="justify-content:center">
     <span id="hud-level" style="font-size:12px;color:rgba(255,255,255,.5)"></span>
   </div>
+  <div id="powerup-hud"></div>
   <div class="q-area">
     <div id="q-counter"></div>
     <div class="q-progress"><div id="q-progress-fill"></div></div>
@@ -256,9 +352,9 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',Tahoma,s
     <div id="results-score"></div>
     <div id="results-details"></div>
     <div class="results-btns">
-      <button class="btn btn-small btn-primary" id="btn-next">▶</button>
-      <button class="btn btn-small btn-secondary" id="btn-retry">🔄</button>
-      <button class="btn btn-small btn-danger" id="btn-home">🏠</button>
+      <button class="btn btn-small btn-primary" id="btn-next" aria-label="Next Level">▶</button>
+      <button class="btn btn-small btn-secondary" id="btn-retry" aria-label="Retry">🔄</button>
+      <button class="btn btn-small btn-danger" id="btn-home" aria-label="Home">🏠</button>
     </div>
   </div>
 </div>
@@ -269,8 +365,73 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',Tahoma,s
     <div style="font-size:24px;font-weight:800">🛍️</div>
     <div id="store-coins">🪙 0</div>
   </div>
+  <div class="store-tabs" id="store-tabs" data-active="skins">
+    <button class="store-tab active" id="tab-skins">🐱</button>
+    <button class="store-tab" id="tab-powerups">⚡</button>
+  </div>
   <div id="store-grid"></div>
   <button class="btn btn-small btn-secondary" data-action="back-menu" style="margin-top:12px">◀</button>
+</div>
+
+<!-- ═══════════════════════════ STORY INTRO ═══════════════════════════ -->
+<div id="storyIntro-screen" class="screen">
+  <div id="story-emoji">🌟</div>
+  <div id="story-title"></div>
+  <div id="story-text"></div>
+  <div id="story-tip"></div>
+  <button class="btn btn-primary" id="btn-story-go">🚀</button>
+</div>
+
+<!-- ═══════════════════════════ REPORTS ═══════════════════════════ -->
+<div id="reports-screen" class="screen">
+  <div id="reports-content"></div>
+  <button class="btn btn-small btn-secondary" data-action="back-menu" style="margin-top:12px">◀</button>
+</div>
+
+<!-- ═══════════════════════════ CHALLENGE ═══════════════════════════ -->
+<div id="challenge-screen" class="screen">
+  <div id="challenge-content"></div>
+  <button class="btn btn-small btn-secondary" data-action="back-menu" style="margin-top:12px">◀</button>
+</div>
+
+<!-- ═══════════════════════════ PROFILE ═══════════════════════════ -->
+<div id="profile-screen" class="screen">
+  <div id="profile-content"></div>
+  <button class="btn btn-small btn-secondary" data-action="back-menu" style="margin-top:12px">◀</button>
+</div>
+
+<!-- ═══════════════════════════ SETTINGS ═══════════════════════════ -->
+<div id="settings-screen" class="screen">
+  <div id="settings-content"></div>
+  <button class="btn btn-small btn-secondary" data-action="back-menu" style="margin-top:12px">◀</button>
+</div>
+
+<!-- ═══════════════════════════ ACHIEVEMENTS ═══════════════════════════ -->
+<div id="achievements-screen" class="screen">
+  <div id="achievements-content"></div>
+  <button class="btn btn-small btn-secondary" data-action="back-menu" style="margin-top:12px">◀</button>
+</div>
+
+<!-- ═══════════════════════════ CAT CARE ═══════════════════════════ -->
+<div id="catcare-screen" class="screen">
+  <div id="catcare-content"></div>
+  <button class="btn btn-small btn-secondary" data-action="back-menu" style="margin-top:12px">◀</button>
+</div>
+
+<!-- ═══════════════════════════ LEADERBOARD ═══════════════════════════ -->
+<div id="leaderboard-screen" class="screen">
+  <div id="leaderboard-content"></div>
+  <button class="btn btn-small btn-secondary" data-action="back-menu" style="margin-top:12px">◀</button>
+</div>
+
+<!-- ═══════════════════════════ TUTORIAL OVERLAY ═══════════════════════════ -->
+<div id="tutorial-overlay"></div>
+
+<!-- ═══════════════════════════ PAUSE OVERLAY ═══════════════════════════ -->
+<div id="pause-overlay">
+  <div class="pause-title">⏸️</div>
+  <button class="btn btn-primary" id="btn-resume">▶️</button>
+  <button class="btn btn-danger" id="btn-quit-game">🏠</button>
 </div>
 
 <!-- ═══════════════════════════ BOOT ═══════════════════════════ -->

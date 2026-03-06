@@ -275,10 +275,40 @@ const sounds = {
       tone(600 + i * 150, 0.08, 'sine', 0.12, i * 0.05);
     }
   },
+
+  // Celebration sounds
+  worldComplete() {
+    // Grand triumphal fanfare
+    chord([523, 659, 784], 0.3, 'triangle', 0.15);
+    arpeggio([784, 1047, 1319, 1568], 0.2, 0.12, 'sine', 0.2, 0.3);
+    chord([1047, 1319, 1568], 0.6, 'sine', 0.12, 0.7);
+    noise(0.15, 0.04, 0.5);
+  },
+
+  threeStar() {
+    // Sparkling 3-star celebration
+    arpeggio([659, 784, 1047, 1319, 1568], 0.12, 0.06, 'sine', 0.18);
+    sweep(800, 2000, 0.3, 'sine', 0.1, 0.3);
+    chord([1047, 1319, 1568], 0.4, 'triangle', 0.12, 0.4);
+  },
+
+  newRecord() {
+    // New high score jingle
+    arpeggio([523, 659, 784, 1047, 1319], 0.1, 0.07, 'triangle', 0.2);
+    chord([784, 1047, 1319], 0.3, 'sine', 0.15, 0.4);
+    arpeggio([1319, 1568, 1760], 0.12, 0.08, 'sine', 0.15, 0.6);
+  },
+
+  dailyChallengeWin() {
+    // Victory flourish for daily challenge
+    chord([392, 523, 659], 0.2, 'triangle', 0.15);
+    arpeggio([659, 784, 1047, 1319], 0.15, 0.08, 'sine', 0.2, 0.2);
+    noise(0.1, 0.04, 0.5);
+    chord([784, 1047, 1319], 0.5, 'sine', 0.12, 0.5);
+  },
 };
 
 // ===== BGM SYSTEM =====
-let bgmOscillators = [];
 let bgmGain = null;
 let bgmPlaying = false;
 let bgmInterval = null;

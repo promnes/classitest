@@ -5,7 +5,7 @@
 import {
   LANG, BOARD, TIMING, SCORING, XP, SPECIAL, OBSTACLE,
   WORLD_GEMS, WORLD_GRADIENTS, WORLD_ACCENTS, WORLD_NAMES, WORLD_ICONS, WORLD_MASCOTS,
-  WORLD_MASCOT_NAMES, ACHIEVEMENTS, KEYS,
+  WORLD_MASCOT_NAMES, ACHIEVEMENTS, KEYS, STORAGE_PREFIX,
   t, loadProgress, saveProgress, createDefaultProgress,
 } from './config.js';
 
@@ -16,6 +16,7 @@ import {
   calcStars, createObjectiveTracker, updateObjectives, objectivesComplete,
   getPowerCombo, getPowerComboClearPositions, getSpecialClearPositions,
   nextId, createGem, shuffle,
+  moveConveyors, spreadShadows, spreadMoss, checkCagedItems,
 } from './engine.js';
 
 import {
@@ -26,6 +27,7 @@ import {
   initBackground, spawnBurst, spawnEmojiBurst, spawnStarBurst,
   spawnComboText, spawnSpecialActivation, spawnLevelCompleteEffects, spawnBossDefeatEffects,
   spawnRocketTrail, drawSwipeLine, startFadeOut, isTransitioning,
+  setColorBlindMode, setGemStyle, setBoardTheme,
 } from './ui.js';
 
 // ===== REPORTS =====
@@ -96,6 +98,13 @@ const S = {
   muted: false,
   // Level start time
   levelStartTime: 0,
+  // Undo state
+  undoState: null,
+  // Color-blind mode
+  colorBlindMode: false,
+  // Daily challenge
+  isDailyChallenge: false,
+  dailyChallengeTarget: 0,
 };
 
 // ===== WORLDS / LEVELS =====
@@ -213,6 +222,10 @@ async function loadEngagement() {
 export async function initGame() {
   detectPerformance();
 
+  // Show loading indicator
+  const loadingEl = document.getElementById('loading-overlay');
+  if (loadingEl) loadingEl.style.display = '';
+
   S.progress = loadProgress();
   S.muted = localStorage.getItem(KEYS.MUTED) === 'true';
 
@@ -223,12 +236,31 @@ export async function initGame() {
   // Load optional modules in parallel
   await Promise.allSettled([loadWorlds(), loadAudio(), loadIntelligence(), loadStory(), loadEconomy(), loadEngagement(), loadReports()]);
 
+  // Hide loading indicator
+  if (loadingEl) loadingEl.style.display = 'none';
+
   setupEventListeners();
   showScreen('world');
 
   // Start render loop
   S.lastTime = performance.now();
   requestAnimationFrame(gameLoop);
+
+  // Auto-save on tab hide / app switch
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden && S.progress) {
+      S.progress.lastPlayTimestamp = Date.now();
+      saveProgress(S.progress);
+    }
+  });
+
+  // Periodic auto-save every 60 seconds during active play
+  setInterval(() => {
+    if (S.screen === 'game' && S.progress) {
+      S.progress.lastPlayTimestamp = Date.now();
+      saveProgress(S.progress);
+    }
+  }, 60_000);
 
   // Check daily reward
   checkDailyReward();
@@ -249,7 +281,12 @@ export async function initGame() {
 }
 
 // ===== GAME LOOP =====
+const FRAME_BUDGET_MS = 16; // Target 60fps
+let _frameDropCount = 0;
+let _reducedEffects = false;
+
 function gameLoop(now) {
+  const frameStart = performance.now();
   S.dt = Math.min((now - S.lastTime) / 1000, 0.1); // cap at 100ms
   S.lastTime = now;
   S.time += S.dt;
@@ -257,6 +294,19 @@ function gameLoop(now) {
   if (S.screen === 'game') {
     updateGame();
     renderGame();
+  }
+
+  // Frame budget check — auto-reduce effects on slow devices
+  const frameTime = performance.now() - frameStart;
+  if (frameTime > FRAME_BUDGET_MS) {
+    _frameDropCount++;
+    if (_frameDropCount > 30 && !_reducedEffects) {
+      _reducedEffects = true;
+      // Switch to low-quality mode automatically if supported
+      detectPerformance();
+    }
+  } else {
+    if (_frameDropCount > 0) _frameDropCount--;
   }
 
   requestAnimationFrame(gameLoop);
@@ -352,6 +402,8 @@ function showScreen(name) {
     shop: 'shop-screen',
     achieve: 'achieve-screen',
     stats: 'stats-screen',
+    settings: 'settings-screen',
+    album: 'album-screen',
   };
 
   const el = document.getElementById(screenMap[name]);
@@ -368,6 +420,8 @@ function showScreen(name) {
     case 'shop': renderShopScreen(); break;
     case 'achieve': renderAchieveScreen(); break;
     case 'stats': renderStatsScreen(); { const sb = qs('#report-send'); if (sb) { sb.textContent = '📤 إرسال للوالدين'; sb.classList.remove('sent'); } } break;
+    case 'settings': renderSettingsScreen(); break;
+    case 'album': renderAlbumScreen(); break;
   }
 }
 
@@ -520,6 +574,13 @@ async function startLevel() {
   S.processing = false;
   S.playerHP = 5;
   S.levelStartTime = Date.now();
+  S.undoState = null;
+  S.undoStack = [];
+  S.colorBlindMode = S.progress.settings?.colorBlind || false;
+  setColorBlindMode(S.colorBlindMode);
+  setGemStyle(S.progress.settings?.gemStyle || 'classic');
+  setBoardTheme(S.progress.settings?.theme || 'classic');
+  if (!S.isDailyChallenge) S.dailyChallengeTarget = 0;
 
   clearTweens();
   clearParticles();
@@ -578,9 +639,20 @@ async function startLevel() {
     const adj = INTEL.getLevelAdjustment(S.progress, w, l);
     if (adj) {
       S.movesLeft += adj.extraMoves || 0;
-      // Could also adjust gem count, etc.
+      S.spawnBias = adj.spawnBias || 0;
     }
+  } else {
+    S.spawnBias = 0;
   }
+
+  // Show tutorial for first-time players on World 0 Level 0
+  if (w === 0 && l === 0) {
+    setTimeout(() => showTutorial(), 500);
+  }
+
+  // Reset undo button
+  const undoBtn = qs('#g-undo');
+  if (undoBtn) undoBtn.classList.add('disabled');
 }
 
 function setupGameCanvas() {
@@ -728,6 +800,8 @@ function setupEventListeners() {
   qs('#btn-achieve').addEventListener('click', () => showScreen('achieve'));
   qs('#btn-stats').addEventListener('click', () => showScreen('stats'));
   qs('#btn-daily').addEventListener('click', () => showDailyReward());
+  qs('#btn-settings')?.addEventListener('click', () => showScreen('settings'));
+  qs('#btn-album')?.addEventListener('click', () => showScreen('album'));
   qs('#mute-btn').addEventListener('click', toggleMute);
 
   // Level back
@@ -739,10 +813,20 @@ function setupEventListeners() {
     playSound('tap');
   });
 
+  // Undo button
+  qs('#g-undo')?.addEventListener('click', () => {
+    if (S.undoStack && S.undoStack.length > 0 && S.phase === 'idle') {
+      undoLastMove();
+      playSound('tap');
+    }
+  });
+
   // Navigation backs
   qs('#shop-back').addEventListener('click', () => showScreen('world'));
   qs('#ach-back').addEventListener('click', () => showScreen('world'));
   qs('#stats-back').addEventListener('click', () => showScreen('world'));
+  qs('#settings-back')?.addEventListener('click', () => showScreen('world'));
+  qs('#album-back')?.addEventListener('click', () => showScreen('world'));
   qs('#report-send').addEventListener('click', () => {
     if (REPORTS) {
       try {
@@ -769,6 +853,50 @@ function setupEventListeners() {
   // Resize
   window.addEventListener('resize', () => {
     if (S.screen === 'game') setupGameCanvas();
+  });
+
+  // Keyboard accessibility for game grid
+  S._kbCursor = { row: 0, col: 0 };
+  S._kbSelected = null;
+  document.addEventListener('keydown', (e) => {
+    if (S.screen !== 'game' || S.phase !== 'idle') return;
+    const c = S._kbCursor;
+    let handled = true;
+    switch (e.key) {
+      case 'ArrowUp':    c.row = Math.max(0, c.row - 1); break;
+      case 'ArrowDown':  c.row = Math.min(S.rows - 1, c.row + 1); break;
+      case 'ArrowLeft':  c.col = Math.max(0, c.col - 1); break;
+      case 'ArrowRight': c.col = Math.min(S.cols - 1, c.col + 1); break;
+      case 'Enter':
+      case ' ':
+        e.preventDefault();
+        if (!S._kbSelected) {
+          S._kbSelected = { row: c.row, col: c.col };
+          const gem = S.grid[c.row]?.[c.col];
+          if (gem) gem._selected = true;
+        } else {
+          const from = S._kbSelected;
+          const to = { row: c.row, col: c.col };
+          // Deselect old
+          const oldGem = S.grid[from.row]?.[from.col];
+          if (oldGem) oldGem._selected = false;
+          S._kbSelected = null;
+          if (areAdjacent(from, to)) {
+            trySwap(from, to);
+          }
+        }
+        break;
+      case 'Escape':
+        if (S._kbSelected) {
+          const gem = S.grid[S._kbSelected.row]?.[S._kbSelected.col];
+          if (gem) gem._selected = false;
+          S._kbSelected = null;
+        }
+        break;
+      default:
+        handled = false;
+    }
+    if (handled) e.preventDefault();
   });
 }
 
@@ -870,6 +998,12 @@ async function trySwap(a, b) {
   if (S.phase !== 'idle') return;
   S.phase = 'swapping';
   S.hintMove = null;
+
+  // Save state for undo before the swap
+  saveUndoState();
+
+  // Haptic feedback on swap
+  triggerHaptic('light');
 
   const gemA = S.grid[a.row][a.col];
   const gemB = S.grid[b.row][b.col];
@@ -980,6 +1114,8 @@ async function cascadeLoop() {
 
     // Combo text
     if (S.combo >= 2) {
+      // Haptic feedback on combo
+      triggerHaptic(S.combo >= 5 ? 'heavy' : 'medium');
       const midKey = [...result.removedPositions][Math.floor(result.removedPositions.size / 2)];
       if (midKey) {
         const [mr, mc] = midKey.split(',').map(Number);
@@ -990,6 +1126,42 @@ async function cascadeLoop() {
         );
       }
       playSound(S.combo >= 5 ? 'megaCombo' : 'combo');
+
+      // Cascade visual effects — screen shake & flash for big combos
+      if (!_reducedEffects) {
+        // Screen shake — intensity scales with combo
+        const shakeIntensity = Math.min(S.combo * 2, 12);
+        const canvas = qs('#game-canvas');
+        if (canvas) {
+          const origTransform = canvas.style.transform || '';
+          let shakeFrames = 0;
+          const shakeAnim = () => {
+            if (shakeFrames >= 6) { canvas.style.transform = origTransform; return; }
+            const dx = (Math.random() - 0.5) * shakeIntensity;
+            const dy = (Math.random() - 0.5) * shakeIntensity;
+            canvas.style.transform = `translate(${dx}px,${dy}px)`;
+            shakeFrames++;
+            requestAnimationFrame(shakeAnim);
+          };
+          requestAnimationFrame(shakeAnim);
+        }
+        // Screen flash for combo >= 4
+        if (S.combo >= 4) {
+          const flash = document.createElement('div');
+          flash.style.cssText = `position:fixed;inset:0;background:${S.combo >= 8 ? 'rgba(255,215,0,0.3)' : 'rgba(255,255,255,0.2)'};pointer-events:none;z-index:9999;transition:opacity 0.3s`;
+          document.body.appendChild(flash);
+          requestAnimationFrame(() => { flash.style.opacity = '0'; });
+          setTimeout(() => flash.remove(), 350);
+        }
+        // Burst of extra particles for big cascades (5+)
+        if (S.combo >= 5) {
+          for (let i = 0; i < S.combo * 3; i++) {
+            const px = S.offsetX + Math.random() * (S.cols * S.cellSize);
+            const py = S.offsetY + Math.random() * (S.rows * S.cellSize);
+            spawnBurst(px, py, 2, { color: WORLD_ACCENTS[S.currentWorld], size: 5, life: 0.6, speed: 3 });
+          }
+        }
+      }
 
       // Streak engagement message
       if (ENGAGE && S.combo >= 2) {
@@ -1007,6 +1179,12 @@ async function cascadeLoop() {
       const py = S.offsetY + sp.row * S.cellSize + S.cellSize / 2;
       spawnSpecialActivation(px, py, sp.special);
       playSound('specialCreate');
+
+      // Track special gem usage for achievements
+      if (sp.special === SPECIAL.BOMB)      S.progress.totalBombsUsed = (S.progress.totalBombsUsed || 0) + 1;
+      if (sp.special === SPECIAL.RAINBOW)   S.progress.totalRainbowsUsed = (S.progress.totalRainbowsUsed || 0) + 1;
+      if (sp.special === SPECIAL.NOVA)      S.progress.totalNovasUsed = (S.progress.totalNovasUsed || 0) + 1;
+      if (sp.special === SPECIAL.LIGHTNING) S.progress.totalLightningsUsed = (S.progress.totalLightningsUsed || 0) + 1;
     }
 
     // Animate removal
@@ -1040,10 +1218,26 @@ async function cascadeLoop() {
 
     // Gravity
     const falls = applyGravity(S.grid, S.rows, S.cols);
-    const spawns = spawnNewGems(S.grid, S.rows, S.cols, S.gemCount);
+    const spawns = spawnNewGems(S.grid, S.rows, S.cols, S.gemCount, S.spawnBias);
 
     // Animate falls
     await animateFalls(falls, spawns);
+
+    // Conveyor belt mechanics
+    const conveyed = moveConveyors(S.grid, S.rows, S.cols);
+    if (conveyed.length > 0) setupGemDrawPositions();
+
+    // Shadow spreading (30% chance per adjacent cell)
+    spreadShadows(S.grid, S.rows, S.cols);
+
+    // Moss spreading (15% chance, slower than shadow)
+    spreadMoss(S.grid, S.rows, S.cols);
+
+    // Free caged gems that reached the bottom row
+    const freed = checkCagedItems(S.grid, S.rows, S.cols);
+    if (freed > 0) {
+      updateObjectives(S.objectiveTracker, { cagesFreed: freed });
+    }
 
     // Update HUD
     updateGameHUD();
@@ -1203,11 +1397,21 @@ async function bossAttack() {
   if (!S.boss || S.boss.defeated) return;
 
   S.boss.isAttacking = true;
-  spawnComboText(S.canvasW / 2, S.canvasH / 3, t('bossAttack'));
+
+  // Show boss taunt
+  let taunt = t('bossAttack');
+  if (BOSSES) {
+    const bossT = BOSSES.getBossTaunt(S.boss);
+    if (bossT) taunt = bossT;
+  }
+  spawnComboText(S.canvasW / 2, S.canvasH / 3, taunt);
   playSound('bossAttack');
   await delay(600);
 
-  // Random attack: add obstacles
+  // Get phase-aware attack from boss module
+  const attackInstructions = BOSSES ? BOSSES.getBossAttack(S.boss) : [];
+
+  // Gather empty cells
   const empties = [];
   for (let r = 0; r < S.rows; r++) {
     for (let c = 0; c < S.cols; c++) {
@@ -1216,14 +1420,42 @@ async function bossAttack() {
   }
   shuffle(empties);
 
-  const attacks = Math.min(3, empties.length);
-  for (let i = 0; i < attacks; i++) {
-    const { row, col } = empties[i];
-    S.grid[row][col].obstacle = OBSTACLE.ICE_1;
-    S.grid[row][col].obstacleHP = 1;
-    const px = S.offsetX + col * S.cellSize + S.cellSize / 2;
-    const py = S.offsetY + row * S.cellSize + S.cellSize / 2;
-    spawnBurst(px, py, 6, { color: '#88ccff', type: 'sparkle', size: 6, life: 0.5, speed: 3 });
+  if (attackInstructions.length > 0) {
+    // Apply each attack instruction from boss module
+    let idx = 0;
+    for (const instr of attackInstructions) {
+      if (instr.type === 'shuffle') {
+        // Boss shuffles the board
+        playSound('shuffle');
+        spawnComboText(S.canvasW / 2, S.canvasH / 2, t('shuffling'));
+        shuffleGrid(S.grid, S.rows, S.cols);
+        setupGemDrawPositions();
+        continue;
+      }
+      // Place obstacles on empty cells
+      const count = Math.min(instr.count, empties.length - idx);
+      for (let i = 0; i < count && idx < empties.length; i++, idx++) {
+        const { row, col } = empties[idx];
+        S.grid[row][col].obstacle = instr.obstacle;
+        S.grid[row][col].obstacleHP = instr.hp;
+        const px = S.offsetX + col * S.cellSize + S.cellSize / 2;
+        const py = S.offsetY + row * S.cellSize + S.cellSize / 2;
+        const colors = { 1: '#88ccff', 3: '#ffaa33', 4: '#999', 6: '#333', 11: '#ff4444', 12: '#ffd700', 13: '#6633cc', 5: '#aa8855' };
+        const color = colors[instr.obstacle] || '#88ccff';
+        spawnBurst(px, py, 6, { color, type: 'sparkle', size: 6, life: 0.5, speed: 3 });
+      }
+    }
+  } else {
+    // Fallback: basic ICE_1 attack if boss module unavailable
+    const attacks = Math.min(3, empties.length);
+    for (let i = 0; i < attacks; i++) {
+      const { row, col } = empties[i];
+      S.grid[row][col].obstacle = OBSTACLE.ICE_1;
+      S.grid[row][col].obstacleHP = 1;
+      const px = S.offsetX + col * S.cellSize + S.cellSize / 2;
+      const py = S.offsetY + row * S.cellSize + S.cellSize / 2;
+      spawnBurst(px, py, 6, { color: '#88ccff', type: 'sparkle', size: 6, life: 0.5, speed: 3 });
+    }
   }
 
   S.boss.isAttacking = false;
@@ -1311,6 +1543,9 @@ async function endLevel() {
     p.highScore = Math.max(p.highScore, S.score);
     p.levelsCompleted++;
     if (elapsed < 30) p.speedLevels++;
+
+    // Update local leaderboard
+    updateLocalLeaderboard(S.currentWorld, S.score, stars);
     if (S.boss && S.boss.defeated) {
       if (S.levelDef.isBoss) p.bossesDefeated++;
       else p.miniBossesDefeated++;
@@ -1319,8 +1554,9 @@ async function endLevel() {
     // XP
     const xpGain = XP.PER_STAR * stars + XP.PER_LEVEL + (S.boss?.defeated ? XP.PER_BOSS : 0);
     p.totalXP += xpGain;
-    const xpForLevel = Math.floor(XP.LEVEL_UP_BASE * Math.pow(XP.LEVEL_UP_SCALE, p.playerLevel - 1));
-    while (p.totalXP >= xpForLevel * p.playerLevel) {
+    while (true) {
+      const xpForLevel = Math.floor(XP.LEVEL_UP_BASE * Math.pow(XP.LEVEL_UP_SCALE, p.playerLevel - 1));
+      if (p.totalXP < xpForLevel * p.playerLevel) break;
       p.playerLevel++;
     }
 
@@ -1331,6 +1567,11 @@ async function endLevel() {
     p.lastPlayTimestamp = Date.now();
 
     saveProgress(p);
+
+    // Daily challenge completion
+    if (S.isDailyChallenge && S.score >= S.dailyChallengeTarget) {
+      completeDailyChallenge();
+    }
 
     // DDA update
     if (INTEL) {
@@ -1371,7 +1612,23 @@ async function endLevel() {
   // Effects
   if (won) {
     spawnLevelCompleteEffects(S.canvasW, S.canvasH);
-    playSound(stars === 3 ? 'perfect' : 'levelComplete');
+    if (stars === 3) {
+      playSound('threeStar');
+    } else {
+      playSound('levelComplete');
+    }
+    // New high score celebration
+    if (S.score > (S.progress.highScore || 0)) {
+      setTimeout(() => playSound('newRecord'), 600);
+    }
+    // Daily challenge win celebration
+    if (S.isDailyChallenge && S.score >= S.dailyChallengeTarget) {
+      setTimeout(() => playSound('dailyChallengeWin'), 400);
+    }
+    // World completion celebration (last level = 9, i.e. index 9)
+    if (S.currentLevel === 9) {
+      setTimeout(() => playSound('worldComplete'), 300);
+    }
   } else {
     playSound('levelFail');
   }
@@ -1452,6 +1709,15 @@ function renderDoneScreen() {
   // Coins
   qs('#done-coins').innerHTML = `🪙 +${S.coinsEarned}`;
 
+  // Daily challenge success message
+  if (S.isDailyChallenge && won && S.score >= S.dailyChallengeTarget) {
+    const challenge = getDailyChallenge();
+    const dcMsg = document.createElement('div');
+    dcMsg.style.cssText = 'margin:8px 0;padding:8px 16px;background:rgba(74,222,128,0.2);border:1px solid rgba(74,222,128,0.5);border-radius:10px;color:#4ade80;font-weight:bold;text-align:center';
+    dcMsg.textContent = `${t('dailyChallengeCompleted')} ${t('dailyChallengeReward', { n: challenge.reward })}`;
+    qs('#done-coins').after(dcMsg);
+  }
+
   // Session Summary (engagement.js)
   const sessionPanel = qs('#d-session');
   if (sessionPanel && ENGAGE) {
@@ -1512,13 +1778,13 @@ function renderDoneScreen() {
   const factsClose = qs('#facts-close');
   if (factsClose) factsClose.onclick = () => qs('#facts-overlay').style.display = 'none';
   const factsOverlay = qs('#facts-overlay');
-  if (factsOverlay) factsOverlay.addEventListener('click', e => { if (e.target === factsOverlay) factsOverlay.style.display = 'none'; });
+  if (factsOverlay) factsOverlay.onclick = e => { if (e.target === factsOverlay) factsOverlay.style.display = 'none'; };
 
   // Buttons
   const btnsEl = qs('#done-btns');
   btnsEl.innerHTML = '';
 
-  if (won && S.currentLevel < 9) {
+  if (won && S.currentLevel < 9 && !S.isDailyChallenge) {
     const nextBtn = document.createElement('button');
     nextBtn.className = 'btn btn-primary';
     nextBtn.textContent = t('next');
@@ -1543,7 +1809,13 @@ function renderDoneScreen() {
   menuBtn.className = 'btn';
   menuBtn.textContent = t('back');
   menuBtn.addEventListener('click', () => {
-    showScreen('level');
+    if (S.isDailyChallenge) {
+      S.isDailyChallenge = false;
+      S.dailyChallengeTarget = 0;
+      showScreen('world');
+    } else {
+      showScreen('level');
+    }
     playSound('tap');
   });
   btnsEl.appendChild(menuBtn);
@@ -1588,7 +1860,7 @@ function showStoryQuiz(quiz) {
       answersEl.querySelectorAll('.quiz-answer-btn').forEach(b => b.disabled = true);
       if (i === quiz.correct) {
         btn.classList.add('correct');
-        resultEl.textContent = LANG === 'ar' ? '✅ إجابة صحيحة! +10 عملات' : LANG === 'pt' ? '✅ Correto! +10 moedas' : '✅ Correct! +10 coins';
+        resultEl.textContent = t('quizCorrectMsg', {n: 10});
         S.progress.coins += 10;
         S.progress.totalQuizCorrect = (S.progress.totalQuizCorrect || 0) + 1;
         saveProgress(S.progress);
@@ -1596,7 +1868,7 @@ function showStoryQuiz(quiz) {
       } else {
         btn.classList.add('wrong');
         answersEl.children[quiz.correct]?.classList.add('correct');
-        resultEl.textContent = LANG === 'ar' ? '❌ إجابة خاطئة' : LANG === 'pt' ? '❌ Incorreto' : '❌ Incorrect';
+        resultEl.textContent = t('quizWrongMsg');
         playSound('error');
       }
       setTimeout(() => overlay.classList.remove('show'), 2500);
@@ -1644,7 +1916,7 @@ function renderShopScreen() {
   }
 
   // Themes
-  qs('#shop-themes-title').textContent = '🎨 Themes';
+  qs('#shop-themes-title').textContent = '🎨 ' + t('themes');
   const themeGrid = qs('#shop-themes');
   themeGrid.innerHTML = '';
   const themes = [
@@ -1693,6 +1965,7 @@ function buyTheme(key, price) {
   p.purchaseCounts[key] = 1;
   p.settings.theme = key;
   p.totalThemesBought++;
+  setBoardTheme(key);
   saveProgress(p);
   renderShopScreen();
   playSound('buy');
@@ -1743,7 +2016,7 @@ function applyBooster(booster, row, col) {
 
     // Gravity + cascade
     const falls = applyGravity(S.grid, S.rows, S.cols);
-    const spawns = spawnNewGems(S.grid, S.rows, S.cols, S.gemCount);
+    const spawns = spawnNewGems(S.grid, S.rows, S.cols, S.gemCount, S.spawnBias);
     animateFalls(falls, spawns).then(() => cascadeLoop());
     renderBoosters();
   }
@@ -1893,7 +2166,7 @@ function renderStatsScreen() {
       if (breakdown && breakdown.length > 0) {
         const nameKey = LANG === 'pt' ? 'pt' : LANG === 'ar' ? 'ar' : 'en';
         const names = WORLD_NAMES[nameKey] || WORLD_NAMES.en;
-        worldHTML = `<div class="stats-card" style="margin-top:8px"><h3>🌍 ${LANG === 'ar' ? 'العوالم' : LANG === 'pt' ? 'Mundos' : 'Worlds'}</h3>`;
+        worldHTML = `<div class="stats-card" style="margin-top:8px"><h3>🌍 ${t('worlds')}</h3>`;
         for (const wb of breakdown) {
           const pct = wb.stars > 0 ? Math.round((wb.stars / 30) * 100) : 0;
           worldHTML += `<div class="stats-row"><span class="stats-label">${WORLD_ICONS[wb.world] || '💎'} ${names[wb.world] || 'World ' + (wb.world + 1)}</span><span class="stats-value">⭐ ${wb.stars}/30</span></div>`;
@@ -1903,23 +2176,37 @@ function renderStatsScreen() {
     } catch (e) { /* skip */ }
   }
 
+  // Leaderboard — top personal records per world
+  let leaderHTML = '';
+  const lb = getLocalLeaderboard();
+  if (lb.length > 0) {
+    const nameKey = LANG === 'pt' ? 'pt' : LANG === 'ar' ? 'ar' : 'en';
+    const names = WORLD_NAMES[nameKey] || WORLD_NAMES.en;
+    leaderHTML = `<div class="stats-card" style="margin-top:8px"><h3>🏅 ${t('highScore')}</h3>`;
+    for (const entry of lb) {
+      leaderHTML += `<div class="stats-row"><span class="stats-label">${WORLD_ICONS[entry.world] || '💎'} ${names[entry.world] || 'W' + (entry.world + 1)}</span><span class="stats-value">${entry.score} ${'⭐'.repeat(entry.stars)}</span></div>`;
+    }
+    leaderHTML += `</div>`;
+  }
+
   content.innerHTML = `
     <div class="stats-card">
       <h3>📊 ${t('report')}</h3>
       <div class="stats-row"><span class="stats-label">${t('level')}</span><span class="stats-value">Lv.${p.playerLevel}</span></div>
       <div class="stats-row"><span class="stats-label">⭐ ${t('stars')}</span><span class="stats-value">${totalStars}/300</span></div>
       <div class="stats-row"><span class="stats-label">🎯 ${t('level')}</span><span class="stats-value">${p.levelsCompleted}</span></div>
-      <div class="stats-row"><span class="stats-label">💎 Gems</span><span class="stats-value">${p.totalGemsCollected}</span></div>
-      <div class="stats-row"><span class="stats-label">🏆 High Score</span><span class="stats-value">${p.highScore}</span></div>
-      <div class="stats-row"><span class="stats-label">🔥 Max Combo</span><span class="stats-value">${p.maxCombo}</span></div>
-      <div class="stats-row"><span class="stats-label">⚔️ Bosses</span><span class="stats-value">${p.bossesDefeated}</span></div>
+      <div class="stats-row"><span class="stats-label">💎 ${t('totalGems')}</span><span class="stats-value">${p.totalGemsCollected}</span></div>
+      <div class="stats-row"><span class="stats-label">🏆 ${t('highScore')}</span><span class="stats-value">${p.highScore}</span></div>
+      <div class="stats-row"><span class="stats-label">🔥 ${t('maxCombo')}</span><span class="stats-value">${p.maxCombo}</span></div>
+      <div class="stats-row"><span class="stats-label">⚔️ ${t('bosses')}</span><span class="stats-value">${p.bossesDefeated}</span></div>
       <div class="stats-row"><span class="stats-label">🪙 ${t('coins')}</span><span class="stats-value">${p.totalCoinsEarned}</span></div>
     </div>
     <div class="stats-card" style="margin-top:8px">
-      <h3>🧠 ${t('report')}</h3>
+      <h3>🧠 ${t('skillAnalysis')}</h3>
       ${skillHTML}
     </div>
     ${worldHTML}
+    ${leaderHTML}
   `;
 }
 
@@ -1934,6 +2221,33 @@ function renderSkillBar(name, pct) {
       <span class="stats-value">${label}</span>
     </div>
   `;
+}
+
+// ===== LOCAL LEADERBOARD =====
+const LEADERBOARD_KEY = `${STORAGE_PREFIX}_leaderboard`;
+
+function getLocalLeaderboard() {
+  try {
+    const raw = localStorage.getItem(LEADERBOARD_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch { return []; }
+}
+
+function updateLocalLeaderboard(worldIdx, score, stars) {
+  const lb = getLocalLeaderboard();
+  const existing = lb.find(e => e.world === worldIdx);
+  if (existing) {
+    if (score > existing.score) {
+      existing.score = score;
+      existing.stars = stars;
+      existing.date = new Date().toISOString().slice(0, 10);
+    }
+  } else {
+    lb.push({ world: worldIdx, score, stars, date: new Date().toISOString().slice(0, 10) });
+  }
+  // Sort by score descending
+  lb.sort((a, b) => b.score - a.score);
+  try { localStorage.setItem(LEADERBOARD_KEY, JSON.stringify(lb)); } catch { /* ignore */ }
 }
 
 // ===== DAILY REWARD =====
@@ -1955,7 +2269,10 @@ function showDailyReward() {
   if (p.loginStreak?.lastDate === yesterday) streak++;
   else if (p.loginStreak?.lastDate !== today) streak = 1;
 
-  const rewards = [5, 10, 15, 20, 30, 40, 60]; // coins per day
+  // Use economy.js rewards if available, otherwise fallback
+  const economyRewards = ECONOMY ? [20, 30, 40, 50, 75, 100, 200] : [5, 10, 15, 20, 30, 40, 60];
+  const isJackpotDay = (streak - 1) % 7 === 6;
+  const rewards = economyRewards;
   const dayIdx = Math.min(streak - 1, 6);
   const alreadyClaimed = p.loginStreak?.lastDate === today;
 
@@ -1982,6 +2299,9 @@ function showDailyReward() {
   `;
   document.body.appendChild(overlay);
 
+  // Add daily challenge section
+  showDailyChallengeInReward(overlay);
+
   if (!alreadyClaimed) {
     overlay.querySelector('#daily-claim')?.addEventListener('click', () => {
       p.loginStreak = { lastDate: today, count: streak };
@@ -1997,6 +2317,429 @@ function showDailyReward() {
   overlay.querySelector('#daily-close').addEventListener('click', () => {
     overlay.remove();
   });
+}
+
+// ===== DAILY CHALLENGE =====
+function getDailyChallenge() {
+  // Deterministic challenge based on today's date
+  const today = new Date();
+  const seed = today.getFullYear() * 10000 + (today.getMonth() + 1) * 100 + today.getDate();
+  const worldIdx = seed % 10;
+  const targetScore = 1500 + (seed % 5) * 500; // 1500-3500
+  const moves = 20 + (seed % 3) * 5; // 20-30
+  const gemCount = 5 + (seed % 2); // 5-6
+  const reward = 50 + (seed % 4) * 25; // 50-125
+  return { worldIdx, targetScore, moves, gemCount, reward, seed };
+}
+
+function isDailyChallengeCompleted() {
+  const p = S.progress;
+  const today = new Date().toDateString();
+  return p.lastDailyChallengeDate === today;
+}
+
+function showDailyChallengeInReward(overlay) {
+  const challenge = getDailyChallenge();
+  const completed = isDailyChallengeCompleted();
+  const worldName = (WORLD_NAMES?.[LANG === 'ar' ? 'ar' : LANG === 'pt' ? 'pt' : 'en'] || WORLD_NAMES.en)[challenge.worldIdx] || '';
+  const worldIcon = WORLD_ICONS?.[challenge.worldIdx] || '💎';
+
+  const section = document.createElement('div');
+  section.style.cssText = 'margin-top:12px;padding:10px;background:rgba(255,255,255,0.1);border-radius:12px;text-align:center';
+  section.innerHTML = `
+    <h3>${worldIcon} ${t('dailyChallenge')}</h3>
+    <p style="font-size:0.85em;opacity:0.8">${worldName} — ${t('targetScore', { n: challenge.targetScore })}</p>
+    <p style="font-size:0.8em;opacity:0.7">${challenge.moves} ${t('moves')} | ${t('dailyChallengeReward', { n: challenge.reward })}</p>
+    ${completed
+      ? `<p style="color:#4ade80;font-weight:bold">${t('dailyChallengeCompleted')}</p>`
+      : `<button class="btn btn-gold" id="daily-challenge-play" style="margin-top:6px">${t('dailyChallengePlay')} 🎮</button>`
+    }
+  `;
+  overlay.querySelector('.modal').appendChild(section);
+
+  if (!completed) {
+    section.querySelector('#daily-challenge-play').addEventListener('click', () => {
+      overlay.remove();
+      startDailyChallenge(challenge);
+    });
+  }
+
+  // Daily challenge history (last 7 entries)
+  const history = S.progress.dailyChallengeHistory || [];
+  if (history.length > 0) {
+    const histSection = document.createElement('div');
+    histSection.style.cssText = 'margin-top:8px;text-align:center';
+    const recent = history.slice(-7).reverse();
+    let histHTML = `<h4 style="font-size:0.85em;margin:4px 0">${t('dailyChallenge')} — ${t('stats')}</h4>`;
+    histHTML += '<div style="display:flex;flex-direction:column;gap:3px;font-size:0.75em">';
+    for (const entry of recent) {
+      const wIcon = WORLD_ICONS?.[entry.world] || '💎';
+      const pct = Math.min(Math.round((entry.score / entry.target) * 100), 999);
+      const starStr = '⭐'.repeat(entry.stars || 0);
+      histHTML += `<div style="display:flex;justify-content:space-between;align-items:center;padding:2px 6px;background:rgba(255,255,255,0.05);border-radius:6px">
+        <span>${entry.date}</span>
+        <span>${wIcon} ${pct}% ${starStr}</span>
+      </div>`;
+    }
+    histHTML += '</div>';
+    histSection.innerHTML = histHTML;
+    section.appendChild(histSection);
+  }
+}
+
+async function startDailyChallenge(challenge) {
+  S.isDailyChallenge = true;
+  S.dailyChallengeTarget = challenge.targetScore;
+  S.currentWorld = challenge.worldIdx;
+  S.currentLevel = 0;
+
+  // Override level def for the challenge
+  const oldLevelDef = S.levelDef;
+  S.levelDef = {
+    rows: 8, cols: 8,
+    gemCount: challenge.gemCount,
+    moves: challenge.moves,
+    starThresholds: [challenge.targetScore * 0.5, challenge.targetScore, challenge.targetScore * 1.5],
+    objectives: [{ type: 'score', target: challenge.targetScore }],
+    obstacles: [],
+  };
+
+  S.rows = 8;
+  S.cols = 8;
+  S.gemCount = challenge.gemCount;
+  S.movesLeft = challenge.moves;
+  S.score = 0;
+  S.combo = 0;
+  S.maxCombo = 0;
+  S.totalGemsRemoved = 0;
+  S.specialsUsed = 0;
+  S.selected = null;
+  S.phase = 'idle';
+  S.hintTimer = 0;
+  S.hintMove = null;
+  S.hintUsed = false;
+  S.stars = 0;
+  S.coinsEarned = 0;
+  S.badges = [];
+  S.activeBooster = null;
+  S.animQueue = [];
+  S.processing = false;
+  S.playerHP = 5;
+  S.levelStartTime = Date.now();
+  S.undoState = null;
+  S.undoStack = [];
+  S.boss = null;
+  S.colorBlindMode = S.progress.settings?.colorBlind || false;
+  setColorBlindMode(S.colorBlindMode);
+
+  clearTweens();
+  clearParticles();
+
+  S.grid = initGrid(8, 8, challenge.gemCount, []);
+  S.objectiveTracker = createObjectiveTracker([{ type: 'score', target: challenge.targetScore }]);
+
+  const layout = calcLayout(8, 8);
+  S.cellSize = layout.cellSize;
+  S.offsetX = layout.offsetX;
+  S.offsetY = layout.offsetY;
+
+  initBackground(document.getElementById('bg-canvas'), challenge.worldIdx);
+  showScreen('game');
+
+  // Show challenge start message
+  const banner = document.createElement('div');
+  banner.style.cssText = 'position:fixed;top:20%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,0.85);color:#fff;padding:16px 28px;border-radius:16px;font-size:1.2em;z-index:10000;text-align:center;animation:fadeIn 0.3s';
+  banner.textContent = `🏆 ${t('dailyChallenge')} — ${t('targetScore', { n: challenge.targetScore })}`;
+  document.body.appendChild(banner);
+  setTimeout(() => banner.remove(), 2000);
+}
+
+function completeDailyChallenge() {
+  const challenge = getDailyChallenge();
+  const p = S.progress;
+  p.totalDailyChallenges = (p.totalDailyChallenges || 0) + 1;
+  p.lastDailyChallengeDate = new Date().toDateString();
+  p.coins += challenge.reward;
+  p.totalCoinsEarned += challenge.reward;
+
+  // Save to daily challenge history
+  if (!p.dailyChallengeHistory) p.dailyChallengeHistory = [];
+  p.dailyChallengeHistory.push({
+    date: new Date().toISOString().slice(0, 10),
+    seed: challenge.seed,
+    world: challenge.worldIdx,
+    score: S.score,
+    target: challenge.targetScore,
+    stars: S.stars || 0,
+    reward: challenge.reward,
+    maxCombo: S.maxCombo,
+  });
+  // Keep last 30 entries
+  if (p.dailyChallengeHistory.length > 30) {
+    p.dailyChallengeHistory = p.dailyChallengeHistory.slice(-30);
+  }
+
+  saveProgress(p);
+  S.isDailyChallenge = false;
+  S.dailyChallengeTarget = 0;
+}
+
+// ===== UNDO SYSTEM (multi-level, up to 3) =====
+const MAX_UNDO = 3;
+
+function saveUndoState() {
+  // Deep copy the grid and relevant state for undo
+  const gridCopy = [];
+  for (let r = 0; r < S.rows; r++) {
+    gridCopy[r] = [];
+    for (let c = 0; c < S.cols; c++) {
+      if (S.grid[r][c]) {
+        gridCopy[r][c] = { ...S.grid[r][c] };
+      } else {
+        gridCopy[r][c] = null;
+      }
+    }
+  }
+  if (!S.undoStack) S.undoStack = [];
+  S.undoStack.push({
+    grid: gridCopy,
+    score: S.score,
+    movesLeft: S.movesLeft,
+    combo: S.combo,
+    maxCombo: S.maxCombo,
+    totalGemsRemoved: S.totalGemsRemoved,
+    specialsUsed: S.specialsUsed,
+    objectiveTracker: JSON.parse(JSON.stringify(S.objectiveTracker)),
+    boss: S.boss ? { ...S.boss } : null,
+    playerHP: S.playerHP,
+  });
+  // Limit stack size
+  while (S.undoStack.length > MAX_UNDO) S.undoStack.shift();
+  S.undoState = S.undoStack[S.undoStack.length - 1]; // compat
+  const undoBtn = qs('#g-undo');
+  if (undoBtn) {
+    undoBtn.classList.remove('disabled');
+    undoBtn.title = `${S.undoStack.length}/${MAX_UNDO}`;
+  }
+}
+
+function undoLastMove() {
+  if (!S.undoStack || S.undoStack.length === 0) return;
+  const u = S.undoStack.pop();
+  S.grid = u.grid;
+  S.score = u.score;
+  S.movesLeft = u.movesLeft;
+  S.combo = u.combo;
+  S.maxCombo = u.maxCombo;
+  S.totalGemsRemoved = u.totalGemsRemoved;
+  S.specialsUsed = u.specialsUsed;
+  S.objectiveTracker = u.objectiveTracker;
+  if (u.boss) S.boss = u.boss;
+  S.playerHP = u.playerHP;
+  S.undoState = S.undoStack.length > 0 ? S.undoStack[S.undoStack.length - 1] : null;
+  S.phase = 'idle';
+  setupGemDrawPositions();
+  updateGameHUD();
+  const undoBtn = qs('#g-undo');
+  if (undoBtn) {
+    if (S.undoStack.length === 0) undoBtn.classList.add('disabled');
+    undoBtn.title = `${S.undoStack.length}/${MAX_UNDO}`;
+  }
+  // Haptic feedback
+  triggerHaptic('light');
+}
+
+// ===== HAPTIC FEEDBACK =====
+function triggerHaptic(type) {
+  if (!navigator.vibrate) return;
+  switch (type) {
+    case 'light': navigator.vibrate(10); break;
+    case 'medium': navigator.vibrate(25); break;
+    case 'heavy': navigator.vibrate([30, 10, 30]); break;
+    case 'success': navigator.vibrate([15, 50, 15]); break;
+    case 'error': navigator.vibrate([50, 20, 50]); break;
+  }
+}
+
+// ===== SETTINGS SCREEN =====
+function renderSettingsScreen() {
+  const p = S.progress;
+  qs('#settings-title').textContent = `⚙️ ${t('settings')}`;
+  const content = qs('#settings-content');
+
+  const isColorBlind = p.settings.colorBlind || false;
+  S.colorBlindMode = isColorBlind;
+  setColorBlindMode(isColorBlind);
+
+  content.innerHTML = `
+    <div class="settings-card">
+      <h3>🔊 ${t('volume')}</h3>
+      <div class="settings-row">
+        <span class="settings-label">${S.muted ? t('mute') : t('unmute')}</span>
+        <button class="settings-toggle ${S.muted ? '' : 'on'}" id="set-sound">&nbsp;</button>
+      </div>
+    </div>
+    <div class="settings-card" style="margin-top:8px">
+      <h3>♿ ${t('colorBlind')}</h3>
+      <div class="settings-row">
+        <span class="settings-label">${t('colorBlind')}</span>
+        <button class="settings-toggle ${isColorBlind ? 'on' : ''}" id="set-colorblind">&nbsp;</button>
+      </div>
+    </div>
+    <div class="settings-card" style="margin-top:8px">
+      <h3>🌐 ${t('language')}</h3>
+      <div class="settings-row">
+        <span class="settings-label">${t('language')}</span>
+        <span class="stats-value">${LANG === 'ar' ? 'العربية' : LANG === 'pt' ? 'Português' : 'English'}</span>
+      </div>
+    </div>
+    <div class="settings-card settings-danger" style="margin-top:12px">
+      <button class="btn btn-danger btn-sm" id="set-reset">🗑️ ${t('resetData')}</button>
+    </div>
+  `;
+
+  // Sound toggle
+  content.querySelector('#set-sound')?.addEventListener('click', () => {
+    toggleMute();
+    renderSettingsScreen();
+  });
+
+  // Color-blind toggle
+  content.querySelector('#set-colorblind')?.addEventListener('click', () => {
+    p.settings.colorBlind = !p.settings.colorBlind;
+    S.colorBlindMode = p.settings.colorBlind;
+    setColorBlindMode(S.colorBlindMode);
+    saveProgress(p);
+    renderSettingsScreen();
+  });
+
+  // Reset data
+  content.querySelector('#set-reset')?.addEventListener('click', () => {
+    if (confirm(t('resetConfirm'))) {
+      const fresh = createDefaultProgress();
+      S.progress = fresh;
+      saveProgress(fresh);
+      showScreen('world');
+    }
+  });
+}
+
+// ===== FACTS ALBUM =====
+function renderAlbumScreen() {
+  qs('#album-title').textContent = `📚 ${t('factsAlbum')}`;
+  const grid = qs('#album-grid');
+  grid.innerHTML = '';
+
+  if (!STORY) {
+    grid.innerHTML = `<div class="album-empty">${t('noFacts')}</div>`;
+    return;
+  }
+
+  const nameKey = LANG === 'pt' ? 'pt' : LANG === 'ar' ? 'ar' : 'en';
+  const names = WORLD_NAMES[nameKey] || WORLD_NAMES.en;
+
+  let hasAnyFacts = false;
+  for (let w = 0; w < 10; w++) {
+    let facts = [];
+    try {
+      facts = STORY.getFacts ? STORY.getFacts(w) : [];
+    } catch (e) { facts = []; }
+
+    // Only show worlds where the player has discovered facts (has any stars)
+    const wStars = getWorldStars(w);
+    if (wStars === 0 && facts.length === 0) continue;
+
+    const discoveredFacts = facts.slice(0, Math.ceil(wStars / 3)); // Reveal facts based on stars earned
+    if (discoveredFacts.length === 0) continue;
+    hasAnyFacts = true;
+
+    const worldDiv = document.createElement('div');
+    worldDiv.className = 'album-world';
+    worldDiv.innerHTML = `
+      <div class="album-world-header">${WORLD_ICONS[w]} ${names[w]} <span class="toggle">▶</span></div>
+      <div class="album-facts" id="album-facts-${w}">
+        ${discoveredFacts.map((f, i) => `<div class="album-fact">${i + 1}. ${f}</div>`).join('')}
+      </div>
+    `;
+
+    const header = worldDiv.querySelector('.album-world-header');
+    header.addEventListener('click', () => {
+      header.classList.toggle('open');
+      const factsDiv = worldDiv.querySelector('.album-facts');
+      factsDiv.classList.toggle('open');
+    });
+
+    grid.appendChild(worldDiv);
+  }
+
+  if (!hasAnyFacts) {
+    grid.innerHTML = `<div class="album-empty">${t('noFacts')}</div>`;
+  }
+}
+
+// ===== INTERACTIVE TUTORIAL =====
+const TUTORIAL_STEPS = [
+  { target: '#game-canvas', text: 'tutStep1', pos: 'bottom' },
+  { target: '#g-score',     text: 'tutStep2', pos: 'bottom' },
+  { target: '#g-moves',     text: 'tutStep3', pos: 'bottom' },
+  { target: '#g-obj',       text: 'tutStep4', pos: 'top' },
+  { target: '#g-boosters',  text: 'tutStep5', pos: 'top' },
+];
+
+function showTutorial() {
+  // Only for first-time players
+  if (S.progress.tutorialComplete) return;
+
+  let step = 0;
+  const overlay = qs('#tutorial-overlay');
+  if (!overlay) return;
+  overlay.style.display = '';
+
+  function renderStep() {
+    if (step >= TUTORIAL_STEPS.length) {
+      // Tutorial complete
+      overlay.style.display = 'none';
+      overlay.innerHTML = '';
+      S.progress.tutorialComplete = true;
+      saveProgress(S.progress);
+      return;
+    }
+
+    const s = TUTORIAL_STEPS[step];
+    const target = qs(s.target);
+    if (!target) { step++; renderStep(); return; }
+
+    const rect = target.getBoundingClientRect();
+    const tutTexts = {
+      tutStep1: t('tutStep1'),
+      tutStep2: t('tutStep2'),
+      tutStep3: t('tutStep3'),
+      tutStep4: t('tutStep4'),
+      tutStep5: t('tutStep5'),
+    };
+
+    overlay.innerHTML = `
+      <div class="tutorial-mask"></div>
+      <div class="tutorial-highlight" style="left:${rect.left - 4}px;top:${rect.top - 4}px;width:${rect.width + 8}px;height:${rect.height + 8}px"></div>
+      <div class="tutorial-tooltip" style="left:${Math.max(10, Math.min(rect.left, window.innerWidth - 290))}px;${s.pos === 'bottom' ? `top:${rect.bottom + 16}px` : `bottom:${window.innerHeight - rect.top + 16}px`}">
+        <div class="tutorial-tooltip-step">${step + 1}/${TUTORIAL_STEPS.length}</div>
+        <div class="tutorial-tooltip-text">${tutTexts[s.text] || ''}</div>
+        <button class="btn btn-sm btn-primary" id="tut-next">${step === TUTORIAL_STEPS.length - 1 ? t('play') : t('next')}</button>
+      </div>
+    `;
+
+    overlay.querySelector('#tut-next')?.addEventListener('click', () => {
+      step++;
+      renderStep();
+    });
+
+    overlay.querySelector('.tutorial-mask')?.addEventListener('click', () => {
+      step++;
+      renderStep();
+    });
+  }
+
+  renderStep();
 }
 
 // ===== STORY DIALOG =====
@@ -2049,6 +2792,15 @@ function shareResult() {
     ? `💎 حققت ${S.score} نقطة في ${worldName} - المستوى ${S.currentLevel + 1} ⭐${'⭐'.repeat(S.stars)}\n🎮 مملكة الجواهر — Classify`
     : `💎 Scored ${S.score} in ${worldName} - Level ${S.currentLevel + 1} ⭐${'⭐'.repeat(S.stars)}\n🎮 Gem Kingdom — Classify`;
 
+  // Use native Web Share API if available
+  if (navigator.share) {
+    navigator.share({
+      title: LANG === 'ar' ? 'مملكة الجواهر' : 'Gem Kingdom',
+      text,
+    }).catch(() => { /* user cancelled or error — ignore */ });
+  }
+
+  // Always postMessage to parent for in-app sharing
   window.parent.postMessage({
     type: 'SHARE_ACHIEVEMENT',
     game: 'gem',

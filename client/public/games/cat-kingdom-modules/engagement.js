@@ -199,3 +199,43 @@ export function getComebackMessage(hoursSinceLastPlay) {
   if (hoursSinceLastPlay > 4) return c.short;
   return null;
 }
+
+/* ═════════════════════════════
+   7. Persistent Badge Storage
+   ═════════════════════════════ */
+const BADGES_KEY = 'catk_badges';
+
+export function loadBadges() {
+  try {
+    const raw = localStorage.getItem(BADGES_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch(e) {}
+  return { earned: [], history: [] };
+}
+
+export function saveBadges(data) {
+  try { localStorage.setItem(BADGES_KEY, JSON.stringify(data)); } catch(e) {}
+}
+
+export function recordBadges(newBadges) {
+  const data = loadBadges();
+  for (const b of newBadges) {
+    if (!data.earned.includes(b.id)) {
+      data.earned.push(b.id);
+      data.history.push({ id: b.id, date: new Date().toISOString() });
+    }
+  }
+  saveBadges(data);
+  return data;
+}
+
+export function getAllBadgesDefs() {
+  const lang = LANG === 'ar' ? 'ar' : LANG === 'pt' ? 'pt' : 'en';
+  const data = loadBadges();
+  return MICRO_BADGES.map(b => ({
+    id: b.id,
+    icon: b.icon,
+    label: b.text[lang],
+    earned: data.earned.includes(b.id),
+  }));
+}

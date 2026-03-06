@@ -3,27 +3,27 @@
    States, stats, skins, animations
    ═══════════════════════════════════════════════════════════════ */
 
-import { t } from './i18n.js';
+import { LANG, t, L } from './i18n.js';
 
 const STORAGE_KEY = 'catk_cat';
 
 /* ── Cat Skins ── */
 export const SKINS = [
-  { id: 'default',  emoji: '🐱', name: () => t.myCats || 'Default',   cost: 0,    unlocked: true },
-  { id: 'orange',   emoji: '🐈', name: () => 'Orange Tabby',         cost: 100,  unlocked: false },
-  { id: 'black',    emoji: '🐈‍⬛', name: () => 'Black Cat',            cost: 150,  unlocked: false },
-  { id: 'lion',     emoji: '🦁', name: () => 'Lion Cub',             cost: 300,  unlocked: false },
-  { id: 'tiger',    emoji: '🐯', name: () => 'Tiger Cub',            cost: 300,  unlocked: false },
-  { id: 'panda',    emoji: '🐼', name: () => 'Panda',                cost: 400,  unlocked: false },
-  { id: 'fox',      emoji: '🦊', name: () => 'Fox',                  cost: 250,  unlocked: false },
-  { id: 'rabbit',   emoji: '🐰', name: () => 'Rabbit',               cost: 200,  unlocked: false },
-  { id: 'bear',     emoji: '🐻', name: () => 'Bear Cub',             cost: 350,  unlocked: false },
-  { id: 'koala',    emoji: '🐨', name: () => 'Koala',                cost: 350,  unlocked: false },
-  { id: 'unicorn',  emoji: '🦄', name: () => 'Unicorn',              cost: 500,  unlocked: false },
-  { id: 'dragon',   emoji: '🐲', name: () => 'Dragon',               cost: 600,  unlocked: false },
-  { id: 'alien',    emoji: '👽', name: () => 'Alien Cat',             cost: 700,  unlocked: false },
-  { id: 'robot',    emoji: '🤖', name: () => 'Robot Cat',             cost: 800,  unlocked: false },
-  { id: 'crown',    emoji: '👑', name: () => 'Royal Cat',             cost: 1000, unlocked: false },
+  { id: 'default',  emoji: '🐱', name: () => L('القطة','Default Cat','Gato Padrão'), cost: 0, unlocked: true },
+  { id: 'orange',   emoji: '🐈', name: () => L('قط برتقالي','Orange Tabby','Gato Laranja'), cost: 100, unlocked: false },
+  { id: 'black',    emoji: '🐈‍⬛', name: () => L('قط أسود','Black Cat','Gato Preto'), cost: 150, unlocked: false },
+  { id: 'lion',     emoji: '🦁', name: () => L('شبل أسد','Lion Cub','Filhote de Leão'), cost: 300, unlocked: false },
+  { id: 'tiger',    emoji: '🐯', name: () => L('شبل نمر','Tiger Cub','Filhote de Tigre'), cost: 300, unlocked: false },
+  { id: 'panda',    emoji: '🐼', name: () => L('باندا','Panda','Panda'), cost: 400, unlocked: false },
+  { id: 'fox',      emoji: '🦊', name: () => L('ثعلب','Fox','Raposa'), cost: 250, unlocked: false },
+  { id: 'rabbit',   emoji: '🐰', name: () => L('أرنب','Rabbit','Coelho'), cost: 200, unlocked: false },
+  { id: 'bear',     emoji: '🐻', name: () => L('شبل دب','Bear Cub','Filhote de Urso'), cost: 350, unlocked: false },
+  { id: 'koala',    emoji: '🐨', name: () => L('كوالا','Koala','Coala'), cost: 350, unlocked: false },
+  { id: 'unicorn',  emoji: '🦄', name: () => L('وحيد القرن','Unicorn','Unicórnio'), cost: 500, unlocked: false },
+  { id: 'dragon',   emoji: '🐲', name: () => L('تنين','Dragon','Dragão'), cost: 600, unlocked: false },
+  { id: 'alien',    emoji: '👽', name: () => L('قط فضائي','Alien Cat','Gato Alienígena'), cost: 700, unlocked: false },
+  { id: 'robot',    emoji: '🤖', name: () => L('قط آلي','Robot Cat','Gato Robô'), cost: 800, unlocked: false },
+  { id: 'crown',    emoji: '👑', name: () => L('القط الملكي','Royal Cat','Gato Real'), cost: 1000, unlocked: false },
 ];
 
 /* ── Cat States (animations via CSS class) ── */
@@ -36,6 +36,7 @@ export const STATES = {
   surprised: { emoji: '🙀', anim: 'catSurprise', msg: () => t.catExcited },
   loving:    { emoji: '😻', anim: 'catLove',     msg: () => t.catHappy },
   proud:     { emoji: '😺', anim: 'catProud',    msg: () => t.catProud },
+  worried:   { emoji: '😾', anim: 'catSad',      msg: '' },
 };
 
 /* ── Default cat data ── */

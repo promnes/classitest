@@ -4,14 +4,7 @@
    Each question: { q, options, answer, hint?, emoji? }
    ═══════════════════════════════════════════════════════════════ */
 
-import { LANG } from './i18n.js';
-
-/* ── helper to pick localized string ── */
-function L(ar, en, pt) {
-  if (LANG === 'en') return en;
-  if (LANG === 'pt') return pt;
-  return ar;
-}
+import { LANG, L } from './i18n.js';
 
 /* ═══════════════════════════
    WORLD 1 — Colors & Shapes
@@ -267,23 +260,233 @@ function shuffle(arr) {
   return a;
 }
 
+/* ── Tag questions with difficulty tiers ── */
+function tagDifficulty(pool) {
+  const third = Math.ceil(pool.length / 3);
+  return pool.map((q, i) => {
+    if (q.diff) return q;
+    return { ...q, diff: i < third ? 1 : i < third * 2 ? 2 : 3 };
+  });
+}
+
+/* ── True/False question generator ── */
+function genTrueFalse() {
+  const tf = (ar, en, pt, isTrue) => ({
+    q: () => L(ar, en, pt),
+    options: () => isTrue
+      ? [L('صحيح','True','Verdadeiro'), L('خطأ','False','Falso')]
+      : [L('خطأ','False','Falso'), L('صحيح','True','Verdadeiro')],
+    answer: 0, emoji: '✅',
+  });
+  return shuffle([
+    tf('الدائرة ليس لها زوايا','A circle has no corners','Um círculo não tem cantos', true),
+    tf('المربع له 3 أضلاع','A square has 3 sides','Um quadrado tem 3 lados', false),
+    tf('2 + 2 = 4','2 + 2 = 4','2 + 2 = 4', true),
+    tf('5 أكبر من 3','5 is greater than 3','5 é maior que 3', true),
+    tf('10 - 3 = 8','10 - 3 = 8','10 - 3 = 8', false),
+    tf('كل المثلثات لها 3 زوايا','All triangles have 3 angles','Todos os triângulos têm 3 ângulos', true),
+    tf('الحرف A حرف علة','The letter A is a vowel','A letra A é uma vogal', true),
+    tf('القطة من الثدييات','A cat is a mammal','Um gato é um mamífero', true),
+    tf('الشمس كوكب','The sun is a planet','O sol é um planeta', false),
+    tf('الماء ليس له لون','Water has no color','A água não tem cor', true),
+    tf('المستطيل له 4 أضلاع','A rectangle has 4 sides','Um retângulo tem 4 lados', true),
+    tf('1 + 1 = 3','1 + 1 = 3','1 + 1 = 3', false),
+    tf('النملة حشرة','An ant is an insect','Uma formiga é um inseto', true),
+    tf('البرتقال فاكهة','An orange is a fruit','A laranja é uma fruta', true),
+    tf('الأرض مسطحة','The Earth is flat','A Terra é plana', false),
+  ]);
+}
+
+/* ═══════════════════════════
+   Extra questions — expansion
+   ═══════════════════════════ */
+const EXTRA_COLORS = [
+  { q: () => L('كم ضلع للمسدس؟','How many sides does a hexagon have?','Quantos lados tem um hexágono?'), options: () => ['6','5','7','8'], answer: 0, emoji: '⬡' },
+  { q: () => L('ما لون الجزر؟ 🥕','What color is a carrot? 🥕','Qual é a cor da cenoura? 🥕'), options: () => [L('برتقالي','Orange','Laranja'), L('أحمر','Red','Vermelho'), L('أصفر','Yellow','Amarelo'), L('أخضر','Green','Verde')], answer: 0, emoji: '🥕' },
+  { q: () => L('ما لون الليل؟ 🌃','What color is the night? 🌃','Qual é a cor da noite? 🌃'), options: () => [L('أسود','Black','Preto'), L('أزرق','Blue','Azul'), L('رمادي','Gray','Cinza'), L('بنفسجي','Purple','Roxo')], answer: 0, emoji: '🌃' },
+  { q: () => L('ما الشكل الذي له 5 أضلاع؟','Which shape has 5 sides?','Qual forma tem 5 lados?'), options: () => [L('خماسي','Pentagon','Pentágono'), L('مربع','Square','Quadrado'), L('مثلث','Triangle','Triângulo'), L('سداسي','Hexagon','Hexágono')], answer: 0, emoji: '⬠' },
+  { q: () => L('ما لون الكيوي؟ 🥝','What color is kiwi inside? 🥝','Qual a cor do kiwi? 🥝'), options: () => [L('أخضر','Green','Verde'), L('أصفر','Yellow','Amarelo'), L('بني','Brown','Marrom'), L('أحمر','Red','Vermelho')], answer: 0, emoji: '🥝' },
+  { q: () => L('ما لون الذهب؟ 🥇','What color is gold? 🥇','Qual é a cor do ouro? 🥇'), options: () => [L('ذهبي','Gold','Dourado'), L('فضي','Silver','Prateado'), L('أبيض','White','Branco'), L('أصفر','Yellow','Amarelo')], answer: 0, emoji: '🥇' },
+];
+
+const EXTRA_NUMBERS = [
+  { q: () => L('ما العدد الزوجي؟','Which is even?','Qual é par?'), options: () => ['6','5','7','9'], answer: 0, emoji: '🔢' },
+  { q: () => L('كم 🌺🌺🌺🌺🌺🌺🌺🌺🌺؟','How many 🌺🌺🌺🌺🌺🌺🌺🌺🌺?','Quantos 🌺🌺🌺🌺🌺🌺🌺🌺🌺?'), options: () => ['9','8','10','7'], answer: 0, emoji: '🌺' },
+  { q: () => L('ما الرقم الذي يلي ١٤؟','What comes after 14?','O que vem depois do 14?'), options: () => ['15','13','16','12'], answer: 0, emoji: '🔢' },
+  { q: () => L('أيهما أصغر: ٣ أم ٩؟','Which is smaller: 3 or 9?','Qual é menor: 3 ou 9?'), options: () => ['3','9'], answer: 0, emoji: '⚖️' },
+  { q: () => L('عُدّ بالخمسات: 5، 10، 15، ؟','Count by 5s: 5, 10, 15, ?','Conte de 5: 5, 10, 15, ?'), options: () => ['20','18','25','16'], answer: 0, emoji: '🔢' },
+];
+
+const EXTRA_ARABIC = [
+  { q: () => L('ما هذا الحرف؟ ذ','What letter is this? ذ','Qual é esta letra? ذ'), options: () => [L('ذال','Dhal','Dhal'), L('دال','Dal','Dal'), L('راء','Ra','Ra'), L('زاي','Zay','Zay')], answer: 0, emoji: '🔤' },
+  { q: () => L('ما هذا الحرف؟ ز','What letter is this? ز','Qual é esta letra? ز'), options: () => [L('زاي','Zay','Zay'), L('راء','Ra','Ra'), L('سين','Sin','Sin'), L('ذال','Dhal','Dhal')], answer: 0, emoji: '🔤' },
+  { q: () => L('ما هذا الحرف؟ ط','What letter is this? ط','Qual é esta letra? ط'), options: () => [L('طاء','Taa','Taa'), L('ظاء','Dhaa','Dhaa'), L('صاد','Sad','Sad'), L('ضاد','Dad','Dad')], answer: 0, emoji: '🔤' },
+  { q: () => L('ما هذا الحرف؟ غ','What letter is this? غ','Qual é esta letra? غ'), options: () => [L('غين','Ghain','Ghain'), L('عين','Ain','Ain'), L('فاء','Fa','Fa'), L('خاء','Kha','Kha')], answer: 0, emoji: '🔤' },
+  { q: () => L('ما هذا الحرف؟ هـ','What letter is this? هـ','Qual é esta letra? هـ'), options: () => [L('هاء','Haa','Haa'), L('حاء','Ha','Ha'), L('واو','Waw','Waw'), L('ياء','Ya','Ya')], answer: 0, emoji: '🔤' },
+];
+
+const EXTRA_ENGLISH = [
+  { q: () => L('ما هذا الحرف؟ E','What letter is this? E','Qual é esta letra? E'), options: () => ['E','F','3','B'], answer: 0, emoji: '🔠' },
+  { q: () => L('ما هذا الحرف؟ G','What letter is this? G','Qual é esta letra? G'), options: () => ['G','C','Q','O'], answer: 0, emoji: '🔠' },
+  { q: () => L('ما هذا الحرف؟ J','What letter is this? J','Qual é esta letra? J'), options: () => ['J','I','L','T'], answer: 0, emoji: '🔠' },
+  { q: () => L('ما هذا الحرف؟ N','What letter is this? N','Qual é esta letra? N'), options: () => ['N','M','H','Z'], answer: 0, emoji: '🔠' },
+  { q: () => L('ما الحرف الصغير لـ Q؟','What is the lowercase of Q?','Qual é a minúscula de Q?'), options: () => ['q','p','g','d'], answer: 0, emoji: '🔠' },
+];
+
+const EXTRA_WORDS = [
+  { q: () => L('ما هذا؟ 🐘','What is this? 🐘','O que é isto? 🐘'), options: () => [L('فيل','Elephant','Elefante'), L('زرافة','Giraffe','Girafa'), L('وحيد القرن','Rhino','Rinoceronte'), L('فرس النهر','Hippo','Hipopótamo')], answer: 0, emoji: '🐘' },
+  { q: () => L('ما هذا؟ 🚌','What is this? 🚌','O que é isto? 🚌'), options: () => [L('حافلة','Bus','Ônibus'), L('سيارة','Car','Carro'), L('قطار','Train','Trem'), L('شاحنة','Truck','Caminhão')], answer: 0, emoji: '🚌' },
+  { q: () => L('ما عكس طويل؟','What is the opposite of tall?','Qual é o oposto de alto?'), options: () => [L('قصير','Short','Baixo'), L('كبير','Big','Grande'), L('ثقيل','Heavy','Pesado'), L('بطيء','Slow','Lento')], answer: 0, emoji: '↔️' },
+  { q: () => L('ما هذا؟ 🏥','What is this? 🏥','O que é isto? 🏥'), options: () => [L('مستشفى','Hospital','Hospital'), L('مدرسة','School','Escola'), L('بيت','House','Casa'), L('مطار','Airport','Aeroporto')], answer: 0, emoji: '🏥' },
+  { q: () => L('ما عكس سريع؟','What is the opposite of fast?','Qual é o oposto de rápido?'), options: () => [L('بطيء','Slow','Lento'), L('قوي','Strong','Forte'), L('كبير','Big','Grande'), L('طويل','Tall','Alto')], answer: 0, emoji: '↔️' },
+];
+
+const EXTRA_PATTERNS = [
+  { q: () => L('أكمل: ▲▼▲▼▲?','Complete: ▲▼▲▼▲?','Complete: ▲▼▲▼▲?'), options: () => ['▼','▲','■','●'], answer: 0, emoji: '🔄' },
+  { q: () => L('أكمل: 4, 8, 12, 16, ?','Complete: 4, 8, 12, 16, ?','Complete: 4, 8, 12, 16, ?'), options: () => ['20','18','22','24'], answer: 0, emoji: '🔢' },
+  { q: () => L('أكمل: 🐱🐕🐰🐱🐕?','Complete: 🐱🐕🐰🐱🐕?','Complete: 🐱🐕🐰🐱🐕?'), options: () => ['🐰','🐱','🐕','🐦'], answer: 0, emoji: '🔄' },
+  { q: () => L('ما الذي لا ينتمي؟ 🔴🔵🟢🎵','Which doesn\'t belong? 🔴🔵🟢🎵','Qual não pertence? 🔴🔵🟢🎵'), options: () => ['🎵','🔴','🔵','🟢'], answer: 0, emoji: '❓' },
+  { q: () => L('أكمل: Z, Y, X, W, ?','Complete: Z, Y, X, W, ?','Complete: Z, Y, X, W, ?'), options: () => ['V','U','T','S'], answer: 0, emoji: '🔠' },
+];
+
+/* ═══════════════════════════
+   Generated — Shape Sides & Color Mixing
+   ═══════════════════════════ */
+function genColorShapesSides() {
+  const shapes = [
+    { name: () => L('المربع','Square','Quadrado'), sides: 4, emoji: '⬜' },
+    { name: () => L('المثلث','Triangle','Triângulo'), sides: 3, emoji: '🔺' },
+    { name: () => L('المستطيل','Rectangle','Retângulo'), sides: 4, emoji: '▬' },
+    { name: () => L('السداسي','Hexagon','Hexágono'), sides: 6, emoji: '⬡' },
+    { name: () => L('الخماسي','Pentagon','Pentágono'), sides: 5, emoji: '⬠' },
+    { name: () => L('المعين','Rhombus','Losango'), sides: 4, emoji: '🔷' },
+    { name: () => L('المثمن','Octagon','Octógono'), sides: 8, emoji: '🛑' },
+  ];
+  const qs = [];
+  for (const s of shapes) {
+    const wrongs = new Set();
+    while (wrongs.size < 3) {
+      const w = s.sides + (Math.random() > 0.5 ? 1 : -1) * (Math.floor(Math.random() * 3) + 1);
+      if (w > 0 && w !== s.sides) wrongs.add(w);
+    }
+    qs.push({
+      q: () => L(`كم ضلع لـ ${s.name()}؟`, `How many sides does a ${s.name()} have?`, `Quantos lados tem um ${s.name()}?`),
+      options: () => shuffle([String(s.sides), ...Array.from(wrongs).map(String)]),
+      answer: -1, _correctVal: String(s.sides),
+      emoji: s.emoji,
+    });
+  }
+  const mixes = [
+    { q: () => L('ما نتيجة خلط الأحمر والأصفر؟','What do you get mixing red and yellow?','O que se obtém misturando vermelho e amarelo?'), ans: () => L('برتقالي','Orange','Laranja'), wrongs: () => [L('أخضر','Green','Verde'), L('بنفسجي','Purple','Roxo'), L('أبيض','White','Branco')], emoji: '🎨' },
+    { q: () => L('ما نتيجة خلط الأزرق والأصفر؟','What do you get mixing blue and yellow?','O que se obtém misturando azul e amarelo?'), ans: () => L('أخضر','Green','Verde'), wrongs: () => [L('برتقالي','Orange','Laranja'), L('بنفسجي','Purple','Roxo'), L('وردي','Pink','Rosa')], emoji: '🎨' },
+    { q: () => L('ما نتيجة خلط الأحمر والأزرق؟','What do you get mixing red and blue?','O que se obtém misturando vermelho e azul?'), ans: () => L('بنفسجي','Purple','Roxo'), wrongs: () => [L('برتقالي','Orange','Laranja'), L('أخضر','Green','Verde'), L('بني','Brown','Marrom')], emoji: '🎨' },
+    { q: () => L('ما نتيجة خلط الأبيض والأسود؟','What do you get mixing white and black?','O que se obtém misturando branco e preto?'), ans: () => L('رمادي','Gray','Cinza'), wrongs: () => [L('بنفسجي','Purple','Roxo'), L('بني','Brown','Marrom'), L('أزرق','Blue','Azul')], emoji: '🎨' },
+  ];
+  for (const m of mixes) {
+    qs.push({
+      q: m.q,
+      options: () => shuffle([m.ans(), ...m.wrongs()]),
+      answer: -1, _correctVal: m.ans(),
+      emoji: m.emoji,
+    });
+  }
+  return qs;
+}
+
+/* ═══════════════════════════
+   Generated — Arabic Letter Sequences
+   ═══════════════════════════ */
+function genArabicLetterSeq() {
+  const letters = ['أ','ب','ت','ث','ج','ح','خ','د','ذ','ر','ز','س','ش','ص','ض','ط','ظ','ع','غ','ف','ق','ك','ل','م','ن','هـ','و','ي'];
+  const qs = [];
+  for (let i = 0; i < letters.length - 1; i += 2) {
+    const next = letters[i + 1];
+    const wrongs = letters.filter((_, idx) => idx !== i + 1 && idx !== i).sort(() => Math.random() - 0.5).slice(0, 3);
+    qs.push({
+      q: () => L(`ما الحرف الذي يأتي بعد "${letters[i]}"؟`, `What Arabic letter comes after "${letters[i]}"?`, `Qual letra árabe vem depois de "${letters[i]}"?`),
+      options: () => shuffle([next, ...wrongs]),
+      answer: -1, _correctVal: next,
+      emoji: '🔤',
+    });
+  }
+  return qs;
+}
+
+/* ═══════════════════════════
+   Generated — English Letter Sequences
+   ═══════════════════════════ */
+function genEnglishLetterSeq() {
+  const upper = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  const qs = [];
+  for (let i = 0; i < upper.length - 1; i += 2) {
+    const next = upper[i + 1];
+    const wrongs = upper.split('').filter((_, idx) => idx !== i + 1 && idx !== i).sort(() => Math.random() - 0.5).slice(0, 3);
+    qs.push({
+      q: () => L(`ما الحرف الذي يأتي بعد "${upper[i]}"؟`, `What letter comes after "${upper[i]}"?`, `Qual letra vem depois de "${upper[i]}"?`),
+      options: () => shuffle([next, ...wrongs]),
+      answer: -1, _correctVal: next,
+      emoji: '🔠',
+    });
+  }
+  return qs;
+}
+
+/* ═══════════════════════════
+   Generated — Number Pattern Sequences
+   ═══════════════════════════ */
+function genPatternSeq() {
+  const qs = [];
+  const pats = [
+    { start: 2, step: 2, count: 4 },
+    { start: 1, step: 3, count: 4 },
+    { start: 5, step: 5, count: 4 },
+    { start: 10, step: 10, count: 4 },
+    { start: 1, step: 2, count: 4 },
+    { start: 3, step: 3, count: 4 },
+    { start: 4, step: 4, count: 4 },
+    { start: 2, step: 5, count: 4 },
+    { start: 1, step: 4, count: 4 },
+    { start: 100, step: -10, count: 4 },
+    { start: 20, step: -2, count: 4 },
+    { start: 50, step: -5, count: 4 },
+  ];
+  for (const p of pats) {
+    const seq = [];
+    for (let i = 0; i < p.count; i++) seq.push(p.start + p.step * i);
+    const answer = p.start + p.step * p.count;
+    const wrongs = new Set();
+    while (wrongs.size < 3) {
+      const w = answer + (Math.random() > 0.5 ? 1 : -1) * (Math.floor(Math.random() * Math.abs(p.step) * 2) + 1);
+      if (w !== answer && w >= 0) wrongs.add(w);
+    }
+    const seqStr = seq.join(LANG === 'ar' ? '، ' : ', ');
+    qs.push({
+      q: () => L(`أكمل: ${seqStr}، ؟`, `Complete: ${seqStr}, ?`, `Complete: ${seqStr}, ?`),
+      options: () => shuffle([String(answer), ...Array.from(wrongs).map(String)]),
+      answer: -1, _correctVal: String(answer),
+      emoji: '🧩',
+    });
+  }
+  return qs;
+}
+
 /* ═══════════════════════════════════════════
    Main export — get questions for a level
    ═══════════════════════════════════════════ */
 const BANKS = {
-  colors_shapes: COLORS_SHAPES,
-  numbers: NUMBERS,
-  addition: null,       // generated
-  subtraction: null,    // generated
-  arabic_letters: ARABIC_LETTERS,
-  english_letters: ENGLISH_LETTERS,
-  words: WORDS,
-  advanced_math: null,  // generated
-  patterns: PATTERNS,
-  mixed: null,          // generated
+  colors_shapes: [...COLORS_SHAPES, ...EXTRA_COLORS, ...genColorShapesSides()],
+  numbers: [...NUMBERS, ...EXTRA_NUMBERS],
+  addition: null,
+  subtraction: null,
+  arabic_letters: [...ARABIC_LETTERS, ...EXTRA_ARABIC, ...genArabicLetterSeq()],
+  english_letters: [...ENGLISH_LETTERS, ...EXTRA_ENGLISH, ...genEnglishLetterSeq()],
+  words: [...WORDS, ...EXTRA_WORDS],
+  advanced_math: null,
+  patterns: [...PATTERNS, ...EXTRA_PATTERNS, ...genPatternSeq()],
+  mixed: null,
 };
 
-export function getQuestions(subject, count) {
+export function getQuestions(subject, count, difficulty) {
   let pool;
   if (subject === 'addition') pool = genAddition();
   else if (subject === 'subtraction') pool = genSubtraction();
@@ -291,18 +494,41 @@ export function getQuestions(subject, count) {
   else if (subject === 'mixed') pool = genMixed();
   else pool = [...(BANKS[subject] || COLORS_SHAPES)];
 
+  // Tag with difficulty tiers
+  pool = tagDifficulty(pool);
+
+  // Filter by difficulty if DDA specifies
+  if (difficulty && pool.length > count) {
+    const filtered = pool.filter(q => q.diff === difficulty);
+    if (filtered.length >= count) pool = filtered;
+  }
+
+  // Mix in 1-2 True/False questions for variety (tag them with diff too)
+  if (count >= 5 && subject !== 'mixed') {
+    const tfCount = Math.min(2, Math.floor(count / 4));
+    const tfQuestions = genTrueFalse().slice(0, tfCount).map(q => ({ ...q, diff: q.diff || 2 }));
+    pool = [...pool, ...tfQuestions];
+  }
+
   const picked = shuffle(pool).slice(0, count);
 
   return picked.map(raw => {
     const qText = typeof raw.q === 'function' ? raw.q() : raw.q;
     const opts = typeof raw.options === 'function' ? raw.options() : [...raw.options];
 
-    let correctIdx = raw.answer;
+    // Get correct answer value before shuffling
+    let correctVal;
     if (raw._correctVal !== undefined) {
-      correctIdx = opts.indexOf(raw._correctVal);
-      if (correctIdx === -1) { opts[0] = raw._correctVal; correctIdx = 0; }
+      correctVal = raw._correctVal;
+    } else {
+      correctVal = opts[raw.answer];
     }
 
-    return { q: qText, options: opts, answer: correctIdx, emoji: raw.emoji || '❓' };
+    // Shuffle ALL options to fix answer:0 bias
+    const shuffled = shuffle(opts);
+    let correctIdx = shuffled.indexOf(correctVal);
+    if (correctIdx === -1) { shuffled[0] = correctVal; correctIdx = 0; }
+
+    return { q: qText, options: shuffled, answer: correctIdx, emoji: raw.emoji || '❓' };
   });
 }

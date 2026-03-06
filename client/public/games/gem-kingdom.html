@@ -293,9 +293,64 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',Tahoma,G
 }
 /* ===== Focus-visible ring ===== */
 button:focus-visible,.wc:focus-visible,.lc:focus-visible,.btn:focus-visible,.ls-back:focus-visible{outline:3px solid #fbbf24;outline-offset:2px}
+
+/* ===== SETTINGS SCREEN ===== */
+#settings-screen{flex-direction:column;align-items:center;padding:clamp(8px,2vmin,16px);gap:clamp(6px,1.5vmin,12px);overflow-y:auto;background:linear-gradient(135deg,#1e1b4b,#312e81)}
+.settings-title{font-size:clamp(22px,5vmin,32px);font-weight:900;color:#fff}
+.settings-card{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:14px;width:100%;max-width:420px}
+.settings-card h3{font-size:clamp(14px,2.8vmin,18px);color:#a78bfa;font-weight:800;margin-bottom:8px}
+.settings-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.06)}
+.settings-label{font-size:clamp(13px,2.4vmin,16px);color:rgba(255,255,255,.8);font-weight:600}
+.settings-toggle{width:48px;height:26px;border-radius:13px;background:rgba(255,255,255,.2);border:none;cursor:pointer;position:relative;transition:background .3s}
+.settings-toggle.on{background:linear-gradient(135deg,#22c55e,#16a34a)}
+.settings-toggle::after{content:'';position:absolute;width:20px;height:20px;border-radius:50%;background:#fff;top:3px;left:3px;transition:transform .3s}
+.settings-toggle.on::after{transform:translateX(22px)}
+.settings-slider{width:120px;height:6px;border-radius:3px;-webkit-appearance:none;appearance:none;background:rgba(255,255,255,.2);outline:none}
+.settings-slider::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:#fbbf24;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.3)}
+.settings-danger{margin-top:12px;text-align:center}
+
+/* ===== UNDO BUTTON ===== */
+.g-undo{background:rgba(255,255,255,.2);border:2px solid rgba(255,255,255,.3);border-radius:12px;width:clamp(36px,8vmin,46px);height:clamp(36px,8vmin,46px);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:clamp(16px,3.5vmin,22px);transition:all .2s;color:#fff}
+.g-undo:hover{background:rgba(255,255,255,.3);transform:scale(1.1)}
+.g-undo:active{transform:scale(.9)}
+.g-undo.disabled{opacity:.3;cursor:not-allowed}
+
+/* ===== TUTORIAL OVERLAY ===== */
+.tutorial-overlay{position:fixed;inset:0;z-index:500;pointer-events:auto}
+.tutorial-mask{position:absolute;inset:0;background:rgba(0,0,0,.75)}
+.tutorial-highlight{position:absolute;border:3px solid #fbbf24;border-radius:12px;box-shadow:0 0 0 9999px rgba(0,0,0,.65),0 0 20px rgba(251,191,36,.5);z-index:501;pointer-events:none;animation:glow 2s infinite}
+.tutorial-tooltip{position:absolute;z-index:502;background:linear-gradient(135deg,#1e1b4b,#312e81);border:2px solid rgba(251,191,36,.4);border-radius:16px;padding:14px 18px;max-width:280px;color:#fff;box-shadow:0 8px 32px rgba(0,0,0,.5);animation:bounceIn .3s ease}
+.tutorial-tooltip-text{font-size:clamp(13px,2.6vmin,16px);line-height:1.5;margin-bottom:10px}
+.tutorial-tooltip-step{font-size:clamp(10px,1.8vmin,12px);color:rgba(255,255,255,.5);margin-bottom:8px}
+.tutorial-arrow{position:absolute;z-index:502;width:0;height:0;border-style:solid}
+.tutorial-arrow.up{border-width:0 10px 12px 10px;border-color:transparent transparent #312e81 transparent;top:-12px}
+.tutorial-arrow.down{border-width:12px 10px 0 10px;border-color:#312e81 transparent transparent transparent;bottom:-12px}
+
+/* ===== FACTS ALBUM SCREEN ===== */
+#album-screen{flex-direction:column;align-items:center;padding:clamp(8px,2vmin,16px);gap:clamp(6px,1.5vmin,10px);overflow-y:auto;background:linear-gradient(135deg,#1e1b4b,#312e81)}
+.album-title{font-size:clamp(22px,5vmin,32px);font-weight:900;color:#fff}
+.album-grid{display:flex;flex-direction:column;gap:8px;width:100%;max-width:420px}
+.album-world{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:12px;transition:all .2s}
+.album-world-header{font-size:clamp(14px,2.8vmin,18px);font-weight:800;color:#a78bfa;margin-bottom:8px;cursor:pointer;display:flex;justify-content:space-between;align-items:center}
+.album-world-header .toggle{transition:transform .3s;font-size:14px;color:rgba(255,255,255,.5)}
+.album-world-header.open .toggle{transform:rotate(90deg)}
+.album-facts{display:none;flex-direction:column;gap:4px}
+.album-facts.open{display:flex}
+.album-fact{font-size:clamp(12px,2.2vmin,14px);color:rgba(255,255,255,.85);padding:6px 8px;background:rgba(167,139,250,.08);border-radius:8px;line-height:1.4}
+.album-empty{color:rgba(255,255,255,.4);font-size:clamp(12px,2.2vmin,14px);font-style:italic;padding:8px}
 </style>
 </head>
 <body>
+<!-- Loading overlay -->
+<div id="loading-overlay" style="position:fixed;inset:0;z-index:99999;background:linear-gradient(135deg,#1a1040 0%,#2d1b69 100%);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px">
+  <div style="font-size:64px;animation:pulse 1.5s infinite">💎</div>
+  <div style="color:#fff;font-size:1.2em;font-family:sans-serif">Loading...</div>
+  <div style="width:120px;height:4px;background:rgba(255,255,255,0.2);border-radius:4px;overflow:hidden"><div style="width:60%;height:100%;background:#a78bfa;animation:loadbar 1.2s ease-in-out infinite"></div></div>
+</div>
+<style>
+@keyframes loadbar{0%{transform:translateX(-100%)}50%{transform:translateX(0)}100%{transform:translateX(100%)}}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.15)}}
+</style>
 <!-- ===== WORLD SELECT SCREEN ===== -->
 <div id="world-screen" class="screen active" role="region" aria-label="World Select">
   <div class="top-bar">
@@ -314,8 +369,8 @@ button:focus-visible,.wc:focus-visible,.lc:focus-visible,.btn:focus-visible,.ls-
     <button class="btn btn-sm" id="btn-shop">🛍️</button>
     <button class="btn btn-sm" id="btn-achieve">🏆</button>
     <button class="btn btn-sm" id="btn-stats">📊</button>
-    <button class="btn btn-sm" id="btn-daily">📅</button>
-  </div>
+    <button class="btn btn-sm" id="btn-daily">📅</button>    <button class="btn btn-sm" id="btn-settings">⚙️</button>
+    <button class="btn btn-sm" id="btn-album">📚</button>  </div>
   <div class="world-grid" id="world-grid" role="list" aria-label="Worlds"></div>
 </div>
 
@@ -370,6 +425,7 @@ button:focus-visible,.wc:focus-visible,.lc:focus-visible,.btn:focus-visible,.ls-
   <div class="g-obj" id="g-obj"></div>
   <div class="g-foot">
     <div class="g-combo" id="g-combo"></div>
+    <button class="g-undo disabled" id="g-undo" aria-label="Undo">↩️</button>
     <div class="g-boosters" id="g-boosters"></div>
   </div>
 </div>
@@ -461,6 +517,29 @@ button:focus-visible,.wc:focus-visible,.lc:focus-visible,.btn:focus-visible,.ls-
 
 <!-- ===== STREAK TOAST ===== -->
 <div id="streak-toast" class="streak-toast"></div>
+
+<!-- ===== SETTINGS SCREEN ===== -->
+<div id="settings-screen" class="screen" role="region" aria-label="Settings">
+  <div class="ls-header">
+    <button class="ls-back" id="settings-back" aria-label="Back">←</button>
+    <div class="settings-title" id="settings-title">⚙️</div>
+    <div></div>
+  </div>
+  <div id="settings-content"></div>
+</div>
+
+<!-- ===== FACTS ALBUM SCREEN ===== -->
+<div id="album-screen" class="screen" role="region" aria-label="Facts Album">
+  <div class="ls-header">
+    <button class="ls-back" id="album-back" aria-label="Back">←</button>
+    <div class="album-title" id="album-title">📚</div>
+    <div></div>
+  </div>
+  <div class="album-grid" id="album-grid"></div>
+</div>
+
+<!-- ===== TUTORIAL OVERLAY ===== -->
+<div id="tutorial-overlay" class="tutorial-overlay" style="display:none"></div>
 
 <script type="module">
 import { initGame } from './gem-kingdom-modules/core.js';
