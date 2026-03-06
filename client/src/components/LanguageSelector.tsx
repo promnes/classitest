@@ -32,7 +32,7 @@ export const LanguageSelector: React.FC = () => {
   };
 
   return (
-    <div className="relative">
+    <div className="relative z-[9999]">
       <button
         onClick={() => setIsOpen(!isOpen)}
         className={`flex items-center gap-2 px-3 py-2 rounded-lg font-semibold transition-all duration-200 shadow-md hover:shadow-lg ${
@@ -49,7 +49,7 @@ export const LanguageSelector: React.FC = () => {
 
       {isOpen && (
         <div
-          className={`absolute top-12 ltr:right-0 rtl:left-0 min-w-max rounded-xl shadow-2xl z-50 overflow-hidden border-2 ${
+          className={`absolute top-12 ltr:right-0 rtl:left-0 min-w-max rounded-xl shadow-2xl z-[9999] overflow-hidden border-2 ${
             isDark
               ? "bg-gray-800 border-gray-600"
               : "bg-white border-purple-300"
@@ -84,7 +84,7 @@ export const LanguageSelector: React.FC = () => {
 
       {isOpen && (
         <div
-          className="fixed inset-0 z-40"
+          className="fixed inset-0 z-[9998]"
           onClick={() => setIsOpen(false)}
         />
       )}
