@@ -71,24 +71,6 @@ function diamond(type, centerR, centerC, size, hp) {
   return obs;
 }
 
-function scatter(type, rows, cols, count, hp, avoid = []) {
-  const obs = [];
-  const avoidSet = new Set(avoid.map(a => `${a.row},${a.col}`));
-  const used = new Set();
-  let attempts = 0;
-  while (obs.length < count && attempts < 200) {
-    const r = Math.floor(Math.random() * rows);
-    const c = Math.floor(Math.random() * cols);
-    const key = `${r},${c}`;
-    if (!avoidSet.has(key) && !used.has(key)) {
-      used.add(key);
-      obs.push({ type, row: r, col: c, hp });
-    }
-    attempts++;
-  }
-  return obs;
-}
-
 // ===== WORLD 0: FRUIT FOREST 🍎 (Tutorial) =====
 const world0 = [
   // Level 0-0: Pure basics — just match!

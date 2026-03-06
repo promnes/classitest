@@ -984,13 +984,16 @@ export function spawnBossDefeatEffects(cx, cy) {
 // ===== SCREEN TRANSITION =====
 let transitionAlpha = 0;
 let transitionDir = 0; // 0 = none, 1 = fade out, -1 = fade in
+let _fadeInterval = null;
 
 export function startFadeOut(onMid) {
+  if (_fadeInterval) clearInterval(_fadeInterval);
   transitionAlpha = 0;
   transitionDir = 1;
-  const checkFade = setInterval(() => {
+  _fadeInterval = setInterval(() => {
     if (transitionAlpha >= 1) {
-      clearInterval(checkFade);
+      clearInterval(_fadeInterval);
+      _fadeInterval = null;
       if (onMid) onMid();
       transitionDir = -1;
     }

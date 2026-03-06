@@ -250,6 +250,14 @@ export async function initGame() {
   document.addEventListener('visibilitychange', () => {
     if (document.hidden && S.progress) {
       S.progress.lastPlayTimestamp = Date.now();
+      // Persist daily challenge state so it survives page close
+      if (S.isDailyChallenge) {
+        S.progress._dailyResume = {
+          worldIdx: S.currentWorld,
+          levelIdx: S.currentLevel,
+          target: S.dailyChallengeTarget,
+        };
+      }
       saveProgress(S.progress);
     }
   });
@@ -322,12 +330,17 @@ function updateGame() {
   const bgCanvas = document.getElementById('bg-canvas');
   if (bgCanvas) updateBackground(S.dt, bgCanvas);
 
-  // Hint timer
+  // Hint timer (uses DDA hintDelay if available)
   if (S.phase === 'idle' && !S.hintMove) {
     S.hintTimer += S.dt;
-    if (S.hintTimer >= 5) {
+    const hintDelay = (S._hintDelay || 5000) / 1000;
+    if (S.hintTimer >= hintDelay) {
       S.hintMove = findBestMove(S.grid, S.rows, S.cols);
       S.hintTimer = 0;
+      if (S.hintMove) {
+        S.hintUsed = true;
+        S._hintsUsedCount = (S._hintsUsedCount || 0) + 1;
+      }
     }
   }
 
@@ -485,8 +498,7 @@ function renderWorldScreen() {
 // ===== LEVEL SELECT =====
 function renderLevelScreen() {
   const w = S.currentWorld;
-  const nameKey = LANG === 'pt' ? 'pt' : LANG === 'ar' ? 'ar' : 'en';
-  const names = WORLD_NAMES[nameKey] || WORLD_NAMES.en;
+  const names = WORLD_NAMES[LANG] || WORLD_NAMES.en;
 
   // Set background
   const el = qs('#lvl-screen');
@@ -517,7 +529,8 @@ function renderLevelScreen() {
     const isMiniBoss = level?.isMiniBoss;
 
     const card = document.createElement('div');
-    card.className = `lc ${isUnlocked ? '' : 'locked'} ${isBoss ? 'boss' : ''} ${isMiniBoss ? 'mini-boss' : ''} ${isUnlocked && stars === 0 ? 'current' : ''}`;
+    const isImprovable = isUnlocked && stars > 0 && stars < 3;
+    card.className = `lc ${isUnlocked ? '' : 'locked'} ${isBoss ? 'boss' : ''} ${isMiniBoss ? 'mini-boss' : ''} ${isUnlocked && stars === 0 ? 'current' : ''} ${isImprovable ? 'improvable' : ''}`;
 
     const gemPool = WORLD_GEMS[w];
     const levelEmoji = isBoss ? '👿' : isMiniBoss ? '😈' : (gemPool[l % gemPool.length] || '💎');
@@ -635,14 +648,17 @@ async function startLevel() {
   }
 
   // DDA adjustment
+  S._hintsUsedCount = 0;
   if (INTEL) {
     const adj = INTEL.getLevelAdjustment(S.progress, w, l);
     if (adj) {
       S.movesLeft += adj.extraMoves || 0;
       S.spawnBias = adj.spawnBias || 0;
+      S._hintDelay = adj.hintDelay || 5000;
     }
   } else {
     S.spawnBias = 0;
+    S._hintDelay = 5000;
   }
 
   // Show tutorial for first-time players on World 0 Level 0
@@ -671,6 +687,8 @@ function setupGameCanvas() {
 
   S.canvasW = rect.width;
   S.canvasH = rect.height;
+  // Cache canvas rect for pointer events (avoid repeated reflow)
+  S._cachedCanvasRect = canvas.getBoundingClientRect();
 
   // Calc layout
   const layout = calcLayout(rect.width, rect.height, S.rows, S.cols);
@@ -915,6 +933,9 @@ function getGridPos(clientX, clientY) {
 
 function onPointerDown(e) {
   if (S.phase !== 'idle' || isTransitioning()) return;
+  // Prevent multi-touch: only track one pointer at a time
+  if (S._activePointerId != null) return;
+  S._activePointerId = e.pointerId;
   e.preventDefault();
 
   const pos = getGridPos(e.clientX, e.clientY);
@@ -924,6 +945,7 @@ function onPointerDown(e) {
   if (S.activeBooster) {
     applyBooster(S.activeBooster, pos.row, pos.col);
     S.activeBooster = null;
+    S._activePointerId = null;
     return;
   }
 
@@ -954,6 +976,7 @@ function onPointerDown(e) {
 
 function onPointerMove(e) {
   if (!S.isDragging || S.phase !== 'idle') return;
+  if (e.pointerId !== S._activePointerId) return;
   e.preventDefault();
 
   const pos = getGridPos(e.clientX, e.clientY);
@@ -961,8 +984,9 @@ function onPointerMove(e) {
 
   if (!S.touchStart) return;
 
-  const dx = e.clientX - (S.touchStart.x + document.getElementById('game-canvas').getBoundingClientRect().left);
-  const dy = e.clientY - (S.touchStart.y + document.getElementById('game-canvas').getBoundingClientRect().top);
+  const canvasRect = S._cachedCanvasRect || document.getElementById('game-canvas').getBoundingClientRect();
+  const dx = e.clientX - (S.touchStart.x + canvasRect.left);
+  const dy = e.clientY - (S.touchStart.y + canvasRect.top);
   // Wait for actual swipe (at least half cell)
   // Use raw pixel delta
   const absDx = Math.abs(dx);
@@ -989,8 +1013,10 @@ function onPointerMove(e) {
 }
 
 function onPointerUp(e) {
+  if (e.pointerId !== S._activePointerId) return;
   S.isDragging = false;
   S.touchStart = null;
+  S._activePointerId = null;
 }
 
 // ===== SWAP & MATCH =====
@@ -1110,6 +1136,20 @@ async function cascadeLoop() {
       const py = S.offsetY + r * S.cellSize + S.cellSize / 2;
       const accent = WORLD_ACCENTS[S.currentWorld];
       spawnBurst(px, py, 4, { color: accent, size: 4, life: 0.4, speed: 2 });
+    }
+
+    // Obstacle-specific sounds
+    if (result.obstaclesHit.length > 0) {
+      const played = new Set();
+      for (const oh of result.obstaclesHit) {
+        let snd = null;
+        if (oh.type === OBSTACLE.ICE_1 || oh.type === OBSTACLE.ICE_2) snd = 'iceBreak';
+        else if (oh.type === OBSTACLE.STONE) snd = 'stoneBreak';
+        else if (oh.type === OBSTACLE.CHAIN) snd = 'chainBreak';
+        if (snd && !played.has(snd)) { playSound(snd); played.add(snd); }
+      }
+      S.progress.totalObstaclesBroken = (S.progress.totalObstaclesBroken || 0) + result.obstaclesHit.filter(o => o.destroyed).length;
+      S.progress.totalIceBreak = (S.progress.totalIceBreak || 0) + result.obstaclesHit.filter(o => (o.type === OBSTACLE.ICE_1 || o.type === OBSTACLE.ICE_2) && o.destroyed).length;
     }
 
     // Combo text
@@ -1575,7 +1615,23 @@ async function endLevel() {
 
     // DDA update
     if (INTEL) {
-      INTEL.updateAfterLevel(p, S.score, S.maxCombo, elapsed, S.movesLeft);
+      INTEL.updateAfterLevel(p, S.score, S.maxCombo, elapsed, S.movesLeft, {
+        won: true,
+        worldIdx: S.currentWorld,
+        levelIdx: S.currentLevel,
+        hintsUsed: S._hintsUsedCount || 0,
+      });
+    }
+  } else {
+    // DDA update on LOSS too — critical for difficulty adjustment
+    if (INTEL) {
+      INTEL.updateAfterLevel(S.progress, S.score, S.maxCombo, elapsed, 0, {
+        won: false,
+        worldIdx: S.currentWorld,
+        levelIdx: S.currentLevel,
+        hintsUsed: S._hintsUsedCount || 0,
+      });
+      saveProgress(S.progress);
     }
   }
 
@@ -1804,6 +1860,30 @@ function renderDoneScreen() {
     playSound('tap');
   });
   btnsEl.appendChild(replayBtn);
+
+  // Skip level after 5+ failures (non-boss, non-daily)
+  if (!won && !S.isDailyChallenge && S.currentLevel < 9) {
+    const levelKey = `${S.currentWorld}-${S.currentLevel}`;
+    const attempts = S.progress._dda?.levelAttempts?.[levelKey] || 0;
+    if (attempts >= 5) {
+      const skipBtn = document.createElement('button');
+      skipBtn.className = 'btn';
+      skipBtn.style.cssText = 'background:rgba(251,191,36,0.2);border:1px solid rgba(251,191,36,0.5);color:#fbbf24';
+      skipBtn.textContent = t('skipLevel');
+      skipBtn.addEventListener('click', () => {
+        // Grant 1 star so level counts as passed
+        const p = S.progress;
+        if (!p.worlds[S.currentWorld]) p.worlds[S.currentWorld] = { scores: {}, stars: {} };
+        p.worlds[S.currentWorld].stars[S.currentLevel] = Math.max(p.worlds[S.currentWorld].stars[S.currentLevel] || 0, 1);
+        p.levelsCompleted++;
+        saveProgress(p);
+        S.currentLevel++;
+        showScreen('game');
+        playSound('tap');
+      });
+      btnsEl.appendChild(skipBtn);
+    }
+  }
 
   const menuBtn = document.createElement('button');
   menuBtn.className = 'btn';
@@ -2164,12 +2244,22 @@ function renderStatsScreen() {
     try {
       const breakdown = REPORTS.getWorldBreakdown(p);
       if (breakdown && breakdown.length > 0) {
-        const nameKey = LANG === 'pt' ? 'pt' : LANG === 'ar' ? 'ar' : 'en';
-        const names = WORLD_NAMES[nameKey] || WORLD_NAMES.en;
+        const names = WORLD_NAMES[LANG] || WORLD_NAMES.en;
         worldHTML = `<div class="stats-card" style="margin-top:8px"><h3>🌍 ${t('worlds')}</h3>`;
         for (const wb of breakdown) {
-          const pct = wb.stars > 0 ? Math.round((wb.stars / 30) * 100) : 0;
-          worldHTML += `<div class="stats-row"><span class="stats-label">${WORLD_ICONS[wb.world] || '💎'} ${names[wb.world] || 'World ' + (wb.world + 1)}</span><span class="stats-value">⭐ ${wb.stars}/30</span></div>`;
+          const pct = wb.starsPct || 0;
+          const lockIcon = wb.isUnlocked ? '' : '🔒 ';
+          worldHTML += `<div class="stats-row"><span class="stats-label">${wb.icon} ${lockIcon}${wb.name}</span><span class="stats-value">${wb.status} ⭐${wb.stars}/30</span></div>`;
+          // Per-level star details for unlocked worlds with progress
+          if (wb.isUnlocked && wb.levelsComplete > 0) {
+            let levelDetail = '<div style="padding:0 12px 4px;font-size:0.8em;opacity:0.8">';
+            for (let l = 0; l < 10; l++) {
+              const s = p?.worlds?.[wb.worldIdx]?.stars?.[l] || 0;
+              levelDetail += `<span style="margin-right:6px">${l + 1}:${'⭐'.repeat(s)}${'☆'.repeat(3 - s)}</span>`;
+            }
+            levelDetail += '</div>';
+            worldHTML += levelDetail;
+          }
         }
         worldHTML += `</div>`;
       }
@@ -2180,8 +2270,7 @@ function renderStatsScreen() {
   let leaderHTML = '';
   const lb = getLocalLeaderboard();
   if (lb.length > 0) {
-    const nameKey = LANG === 'pt' ? 'pt' : LANG === 'ar' ? 'ar' : 'en';
-    const names = WORLD_NAMES[nameKey] || WORLD_NAMES.en;
+    const names = WORLD_NAMES[LANG] || WORLD_NAMES.en;
     leaderHTML = `<div class="stats-card" style="margin-top:8px"><h3>🏅 ${t('highScore')}</h3>`;
     for (const entry of lb) {
       leaderHTML += `<div class="stats-row"><span class="stats-label">${WORLD_ICONS[entry.world] || '💎'} ${names[entry.world] || 'W' + (entry.world + 1)}</span><span class="stats-value">${entry.score} ${'⭐'.repeat(entry.stars)}</span></div>`;
@@ -2526,6 +2615,14 @@ function saveUndoState() {
 function undoLastMove() {
   if (!S.undoStack || S.undoStack.length === 0) return;
   const u = S.undoStack.pop();
+  // Capture old positions for undo animation
+  const oldPositions = {};
+  for (let r = 0; r < S.rows; r++) {
+    for (let c = 0; c < S.cols; c++) {
+      const gem = S.grid[r]?.[c];
+      if (gem) oldPositions[gem.id] = { x: gem._drawX, y: gem._drawY };
+    }
+  }
   S.grid = u.grid;
   S.score = u.score;
   S.movesLeft = u.movesLeft;
@@ -2539,6 +2636,23 @@ function undoLastMove() {
   S.undoState = S.undoStack.length > 0 ? S.undoStack[S.undoStack.length - 1] : null;
   S.phase = 'idle';
   setupGemDrawPositions();
+  // Animate gems sliding to restored positions
+  for (let r = 0; r < S.rows; r++) {
+    for (let c = 0; c < S.cols; c++) {
+      const gem = S.grid[r]?.[c];
+      if (gem) {
+        const old = oldPositions[gem.id];
+        const targetX = gem._drawX;
+        const targetY = gem._drawY;
+        if (old) {
+          gem._drawX = old.x;
+          gem._drawY = old.y;
+        }
+        addTween(gem, '_drawX', gem._drawX, targetX, 200, 'easeOut');
+        addTween(gem, '_drawY', gem._drawY, targetY, 200, 'easeOut');
+      }
+    }
+  }
   updateGameHUD();
   const undoBtn = qs('#g-undo');
   if (undoBtn) {

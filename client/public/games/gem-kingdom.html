@@ -88,6 +88,8 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',Tahoma,G
 .lc.current{border-color:#fbbf24;box-shadow:0 5px 0 rgba(251,191,36,.3),0 0 16px rgba(251,191,36,.4);animation:glow 2s ease-in-out infinite}
 .lc.boss{border-color:#ef4444;background:linear-gradient(145deg,rgba(239,68,68,.3),rgba(220,38,38,.15));box-shadow:0 5px 0 rgba(239,68,68,.3),0 0 16px rgba(239,68,68,.3)}
 .lc.mini-boss{border-color:#f59e0b;background:linear-gradient(145deg,rgba(245,158,11,.3),rgba(217,119,6,.15))}
+.lc.improvable{border-color:#38bdf8;box-shadow:0 5px 0 rgba(56,189,248,.3),0 0 12px rgba(56,189,248,.3);animation:improvePulse 2.5s ease-in-out infinite}
+@keyframes improvePulse{0%,100%{box-shadow:0 5px 0 rgba(56,189,248,.3),0 0 12px rgba(56,189,248,.2)}50%{box-shadow:0 5px 0 rgba(56,189,248,.4),0 0 20px rgba(56,189,248,.4)}}
 .lc-num{font-size:clamp(18px,4vmin,26px);font-weight:900;color:#fff;text-shadow:0 2px 6px rgba(0,0,0,.3)}
 .lc-emoji{font-size:clamp(24px,5.5vmin,36px);margin:2px 0;filter:drop-shadow(0 2px 3px rgba(0,0,0,.2))}
 .lc-stars{font-size:clamp(12px,2.4vmin,16px);margin-top:2px}

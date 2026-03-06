@@ -451,9 +451,10 @@ export function processMatches(grid, rows, cols) {
       if (n.row >= 0 && n.row < rows && n.col >= 0 && n.col < cols) {
         const ng = grid[n.row][n.col];
         if (ng && ng.obstacle !== OBSTACLE.NONE && !removedSet.has(`${n.row},${n.col}`)) {
+          const origType = ng.obstacle;
           const hit = damageObstacle(ng);
           if (hit) {
-            obstaclesHit.push({ row: n.row, col: n.col, type: ng.obstacle, destroyed: ng.obstacle === OBSTACLE.NONE });
+            obstaclesHit.push({ row: n.row, col: n.col, type: origType, destroyed: ng.obstacle === OBSTACLE.NONE });
             score += SCORING.OBSTACLE_BREAK;
           }
         }
@@ -463,8 +464,9 @@ export function processMatches(grid, rows, cols) {
     // Handle the matched gem's own obstacle
     const gem = grid[r][c];
     if (gem && gem.obstacle !== OBSTACLE.NONE) {
+      const origType = gem.obstacle;
       damageObstacle(gem);
-      obstaclesHit.push({ row: r, col: c, type: gem.obstacle, destroyed: gem.obstacle === OBSTACLE.NONE });
+      obstaclesHit.push({ row: r, col: c, type: origType, destroyed: gem.obstacle === OBSTACLE.NONE });
       score += SCORING.OBSTACLE_BREAK;
     }
   }
@@ -587,14 +589,21 @@ export function spawnNewGems(grid, rows, cols, gemCount, spawnBias = 0) {
 
   // Build frequency map of current types on grid for bias
   let weights = null;
-  if (spawnBias < 0) {
+  if (spawnBias !== 0) {
     const freq = new Array(gemCount).fill(0);
     for (let r = 0; r < rows; r++)
       for (let c = 0; c < cols; c++)
         if (grid[r][c] && grid[r][c].type >= 0 && grid[r][c].type < gemCount)
           freq[grid[r][c].type]++;
     const total = freq.reduce((a, b) => a + b, 0) || 1;
-    weights = freq.map(f => f / total + 0.05); // slight floor so no type has 0 chance
+    if (spawnBias < 0) {
+      // Negative bias: favour existing types (easier matches)
+      weights = freq.map(f => f / total + 0.05);
+    } else {
+      // Positive bias: favour rare types (harder, more variety)
+      const invFreq = freq.map(f => 1 - f / total + 0.05);
+      weights = invFreq;
+    }
     const wTotal = weights.reduce((a, b) => a + b, 0);
     weights = weights.map(w => w / wTotal);
   }
@@ -716,11 +725,12 @@ export function shuffleGrid(grid, rows, cols) {
   shuffle(types);
   movable.forEach((gem, i) => { gem.type = types[i]; });
 
-  // Make sure there are valid moves after shuffle
-  if (!hasValidMoves(grid, rows, cols)) {
-    // Try again
+  // Retry up to 10 times to ensure valid moves exist
+  let retries = 0;
+  while (!hasValidMoves(grid, rows, cols) && retries < 10) {
     shuffle(types);
     movable.forEach((gem, i) => { gem.type = types[i]; });
+    retries++;
   }
 }
 

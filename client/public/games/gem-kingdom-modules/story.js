@@ -1,7 +1,7 @@
 /**
  * Gem Kingdom — story.js
  * Story dialogs, mascot conversations, "Did You Know?" educational facts
- * and quiz bonus system — all in 3 languages (ar/en/pt)
+ * and quiz bonus system — supports all 25 languages (falls back to en)
  *
  * Exports: getWorldIntro(worldIdx), getRandomFact(worldIdx), getQuiz(worldIdx)
  */
@@ -210,10 +210,34 @@ const INTROS = {
       'Prove que você é um verdadeiro herói e derrote o Rei das Sombras! 👑',
     ],
   ],
+  es: [
+    ['¡Bienvenido al Bosque Frutal! 🍎', 'Soy el guardián de este bosque mágico', '¡Aprende a combinar frutas iguales!', 'Desliza las gemas para intercambiarlas y hacer grupos de 3 o más', '¡Comencemos la aventura! 🌟'],
+    ['¡Bienvenido a las Profundidades del Océano! 🐠', 'Aquí encontrarás hielo cubriendo algunas gemas', '¡Haz combinaciones junto al hielo para romperlo!', 'Cuanto más profundo, más difícil 🌊'],
+    ['¡Bienvenido al Valle de los Colores! 🌈', 'Algunas gemas están encadenadas aquí', '¡Combina una gema encadenada para liberarla!', '¡Hermosos colores te esperan! 🎨'],
+    ['¡Bienvenido al Safari Animal! 🦁', '¡Cuidado con las rocas duras!', 'Las rocas no se mueven, pero puedes romperlas con golpes repetidos', '¡Crea gemas especiales poderosas para destruir obstáculos! ⚡'],
+    ['¡Bienvenido a la Estación Espacial! 🚀', 'Aquí enfrentarás casillas oscuras', '¡Haz combinaciones sobre casillas oscuras para iluminarlas!', '¡Explora el espacio y colecciona estrellas! ⭐'],
+    ['¡Bienvenido a la Sala de Música! 🎵', '¡Cuidado con las bombas temporizadas! 💣', '¡Debes desactivar las bombas antes de que exploten!', 'Haz combinaciones junto a ellas para desactivarlas a tiempo ⏰'],
+    ['¡Bienvenido a la Tierra de los Dulces! 🍬', '¡Aquí encontrarás portales mágicos y cintas transportadoras!', '¡Los portales teletransportan gemas, las cintas las mueven!', '¡Usa estas mecánicas a tu favor! 🎪'],
+    ['¡Bienvenido al Laboratorio de Elementos! 🧪', '¡Las sombras se expanden y cubren más celdas!', '¡Los candados impiden que las gemas se muevan!', '¡Usa poderes especiales para superarlos! 🔬'],
+    ['¡Bienvenido a la Biblioteca Mágica! 📚', '¡Algunas gemas están atrapadas en jaulas!', '¡Muévelas al fondo del tablero para liberarlas!', '¡El conocimiento es poder! 📖'],
+    ['¡Bienvenido al Palacio de Diamantes! 💎', '¡Este es el desafío final y más difícil!', '¡Enfrentarás todos los tipos de obstáculos juntos!', '¡Demuestra que eres un verdadero héroe y derrota al Rey de las Sombras! 👑'],
+  ],
+  fr: [
+    ['Bienvenue dans la Forêt des Fruits ! 🍎', 'Je suis le gardien de cette forêt magique', 'Apprends à associer des fruits similaires !', 'Glisse les gemmes pour les échanger et faire des groupes de 3 ou plus', "C'est parti pour l'aventure ! 🌟"],
+    ['Bienvenue dans les Profondeurs de l\'Océan ! 🐠', 'Tu trouveras de la glace recouvrant certaines gemmes', 'Fais des combinaisons à côté de la glace pour la briser !', 'Plus on descend, plus c\'est difficile 🌊'],
+    ['Bienvenue dans la Vallée des Couleurs ! 🌈', 'Certaines gemmes sont enchaînées ici', 'Associe une gemme enchaînée pour la libérer !', 'De belles couleurs t\'attendent ! 🎨'],
+    ['Bienvenue au Safari Animal ! 🦁', 'Attention aux rochers durs !', 'Les rochers ne bougent pas, mais tu peux les briser avec des coups répétés', 'Crée des gemmes spéciales puissantes pour détruire les obstacles ! ⚡'],
+    ['Bienvenue à la Station Spatiale ! 🚀', 'Tu affronteras des cases sombres ici', 'Fais des combinaisons sur les cases sombres pour les éclairer !', 'Explore l\'espace et collecte des étoiles ! ⭐'],
+    ['Bienvenue au Hall de la Musique ! 🎵', 'Attention aux bombes à retardement ! 💣', 'Tu dois désamorcer les bombes avant qu\'elles n\'explosent !', 'Fais des combinaisons à côté pour les désactiver à temps ⏰'],
+    ['Bienvenue au Pays des Bonbons ! 🍬', 'Tu trouveras des portails magiques et des tapis roulants ici !', 'Les portails téléportent les gemmes, les tapis les déplacent !', 'Utilise ces mécanismes à ton avantage ! 🎪'],
+    ['Bienvenue au Laboratoire des Éléments ! 🧪', 'Les ombres s\'étendent et couvrent plus de cellules !', 'Les cadenas empêchent les gemmes de bouger !', 'Utilise des pouvoirs spéciaux pour les surmonter ! 🔬'],
+    ['Bienvenue à la Bibliothèque Magique ! 📚', 'Certaines gemmes sont piégées dans des cages !', 'Déplace-les vers le bas du plateau pour les libérer !', 'Le savoir est le pouvoir ! 📖'],
+    ['Bienvenue au Palais de Diamant ! 💎', 'C\'est le défi final et le plus difficile !', 'Tu affronteras tous les types d\'obstacles ensemble !', 'Prouve que tu es un vrai héros et bats le Roi des Ombres ! 👑'],
+  ],
 };
 
 // ===== DID YOU KNOW? — Educational Facts =====
-// 10 facts per world × 3 languages = 300 facts total
+// 10 facts per world, content available in ar/en/pt (others fall back to en)
 const FACTS = {
   ar: [
     // World 0: Fruit Forest — Fruit & Nature facts
@@ -777,11 +801,11 @@ const QUIZZES = {
 // ===== PUBLIC API =====
 
 export function getWorldIntro(worldIdx) {
-  const lang = LANG === 'ar' ? 'ar' : LANG === 'pt' ? 'pt' : 'en';
+  const lang = INTROS[LANG] ? LANG : 'en';
   const lines = INTROS[lang]?.[worldIdx];
   if (!lines) return null;
 
-  const nameKey = LANG === 'ar' ? 'ar' : LANG === 'pt' ? 'pt' : 'en';
+  const nameKey = WORLD_MASCOT_NAMES?.[LANG] ? LANG : (WORLD_MASCOT_NAMES?.en ? 'en' : 'ar');
   return {
     mascot: WORLD_MASCOTS[worldIdx],
     name: (WORLD_MASCOT_NAMES?.[nameKey]?.[worldIdx]) || '',
@@ -790,14 +814,14 @@ export function getWorldIntro(worldIdx) {
 }
 
 export function getRandomFact(worldIdx) {
-  const lang = LANG === 'ar' ? 'ar' : LANG === 'pt' ? 'pt' : 'en';
+  const lang = FACTS[LANG] ? LANG : 'en';
   const worldFacts = FACTS[lang]?.[worldIdx];
   if (!worldFacts || worldFacts.length === 0) return null;
   return worldFacts[Math.floor(Math.random() * worldFacts.length)];
 }
 
 export function getQuiz(worldIdx) {
-  const lang = LANG === 'ar' ? 'ar' : LANG === 'pt' ? 'pt' : 'en';
+  const lang = QUIZZES[LANG] ? LANG : 'en';
   const quizzes = QUIZZES[lang]?.[worldIdx];
   if (!quizzes || quizzes.length === 0) return null;
   return quizzes[Math.floor(Math.random() * quizzes.length)];
