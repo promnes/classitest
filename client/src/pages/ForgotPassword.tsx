@@ -313,17 +313,20 @@ export const ForgotPassword = (): JSX.Element => {
             {error && <p className="text-red-500 text-sm text-center" data-testid="text-error">{error}</p>}
             {success && <p className="text-green-500 text-sm text-center" data-testid="text-success">{success}</p>}
 
-            <button
-              type="submit"
-              disabled={isPending}
-              className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 rounded-lg transition-all disabled:opacity-50"
-              data-testid="button-submit"
-            >
-              {isPending ? t("forgotPassword.processing") : 
-               step === "email" ? t("forgotPassword.sendOtp") :
-               step === "otp" ? t("forgotPassword.verifyOtp") :
-               t("forgotPassword.changePassword")}
-            </button>
+            {step !== "otp" && (
+              <button
+                type="submit"
+                disabled={isPending}
+                className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 rounded-lg transition-all disabled:opacity-50"
+                data-testid="button-submit"
+              >
+                {isPending
+                  ? t("forgotPassword.processing")
+                  : step === "email"
+                    ? t("forgotPassword.sendOtp")
+                    : t("forgotPassword.changePassword")}
+              </button>
+            )}
           </form>
 
           {step !== "email" && (
