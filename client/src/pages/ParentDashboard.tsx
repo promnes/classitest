@@ -487,14 +487,14 @@ export const ParentDashboard = (): JSX.Element => {
       setGeneratedPartnerCode(data.code || "");
       setGeneratedPartnerCodeExpiresAt(data.expiresAt || null);
       toast({
-        title: isRTL ? "تم إنشاء كود الربط" : "Link code created",
-        description: isRTL ? "أرسل الكود لزوجتك لطلب ربط الحساب" : "Send this code to your spouse to request linking.",
+        title: t("parentDashboard.spouseLinkToastCreatedTitle"),
+        description: t("parentDashboard.spouseLinkToastCreatedDesc"),
       });
     },
     onError: (err: any) => {
       toast({
-        title: isRTL ? "فشل إنشاء الكود" : "Failed to create code",
-        description: extractErrorMessage(err) || (isRTL ? "حاول مرة أخرى" : "Please try again"),
+        title: t("parentDashboard.spouseLinkToastCreateFailed"),
+        description: extractErrorMessage(err) || t("parentDashboard.spouseLinkToastTryAgain"),
         variant: "destructive",
       });
     },
@@ -508,18 +508,16 @@ export const ParentDashboard = (): JSX.Element => {
     onSuccess: () => {
       setPartnerLinkCodeInput("");
       toast({
-        title: isRTL ? "تم إرسال الطلب" : "Request sent",
-        description: isRTL
-          ? "تم إرسال طلب الربط. في انتظار موافقة ولي الأمر الأساسي."
-          : "Link request sent. Waiting for the primary parent approval.",
+        title: t("parentDashboard.spouseLinkToastRequestSent"),
+        description: t("parentDashboard.spouseLinkToastRequestSentDesc"),
       });
       queryClient.invalidateQueries({ queryKey: ["/api/parent/notifications"] });
       queryClient.invalidateQueries({ queryKey: ["/api/parent/notifications/unread-count"] });
     },
     onError: (err: any) => {
       toast({
-        title: isRTL ? "تعذر إرسال الطلب" : "Request failed",
-        description: extractErrorMessage(err) || (isRTL ? "تحقق من الكود ثم أعد المحاولة" : "Check the code and try again"),
+        title: t("parentDashboard.spouseLinkToastRequestFailed"),
+        description: extractErrorMessage(err) || t("parentDashboard.spouseLinkToastCheckCode"),
         variant: "destructive",
       });
     },
@@ -655,24 +653,22 @@ export const ParentDashboard = (): JSX.Element => {
     if (!generatedPartnerCode) return;
     navigator.clipboard.writeText(generatedPartnerCode);
     toast({
-      title: isRTL ? "تم نسخ الكود" : "Code copied",
-      description: isRTL ? "شارك الكود مع زوجتك" : "Share this code with your spouse",
+      title: t("parentDashboard.spouseLinkToastCodeCopied"),
+      description: t("parentDashboard.spouseLinkToastShareCode"),
     });
   };
 
   const sharePartnerCodeOnWhatsApp = () => {
     if (!generatedPartnerCode) {
       toast({
-        title: isRTL ? "لا يوجد كود" : "No code yet",
-        description: isRTL ? "أنشئ كود الربط أولًا" : "Generate a link code first",
+        title: t("parentDashboard.spouseLinkToastNoCode"),
+        description: t("parentDashboard.spouseLinkToastGenerateFirst"),
         variant: "destructive",
       });
       return;
     }
 
-    const text = isRTL
-      ? `هذا كود ربط حسابك مع أطفالنا في Classify: ${generatedPartnerCode}`
-      : `This is your Classify spouse-link code: ${generatedPartnerCode}`;
+    const text = `${t("parentDashboard.spouseLinkWhatsappShareText")} ${generatedPartnerCode}`;
     const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
     window.open(url, "_blank", "noopener,noreferrer");
   };
@@ -927,7 +923,7 @@ export const ParentDashboard = (): JSX.Element => {
             </button>
             {/* School Dropdown */}
             {showSchoolDropdown && (
-              <div className={`absolute top-full mt-2 ${isRTL ? "right-0" : "left-0"} w-64 rounded-xl border shadow-2xl z-50 overflow-hidden ${isDark ? "bg-gray-900 border-gray-700" : "bg-white border-gray-200"}`}>
+              <div className={`absolute top-full mt-2 ${isRTL ? "right-0" : "left-0"} w-[min(16rem,calc(100vw-2rem))] sm:w-64 rounded-xl border shadow-2xl z-50 overflow-hidden ${isDark ? "bg-gray-900 border-gray-700" : "bg-white border-gray-200"}`}>
                 <div className={`px-3 py-2 border-b ${isDark ? "border-gray-700" : "border-gray-100"}`}>
                   <p className={`text-xs font-bold ${isDark ? "text-gray-400" : "text-gray-500"}`}>🏫 {t('parentDashboard.followedSchools', 'المدارس المتابَعة')}</p>
                 </div>
@@ -942,7 +938,7 @@ export const ParentDashboard = (): JSX.Element => {
                         navigate(`/school/${s.entityId}`);
                         setShowSchoolDropdown(false);
                       }}
-                      className={`w-full text-right px-3 py-2.5 flex items-center gap-3 transition-colors ${isDark ? "text-gray-200 hover:bg-gray-800" : "text-gray-700 hover:bg-blue-50"}`}
+                      className={`w-full ${isRTL ? "text-right" : "text-left"} px-3 py-2.5 flex items-center gap-3 transition-colors ${isDark ? "text-gray-200 hover:bg-gray-800" : "text-gray-700 hover:bg-blue-50"}`}
                     >
                       {s.entityImage ? (
                         <img src={s.entityImage} alt="" className="h-8 w-8 rounded-lg object-cover" />
@@ -975,7 +971,7 @@ export const ParentDashboard = (): JSX.Element => {
             </button>
             {/* Teacher Dropdown */}
             {showTeacherDropdown && (
-              <div className={`absolute top-full mt-2 ${isRTL ? "right-0" : "left-0"} w-64 rounded-xl border shadow-2xl z-50 overflow-hidden ${isDark ? "bg-gray-900 border-gray-700" : "bg-white border-gray-200"}`}>
+              <div className={`absolute top-full mt-2 ${isRTL ? "right-0" : "left-0"} w-[min(16rem,calc(100vw-2rem))] sm:w-64 rounded-xl border shadow-2xl z-50 overflow-hidden ${isDark ? "bg-gray-900 border-gray-700" : "bg-white border-gray-200"}`}>
                 <div className={`px-3 py-2 border-b ${isDark ? "border-gray-700" : "border-gray-100"}`}>
                   <p className={`text-xs font-bold ${isDark ? "text-gray-400" : "text-gray-500"}`}>👨‍🏫 {t('parentDashboard.followedTeachers', 'المعلمون المتابَعون')}</p>
                 </div>
@@ -990,7 +986,7 @@ export const ParentDashboard = (): JSX.Element => {
                         navigate(`/teacher/${t.entityId}`);
                         setShowTeacherDropdown(false);
                       }}
-                      className={`w-full text-right px-3 py-2.5 flex items-center gap-3 transition-colors ${isDark ? "text-gray-200 hover:bg-gray-800" : "text-gray-700 hover:bg-purple-50"}`}
+                      className={`w-full ${isRTL ? "text-right" : "text-left"} px-3 py-2.5 flex items-center gap-3 transition-colors ${isDark ? "text-gray-200 hover:bg-gray-800" : "text-gray-700 hover:bg-purple-50"}`}
                     >
                       {t.entityImage ? (
                         <img src={t.entityImage} alt="" className="h-8 w-8 rounded-full object-cover" />
@@ -1227,94 +1223,6 @@ export const ParentDashboard = (): JSX.Element => {
                     <QrCode className="h-4 w-4" />
                     {t('parentDashboard.showQRCode')}
                   </Button>
-
-                  <div className={`rounded-xl border p-4 space-y-4 ${isDark ? "bg-gray-800/60 border-gray-700" : "bg-blue-50 border-blue-200"}`}>
-                    {showPartnerLinkTip && (
-                      <div className={`rounded-lg border p-3 ${isDark ? "bg-blue-900/30 border-blue-800 text-blue-100" : "bg-blue-100 border-blue-300 text-blue-900"}`}>
-                        <div className="flex items-start justify-between gap-3">
-                          <p className="text-xs leading-5 font-medium">
-                            {isRTL
-                              ? "ميزة جديدة: يمكنك الآن ربط حساب الزوج/الزوجة مباشرة من هنا. ابدأ بإنشاء الكود ثم شاركه."
-                              : "New: You can now link your spouse account directly from here. Start by generating and sharing a code."}
-                          </p>
-                          <Button variant="ghost" size="sm" onClick={dismissPartnerLinkTip} className="h-7 px-2 text-xs" data-testid="button-dismiss-partner-link-tip">
-                            {isRTL ? "فهمت" : "Got it"}
-                          </Button>
-                        </div>
-                      </div>
-                    )}
-
-                    <div className="flex items-center gap-2">
-                      <KeyRound className="h-4 w-4 text-blue-500" />
-                      <p className={`text-sm font-bold ${isDark ? "text-white" : "text-gray-900"}`}>
-                        {isRTL ? "ربط حساب الزوج/الزوجة" : "Link spouse account"}
-                      </p>
-                    </div>
-
-                    <ol className={`text-xs space-y-1 ${isDark ? "text-gray-300" : "text-gray-700"}`}>
-                      <li>{isRTL ? "1) الأب الأساسي ينشئ كود ربط ويرسله للزوج/الزوجة." : "1) Primary parent generates a link code and shares it."}</li>
-                      <li>{isRTL ? "2) الزوج/الزوجة تدخل الكود وتضغط إرسال الطلب." : "2) Spouse enters the code and sends a request."}</li>
-                      <li>{isRTL ? "3) الأب الأساسي يوافق من الإشعارات لإتمام الربط." : "3) Primary parent approves the request from notifications."}</li>
-                    </ol>
-
-                    <Button
-                      onClick={() => generatePartnerLinkCodeMutation.mutate()}
-                      className="w-full gap-2"
-                      disabled={generatePartnerLinkCodeMutation.isPending}
-                      data-testid="button-generate-partner-link-code"
-                    >
-                      <KeyRound className="h-4 w-4" />
-                      {generatePartnerLinkCodeMutation.isPending
-                        ? (isRTL ? "جاري إنشاء الكود..." : "Generating code...")
-                        : (isRTL ? "أنا الأب الأساسي: إنشاء كود للزوجة" : "I am primary parent: generate spouse code")}
-                    </Button>
-
-                    {generatedPartnerCode && (
-                      <div className={`rounded-lg p-3 border ${isDark ? "bg-gray-900 border-gray-700" : "bg-white border-blue-200"}`}>
-                        <p className={`text-xs mb-2 ${isDark ? "text-gray-400" : "text-gray-600"}`}>
-                          {isRTL ? "كود الربط للزوج/الزوجة" : "Spouse link code"}
-                        </p>
-                        <div className="flex items-center gap-2">
-                          <code className="flex-1 text-base font-mono font-bold tracking-wider text-blue-500">{generatedPartnerCode}</code>
-                          <Button variant="outline" size="sm" onClick={copyGeneratedPartnerCode} data-testid="button-copy-partner-link-code">
-                            {isRTL ? "نسخ" : "Copy"}
-                          </Button>
-                          <Button variant="outline" size="sm" onClick={sharePartnerCodeOnWhatsApp} data-testid="button-share-partner-link-code-whatsapp">
-                            {isRTL ? "واتساب" : "WhatsApp"}
-                          </Button>
-                        </div>
-                        {generatedPartnerCodeExpiresAt && (
-                          <p className={`text-[11px] mt-2 ${isDark ? "text-gray-500" : "text-gray-500"}`}>
-                            {isRTL ? "ينتهي في:" : "Expires at:"} {new Date(generatedPartnerCodeExpiresAt).toLocaleString()}
-                          </p>
-                        )}
-                      </div>
-                    )}
-
-                    <div className="space-y-2">
-                      <label className={`text-xs font-medium ${isDark ? "text-gray-300" : "text-gray-700"}`}>
-                        {isRTL ? "أنا الزوج/الزوجة: أدخل كود الربط" : "I am spouse: enter link code"}
-                      </label>
-                      <div className="flex gap-2">
-                        <input
-                          value={partnerLinkCodeInput}
-                          onChange={(e) => setPartnerLinkCodeInput(e.target.value.toUpperCase())}
-                          placeholder={isRTL ? "مثال: A1B2C3D4E5" : "Example: A1B2C3D4E5"}
-                          className={`flex-1 px-3 py-2 rounded-lg border text-sm ${isDark ? "bg-gray-900 border-gray-700 text-white" : "bg-white border-gray-300 text-gray-900"}`}
-                          data-testid="input-partner-link-code"
-                        />
-                        <Button
-                          onClick={() => syncWithPartnerCodeMutation.mutate(partnerLinkCodeInput.trim())}
-                          disabled={!partnerLinkCodeInput.trim() || syncWithPartnerCodeMutation.isPending}
-                          data-testid="button-submit-partner-link-code"
-                        >
-                          {syncWithPartnerCodeMutation.isPending
-                            ? (isRTL ? "إرسال..." : "Sending...")
-                            : (isRTL ? "إرسال" : "Send")}
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
                 </CardContent>
               </Card>
 
@@ -1352,6 +1260,103 @@ export const ParentDashboard = (): JSX.Element => {
                       <span className="text-xs">{t('parentDashboard.subjects')}</span>
                     </Button>
                   </div>
+
+                  <div dir={isRTL ? "rtl" : "ltr"} className={`mt-3 rounded-xl border p-4 space-y-4 ${isDark ? "bg-gray-800/60 border-gray-700" : "bg-blue-50 border-blue-200"}`}>
+                    {showPartnerLinkTip && (
+                      <div className={`rounded-lg border p-3 ${isDark ? "bg-blue-900/30 border-blue-800 text-blue-100" : "bg-blue-100 border-blue-300 text-blue-900"}`}>
+                        <div className="flex items-start justify-between gap-3">
+                          <p className="text-xs leading-5 font-medium">
+                            {t("parentDashboard.spouseLinkTip")}
+                          </p>
+                          <Button variant="ghost" size="sm" onClick={dismissPartnerLinkTip} className="h-7 px-2 text-xs" data-testid="button-dismiss-partner-link-tip">
+                            {t("parentDashboard.spouseLinkDismiss")}
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="flex items-center gap-2">
+                      <KeyRound className="h-4 w-4 text-blue-500" />
+                      <p className={`text-sm font-bold ${isDark ? "text-white" : "text-gray-900"}`}>
+                        {t("parentDashboard.spouseLinkTitle")}
+                      </p>
+                    </div>
+
+                    <ol className={`text-xs space-y-1 ${isDark ? "text-gray-300" : "text-gray-700"}`}>
+                      <li>{t("parentDashboard.spouseLinkStep1")}</li>
+                      <li>{t("parentDashboard.spouseLinkStep2")}</li>
+                      <li>{t("parentDashboard.spouseLinkStep3")}</li>
+                    </ol>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                      <div className={`rounded-lg border p-3 space-y-3 ${isDark ? "bg-gray-900 border-gray-700" : "bg-white border-blue-200"}`}>
+                        <p className={`text-xs font-semibold ${isDark ? "text-gray-300" : "text-gray-700"}`}>
+                          {t("parentDashboard.spouseLinkPrimaryTitle")}
+                        </p>
+                        <Button
+                          onClick={() => generatePartnerLinkCodeMutation.mutate()}
+                          className="w-full gap-2"
+                          disabled={generatePartnerLinkCodeMutation.isPending}
+                          data-testid="button-generate-partner-link-code"
+                        >
+                          <KeyRound className="h-4 w-4" />
+                          {generatePartnerLinkCodeMutation.isPending
+                            ? t("parentDashboard.spouseLinkGenerating")
+                            : t("parentDashboard.spouseLinkGeneratePrimary")}
+                        </Button>
+
+                        {generatedPartnerCode && (
+                          <div className={`rounded-lg p-3 border ${isDark ? "bg-gray-950 border-gray-700" : "bg-blue-50 border-blue-200"}`}>
+                            <p className={`text-xs mb-2 ${isDark ? "text-gray-400" : "text-gray-600"}`}>
+                              {t("parentDashboard.spouseLinkCodeLabel")}
+                            </p>
+                            <div className={`flex flex-col sm:flex-row gap-2 ${isRTL ? "sm:flex-row-reverse" : ""}`}>
+                              <code className="flex-1 text-base font-mono font-bold tracking-wider text-blue-500 break-all">{generatedPartnerCode}</code>
+                              <Button variant="outline" size="sm" onClick={copyGeneratedPartnerCode} data-testid="button-copy-partner-link-code">
+                                {t("parentDashboard.spouseLinkCopy")}
+                              </Button>
+                              <Button variant="outline" size="sm" onClick={sharePartnerCodeOnWhatsApp} data-testid="button-share-partner-link-code-whatsapp">
+                                {t("parentDashboard.spouseLinkWhatsApp")}
+                              </Button>
+                            </div>
+                            {generatedPartnerCodeExpiresAt && (
+                              <p className={`text-[11px] mt-2 ${isDark ? "text-gray-500" : "text-gray-500"}`}>
+                                {t("parentDashboard.spouseLinkExpiresAt")} {new Date(generatedPartnerCodeExpiresAt).toLocaleString()}
+                              </p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className={`rounded-lg border p-3 space-y-2 ${isDark ? "bg-gray-900 border-gray-700" : "bg-white border-blue-200"}`}>
+                        <label className={`text-xs font-semibold ${isDark ? "text-gray-300" : "text-gray-700"}`}>
+                          {t("parentDashboard.spouseLinkSecondaryTitle")}
+                        </label>
+                        <label className={`text-xs font-medium ${isDark ? "text-gray-300" : "text-gray-700"}`}>
+                          {t("parentDashboard.spouseLinkInputLabel")}
+                        </label>
+                        <div className={`flex flex-col sm:flex-row gap-2 ${isRTL ? "sm:flex-row-reverse" : ""}`}>
+                          <input
+                            value={partnerLinkCodeInput}
+                            onChange={(e) => setPartnerLinkCodeInput(e.target.value.toUpperCase())}
+                            placeholder={t("parentDashboard.spouseLinkInputPlaceholder")}
+                            className={`flex-1 px-3 py-2 rounded-lg border text-sm ${isDark ? "bg-gray-900 border-gray-700 text-white" : "bg-white border-gray-300 text-gray-900"}`}
+                            data-testid="input-partner-link-code"
+                          />
+                          <Button
+                            onClick={() => syncWithPartnerCodeMutation.mutate(partnerLinkCodeInput.trim())}
+                            disabled={!partnerLinkCodeInput.trim() || syncWithPartnerCodeMutation.isPending}
+                            data-testid="button-submit-partner-link-code"
+                          >
+                            {syncWithPartnerCodeMutation.isPending
+                              ? t("parentDashboard.spouseLinkSending")
+                              : t("parentDashboard.spouseLinkSend")}
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
                   <Button 
                     onClick={() => navigate("/task-marketplace")} 
                     className="w-full mt-3 h-auto py-3 gap-2 bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600"
