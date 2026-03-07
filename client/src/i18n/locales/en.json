@@ -3919,6 +3919,16 @@
     "allRightsReserved": "All rights reserved."
   },
   "childProgress": {
+    "back": "Back",
+    "speedLevel": "Speed Level",
+    "pointsPerDay": "point/day",
+    "completedTask": "Completed Task",
+    "totalPoints": "Total Points",
+    "streak": "Streak",
+    "level": "Level",
+    "progress": "Progress",
+    "weeklyChart": "Weekly Chart",
+    "monthlyChart": "Monthly Chart",
     "points": "Points",
     "giftsReceived": "Gifts Received",
     "days": "Days",

@@ -1,9 +1,9 @@
 import type { Express } from "express";
 import { storage } from "../storage";
-import { 
-  products, 
-  productCategories, 
-  parentPurchases, 
+import {
+  products,
+  productCategories,
+  parentPurchases,
   parentPurchaseItems,
   parentOwnedProducts,
   gifts,
@@ -23,8 +23,10 @@ import {
 import { eq, and, or, desc, asc, sql, isNull } from "drizzle-orm";
 import { authMiddleware, adminMiddleware } from "./middleware";
 import { createNotification, notifyChildProductAssigned } from "../notifications";
+import { emitGiftEvent } from "../giftEvents";
 import { checkoutLimiter, publicApiLimiter } from "../utils/rateLimiters";
 import { errorResponse, ErrorCode } from "../utils/apiResponse";
+import { NOTIFICATION_TYPES } from "../../shared/notificationTypes";
 
 const db = storage.db;
 
@@ -73,7 +75,7 @@ export async function registerStoreRoutes(app: Express) {
           isNull(paymentMethods.parentId),
           eq(paymentMethods.isActive, true)
         ));
-      
+
       res.json({ success: true, data: methods });
     } catch (error: any) {
       console.error("Get public payment methods error:", error);
@@ -98,7 +100,7 @@ export async function registerStoreRoutes(app: Express) {
           isNull(paymentMethods.parentId),
           eq(paymentMethods.isActive, true)
         ));
-      
+
       res.json({ success: true, data: methods });
     } catch (error: any) {
       console.error("Get store payment methods error:", error);
@@ -113,7 +115,7 @@ export async function registerStoreRoutes(app: Express) {
         .from(productCategories)
         .where(eq(productCategories.isActive, true))
         .orderBy(asc(productCategories.sortOrder));
-      
+
       res.json({ success: true, data: categories });
     } catch (error: any) {
       console.error("Get categories error:", error);
@@ -125,7 +127,7 @@ export async function registerStoreRoutes(app: Express) {
     try {
       const { categoryId, search, sort = "featured" } = req.query;
       const parentId = req.user?.parentId || req.user?.userId;
-      
+
       // Fetch regular products
       const regularProducts = await db
         .select({
@@ -150,18 +152,18 @@ export async function registerStoreRoutes(app: Express) {
         })
         .from(products)
         .where(and(eq(products.isActive, true), isNull(products.parentId)));
-      
+
       // Map regular products to StoreProduct format with discount info
       const mappedRegularProducts: StoreProduct[] = regularProducts.map((p: typeof regularProducts[number]) => ({
         ...p,
-        discountPercent: p.originalPrice && parseFloat(p.originalPrice) > parseFloat(p.price) 
+        discountPercent: p.originalPrice && parseFloat(p.originalPrice) > parseFloat(p.price)
           ? Math.round((1 - parseFloat(p.price) / parseFloat(p.originalPrice)) * 100)
           : 0,
         isLibraryProduct: false,
         libraryId: null,
         libraryName: null,
       }));
-      
+
       // Fetch library products with library info
       const libProducts = await db
         .select({
@@ -182,15 +184,15 @@ export async function registerStoreRoutes(app: Express) {
           eq(libraryProducts.isActive, true),
           eq(libraries.isActive, true)
         ));
-      
+
       // Map library products to StoreProduct format
       const mappedLibProducts: StoreProduct[] = libProducts.map((lp: typeof libProducts[number]) => {
         const originalPrice = lp.price;
-        const discountedPrice = lp.discountPercent > 0 
+        const discountedPrice = lp.discountPercent > 0
           ? (parseFloat(lp.price) * (1 - lp.discountPercent / 100)).toFixed(2)
           : lp.price;
         const pointsPrice = Math.round(parseFloat(discountedPrice) * 10); // 10 points per currency unit
-        
+
         return {
           id: lp.id,
           name: lp.title,
@@ -216,13 +218,13 @@ export async function registerStoreRoutes(app: Express) {
           libraryName: lp.libraryName,
         };
       });
-      
+
       // Combine all products
       let allProducts: StoreProduct[] = [...mappedRegularProducts, ...mappedLibProducts];
-      
+
       // Filter by stock
       let filteredProducts = allProducts.filter(p => p.stock > 0);
-      
+
       if (categoryId) {
         // When filtering by a main category, also include products in its subcategories
         const subcategoryIds = await db.select({ id: productCategories.id })
@@ -231,10 +233,10 @@ export async function registerStoreRoutes(app: Express) {
         const matchIds = new Set([categoryId as string, ...subcategoryIds.map((s: { id: string }) => s.id)]);
         filteredProducts = filteredProducts.filter((p: StoreProduct) => p.categoryId && matchIds.has(p.categoryId));
       }
-      
+
       if (search) {
         const searchLower = (search as string).toLowerCase();
-        filteredProducts = filteredProducts.filter((p: StoreProduct) => 
+        filteredProducts = filteredProducts.filter((p: StoreProduct) =>
           p.name.toLowerCase().includes(searchLower) ||
           (p.nameAr && p.nameAr.toLowerCase().includes(searchLower)) ||
           (p.description && p.description.toLowerCase().includes(searchLower)) ||
@@ -242,7 +244,7 @@ export async function registerStoreRoutes(app: Express) {
           (p.libraryName && p.libraryName.toLowerCase().includes(searchLower))
         );
       }
-      
+
       switch (sort) {
         case "price_asc":
           filteredProducts.sort((a: StoreProduct, b: StoreProduct) => parseFloat(a.price) - parseFloat(b.price));
@@ -266,7 +268,7 @@ export async function registerStoreRoutes(app: Express) {
           });
           break;
       }
-      
+
       res.json({ success: true, data: filteredProducts });
     } catch (error: any) {
       console.error("Get products error:", error);
@@ -290,30 +292,30 @@ export async function registerStoreRoutes(app: Express) {
 
       type CheckoutItem =
         | {
-            kind: "regular";
-            quantity: number;
-            unitPrice: number;
-            subtotal: number;
-            regularProduct: typeof products.$inferSelect;
-          }
+          kind: "regular";
+          quantity: number;
+          unitPrice: number;
+          subtotal: number;
+          regularProduct: typeof products.$inferSelect;
+        }
         | {
-            kind: "library";
-            quantity: number;
-            unitPrice: number;
-            subtotal: number;
-            libraryProduct: {
-              id: string;
-              libraryId: string;
-              title: string;
-              description: string | null;
-              imageUrl: string | null;
-              price: string;
-              discountPercent: number;
-              stock: number;
-              libraryName: string;
-              commissionRatePct: string;
-            };
+          kind: "library";
+          quantity: number;
+          unitPrice: number;
+          subtotal: number;
+          libraryProduct: {
+            id: string;
+            libraryId: string;
+            title: string;
+            description: string | null;
+            imageUrl: string | null;
+            price: string;
+            discountPercent: number;
+            stock: number;
+            libraryName: string;
+            commissionRatePct: string;
           };
+        };
 
       const checkoutItems: CheckoutItem[] = [];
 
@@ -421,7 +423,7 @@ export async function registerStoreRoutes(app: Express) {
             totalAmount: computedTotal.toFixed(2),
             currency: "EGP",
             paymentStatus: paymentMethodId === "wallet" ? "paid" : "pending",
-            invoiceNumber: `INV-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`,  
+            invoiceNumber: `INV-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`,
           })
           .returning();
 
@@ -561,9 +563,9 @@ export async function registerStoreRoutes(app: Express) {
                   referralCode
                     ? eq(libraryReferrals.referralCode, String(referralCode))
                     : or(
-                        eq(libraryReferrals.referredParentId, parentId),
-                        isNull(libraryReferrals.referredParentId)
-                      )
+                      eq(libraryReferrals.referredParentId, parentId),
+                      isNull(libraryReferrals.referredParentId)
+                    )
                 )
               )
               .orderBy(desc(libraryReferrals.createdAt))
@@ -613,10 +615,10 @@ export async function registerStoreRoutes(app: Express) {
         return createdPurchase;
       });
 
-      res.json({ 
-        success: true, 
+      res.json({
+        success: true,
         message: "Purchase completed successfully",
-        purchaseId: purchase.id 
+        purchaseId: purchase.id
       });
     } catch (error: any) {
       if (error.message === "INSUFFICIENT_BALANCE") {
@@ -631,8 +633,9 @@ export async function registerStoreRoutes(app: Express) {
     try {
       const { productId, childId, requiredPoints } = req.body;
       const parentId = req.user?.parentId || req.user?.userId;
+      const requiredPointsNum = Number.parseInt(String(requiredPoints), 10);
 
-      if (!productId || !childId || !requiredPoints) {
+      if (!productId || !childId || Number.isNaN(requiredPointsNum) || requiredPointsNum <= 0) {
         return res.status(400).json({ message: "Missing required fields" });
       }
 
@@ -654,21 +657,53 @@ export async function registerStoreRoutes(app: Express) {
         return res.status(404).json({ message: "Child not found" });
       }
 
+      const childCurrentPoints = Number(child[0].totalPoints || 0);
+      const initialGiftStatus = childCurrentPoints >= requiredPointsNum ? "UNLOCKED" : "SENT";
+
       const [gift] = await db.insert(gifts).values({
         parentId,
         childId,
         productId,
-        pointsThreshold: requiredPoints,
-        status: "SENT",
-        message: `هدية جديدة: ${product[0].nameAr || product[0].name}! اجمع ${requiredPoints} نقطة للحصول عليها!`,
+        pointsThreshold: requiredPointsNum,
+        status: initialGiftStatus,
+        message:
+          initialGiftStatus === "UNLOCKED"
+            ? `هدية جديدة: ${product[0].nameAr || product[0].name}! يمكنك تفعيلها الآن.`
+            : `هدية جديدة: ${product[0].nameAr || product[0].name}! اجمع ${requiredPointsNum} نقطة للحصول عليها!`,
       }).returning();
 
-      await notifyChildProductAssigned(childId, productId, requiredPoints);
+      if (initialGiftStatus === "UNLOCKED") {
+        await createNotification({
+          childId,
+          type: NOTIFICATION_TYPES.GIFT_UNLOCKED,
+          title: "🎉 هديتك جاهزة الآن!",
+          message: `أصبحت هدية "${product[0].nameAr || product[0].name}" جاهزة للتفعيل`,
+          relatedId: gift.id,
+          metadata: {
+            productId,
+            pointsThreshold: requiredPointsNum,
+            currentPoints: childCurrentPoints,
+          },
+        });
 
-      res.json({ 
-        success: true, 
+        emitGiftEvent({
+          type: "gift.unlocked",
+          giftId: gift.id,
+          parentId,
+          childId,
+          productId,
+          timestamp: new Date(),
+          metadata: { pointsThreshold: requiredPointsNum, currentPoints: childCurrentPoints },
+        });
+      } else {
+        await notifyChildProductAssigned(childId, productId, requiredPointsNum);
+      }
+
+      res.json({
+        success: true,
         message: "Product assigned successfully",
-        giftId: gift.id 
+        giftId: gift.id,
+        status: initialGiftStatus,
       });
     } catch (error: any) {
       console.error("Assign product error:", error);
@@ -679,7 +714,7 @@ export async function registerStoreRoutes(app: Express) {
   app.get("/api/parent/owned-products", authMiddleware, async (req: any, res) => {
     try {
       const parentId = req.user?.parentId || req.user?.userId;
-      
+
       const owned = await db
         .select({
           id: parentOwnedProducts.id,

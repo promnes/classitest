@@ -3897,6 +3897,16 @@
     "footerGreeting": "Olá {{name}} 👋"
   },
   "childProgress": {
+    "back": "Voltar",
+    "speedLevel": "Nível de Velocidade",
+    "pointsPerDay": "ponto/dia",
+    "completedTask": "Tarefa Concluída",
+    "totalPoints": "Pontos Totais",
+    "streak": "Sequência",
+    "level": "Nível",
+    "progress": "Progresso",
+    "weeklyChart": "Gráfico Semanal",
+    "monthlyChart": "Gráfico Mensal",
     "points": "Pontos",
     "giftsReceived": "Presentes Recebidos",
     "days": "Dias",

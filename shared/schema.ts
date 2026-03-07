@@ -289,6 +289,9 @@ export const parentChild = pgTable("parent_child", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   parentId: varchar("parent_id").notNull().references(() => parents.id, { onDelete: "cascade" }),
   childId: varchar("child_id").notNull().references(() => children.id, { onDelete: "cascade" }),
+  relationshipRole: varchar("relationship_role", { length: 30 }).default("owner").notNull(), // owner | co_guardian | viewer
+  linkSource: varchar("link_source", { length: 30 }).default("manual").notNull(), // manual | approved_request
+  linkedByParentId: varchar("linked_by_parent_id").references(() => parents.id, { onDelete: "set null" }),
   linkedAt: timestamp("linked_at").defaultNow().notNull(),
 }, (table) => ({
   uniqueParentChild: sql`UNIQUE (${table.parentId}, ${table.childId})`,
@@ -1619,11 +1622,11 @@ export const insertChildPurchaseRequestSchema = createInsertSchema(childPurchase
 export type ChildPurchaseRequest = typeof childPurchaseRequests.$inferSelect;
 export type InsertChildPurchaseRequest = z.infer<typeof insertChildPurchaseRequestSchema>;
 
-export const insertLibrarySchema = createInsertSchema(libraries).omit({ 
-  id: true, createdAt: true, updatedAt: true, activityScore: true, totalProducts: true, totalSales: true 
+export const insertLibrarySchema = createInsertSchema(libraries).omit({
+  id: true, createdAt: true, updatedAt: true, activityScore: true, totalProducts: true, totalSales: true
 });
-export const insertLibraryProductSchema = createInsertSchema(libraryProducts).omit({ 
-  id: true, createdAt: true, updatedAt: true 
+export const insertLibraryProductSchema = createInsertSchema(libraryProducts).omit({
+  id: true, createdAt: true, updatedAt: true
 });
 
 export type Library = typeof libraries.$inferSelect;
@@ -1761,60 +1764,60 @@ export const seoSettings = pgTable("seo_settings", {
   siteTitle: text("site_title").default("Classify — تطبيق تعليمي للأطفال مع رقابة أبوية").notNull(),
   siteDescription: text("site_description").default("أفضل تطبيق تعليمي للأطفال من 6-17 سنة. ألعاب تعليمية تفاعلية مع نظام رقابة أبوية كامل وتحكم في وقت الشاشة.").notNull(),
   keywords: text("keywords").default("تطبيق تعليمي للأطفال, رقابة أبوية, ألعاب تعليمية, التحكم في وقت الشاشة, تطبيق أطفال آمن, مهام ومكافآت").notNull(),
-  
+
   // Open Graph
   ogTitle: text("og_title"),
   ogDescription: text("og_description"),
   ogImage: text("og_image"),
   ogType: varchar("og_type", { length: 50 }).default("website"),
-  
+
   // Twitter Card
   twitterCard: varchar("twitter_card", { length: 50 }).default("summary_large_image"),
   twitterSite: text("twitter_site"),
   twitterCreator: text("twitter_creator"),
-  
+
   // Robots & Crawlers
   robotsIndex: boolean("robots_index").default(true).notNull(),
   robotsFollow: boolean("robots_follow").default(true).notNull(),
   robotsNoarchive: boolean("robots_noarchive").default(false).notNull(),
   googlebot: text("googlebot"), // custom googlebot directives
   bingbot: text("bingbot"), // custom bingbot directives
-  
+
   // AI Crawlers Control
   allowGPTBot: boolean("allow_gpt_bot").default(false).notNull(),
   allowClaudeBot: boolean("allow_claude_bot").default(false).notNull(),
   allowGoogleAI: boolean("allow_google_ai").default(false).notNull(),
-  
+
   // Sitemap
   sitemapEnabled: boolean("sitemap_enabled").default(true).notNull(),
   sitemapChangefreq: varchar("sitemap_changefreq", { length: 20 }).default("weekly"),
   sitemapPriority: decimal("sitemap_priority", { precision: 2, scale: 1 }).default("0.8"),
-  
+
   // Schema.org / Structured Data
   schemaOrgType: varchar("schema_org_type", { length: 50 }).default("SoftwareApplication"),
   schemaOrgName: text("schema_org_name"),
   schemaOrgDescription: text("schema_org_description"),
   schemaOrgLogo: text("schema_org_logo"),
-  
+
   // Analytics
   googleAnalyticsId: text("google_analytics_id"),
   googleTagManagerId: text("google_tag_manager_id"),
   facebookPixelId: text("facebook_pixel_id"),
-  
+
   // Canonical & Language
   canonicalUrl: text("canonical_url"),
   defaultLanguage: varchar("default_language", { length: 10 }).default("ar"),
-  hreflangTags: json("hreflang_tags").$type<Array<{lang: string, url: string}>>(),
-  
+  hreflangTags: json("hreflang_tags").$type<Array<{ lang: string, url: string }>>(),
+
   // PWA
   themeColor: varchar("theme_color", { length: 7 }).default("#6B4D9D"),
   manifestName: text("manifest_name"),
   manifestShortName: text("manifest_short_name"),
-  
+
   // Custom Head Injection
   customHeadCode: text("custom_head_code"), // for custom scripts in <head>
   customBodyCode: text("custom_body_code"), // for custom scripts before </body>
-  
+
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
   updatedBy: varchar("updated_by").references(() => parents.id),
 });
@@ -1830,49 +1833,49 @@ export type InsertSeoSettings = z.infer<typeof insertSeoSettingsSchema>;
 // ===== Support Settings (إعدادات الدعم الفني) =====
 export const supportSettings = pgTable("support_settings", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  
+
   // Contact Information
   supportEmail: text("support_email").default("support@classify.app").notNull(),
   supportPhone: text("support_phone"),
   supportPhoneAlt: text("support_phone_alt"), // رقم بديل
   whatsappNumber: text("whatsapp_number"),
   telegramUsername: text("telegram_username"),
-  
+
   // Social Media
   facebookUrl: text("facebook_url"),
   twitterUrl: text("twitter_url"),
   instagramUrl: text("instagram_url"),
   linkedinUrl: text("linkedin_url"),
   youtubeUrl: text("youtube_url"),
-  
+
   // Working Hours
   workingHoursStart: varchar("working_hours_start", { length: 10 }).default("09:00"),
   workingHoursEnd: varchar("working_hours_end", { length: 10 }).default("17:00"),
   workingDays: text("working_days").default("الأحد - الخميس"), // e.g., "Sun-Thu"
   timezone: varchar("timezone", { length: 50 }).default("Asia/Riyadh"),
-  
+
   // Display Messages
   emergencyMessage: text("emergency_message"), // رسالة طوارئ تظهر للجميع
   maintenanceMode: boolean("maintenance_mode").default(false).notNull(),
   maintenanceMessage: text("maintenance_message").default("التطبيق تحت الصيانة، نعود قريباً"),
-  
+
   // Error Page Settings
   errorPageTitle: text("error_page_title").default("حدث خطأ غير متوقع"),
   errorPageMessage: text("error_page_message").default("نأسف على هذا الخطأ. يرجى التواصل مع الدعم الفني."),
   showContactOnError: boolean("show_contact_on_error").default(true).notNull(),
-  
+
   // FAQ / Help
   faqUrl: text("faq_url"),
   helpCenterUrl: text("help_center_url"),
   privacyPolicyUrl: text("privacy_policy_url"),
   termsOfServiceUrl: text("terms_of_service_url"),
-  
+
   // Address (for legal/business purposes)
   companyName: text("company_name").default("Classify"),
   companyAddress: text("company_address"),
   companyCity: text("company_city"),
   companyCountry: text("company_country").default("المملكة العربية السعودية"),
-  
+
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
   updatedBy: varchar("updated_by").references(() => parents.id),
 });

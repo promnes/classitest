@@ -3922,6 +3922,16 @@
     "allRightsReserved": "جميع الحقوق محفوظة."
   },
   "childProgress": {
+    "back": "رجوع",
+    "speedLevel": "مستوى السرعة",
+    "pointsPerDay": "نقطة/يوم",
+    "completedTask": "مهمة منجزة",
+    "totalPoints": "إجمالي النقاط",
+    "streak": "متتالية",
+    "level": "المستوى",
+    "progress": "التقدم",
+    "weeklyChart": "الرسم الأسبوعي",
+    "monthlyChart": "الرسم الشهري",
     "points": "نقطة",
     "giftsReceived": "هدية مستلمة",
     "days": "يوم",

@@ -647,60 +647,66 @@ export default function ParentTasks() {
   );
 
   return (
-    <div className={`min-h-screen p-4 ${isDark ? "bg-gray-900 text-white" : "bg-gray-50"}`}>
-      <div className="max-w-4xl mx-auto space-y-6">
-        <div className="flex items-center gap-4">
+    <div className={`min-h-screen px-3 py-4 sm:p-4 ${isDark ? "bg-gray-900 text-white" : "bg-gray-50"}`}>
+      <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6">
+        <div className={`flex items-center flex-wrap gap-2 sm:gap-3 p-3 rounded-2xl border ${isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"}`}>
           <Button variant="ghost" size="icon" onClick={() => window.history.length > 1 ? window.history.back() : navigate("/parent-dashboard")} data-testid="back-button">
             <ArrowRight className="h-5 w-5" />
           </Button>
-          <h1 className="text-2xl font-bold">{t("parentTasks.tasksSection")}</h1>
-          <Badge variant="outline" className="mr-auto text-sm px-3 py-1">
+          <h1 className="text-xl sm:text-2xl font-bold leading-none">{t("parentTasks.tasksSection")}</h1>
+          <div className="mr-auto flex items-center gap-2">
+            <LanguageSelector />
+            <ParentNotificationBell />
+          </div>
+          <Badge variant="outline" className="text-sm px-3 py-1.5 rounded-xl border">
             <Wallet className="h-4 w-4 ml-1" />
             {t("parentTasks.balanceLabel")} {walletBalance}
           </Badge>
-          <LanguageSelector />
-          <ParentNotificationBell />
         </div>
 
-        <div className="flex gap-3 items-center flex-wrap">
-          <Select value={selectedSubject} onValueChange={setSelectedSubject}>
-            <SelectTrigger className="w-48" data-testid="select-subject">
+        <div className={`p-3 rounded-2xl border relative z-20 ${isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"}`}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[220px_auto_auto_1fr] gap-2.5 items-center">
+            <Select value={selectedSubject} onValueChange={setSelectedSubject}>
+              <SelectTrigger className="w-full" data-testid="select-subject">
               <SelectValue placeholder={t("parentTasks.selectSubject")} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">{t("parentTasks.allSubjects")}</SelectItem>
-              {subjects.map((s: any) => (
-                <SelectItem key={s.id} value={s.id}>
-                  {s.emoji} {s.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+              </SelectTrigger>
+              <SelectContent className="z-[70]">
+                <SelectItem value="all">{t("parentTasks.allSubjects")}</SelectItem>
+                {subjects.map((s: any) => (
+                  <SelectItem key={s.id} value={s.id}>
+                    {s.emoji} {s.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
-          <Button 
-            variant="outline" 
-            onClick={() => setShowScheduledTasks(true)}
-            data-testid="view-scheduled-tasks"
-          >
-            <Clock className="h-4 w-4 ml-2" />
-            {t("parentTasks.scheduledTasks")}
-          </Button>
+            <Button 
+              variant="outline"
+              className="h-10"
+              onClick={() => setShowScheduledTasks(true)}
+              data-testid="view-scheduled-tasks"
+            >
+              <Clock className="h-4 w-4 ml-2" />
+              {t("parentTasks.scheduledTasks")}
+            </Button>
 
-          <ScheduledSessionsManager />
+            <div className="h-10 flex items-center">
+              <ScheduledSessionsManager />
+            </div>
 
-          <Dialog open={showCreateDialog} onOpenChange={(open) => {
-            setShowCreateDialog(open);
-            if (!open) {
-              setSelectedChildForCreate("");
-              setSaveAsTemplate(false);
-            }
-          }}>
-            <DialogTrigger asChild>
-              <Button data-testid="create-task-button">
-                <Plus className="h-4 w-4 ml-2" />
-                {t("parentTasks.createNewTask")}
-              </Button>
-            </DialogTrigger>
+            <Dialog open={showCreateDialog} onOpenChange={(open) => {
+              setShowCreateDialog(open);
+              if (!open) {
+                setSelectedChildForCreate("");
+                setSaveAsTemplate(false);
+              }
+            }}>
+              <DialogTrigger asChild>
+                <Button data-testid="create-task-button" className="h-10">
+                  <Plus className="h-4 w-4 ml-2" />
+                  {t("parentTasks.createNewTask")}
+                </Button>
+              </DialogTrigger>
             <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>{t("parentTasks.createNewTask")}</DialogTitle>
@@ -759,28 +765,29 @@ export default function ParentTasks() {
                 submitLabel={selectedChildForCreate ? t("parentTasks.createAndSend") : t("parentTasks.createTask")}
               />
             </DialogContent>
-          </Dialog>
+            </Dialog>
+          </div>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-4 lg:grid-cols-7">
-            <TabsTrigger value="classy" data-testid="tab-classy">
+          <TabsList className="w-full h-auto p-1.5 rounded-2xl border border-gray-200 dark:border-gray-700 bg-background flex items-center gap-1 overflow-x-auto justify-start">
+            <TabsTrigger value="classy" data-testid="tab-classy" className="shrink-0 whitespace-nowrap">
               <BookOpen className="h-4 w-4 ml-2" />
               {t("parentTasks.tabClassy")}
             </TabsTrigger>
-            <TabsTrigger value="my" data-testid="tab-my">
+            <TabsTrigger value="my" data-testid="tab-my" className="shrink-0 whitespace-nowrap">
               <Star className="h-4 w-4 ml-2" />
               {t("parentTasks.tabMy")}
             </TabsTrigger>
-            <TabsTrigger value="library" data-testid="tab-library">
+            <TabsTrigger value="library" data-testid="tab-library" className="shrink-0 whitespace-nowrap">
               <Library className="h-4 w-4 ml-2" />
               {t("parentTasks.tabLibrary")}
             </TabsTrigger>
-            <TabsTrigger value="public" data-testid="tab-public">
+            <TabsTrigger value="public" data-testid="tab-public" className="shrink-0 whitespace-nowrap">
               <Users className="h-4 w-4 ml-2" />
               {t("parentTasks.tabPublic")}
             </TabsTrigger>
-            <TabsTrigger value="marketplace" data-testid="tab-marketplace" className="relative">
+            <TabsTrigger value="marketplace" data-testid="tab-marketplace" className="relative shrink-0 whitespace-nowrap">
               <Sparkles className="h-4 w-4 ml-2" />
               {t("parentTasks.tabMarketplace")}
               {cartCount > 0 && (
@@ -789,7 +796,7 @@ export default function ParentTasks() {
                 </span>
               )}
             </TabsTrigger>
-            <TabsTrigger value="help" data-testid="tab-help" className="relative">
+            <TabsTrigger value="help" data-testid="tab-help" className="relative shrink-0 whitespace-nowrap">
               <HelpCircle className="h-4 w-4 ml-2" />
               طلبات المساعدة
               {parentHelpRequests.filter((r: any) => r.status === "active").length > 0 && (
@@ -798,7 +805,7 @@ export default function ParentTasks() {
                 </span>
               )}
             </TabsTrigger>
-            <TabsTrigger value="assignments" data-testid="tab-assignments" className="relative">
+            <TabsTrigger value="assignments" data-testid="tab-assignments" className="relative shrink-0 whitespace-nowrap">
               <UserPlus className="h-4 w-4 ml-2" />
               طلباتي للمعلمين
               {assignmentRequests.filter((r: any) => r.status === "pending").length > 0 && (

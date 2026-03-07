@@ -301,6 +301,9 @@ export async function registerParentRoutes(app: Express) {
       await db.insert(parentChild).values({
         parentId,
         childId: newChild.id,
+        relationshipRole: "owner",
+        linkSource: "manual",
+        linkedByParentId: parentId,
       });
 
       await db.insert(childGrowthTrees).values({
@@ -332,6 +335,10 @@ export async function registerParentRoutes(app: Express) {
 
       if (!link) {
         return res.status(403).json(errorResponse(ErrorCode.PARENT_CHILD_MISMATCH, "Child not linked to this parent"));
+      }
+
+      if (link.relationshipRole === "viewer") {
+        return res.status(403).json(errorResponse(ErrorCode.PARENT_CHILD_MISMATCH, "Viewer parent cannot edit child profile"));
       }
 
       const schema = z.object({
@@ -406,6 +413,10 @@ export async function registerParentRoutes(app: Express) {
 
       if (!link) {
         return res.status(403).json(errorResponse(ErrorCode.PARENT_CHILD_MISMATCH, "Child not linked to this parent"));
+      }
+
+      if (link.relationshipRole !== "owner") {
+        return res.status(403).json(errorResponse(ErrorCode.PARENT_CHILD_MISMATCH, "Only the owner parent can delete this child"));
       }
 
       const deleted = await db
@@ -1597,9 +1608,19 @@ export async function registerParentRoutes(app: Express) {
     try {
       const { id } = req.params;
       const { decision, rejectionReason, shippingAddress } = req.body;
+      const normalizedRejectionReason = typeof rejectionReason === "string" ? rejectionReason.trim() : "";
+      const normalizedShippingAddress = typeof shippingAddress === "string" ? shippingAddress.trim() : "";
 
       if (!decision || !["approve", "reject"].includes(decision)) {
         return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Decision must be 'approve' or 'reject'"));
+      }
+
+      if (decision === "reject" && !normalizedRejectionReason) {
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Rejection reason is required"));
+      }
+
+      if (decision === "approve" && !normalizedShippingAddress) {
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Shipping address is required for approval"));
       }
 
       // Get the request
@@ -1626,29 +1647,30 @@ export async function registerParentRoutes(app: Express) {
       }
 
       if (decision === "approve") {
-        if (!shippingAddress) {
-          return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Shipping address is required for approval"));
-        }
-
-        // Check if child still has enough points
-        if (child[0].totalPoints < request[0].pointsPrice) {
-          return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Child no longer has enough points"));
-        }
-
         let orderResult: typeof orders.$inferSelect[] = [];
         try {
           orderResult = await db.transaction(async (tx: any) => {
             const referralSettingsRows = await tx.select().from(libraryReferralSettings);
             const saleActivityPoints = referralSettingsRows[0]?.pointsPerSale ?? 10;
 
-            await applyPointsDelta(tx, {
-              childId: request[0].childId,
-              delta: -request[0].pointsPrice,
-              reason: "PURCHASE_DEBIT",
-              requestId: id,
-              minBalance: 0,
-              clampToMinBalance: false,
-            });
+            const walletUpdate = await tx
+              .update(parentWallet)
+              .set({
+                balance: sql`${parentWallet.balance} - ${request[0].pointsPrice}`,
+                totalSpent: sql`${parentWallet.totalSpent} + ${request[0].pointsPrice}`,
+                updatedAt: new Date(),
+              })
+              .where(
+                and(
+                  eq(parentWallet.parentId, req.user.userId),
+                  sql`${parentWallet.balance} >= ${request[0].pointsPrice}`
+                )
+              )
+              .returning({ balance: parentWallet.balance });
+
+            if (!walletUpdate[0]) {
+              throw new Error("INSUFFICIENT_PARENT_WALLET");
+            }
 
             const createdOrder = await tx
               .insert(orders)
@@ -1659,7 +1681,7 @@ export async function registerParentRoutes(app: Express) {
                 quantity: request[0].quantity,
                 pointsPrice: request[0].pointsPrice,
                 status: "processing",
-                shippingAddress,
+                shippingAddress: normalizedShippingAddress,
               })
               .returning();
 
@@ -1668,7 +1690,7 @@ export async function registerParentRoutes(app: Express) {
               .set({
                 status: "approved",
                 parentDecision: "approve",
-                shippingAddress,
+                shippingAddress: normalizedShippingAddress,
                 orderId: createdOrder[0].id,
                 decidedAt: new Date(),
               })
@@ -1768,8 +1790,8 @@ export async function registerParentRoutes(app: Express) {
             return createdOrder;
           });
         } catch (error: any) {
-          if (error?.message === "INSUFFICIENT_POINTS") {
-            return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Child no longer has enough points"));
+          if (error?.message === "INSUFFICIENT_PARENT_WALLET") {
+            return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Parent wallet balance is insufficient"));
           }
           if (error?.message === "LIBRARY_STOCK_UNAVAILABLE") {
             return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Library product is out of stock"));
@@ -1804,7 +1826,7 @@ export async function registerParentRoutes(app: Express) {
           .set({
             status: "rejected",
             parentDecision: "reject",
-            rejectionReason: rejectionReason || "Parent declined the purchase",
+            rejectionReason: normalizedRejectionReason,
             decidedAt: new Date()
           })
           .where(eq(childPurchaseRequests.id, id));
@@ -1815,11 +1837,11 @@ export async function registerParentRoutes(app: Express) {
           childId: request[0].childId,
           type: NOTIFICATION_TYPES.PURCHASE_REJECTED,
           title: "تم رفض طلبك",
-          message: rejectionReason || `تم رفض طلب شراء ${product[0].nameAr || product[0].name}`,
+          message: `تم رفض طلب شراء ${product[0].nameAr || product[0].name}: ${normalizedRejectionReason}`,
           metadata: {
             requestId: id,
             productId: request[0].productId,
-            reason: rejectionReason
+            reason: normalizedRejectionReason
           }
         });
 

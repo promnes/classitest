@@ -12,7 +12,7 @@ import {
   children,
   notifications
 } from "../../shared/schema";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and, sql, inArray } from "drizzle-orm";
 // Type declarations for `qrcode` are not present in the repo; silence TypeScript here
 // @ts-ignore
 import QRCode from "qrcode";
@@ -23,16 +23,44 @@ import { NOTIFICATION_TYPES, NOTIFICATION_STYLES } from "../../shared/notificati
 const router = Router();
 const db = storage.db;
 
+function getAuthenticatedParentId(req: any): string | null {
+  return req.user?.parentId || req.user?.userId || null;
+}
+
+async function resolvePrimaryParentId(childId: string): Promise<string | null> {
+  const ownerLink = await db
+    .select({ parentId: parentChild.parentId })
+    .from(parentChild)
+    .where(and(eq(parentChild.childId, childId), eq(parentChild.relationshipRole, "owner")))
+    .limit(1);
+
+  if (ownerLink[0]?.parentId) {
+    return ownerLink[0].parentId;
+  }
+
+  const fallback = await db
+    .select({ parentId: parentChild.parentId })
+    .from(parentChild)
+    .where(eq(parentChild.childId, childId))
+    .orderBy(parentChild.linkedAt)
+    .limit(1);
+
+  return fallback[0]?.parentId || null;
+}
+
 // ===== Parent-Child Linking APIs =====
 
 // POST: إنشاء رمز ربط للأب (لربط الطفل أو الأب الآخر)
 router.post("/parent/generate-linking-code", authMiddleware, parentLinkingLimiter, async (req, res) => {
   try {
-    const parentId = (req.user as any).parentId;
-    
+    const parentId = getAuthenticatedParentId(req);
+    if (!parentId) {
+      return res.status(401).json(errorResponse(ErrorCode.UNAUTHORIZED, "Unauthorized"));
+    }
+
     // إنشاء رمز عشوائي فريد
     let code = crypto.randomBytes(5).toString("hex").toUpperCase().slice(0, 10);
-    
+
     // التحقق من أن الرمز فريد
     let isUnique = false;
     while (!isUnique) {
@@ -40,22 +68,22 @@ router.post("/parent/generate-linking-code", authMiddleware, parentLinkingLimite
         .select()
         .from(parentChildLinkingCodes)
         .where(eq(parentChildLinkingCodes.code, code));
-      
+
       if (existing.length === 0) {
         isUnique = true;
       } else {
         code = crypto.randomBytes(5).toString("hex").toUpperCase().slice(0, 10);
       }
     }
-    
+
     // إنشاء QR code
     const deepLink = `${process.env.APP_URL || "https://classify.app"}/link?code=${code}`;
     const qrCodeUrl = await QRCode.toDataURL(deepLink);
-    
+
     // حفظ الرمز في قاعدة البيانات (ينتهي بعد 24 ساعة)
     const expiresAt = new Date();
     expiresAt.setHours(expiresAt.getHours() + 24);
-    
+
     const linkingCode = await db
       .insert(parentChildLinkingCodes)
       .values({
@@ -65,7 +93,7 @@ router.post("/parent/generate-linking-code", authMiddleware, parentLinkingLimite
         expiresAt
       })
       .returning();
-    
+
     res.status(201).json({
       success: true,
       data: {
@@ -77,19 +105,18 @@ router.post("/parent/generate-linking-code", authMiddleware, parentLinkingLimite
     });
   } catch (err) {
     console.error("Error generating linking code:", err);
-    res.status(500).json({
-      success: false,
-      error: "INTERNAL_ERROR",
-      message: "Failed to generate linking code"
-    });
+    res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to generate linking code"));
   }
 });
 
 // GET: الحصول على رموز الربط السارية للأب
 router.get("/parent/linking-codes", authMiddleware, async (req, res) => {
   try {
-    const parentId = (req.user as any).parentId;
-    
+    const parentId = getAuthenticatedParentId(req);
+    if (!parentId) {
+      return res.status(401).json(errorResponse(ErrorCode.UNAUTHORIZED, "Unauthorized"));
+    }
+
     const codes = await db
       .select()
       .from(parentChildLinkingCodes)
@@ -99,10 +126,10 @@ router.get("/parent/linking-codes", authMiddleware, async (req, res) => {
           eq(parentChildLinkingCodes.isUsed, false)
         )
       );
-    
+
     // فلترة الرموز غير المنتهية
     const activeCodes = codes.filter((c: any) => c.expiresAt && new Date() < c.expiresAt);
-    
+
     res.json({
       success: true,
       data: activeCodes,
@@ -110,11 +137,7 @@ router.get("/parent/linking-codes", authMiddleware, async (req, res) => {
     });
   } catch (err) {
     console.error("Error fetching linking codes:", err);
-    res.status(500).json({
-      success: false,
-      error: "INTERNAL_ERROR",
-      message: "Failed to fetch linking codes"
-    });
+    res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to fetch linking codes"));
   }
 });
 
@@ -122,8 +145,11 @@ router.get("/parent/linking-codes", authMiddleware, async (req, res) => {
 router.post("/parent/link-child", authMiddleware, parentLinkingLimiter, async (req, res) => {
   try {
     const { childId, code } = req.body;
-    const parentId = (req.user as any).parentId;
-    
+    const parentId = getAuthenticatedParentId(req);
+    if (!parentId) {
+      return res.status(401).json(errorResponse(ErrorCode.UNAUTHORIZED, "Unauthorized"));
+    }
+
     if (!childId || !code) {
       return res.status(400).json({
         success: false,
@@ -131,7 +157,7 @@ router.post("/parent/link-child", authMiddleware, parentLinkingLimiter, async (r
         message: "childId and code are required"
       });
     }
-    
+
     // SEC: Validate the linking code against the database
     const linkingCode = await db
       .select()
@@ -142,7 +168,7 @@ router.post("/parent/link-child", authMiddleware, parentLinkingLimiter, async (r
           eq(parentChildLinkingCodes.isUsed, false)
         )
       );
-    
+
     if (linkingCode.length === 0) {
       return res.status(400).json({
         success: false,
@@ -150,7 +176,7 @@ router.post("/parent/link-child", authMiddleware, parentLinkingLimiter, async (r
         message: "Invalid or expired linking code"
       });
     }
-    
+
     // SEC: Check if the code is expired
     if (linkingCode[0].expiresAt && new Date() > new Date(linkingCode[0].expiresAt)) {
       return res.status(400).json({
@@ -159,13 +185,13 @@ router.post("/parent/link-child", authMiddleware, parentLinkingLimiter, async (r
         message: "This linking code has expired"
       });
     }
-    
+
     // التحقق من أن الطفل موجود
     const child = await db
       .select()
       .from(children)
       .where(eq(children.id, childId));
-    
+
     if (child.length === 0) {
       return res.status(404).json({
         success: false,
@@ -173,7 +199,7 @@ router.post("/parent/link-child", authMiddleware, parentLinkingLimiter, async (r
         message: "Child not found"
       });
     }
-    
+
     // التحقق من الربط الموجود
     const existingLink = await db
       .select()
@@ -184,7 +210,7 @@ router.post("/parent/link-child", authMiddleware, parentLinkingLimiter, async (r
           eq(parentChild.childId, childId)
         )
       );
-    
+
     if (existingLink.length > 0) {
       return res.status(400).json({
         success: false,
@@ -192,23 +218,26 @@ router.post("/parent/link-child", authMiddleware, parentLinkingLimiter, async (r
         message: "Child is already linked to this parent"
       });
     }
-    
+
     // التحقق: هل الطفل مربوط بوالد آخر؟ إذا نعم → طلب موافقة
     const existingParentLinks = await db
       .select()
       .from(parentChild)
       .where(eq(parentChild.childId, childId));
-    
+
     if (existingParentLinks.length > 0) {
       // الطفل مربوط بوالد آخر → يحتاج موافقة الوالد الأول
-      const primaryParentId = existingParentLinks[0].parentId;
-      
+      const primaryParentId = await resolvePrimaryParentId(childId);
+      if (!primaryParentId) {
+        return res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Unable to resolve primary parent"));
+      }
+
       // الحصول على بيانات الوالد الطالب
       const requestingParent = await db
         .select({ id: parents.id, name: parents.name, email: parents.email })
         .from(parents)
         .where(eq(parents.id, parentId));
-      
+
       // التحقق من عدم وجود طلب معلق بالفعل
       const existingRequest = await db
         .select()
@@ -220,7 +249,7 @@ router.post("/parent/link-child", authMiddleware, parentLinkingLimiter, async (r
             eq(parentLinkRequests.status, "pending")
           )
         );
-      
+
       if (existingRequest.length > 0) {
         return res.status(400).json({
           success: false,
@@ -228,7 +257,7 @@ router.post("/parent/link-child", authMiddleware, parentLinkingLimiter, async (r
           message: "طلب ربط معلق بالفعل لهذا الطفل. في انتظار موافقة الوالد الأول."
         });
       }
-      
+
       // إنشاء طلب ربط معلق
       const linkRequest = await db
         .insert(parentLinkRequests)
@@ -239,7 +268,7 @@ router.post("/parent/link-child", authMiddleware, parentLinkingLimiter, async (r
           status: "pending",
         })
         .returning();
-      
+
       // إرسال إشعار للوالد الأول
       await createNotification({
         parentId: primaryParentId,
@@ -261,29 +290,32 @@ router.post("/parent/link-child", authMiddleware, parentLinkingLimiter, async (r
           linkingCodeId: linkingCode[0].id,
         },
       });
-      
+
       // تحديث رمز الربط
       await db
         .update(parentChildLinkingCodes)
         .set({ isUsed: true, usedByParentId: parentId, usedAt: new Date() })
         .where(eq(parentChildLinkingCodes.id, linkingCode[0].id));
-      
+
       return res.status(202).json({
         success: true,
         data: { status: "pending_approval", linkRequestId: linkRequest[0].id },
         message: "تم إرسال طلب الربط. في انتظار موافقة الوالد الأول."
       });
     }
-    
+
     // الطفل ليس مربوط بأي والد → ربط مباشر
     const newLink = await db
       .insert(parentChild)
       .values({
         parentId,
-        childId
+        childId,
+        relationshipRole: "owner",
+        linkSource: "manual",
+        linkedByParentId: parentId,
       })
       .returning();
-    
+
     // SEC: Mark the linking code as used
     await db
       .update(parentChildLinkingCodes)
@@ -293,7 +325,7 @@ router.post("/parent/link-child", authMiddleware, parentLinkingLimiter, async (r
         usedAt: new Date()
       })
       .where(eq(parentChildLinkingCodes.id, linkingCode[0].id));
-    
+
     res.status(201).json({
       success: true,
       data: newLink[0],
@@ -301,11 +333,7 @@ router.post("/parent/link-child", authMiddleware, parentLinkingLimiter, async (r
     });
   } catch (err) {
     console.error("Error linking child:", err);
-    res.status(500).json({
-      success: false,
-      error: "INTERNAL_ERROR",
-      message: "Failed to link child"
-    });
+    res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to link child"));
   }
 });
 
@@ -315,22 +343,23 @@ router.post("/parent/link-child", authMiddleware, parentLinkingLimiter, async (r
 router.post("/parent/sync-with-code", authMiddleware, parentLinkingLimiter, async (req, res) => {
   try {
     const { code } = req.body;
-    const secondaryParentId = (req.user as any).parentId;
-    
-    if (!code) {
-      return res.status(400).json({
-        success: false,
-        error: "INVALID_INPUT",
-        message: "code is required"
-      });
+    const secondaryParentId = getAuthenticatedParentId(req);
+    if (!secondaryParentId) {
+      return res.status(401).json(errorResponse(ErrorCode.UNAUTHORIZED, "Unauthorized"));
     }
-    
+
+    if (!code) {
+      return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "code is required"));
+    }
+
+    const normalizedCode = String(code).trim().toUpperCase();
+
     // البحث عن الرمز
     const linkingCode = await db
       .select()
       .from(parentChildLinkingCodes)
-      .where(eq(parentChildLinkingCodes.code, code));
-    
+      .where(eq(parentChildLinkingCodes.code, normalizedCode));
+
     if (linkingCode.length === 0 || linkingCode[0].isUsed) {
       return res.status(404).json({
         success: false,
@@ -338,7 +367,7 @@ router.post("/parent/sync-with-code", authMiddleware, parentLinkingLimiter, asyn
         message: "Code not found or already used"
       });
     }
-    
+
     // التحقق من انتهاء الرمز
     if (linkingCode[0].expiresAt && new Date() > linkingCode[0].expiresAt) {
       return res.status(400).json({
@@ -347,24 +376,20 @@ router.post("/parent/sync-with-code", authMiddleware, parentLinkingLimiter, asyn
         message: "Code has expired"
       });
     }
-    
+
     const primaryParentId = linkingCode[0].parentId;
-    
+
     // التحقق من أن الأبوين ليسا نفس الشخص
     if (primaryParentId === secondaryParentId) {
-      return res.status(400).json({
-        success: false,
-        error: "SAME_PARENT",
-        message: "Cannot sync with yourself"
-      });
+      return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Cannot sync with yourself"));
     }
-    
+
     // الحصول على بيانات الوالد الطالب
     const requestingParent = await db
       .select({ id: parents.id, name: parents.name, email: parents.email })
       .from(parents)
       .where(eq(parents.id, secondaryParentId));
-    
+
     if (requestingParent.length === 0) {
       return res.status(404).json({
         success: false,
@@ -372,15 +397,15 @@ router.post("/parent/sync-with-code", authMiddleware, parentLinkingLimiter, asyn
         message: "Requesting parent not found"
       });
     }
-    
+
     // الحصول على جميع أطفال الأب الأول
     const sharedChildren = await db
       .select()
       .from(parentChild)
       .where(eq(parentChild.parentId, primaryParentId));
-    
+
     const childrenIds = sharedChildren.map((pc: any) => pc.childId);
-    
+
     if (childrenIds.length === 0) {
       return res.status(400).json({
         success: false,
@@ -388,7 +413,7 @@ router.post("/parent/sync-with-code", authMiddleware, parentLinkingLimiter, asyn
         message: "Primary parent has no children to share"
       });
     }
-    
+
     // الحصول على أسماء الأطفال
     const childrenData = await db
       .select({ id: children.id, name: children.name })
@@ -396,9 +421,9 @@ router.post("/parent/sync-with-code", authMiddleware, parentLinkingLimiter, asyn
       .where(
         sql`${children.id} IN (${sql.join(childrenIds.map((id: string) => sql`${id}`), sql`,`)})`
       );
-    
+
     const childrenNames = childrenData.map((c: any) => c.name).join("، ");
-    
+
     // إنشاء طلبات ربط معلقة لكل طفل
     const linkRequestIds: string[] = [];
     for (const childId of childrenIds) {
@@ -413,11 +438,11 @@ router.post("/parent/sync-with-code", authMiddleware, parentLinkingLimiter, asyn
             eq(parentLinkRequests.status, "pending")
           )
         );
-      
+
       if (existingRequest.length > 0) {
         continue; // تخطي الأطفال الذين لديهم طلب معلق بالفعل
       }
-      
+
       // التحقق من عدم وجود ربط بالفعل
       const existingLink = await db
         .select()
@@ -428,11 +453,11 @@ router.post("/parent/sync-with-code", authMiddleware, parentLinkingLimiter, asyn
             eq(parentChild.childId, childId)
           )
         );
-      
+
       if (existingLink.length > 0) {
         continue; // الطفل مربوط بالفعل
       }
-      
+
       const linkRequest = await db
         .insert(parentLinkRequests)
         .values({
@@ -442,10 +467,10 @@ router.post("/parent/sync-with-code", authMiddleware, parentLinkingLimiter, asyn
           status: "pending",
         })
         .returning();
-      
+
       linkRequestIds.push(linkRequest[0].id);
     }
-    
+
     if (linkRequestIds.length === 0) {
       return res.status(400).json({
         success: false,
@@ -453,7 +478,7 @@ router.post("/parent/sync-with-code", authMiddleware, parentLinkingLimiter, asyn
         message: "All children are already linked or have pending requests"
       });
     }
-    
+
     // إرسال إشعار للوالد الأول للموافقة
     await createNotification({
       parentId: primaryParentId,
@@ -475,7 +500,7 @@ router.post("/parent/sync-with-code", authMiddleware, parentLinkingLimiter, asyn
         linkingCodeId: linkingCode[0].id,
       },
     });
-    
+
     // تحديث رمز الربط ليشير إلى أنه تم استخدامه
     await db
       .update(parentChildLinkingCodes)
@@ -485,7 +510,7 @@ router.post("/parent/sync-with-code", authMiddleware, parentLinkingLimiter, asyn
         usedAt: new Date()
       })
       .where(eq(parentChildLinkingCodes.id, linkingCode[0].id));
-    
+
     res.status(201).json({
       success: true,
       data: {
@@ -497,26 +522,25 @@ router.post("/parent/sync-with-code", authMiddleware, parentLinkingLimiter, asyn
     });
   } catch (err) {
     console.error("Error syncing parents:", err);
-    res.status(500).json({
-      success: false,
-      error: "INTERNAL_ERROR",
-      message: "Failed to sync parents"
-    });
+    res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to sync parents"));
   }
 });
 
 // GET: الحصول على حالة المزامنة للأب
 router.get("/parent/sync-status", authMiddleware, async (req, res) => {
   try {
-    const parentId = (req.user as any).parentId;
-    
+    const parentId = getAuthenticatedParentId(req);
+    if (!parentId) {
+      return res.status(401).json(errorResponse(ErrorCode.UNAUTHORIZED, "Unauthorized"));
+    }
+
     const syncRecords = await db
       .select()
       .from(parentParentSync)
       .where(
         eq(parentParentSync.primaryParentId, parentId)
       );
-    
+
     // الحصول على البيانات الإضافية
     const syncData = await Promise.all(
       syncRecords.map(async (record: any) => {
@@ -524,14 +548,14 @@ router.get("/parent/sync-status", authMiddleware, async (req, res) => {
           .select()
           .from(parents)
           .where(eq(parents.id, record.secondaryParentId));
-        
+
         return {
           ...record,
           secondaryParentName: secondaryParent[0]?.name || "Unknown"
         };
       })
     );
-    
+
     res.json({
       success: true,
       data: syncData,
@@ -539,11 +563,7 @@ router.get("/parent/sync-status", authMiddleware, async (req, res) => {
     });
   } catch (err) {
     console.error("Error fetching sync status:", err);
-    res.status(500).json({
-      success: false,
-      error: "INTERNAL_ERROR",
-      message: "Failed to fetch sync status"
-    });
+    res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to fetch sync status"));
   }
 });
 
@@ -551,14 +571,17 @@ router.get("/parent/sync-status", authMiddleware, async (req, res) => {
 router.put("/parent/sync/:syncId/revoke", authMiddleware, async (req, res) => {
   try {
     const { syncId } = req.params;
-    const parentId = (req.user as any).parentId;
-    
+    const parentId = getAuthenticatedParentId(req);
+    if (!parentId) {
+      return res.status(401).json(errorResponse(ErrorCode.UNAUTHORIZED, "Unauthorized"));
+    }
+
     // التحقق من أن الأب هو صاحب السجل
     const sync = await db
       .select()
       .from(parentParentSync)
       .where(eq(parentParentSync.id, syncId));
-    
+
     if (sync.length === 0) {
       return res.status(404).json({
         success: false,
@@ -566,7 +589,7 @@ router.put("/parent/sync/:syncId/revoke", authMiddleware, async (req, res) => {
         message: "Sync record not found"
       });
     }
-    
+
     if (sync[0].primaryParentId !== parentId) {
       return res.status(403).json({
         success: false,
@@ -574,14 +597,27 @@ router.put("/parent/sync/:syncId/revoke", authMiddleware, async (req, res) => {
         message: "Only the primary parent can revoke sync"
       });
     }
-    
+
     // تحديث حالة المزامنة
     const updated = await db
       .update(parentParentSync)
       .set({ syncStatus: "revoked" })
       .where(eq(parentParentSync.id, syncId))
       .returning();
-    
+
+    const sharedChildren = Array.isArray(sync[0].sharedChildren) ? sync[0].sharedChildren : [];
+    if (sharedChildren.length > 0) {
+      await db
+        .delete(parentChild)
+        .where(and(
+          eq(parentChild.parentId, sync[0].secondaryParentId),
+          eq(parentChild.relationshipRole, "co_guardian"),
+          eq(parentChild.linkSource, "approved_request"),
+          eq(parentChild.linkedByParentId, parentId),
+          inArray(parentChild.childId, sharedChildren)
+        ));
+    }
+
     res.json({
       success: true,
       data: updated[0],
@@ -589,11 +625,7 @@ router.put("/parent/sync/:syncId/revoke", authMiddleware, async (req, res) => {
     });
   } catch (err) {
     console.error("Error revoking sync:", err);
-    res.status(500).json({
-      success: false,
-      error: "INTERNAL_ERROR",
-      message: "Failed to revoke sync"
-    });
+    res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to revoke sync"));
   }
 });
 
@@ -604,7 +636,10 @@ router.post("/parent/notifications/:id/respond-link", authMiddleware, async (req
   try {
     const { id: notificationId } = req.params;
     const { action } = req.body;
-    const parentId = (req.user as any).parentId;
+    const parentId = getAuthenticatedParentId(req);
+    if (!parentId) {
+      return res.status(401).json(errorResponse(ErrorCode.UNAUTHORIZED, "Unauthorized"));
+    }
 
     if (!action || !["approve", "reject"].includes(action)) {
       return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Invalid action. Must be 'approve' or 'reject'"));
@@ -651,7 +686,7 @@ router.post("/parent/notifications/:id/respond-link", authMiddleware, async (req
     }
 
     // تحديث الإشعار كمقروء
-    await db.update(notifications).set({ 
+    await db.update(notifications).set({
       isRead: true,
       status: action === "approve" ? "approved" : "rejected",
       resolvedAt: new Date(),
@@ -680,6 +715,9 @@ router.post("/parent/notifications/:id/respond-link", authMiddleware, async (req
           await db.insert(parentChild).values({
             parentId: request.requestingParentId,
             childId: request.childId,
+            relationshipRole: "co_guardian",
+            linkSource: "approved_request",
+            linkedByParentId: parentId,
           });
         }
       }
@@ -690,6 +728,13 @@ router.post("/parent/notifications/:id/respond-link", authMiddleware, async (req
         secondaryParentId: requestingParentId,
         sharedChildren: childrenIds,
         syncStatus: "active",
+      }).onConflictDoUpdate({
+        target: [parentParentSync.primaryParentId, parentParentSync.secondaryParentId],
+        set: {
+          syncStatus: "active",
+          sharedChildren: childrenIds,
+          lastSyncedAt: new Date(),
+        },
       });
 
       // إرسال إشعار للوالد الطالب بالموافقة
@@ -734,7 +779,10 @@ router.post("/parent/notifications/:id/respond-link", authMiddleware, async (req
 // GET: الحصول على طلبات الربط المعلقة للوالد
 router.get("/parent/link-requests", authMiddleware, async (req, res) => {
   try {
-    const parentId = (req.user as any).parentId;
+    const parentId = getAuthenticatedParentId(req);
+    if (!parentId) {
+      return res.status(401).json(errorResponse(ErrorCode.UNAUTHORIZED, "Unauthorized"));
+    }
 
     const requests = await db
       .select()

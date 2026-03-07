@@ -38,6 +38,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { 
   Users, 
   Wallet, 
@@ -239,6 +245,10 @@ export const ParentDashboard = (): JSX.Element => {
   const [copied, setCopied] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
   const [showLinkCode, setShowLinkCode] = useState(false);
+  const [partnerLinkCodeInput, setPartnerLinkCodeInput] = useState("");
+  const [generatedPartnerCode, setGeneratedPartnerCode] = useState("");
+  const [generatedPartnerCodeExpiresAt, setGeneratedPartnerCodeExpiresAt] = useState<string | null>(null);
+  const [showPartnerLinkTip, setShowPartnerLinkTip] = useState(false);
   const [gamesChild, setGamesChild] = useState<any>(null);
   const [screenTimeChild, setScreenTimeChild] = useState<any>(null);
   const [selectedReportChild, setSelectedReportChild] = useState<string>("all");
@@ -261,6 +271,18 @@ export const ParentDashboard = (): JSX.Element => {
   const [myPinValue, setMyPinValue] = useState("");
   const [dashboardSearch, setDashboardSearch] = useState("");
   const [showSearchResults, setShowSearchResults] = useState(false);
+  const [showPurchaseDecisionDialog, setShowPurchaseDecisionDialog] = useState(false);
+  const [selectedPurchaseRequest, setSelectedPurchaseRequest] = useState<any | null>(null);
+  const [purchaseDecisionMode, setPurchaseDecisionMode] = useState<"approve" | "reject">("approve");
+  const [purchaseShippingForm, setPurchaseShippingForm] = useState({
+    name: "",
+    phone: "",
+    city: "",
+    area: "",
+    line1: "",
+    notes: "",
+  });
+  const [purchaseRejectReason, setPurchaseRejectReason] = useState("");
 
   // School search for child creation
   const { data: schoolSuggestions } = useQuery({
@@ -429,10 +451,11 @@ export const ParentDashboard = (): JSX.Element => {
   const { toast } = useToast();
 
   const purchaseDecisionMutation = useMutation({
-    mutationFn: async ({ requestId, decision, shippingAddress }: { requestId: string; decision: "approve" | "reject"; shippingAddress?: string }) => {
+    mutationFn: async ({ requestId, decision, shippingAddress, rejectionReason }: { requestId: string; decision: "approve" | "reject"; shippingAddress?: string; rejectionReason?: string }) => {
       return apiRequest("PATCH", `/api/parent/purchase-requests/${requestId}/decision`, {
         decision,
         shippingAddress,
+        rejectionReason,
       });
     },
     onSuccess: () => {
@@ -449,6 +472,54 @@ export const ParentDashboard = (): JSX.Element => {
       toast({
         title: t("errors.error"),
         description: t("errors.somethingWentWrong"),
+        variant: "destructive",
+      });
+    },
+  });
+
+  const generatePartnerLinkCodeMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/parent/generate-linking-code", {});
+      return res.json();
+    },
+    onSuccess: (payload: any) => {
+      const data = payload?.data || {};
+      setGeneratedPartnerCode(data.code || "");
+      setGeneratedPartnerCodeExpiresAt(data.expiresAt || null);
+      toast({
+        title: isRTL ? "تم إنشاء كود الربط" : "Link code created",
+        description: isRTL ? "أرسل الكود لزوجتك لطلب ربط الحساب" : "Send this code to your spouse to request linking.",
+      });
+    },
+    onError: (err: any) => {
+      toast({
+        title: isRTL ? "فشل إنشاء الكود" : "Failed to create code",
+        description: extractErrorMessage(err) || (isRTL ? "حاول مرة أخرى" : "Please try again"),
+        variant: "destructive",
+      });
+    },
+  });
+
+  const syncWithPartnerCodeMutation = useMutation({
+    mutationFn: async (code: string) => {
+      const res = await apiRequest("POST", "/api/parent/sync-with-code", { code });
+      return res.json();
+    },
+    onSuccess: () => {
+      setPartnerLinkCodeInput("");
+      toast({
+        title: isRTL ? "تم إرسال الطلب" : "Request sent",
+        description: isRTL
+          ? "تم إرسال طلب الربط. في انتظار موافقة ولي الأمر الأساسي."
+          : "Link request sent. Waiting for the primary parent approval.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/parent/notifications"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/parent/notifications/unread-count"] });
+    },
+    onError: (err: any) => {
+      toast({
+        title: isRTL ? "تعذر إرسال الطلب" : "Request failed",
+        description: extractErrorMessage(err) || (isRTL ? "تحقق من الكود ثم أعد المحاولة" : "Check the code and try again"),
         variant: "destructive",
       });
     },
@@ -580,6 +651,117 @@ export const ParentDashboard = (): JSX.Element => {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const copyGeneratedPartnerCode = () => {
+    if (!generatedPartnerCode) return;
+    navigator.clipboard.writeText(generatedPartnerCode);
+    toast({
+      title: isRTL ? "تم نسخ الكود" : "Code copied",
+      description: isRTL ? "شارك الكود مع زوجتك" : "Share this code with your spouse",
+    });
+  };
+
+  const sharePartnerCodeOnWhatsApp = () => {
+    if (!generatedPartnerCode) {
+      toast({
+        title: isRTL ? "لا يوجد كود" : "No code yet",
+        description: isRTL ? "أنشئ كود الربط أولًا" : "Generate a link code first",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const text = isRTL
+      ? `هذا كود ربط حسابك مع أطفالنا في Classify: ${generatedPartnerCode}`
+      : `This is your Classify spouse-link code: ${generatedPartnerCode}`;
+    const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
+    window.open(url, "_blank", "noopener,noreferrer");
+  };
+
+  const dismissPartnerLinkTip = () => {
+    setShowPartnerLinkTip(false);
+    localStorage.setItem("parent-dashboard-partner-link-tip-dismissed", "1");
+  };
+
+  const openPurchaseDecisionDialog = (request: any, mode: "approve" | "reject") => {
+    setSelectedPurchaseRequest(request);
+    setPurchaseDecisionMode(mode);
+    setPurchaseShippingForm({
+      name: parentData?.name || "",
+      phone: parentData?.phone || "",
+      city: "",
+      area: "",
+      line1: parentData?.address || "",
+      notes: "",
+    });
+    setPurchaseRejectReason("");
+    setShowPurchaseDecisionDialog(true);
+  };
+
+  const buildShippingAddressPayload = () => {
+    const parts = [
+      `${isRTL ? "الاسم" : "Name"}: ${purchaseShippingForm.name.trim()}`,
+      `${isRTL ? "الهاتف" : "Phone"}: ${purchaseShippingForm.phone.trim()}`,
+      `${isRTL ? "المدينة" : "City"}: ${purchaseShippingForm.city.trim()}`,
+      `${isRTL ? "الحي" : "Area"}: ${purchaseShippingForm.area.trim()}`,
+      `${isRTL ? "العنوان" : "Address"}: ${purchaseShippingForm.line1.trim()}`,
+    ];
+
+    if (purchaseShippingForm.notes.trim()) {
+      parts.push(`${isRTL ? "ملاحظات" : "Notes"}: ${purchaseShippingForm.notes.trim()}`);
+    }
+
+    return parts.join("\n");
+  };
+
+  const confirmPurchaseDecision = () => {
+    if (!selectedPurchaseRequest) return;
+
+    if (purchaseDecisionMode === "approve") {
+      const requiredApproveFields = [
+        purchaseShippingForm.name.trim(),
+        purchaseShippingForm.phone.trim(),
+        purchaseShippingForm.city.trim(),
+        purchaseShippingForm.area.trim(),
+        purchaseShippingForm.line1.trim(),
+      ];
+
+      if (requiredApproveFields.some((value) => !value)) {
+        toast({
+          title: isRTL ? "بيانات ناقصة" : "Missing data",
+          description: isRTL
+            ? "يرجى إدخال جميع بيانات الشراء قبل الموافقة"
+            : "Please fill all purchase fields before approving",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      purchaseDecisionMutation.mutate({
+        requestId: selectedPurchaseRequest.id,
+        decision: "approve",
+        shippingAddress: buildShippingAddressPayload(),
+      });
+      setShowPurchaseDecisionDialog(false);
+      return;
+    }
+
+    if (!purchaseRejectReason.trim()) {
+      toast({
+        title: isRTL ? "سبب الرفض مطلوب" : "Rejection reason required",
+        description: isRTL ? "اكتب سبب الرفض ليصل للطفل" : "Write rejection reason to send to child",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    purchaseDecisionMutation.mutate({
+      requestId: selectedPurchaseRequest.id,
+      decision: "reject",
+      rejectionReason: purchaseRejectReason.trim(),
+    });
+    setShowPurchaseDecisionDialog(false);
+  };
+
   const notificationsList = Array.isArray((notifications as any)?.items)
     ? (notifications as any).items
     : Array.isArray(notifications)
@@ -637,6 +819,11 @@ export const ParentDashboard = (): JSX.Element => {
       window.removeEventListener("storage", updateCartCount);
       window.removeEventListener("parent-store-cart-updated", updateCartCount as EventListener);
     };
+  }, []);
+
+  useEffect(() => {
+    const dismissed = localStorage.getItem("parent-dashboard-partner-link-tip-dismissed") === "1";
+    setShowPartnerLinkTip(!dismissed);
   }, []);
 
   return (
@@ -1040,6 +1227,94 @@ export const ParentDashboard = (): JSX.Element => {
                     <QrCode className="h-4 w-4" />
                     {t('parentDashboard.showQRCode')}
                   </Button>
+
+                  <div className={`rounded-xl border p-4 space-y-4 ${isDark ? "bg-gray-800/60 border-gray-700" : "bg-blue-50 border-blue-200"}`}>
+                    {showPartnerLinkTip && (
+                      <div className={`rounded-lg border p-3 ${isDark ? "bg-blue-900/30 border-blue-800 text-blue-100" : "bg-blue-100 border-blue-300 text-blue-900"}`}>
+                        <div className="flex items-start justify-between gap-3">
+                          <p className="text-xs leading-5 font-medium">
+                            {isRTL
+                              ? "ميزة جديدة: يمكنك الآن ربط حساب الزوج/الزوجة مباشرة من هنا. ابدأ بإنشاء الكود ثم شاركه."
+                              : "New: You can now link your spouse account directly from here. Start by generating and sharing a code."}
+                          </p>
+                          <Button variant="ghost" size="sm" onClick={dismissPartnerLinkTip} className="h-7 px-2 text-xs" data-testid="button-dismiss-partner-link-tip">
+                            {isRTL ? "فهمت" : "Got it"}
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="flex items-center gap-2">
+                      <KeyRound className="h-4 w-4 text-blue-500" />
+                      <p className={`text-sm font-bold ${isDark ? "text-white" : "text-gray-900"}`}>
+                        {isRTL ? "ربط حساب الزوج/الزوجة" : "Link spouse account"}
+                      </p>
+                    </div>
+
+                    <ol className={`text-xs space-y-1 ${isDark ? "text-gray-300" : "text-gray-700"}`}>
+                      <li>{isRTL ? "1) الأب الأساسي ينشئ كود ربط ويرسله للزوج/الزوجة." : "1) Primary parent generates a link code and shares it."}</li>
+                      <li>{isRTL ? "2) الزوج/الزوجة تدخل الكود وتضغط إرسال الطلب." : "2) Spouse enters the code and sends a request."}</li>
+                      <li>{isRTL ? "3) الأب الأساسي يوافق من الإشعارات لإتمام الربط." : "3) Primary parent approves the request from notifications."}</li>
+                    </ol>
+
+                    <Button
+                      onClick={() => generatePartnerLinkCodeMutation.mutate()}
+                      className="w-full gap-2"
+                      disabled={generatePartnerLinkCodeMutation.isPending}
+                      data-testid="button-generate-partner-link-code"
+                    >
+                      <KeyRound className="h-4 w-4" />
+                      {generatePartnerLinkCodeMutation.isPending
+                        ? (isRTL ? "جاري إنشاء الكود..." : "Generating code...")
+                        : (isRTL ? "أنا الأب الأساسي: إنشاء كود للزوجة" : "I am primary parent: generate spouse code")}
+                    </Button>
+
+                    {generatedPartnerCode && (
+                      <div className={`rounded-lg p-3 border ${isDark ? "bg-gray-900 border-gray-700" : "bg-white border-blue-200"}`}>
+                        <p className={`text-xs mb-2 ${isDark ? "text-gray-400" : "text-gray-600"}`}>
+                          {isRTL ? "كود الربط للزوج/الزوجة" : "Spouse link code"}
+                        </p>
+                        <div className="flex items-center gap-2">
+                          <code className="flex-1 text-base font-mono font-bold tracking-wider text-blue-500">{generatedPartnerCode}</code>
+                          <Button variant="outline" size="sm" onClick={copyGeneratedPartnerCode} data-testid="button-copy-partner-link-code">
+                            {isRTL ? "نسخ" : "Copy"}
+                          </Button>
+                          <Button variant="outline" size="sm" onClick={sharePartnerCodeOnWhatsApp} data-testid="button-share-partner-link-code-whatsapp">
+                            {isRTL ? "واتساب" : "WhatsApp"}
+                          </Button>
+                        </div>
+                        {generatedPartnerCodeExpiresAt && (
+                          <p className={`text-[11px] mt-2 ${isDark ? "text-gray-500" : "text-gray-500"}`}>
+                            {isRTL ? "ينتهي في:" : "Expires at:"} {new Date(generatedPartnerCodeExpiresAt).toLocaleString()}
+                          </p>
+                        )}
+                      </div>
+                    )}
+
+                    <div className="space-y-2">
+                      <label className={`text-xs font-medium ${isDark ? "text-gray-300" : "text-gray-700"}`}>
+                        {isRTL ? "أنا الزوج/الزوجة: أدخل كود الربط" : "I am spouse: enter link code"}
+                      </label>
+                      <div className="flex gap-2">
+                        <input
+                          value={partnerLinkCodeInput}
+                          onChange={(e) => setPartnerLinkCodeInput(e.target.value.toUpperCase())}
+                          placeholder={isRTL ? "مثال: A1B2C3D4E5" : "Example: A1B2C3D4E5"}
+                          className={`flex-1 px-3 py-2 rounded-lg border text-sm ${isDark ? "bg-gray-900 border-gray-700 text-white" : "bg-white border-gray-300 text-gray-900"}`}
+                          data-testid="input-partner-link-code"
+                        />
+                        <Button
+                          onClick={() => syncWithPartnerCodeMutation.mutate(partnerLinkCodeInput.trim())}
+                          disabled={!partnerLinkCodeInput.trim() || syncWithPartnerCodeMutation.isPending}
+                          data-testid="button-submit-partner-link-code"
+                        >
+                          {syncWithPartnerCodeMutation.isPending
+                            ? (isRTL ? "إرسال..." : "Sending...")
+                            : (isRTL ? "إرسال" : "Send")}
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
 
@@ -1051,7 +1326,7 @@ export const ParentDashboard = (): JSX.Element => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                     <Button 
                       onClick={() => navigate("/parent-tasks")} 
                       className="h-auto py-4 flex-col gap-2 bg-blue-500 hover:bg-blue-600"
@@ -1059,14 +1334,6 @@ export const ParentDashboard = (): JSX.Element => {
                     >
                       <Plus className="h-5 w-5" />
                       <span className="text-xs">{t('parentDashboard.createTask')}</span>
-                    </Button>
-                    <Button 
-                      onClick={() => navigate("/parent-store")} 
-                      className="h-auto py-4 flex-col gap-2 bg-green-500 hover:bg-green-600"
-                      data-testid="button-go-store"
-                    >
-                      <ShoppingBag className="h-5 w-5" />
-                      <span className="text-xs">{t('parentDashboard.store')}</span>
                     </Button>
                     <Button 
                       onClick={() => navigate("/wallet")} 
@@ -1150,29 +1417,22 @@ export const ParentDashboard = (): JSX.Element => {
                         <div className="flex gap-2 mt-4">
                           <Button
                             className="flex-1 bg-green-500 hover:bg-green-600"
-                            onClick={() => purchaseDecisionMutation.mutate({ 
-                              requestId: request.id, 
-                              decision: "approve",
-                              shippingAddress: parentData.address || t("parentDashboard.home")
-                            })}
+                            onClick={() => openPurchaseDecisionDialog(request, "approve")}
                             disabled={purchaseDecisionMutation.isPending}
                             data-testid={`button-approve-${request.id}`}
                           >
                             <CheckCircle className="h-4 w-4 ml-2" />
-                            {t('parentDashboard.approve')}
+                            {isRTL ? "مراجعة + موافقة" : "Review + Approve"}
                           </Button>
                           <Button
                             variant="outline"
                             className="flex-1 border-red-300 text-red-600 hover:bg-red-50"
-                            onClick={() => purchaseDecisionMutation.mutate({ 
-                              requestId: request.id, 
-                              decision: "reject"
-                            })}
+                            onClick={() => openPurchaseDecisionDialog(request, "reject")}
                             disabled={purchaseDecisionMutation.isPending}
                             data-testid={`button-reject-${request.id}`}
                           >
                             <XCircle className="h-4 w-4 ml-2" />
-                            {t('parentDashboard.reject')}
+                            {isRTL ? "مراجعة + رفض" : "Review + Reject"}
                           </Button>
                         </div>
                       </div>
@@ -1181,6 +1441,124 @@ export const ParentDashboard = (): JSX.Element => {
                 </CardContent>
               </Card>
             )}
+
+            <Dialog open={showPurchaseDecisionDialog} onOpenChange={setShowPurchaseDecisionDialog}>
+              <DialogContent className={isDark ? "bg-gray-900 border-gray-700" : "bg-white"}>
+                <DialogHeader>
+                  <DialogTitle>
+                    {purchaseDecisionMode === "approve"
+                      ? (isRTL ? "مراجعة طلب الشراء قبل الموافقة" : "Review purchase before approval")
+                      : (isRTL ? "مراجعة طلب الشراء قبل الرفض" : "Review purchase before rejection")}
+                  </DialogTitle>
+                </DialogHeader>
+
+                {selectedPurchaseRequest && (
+                  <div className="space-y-3">
+                    <div className={`rounded-lg border p-3 ${isDark ? "border-gray-700 bg-gray-800" : "border-gray-200 bg-gray-50"}`}>
+                      <p className={`text-sm font-semibold ${isDark ? "text-white" : "text-gray-900"}`}>
+                        {selectedPurchaseRequest.child?.name} - {selectedPurchaseRequest.product?.nameAr || selectedPurchaseRequest.product?.name}
+                      </p>
+                      <p className={`text-xs mt-1 ${isDark ? "text-gray-400" : "text-gray-600"}`}>
+                        {isRTL ? "النقاط المطلوبة" : "Requested points"}: {selectedPurchaseRequest.pointsPrice}
+                      </p>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        variant={purchaseDecisionMode === "approve" ? "default" : "outline"}
+                        className="flex-1"
+                        onClick={() => setPurchaseDecisionMode("approve")}
+                      >
+                        {isRTL ? "موافقة" : "Approve"}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant={purchaseDecisionMode === "reject" ? "destructive" : "outline"}
+                        className="flex-1"
+                        onClick={() => setPurchaseDecisionMode("reject")}
+                      >
+                        {isRTL ? "رفض" : "Reject"}
+                      </Button>
+                    </div>
+
+                    {purchaseDecisionMode === "approve" ? (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <input
+                          value={purchaseShippingForm.name}
+                          onChange={(e) => setPurchaseShippingForm((prev) => ({ ...prev, name: e.target.value }))}
+                          className={`h-10 rounded-lg border px-3 text-sm ${isDark ? "bg-gray-900 border-gray-700 text-white" : "bg-white border-gray-300 text-gray-900"}`}
+                          placeholder={isRTL ? "اسم المستلم" : "Recipient name"}
+                          data-testid="input-purchase-name"
+                        />
+                        <input
+                          value={purchaseShippingForm.phone}
+                          onChange={(e) => setPurchaseShippingForm((prev) => ({ ...prev, phone: e.target.value }))}
+                          className={`h-10 rounded-lg border px-3 text-sm ${isDark ? "bg-gray-900 border-gray-700 text-white" : "bg-white border-gray-300 text-gray-900"}`}
+                          placeholder={isRTL ? "رقم الهاتف" : "Phone number"}
+                          data-testid="input-purchase-phone"
+                        />
+                        <input
+                          value={purchaseShippingForm.city}
+                          onChange={(e) => setPurchaseShippingForm((prev) => ({ ...prev, city: e.target.value }))}
+                          className={`h-10 rounded-lg border px-3 text-sm ${isDark ? "bg-gray-900 border-gray-700 text-white" : "bg-white border-gray-300 text-gray-900"}`}
+                          placeholder={isRTL ? "المدينة" : "City"}
+                          data-testid="input-purchase-city"
+                        />
+                        <input
+                          value={purchaseShippingForm.area}
+                          onChange={(e) => setPurchaseShippingForm((prev) => ({ ...prev, area: e.target.value }))}
+                          className={`h-10 rounded-lg border px-3 text-sm ${isDark ? "bg-gray-900 border-gray-700 text-white" : "bg-white border-gray-300 text-gray-900"}`}
+                          placeholder={isRTL ? "الحي / المنطقة" : "Area / District"}
+                          data-testid="input-purchase-area"
+                        />
+                        <input
+                          value={purchaseShippingForm.line1}
+                          onChange={(e) => setPurchaseShippingForm((prev) => ({ ...prev, line1: e.target.value }))}
+                          className={`h-10 rounded-lg border px-3 text-sm sm:col-span-2 ${isDark ? "bg-gray-900 border-gray-700 text-white" : "bg-white border-gray-300 text-gray-900"}`}
+                          placeholder={isRTL ? "العنوان التفصيلي" : "Detailed address"}
+                          data-testid="input-purchase-line1"
+                        />
+                        <textarea
+                          value={purchaseShippingForm.notes}
+                          onChange={(e) => setPurchaseShippingForm((prev) => ({ ...prev, notes: e.target.value }))}
+                          className={`min-h-[72px] rounded-lg border px-3 py-2 text-sm resize-y sm:col-span-2 ${isDark ? "bg-gray-900 border-gray-700 text-white" : "bg-white border-gray-300 text-gray-900"}`}
+                          placeholder={isRTL ? "ملاحظات إضافية (اختياري)" : "Additional notes (optional)"}
+                          data-testid="textarea-purchase-notes"
+                        />
+                      </div>
+                    ) : (
+                      <textarea
+                        value={purchaseRejectReason}
+                        onChange={(e) => setPurchaseRejectReason(e.target.value)}
+                        className={`min-h-[92px] w-full rounded-lg border px-3 py-2 text-sm resize-y ${isDark ? "bg-gray-900 border-gray-700 text-white" : "bg-white border-gray-300 text-gray-900"}`}
+                        placeholder={isRTL ? "اكتب سبب الرفض الذي سيصل للطفل" : "Write rejection reason sent to child"}
+                        data-testid="textarea-purchase-rejection-reason"
+                      />
+                    )}
+
+                    <div className="flex gap-2">
+                      <Button variant="outline" className="flex-1" onClick={() => setShowPurchaseDecisionDialog(false)}>
+                        {isRTL ? "إلغاء" : "Cancel"}
+                      </Button>
+                      <Button
+                        className="flex-1"
+                        variant={purchaseDecisionMode === "approve" ? "default" : "destructive"}
+                        onClick={confirmPurchaseDecision}
+                        disabled={purchaseDecisionMutation.isPending}
+                        data-testid="button-confirm-purchase-decision"
+                      >
+                        {purchaseDecisionMutation.isPending
+                          ? (isRTL ? "جارٍ التنفيذ..." : "Processing...")
+                          : purchaseDecisionMode === "approve"
+                            ? (isRTL ? "تأكيد الموافقة" : "Confirm approval")
+                            : (isRTL ? "تأكيد الرفض" : "Confirm rejection")}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </DialogContent>
+            </Dialog>
 
             {notificationsList.length > 0 && (
               <Card className={isDark ? "bg-gray-900 border-gray-800" : ""}>
@@ -1362,66 +1740,75 @@ export const ParentDashboard = (): JSX.Element => {
                             </div>
                           </div>
 
-                          <div className="flex flex-wrap gap-2">
+                          <div className="space-y-2.5">
                             <Button 
                               onClick={() => navigate("/assign-task")}
                               variant="default"
                               size="sm"
-                              className="flex-1 gap-1 min-w-[80px]"
+                              className="w-full h-11 rounded-xl justify-center gap-2 font-semibold shadow-sm"
                               data-testid={`button-send-task-${child.id}`}
                             >
                               <Target className="h-4 w-4" />
                               {t('parentDashboard.sendTask')}
                             </Button>
-                            <Button 
-                              onClick={() => navigate("/parent-tasks")}
-                              variant="outline"
-                              size="sm"
-                              className="flex-1 gap-1 min-w-[80px]"
-                              data-testid={`button-scheduled-sessions-${child.id}`}
-                            >
-                              <CalendarClock className="h-4 w-4" />
-                              {t('scheduledSessions.title')}
-                            </Button>
-                            <Button 
-                              onClick={() => setGamesChild(child)}
-                              variant="outline"
-                              size="sm"
-                              className="flex-1 gap-1 min-w-[80px]"
-                              data-testid={`button-games-${child.id}`}
-                            >
-                              <Gamepad2 className="h-4 w-4" />
-                              {t('parentDashboard.games')}
-                            </Button>
-                            <Button 
-                              onClick={() => setScreenTimeChild(child)}
-                              variant="outline"
-                              size="sm"
-                              className="flex-1 gap-1 min-w-[80px]"
-                              data-testid={`button-screen-time-${child.id}`}
-                            >
-                              <Clock className="h-4 w-4" />
-                              {isRTL ? "وقت الشاشة" : "Screen Time"}
-                            </Button>
-                            <Button 
-                              onClick={() => navigate("/parent-inventory")}
-                              variant="outline"
-                              size="sm"
-                              className="flex-1 gap-1 min-w-[80px]"
-                              data-testid={`button-inventory-${child.id}`}
-                            >
-                              <Gift className="h-4 w-4" />
-                              {t('parentDashboard.gifts')}
-                            </Button>
-                            <Button 
-                              onClick={() => { setPinTargetChild(child); setChildPinValue(""); setShowSetPinModal(true); }}
-                              variant="outline"
-                              size="sm"
-                              className="gap-1"
-                              data-testid={`button-pin-${child.id}`}
-                            >
-                              <KeyRound className="h-4 w-4" />
-                            </Button>
+
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                              <Button 
+                                onClick={() => navigate("/parent-tasks")}
+                                variant="outline"
+                                size="sm"
+                                className={`h-11 rounded-xl justify-start gap-2 text-xs px-3 ${isDark ? "bg-gray-900 border-gray-700 hover:bg-gray-800" : "bg-white border-gray-200 hover:bg-gray-50"}`}
+                                title={isRTL ? "الجلسات المجدولة" : "Scheduled sessions"}
+                                data-testid={`button-scheduled-sessions-${child.id}`}
+                              >
+                                <CalendarClock className="h-4 w-4 flex-shrink-0" />
+                                <span className="truncate">{isRTL ? "الجلسات" : "Sessions"}</span>
+                              </Button>
+                              <Button 
+                                onClick={() => setGamesChild(child)}
+                                variant="outline"
+                                size="sm"
+                                className={`h-11 rounded-xl justify-start gap-2 text-xs px-3 ${isDark ? "bg-gray-900 border-gray-700 hover:bg-gray-800" : "bg-white border-gray-200 hover:bg-gray-50"}`}
+                                data-testid={`button-games-${child.id}`}
+                              >
+                                <Gamepad2 className="h-4 w-4 flex-shrink-0" />
+                                <span className="truncate">{t('parentDashboard.games')}</span>
+                              </Button>
+                              <Button 
+                                onClick={() => setScreenTimeChild(child)}
+                                variant="outline"
+                                size="sm"
+                                className={`h-11 rounded-xl justify-start gap-2 text-xs px-3 ${isDark ? "bg-gray-900 border-gray-700 hover:bg-gray-800" : "bg-white border-gray-200 hover:bg-gray-50"}`}
+                                title={isRTL ? "وقت الشاشة" : "Screen Time"}
+                                data-testid={`button-screen-time-${child.id}`}
+                              >
+                                <Clock className="h-4 w-4 flex-shrink-0" />
+                                <span className="truncate">{isRTL ? "وقت الشاشة" : "Screen Time"}</span>
+                              </Button>
+                              <Button 
+                                onClick={() => navigate("/parent-inventory")}
+                                variant="outline"
+                                size="sm"
+                                className={`h-11 rounded-xl justify-start gap-2 text-xs px-3 ${isDark ? "bg-gray-900 border-gray-700 hover:bg-gray-800" : "bg-white border-gray-200 hover:bg-gray-50"}`}
+                                data-testid={`button-inventory-${child.id}`}
+                              >
+                                <Gift className="h-4 w-4 flex-shrink-0" />
+                                <span className="truncate">{t('parentDashboard.gifts')}</span>
+                              </Button>
+                            </div>
+
+                            <div className="flex justify-end">
+                              <Button 
+                                onClick={() => { setPinTargetChild(child); setChildPinValue(""); setShowSetPinModal(true); }}
+                                variant="ghost"
+                                size="sm"
+                                className="h-9 rounded-lg gap-1.5 text-amber-500 hover:text-amber-600"
+                                data-testid={`button-pin-${child.id}`}
+                              >
+                                <KeyRound className="h-4 w-4" />
+                                {isRTL ? "إدارة PIN" : "Manage PIN"}
+                              </Button>
+                            </div>
                           </div>
                         </div>
                       );
