@@ -2411,7 +2411,8 @@
     "spouseLinkToastShareCode": "Compartilhe o codigo com seu conjuge",
     "spouseLinkToastNoCode": "Nenhum codigo ainda",
     "spouseLinkToastGenerateFirst": "Gere um codigo primeiro",
-    "spouseLinkWhatsappShareText": "Este e seu codigo Classify para vinculacao com o conjuge:"
+    "spouseLinkWhatsappShareText": "Este e seu codigo Classify para vinculacao com o conjuge:",
+    "linkParentPartnerButton": "Vincular pai/mae"
   },
   "accessibility": {
     "title": "Politica de Acessibilidade",

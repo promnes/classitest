@@ -722,20 +722,38 @@ router.post("/parent/notifications/:id/respond-link", authMiddleware, async (req
         }
       }
 
-      // إنشاء سجل المزامنة
-      await db.insert(parentParentSync).values({
-        primaryParentId: parentId,
-        secondaryParentId: requestingParentId,
-        sharedChildren: childrenIds,
-        syncStatus: "active",
-      }).onConflictDoUpdate({
-        target: [parentParentSync.primaryParentId, parentParentSync.secondaryParentId],
-        set: {
-          syncStatus: "active",
+      // إنشاء/تحديث سجل المزامنة بدون الاعتماد على ON CONFLICT (قد لا يكون القيد موجودًا في قواعد قديمة)
+      const existingSync = await db
+        .select({ id: parentParentSync.id, sharedChildren: parentParentSync.sharedChildren })
+        .from(parentParentSync)
+        .where(
+          and(
+            eq(parentParentSync.primaryParentId, parentId),
+            eq(parentParentSync.secondaryParentId, requestingParentId)
+          )
+        )
+        .limit(1);
+
+      if (existingSync[0]) {
+        const currentShared = Array.isArray(existingSync[0].sharedChildren) ? existingSync[0].sharedChildren : [];
+        const mergedChildren = Array.from(new Set([...currentShared, ...childrenIds]));
+
+        await db
+          .update(parentParentSync)
+          .set({
+            syncStatus: "active",
+            sharedChildren: mergedChildren,
+            lastSyncedAt: new Date(),
+          })
+          .where(eq(parentParentSync.id, existingSync[0].id));
+      } else {
+        await db.insert(parentParentSync).values({
+          primaryParentId: parentId,
+          secondaryParentId: requestingParentId,
           sharedChildren: childrenIds,
-          lastSyncedAt: new Date(),
-        },
-      });
+          syncStatus: "active",
+        });
+      }
 
       // إرسال إشعار للوالد الطالب بالموافقة
       await createNotification({

@@ -2424,7 +2424,8 @@
     "spouseLinkToastShareCode": "شارك الكود مع زوجك/زوجتك",
     "spouseLinkToastNoCode": "لا يوجد كود",
     "spouseLinkToastGenerateFirst": "أنشئ كود الربط أولًا",
-    "spouseLinkWhatsappShareText": "هذا كود ربط حسابك مع أطفالنا في Classify:"
+    "spouseLinkWhatsappShareText": "هذا كود ربط حسابك مع أطفالنا في Classify:",
+    "linkParentPartnerButton": "ربط والد / والدة"
   },
   "accessibility": {
     "title": "سياسة إمكانية الوصول",

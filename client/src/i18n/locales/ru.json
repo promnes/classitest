@@ -2428,7 +2428,8 @@
     "spouseLinkToastShareCode": "Поделитесь кодом с супругом",
     "spouseLinkToastNoCode": "Кода пока нет",
     "spouseLinkToastGenerateFirst": "Сначала создайте код",
-    "spouseLinkWhatsappShareText": "Это ваш код Classify для привязки аккаунта супруга:"
+    "spouseLinkWhatsappShareText": "Это ваш код Classify для привязки аккаунта супруга:",
+    "linkParentPartnerButton": "Привязать родителя"
   },
   "accessibility": {
     "title": "Политика доступности",

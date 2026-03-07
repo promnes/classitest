@@ -2428,7 +2428,8 @@
     "spouseLinkToastShareCode": "Kodu esinizle paylasin",
     "spouseLinkToastNoCode": "Henuz kod yok",
     "spouseLinkToastGenerateFirst": "Once bir kod olusturun",
-    "spouseLinkWhatsappShareText": "Bu, Classify es baglanti kodunuzdur:"
+    "spouseLinkWhatsappShareText": "Bu, Classify es baglanti kodunuzdur:",
+    "linkParentPartnerButton": "Ebeveyn bagla"
   },
   "accessibility": {
     "title": "Erişilebilirlik politikası",

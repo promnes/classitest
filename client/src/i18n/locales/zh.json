@@ -2428,7 +2428,8 @@
     "spouseLinkToastShareCode": "请将绑定码分享给配偶",
     "spouseLinkToastNoCode": "暂无绑定码",
     "spouseLinkToastGenerateFirst": "请先生成绑定码",
-    "spouseLinkWhatsappShareText": "这是你的 Classify 配偶绑定码："
+    "spouseLinkWhatsappShareText": "这是你的 Classify 配偶绑定码：",
+    "linkParentPartnerButton": "绑定父母账号"
   },
   "accessibility": {
     "title": "无障碍政策",

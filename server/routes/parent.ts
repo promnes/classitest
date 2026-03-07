@@ -107,6 +107,7 @@ import {
   parentAuditLogs,
   parentTeacherConversations,
   parentTeacherMessages,
+  parentParentSync,
 } from "../../shared/schema";
 import jwt from "jsonwebtoken";
 import { JWT_SECRET } from "./middleware";
@@ -311,6 +312,56 @@ export async function registerParentRoutes(app: Express) {
         currentStage: 1,
         totalGrowthPoints: 0,
       }).onConflictDoNothing();
+
+      // If this parent has an active co-parent sync, mirror the new child immediately.
+      const activeSyncs = await db
+        .select()
+        .from(parentParentSync)
+        .where(
+          and(
+            eq(parentParentSync.primaryParentId, parentId),
+            eq(parentParentSync.syncStatus, "active")
+          )
+        );
+
+      for (const sync of activeSyncs) {
+        await db
+          .insert(parentChild)
+          .values({
+            parentId: sync.secondaryParentId,
+            childId: newChild.id,
+            relationshipRole: "co_guardian",
+            linkSource: "approved_request",
+            linkedByParentId: parentId,
+          })
+          .onConflictDoNothing();
+
+        const currentShared = Array.isArray(sync.sharedChildren) ? sync.sharedChildren : [];
+        if (!currentShared.includes(newChild.id)) {
+          await db
+            .update(parentParentSync)
+            .set({
+              sharedChildren: [...currentShared, newChild.id],
+              lastSyncedAt: new Date(),
+            })
+            .where(eq(parentParentSync.id, sync.id));
+        }
+
+        await createNotification({
+          parentId: sync.secondaryParentId,
+          type: NOTIFICATION_TYPES.CHILD_LINKED,
+          title: "👨‍👩‍👧 تمت مزامنة طفل جديد",
+          message: `تمت إضافة ${newChild.name} تلقائيًا إلى حسابك عبر ربط الوالدين.`,
+          style: NOTIFICATION_STYLES.TOAST,
+          priority: NOTIFICATION_PRIORITIES.NORMAL,
+          soundAlert: true,
+          metadata: {
+            childId: newChild.id,
+            childName: newChild.name,
+            source: "parent_sync_auto_share",
+          },
+        });
+      }
 
       return res.status(201).json(successResponse(newChild, "Child created successfully"));
     } catch (error: any) {

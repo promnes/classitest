@@ -2428,7 +2428,8 @@
     "spouseLinkToastShareCode": "Share the code with your spouse",
     "spouseLinkToastNoCode": "No code yet",
     "spouseLinkToastGenerateFirst": "Generate a link code first",
-    "spouseLinkWhatsappShareText": "This is your Classify spouse-link code:"
+    "spouseLinkWhatsappShareText": "This is your Classify spouse-link code:",
+    "linkParentPartnerButton": "Link Parent"
   },
   "accessibility": {
     "title": "Accessibility Policy",

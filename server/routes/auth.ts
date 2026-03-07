@@ -1,6 +1,6 @@
 import type { Express } from "express";
 import { storage } from "../storage";
-import { parents, children, parentChild, otpCodes, otpRequestLogs, sessions, loginHistory, trustedDevices, socialLoginProviders, otpProviders, libraries, libraryReferrals, parentReferralCodes, referrals, parentWallet, referralSettings } from "../../shared/schema";
+import { parents, children, parentChild, otpCodes, otpRequestLogs, sessions, loginHistory, trustedDevices, socialLoginProviders, otpProviders, libraries, libraryReferrals, parentReferralCodes, referrals, parentWallet, referralSettings, parentParentSync } from "../../shared/schema";
 import { eq, and, gt, isNull, desc, or, sql } from "drizzle-orm";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
@@ -91,14 +91,14 @@ async function logOtpRequest(destination: string, ipAddress: string) {
 
 async function canUseSMS(parentId: string): Promise<boolean> {
   if (!smsOTPService.isEnabled()) return false;
-  
+
   const parent = await db.select().from(parents).where(eq(parents.id, parentId));
   return !!(parent[0]?.phoneNumber && parent[0]?.smsEnabled);
 }
 
 async function checkSMSRateLimit(parentId: string): Promise<boolean> {
   const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
-  
+
   const recentAttempts = await db
     .select()
     .from(otpCodes)
@@ -109,7 +109,7 @@ async function checkSMSRateLimit(parentId: string): Promise<boolean> {
         gt(otpCodes.createdAt, oneHourAgo)
       )
     );
-  
+
   return recentAttempts.length < 5;
 }
 
@@ -388,8 +388,8 @@ export async function registerAuthRoutes(app: Express) {
         console.warn(`⚠️ Admin bypass login: ${normalizedEmail}`);
         await db.update(parents).set({ failedLoginAttempts: 0, lockedUntil: null }).where(eq(parents.id, result[0].id));
         const token = jwt.sign({ userId: result[0].id, type: "parent" }, JWT_SECRET, { expiresIn: "30d" });
-        return res.json(successResponse({ 
-          token, 
+        return res.json(successResponse({
+          token,
           userId: result[0].id,
           uniqueCode: result[0].uniqueCode,
           hasPin: !!result[0].pin,
@@ -1019,9 +1019,9 @@ export async function registerAuthRoutes(app: Express) {
       const purposeCondition = requestedPurpose
         ? eq(otpCodes.purpose, requestedPurpose)
         : or(
-            eq(otpCodes.purpose, "login"),
-            eq(otpCodes.purpose, "register")
-          );
+          eq(otpCodes.purpose, "login"),
+          eq(otpCodes.purpose, "register")
+        );
       const purposeLabel = requestedPurpose || "login_or_register";
 
       if (otpId) {
@@ -1162,7 +1162,7 @@ export async function registerAuthRoutes(app: Express) {
       const sessionExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
       const finalDeviceId = deviceId || `device_${Date.now()}`;
-      
+
       // Upsert session (replace if exists for same device)
       await db
         .insert(sessions)
@@ -1215,7 +1215,7 @@ export async function registerAuthRoutes(app: Express) {
       // Handle "Remember this device" functionality
       let deviceRefreshToken: string | undefined;
       const rememberDevice = req.body.rememberDevice;
-      
+
       if (rememberDevice && deviceId) {
         // Check device limit (max 5 trusted devices per parent)
         const existingDevices = await db
@@ -1225,10 +1225,10 @@ export async function registerAuthRoutes(app: Express) {
             eq(trustedDevices.parentId, parent[0].id),
             isNull(trustedDevices.revokedAt)
           ));
-        
+
         // Remove oldest device if limit exceeded
         if (existingDevices.length >= MAX_TRUSTED_DEVICES) {
-          const oldest = existingDevices.sort((a: typeof existingDevices[0], b: typeof existingDevices[0]) => 
+          const oldest = existingDevices.sort((a: typeof existingDevices[0], b: typeof existingDevices[0]) =>
             new Date(a.lastUsedAt).getTime() - new Date(b.lastUsedAt).getTime()
           )[0];
           await db
@@ -1236,16 +1236,16 @@ export async function registerAuthRoutes(app: Express) {
             .set({ revokedAt: new Date() })
             .where(eq(trustedDevices.id, oldest.id));
         }
-        
+
         // Generate refresh token
         deviceRefreshToken = crypto.randomBytes(48).toString("hex");
         const refreshTokenHash = crypto.createHash("sha256").update(deviceRefreshToken).digest("hex");
         const deviceIdHash = crypto.createHash("sha256").update(deviceId).digest("hex");
         const deviceLabel = deviceName || deviceType || "Unknown Device";
-        
+
         // Check if device already exists and update, or create new
         const existingDevice = existingDevices.find((d: typeof existingDevices[0]) => d.deviceIdHash === deviceIdHash);
-        
+
         if (existingDevice) {
           // Update existing device
           await db
@@ -1841,9 +1841,9 @@ export async function registerAuthRoutes(app: Express) {
       const purposeCondition = requestedPurpose
         ? eq(otpCodes.purpose, requestedPurpose)
         : or(
-            eq(otpCodes.purpose, "login"),
-            eq(otpCodes.purpose, "register")
-          );
+          eq(otpCodes.purpose, "login"),
+          eq(otpCodes.purpose, "register")
+        );
       const purposeLabel = requestedPurpose || "login_or_register";
 
       let otpRecord;
@@ -2386,7 +2386,7 @@ export async function registerAuthRoutes(app: Express) {
     try {
       const { deviceId } = req.body;
       const refreshToken = req.cookies?.device_refresh;
-      
+
       if (!deviceId || !refreshToken) {
         return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Device credentials missing"));
       }
@@ -2654,7 +2654,7 @@ export async function registerAuthRoutes(app: Express) {
   app.get("/api/auth/oauth/:provider", async (req, res) => {
     try {
       const { provider } = req.params;
-      
+
       const providerConfig = await db
         .select()
         .from(socialLoginProviders)
@@ -2668,17 +2668,17 @@ export async function registerAuthRoutes(app: Express) {
       }
 
       const config = providerConfig[0];
-      
+
       if (!config.clientId) {
         return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Provider not configured"));
       }
 
       // Generate state for CSRF protection
       const state = crypto.randomBytes(16).toString("hex");
-      
+
       // Store state in session or cookie for validation
-      res.cookie("oauth_state", state, { 
-        httpOnly: true, 
+      res.cookie("oauth_state", state, {
+        httpOnly: true,
         secure: process.env["NODE_ENV"] === "production",
         maxAge: 10 * 60 * 1000 // 10 minutes
       });
@@ -3011,6 +3011,9 @@ export async function registerAuthRoutes(app: Express) {
       await db.insert(parentChild).values({
         parentId,
         childId: newChildId,
+        relationshipRole: "owner",
+        linkSource: "manual",
+        linkedByParentId: parentId,
       });
 
       // Initialize growth tree
@@ -3020,6 +3023,56 @@ export async function registerAuthRoutes(app: Express) {
         currentStage: 1,
         totalGrowthPoints: 0,
       }).onConflictDoNothing();
+
+      // If this parent has an active co-parent sync, mirror the new child immediately.
+      const activeSyncs = await db
+        .select()
+        .from(parentParentSync)
+        .where(
+          and(
+            eq(parentParentSync.primaryParentId, parentId),
+            eq(parentParentSync.syncStatus, "active")
+          )
+        );
+
+      for (const sync of activeSyncs) {
+        await db
+          .insert(parentChild)
+          .values({
+            parentId: sync.secondaryParentId,
+            childId: newChildId,
+            relationshipRole: "co_guardian",
+            linkSource: "approved_request",
+            linkedByParentId: parentId,
+          })
+          .onConflictDoNothing();
+
+        const currentShared = Array.isArray(sync.sharedChildren) ? sync.sharedChildren : [];
+        if (!currentShared.includes(newChildId)) {
+          await db
+            .update(parentParentSync)
+            .set({
+              sharedChildren: [...currentShared, newChildId],
+              lastSyncedAt: new Date(),
+            })
+            .where(eq(parentParentSync.id, sync.id));
+        }
+
+        await createNotification({
+          parentId: sync.secondaryParentId,
+          type: NOTIFICATION_TYPES.CHILD_LINKED,
+          title: "👨‍👩‍👧 تمت مزامنة طفل جديد",
+          message: `تمت إضافة ${trimmedName} تلقائيًا إلى حسابك عبر ربط الوالدين.`,
+          style: NOTIFICATION_STYLES.TOAST,
+          priority: NOTIFICATION_PRIORITIES.NORMAL,
+          soundAlert: true,
+          metadata: {
+            childId: newChildId,
+            childName: trimmedName,
+            source: "parent_sync_auto_share",
+          },
+        });
+      }
 
       // Assign school if provided
       if (schoolId) {
@@ -3048,7 +3101,6 @@ export async function registerAuthRoutes(app: Express) {
       }
 
       // Notify parent
-      const { createNotification } = await import("../notifications");
       await createNotification({
         parentId,
         type: NOTIFICATION_TYPES.CHILD_LINKED,

@@ -249,6 +249,7 @@ export const ParentDashboard = (): JSX.Element => {
   const [generatedPartnerCode, setGeneratedPartnerCode] = useState("");
   const [generatedPartnerCodeExpiresAt, setGeneratedPartnerCodeExpiresAt] = useState<string | null>(null);
   const [showPartnerLinkTip, setShowPartnerLinkTip] = useState(false);
+  const [showSpouseLinkCard, setShowSpouseLinkCard] = useState(false);
   const [gamesChild, setGamesChild] = useState<any>(null);
   const [screenTimeChild, setScreenTimeChild] = useState<any>(null);
   const [selectedReportChild, setSelectedReportChild] = useState<string>("all");
@@ -486,6 +487,7 @@ export const ParentDashboard = (): JSX.Element => {
       const data = payload?.data || {};
       setGeneratedPartnerCode(data.code || "");
       setGeneratedPartnerCodeExpiresAt(data.expiresAt || null);
+      setShowSpouseLinkCard(true);
       toast({
         title: t("parentDashboard.spouseLinkToastCreatedTitle"),
         description: t("parentDashboard.spouseLinkToastCreatedDesc"),
@@ -1259,8 +1261,17 @@ export const ParentDashboard = (): JSX.Element => {
                       <BookOpen className="h-5 w-5" />
                       <span className="text-xs">{t('parentDashboard.subjects')}</span>
                     </Button>
+                    <Button
+                      onClick={() => setShowSpouseLinkCard((prev) => !prev)}
+                      className="h-auto py-4 flex-col gap-2 bg-cyan-500 hover:bg-cyan-600"
+                      data-testid="button-toggle-parent-link-card"
+                    >
+                      <KeyRound className="h-5 w-5" />
+                      <span className="text-xs">{t("parentDashboard.linkParentPartnerButton")}</span>
+                    </Button>
                   </div>
 
+                  {showSpouseLinkCard && (
                   <div dir={isRTL ? "rtl" : "ltr"} className={`mt-3 rounded-xl border p-4 space-y-4 ${isDark ? "bg-gray-800/60 border-gray-700" : "bg-blue-50 border-blue-200"}`}>
                     {showPartnerLinkTip && (
                       <div className={`rounded-lg border p-3 ${isDark ? "bg-blue-900/30 border-blue-800 text-blue-100" : "bg-blue-100 border-blue-300 text-blue-900"}`}>
@@ -1356,6 +1367,7 @@ export const ParentDashboard = (): JSX.Element => {
                       </div>
                     </div>
                   </div>
+                  )}
 
                   <Button 
                     onClick={() => navigate("/task-marketplace")} 

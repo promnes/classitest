@@ -225,6 +225,8 @@ const apiCacheRules: Array<{ pattern: RegExp; maxAge: number }> = [
   { pattern: /^\/api\/parent\/referral-stats$/, maxAge: 120 }, // 2 min
   { pattern: /^\/api\/parent\/children\/status$/, maxAge: 120 }, // 2 min
   { pattern: /^\/api\/parent\/info$/, maxAge: 60 },         // 1 min
+  { pattern: /^\/api\/parent\/notifications$/, maxAge: 5 },
+  { pattern: /^\/api\/parent\/notifications\/unread-count$/, maxAge: 5 },
 ];
 
 app.use((req, res, next) => {

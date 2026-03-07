@@ -2428,7 +2428,8 @@
     "spouseLinkToastShareCode": "कोड spouse के साथ शेयर करें",
     "spouseLinkToastNoCode": "अभी कोई कोड नहीं है",
     "spouseLinkToastGenerateFirst": "पहले लिंक कोड बनाएं",
-    "spouseLinkWhatsappShareText": "यह आपका Classify spouse-link code है:"
+    "spouseLinkWhatsappShareText": "यह आपका Classify spouse-link code है:",
+    "linkParentPartnerButton": "Parent link karein"
   },
   "accessibility": {
     "title": "पहुंच नीति",

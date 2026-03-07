@@ -2428,7 +2428,8 @@
     "spouseLinkToastShareCode": "Teilen Sie den Code mit Ihrem Ehepartner",
     "spouseLinkToastNoCode": "Noch kein Code",
     "spouseLinkToastGenerateFirst": "Erstellen Sie zuerst einen Code",
-    "spouseLinkWhatsappShareText": "Dies ist Ihr Classify-Ehepartner-Verknupfungscode:"
+    "spouseLinkWhatsappShareText": "Dies ist Ihr Classify-Ehepartner-Verknupfungscode:",
+    "linkParentPartnerButton": "Elternteil verbinden"
   },
   "accessibility": {
     "title": "Barrierefreiheitspolitik",
