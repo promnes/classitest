@@ -65,7 +65,7 @@ import {
   Clock,
   ChevronRight,
   Zap,
-  Sparkles,
+  Link2,
   Moon,
   Sun,
   Eye,
@@ -416,6 +416,22 @@ export const ParentDashboard = (): JSX.Element => {
     refetchInterval: token ? 30000 : false,
   });
 
+  const { data: familySyncStatus } = useQuery<any[]>({
+    queryKey: ["/api/parent/sync-status"],
+    queryFn: () => authenticatedFetch<any[]>("/api/parent/sync-status"),
+    enabled: !!token,
+    refetchInterval: token ? 30000 : false,
+    staleTime: 30000,
+  });
+
+  const { data: familyLinkRequests } = useQuery<any[]>({
+    queryKey: ["/api/parent/link-requests"],
+    queryFn: () => authenticatedFetch<any[]>("/api/parent/link-requests"),
+    enabled: !!token,
+    refetchInterval: token ? 30000 : false,
+    staleTime: 30000,
+  });
+
   // Quick-access: followed entities & new content indicators
   const { data: myFollows } = useQuery({
     queryKey: ["/api/follow/my"],
@@ -520,6 +536,27 @@ export const ParentDashboard = (): JSX.Element => {
       toast({
         title: t("parentDashboard.spouseLinkToastRequestFailed"),
         description: extractErrorMessage(err) || t("parentDashboard.spouseLinkToastCheckCode"),
+        variant: "destructive",
+      });
+    },
+  });
+
+  const revokeFamilySyncMutation = useMutation({
+    mutationFn: async (syncId: string) => {
+      const res = await apiRequest("PUT", `/api/parent/sync/${syncId}/revoke`);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/parent/sync-status"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/parent/children"] });
+      toast({
+        title: t("parentDashboard.spouseLinkRevokeDone", { defaultValue: "تم إلغاء الربط" }),
+      });
+    },
+    onError: (err: any) => {
+      toast({
+        title: t("parentDashboard.spouseLinkRevokeFailed", { defaultValue: "فشل إلغاء الربط" }),
+        description: extractErrorMessage(err) || t("parentDashboard.spouseLinkToastTryAgain"),
         variant: "destructive",
       });
     },
@@ -772,6 +809,17 @@ export const ParentDashboard = (): JSX.Element => {
   const ordersList = useMemo(() => Array.isArray(recentOrders) ? recentOrders : (recentOrders as any)?.data || [], [recentOrders]);
   const ownedProductsList = useMemo(() => Array.isArray(ownedProducts) ? ownedProducts : (ownedProducts as any)?.data || [], [ownedProducts]);
   const purchaseRequestsList = useMemo(() => Array.isArray(purchaseRequests) ? purchaseRequests : [], [purchaseRequests]);
+  const syncRows = useMemo(() => Array.isArray(familySyncStatus) ? familySyncStatus : [], [familySyncStatus]);
+  const pendingFamilyRequests = useMemo(
+    () => (Array.isArray(familyLinkRequests) ? familyLinkRequests : []).filter((item: any) => item.status === "pending"),
+    [familyLinkRequests]
+  );
+  const childNameById = useMemo(() => {
+    return childrenList.reduce((acc: Record<string, string>, child: any) => {
+      if (child?.id) acc[child.id] = child.name || child.id;
+      return acc;
+    }, {});
+  }, [childrenList]);
   const availableInventoryCount = useMemo(() => ownedProductsList.filter((p: any) => p.status === "active").length, [ownedProductsList]);
   const activeOrdersCount = useMemo(() => ordersList.filter((o: any) => !["FAILED", "REFUNDED"].includes(o.status)).length, [ordersList]);
   const pendingPurchaseRequests = useMemo(() => purchaseRequestsList.filter((r: any) => r.status === "pending"), [purchaseRequestsList]);
@@ -1236,7 +1284,7 @@ export const ParentDashboard = (): JSX.Element => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  <div className="grid grid-cols-2 gap-3">
                     <Button 
                       onClick={() => navigate("/parent-tasks")} 
                       className="h-auto py-4 flex-col gap-2 bg-blue-500 hover:bg-blue-600"
@@ -1269,18 +1317,10 @@ export const ParentDashboard = (): JSX.Element => {
                       <KeyRound className="h-5 w-5" />
                       <span className="text-xs">{t("parentDashboard.linkParentPartnerButton")}</span>
                     </Button>
-                    <Button
-                      onClick={() => navigate("/family-links")}
-                      className="h-auto py-4 flex-col gap-2 bg-teal-500 hover:bg-teal-600"
-                      data-testid="button-family-link-management"
-                    >
-                      <Users className="h-5 w-5" />
-                      <span className="text-xs">{t("parentDashboard.familyLinkManagementButton", { defaultValue: "Family Links" })}</span>
-                    </Button>
                   </div>
 
                   {showSpouseLinkCard && (
-                  <div dir={isRTL ? "rtl" : "ltr"} className={`mt-3 rounded-xl border p-4 space-y-4 ${isDark ? "bg-gray-800/60 border-gray-700" : "bg-blue-50 border-blue-200"}`}>
+                  <div dir={isRTL ? "rtl" : "ltr"} className={`mt-3 rounded-xl border p-4 space-y-4 relative isolate overflow-hidden ${isDark ? "bg-gray-800 border-gray-700" : "bg-blue-50 border-blue-200"}`}>
                     {showPartnerLinkTip && (
                       <div className={`rounded-lg border p-3 ${isDark ? "bg-blue-900/30 border-blue-800 text-blue-100" : "bg-blue-100 border-blue-300 text-blue-900"}`}>
                         <div className="flex items-start justify-between gap-3">
@@ -1307,14 +1347,15 @@ export const ParentDashboard = (): JSX.Element => {
                       <li>{t("parentDashboard.spouseLinkStep3")}</li>
                     </ol>
 
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-                      <div className={`rounded-lg border p-3 space-y-3 ${isDark ? "bg-gray-900 border-gray-700" : "bg-white border-blue-200"}`}>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 items-start">
+                      <div className={`rounded-lg border p-3 space-y-3 overflow-hidden ${isDark ? "bg-gray-900 border-gray-700" : "bg-white border-blue-200"}`}>
                         <p className={`text-xs font-semibold ${isDark ? "text-gray-300" : "text-gray-700"}`}>
                           {t("parentDashboard.spouseLinkPrimaryTitle")}
                         </p>
                         <Button
+                          type="button"
                           onClick={() => generatePartnerLinkCodeMutation.mutate()}
-                          className="w-full gap-2"
+                          className="w-full gap-2 relative z-10 bg-violet-600 hover:bg-violet-700 text-white shadow-sm"
                           disabled={generatePartnerLinkCodeMutation.isPending}
                           data-testid="button-generate-partner-link-code"
                         >
@@ -1331,10 +1372,10 @@ export const ParentDashboard = (): JSX.Element => {
                             </p>
                             <div className={`flex flex-col sm:flex-row gap-2 ${isRTL ? "sm:flex-row-reverse" : ""}`}>
                               <code className="flex-1 text-base font-mono font-bold tracking-wider text-blue-500 break-all">{generatedPartnerCode}</code>
-                              <Button variant="outline" size="sm" onClick={copyGeneratedPartnerCode} data-testid="button-copy-partner-link-code">
+                              <Button type="button" variant="outline" size="sm" className="bg-white text-gray-800 border-gray-300 hover:bg-gray-100" onClick={copyGeneratedPartnerCode} data-testid="button-copy-partner-link-code">
                                 {t("parentDashboard.spouseLinkCopy")}
                               </Button>
-                              <Button variant="outline" size="sm" onClick={sharePartnerCodeOnWhatsApp} data-testid="button-share-partner-link-code-whatsapp">
+                              <Button type="button" variant="outline" size="sm" className="bg-white text-gray-800 border-gray-300 hover:bg-gray-100" onClick={sharePartnerCodeOnWhatsApp} data-testid="button-share-partner-link-code-whatsapp">
                                 {t("parentDashboard.spouseLinkWhatsApp")}
                               </Button>
                             </div>
@@ -1347,7 +1388,7 @@ export const ParentDashboard = (): JSX.Element => {
                         )}
                       </div>
 
-                      <div className={`rounded-lg border p-3 space-y-2 ${isDark ? "bg-gray-900 border-gray-700" : "bg-white border-blue-200"}`}>
+                      <div className={`rounded-lg border p-3 space-y-2 overflow-hidden ${isDark ? "bg-gray-900 border-gray-700" : "bg-white border-blue-200"}`}>
                         <label className={`text-xs font-semibold ${isDark ? "text-gray-300" : "text-gray-700"}`}>
                           {t("parentDashboard.spouseLinkSecondaryTitle")}
                         </label>
@@ -1363,8 +1404,10 @@ export const ParentDashboard = (): JSX.Element => {
                             data-testid="input-partner-link-code"
                           />
                           <Button
+                            type="button"
                             onClick={() => syncWithPartnerCodeMutation.mutate(partnerLinkCodeInput.trim())}
                             disabled={!partnerLinkCodeInput.trim() || syncWithPartnerCodeMutation.isPending}
+                            className="bg-cyan-600 hover:bg-cyan-700 text-white shadow-sm"
                             data-testid="button-submit-partner-link-code"
                           >
                             {syncWithPartnerCodeMutation.isPending
@@ -1374,17 +1417,78 @@ export const ParentDashboard = (): JSX.Element => {
                         </div>
                       </div>
                     </div>
+
+                    <div className={`rounded-lg border p-3 space-y-3 ${isDark ? "bg-gray-900 border-gray-700" : "bg-white border-blue-200"}`}>
+                      <div className="flex items-center gap-2">
+                        <Link2 className="h-4 w-4 text-cyan-500" />
+                        <p className={`text-xs font-semibold ${isDark ? "text-gray-300" : "text-gray-700"}`}>
+                          {t("parentDashboard.spouseLinkStatusTitle", { defaultValue: "حالة ربط العائلة" })}
+                        </p>
+                      </div>
+
+                      {syncRows.length === 0 ? (
+                        <p className={`text-xs ${isDark ? "text-gray-400" : "text-gray-600"}`}>
+                          {t("parentDashboard.spouseLinkNoActive", { defaultValue: "لا يوجد ربط نشط حالياً" })}
+                        </p>
+                      ) : (
+                        <div className="space-y-2">
+                          {syncRows.map((sync: any) => {
+                            const sharedCount = Array.isArray(sync?.sharedChildren) ? sync.sharedChildren.length : 0;
+                            return (
+                              <div key={sync.id} className={`rounded-md border p-2 ${isDark ? "border-gray-700 bg-gray-950" : "border-gray-200 bg-gray-50"}`}>
+                                <div className="flex items-center justify-between gap-2">
+                                  <p className={`text-xs font-medium ${isDark ? "text-gray-200" : "text-gray-800"}`}>
+                                    {sync.secondaryParentName || t("parentDashboard.spouseLinkUnknownParent", { defaultValue: "ولي أمر" })}
+                                  </p>
+                                  <span className={`text-[11px] px-2 py-0.5 rounded-full ${sync.syncStatus === "active" ? "bg-emerald-100 text-emerald-700" : sync.syncStatus === "revoked" ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"}`}>
+                                    {sync.syncStatus}
+                                  </span>
+                                </div>
+                                <p className={`text-[11px] mt-1 ${isDark ? "text-gray-400" : "text-gray-600"}`}>
+                                  {t("parentDashboard.spouseLinkSharedChildrenCount", { defaultValue: "عدد الأطفال المشاركين" })}: {sharedCount}
+                                </p>
+                                {sync.syncStatus === "active" && (
+                                  <Button
+                                    variant="destructive"
+                                    size="sm"
+                                    className="mt-2 h-7 px-3 text-xs"
+                                    onClick={() => revokeFamilySyncMutation.mutate(sync.id)}
+                                    disabled={revokeFamilySyncMutation.isPending}
+                                    data-testid={`button-revoke-family-sync-${sync.id}`}
+                                  >
+                                    {revokeFamilySyncMutation.isPending
+                                      ? t("parentDashboard.spouseLinkRevoking", { defaultValue: "جاري الإلغاء..." })
+                                      : t("parentDashboard.spouseLinkRevoke", { defaultValue: "إلغاء الربط" })}
+                                  </Button>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      <div className={`pt-2 border-t ${isDark ? "border-gray-700" : "border-gray-200"}`}>
+                        <p className={`text-xs font-semibold mb-2 ${isDark ? "text-gray-300" : "text-gray-700"}`}>
+                          {t("parentDashboard.spouseLinkPendingRequestsTitle", { defaultValue: "طلبات الربط المعلقة" })}
+                        </p>
+                        {pendingFamilyRequests.length === 0 ? (
+                          <p className={`text-xs ${isDark ? "text-gray-400" : "text-gray-600"}`}>
+                            {t("parentDashboard.spouseLinkNoPendingRequests", { defaultValue: "لا توجد طلبات معلقة" })}
+                          </p>
+                        ) : (
+                          <div className="space-y-1">
+                            {pendingFamilyRequests.slice(0, 5).map((request: any) => (
+                              <div key={request.id} className={`text-[11px] rounded-md px-2 py-1 ${isDark ? "bg-gray-950 text-gray-300" : "bg-gray-100 text-gray-700"}`}>
+                                {t("parentDashboard.childName", { defaultValue: "الطفل" })}: {childNameById[request.childId] || request.childId}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
                   )}
 
-                  <Button 
-                    onClick={() => navigate("/task-marketplace")} 
-                    className="w-full mt-3 h-auto py-3 gap-2 bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600"
-                    data-testid="button-task-marketplace"
-                  >
-                    <Sparkles className="h-5 w-5" />
-                    <span className="text-sm font-bold">{t('parentDashboard.taskMarket')}</span>
-                  </Button>
                 </CardContent>
               </Card>
             </div>
