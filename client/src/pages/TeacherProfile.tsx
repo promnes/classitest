@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import { useRoute } from "wouter";
+import { useLocation, useRoute } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,13 +14,14 @@ import { useToast } from "@/hooks/use-toast";
 import { ProfileHeader } from "@/components/ui/ProfileHeader";
 import {
   GraduationCap, Star, MessageSquare, BookOpen, Heart,
-  Users, Briefcase, Clock, Send, ShoppingCart, Loader2, UserPlus, Check
+  Users, Briefcase, Clock, Send, ShoppingCart, UserPlus, Check, ArrowRight
 } from "lucide-react";
 import { ShareMenu } from "@/components/ui/ShareMenu";
 import { LanguageSelector } from "@/components/LanguageSelector";
 
 export default function TeacherProfile() {
   const [, params] = useRoute("/teacher/:id");
+  const [, navigate] = useLocation();
   const teacherId = params?.id;
   const { toast } = useToast();
   const { t } = useTranslation();
@@ -41,6 +42,8 @@ export default function TeacherProfile() {
   const [showAssignmentModal, setShowAssignmentModal] = useState(false);
   const [selectedChildIds, setSelectedChildIds] = useState<string[]>([]);
   const [monthlyPoints, setMonthlyPoints] = useState("");
+  const [activeTab, setActiveTab] = useState("tasks");
+  const [showMiniHeader, setShowMiniHeader] = useState(false);
 
   const token = localStorage.getItem("token") || localStorage.getItem("childToken");
   const authHeaders: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
@@ -264,6 +267,15 @@ export default function TeacherProfile() {
     }
   }, [postsData?.posts]);
 
+  useEffect(() => {
+    const onScroll = () => {
+      setShowMiniHeader(window.scrollY > 180);
+    };
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
   const fetchComments = useCallback(async (postId: string) => {
     setLoadingComments(prev => ({ ...prev, [postId]: true }));
     try {
@@ -314,8 +326,23 @@ export default function TeacherProfile() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin h-8 w-8 border-4 border-blue-600 border-t-transparent rounded-full" />
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-950" dir="rtl">
+        <div className="sticky top-0 z-30 border-b border-gray-200/70 dark:border-gray-800/70 bg-gray-50/95 dark:bg-gray-950/95 backdrop-blur">
+          <div className="max-w-4xl mx-auto px-3 py-2.5 flex items-center justify-between">
+            <div className="h-9 w-24 rounded-xl bg-gray-200 dark:bg-gray-800 animate-pulse" />
+            <div className="h-9 w-16 rounded-xl bg-gray-200 dark:bg-gray-800 animate-pulse" />
+          </div>
+        </div>
+        <div className="max-w-4xl mx-auto px-3 py-4 space-y-4">
+          <div className="h-52 rounded-2xl bg-gray-200 dark:bg-gray-800 animate-pulse" />
+          <div className="grid grid-cols-2 gap-2">
+            <div className="h-14 rounded-xl bg-gray-200 dark:bg-gray-800 animate-pulse" />
+            <div className="h-14 rounded-xl bg-gray-200 dark:bg-gray-800 animate-pulse" />
+          </div>
+          <div className="h-12 rounded-2xl bg-gray-200 dark:bg-gray-800 animate-pulse" />
+          <div className="h-36 rounded-2xl bg-gray-200 dark:bg-gray-800 animate-pulse" />
+          <div className="h-36 rounded-2xl bg-gray-200 dark:bg-gray-800 animate-pulse" />
+        </div>
       </div>
     );
   }
@@ -332,11 +359,56 @@ export default function TeacherProfile() {
   const tasks = tasksData?.tasks || [];
   const reviews = reviewsData?.reviews || [];
   const avgRating = reviewsData?.avgRating || "0";
+  const handleBack = () => {
+    if (window.history.length > 1) {
+      window.history.back();
+      return;
+    }
+    navigate("/parent-dashboard");
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 relative" dir="rtl">
-      <div className="absolute top-4 ltr:right-4 rtl:left-4 z-50"><LanguageSelector /></div>
-      <div className="max-w-4xl mx-auto px-4 py-6">
+      {/* Mobile-first top bar with explicit back navigation */}
+      <div className="sticky top-0 z-40 bg-gray-50/95 dark:bg-gray-950/95 backdrop-blur border-b border-gray-200/70 dark:border-gray-800/70">
+        <div className="max-w-4xl mx-auto px-3 py-2.5 flex items-center justify-between gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-9 gap-1.5 rounded-xl"
+            onClick={handleBack}
+          >
+            <ArrowRight className="h-4 w-4" />
+            رجوع
+          </Button>
+          <LanguageSelector />
+        </div>
+        {showMiniHeader && teacher && (
+          <div className="max-w-4xl mx-auto px-3 pb-2 flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0">
+              {teacher.avatarUrl ? (
+                <img src={teacher.avatarUrl} alt={teacher.name} className="h-9 w-9 rounded-full object-cover border border-white/40" />
+              ) : (
+                <div className="h-9 w-9 rounded-full bg-gradient-to-br from-blue-500 to-violet-500 text-white flex items-center justify-center font-bold">
+                  {teacher.name?.charAt(0) || "م"}
+                </div>
+              )}
+              <div className="min-w-0">
+                <p className="font-bold text-sm text-gray-900 dark:text-gray-100 truncate">{teacher.name}</p>
+                <p className="text-xs text-muted-foreground truncate">{teacher.subject || "معلم"}</p>
+              </div>
+            </div>
+            {parentToken && (
+              <Button size="sm" className="h-8 px-3 bg-green-600 hover:bg-green-700" onClick={() => setShowAssignmentModal(true)}>
+                <UserPlus className="h-3.5 w-3.5" />
+              </Button>
+            )}
+          </div>
+        )}
+      </div>
+
+      <div className="max-w-4xl mx-auto px-3 sm:px-4 py-4 sm:py-6 pb-24 sm:pb-6">
         <ProfileHeader
           name={teacher.name}
           bio={teacher.bio}
@@ -373,20 +445,23 @@ export default function TeacherProfile() {
               <span>{t("teacherProfile.worksAt")}{" "}{teacher.schoolName}</span>
             </div>
           )}
-          <div className="flex gap-4 mt-3 text-sm text-muted-foreground">
-            <span className="flex items-center gap-1">
+
+          {/* Compact mobile-friendly stats */}
+          <div className="grid grid-cols-2 gap-2 mt-3">
+            <div className="rounded-xl bg-gray-100 dark:bg-gray-800 px-3 py-2 text-sm text-muted-foreground flex items-center gap-1.5">
               <Users className="h-4 w-4" />
               {teacher.totalStudents || 0} {t("teacherProfile.student")}
-            </span>
-            <span className="flex items-center gap-1">
+            </div>
+            <div className="rounded-xl bg-gray-100 dark:bg-gray-800 px-3 py-2 text-sm text-muted-foreground flex items-center gap-1.5">
               <Briefcase className="h-4 w-4" />
               {teacher.totalTasksSold || 0} {t("teacherProfile.tasksSold")}
-            </span>
+            </div>
           </div>
+
           {/* Assignment Request Button - only for logged-in parents */}
           {parentToken && (
             <Button
-              className="mt-3 gap-2 bg-green-600 hover:bg-green-700"
+              className="hidden sm:inline-flex mt-3 gap-2 bg-green-600 hover:bg-green-700"
               onClick={() => setShowAssignmentModal(true)}
             >
               <UserPlus className="h-4 w-4" />
@@ -395,8 +470,8 @@ export default function TeacherProfile() {
           )}
         </ProfileHeader>
 
-        <Tabs defaultValue="tasks" className="mt-4">
-          <TabsList className="w-full grid grid-cols-3">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4">
+          <TabsList className="w-full grid grid-cols-3 h-auto p-1.5 rounded-2xl bg-gray-100 dark:bg-gray-900 border border-gray-200 dark:border-gray-800">
             <TabsTrigger value="tasks" className="gap-1">
               <BookOpen className="h-4 w-4" />
               {t("teacherProfile.tasks")} ({tasks.length})
@@ -411,13 +486,30 @@ export default function TeacherProfile() {
             </TabsTrigger>
           </TabsList>
 
+          <p className="text-xs sm:text-sm text-muted-foreground mt-3 px-1">
+            {activeTab === "tasks" && "مهام المعلم المتاحة للشراء والاستخدام مباشرة مع أطفالك."}
+            {activeTab === "posts" && "منشورات المعلم وتحديثاته التعليمية، مع تفاعل مباشر."}
+            {activeTab === "reviews" && "آراء أولياء الأمور وتجاربهم مع هذا المعلم."}
+          </p>
+
           {/* Tasks Tab */}
           <TabsContent value="tasks" className="space-y-4 mt-4">
             {tasks.length === 0 ? (
-              <Card><CardContent className="p-8 text-center text-muted-foreground">
-                <BookOpen className="h-12 w-12 mx-auto text-gray-300 mb-3" />
-                <p>{t("teacherProfile.noTasksAvailable")}</p>
-              </CardContent></Card>
+              <Card>
+                <CardContent className="p-8 text-center text-muted-foreground space-y-3">
+                  <BookOpen className="h-12 w-12 mx-auto text-gray-300" />
+                  <p className="font-semibold text-base text-gray-700 dark:text-gray-200">{t("teacherProfile.noTasksAvailable")}</p>
+                  <p className="text-sm">تابع منشورات المعلم لحين إضافة مهام جديدة.</p>
+                  <div className="flex justify-center gap-2 pt-1">
+                    <Button variant="outline" onClick={() => setActiveTab("posts")}>عرض المنشورات</Button>
+                    {parentToken && (
+                      <Button className="bg-green-600 hover:bg-green-700" onClick={() => setShowAssignmentModal(true)}>
+                        طلب تعيين
+                      </Button>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
             ) : (
               tasks.map((task: any) => (
                 <Card key={task.id} className="overflow-hidden hover:shadow-md transition-shadow">
@@ -427,9 +519,9 @@ export default function TeacherProfile() {
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-base">{task.title || task.question}</h3>
+                        <h3 className="font-bold text-base sm:text-lg leading-6">{task.title || task.question}</h3>
                         {task.title && task.question !== task.title && (
-                          <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{task.question}</p>
+                          <p className="text-sm text-muted-foreground mt-1.5 line-clamp-2">{task.question}</p>
                         )}
                         <div className="flex flex-wrap items-center gap-2 mt-2">
                           {task.subjectLabel && (
@@ -444,37 +536,42 @@ export default function TeacherProfile() {
                         </div>
                       </div>
                       <div className="text-left shrink-0">
-                        <div className="bg-green-50 dark:bg-green-950 px-3 py-2 rounded-xl text-center">
-                          <span className="text-lg font-bold text-green-600">{task.price}</span>
+                        <div className="bg-green-50 dark:bg-green-950 px-3 py-2 rounded-xl text-center min-w-[82px]">
+                          <span className="text-xl font-extrabold text-green-600">{task.price}</span>
                           <span className="text-xs text-green-600 block">{t("teacherProfile.currency")}</span>
                         </div>
                       </div>
                     </div>
+
                     {/* Like + Cart actions */}
-                    <div className="flex items-center justify-between mt-3 pt-3 border-t">
+                    <div className="grid grid-cols-2 gap-2 mt-3 pt-3 border-t">
                       <button
                         onClick={() => {
                           if (!token) { toast({ title: t("teacherProfile.loginRequired"), variant: "destructive" }); return; }
                           likeTask.mutate(String(task.id));
                         }}
-                        className={`flex items-center gap-1.5 text-sm transition-colors ${
-                          taskLiked[task.id] ? "text-red-500" : "text-muted-foreground hover:text-red-400"
+                        className={`h-10 rounded-xl border text-sm font-medium flex items-center justify-center gap-1.5 transition-colors ${
+                          taskLiked[task.id]
+                            ? "text-red-500 border-red-200 bg-red-50 dark:bg-red-950/40 dark:border-red-900"
+                            : "text-muted-foreground border-gray-200 dark:border-gray-800 hover:text-red-400"
                         }`}
                       >
                         <Heart className={`h-4 w-4 ${taskLiked[task.id] ? "fill-red-500" : ""}`} />
                         <span>{taskLikesLocal[task.id] ?? task.likesCount ?? 0}</span>
                       </button>
+
                       {taskPurchased[task.id] ? (
-                        <Badge className="bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">
+                        <div className="h-10 rounded-xl bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 flex items-center justify-center text-sm font-semibold">
                           {t("teacherProfile.purchased")}
-                        </Badge>
+                        </div>
                       ) : taskInCart[task.id] ? (
-                        <Badge variant="secondary">{t("teacherProfile.inCart")}</Badge>
+                        <div className="h-10 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 flex items-center justify-center text-sm font-semibold">
+                          {t("teacherProfile.inCart")}
+                        </div>
                       ) : (
                         <Button
-                          size="sm"
                           variant="outline"
-                          className="gap-1.5 text-xs"
+                          className="h-10 rounded-xl gap-1.5 text-sm"
                           onClick={() => {
                             if (!token) { toast({ title: t("teacherProfile.loginRequired"), variant: "destructive" }); return; }
                             addToCart.mutate(String(task.id));
@@ -495,15 +592,18 @@ export default function TeacherProfile() {
           {/* Posts Tab */}
           <TabsContent value="posts" className="space-y-4 mt-4">
             {posts.length === 0 ? (
-              <Card><CardContent className="p-8 text-center text-muted-foreground">
-                <MessageSquare className="h-12 w-12 mx-auto text-gray-300 mb-3" />
-                <p>{t("teacherProfile.noPosts")}</p>
-              </CardContent></Card>
+              <Card>
+                <CardContent className="p-8 text-center text-muted-foreground space-y-3">
+                  <MessageSquare className="h-12 w-12 mx-auto text-gray-300" />
+                  <p className="font-semibold text-base text-gray-700 dark:text-gray-200">{t("teacherProfile.noPosts")}</p>
+                  <p className="text-sm">يمكنك متابعة المعلم وسيتم إظهار منشوراته هنا فور نشرها.</p>
+                </CardContent>
+              </Card>
             ) : (
               posts.map((post: any) => (
                 <Card key={post.id} className="hover:shadow-md transition-shadow">
                   <CardContent className="p-4">
-                    <p className="whitespace-pre-wrap leading-relaxed">{post.content}</p>
+                    <p className="whitespace-pre-wrap text-[15px] leading-7 font-medium text-gray-800 dark:text-gray-100">{post.content}</p>
                     {post.mediaUrls?.length > 0 && (
                       <div className={`mt-3 ${post.mediaUrls.length === 1 ? "" : "grid grid-cols-2 gap-1"} rounded-lg overflow-hidden`}>
                         {post.mediaUrls.map((url: string, i: number) => {
@@ -535,13 +635,13 @@ export default function TeacherProfile() {
                     </div>
 
                     {/* Action buttons */}
-                    <div className="flex border-t border-b dark:border-gray-800 mt-1 py-1">
+                    <div className="grid grid-cols-3 gap-1 mt-2 p-1 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800">
                       <button
                         onClick={() => {
                           if (!token) { toast({ title: t("teacherProfile.loginToLike"), variant: "destructive" }); return; }
                           likePost.mutate(post.id);
                         }}
-                        className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-sm font-medium rounded-lg transition-colors ${
+                        className={`h-10 flex items-center justify-center gap-1.5 text-sm font-medium rounded-lg transition-colors ${
                           likedPosts[post.id] ? "text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950" : "text-muted-foreground hover:bg-gray-100 dark:hover:bg-gray-800"
                         }`}
                       >
@@ -554,12 +654,12 @@ export default function TeacherProfile() {
                           setShowComments(p => ({ ...p, [post.id]: next }));
                           if (next && !postComments[post.id]) fetchComments(post.id);
                         }}
-                        className="flex-1 flex items-center justify-center gap-1.5 py-2 text-sm font-medium text-muted-foreground hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                        className="h-10 flex items-center justify-center gap-1.5 text-sm font-medium text-muted-foreground hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
                       >
                         <MessageSquare className="h-5 w-5" />
                         {t("teacherProfile.commentAction")}
                       </button>
-                      <div className="flex-1 flex items-center justify-center">
+                      <div className="flex items-center justify-center">
                         <ShareMenu
                           url={typeof window !== "undefined" ? window.location.href : ""}
                           title={post.content?.substring(0, 60) || t("teacherProfile.post")}
@@ -692,10 +792,13 @@ export default function TeacherProfile() {
             </Card>
 
             {reviews.length === 0 ? (
-              <Card><CardContent className="p-8 text-center text-muted-foreground">
-                <Star className="h-12 w-12 mx-auto text-gray-300 mb-3" />
-                <p>{t("teacherProfile.noReviewsYet")}</p>
-              </CardContent></Card>
+              <Card>
+                <CardContent className="p-8 text-center text-muted-foreground space-y-3">
+                  <Star className="h-12 w-12 mx-auto text-gray-300" />
+                  <p className="font-semibold text-base text-gray-700 dark:text-gray-200">{t("teacherProfile.noReviewsYet")}</p>
+                  <p className="text-sm">كن أول ولي أمر يشارك تجربته مع هذا المعلم.</p>
+                </CardContent>
+              </Card>
             ) : (
               <div className="space-y-3">
                 {reviews.map((review: any) => (
@@ -730,6 +833,19 @@ export default function TeacherProfile() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Sticky mobile assignment CTA */}
+      {parentToken && (
+        <div className="sm:hidden fixed bottom-0 inset-x-0 z-40 p-3 bg-gradient-to-t from-gray-50 dark:from-gray-950 to-transparent">
+          <Button
+            className="w-full h-12 text-base font-bold gap-2 bg-green-600 hover:bg-green-700 shadow-lg"
+            onClick={() => setShowAssignmentModal(true)}
+          >
+            <UserPlus className="h-4 w-4" />
+            طلب تعيين معلم لأطفالي
+          </Button>
+        </div>
+      )}
 
       {/* Assignment Request Dialog */}
       <Dialog open={showAssignmentModal} onOpenChange={setShowAssignmentModal}>
