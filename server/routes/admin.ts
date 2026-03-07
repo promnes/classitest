@@ -84,6 +84,12 @@ import {
 import { createNotification, notifyAllAdmins } from "../notifications";
 import { emitGiftEvent } from "../giftEvents";
 import { notificationBus } from "../services/notificationBus";
+import {
+  buildAdminLegalPayload,
+  getAllLegalSettingKeys,
+  getLegalConfig,
+  isLegalPageType,
+} from "../utils/legalPages";
 import { eq, sum, and, isNull, not, or, sql, desc, asc, inArray, count } from "drizzle-orm";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
@@ -6139,36 +6145,18 @@ export async function registerAdminRoutes(app: Express) {
   // GET /api/admin/legal — Get all legal pages content (admin)
   app.get("/api/admin/legal", adminMiddleware, async (req: any, res) => {
     try {
-      const settings = await db.select().from(siteSettings).where(
-        or(
-          eq(siteSettings.key, 'legal_privacy'),
-          eq(siteSettings.key, 'legal_terms'),
-          eq(siteSettings.key, 'legal_child_safety'),
-          eq(siteSettings.key, 'legal_refund'),
-          eq(siteSettings.key, 'legal_center'),
-          eq(siteSettings.key, 'legal_privacy_updated_at'),
-          eq(siteSettings.key, 'legal_terms_updated_at'),
-          eq(siteSettings.key, 'legal_child_safety_updated_at'),
-          eq(siteSettings.key, 'legal_refund_updated_at'),
-          eq(siteSettings.key, 'legal_center_updated_at')
-        )
-      );
+      const settingKeys = getAllLegalSettingKeys();
+      const settings = await db
+        .select()
+        .from(siteSettings)
+        .where(inArray(siteSettings.key, settingKeys));
+
       const getValue = (key: string) => {
         const s = settings.find((s: any) => s.key === key);
         return s?.value || "";
       };
-      res.json(successResponse({
-        privacy: getValue('legal_privacy'),
-        terms: getValue('legal_terms'),
-        childSafety: getValue('legal_child_safety'),
-        refund: getValue('legal_refund'),
-        legalCenter: getValue('legal_center'),
-        privacyUpdatedAt: getValue('legal_privacy_updated_at'),
-        termsUpdatedAt: getValue('legal_terms_updated_at'),
-        childSafetyUpdatedAt: getValue('legal_child_safety_updated_at'),
-        refundUpdatedAt: getValue('legal_refund_updated_at'),
-        legalCenterUpdatedAt: getValue('legal_center_updated_at'),
-      }));
+
+      res.json(successResponse(buildAdminLegalPayload(getValue)));
     } catch (error: any) {
       console.error("Fetch legal pages error:", error);
       res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to fetch legal pages"));
@@ -6179,32 +6167,21 @@ export async function registerAdminRoutes(app: Express) {
   app.post("/api/admin/legal", adminMiddleware, async (req: any, res) => {
     try {
       const { type, content } = req.body;
-      const validTypes = ['privacy', 'terms', 'child-safety', 'refund', 'legal-center'];
-      if (!type || !validTypes.includes(type)) {
-        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Invalid type"));
+      if (!type || !isLegalPageType(type)) {
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Invalid type. Allowed: privacy, terms, child-safety, refund, legal-center"));
       }
       if (!content || typeof content !== 'string' || content.trim().length < 10) {
         return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Content must be at least 10 characters"));
       }
 
-      const keyMap: Record<string, string> = {
-        'privacy': 'legal_privacy',
-        'terms': 'legal_terms',
-        'child-safety': 'legal_child_safety',
-        'refund': 'legal_refund',
-        'legal-center': 'legal_center',
-      };
-      const labelMap: Record<string, string> = {
-        'privacy': 'سياسة الخصوصية',
-        'terms': 'شروط الاستخدام',
-        'child-safety': 'سلامة الأطفال',
-        'refund': 'سياسة الاسترداد',
-        'legal-center': 'المركز القانوني',
-      };
+      const config = getLegalConfig(type);
+      if (!config) {
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Invalid type. Allowed: privacy, terms, child-safety, refund, legal-center"));
+      }
 
-      const key = keyMap[type];
+      const key = config.key;
       const timestampKey = `${key}_updated_at`;
-      const label = labelMap[type];
+      const label = config.labelAr;
       const now = new Date().toISOString();
 
       // Upsert content
@@ -6246,17 +6223,12 @@ export async function registerAdminRoutes(app: Express) {
   app.get("/api/legal/:type", async (req, res) => {
     try {
       const { type } = req.params;
-      const keyMap: Record<string, string> = {
-        'privacy': 'legal_privacy',
-        'terms': 'legal_terms',
-        'child-safety': 'legal_child_safety',
-        'refund': 'legal_refund',
-        'legal-center': 'legal_center',
-      };
-      if (!keyMap[type]) {
-        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Invalid type"));
+      const config = getLegalConfig(type);
+      if (!config) {
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Invalid type. Allowed: privacy, terms, child-safety, refund, legal-center"));
       }
-      const key = keyMap[type];
+
+      const key = config.key;
       const timestampKey = `${key}_updated_at`;
 
       const settings = await db.select().from(siteSettings).where(

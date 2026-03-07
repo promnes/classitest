@@ -148,10 +148,10 @@ const stripe = stripeSecret ? new Stripe(stripeSecret, { apiVersion: "2023-10-16
 // Helper function to normalize answers - ensures each answer has an id
 function normalizeAnswersForStorage(answers: any, correctAnswerIndex: number = 0): any[] {
   if (!answers || !Array.isArray(answers)) return [];
-  
+
   return answers.map((answer: any, index: number) => {
     const id = `answer-${Date.now()}-${index}-${Math.random().toString(36).substr(2, 9)}`;
-    
+
     // If answer is a string, convert to object
     if (typeof answer === 'string') {
       return {
@@ -192,11 +192,19 @@ export async function registerParentRoutes(app: Express) {
   app.get("/api/parent/events", async (req: any, res) => {
     // SSE can't send auth headers, so accept token via query param
     const token = (req.query.token as string) || req.headers.authorization?.split(" ")[1];
-    if (!token) return res.status(401).json({ error: "UNAUTHORIZED" });
+    if (!token) {
+      return res
+        .status(401)
+        .json(errorResponse(ErrorCode.UNAUTHORIZED, "Missing authentication token"));
+    }
 
     try {
       const decoded = jwt.verify(token, JWT_SECRET) as any;
-      if (!decoded?.userId) return res.status(401).json({ error: "UNAUTHORIZED" });
+      if (!decoded?.userId) {
+        return res
+          .status(401)
+          .json(errorResponse(ErrorCode.UNAUTHORIZED, "Invalid authentication token"));
+      }
 
       res.writeHead(200, {
         "Content-Type": "text/event-stream",
@@ -215,7 +223,9 @@ export async function registerParentRoutes(app: Express) {
 
       req.on("close", () => clearInterval(keepAlive));
     } catch {
-      return res.status(401).json({ error: "UNAUTHORIZED" });
+      return res
+        .status(401)
+        .json(errorResponse(ErrorCode.UNAUTHORIZED, "Invalid authentication token"));
     }
   });
 
@@ -234,6 +244,186 @@ export async function registerParentRoutes(app: Express) {
     }
   });
 
+  // Compatibility alias: keep docs/clients using /api/family/children working.
+  app.get("/api/family/children", authMiddleware, async (req: any, res) => {
+    try {
+      const result = await db
+        .select()
+        .from(children)
+        .innerJoin(parentChild, and(eq(parentChild.childId, children.id), eq(parentChild.parentId, req.user.userId)));
+
+      return res.json(successResponse(result.map((r: any) => r.children), "Children retrieved"));
+    } catch (error: any) {
+      console.error("Fetch family children error:", error);
+      return res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to fetch children"));
+    }
+  });
+
+  // Compatibility alias: create child via /api/family/children.
+  app.post("/api/family/children", authMiddleware, async (req: any, res) => {
+    try {
+      const schema = z.object({
+        name: z.string().trim().min(2).max(100),
+        birthday: z.string().optional(),
+        governorate: z.string().trim().max(100).optional(),
+        academicGrade: z.string().trim().max(100).optional(),
+        schoolName: z.string().trim().max(200).optional(),
+        hobbies: z.string().trim().max(500).optional(),
+        avatarUrl: z.string().trim().url().optional(),
+        coverImageUrl: z.string().trim().url().optional(),
+        bio: z.string().trim().max(500).optional(),
+      });
+
+      const body = schema.parse(req.body || {});
+      const parentId = req.user.userId;
+
+      const insertData: Record<string, any> = {
+        name: body.name,
+      };
+
+      if (body.birthday) {
+        const parsedDate = new Date(body.birthday);
+        if (Number.isNaN(parsedDate.getTime())) {
+          return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Invalid birthday format"));
+        }
+        insertData.birthday = parsedDate;
+      }
+      if (body.governorate) insertData.governorate = body.governorate;
+      if (body.academicGrade) insertData.academicGrade = body.academicGrade;
+      if (body.schoolName) insertData.schoolName = body.schoolName;
+      if (body.hobbies) insertData.hobbies = body.hobbies;
+      if (body.avatarUrl) insertData.avatarUrl = body.avatarUrl;
+      if (body.coverImageUrl) insertData.coverImageUrl = body.coverImageUrl;
+      if (body.bio) insertData.bio = body.bio;
+
+      const [newChild] = await db.insert(children).values(insertData).returning();
+
+      await db.insert(parentChild).values({
+        parentId,
+        childId: newChild.id,
+      });
+
+      await db.insert(childGrowthTrees).values({
+        childId: newChild.id,
+        currentStage: 1,
+        totalGrowthPoints: 0,
+      }).onConflictDoNothing();
+
+      return res.status(201).json(successResponse(newChild, "Child created successfully"));
+    } catch (error: any) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, error.errors[0]?.message || "Invalid request body"));
+      }
+      console.error("Create family child error:", error);
+      return res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to create child"));
+    }
+  });
+
+  // Compatibility alias: update child via /api/family/children/:id.
+  app.put("/api/family/children/:id", authMiddleware, async (req: any, res) => {
+    try {
+      const parentId = req.user.userId;
+      const childId = req.params.id;
+
+      const [link] = await db
+        .select()
+        .from(parentChild)
+        .where(and(eq(parentChild.parentId, parentId), eq(parentChild.childId, childId)));
+
+      if (!link) {
+        return res.status(403).json(errorResponse(ErrorCode.PARENT_CHILD_MISMATCH, "Child not linked to this parent"));
+      }
+
+      const schema = z.object({
+        name: z.string().trim().min(2).max(100).optional(),
+        birthday: z.string().optional(),
+        governorate: z.string().trim().max(100).optional(),
+        academicGrade: z.string().trim().max(100).optional(),
+        schoolName: z.string().trim().max(200).optional(),
+        hobbies: z.string().trim().max(500).optional(),
+        avatarUrl: z.string().trim().url().nullable().optional(),
+        coverImageUrl: z.string().trim().url().nullable().optional(),
+        bio: z.string().trim().max(500).nullable().optional(),
+      });
+
+      const body = schema.parse(req.body || {});
+      const updateData: Record<string, any> = {};
+
+      if (body.name !== undefined) updateData.name = body.name;
+      if (body.birthday !== undefined) {
+        if (body.birthday === "") {
+          updateData.birthday = null;
+        } else {
+          const parsedDate = new Date(body.birthday);
+          if (Number.isNaN(parsedDate.getTime())) {
+            return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Invalid birthday format"));
+          }
+          updateData.birthday = parsedDate;
+        }
+      }
+      if (body.governorate !== undefined) updateData.governorate = body.governorate || null;
+      if (body.academicGrade !== undefined) updateData.academicGrade = body.academicGrade || null;
+      if (body.schoolName !== undefined) updateData.schoolName = body.schoolName || null;
+      if (body.hobbies !== undefined) updateData.hobbies = body.hobbies || null;
+      if (body.avatarUrl !== undefined) updateData.avatarUrl = body.avatarUrl;
+      if (body.coverImageUrl !== undefined) updateData.coverImageUrl = body.coverImageUrl;
+      if (body.bio !== undefined) updateData.bio = body.bio;
+
+      if (Object.keys(updateData).length === 0) {
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "No fields to update"));
+      }
+
+      const [updatedChild] = await db
+        .update(children)
+        .set(updateData)
+        .where(eq(children.id, childId))
+        .returning();
+
+      if (!updatedChild) {
+        return res.status(404).json(errorResponse(ErrorCode.NOT_FOUND, "Child not found"));
+      }
+
+      return res.json(successResponse(updatedChild, "Child updated successfully"));
+    } catch (error: any) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, error.errors[0]?.message || "Invalid request body"));
+      }
+      console.error("Update family child error:", error);
+      return res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to update child"));
+    }
+  });
+
+  // Compatibility alias: delete child via /api/family/children/:id.
+  app.delete("/api/family/children/:id", authMiddleware, async (req: any, res) => {
+    try {
+      const parentId = req.user.userId;
+      const childId = req.params.id;
+
+      const [link] = await db
+        .select()
+        .from(parentChild)
+        .where(and(eq(parentChild.parentId, parentId), eq(parentChild.childId, childId)));
+
+      if (!link) {
+        return res.status(403).json(errorResponse(ErrorCode.PARENT_CHILD_MISMATCH, "Child not linked to this parent"));
+      }
+
+      const deleted = await db
+        .delete(children)
+        .where(eq(children.id, childId))
+        .returning({ id: children.id });
+
+      if (!deleted.length) {
+        return res.status(404).json(errorResponse(ErrorCode.NOT_FOUND, "Child not found"));
+      }
+
+      return res.json(successResponse({ deleted: true, childId }, "Child deleted successfully"));
+    } catch (error: any) {
+      console.error("Delete family child error:", error);
+      return res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to delete child"));
+    }
+  });
+
   // Get Children Status Report (for background polling) - Optimized for 5000+ concurrent users
   app.get("/api/parent/children/status", authMiddleware, async (req: any, res) => {
     try {
@@ -243,7 +433,7 @@ export async function registerParentRoutes(app: Express) {
         .innerJoin(parentChild, and(eq(parentChild.childId, children.id), eq(parentChild.parentId, req.user.userId)));
 
       const childrenList = result.map((r: any) => r.children);
-      
+
       if (childrenList.length === 0) {
         return res.json(successResponse({
           children: [],
@@ -258,9 +448,9 @@ export async function registerParentRoutes(app: Express) {
 
       // Batch query: Get all task counts in one query (scoped to parent's children AND parent's tasks)
       const taskCounts = await db
-        .select({ 
-          childId: tasks.childId, 
-          count: sql<number>`count(*)` 
+        .select({
+          childId: tasks.childId,
+          count: sql<number>`count(*)`
         })
         .from(tasks)
         .where(and(
@@ -272,9 +462,9 @@ export async function registerParentRoutes(app: Express) {
 
       // Batch query: Get all pending gift counts in one query (scoped to parent's children AND parent's gifts)
       const giftCounts = await db
-        .select({ 
-          childId: childGifts.childId, 
-          count: sql<number>`count(*)` 
+        .select({
+          childId: childGifts.childId,
+          count: sql<number>`count(*)`
         })
         .from(childGifts)
         .where(and(
@@ -287,9 +477,9 @@ export async function registerParentRoutes(app: Express) {
       // Batch query: Get all notification counts in one query (scoped to child AND parent)
       // Include: system notifications (null parentId) OR notifications from this parent
       const notifCounts = await db
-        .select({ 
-          childId: notifications.childId, 
-          count: sql<number>`count(*)` 
+        .select({
+          childId: notifications.childId,
+          count: sql<number>`count(*)`
         })
         .from(notifications)
         .where(and(
@@ -1103,8 +1293,8 @@ export async function registerParentRoutes(app: Express) {
           db.update(childLoginRequests)
             .set({ status: "expired" })
             .where(eq(childLoginRequests.id, lr.id))
-            .then(() => {})
-            .catch(() => {});
+            .then(() => { })
+            .catch(() => { });
         }
       }
 
@@ -1218,18 +1408,18 @@ export async function registerParentRoutes(app: Express) {
     try {
       const { id } = req.params;
       const parentId = req.user.userId;
-      
+
       // Verify ownership before updating
       const updated = await db
         .update(notifications)
         .set({ isRead: true })
         .where(and(eq(notifications.id, id), eq(notifications.parentId, parentId)))
         .returning();
-      
+
       if (!updated[0]) {
         return res.status(404).json(errorResponse(ErrorCode.NOT_FOUND, "Notification not found or not authorized"));
       }
-      
+
       res.json(successResponse({ marked: true }, "Notification marked as read"));
     } catch (error: any) {
       console.error("Mark notification error:", error);
@@ -1282,7 +1472,7 @@ export async function registerParentRoutes(app: Express) {
       // Check if login request exists and is still valid (not expired)
       if (loginRequestId) {
         const loginRequest = await db.select().from(childLoginRequests).where(eq(childLoginRequests.id, loginRequestId));
-        
+
         if (!loginRequest[0]) {
           return res.status(404).json(errorResponse(ErrorCode.NOT_FOUND, "Login request not found"));
         }
@@ -1317,8 +1507,8 @@ export async function registerParentRoutes(app: Express) {
         // Update login request with approved status and token
         if (loginRequestId) {
           await db.update(childLoginRequests)
-            .set({ 
-              status: "approved", 
+            .set({
+              status: "approved",
               sessionToken,
               respondedAt: new Date(),
             })
@@ -1330,7 +1520,7 @@ export async function registerParentRoutes(app: Express) {
         // Update login request with rejected status
         if (loginRequestId) {
           await db.update(childLoginRequests)
-            .set({ 
+            .set({
               status: "rejected",
               respondedAt: new Date(),
             })
@@ -1594,15 +1784,15 @@ export async function registerParentRoutes(app: Express) {
           type: NOTIFICATION_TYPES.PURCHASE_APPROVED,
           title: "تم قبول طلبك!",
           message: `تمت الموافقة على طلب شراء ${product[0].nameAr || product[0].name}`,
-          metadata: { 
-            requestId: id, 
+          metadata: {
+            requestId: id,
             productId: request[0].productId,
             orderId: orderResult[0].id
           }
         });
 
-        res.json(successResponse({ 
-          requestId: id, 
+        res.json(successResponse({
+          requestId: id,
           orderId: orderResult[0].id,
           status: "approved"
         }, "Purchase request approved"));
@@ -1611,8 +1801,8 @@ export async function registerParentRoutes(app: Express) {
         // Reject the request - points NOT deducted, so nothing to refund
         await db
           .update(childPurchaseRequests)
-          .set({ 
-            status: "rejected", 
+          .set({
+            status: "rejected",
             parentDecision: "reject",
             rejectionReason: rejectionReason || "Parent declined the purchase",
             decidedAt: new Date()
@@ -1626,14 +1816,14 @@ export async function registerParentRoutes(app: Express) {
           type: NOTIFICATION_TYPES.PURCHASE_REJECTED,
           title: "تم رفض طلبك",
           message: rejectionReason || `تم رفض طلب شراء ${product[0].nameAr || product[0].name}`,
-          metadata: { 
-            requestId: id, 
+          metadata: {
+            requestId: id,
             productId: request[0].productId,
             reason: rejectionReason
           }
         });
 
-        res.json(successResponse({ 
+        res.json(successResponse({
           requestId: id,
           status: "rejected"
         }, "Purchase request rejected"));
@@ -2510,7 +2700,7 @@ export async function registerParentRoutes(app: Express) {
       // Get only admin-created template tasks (not parent-created)
       const result = await db.select().from(templateTasks)
         .where(and(
-          eq(templateTasks.subjectId, subjectId), 
+          eq(templateTasks.subjectId, subjectId),
           eq(templateTasks.isActive, true),
           eq(templateTasks.createdByParent, false)
         ));
@@ -2723,10 +2913,10 @@ export async function registerParentRoutes(app: Express) {
         const subjId = task.subjectId || "none";
         if (!tasksBySubject[subjId]) {
           const subj = await db.select().from(subjects).where(eq(subjects.id, subjId));
-          tasksBySubject[subjId] = { 
-            total: 0, 
-            completed: 0, 
-            name: subj[0]?.name || "بدون مادة" 
+          tasksBySubject[subjId] = {
+            total: 0,
+            completed: 0,
+            name: subj[0]?.name || "بدون مادة"
           };
         }
         tasksBySubject[subjId].total++;
@@ -2881,13 +3071,13 @@ export async function registerParentRoutes(app: Express) {
   app.get("/api/parent/my-tasks", authMiddleware, async (req: any, res) => {
     try {
       const { subjectId } = req.query;
-      
+
       let query = db.select().from(templateTasks)
         .where(and(
           eq(templateTasks.createdByParent, true),
           eq(templateTasks.parentId, req.user.userId)
         ));
-      
+
       if (subjectId) {
         query = db.select().from(templateTasks)
           .where(and(
@@ -2910,14 +3100,14 @@ export async function registerParentRoutes(app: Express) {
     try {
       const { subjectId } = req.query;
       const parentId = req.user.userId;
-      
+
       let whereConditions = and(
         eq(templateTasks.createdByParent, true),
         eq(templateTasks.isPublic, true),
         eq(templateTasks.isActive, true),
         sql`${templateTasks.parentId} != ${parentId}`
       );
-      
+
       if (subjectId) {
         whereConditions = and(
           whereConditions,
@@ -2938,9 +3128,9 @@ export async function registerParentRoutes(app: Express) {
         createdAt: templateTasks.createdAt,
         creatorName: parents.name,
       })
-      .from(templateTasks)
-      .leftJoin(parents, eq(templateTasks.parentId, parents.id))
-      .where(whereConditions);
+        .from(templateTasks)
+        .leftJoin(parents, eq(templateTasks.parentId, parents.id))
+        .where(whereConditions);
 
       res.json({ success: true, data: publicTasks });
     } catch (error: any) {
@@ -2990,25 +3180,25 @@ export async function registerParentRoutes(app: Express) {
   // Create and send task directly to child (with optional template save)
   app.post("/api/parent/create-and-send-task", authMiddleware, async (req: any, res) => {
     try {
-      const { 
-        title, 
-        question, 
-        answers, 
-        pointsReward, 
-        subjectId, 
+      const {
+        title,
+        question,
+        answers,
+        pointsReward,
+        subjectId,
         difficulty,
-        childId, 
+        childId,
         saveAsTemplate,
-        taskMedia 
+        taskMedia
       } = req.body;
       const parentId = req.user.userId;
 
       // Validation
       if (!childId || !question || !answers || !pointsReward) {
-        return res.status(400).json({ 
+        return res.status(400).json({
           success: false,
           error: "BAD_REQUEST",
-          message: "الحقول المطلوبة: childId, question, answers, pointsReward" 
+          message: "الحقول المطلوبة: childId, question, answers, pointsReward"
         });
       }
 
@@ -3018,12 +3208,12 @@ export async function registerParentRoutes(app: Express) {
           eq(parentChild.parentId, parentId),
           eq(parentChild.childId, childId)
         ));
-      
+
       if (!link[0]) {
-        return res.status(403).json({ 
+        return res.status(403).json({
           success: false,
           error: "PARENT_CHILD_MISMATCH",
-          message: "هذا الطفل غير مرتبط بحسابك" 
+          message: "هذا الطفل غير مرتبط بحسابك"
         });
       }
 
@@ -3154,19 +3344,19 @@ export async function registerParentRoutes(app: Express) {
         },
       });
 
-      res.json({ 
-        success: true, 
-        data: { 
-          task: newTask[0], 
-          templateTaskId 
-        } 
+      res.json({
+        success: true,
+        data: {
+          task: newTask[0],
+          templateTaskId
+        }
       });
     } catch (error: any) {
       console.error("Create and send task error:", error);
-      res.status(500).json({ 
+      res.status(500).json({
         success: false,
         error: "INTERNAL_SERVER_ERROR",
-        message: "فشل في إنشاء وإرسال المهمة" 
+        message: "فشل في إنشاء وإرسال المهمة"
       });
     }
   });
@@ -3184,7 +3374,7 @@ export async function registerParentRoutes(app: Express) {
       // Verify child belongs to parent
       const link = await db.select().from(parentChild)
         .where(and(eq(parentChild.parentId, buyerParentId), eq(parentChild.childId, childId)));
-      
+
       if (!link[0]) {
         return res.status(403).json({ message: "Child not linked to this parent" });
       }
@@ -3377,18 +3567,18 @@ export async function registerParentRoutes(app: Express) {
   app.patch("/api/parent/my-tasks/:taskId", authMiddleware, async (req: any, res) => {
     try {
       const { taskId } = req.params;
-      
+
       const validation = updateTaskSchema.safeParse(req.body);
       if (!validation.success) {
         return res.status(400).json({ message: "Invalid request data", errors: validation.error.errors });
       }
-      
+
       const { title, question, answers, pointsReward, subjectId, isPublic, pointsCost } = validation.data;
 
       // Verify task belongs to parent
       const task = await db.select().from(templateTasks)
         .where(and(eq(templateTasks.id, taskId), eq(templateTasks.parentId, req.user.userId)));
-      
+
       if (!task[0]) {
         return res.status(404).json({ message: "Task not found" });
       }
@@ -3422,7 +3612,7 @@ export async function registerParentRoutes(app: Express) {
       const parentId = req.user.userId;
       const scheduled = await db.select().from(scheduledTasks)
         .where(eq(scheduledTasks.parentId, parentId));
-      
+
       // Get child names
       const scheduledWithChildren = await Promise.all(scheduled.map(async (task: any) => {
         const child = await db.select().from(children).where(eq(children.id, task.childId));
@@ -3431,7 +3621,7 @@ export async function registerParentRoutes(app: Express) {
           childName: child[0]?.name || "Unknown",
         };
       }));
-      
+
       res.json({ success: true, data: scheduledWithChildren });
     } catch (error: any) {
       console.error("Get scheduled tasks error:", error);
@@ -3444,19 +3634,19 @@ export async function registerParentRoutes(app: Express) {
     try {
       const parentId = req.user.userId;
       const { childId, templateTaskId, question, answers, pointsReward, scheduledAt } = req.body;
-      
+
       if (!childId || !question || !answers || !scheduledAt) {
         return res.status(400).json({ message: "Missing required fields" });
       }
-      
+
       // Verify child belongs to parent
       const childLink = await db.select().from(parentChild)
         .where(and(eq(parentChild.parentId, parentId), eq(parentChild.childId, childId)));
-      
+
       if (!childLink[0]) {
         return res.status(403).json({ message: "Child not linked to parent" });
       }
-      
+
       const scheduled = await db.insert(scheduledTasks).values({
         parentId,
         childId,
@@ -3466,7 +3656,7 @@ export async function registerParentRoutes(app: Express) {
         pointsReward: pointsReward || 10,
         scheduledAt: new Date(scheduledAt),
       }).returning();
-      
+
       res.json({ success: true, data: scheduled[0] });
     } catch (error: any) {
       console.error("Create scheduled task error:", error);
@@ -3479,23 +3669,23 @@ export async function registerParentRoutes(app: Express) {
     try {
       const { id } = req.params;
       const parentId = req.user.userId;
-      
+
       const scheduled = await db.select().from(scheduledTasks)
         .where(and(eq(scheduledTasks.id, id), eq(scheduledTasks.parentId, parentId)));
-      
+
       if (!scheduled[0]) {
         return res.status(404).json({ message: "Scheduled task not found" });
       }
-      
+
       if (scheduled[0].status !== "pending") {
         return res.status(400).json({ message: "Cannot cancel non-pending task" });
       }
-      
+
       const updated = await db.update(scheduledTasks)
         .set({ status: "cancelled" })
         .where(eq(scheduledTasks.id, id))
         .returning();
-      
+
       res.json({ success: true, data: updated[0] });
     } catch (error: any) {
       console.error("Cancel scheduled task error:", error);
@@ -3508,16 +3698,16 @@ export async function registerParentRoutes(app: Express) {
     try {
       const { id } = req.params;
       const parentId = req.user.userId;
-      
+
       const scheduled = await db.select().from(scheduledTasks)
         .where(and(eq(scheduledTasks.id, id), eq(scheduledTasks.parentId, parentId)));
-      
+
       if (!scheduled[0]) {
         return res.status(404).json({ message: "Scheduled task not found" });
       }
-      
+
       await db.delete(scheduledTasks).where(eq(scheduledTasks.id, id));
-      
+
       res.json({ success: true, message: "Scheduled task deleted" });
     } catch (error: any) {
       console.error("Delete scheduled task error:", error);
@@ -3534,14 +3724,14 @@ export async function registerParentRoutes(app: Express) {
       const sessions = await db.select().from(scheduledSessions)
         .where(eq(scheduledSessions.parentId, parentId))
         .orderBy(desc(scheduledSessions.createdAt));
-      
+
       // Enrich with child names and task list
       const enriched = await Promise.all(sessions.map(async (session: any) => {
         const child = await db.select().from(children).where(eq(children.id, session.childId));
         const sessionTasks = await db.select().from(scheduledSessionTasks)
           .where(eq(scheduledSessionTasks.sessionId, session.id))
           .orderBy(scheduledSessionTasks.orderIndex);
-        
+
         return {
           ...session,
           childName: child[0]?.name || "Unknown",
@@ -3549,7 +3739,7 @@ export async function registerParentRoutes(app: Express) {
           tasks: sessionTasks,
         };
       }));
-      
+
       res.json({ success: true, data: enriched });
     } catch (error: any) {
       console.error("Get scheduled sessions error:", error);
@@ -3562,19 +3752,19 @@ export async function registerParentRoutes(app: Express) {
     try {
       const parentId = req.user.userId;
       const { id } = req.params;
-      
+
       const session = await db.select().from(scheduledSessions)
         .where(and(eq(scheduledSessions.id, id), eq(scheduledSessions.parentId, parentId)));
-      
+
       if (!session[0]) {
         return res.status(404).json({ success: false, error: "NOT_FOUND", message: "الجلسة غير موجودة" });
       }
-      
+
       const child = await db.select().from(children).where(eq(children.id, session[0].childId));
       const sessionTasks = await db.select().from(scheduledSessionTasks)
         .where(eq(scheduledSessionTasks.sessionId, id))
         .orderBy(scheduledSessionTasks.orderIndex);
-      
+
       res.json({
         success: true,
         data: {
@@ -3603,7 +3793,7 @@ export async function registerParentRoutes(app: Express) {
         scheduledStartAt,
         tasks: sessionTasksList,
       } = req.body;
-      
+
       // Validate required fields
       if (!childId || !title || !sessionTasksList || !Array.isArray(sessionTasksList) || sessionTasksList.length === 0) {
         return res.status(400).json({
@@ -3612,11 +3802,11 @@ export async function registerParentRoutes(app: Express) {
           message: "يجب تحديد الطفل والعنوان وإضافة مهمة واحدة على الأقل",
         });
       }
-      
+
       // Verify child belongs to parent
       const childLink = await db.select().from(parentChild)
         .where(and(eq(parentChild.parentId, parentId), eq(parentChild.childId, childId)));
-      
+
       if (!childLink[0]) {
         return res.status(403).json({
           success: false,
@@ -3628,7 +3818,7 @@ export async function registerParentRoutes(app: Express) {
       // Validate activation type
       const validActivationTypes = ["on_login", "immediate", "scheduled"];
       const finalActivationType = validActivationTypes.includes(activationType) ? activationType : "on_login";
-      
+
       if (finalActivationType === "scheduled" && !scheduledStartAt) {
         return res.status(400).json({
           success: false,
@@ -3660,7 +3850,7 @@ export async function registerParentRoutes(app: Express) {
 
       // Calculate total points for session
       const totalPointsReward = sessionTasksList.reduce((sum: number, t: any) => sum + (t.pointsReward || 10), 0);
-      
+
       // Check parent wallet balance for total session cost
       const wallet = await db.select().from(parentWallet).where(eq(parentWallet.parentId, parentId));
       const currentBalance = Number(wallet[0]?.balance || 0);
@@ -3712,7 +3902,7 @@ export async function registerParentRoutes(app: Express) {
         for (let i = 0; i < sessionTasksList.length; i++) {
           const t = sessionTasksList[i];
           const normalizedAnswers = normalizeAnswersForStorage(t.answers, 0);
-          
+
           const [sessionTask] = await tx.insert(scheduledSessionTasks).values({
             sessionId: newSession.id,
             orderIndex: i + 1,
@@ -3723,7 +3913,7 @@ export async function registerParentRoutes(app: Express) {
             imageUrl: t.imageUrl || null,
             status: "locked",
           }).returning();
-          
+
           createdTasks.push(sessionTask);
         }
 
@@ -3741,12 +3931,12 @@ export async function registerParentRoutes(app: Express) {
               status: "pending",
               imageUrl: firstTask.imageUrl,
             }).returning();
-            
+
             // Update session task status
             await tx.update(scheduledSessionTasks)
               .set({ status: "unlocked", unlockedAt: new Date(), taskId: realTask.id })
               .where(eq(scheduledSessionTasks.id, firstTask.id));
-            
+
             // Update session
             await tx.update(scheduledSessions)
               .set({ actualStartAt: new Date() })
@@ -3813,14 +4003,14 @@ export async function registerParentRoutes(app: Express) {
     try {
       const parentId = req.user.userId;
       const { id } = req.params;
-      
+
       const session = await db.select().from(scheduledSessions)
         .where(and(eq(scheduledSessions.id, id), eq(scheduledSessions.parentId, parentId)));
-      
+
       if (!session[0]) {
         return res.status(404).json({ success: false, error: "NOT_FOUND", message: "الجلسة غير موجودة" });
       }
-      
+
       if (session[0].status !== "draft" && session[0].status !== "paused") {
         return res.status(400).json({
           success: false,
@@ -3848,7 +4038,7 @@ export async function registerParentRoutes(app: Express) {
             updatedAt: new Date(),
           })
           .where(eq(scheduledSessions.id, id));
-        
+
         // Unlock first/next task if available
         if (nextTask[0]) {
           // Create real task
@@ -3861,7 +4051,7 @@ export async function registerParentRoutes(app: Express) {
             status: "pending",
             imageUrl: nextTask[0].imageUrl,
           }).returning();
-          
+
           await tx.update(scheduledSessionTasks)
             .set({ status: "unlocked", unlockedAt: new Date(), taskId: realTask.id })
             .where(eq(scheduledSessionTasks.id, nextTask[0].id));
@@ -3901,14 +4091,14 @@ export async function registerParentRoutes(app: Express) {
     try {
       const parentId = req.user.userId;
       const { id } = req.params;
-      
+
       const session = await db.select().from(scheduledSessions)
         .where(and(eq(scheduledSessions.id, id), eq(scheduledSessions.parentId, parentId)));
-      
+
       if (!session[0]) {
         return res.status(404).json({ success: false, error: "NOT_FOUND", message: "الجلسة غير موجودة" });
       }
-      
+
       if (session[0].status !== "active") {
         return res.status(400).json({
           success: false,
@@ -3933,14 +4123,14 @@ export async function registerParentRoutes(app: Express) {
     try {
       const parentId = req.user.userId;
       const { id } = req.params;
-      
+
       const session = await db.select().from(scheduledSessions)
         .where(and(eq(scheduledSessions.id, id), eq(scheduledSessions.parentId, parentId)));
-      
+
       if (!session[0]) {
         return res.status(404).json({ success: false, error: "NOT_FOUND", message: "الجلسة غير موجودة" });
       }
-      
+
       if (session[0].status === "completed" || session[0].status === "cancelled") {
         return res.status(400).json({
           success: false,
@@ -3955,7 +4145,7 @@ export async function registerParentRoutes(app: Express) {
           eq(scheduledSessionTasks.sessionId, id),
           eq(scheduledSessionTasks.status, "locked")
         ));
-      
+
       const refundAmount = remainingTasks.reduce((sum: number, t: any) => sum + (t.pointsReward || 0), 0);
 
       await db.transaction(async (tx: any) => {
@@ -3963,7 +4153,7 @@ export async function registerParentRoutes(app: Express) {
         await tx.update(scheduledSessions)
           .set({ status: "cancelled", updatedAt: new Date() })
           .where(eq(scheduledSessions.id, id));
-        
+
         // Mark remaining tasks as skipped
         if (remainingTasks.length > 0) {
           const remainingIds = remainingTasks.map((t: any) => t.id);
@@ -4000,14 +4190,14 @@ export async function registerParentRoutes(app: Express) {
     try {
       const parentId = req.user.userId;
       const { id } = req.params;
-      
+
       const session = await db.select().from(scheduledSessions)
         .where(and(eq(scheduledSessions.id, id), eq(scheduledSessions.parentId, parentId)));
-      
+
       if (!session[0]) {
         return res.status(404).json({ success: false, error: "NOT_FOUND", message: "الجلسة غير موجودة" });
       }
-      
+
       // Only allow delete if draft or cancelled
       if (session[0].status !== "draft" && session[0].status !== "cancelled") {
         return res.status(400).json({
@@ -4016,7 +4206,7 @@ export async function registerParentRoutes(app: Express) {
           message: "لا يمكن حذف جلسة نشطة أو مؤقتة. قم بإلغائها أولاً",
         });
       }
-      
+
       // If draft and not yet activated, refund all points
       if (session[0].status === "draft") {
         const refundAmount = session[0].totalPointsReward || 0;
@@ -4038,7 +4228,7 @@ export async function registerParentRoutes(app: Express) {
         await db.delete(scheduledSessionTasks).where(eq(scheduledSessionTasks.sessionId, id));
         await db.delete(scheduledSessions).where(eq(scheduledSessions.id, id));
       }
-      
+
       res.json({ success: true, message: "تم حذف الجلسة بنجاح" });
     } catch (error: any) {
       console.error("Delete scheduled session error:", error);
@@ -4051,24 +4241,24 @@ export async function registerParentRoutes(app: Express) {
     try {
       const parentId = req.user.userId;
       const { id } = req.params;
-      
+
       const session = await db.select().from(scheduledSessions)
         .where(and(eq(scheduledSessions.id, id), eq(scheduledSessions.parentId, parentId)));
-      
+
       if (!session[0]) {
         return res.status(404).json({ success: false, error: "NOT_FOUND", message: "الجلسة غير موجودة" });
       }
-      
+
       const child = await db.select().from(children).where(eq(children.id, session[0].childId));
       const sessionTasks = await db.select().from(scheduledSessionTasks)
         .where(eq(scheduledSessionTasks.sessionId, id))
         .orderBy(scheduledSessionTasks.orderIndex);
-      
+
       const completedCount = sessionTasks.filter((t: any) => t.status === "completed").length;
       const correctCount = sessionTasks.filter((t: any) => t.isCorrect === true).length;
       const totalPointsEarned = sessionTasks.reduce((sum: number, t: any) => sum + (t.pointsEarned || 0), 0);
       const totalPointsPossible = sessionTasks.reduce((sum: number, t: any) => sum + (t.pointsReward || 0), 0);
-      
+
       res.json({
         success: true,
         data: {
@@ -4102,7 +4292,7 @@ export async function registerParentRoutes(app: Express) {
       const parentId = req.user.userId;
       const notificationsList = await db.select().from(parentNotifications)
         .where(eq(parentNotifications.parentId, parentId));
-      
+
       res.json({ success: true, data: notificationsList });
     } catch (error: any) {
       console.error("Get admin notifications error:", error);
@@ -4115,19 +4305,19 @@ export async function registerParentRoutes(app: Express) {
     try {
       const { id } = req.params;
       const parentId = req.user.userId;
-      
+
       const notification = await db.select().from(parentNotifications)
         .where(and(eq(parentNotifications.id, id), eq(parentNotifications.parentId, parentId)));
-      
+
       if (!notification[0]) {
         return res.status(404).json({ message: "Notification not found" });
       }
-      
+
       const updated = await db.update(parentNotifications)
         .set({ isRead: true })
         .where(eq(parentNotifications.id, id))
         .returning();
-      
+
       res.json({ success: true, data: updated[0] });
     } catch (error: any) {
       console.error("Mark notification read error:", error);
@@ -4410,10 +4600,12 @@ export async function registerParentRoutes(app: Express) {
         destination: (_r, _f, cb) => cb(null, uploadDir),
         filename: (_r, file, cb) => cb(null, `${Date.now()}-${Math.random().toString(36).slice(2)}${path.extname(file.originalname)}`),
       });
-      const upload = multer({ storage: store, limits: { fileSize: 10 * 1024 * 1024 }, fileFilter: (_r, f, cb) => {
-        if (f.mimetype.startsWith("image/") || f.mimetype.startsWith("video/")) cb(null, true);
-        else cb(new Error("Only images and videos are allowed"));
-      }}).array("media", 5);
+      const upload = multer({
+        storage: store, limits: { fileSize: 10 * 1024 * 1024 }, fileFilter: (_r, f, cb) => {
+          if (f.mimetype.startsWith("image/") || f.mimetype.startsWith("video/")) cb(null, true);
+          else cb(new Error("Only images and videos are allowed"));
+        }
+      }).array("media", 5);
       upload(req, res, (err) => {
         if (err) return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, err.message));
         const files = req.files as Express.Multer.File[];
@@ -4915,7 +5107,7 @@ export async function registerParentRoutes(app: Express) {
     try {
       const parentId = req.user.userId;
       const { childId } = req.params;
-      
+
       // Verify parent owns child
       const pc = await db.select().from(parentChild)
         .where(and(eq(parentChild.parentId, parentId), eq(parentChild.childId, childId)));
@@ -4925,12 +5117,12 @@ export async function registerParentRoutes(app: Express) {
 
       const [settings] = await db.select().from(screenTimeSettings)
         .where(eq(screenTimeSettings.childId, childId));
-      
+
       // Get today's usage
       const today = new Date().toISOString().split("T")[0];
       const [usage] = await db.select().from(childDailyUsage)
         .where(and(eq(childDailyUsage.childId, childId), eq(childDailyUsage.date, today)));
-      
+
       res.json({
         success: true,
         data: {
@@ -4960,7 +5152,7 @@ export async function registerParentRoutes(app: Express) {
 
       const existing = await db.select().from(screenTimeSettings)
         .where(eq(screenTimeSettings.childId, childId));
-      
+
       const values: any = { updatedAt: new Date() };
       if (dailyLimitMinutes !== undefined) values.dailyLimitMinutes = Math.max(15, Math.min(480, Number(dailyLimitMinutes)));
       if (isEnabled !== undefined) values.isEnabled = Boolean(isEnabled);

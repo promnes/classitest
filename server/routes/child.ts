@@ -116,7 +116,7 @@ function isValidRequestKey(requestId: string, providedKey: string): boolean {
 // Uses hash of answer text + index to generate consistent IDs across calls
 function normalizeAnswers(answers: any, taskQuestion?: string): any[] {
   if (!answers || !Array.isArray(answers)) return [];
-  
+
   // Generate a simple hash for deterministic ID
   const hashText = (text: string, index: number): string => {
     const combined = `${taskQuestion || ''}-${text}-${index}`;
@@ -128,7 +128,7 @@ function normalizeAnswers(answers: any, taskQuestion?: string): any[] {
     }
     return Math.abs(hash).toString(36);
   };
-  
+
   return answers.map((answer: any, index: number) => {
     // If answer is already an object with id, return as-is
     if (typeof answer === 'object' && answer !== null && answer.id) {
@@ -346,7 +346,7 @@ export async function registerChildRoutes(app: Express) {
       }
 
       const token = jwt.sign({ childId: childResult[0].id, type: "child" }, JWT_SECRET, { expiresIn: "30d" });
-      
+
       // Activate on_login scheduled sessions & resume paused ones
       activateOnLoginSessions(childResult[0].id).catch(err => console.error("Session activation on link error:", err));
       resumePausedSessions(childResult[0].id).catch(err => console.error("Session resume on link error:", err));
@@ -511,25 +511,34 @@ export async function registerChildRoutes(app: Express) {
 
       const child = await db.select().from(children).where(eq(children.id, childId));
       if (!child[0]) {
-        return res.status(404).json({ message: "Child not found" });
+        return res.status(404).json(errorResponse(ErrorCode.NOT_FOUND, "Child not found"));
       }
 
-      const completedTasks = await db.select().from(taskResults)
+      const completedTasks = await db
+        .select()
+        .from(taskResults)
         .where(and(eq(taskResults.childId, childId), eq(taskResults.isCorrect, true)));
-      
-      const allTasks = await db.select().from(tasks).where(eq(tasks.childId, childId));
-      
-      const activeGoals = await db.select({
-        id: childAssignedProducts.id,
-        requiredPoints: childAssignedProducts.requiredPoints,
-        progressPoints: childAssignedProducts.progressPoints,
-        status: childAssignedProducts.status,
-      }).from(childAssignedProducts).where(eq(childAssignedProducts.childId, childId));
 
-      const pendingGifts = await db.select().from(childGifts)
+      const allTasks = await db.select().from(tasks).where(eq(tasks.childId, childId));
+
+      const activeGoals = await db
+        .select({
+          id: childAssignedProducts.id,
+          requiredPoints: childAssignedProducts.requiredPoints,
+          progressPoints: childAssignedProducts.progressPoints,
+          status: childAssignedProducts.status,
+        })
+        .from(childAssignedProducts)
+        .where(eq(childAssignedProducts.childId, childId));
+
+      const pendingGifts = await db
+        .select()
+        .from(childGifts)
         .where(and(eq(childGifts.childId, childId), eq(childGifts.status, "SENT")));
 
-      const completedGifts = await db.select().from(childGifts)
+      const completedGifts = await db
+        .select()
+        .from(childGifts)
         .where(and(eq(childGifts.childId, childId), eq(childGifts.status, "CLAIMED")));
 
       const totalPoints = child[0].totalPoints;
@@ -537,7 +546,10 @@ export async function registerChildRoutes(app: Express) {
       const totalTasks = allTasks.length;
       const successRate = totalTasks > 0 ? Math.round((tasksCompleted / totalTasks) * 100) : 0;
 
-      const daysSinceJoined = Math.max(1, Math.floor((Date.now() - new Date(child[0].createdAt).getTime()) / (1000 * 60 * 60 * 24)));
+      const daysSinceJoined = Math.max(
+        1,
+        Math.floor((Date.now() - new Date(child[0].createdAt).getTime()) / (1000 * 60 * 60 * 24)),
+      );
       const pointsPerDay = Math.round(totalPoints / daysSinceJoined);
 
       let speedLevel = "slow";
@@ -547,7 +559,10 @@ export async function registerChildRoutes(app: Express) {
 
       const closestGoal = activeGoals
         .filter((g: GoalProgress) => g.status === "active")
-        .sort((a: GoalProgress, b: GoalProgress) => (b.progressPoints / b.requiredPoints) - (a.progressPoints / a.requiredPoints))[0];
+        .sort(
+          (a: GoalProgress, b: GoalProgress) =>
+            b.progressPoints / b.requiredPoints - a.progressPoints / a.requiredPoints,
+        )[0];
 
       let nextMilestone = 100;
       const milestones = [100, 250, 500, 1000, 2500, 5000, 10000];
@@ -558,9 +573,8 @@ export async function registerChildRoutes(app: Express) {
         }
       }
 
-      res.json({
-        success: true,
-        data: {
+      return res.json(
+        successResponse({
           currentPoints: totalPoints,
           tasksCompleted,
           totalTasks,
@@ -571,18 +585,20 @@ export async function registerChildRoutes(app: Express) {
           pendingGiftsCount: pendingGifts.length,
           claimedGiftsCount: completedGifts.length,
           activeGoalsCount: activeGoals.filter((g: GoalProgress) => g.status === "active").length,
-          closestGoal: closestGoal ? {
-            progress: Math.round((closestGoal.progressPoints / closestGoal.requiredPoints) * 100),
-            pointsNeeded: closestGoal.requiredPoints - closestGoal.progressPoints,
-          } : null,
+          closestGoal: closestGoal
+            ? {
+              progress: Math.round((closestGoal.progressPoints / closestGoal.requiredPoints) * 100),
+              pointsNeeded: closestGoal.requiredPoints - closestGoal.progressPoints,
+            }
+            : null,
           nextMilestone,
           milestoneProgress: Math.round((totalPoints / nextMilestone) * 100),
           motivationalMessage: getMotivationalMessage(speedLevel, totalPoints, tasksCompleted),
-        }
-      });
+        }),
+      );
     } catch (error: any) {
       console.error("Fetch child progress error:", error);
-      res.status(500).json({ message: "Failed to fetch progress" });
+      return res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to fetch progress"));
     }
   });
 
@@ -981,7 +997,7 @@ export async function registerChildRoutes(app: Express) {
         try {
           const decoded: any = jwt.verify(authHeader.split(" ")[1], JWT_SECRET);
           if (decoded.childId) childId = decoded.childId;
-        } catch {}
+        } catch { }
       }
 
       const allActiveGames = await db.select().from(flashGames).where(eq(flashGames.isActive, true));
@@ -1026,11 +1042,11 @@ export async function registerChildRoutes(app: Express) {
 
       // Check daily play limit
       const effectiveMaxPlays = game.maxPlaysPerDay; // game-level default
-      
+
       // Check child-specific assignment limit
       const [assignment] = await db.select().from(childGameAssignments)
         .where(and(eq(childGameAssignments.childId, childId), eq(childGameAssignments.gameId, gameId)));
-      
+
       const maxPlays = (assignment?.maxPlaysPerDay && assignment.maxPlaysPerDay > 0)
         ? assignment.maxPlaysPerDay
         : effectiveMaxPlays;
@@ -1038,7 +1054,7 @@ export async function registerChildRoutes(app: Express) {
       if (maxPlays > 0) {
         const todayStart = new Date();
         todayStart.setHours(0, 0, 0, 0);
-        
+
         const todayPlays = await db.select({ count: sql<number>`count(*)` })
           .from(gamePlayHistory)
           .where(and(
@@ -1046,7 +1062,7 @@ export async function registerChildRoutes(app: Express) {
             eq(gamePlayHistory.gameId, gameId),
             sql`${gamePlayHistory.playedAt} >= ${todayStart}`
           ));
-        
+
         if (Number(todayPlays[0]?.count || 0) >= maxPlays) {
           return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Daily play limit reached for this game"));
         }
@@ -1091,7 +1107,7 @@ export async function registerChildRoutes(app: Express) {
       });
 
       // Update growth tree (outside transaction, non-blocking)
-      recordGrowthEvent(childId, "game_played", 3, { gameId, title: game.title }).catch(() => {});
+      recordGrowthEvent(childId, "game_played", 3, { gameId, title: game.title }).catch(() => { });
 
       res.json(successResponse({
         pointsEarned: earnedPoints,
@@ -1109,23 +1125,23 @@ export async function registerChildRoutes(app: Express) {
   app.get("/api/child/store", authMiddleware, async (req: any, res) => {
     try {
       const childId = req.user.childId;
-      
+
       // Get the parent ID from parentChild relationship
       const parentLink = await db
         .select({ parentId: parentChild.parentId })
         .from(parentChild)
         .where(eq(parentChild.childId, childId));
-      
+
       if (!parentLink[0]) {
-        return res.status(404).json({ 
-          success: false, 
+        return res.status(404).json({
+          success: false,
           error: "NOT_FOUND",
-          message: "Parent not found for this child" 
+          message: "Parent not found for this child"
         });
       }
-      
+
       const parentId = parentLink[0].parentId;
-      
+
       // Get products owned by parent that are available for the child
       const ownedProducts = await db
         .select({
@@ -1142,14 +1158,14 @@ export async function registerChildRoutes(app: Express) {
           eq(parentOwnedProducts.parentId, parentId),
           eq(parentOwnedProducts.status, "active")
         ));
-      
+
       res.json({ success: true, data: ownedProducts });
     } catch (error: any) {
       console.error("Fetch store error:", error);
-      res.status(500).json({ 
-        success: false, 
+      res.status(500).json({
+        success: false,
         error: "INTERNAL_SERVER_ERROR",
-        message: "Failed to fetch store" 
+        message: "Failed to fetch store"
       });
     }
   });
@@ -1293,8 +1309,8 @@ export async function registerChildRoutes(app: Express) {
         type: NOTIFICATION_TYPES.PURCHASE_REQUEST,
         title: "طلب شراء جديد!",
         message: `${child[0].name} يريد شراء ${effectiveProductName} بـ ${totalPointsNeeded} نقطة`,
-        metadata: { 
-          requestId: requestResult[0].id, 
+        metadata: {
+          requestId: requestResult[0].id,
           childId: req.user.childId,
           childName: child[0].name,
           productId: resolvedProductId,
@@ -1306,8 +1322,8 @@ export async function registerChildRoutes(app: Express) {
         }
       });
 
-      res.json({ 
-        success: true, 
+      res.json({
+        success: true,
         requestId: requestResult[0].id,
         message: "Purchase request sent to parent for approval"
       });
@@ -1953,7 +1969,7 @@ export async function registerChildRoutes(app: Express) {
     try {
       // SEC: Always use authenticated child's ID — never allow query param override
       const childId = req.user?.childId;
-      
+
       if (!childId) {
         return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "childId is required"));
       }
@@ -2455,7 +2471,7 @@ export async function registerChildRoutes(app: Express) {
         .innerJoin(children, eq(parentChild.childId, children.id))
         .where(eq(parentChild.parentId, parent[0].id));
 
-      const matchedChild = linkedChildren.find((lc: any) => 
+      const matchedChild = linkedChildren.find((lc: any) =>
         lc.child.name.toLowerCase() === childName.toLowerCase().trim()
       );
 
@@ -2553,7 +2569,7 @@ export async function registerChildRoutes(app: Express) {
       }
 
       const request = await db.select().from(childLoginRequests).where(eq(childLoginRequests.id, id));
-      
+
       if (!request[0]) {
         return res.status(404).json(errorResponse(ErrorCode.NOT_FOUND, "Login request not found"));
       }
@@ -2569,7 +2585,7 @@ export async function registerChildRoutes(app: Express) {
         await db.update(childLoginRequests)
           .set({ status: "expired" })
           .where(eq(childLoginRequests.id, id));
-        
+
         return res.json(successResponse({
           status: "expired",
           message: "انتهت صلاحية الطلب. يرجى إنشاء طلب جديد.",
@@ -2733,14 +2749,14 @@ export async function registerChildRoutes(app: Express) {
         },
       });
 
-      res.json({ 
-        success: true, 
+      res.json({
+        success: true,
         data: {
           requestId: loginRequest[0].id,
           status: "pending",
           expiresAt,
         },
-        message: "تم إرسال طلب الدخول لوالديك. انتظر موافقتهم." 
+        message: "تم إرسال طلب الدخول لوالديك. انتظر موافقتهم."
       });
     } catch (error: any) {
       console.error("Request login by name error:", error);
@@ -2786,8 +2802,8 @@ export async function registerChildRoutes(app: Express) {
           title: "تسجيل خروج الطفل 👋",
           message: `${child[0].name} قام بتسجيل الخروج من التطبيق.`,
           style: NOTIFICATION_STYLES.TOAST,
-          metadata: { 
-            childId: child[0].id, 
+          metadata: {
+            childId: child[0].id,
             childName: child[0].name,
             logoutTime: new Date().toISOString()
           }
@@ -2847,7 +2863,7 @@ export async function registerChildRoutes(app: Express) {
 
       // Get or create growth tree
       let tree = await db.select().from(childGrowthTrees).where(eq(childGrowthTrees.childId, childId));
-      
+
       if (!tree[0]) {
         // Initialize growth tree if not exists
         const newTree = await db.insert(childGrowthTrees).values({
@@ -2872,16 +2888,16 @@ export async function registerChildRoutes(app: Express) {
       // Fetch custom stage icons from settings (if any)
       const treeSettings = await db.select().from(growthTreeSettings);
       const stageIcons: string[] = (treeSettings[0]?.stageIcons as string[]) || [];
-      
+
       const response = {
         tree: tree[0],
         stages: GROWTH_STAGES,
         currentStageName: currentStageInfo?.name || "seed",
         nextStageName: nextStageInfo?.name || null,
         pointsToNextStage: nextStageInfo ? nextStageInfo.minPoints - tree[0].totalGrowthPoints : 0,
-        progress: nextStageInfo 
-          ? Math.min(100, ((tree[0].totalGrowthPoints - (currentStageInfo?.minPoints || 0)) / 
-              (nextStageInfo.minPoints - (currentStageInfo?.minPoints || 0))) * 100)
+        progress: nextStageInfo
+          ? Math.min(100, ((tree[0].totalGrowthPoints - (currentStageInfo?.minPoints || 0)) /
+            (nextStageInfo.minPoints - (currentStageInfo?.minPoints || 0))) * 100)
           : 100,
         recentEvents,
         stageIcons,
@@ -2902,7 +2918,7 @@ export async function registerChildRoutes(app: Express) {
       // Get watering settings (read-only, safe outside tx)
       const settings = await db.select().from(growthTreeSettings);
       const config = settings[0];
-      
+
       if (!config || !config.wateringEnabled) {
         return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Watering is currently disabled"));
       }
@@ -2952,7 +2968,7 @@ export async function registerChildRoutes(app: Express) {
 
         // Record growth event and update tree
         let tree = await tx.select().from(childGrowthTrees).where(eq(childGrowthTrees.childId, childId));
-        
+
         if (!tree[0]) {
           await tx.insert(childGrowthTrees).values({
             childId,
@@ -2963,7 +2979,7 @@ export async function registerChildRoutes(app: Express) {
         } else {
           const newTotal = tree[0].totalGrowthPoints + config.wateringGrowthPoints;
           const newStage = calculateTreeStage(newTotal);
-          
+
           await tx.update(childGrowthTrees)
             .set({
               totalGrowthPoints: newTotal,
@@ -3069,7 +3085,7 @@ export async function registerChildRoutes(app: Express) {
 
       // Update growth tree
       let tree = await db.select().from(childGrowthTrees).where(eq(childGrowthTrees.childId, childId));
-      
+
       if (!tree[0]) {
         // Initialize if not exists
         await db.insert(childGrowthTrees).values({
@@ -3082,7 +3098,7 @@ export async function registerChildRoutes(app: Express) {
         // Update existing tree
         const newTotal = tree[0].totalGrowthPoints + growthPoints;
         const newStage = calculateTreeStage(newTotal);
-        
+
         const updateData: Record<string, any> = {
           totalGrowthPoints: newTotal,
           lastGrowthAt: new Date(),
@@ -3123,7 +3139,7 @@ export async function registerChildRoutes(app: Express) {
 
       // Get monthly data for the year
       const monthlyData = [];
-      
+
       for (let month = 1; month <= 12; month++) {
         const startDate = new Date(year, month - 1, 1);
         const endDate = new Date(year, month, 0, 23, 59, 59);
@@ -3139,8 +3155,8 @@ export async function registerChildRoutes(app: Express) {
           ));
 
         // Count growth points in this month
-        const growthEvents = await db.select({ 
-          totalPoints: sql<number>`COALESCE(SUM(${childGrowthEvents.growthPoints}), 0)` 
+        const growthEvents = await db.select({
+          totalPoints: sql<number>`COALESCE(SUM(${childGrowthEvents.growthPoints}), 0)`
         })
           .from(childGrowthEvents)
           .where(and(
@@ -3199,12 +3215,12 @@ export async function registerChildRoutes(app: Express) {
       ));
 
       if (!link[0]) {
-        return res.status(403).json({ message: "Access denied" });
+        return res.status(403).json(errorResponse(ErrorCode.PARENT_CHILD_MISMATCH, "Access denied"));
       }
 
       // Get monthly data for the year
       const monthlyData = [];
-      
+
       for (let month = 1; month <= 12; month++) {
         const startDate = new Date(year, month - 1, 1);
         const endDate = new Date(year, month, 0, 23, 59, 59);
@@ -3218,8 +3234,8 @@ export async function registerChildRoutes(app: Express) {
             sql`${taskResults.completedAt} <= ${endDate}`
           ));
 
-        const growthEvents = await db.select({ 
-          totalPoints: sql<number>`COALESCE(SUM(${childGrowthEvents.growthPoints}), 0)` 
+        const growthEvents = await db.select({
+          totalPoints: sql<number>`COALESCE(SUM(${childGrowthEvents.growthPoints}), 0)`
         })
           .from(childGrowthEvents)
           .where(and(
@@ -3624,7 +3640,7 @@ export async function registerChildRoutes(app: Express) {
       const friendship = await db.select().from(childFriendships).where(eq(childFriendships.id, friendshipId));
       if (!friendship[0]) return res.status(404).json(errorResponse(ErrorCode.NOT_FOUND, "Friendship not found"));
       if (friendship[0].requesterId !== childId && friendship[0].addresseeId !== childId) {
-        return res.status(403).json(errorResponse(ErrorCode.UNAUTHORIZED, "Not authorized"));
+        return res.status(403).json(errorResponse(ErrorCode.FORBIDDEN, "Not authorized"));
       }
 
       await db.delete(childFriendships).where(eq(childFriendships.id, friendshipId));
@@ -4294,7 +4310,7 @@ export async function registerChildRoutes(app: Express) {
           const jsonMatch = content.match(/###GAME_SHARE###([\s\S]*?)###END_GAME_SHARE###/);
           let gameData: { gameName?: string; score?: number; stars?: number } = {};
           if (jsonMatch) {
-            try { gameData = JSON.parse(jsonMatch[1]); } catch {}
+            try { gameData = JSON.parse(jsonMatch[1]); } catch { }
           }
 
           // Get child info
@@ -4412,10 +4428,12 @@ export async function registerChildRoutes(app: Express) {
         destination: (_req: any, _file: any, cb: any) => cb(null, uploadDir),
         filename: (_req: any, file: any, cb: any) => cb(null, `${Date.now()}-${Math.random().toString(36).substr(2, 9)}${path.extname(file.originalname)}`),
       });
-      const upload = multer({ storage: storage_m, limits: { fileSize: 10 * 1024 * 1024 }, fileFilter: (_req: any, file: any, cb: any) => {
-        if (file.mimetype.startsWith("image/") || file.mimetype.startsWith("video/")) cb(null, true);
-        else cb(new Error("Only images and videos allowed"));
-      } }).array("media", 5);
+      const upload = multer({
+        storage: storage_m, limits: { fileSize: 10 * 1024 * 1024 }, fileFilter: (_req: any, file: any, cb: any) => {
+          if (file.mimetype.startsWith("image/") || file.mimetype.startsWith("video/")) cb(null, true);
+          else cb(new Error("Only images and videos allowed"));
+        }
+      }).array("media", 5);
 
       upload(req, res, (err: any) => {
         if (err) return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, err.message));
@@ -4438,16 +4456,16 @@ export async function registerChildRoutes(app: Express) {
       const posts = await db.select().from(childPosts)
         .where(and(eq(childPosts.childId, childId), eq(childPosts.isActive, true)))
         .orderBy(desc(childPosts.isPinned), desc(childPosts.createdAt));
-      
+
       const child = await db.select({ name: children.name, avatarUrl: children.avatarUrl })
         .from(children).where(eq(children.id, childId));
-      
+
       const postsWithAuthor = posts.map((p: any) => ({
         ...p,
         authorName: child[0]?.name || "",
         authorAvatar: child[0]?.avatarUrl || null,
       }));
-      
+
       res.json({ success: true, data: postsWithAuthor });
     } catch (error: any) {
       console.error("Get child posts error:", error);
@@ -4462,16 +4480,16 @@ export async function registerChildRoutes(app: Express) {
       const posts = await db.select().from(childPosts)
         .where(and(eq(childPosts.childId, targetChildId), eq(childPosts.isActive, true)))
         .orderBy(desc(childPosts.isPinned), desc(childPosts.createdAt));
-      
+
       const child = await db.select({ name: children.name, avatarUrl: children.avatarUrl })
         .from(children).where(eq(children.id, targetChildId));
-      
+
       const postsWithAuthor = posts.map((p: any) => ({
         ...p,
         authorName: child[0]?.name || "",
         authorAvatar: child[0]?.avatarUrl || null,
       }));
-      
+
       res.json({ success: true, data: postsWithAuthor });
     } catch (error: any) {
       console.error("Get child posts by id error:", error);
@@ -4487,7 +4505,7 @@ export async function registerChildRoutes(app: Express) {
       const [post] = await db.select().from(childPosts)
         .where(and(eq(childPosts.id, postId), eq(childPosts.childId, childId)));
       if (!post) return res.status(404).json(errorResponse(ErrorCode.NOT_FOUND, "Post not found"));
-      
+
       await db.update(childPosts).set({ isActive: false }).where(eq(childPosts.id, postId));
       res.json({ success: true, message: "Post deleted" });
     } catch (error: any) {
@@ -4522,10 +4540,10 @@ export async function registerChildRoutes(app: Express) {
     try {
       const childId = req.user.childId;
       const { postId } = req.params;
-      
+
       const [existingLike] = await db.select().from(childPostLikes)
         .where(and(eq(childPostLikes.postId, postId), eq(childPostLikes.childId, childId)));
-      
+
       let liked: boolean;
       if (existingLike) {
         await db.delete(childPostLikes).where(eq(childPostLikes.id, existingLike.id));
@@ -4536,7 +4554,7 @@ export async function registerChildRoutes(app: Express) {
         await db.update(childPosts).set({ likesCount: sql`likes_count + 1` }).where(eq(childPosts.id, postId));
         liked = true;
       }
-      
+
       const [updated] = await db.select({ likesCount: childPosts.likesCount }).from(childPosts).where(eq(childPosts.id, postId));
       res.json({ success: true, liked, likesCount: updated?.likesCount || 0 });
     } catch (error: any) {
@@ -4600,7 +4618,7 @@ export async function registerChildRoutes(app: Express) {
 
       const [settings] = await db.select().from(screenTimeSettings)
         .where(eq(screenTimeSettings.childId, childId));
-      
+
       const [usage] = await db.select().from(childDailyUsage)
         .where(and(eq(childDailyUsage.childId, childId), eq(childDailyUsage.date, today)));
 

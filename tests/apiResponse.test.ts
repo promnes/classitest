@@ -75,5 +75,9 @@ describe("API Response Helpers", () => {
     it("should map CONFLICT to 409", () => {
       expect(getHttpStatus(ErrorCode.CONFLICT)).toBe(409);
     });
+
+    it("should map FORBIDDEN to 403", () => {
+      expect(getHttpStatus(ErrorCode.FORBIDDEN)).toBe(403);
+    });
   });
 });
