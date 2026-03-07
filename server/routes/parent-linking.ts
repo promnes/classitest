@@ -645,149 +645,174 @@ router.post("/parent/notifications/:id/respond-link", authMiddleware, async (req
       return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Invalid action. Must be 'approve' or 'reject'"));
     }
 
-    // التحقق من الإشعار
-    const notification = await db.select().from(notifications).where(eq(notifications.id, notificationId));
-    if (!notification[0]) {
-      return res.status(404).json(errorResponse(ErrorCode.NOT_FOUND, "Notification not found"));
-    }
+    const txResult = await db.transaction(async (tx: any) => {
+      const notification = await tx
+        .select()
+        .from(notifications)
+        .where(eq(notifications.id, notificationId));
 
-    if (notification[0].parentId !== parentId) {
-      return res.status(403).json(errorResponse(ErrorCode.FORBIDDEN, "Not authorized"));
-    }
-
-    if (notification[0].type !== "parent_link_request") {
-      return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Invalid notification type"));
-    }
-
-    const metadata = notification[0].metadata as any;
-    const linkRequestIds: string[] = metadata?.linkRequestIds || [];
-    const requestingParentId = metadata?.requestingParentId;
-    const childrenIds: string[] = metadata?.childrenIds || [];
-    const childrenNames = metadata?.childrenNames || "";
-    const requestingParentName = metadata?.requestingParentName || "";
-
-    if (linkRequestIds.length === 0) {
-      return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "No link requests found"));
-    }
-
-    // التحقق من أن الطلبات لم تتم معالجتها بعد
-    const pendingRequests = await db
-      .select()
-      .from(parentLinkRequests)
-      .where(
-        and(
-          sql`${parentLinkRequests.id} IN (${sql.join(linkRequestIds.map((id: string) => sql`${id}`), sql`,`)})`,
-          eq(parentLinkRequests.status, "pending")
-        )
-      );
-
-    if (pendingRequests.length === 0) {
-      return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "هذه الطلبات تم معالجتها بالفعل"));
-    }
-
-    // تحديث الإشعار كمقروء
-    await db.update(notifications).set({
-      isRead: true,
-      status: action === "approve" ? "approved" : "rejected",
-      resolvedAt: new Date(),
-    }).where(eq(notifications.id, notificationId));
-
-    if (action === "approve") {
-      // الموافقة: ربط الأطفال بالوالد الجديد
-      for (const request of pendingRequests) {
-        // تحديث حالة الطلب
-        await db.update(parentLinkRequests)
-          .set({ status: "approved", respondedAt: new Date() })
-          .where(eq(parentLinkRequests.id, request.id));
-
-        // إضافة الربط
-        const existingLink = await db
-          .select()
-          .from(parentChild)
-          .where(
-            and(
-              eq(parentChild.parentId, request.requestingParentId),
-              eq(parentChild.childId, request.childId)
-            )
-          );
-
-        if (existingLink.length === 0) {
-          await db.insert(parentChild).values({
-            parentId: request.requestingParentId,
-            childId: request.childId,
-            relationshipRole: "co_guardian",
-            linkSource: "approved_request",
-            linkedByParentId: parentId,
-          });
-        }
+      if (!notification[0]) {
+        return { error: { status: 404, body: errorResponse(ErrorCode.NOT_FOUND, "Notification not found") } };
       }
 
-      // إنشاء/تحديث سجل المزامنة بدون الاعتماد على ON CONFLICT (قد لا يكون القيد موجودًا في قواعد قديمة)
-      const existingSync = await db
-        .select({ id: parentParentSync.id, sharedChildren: parentParentSync.sharedChildren })
-        .from(parentParentSync)
+      if (notification[0].parentId !== parentId) {
+        return { error: { status: 403, body: errorResponse(ErrorCode.FORBIDDEN, "Not authorized") } };
+      }
+
+      if (notification[0].type !== "parent_link_request") {
+        return { error: { status: 400, body: errorResponse(ErrorCode.BAD_REQUEST, "Invalid notification type") } };
+      }
+
+      const metadata = notification[0].metadata as any;
+      const linkRequestIds: string[] = metadata?.linkRequestIds || [];
+      const requestingParentId = metadata?.requestingParentId;
+      const childrenIds: string[] = metadata?.childrenIds || [];
+      const childrenNames = metadata?.childrenNames || "";
+
+      if (!requestingParentId || linkRequestIds.length === 0) {
+        return { error: { status: 400, body: errorResponse(ErrorCode.BAD_REQUEST, "No link requests found") } };
+      }
+
+      const pendingRequests = await tx
+        .select()
+        .from(parentLinkRequests)
         .where(
           and(
-            eq(parentParentSync.primaryParentId, parentId),
-            eq(parentParentSync.secondaryParentId, requestingParentId)
+            sql`${parentLinkRequests.id} IN (${sql.join(linkRequestIds.map((id: string) => sql`${id}`), sql`,`)})`,
+            eq(parentLinkRequests.status, "pending")
           )
-        )
-        .limit(1);
+        );
 
-      if (existingSync[0]) {
-        const currentShared = Array.isArray(existingSync[0].sharedChildren) ? existingSync[0].sharedChildren : [];
-        const mergedChildren = Array.from(new Set([...currentShared, ...childrenIds]));
-
-        await db
-          .update(parentParentSync)
-          .set({
-            syncStatus: "active",
-            sharedChildren: mergedChildren,
-            lastSyncedAt: new Date(),
-          })
-          .where(eq(parentParentSync.id, existingSync[0].id));
-      } else {
-        await db.insert(parentParentSync).values({
-          primaryParentId: parentId,
-          secondaryParentId: requestingParentId,
-          sharedChildren: childrenIds,
-          syncStatus: "active",
-        });
+      if (pendingRequests.length === 0) {
+        return { error: { status: 400, body: errorResponse(ErrorCode.BAD_REQUEST, "هذه الطلبات تم معالجتها بالفعل") } };
       }
 
-      // إرسال إشعار للوالد الطالب بالموافقة
+      await tx
+        .update(notifications)
+        .set({
+          isRead: true,
+          status: action === "approve" ? "approved" : "rejected",
+          resolvedAt: new Date(),
+        })
+        .where(eq(notifications.id, notificationId));
+
+      if (action === "approve") {
+        for (const request of pendingRequests) {
+          await tx
+            .update(parentLinkRequests)
+            .set({ status: "approved", respondedAt: new Date() })
+            .where(eq(parentLinkRequests.id, request.id));
+
+          const existingLink = await tx
+            .select()
+            .from(parentChild)
+            .where(
+              and(
+                eq(parentChild.parentId, request.requestingParentId),
+                eq(parentChild.childId, request.childId)
+              )
+            );
+
+          if (existingLink.length === 0) {
+            await tx.insert(parentChild).values({
+              parentId: request.requestingParentId,
+              childId: request.childId,
+              relationshipRole: "co_guardian",
+              linkSource: "approved_request",
+              linkedByParentId: parentId,
+            });
+          }
+        }
+
+        const existingSync = await tx
+          .select({ id: parentParentSync.id, sharedChildren: parentParentSync.sharedChildren })
+          .from(parentParentSync)
+          .where(
+            and(
+              eq(parentParentSync.primaryParentId, parentId),
+              eq(parentParentSync.secondaryParentId, requestingParentId)
+            )
+          )
+          .limit(1);
+
+        if (existingSync[0]) {
+          const currentShared = Array.isArray(existingSync[0].sharedChildren) ? existingSync[0].sharedChildren : [];
+          const mergedChildren = Array.from(new Set([...currentShared, ...childrenIds]));
+
+          await tx
+            .update(parentParentSync)
+            .set({
+              syncStatus: "active",
+              sharedChildren: mergedChildren,
+              lastSyncedAt: new Date(),
+            })
+            .where(eq(parentParentSync.id, existingSync[0].id));
+        } else {
+          await tx.insert(parentParentSync).values({
+            primaryParentId: parentId,
+            secondaryParentId: requestingParentId,
+            sharedChildren: childrenIds,
+            syncStatus: "active",
+          });
+        }
+
+        return {
+          action: "approve",
+          requestingParentId,
+          childrenIds,
+          childrenNames,
+        };
+      }
+
+      for (const request of pendingRequests) {
+        await tx
+          .update(parentLinkRequests)
+          .set({ status: "rejected", respondedAt: new Date() })
+          .where(eq(parentLinkRequests.id, request.id));
+      }
+
+      return {
+        action: "reject",
+        requestingParentId,
+        childrenIds,
+        childrenNames,
+      };
+    });
+
+    if ((txResult as any)?.error) {
+      return res.status((txResult as any).error.status).json((txResult as any).error.body);
+    }
+
+    if (txResult.action === "approve") {
       await createNotification({
-        parentId: requestingParentId,
+        parentId: txResult.requestingParentId,
         type: NOTIFICATION_TYPES.PARENT_LINK_APPROVED,
         title: "✅ تمت الموافقة على طلب الربط",
-        message: `تمت الموافقة على ربط حسابك بأطفال (${childrenNames}). يمكنك الآن إدارة حساباتهم.`,
+        message: `تمت الموافقة على ربط حسابك بأطفال (${txResult.childrenNames}). يمكنك الآن إدارة حساباتهم.`,
         style: NOTIFICATION_STYLES.TOAST,
         priority: "normal",
         soundAlert: true,
       });
 
-      res.json(successResponse({ approved: true, linkedChildren: childrenIds.length }, "تمت الموافقة على طلب الربط بنجاح"));
-    } else {
-      // الرفض: تحديث حالة جميع الطلبات
-      for (const request of pendingRequests) {
-        await db.update(parentLinkRequests)
-          .set({ status: "rejected", respondedAt: new Date() })
-          .where(eq(parentLinkRequests.id, request.id));
-      }
-
-      // إرسال إشعار للوالد الطالب بالرفض
-      await createNotification({
-        parentId: requestingParentId,
-        type: NOTIFICATION_TYPES.PARENT_LINK_REJECTED,
-        title: "❌ تم رفض طلب الربط",
-        message: `تم رفض طلب ربط حسابك بأطفال (${childrenNames}).`,
-        style: NOTIFICATION_STYLES.TOAST,
-        priority: "normal",
-        soundAlert: false,
-      });
-
-      res.json(successResponse({ rejected: true }, "تم رفض طلب الربط"));
+      return res.json(
+        successResponse(
+          { approved: true, linkedChildren: txResult.childrenIds.length },
+          "تمت الموافقة على طلب الربط بنجاح"
+        )
+      );
     }
+
+    await createNotification({
+      parentId: txResult.requestingParentId,
+      type: NOTIFICATION_TYPES.PARENT_LINK_REJECTED,
+      title: "❌ تم رفض طلب الربط",
+      message: `تم رفض طلب ربط حسابك بأطفال (${txResult.childrenNames}).`,
+      style: NOTIFICATION_STYLES.TOAST,
+      priority: "normal",
+      soundAlert: false,
+    });
+
+    return res.json(successResponse({ rejected: true }, "تم رفض طلب الربط"));
   } catch (err) {
     console.error("Error responding to link request:", err);
     res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to respond to link request"));

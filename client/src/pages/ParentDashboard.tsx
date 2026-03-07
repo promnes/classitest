@@ -1269,6 +1269,14 @@ export const ParentDashboard = (): JSX.Element => {
                       <KeyRound className="h-5 w-5" />
                       <span className="text-xs">{t("parentDashboard.linkParentPartnerButton")}</span>
                     </Button>
+                    <Button
+                      onClick={() => navigate("/family-links")}
+                      className="h-auto py-4 flex-col gap-2 bg-teal-500 hover:bg-teal-600"
+                      data-testid="button-family-link-management"
+                    >
+                      <Users className="h-5 w-5" />
+                      <span className="text-xs">{t("parentDashboard.familyLinkManagementButton", { defaultValue: "Family Links" })}</span>
+                    </Button>
                   </div>
 
                   {showSpouseLinkCard && (
