@@ -2061,8 +2061,28 @@ export async function registerParentRoutes(app: Express) {
   // Confirm checkout (after successful payment)
   app.post("/api/parent/store/checkout/confirm", authMiddleware, async (req: any, res) => {
     try {
-      const { items, paymentReference } = req.body; // items as in checkout
-      if (!items || !Array.isArray(items) || items.length === 0) return res.status(400).json({ message: "Items required" });
+      const v = validateBody(checkoutConfirmSchema, req.body);
+      if (!v.success) {
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, v.error));
+      }
+
+      const { items, paymentReference } = v.data;
+      const normalizedReference = paymentReference.trim();
+
+      const existingByReference = await db
+        .select({ id: parentPurchases.id })
+        .from(parentPurchases)
+        .where(
+          and(
+            eq(parentPurchases.parentId, req.user.userId),
+            eq(parentPurchases.invoiceNumber, normalizedReference)
+          )
+        )
+        .limit(1);
+
+      if (existingByReference[0]) {
+        return res.status(409).json(errorResponse(ErrorCode.BAD_REQUEST, "Payment reference already used"));
+      }
 
       // Calculate totals and create purchase
       let subtotal = 0;
@@ -2070,32 +2090,76 @@ export async function registerParentRoutes(app: Express) {
         const p = await db.select().from(products).where(eq(products.id, it.productId));
         if (!p[0]) return res.status(404).json({ message: `Product ${it.productId} not found` });
         const unitPrice = parseFloat(p[0].price.toString());
-        subtotal += unitPrice * (parseInt(it.quantity) || 1);
+        subtotal += unitPrice * (Number(it.quantity) || 1);
       }
       const total = parseFloat(subtotal.toFixed(2));
 
-      const createdPurchase = await db.insert(parentPurchases).values({ parentId: req.user.userId, totalAmount: total, currency: 'USD', paymentStatus: 'paid', invoiceNumber: paymentReference || null }).returning();
-      const purchaseId = createdPurchase[0].id;
+      const createdPurchase = await db.transaction(async (tx: any) => {
+        const duplicateInTx = await tx
+          .select({ id: parentPurchases.id })
+          .from(parentPurchases)
+          .where(
+            and(
+              eq(parentPurchases.parentId, req.user.userId),
+              eq(parentPurchases.invoiceNumber, normalizedReference)
+            )
+          )
+          .limit(1);
 
-      // Insert items
-      for (const it of items) {
-        const p = await db.select().from(products).where(eq(products.id, it.productId));
-        const unitPrice = parseFloat(p[0].price.toString());
-        const qty = parseInt(it.quantity) || 1;
-        const subtotalLine = parseFloat((unitPrice * qty).toFixed(2));
-        await db.insert(parentPurchaseItems).values({ purchaseId, productId: p[0].id, quantity: qty, unitPrice: unitPrice.toString(), subtotal: subtotalLine.toString() });
+        if (duplicateInTx[0]) {
+          throw new Error("PAYMENT_REFERENCE_REUSED");
+        }
 
-        // Create owned product in pending_admin_approval
-        await db.insert(parentOwnedProducts).values({ parentId: req.user.userId, productId: p[0].id, sourcePurchaseId: purchaseId, status: 'pending_admin_approval' });
-      }
+        const inserted = await tx
+          .insert(parentPurchases)
+          .values({
+            parentId: req.user.userId,
+            totalAmount: total,
+            currency: "USD",
+            paymentStatus: "pending",
+            invoiceNumber: normalizedReference,
+          })
+          .returning();
+
+        const purchaseId = inserted[0].id;
+
+        for (const it of items) {
+          const p = await tx.select().from(products).where(eq(products.id, it.productId));
+          const unitPrice = parseFloat(p[0].price.toString());
+          const qty = Number(it.quantity) || 1;
+          const subtotalLine = parseFloat((unitPrice * qty).toFixed(2));
+
+          await tx.insert(parentPurchaseItems).values({
+            purchaseId,
+            productId: p[0].id,
+            quantity: qty,
+            unitPrice: unitPrice.toString(),
+            subtotal: subtotalLine.toString(),
+          });
+
+          await tx.insert(parentOwnedProducts).values({
+            parentId: req.user.userId,
+            productId: p[0].id,
+            sourcePurchaseId: purchaseId,
+            status: "pending_admin_approval",
+          });
+        }
+
+        return inserted[0];
+      });
+
+      const purchaseId = createdPurchase.id;
 
       // Notify admins (all admins receive real-time notifications)
       const buyerParent = await db.select({ name: parents.name }).from(parents).where(eq(parents.id, req.user.userId));
       const buyerName = buyerParent[0]?.name || "مستخدم";
-      await notifyAllAdmins({ type: NOTIFICATION_TYPES.PURCHASE_PAID, title: "💳 طلب شراء جديد", message: `${buyerName} قام بالدفع لطلب الشراء وينتظر الموافقة`, relatedId: purchaseId, metadata: { parentName: buyerName, purchaseId }, style: NOTIFICATION_STYLES.TOAST, priority: NOTIFICATION_PRIORITIES.URGENT, soundAlert: true });
+      await notifyAllAdmins({ type: NOTIFICATION_TYPES.PURCHASE_PAID, title: "💳 طلب شراء جديد", message: `${buyerName} أرسل طلب شراء بمرجع دفع وينتظر التحقق`, relatedId: purchaseId, metadata: { parentName: buyerName, purchaseId, paymentReference: normalizedReference }, style: NOTIFICATION_STYLES.TOAST, priority: NOTIFICATION_PRIORITIES.URGENT, soundAlert: true });
 
-      res.status(201).json({ success: true, data: { purchaseId, message: 'Purchase recorded and pending admin approval' } });
+      res.status(201).json({ success: true, data: { purchaseId, paymentStatus: "pending", message: "Purchase recorded and pending payment verification" } });
     } catch (error: any) {
+      if (error?.message === "PAYMENT_REFERENCE_REUSED") {
+        return res.status(409).json(errorResponse(ErrorCode.BAD_REQUEST, "Payment reference already used"));
+      }
       console.error("Checkout confirm error:", error);
       res.status(500).json({ message: "Failed to confirm checkout" });
     }

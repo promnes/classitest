@@ -73,7 +73,7 @@ export const checkoutConfirmSchema = z.object({
     productId: z.string().min(1),
     quantity: z.number().int().positive().max(100),
   })).min(1).max(50),
-  paymentReference: z.string().max(200).optional(),
+  paymentReference: z.string().trim().min(4).max(200),
 });
 
 export const assignProductToChildSchema = z.object({
