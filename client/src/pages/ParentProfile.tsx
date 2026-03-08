@@ -534,7 +534,7 @@ export default function ParentProfile() {
         </div>
 
         {/* Avatar + Info */}
-        <div className="px-4 -mt-14 relative z-10">
+        <div className="px-4 -mt-14 relative z-40">
           <div className="flex items-end gap-3">
             <div className={`relative h-24 w-24 rounded-full border-4 shadow-xl flex items-center justify-center text-3xl font-bold ${isDark ? "bg-gray-800 border-gray-900 text-blue-400" : "bg-white border-white text-blue-600"}`}>
               {parent?.avatarUrl && !avatarLoadError ? (

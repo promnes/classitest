@@ -1,14 +1,13 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { MandatoryTaskModal } from "@/components/MandatoryTaskModal";
 import { PWAInstallButton } from "@/components/PWAInstallButton";
 import { LanguageSelector } from "@/components/LanguageSelector";
 import { GrowthTree } from "@/components/GrowthTree";
 import { useTheme } from "@/contexts/ThemeContext";
 import { ChildNotificationBell } from "@/components/ChildNotificationBell";
 import { useChildAuth } from "@/hooks/useChildAuth";
-import { Gamepad2, Star, Gift, Bell, ShoppingBag, X, Trophy, Play, BookOpen, TrendingUp, LogOut, Settings, User, Loader2, Share2, Link2, Sparkles } from "lucide-react";
+import { Gamepad2, Star, Bell, X, Trophy, Play, BookOpen, LogOut, Settings, User, Loader2, Share2, Link2, Sparkles } from "lucide-react";
 import { ChildBottomNav } from "@/components/ChildBottomNav";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
@@ -55,6 +54,7 @@ export const ChildGames = (): JSX.Element => {
   const [gameShared, setGameShared] = useState(false);
   const [sharedGameData, setSharedGameData] = useState<{ gameName: string; score: number; stars: number } | null>(null);
   const [telemetryVersion, setTelemetryVersion] = useState(0);
+  const [insightsCollapsed, setInsightsCollapsed] = useState(true);
   const [ultraClarity, setUltraClarity] = useState<boolean>(() => {
     try {
       const saved = localStorage.getItem("child_games_ultra_clarity");
@@ -389,11 +389,10 @@ export const ChildGames = (): JSX.Element => {
 
   const buildGameSrc = useCallback((embedUrl: string, language: string) => {
     const separator = embedUrl.includes("?") ? "&" : "?";
-    const clarityLevel = ultraClarity ? "ultra" : "high";
     const isGem = embedUrl.includes("gem-kingdom");
     const tuneParam = isGem ? `&tune=${gemTuneProfile}` : "";
-    return `${embedUrl}${separator}lang=${language}&quality=high&clarity=${clarityLevel}${tuneParam}`;
-  }, [ultraClarity, gemTuneProfile]);
+    return `${embedUrl}${separator}lang=${language}&quality=high${tuneParam}`;
+  }, [gemTuneProfile]);
 
   useEffect(() => {
     try {
@@ -414,7 +413,13 @@ export const ChildGames = (): JSX.Element => {
   useEffect(() => {
     if (!selectedGame || iframeLoading) return;
     applyGameClarityEnhancements();
-  }, [selectedGame, iframeLoading, ultraClarity, applyGameClarityEnhancements]);
+  }, [selectedGame, iframeLoading, applyGameClarityEnhancements]);
+
+  // Apply clarity CSS filter when toggle changes (no iframe reload)
+  useEffect(() => {
+    if (!selectedGame || iframeLoading) return;
+    applyGameClarityEnhancements();
+  }, [ultraClarity]);
 
   const handleCompleteGame = () => {
     if (selectedGame && gameResult) {
@@ -1102,7 +1107,7 @@ export const ChildGames = (): JSX.Element => {
 
   return (
     <div className={`min-h-screen ${isDark ? "bg-gradient-to-br from-purple-900 via-indigo-900 to-slate-900" : "bg-gradient-to-br from-purple-400 via-purple-500 to-indigo-500"} pb-24`} dir={isRTL ? "rtl" : "ltr"}>
-      {childInfo?.id && <MandatoryTaskModal childId={childInfo.id} />}
+
       
       {/* ─── Sticky Header ─────────────────────────────────── */}
       <header className="sticky top-0 z-40 bg-gradient-to-r from-purple-600 via-violet-600 to-indigo-600 shadow-lg">
@@ -1229,30 +1234,6 @@ export const ChildGames = (): JSX.Element => {
       {/* Growth Tree Section */}
       <div className="max-w-6xl mx-auto mb-6">
         <GrowthTree />
-      </div>
-
-      {/* Quick Actions */}
-      <div className="max-w-6xl mx-auto px-3 sm:px-4 mb-4">
-        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-          {[
-            { icon: Gift, label: isRTL ? 'الهدايا' : 'Gifts', path: '/child-gifts', gradient: 'from-yellow-400 to-orange-500', emoji: '🎁' },
-            { icon: ShoppingBag, label: isRTL ? 'المتجر' : 'Store', path: '/child-store', gradient: 'from-pink-400 to-rose-500', emoji: '🛒' },
-            { icon: TrendingUp, label: isRTL ? 'التقدم' : 'Progress', path: '/child-progress', gradient: 'from-emerald-400 to-teal-500', emoji: '📊' },
-          ].map((action, i) => (
-            <motion.button
-              key={action.path}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.08 }}
-              whileTap={{ scale: 0.93 }}
-              onClick={() => navigate(action.path)}
-              className={`flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r ${action.gradient} text-white font-bold rounded-2xl shadow-lg whitespace-nowrap text-sm`}
-            >
-              <span className="text-base">{action.emoji}</span>
-              {action.label}
-            </motion.button>
-          ))}
-        </div>
       </div>
 
       {/* Games Section Header */}
@@ -1437,15 +1418,23 @@ export const ChildGames = (): JSX.Element => {
               )}
               {isGemGameOpen && gemTelemetryInsights && (
                 <div className={`w-full px-3 py-2 rounded-xl border ${isDark ? "bg-gray-900/70 border-gray-700" : "bg-slate-50 border-slate-200"}`}>
-                  <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center justify-between">
                     <p className={`text-xs font-bold ${isDark ? "text-cyan-300" : "text-cyan-700"}`}>
                       {isRTL ? "Gem Insights (جلسة حالية)" : "Gem Insights (Current Session)"}
                     </p>
                     <span className={`text-[11px] ${isDark ? "text-gray-400" : "text-gray-500"}`}>
                       {isRTL ? `احداث: ${gemTelemetryInsights.sampleSize}` : `events: ${gemTelemetryInsights.sampleSize}`}
                     </span>
+                    <button
+                      onClick={() => setInsightsCollapsed((prev) => !prev)}
+                      className={`text-[11px] px-2 py-0.5 rounded-full border ${isDark ? "bg-gray-700 text-cyan-300 border-gray-600" : "bg-cyan-100 text-cyan-700 border-cyan-200"}`}
+                    >
+                      {insightsCollapsed ? (isRTL ? "▼ عرض" : "▼ Show") : (isRTL ? "▲ إخفاء" : "▲ Hide")}
+                    </button>
                   </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                  {!insightsCollapsed && (
+                  <>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs mt-2">
                     <div className={`rounded-lg px-2 py-1.5 ${isDark ? "bg-gray-800 text-gray-200" : "bg-white text-gray-700"}`}>
                       {isRTL ? "بدء المراحل" : "Levels Started"}: {gemTelemetryInsights.levelStarted}
                     </div>
@@ -1646,6 +1635,8 @@ export const ChildGames = (): JSX.Element => {
                         </div>
                       )}
                     </div>
+                  )}
+                  </>
                   )}
                 </div>
               )}

@@ -2,7 +2,7 @@ import { useTranslation } from "react-i18next";
 import { useLocation } from "wouter";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useQuery } from "@tanstack/react-query";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Gamepad2,
   Gift,
@@ -12,7 +12,7 @@ import {
   Star,
   Sparkles,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef, useCallback } from "react";
 
 interface NavItem {
   id: string;
@@ -34,6 +34,30 @@ export function ChildBottomNav({ activeTab }: { activeTab?: string }) {
   const [calmMode, setCalmMode] = useState(() => {
     return localStorage.getItem("child_ui_calm_mode") === "1";
   });
+  const [barsVisible, setBarsVisible] = useState(true);
+  const [navTransitioning, setNavTransitioning] = useState(false);
+  const [pressedTab, setPressedTab] = useState<string | null>(null);
+  const lastScrollY = useRef(0);
+  const scrollTicking = useRef(false);
+
+  useEffect(() => {
+    const onScroll = () => {
+      if (scrollTicking.current) return;
+      scrollTicking.current = true;
+      requestAnimationFrame(() => {
+        const y = window.scrollY;
+        if (y > lastScrollY.current + 10) {
+          setBarsVisible(false); // scrolling down → hide
+        } else if (y < lastScrollY.current - 10) {
+          setBarsVisible(true); // scrolling up → show
+        }
+        lastScrollY.current = y;
+        scrollTicking.current = false;
+      });
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   useEffect(() => {
     const syncCalmMode = () => setCalmMode(localStorage.getItem("child_ui_calm_mode") === "1");
@@ -150,6 +174,25 @@ export function ChildBottomNav({ activeTab }: { activeTab?: string }) {
     localStorage.setItem("child_ui_onboarding_seen", "1");
   };
 
+  const handleNavClick = (item: NavItem) => {
+    if (navTransitioning) return;
+    if (currentTab === item.id) return;
+
+    setPressedTab(item.id);
+    setNavTransitioning(true);
+    setBarsVisible(false);
+
+    // Give the click animation time to play before route change.
+    window.setTimeout(() => {
+      navigate(item.path);
+    }, 170);
+  };
+
+  useEffect(() => {
+    setNavTransitioning(false);
+    setPressedTab(null);
+  }, [location]);
+
   const navItems: NavItem[] = [
     {
       id: "games",
@@ -195,115 +238,152 @@ export function ChildBottomNav({ activeTab }: { activeTab?: string }) {
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 safe-area-bottom">
-      <div className="max-w-lg mx-auto px-3 pb-1 mb-1">
-        <motion.div
-          initial={{ opacity: 0, y: calmMode ? 6 : 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: calmMode ? 0.2 : 0.35 }}
-          className={`rounded-2xl px-3 py-2 border shadow-lg ${
-            isDark ? "bg-gray-900/95 border-gray-700" : "bg-white/95 border-white"
-          } backdrop-blur-xl`}
-        >
-          <div className="flex items-center justify-between gap-3">
-            <div className="min-w-0">
-              <p className={`text-[11px] font-semibold ${isDark ? "text-gray-200" : "text-gray-700"}`}>
-                {t("childNav.dailyProgress", { defaultValue: "تقدمك اليوم" })}
-              </p>
-              <p className={`text-[11px] truncate ${isDark ? "text-gray-400" : "text-gray-600"}`}>
-                {t("childNav.dailyProgressText", {
-                  defaultValue: `${completedTasks} منجز - ${pendingTasks} متبقي`,
-                })}
-              </p>
+      <AnimatePresence>
+        {barsVisible && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            transition={{ duration: 0.25 }}
+            className="max-w-lg mx-auto px-3 pb-1 mb-1 flex flex-col gap-1.5"
+          >
+            <div
+              className={`rounded-2xl px-3 py-2 border shadow-lg ${
+                isDark ? "bg-gray-900/95 border-gray-700" : "bg-white/95 border-white"
+              } backdrop-blur-xl`}
+            >
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className={`text-[11px] font-semibold ${isDark ? "text-gray-200" : "text-gray-700"}`}>
+                    {t("childNav.dailyProgress", { defaultValue: "تقدمك اليوم" })}
+                  </p>
+                  <p className={`text-[11px] truncate ${isDark ? "text-gray-400" : "text-gray-600"}`}>
+                    {t("childNav.dailyProgressText", {
+                      defaultValue: `${completedTasks} منجز - ${pendingTasks} متبقي`,
+                    })}
+                  </p>
+                </div>
+                <div className={`text-[11px] px-2 py-1 rounded-full font-bold ${isDark ? "bg-purple-900/50 text-purple-200" : "bg-purple-100 text-purple-700"}`}>
+                  {t("childNav.pointsToNextStar", {
+                    defaultValue: `${pointsToNextStar} ⭐`,
+                  })}
+                </div>
+              </div>
             </div>
-            <div className={`text-[11px] px-2 py-1 rounded-full font-bold ${isDark ? "bg-purple-900/50 text-purple-200" : "bg-purple-100 text-purple-700"}`}>
-              {t("childNav.pointsToNextStar", {
-                defaultValue: `${pointsToNextStar} ⭐`,
+
+            <button
+              type="button"
+              onClick={dismissOnboarding}
+              className={`w-full rounded-2xl px-3 py-2 text-start border ${
+                isDark ? "bg-gray-900/95 border-gray-700 text-purple-200" : "bg-white/95 border-purple-200 text-purple-700"
+              } backdrop-blur-xl shadow-md`}
+              data-testid="child-companion-bubble"
+            >
+              <div className="flex items-center gap-2">
+                <div
+                  className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${isDark ? "bg-purple-700/60" : "bg-purple-100"}`}
+                >
+                  <Sparkles className="w-4 h-4" />
+                </div>
+                <p className="text-[11px] font-medium truncate">{companionMessage}</p>
+              </div>
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {!navTransitioning && (
+          <motion.nav
+            initial={{ opacity: 0, y: 18 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 22, scale: 0.98 }}
+            transition={{ duration: 0.18, ease: "easeOut" }}
+            className={`${
+              isDark ? "bg-gray-900/95" : "bg-white/95"
+            } backdrop-blur-xl border-t ${
+              isDark ? "border-gray-800" : "border-gray-100"
+            } shadow-[0_-4px_20px_rgba(0,0,0,0.08)]`}
+          >
+            <div className="max-w-lg mx-auto flex items-center justify-around px-2 py-1.5 [perspective:900px]">
+              {navItems.map((item) => {
+                const isActive = currentTab === item.id;
+                const isPressed = pressedTab === item.id;
+
+                return (
+                  <motion.button
+                    key={item.id}
+                    whileHover={{ scale: 1.14, y: -4, rotateX: 10 }}
+                    whileTap={{ scale: motionConfig.tapScale }}
+                    onClick={() => handleNavClick(item)}
+                    animate={
+                      isPressed
+                        ? { scale: 1.28, y: -11, rotateX: 14 }
+                        : { scale: 1, y: 0, rotateX: 0 }
+                    }
+                    transition={
+                      isPressed
+                        ? { duration: 0.16, ease: "easeOut" }
+                        : { type: "spring", stiffness: 260, damping: 20 }
+                    }
+                    className={`relative flex flex-col items-center gap-0.5 py-1.5 px-3 rounded-2xl transition-all min-h-[56px] min-w-[56px] [transform-style:preserve-3d]
+                      ${isActive
+                        ? `${item.color} ${isDark ? "bg-white/10 shadow-[0_10px_24px_rgba(59,130,246,0.18)]" : "bg-gray-100 shadow-[0_10px_24px_rgba(0,0,0,0.14)]"}`
+                        : `${isDark ? "text-gray-500" : "text-gray-400"} hover:text-gray-600`
+                      }`}
+                    aria-label={item.label}
+                  >
+                    {isActive && (
+                      <motion.div
+                        layoutId="bottomNavIndicator"
+                        className={`absolute -top-1 w-8 h-1 rounded-full bg-gradient-to-r ${
+                          item.id === "games" ? "from-purple-400 to-purple-600" :
+                          item.id === "tasks" ? "from-blue-400 to-blue-600" :
+                          item.id === "gifts" ? "from-pink-400 to-pink-600" :
+                          item.id === "progress" ? "from-amber-400 to-amber-600" :
+                          "from-emerald-400 to-emerald-600"
+                        }`}
+                        transition={{ type: "spring", stiffness: motionConfig.indicatorStiffness, damping: motionConfig.indicatorDamping }}
+                      />
+                    )}
+
+                    <motion.span
+                      className={`rounded-xl px-2 py-1 ${
+                        isActive ? (isDark ? "bg-white/10" : "bg-white") : ""
+                      }`}
+                      animate={
+                        isPressed
+                          ? { scale: [1, 1.22, 1.14], y: [0, -6, -9], rotate: [0, -6, 6, 0] }
+                          : isActive
+                            ? { scale: [motionConfig.iconScale, motionConfig.iconScale + 0.06, motionConfig.iconScale], y: [0, -1.5, 0] }
+                            : { scale: 1 }
+                      }
+                      transition={
+                        isPressed
+                          ? { duration: 0.17, ease: "easeInOut" }
+                          : isActive
+                            ? { duration: 1.45, repeat: Infinity, ease: "easeInOut" }
+                            : { type: "spring", stiffness: motionConfig.springStiffness, damping: motionConfig.springDamping }
+                      }
+                      style={{ filter: isActive ? "drop-shadow(0 6px 10px rgba(0,0,0,0.25))" : "none" }}
+                    >
+                      {isActive ? item.activeIcon : item.icon}
+                    </motion.span>
+
+                    <span
+                      className={`text-[10px] font-semibold leading-tight ${
+                        isActive ? "font-bold" : ""
+                      }`}
+                    >
+                      {item.label}
+                    </span>
+                  </motion.button>
+                );
               })}
             </div>
-          </div>
-        </motion.div>
-
-        <motion.button
-          type="button"
-          onClick={dismissOnboarding}
-          whileTap={{ scale: motionConfig.tapScale }}
-          className={`mt-2 w-full rounded-2xl px-3 py-2 text-start border ${
-            isDark ? "bg-gray-900/95 border-gray-700 text-purple-200" : "bg-white/95 border-purple-200 text-purple-700"
-          } backdrop-blur-xl shadow-md`}
-          data-testid="child-companion-bubble"
-        >
-          <div className="flex items-center gap-2">
-            <motion.div
-              animate={calmMode ? { scale: [1, 1.03, 1] } : { scale: [1, 1.08, 1], rotate: [0, 3, -3, 0] }}
-              transition={{ duration: calmMode ? 2.6 : 1.8, repeat: Infinity }}
-              className={`w-7 h-7 rounded-full flex items-center justify-center ${isDark ? "bg-purple-700/60" : "bg-purple-100"}`}
-            >
-              <Sparkles className="w-4 h-4" />
-            </motion.div>
-            <p className="text-[11px] font-medium truncate">{companionMessage}</p>
-          </div>
-        </motion.button>
-      </div>
-
-      <nav
-        className={`${
-          isDark ? "bg-gray-900/95" : "bg-white/95"
-        } backdrop-blur-xl border-t ${
-          isDark ? "border-gray-800" : "border-gray-100"
-        } shadow-[0_-4px_20px_rgba(0,0,0,0.08)]`}
-      >
-      <div className="max-w-lg mx-auto flex items-center justify-around px-2 py-1.5">
-        {navItems.map((item) => {
-          const isActive = currentTab === item.id;
-          
-          return (
-            <motion.button
-              key={item.id}
-              whileTap={{ scale: motionConfig.tapScale }}
-              onClick={() => navigate(item.path)}
-              className={`relative flex flex-col items-center gap-0.5 py-1.5 px-3 rounded-2xl transition-all min-h-[56px] min-w-[56px]
-                ${isActive
-                  ? `${item.color} ${isDark ? "bg-white/10" : "bg-gray-100"}`
-                  : `${isDark ? "text-gray-500" : "text-gray-400"} hover:text-gray-600`
-                }`}
-              aria-label={item.label}
-            >
-              {/* Active indicator dot */}
-              {isActive && (
-                <motion.div
-                  layoutId="bottomNavIndicator"
-                  className={`absolute -top-1 w-8 h-1 rounded-full bg-gradient-to-r ${
-                    item.id === "games" ? "from-purple-400 to-purple-600" :
-                    item.id === "tasks" ? "from-blue-400 to-blue-600" :
-                    item.id === "gifts" ? "from-pink-400 to-pink-600" :
-                    item.id === "progress" ? "from-amber-400 to-amber-600" :
-                    "from-emerald-400 to-emerald-600"
-                  }`}
-                  transition={{ type: "spring", stiffness: motionConfig.indicatorStiffness, damping: motionConfig.indicatorDamping }}
-                />
-              )}
-
-              {/* Icon */}
-              <motion.span
-                animate={isActive ? { scale: motionConfig.iconScale } : { scale: 1 }}
-                transition={{ type: "spring", stiffness: motionConfig.springStiffness, damping: motionConfig.springDamping }}
-              >
-                {isActive ? item.activeIcon : item.icon}
-              </motion.span>
-
-              {/* Label */}
-              <span
-                className={`text-[10px] font-semibold leading-tight ${
-                  isActive ? "font-bold" : ""
-                }`}
-              >
-                {item.label}
-              </span>
-            </motion.button>
-          );
-        })}
-      </div>
-      </nav>
+          </motion.nav>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

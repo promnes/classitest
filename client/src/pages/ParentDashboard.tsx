@@ -973,7 +973,7 @@ export const ParentDashboard = (): JSX.Element => {
             </button>
             {/* School Dropdown */}
             {showSchoolDropdown && (
-              <div className={`absolute top-full mt-2 ${isRTL ? "right-0" : "left-0"} w-[min(16rem,calc(100vw-2rem))] sm:w-64 rounded-xl border shadow-2xl z-50 overflow-hidden ${isDark ? "bg-gray-900 border-gray-700" : "bg-white border-gray-200"}`}>
+              <div className={`absolute top-full mt-2 ${isRTL ? "left-0" : "right-0"} w-[min(16rem,calc(100vw-2rem))] sm:w-64 rounded-xl border shadow-2xl z-50 overflow-hidden ${isDark ? "bg-gray-900 border-gray-700" : "bg-white border-gray-200"}`}>
                 <div className={`px-3 py-2 border-b ${isDark ? "border-gray-700" : "border-gray-100"}`}>
                   <p className={`text-xs font-bold ${isDark ? "text-gray-400" : "text-gray-500"}`}>🏫 {t('parentDashboard.followedSchools', 'المدارس المتابَعة')}</p>
                 </div>
@@ -1021,7 +1021,7 @@ export const ParentDashboard = (): JSX.Element => {
             </button>
             {/* Teacher Dropdown */}
             {showTeacherDropdown && (
-              <div className={`absolute top-full mt-2 ${isRTL ? "right-0" : "left-0"} w-[min(16rem,calc(100vw-2rem))] sm:w-64 rounded-xl border shadow-2xl z-50 overflow-hidden ${isDark ? "bg-gray-900 border-gray-700" : "bg-white border-gray-200"}`}>
+              <div className={`absolute top-full mt-2 ${isRTL ? "left-0" : "right-0"} w-[min(16rem,calc(100vw-2rem))] sm:w-64 rounded-xl border shadow-2xl z-50 overflow-hidden ${isDark ? "bg-gray-900 border-gray-700" : "bg-white border-gray-200"}`}>
                 <div className={`px-3 py-2 border-b ${isDark ? "border-gray-700" : "border-gray-100"}`}>
                   <p className={`text-xs font-bold ${isDark ? "text-gray-400" : "text-gray-500"}`}>👨‍🏫 {t('parentDashboard.followedTeachers', 'المعلمون المتابَعون')}</p>
                 </div>
