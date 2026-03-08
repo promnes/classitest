@@ -9,10 +9,13 @@ interface PaymentMethod {
   id: string;
   parentId?: string | null;
   type: string;
+  displayName?: string | null;
   accountNumber: string;
   accountName?: string;
   bankName?: string;
   phoneNumber?: string;
+  supportedCountries?: string[];
+  gatewayConfig?: Record<string, any> | null;
   isDefault: boolean;
   isActive: boolean;
   createdAt: string;
@@ -33,6 +36,15 @@ const PAYMENT_TYPES = [
   { id: "fawry", label: "فوري", labelEn: "Fawry", emoji: "🎫" },
   { id: "mobile_wallet", label: "محفظة إلكترونية", labelEn: "Mobile Wallet", emoji: "📲" },
   { id: "credit_card", label: "بطاقة ائتمان", labelEn: "Credit Card", emoji: "💳" },
+  { id: "paypal", label: "باي بال", labelEn: "PayPal", emoji: "🅿️" },
+  { id: "stripe", label: "سترايب", labelEn: "Stripe", emoji: "💠" },
+  { id: "paymob", label: "باي موب", labelEn: "Paymob", emoji: "🧾" },
+  { id: "tabby", label: "تابي", labelEn: "Tabby", emoji: "🛍️" },
+  { id: "tamara", label: "تمارا", labelEn: "Tamara", emoji: "🪙" },
+  { id: "mada", label: "مدى", labelEn: "Mada", emoji: "🇸🇦" },
+  { id: "apple_pay", label: "Apple Pay", labelEn: "Apple Pay", emoji: "🍎" },
+  { id: "google_pay", label: "Google Pay", labelEn: "Google Pay", emoji: "🟦" },
+  { id: "stc_pay", label: "STC Pay", labelEn: "STC Pay", emoji: "📲" },
   { id: "other", label: "أخرى", labelEn: "Other", emoji: "💰" },
 ];
 
@@ -47,10 +59,14 @@ export function PaymentMethodsTab({
 
   const [formData, setFormData] = useState({
     type: "bank_transfer",
+    displayName: "",
     accountNumber: "",
     accountName: "",
     bankName: "",
     phoneNumber: "",
+    supportedCountriesText: "",
+    gatewayApiKey: "",
+    gatewayMerchantId: "",
     isDefault: false,
     isActive: true,
   });
@@ -159,10 +175,14 @@ export function PaymentMethodsTab({
   const resetForm = () => {
     setFormData({
       type: "bank_transfer",
+      displayName: "",
       accountNumber: "",
       accountName: "",
       bankName: "",
       phoneNumber: "",
+      supportedCountriesText: "",
+      gatewayApiKey: "",
+      gatewayMerchantId: "",
       isDefault: false,
       isActive: true,
     });
@@ -181,19 +201,59 @@ export function PaymentMethodsTab({
     }
 
     if (editingId) {
-      updateMutation.mutate(formData);
+      const payload = {
+        type: formData.type,
+        displayName: formData.displayName,
+        accountNumber: formData.accountNumber,
+        accountName: formData.accountName,
+        bankName: formData.bankName,
+        phoneNumber: formData.phoneNumber,
+        supportedCountries: formData.supportedCountriesText
+          .split(",")
+          .map((v) => v.trim().toUpperCase())
+          .filter(Boolean),
+        gatewayConfig: {
+          apiKey: formData.gatewayApiKey || null,
+          merchantId: formData.gatewayMerchantId || null,
+        },
+        isDefault: formData.isDefault,
+        isActive: formData.isActive,
+      };
+      updateMutation.mutate(payload);
     } else {
-      createMutation.mutate(formData);
+      const payload = {
+        type: formData.type,
+        displayName: formData.displayName,
+        accountNumber: formData.accountNumber,
+        accountName: formData.accountName,
+        bankName: formData.bankName,
+        phoneNumber: formData.phoneNumber,
+        supportedCountries: formData.supportedCountriesText
+          .split(",")
+          .map((v) => v.trim().toUpperCase())
+          .filter(Boolean),
+        gatewayConfig: {
+          apiKey: formData.gatewayApiKey || null,
+          merchantId: formData.gatewayMerchantId || null,
+        },
+        isDefault: formData.isDefault,
+        isActive: formData.isActive,
+      };
+      createMutation.mutate(payload);
     }
   };
 
   const handleEdit = (method: PaymentMethod) => {
     setFormData({
       type: method.type,
+      displayName: method.displayName || "",
       accountNumber: method.accountNumber,
       accountName: method.accountName || "",
       bankName: method.bankName || "",
       phoneNumber: method.phoneNumber || "",
+      supportedCountriesText: Array.isArray(method.supportedCountries) ? method.supportedCountries.join(", ") : "",
+      gatewayApiKey: method.gatewayConfig?.apiKey || "",
+      gatewayMerchantId: method.gatewayConfig?.merchantId || "",
       isDefault: method.isDefault,
       isActive: method.isActive,
     });
@@ -253,6 +313,17 @@ export function PaymentMethodsTab({
               </div>
 
               <div>
+                <label className="block text-sm font-medium mb-1">الاسم الظاهر للمستخدم</label>
+                <input
+                  type="text"
+                  value={formData.displayName}
+                  onChange={(e) => setFormData({ ...formData, displayName: e.target.value })}
+                  placeholder="مثال: بطاقة مدى - البنك الأهلي"
+                  className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
+                />
+              </div>
+
+              <div>
                 <label className="block text-sm font-medium mb-1">رقم الحساب / الهاتف *</label>
                 <input
                   type="text"
@@ -293,6 +364,40 @@ export function PaymentMethodsTab({
                   value={formData.phoneNumber}
                   onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
                   placeholder="+201012345678"
+                  className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">الدول المدعومة (اختياري)</label>
+                <input
+                  type="text"
+                  value={formData.supportedCountriesText}
+                  onChange={(e) => setFormData({ ...formData, supportedCountriesText: e.target.value })}
+                  placeholder="EG, SA, AE"
+                  className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
+                />
+                <p className="text-xs mt-1 text-gray-500">اتركه فارغًا لتظهر الوسيلة في كل الدول</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Gateway API Key (اختياري)</label>
+                <input
+                  type="text"
+                  value={formData.gatewayApiKey}
+                  onChange={(e) => setFormData({ ...formData, gatewayApiKey: e.target.value })}
+                  placeholder="pk_live_xxx أو public key"
+                  className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Gateway Merchant ID (اختياري)</label>
+                <input
+                  type="text"
+                  value={formData.gatewayMerchantId}
+                  onChange={(e) => setFormData({ ...formData, gatewayMerchantId: e.target.value })}
+                  placeholder="merchant_123"
                   className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
                 />
               </div>
@@ -391,12 +496,14 @@ export function PaymentMethodsTab({
             <thead className="bg-gray-50 dark:bg-gray-800 border-b dark:border-gray-700">
               <tr>
                 <th className="px-4 py-3 text-right font-semibold">النوع</th>
+                <th className="px-4 py-3 text-right font-semibold">الاسم الظاهر</th>
                 <th className="px-4 py-3 text-right font-semibold">رقم الحساب</th>
                 <th className="px-4 py-3 text-right font-semibold">اسم الحساب</th>
                 <th className="px-4 py-3 text-right font-semibold">البنك / المحفظة</th>
                 <th className="px-4 py-3 text-right font-semibold">الهاتف</th>
                 <th className="px-4 py-3 text-right font-semibold">افتراضي</th>
                 <th className="px-4 py-3 text-right font-semibold">الحالة</th>
+                <th className="px-4 py-3 text-right font-semibold">الدول</th>
                 <th className="px-4 py-3 text-right font-semibold">إجراءات</th>
               </tr>
             </thead>
@@ -413,6 +520,7 @@ export function PaymentMethodsTab({
                         {typeInfo.emoji} {typeInfo.label}
                       </span>
                     </td>
+                    <td className="px-4 py-3 text-sm">{method.displayName || "-"}</td>
                     <td className="px-4 py-3 font-mono text-sm">{method.accountNumber}</td>
                     <td className="px-4 py-3 text-sm">{method.accountName || "-"}</td>
                     <td className="px-4 py-3 text-sm">{method.bankName || "-"}</td>
@@ -434,6 +542,11 @@ export function PaymentMethodsTab({
                       >
                         {method.isActive ? "نشطة" : "معطلة"}
                       </span>
+                    </td>
+                    <td className="px-4 py-3 text-xs text-gray-600 dark:text-gray-300">
+                      {Array.isArray(method.supportedCountries) && method.supportedCountries.length > 0
+                        ? method.supportedCountries.join(", ")
+                        : "ALL"}
                     </td>
                     <td className="px-4 py-3 flex gap-2">
                       <button

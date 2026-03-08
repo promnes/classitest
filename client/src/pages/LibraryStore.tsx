@@ -799,7 +799,7 @@ export default function LibraryStore() {
                       <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${selectedPaymentMethod === method.id ? "border-orange-500" : "border-gray-300"}`}>
                         {selectedPaymentMethod === method.id && <div className="w-3 h-3 bg-orange-500 rounded-full" />}
                       </div>
-                      <span>{method.name || method.type}</span>
+                      <span>{method.displayName || method.accountName || method.bankName || method.type}</span>
                     </button>
                   ))
                 )}

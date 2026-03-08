@@ -1997,12 +1997,35 @@ export async function registerAdminRoutes(app: Express) {
   // Add new payment method (admin-created, no parentId needed)
   app.post("/api/admin/payment-methods", adminMiddleware, async (req: any, res) => {
     try {
-      const { type, accountNumber, accountName, bankName, phoneNumber, isDefault, isActive } = req.body;
+      const {
+        type,
+        displayName,
+        accountNumber,
+        accountName,
+        bankName,
+        phoneNumber,
+        supportedCountries,
+        gatewayConfig,
+        isDefault,
+        isActive,
+      } = req.body;
 
       const VALID_PAYMENT_TYPES = [
         "bank_transfer", "vodafone_cash", "orange_money", "etisalat_cash",
-        "we_pay", "instapay", "fawry", "mobile_wallet", "credit_card", "other"
+        "we_pay", "instapay", "fawry", "mobile_wallet", "credit_card",
+        "paypal", "stripe", "paymob", "tabby", "tamara", "mada",
+        "apple_pay", "google_pay", "stc_pay", "other"
       ];
+
+      const normalizedSupportedCountries = Array.isArray(supportedCountries)
+        ? Array.from(
+          new Set(
+            supportedCountries
+              .map((code: any) => (typeof code === "string" ? code.trim().toUpperCase() : ""))
+              .filter((code: string) => /^[A-Z]{2}$/.test(code))
+          )
+        )
+        : [];
 
       if (!type || !accountNumber) {
         return res
@@ -2026,10 +2049,13 @@ export async function registerAdminRoutes(app: Express) {
         .values({
           parentId: null,
           type,
+          displayName: typeof displayName === "string" ? displayName.trim() || null : null,
           accountNumber,
           accountName,
           bankName,
           phoneNumber,
+          supportedCountries: normalizedSupportedCountries,
+          gatewayConfig: gatewayConfig && typeof gatewayConfig === "object" ? gatewayConfig : null,
           isDefault: isDefault ?? false,
           isActive: isActive ?? true,
         })
@@ -2048,7 +2074,18 @@ export async function registerAdminRoutes(app: Express) {
   app.put("/api/admin/payment-methods/:id", adminMiddleware, async (req: any, res) => {
     try {
       const { id } = req.params;
-      const { type, accountNumber, accountName, bankName, phoneNumber, isDefault, isActive } = req.body;
+      const {
+        type,
+        displayName,
+        accountNumber,
+        accountName,
+        bankName,
+        phoneNumber,
+        supportedCountries,
+        gatewayConfig,
+        isDefault,
+        isActive,
+      } = req.body;
 
       // Verify record exists
       const [existing] = await db.select({ id: paymentMethods.id }).from(paymentMethods).where(eq(paymentMethods.id, id));
@@ -2058,8 +2095,20 @@ export async function registerAdminRoutes(app: Express) {
 
       const VALID_PAYMENT_TYPES = [
         "bank_transfer", "vodafone_cash", "orange_money", "etisalat_cash",
-        "we_pay", "instapay", "fawry", "mobile_wallet", "credit_card", "other"
+        "we_pay", "instapay", "fawry", "mobile_wallet", "credit_card",
+        "paypal", "stripe", "paymob", "tabby", "tamara", "mada",
+        "apple_pay", "google_pay", "stc_pay", "other"
       ];
+
+      const normalizedSupportedCountries = Array.isArray(supportedCountries)
+        ? Array.from(
+          new Set(
+            supportedCountries
+              .map((code: any) => (typeof code === "string" ? code.trim().toUpperCase() : ""))
+              .filter((code: string) => /^[A-Z]{2}$/.test(code))
+          )
+        )
+        : [];
 
       if (!type || !accountNumber) {
         return res
@@ -2082,10 +2131,13 @@ export async function registerAdminRoutes(app: Express) {
         .update(paymentMethods)
         .set({
           type,
+          displayName: typeof displayName === "string" ? displayName.trim() || null : null,
           accountNumber,
           accountName,
           bankName,
           phoneNumber,
+          supportedCountries: normalizedSupportedCountries,
+          gatewayConfig: gatewayConfig && typeof gatewayConfig === "object" ? gatewayConfig : null,
           isDefault,
           isActive,
           updatedAt: new Date(),

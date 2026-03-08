@@ -284,7 +284,7 @@ export const Wallet = (): JSX.Element => {
                           <span className="text-2xl">{typeInfo.emoji}</span>
                           <div className="flex-1">
                             <p className={`font-bold ${isDark ? "text-white" : "text-gray-800"}`}>
-                              {typeInfo.label}
+                              {method.displayName || typeInfo.label}
                             </p>
                             <p className={`text-sm ${isDark ? "text-gray-400" : "text-gray-600"}`}>
                               {method.bankName || method.accountNumber}

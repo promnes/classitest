@@ -16,6 +16,7 @@ import {
 import { adminMiddleware } from "./middleware";
 import { eq, and, isNull } from "drizzle-orm";
 import { successResponse, errorResponse, ErrorCode } from "../utils/apiResponse";
+import { filterPaymentMethodsByCountry, resolveRequestCountryCode } from "../utils/paymentCountry";
 
 const db = storage.db;
 
@@ -96,7 +97,7 @@ const DEFAULT_SUPPORT_SETTINGS = {
 
 export function registerAdminSettingsRoutes(app: Express) {
   // ===== SEO SETTINGS ENDPOINTS =====
-  
+
   // Public: Get SEO settings (for meta tags in frontend)
   app.get("/api/seo-settings", async (_req, res) => {
     try {
@@ -132,7 +133,7 @@ export function registerAdminSettingsRoutes(app: Express) {
   app.put("/api/admin/seo-settings", adminMiddleware, async (req: any, res) => {
     try {
       const existing = await db.select().from(seoSettings);
-      
+
       if (existing[0]) {
         const updated = await db
           .update(seoSettings)
@@ -141,7 +142,7 @@ export function registerAdminSettingsRoutes(app: Express) {
           .returning();
         return res.json(successResponse(updated[0], "SEO settings updated"));
       }
-      
+
       // Create if not exists
       const newSettings = await db
         .insert(seoSettings)
@@ -155,7 +156,7 @@ export function registerAdminSettingsRoutes(app: Express) {
   });
 
   // ===== SUPPORT SETTINGS ENDPOINTS =====
-  
+
   // Public: Get support contact info (for error pages and footer)
   app.get("/api/support-settings", async (_req, res) => {
     try {
@@ -215,7 +216,7 @@ export function registerAdminSettingsRoutes(app: Express) {
   app.put("/api/admin/support-settings", adminMiddleware, async (req: any, res) => {
     try {
       const existing = await db.select().from(supportSettings);
-      
+
       if (existing[0]) {
         const updated = await db
           .update(supportSettings)
@@ -224,7 +225,7 @@ export function registerAdminSettingsRoutes(app: Express) {
           .returning();
         return res.json(successResponse(updated[0], "Support settings updated"));
       }
-      
+
       // Create if not exists
       const newSettings = await db
         .insert(supportSettings)
@@ -242,15 +243,15 @@ export function registerAdminSettingsRoutes(app: Express) {
     try {
       const result = await db.select().from(seoSettings);
       const settings = result[0] || DEFAULT_SEO_SETTINGS;
-      
+
       let robotsTxt = "User-agent: *\n";
-      
+
       if (settings.robotsIndex && settings.robotsFollow) {
         robotsTxt += "Allow: /\n";
       } else if (!settings.robotsIndex) {
         robotsTxt += "Disallow: /\n";
       }
-      
+
       // AI Crawlers control
       if (!settings.allowGPTBot) {
         robotsTxt += "\nUser-agent: GPTBot\nDisallow: /\n";
@@ -261,12 +262,12 @@ export function registerAdminSettingsRoutes(app: Express) {
       if (!settings.allowGoogleAI) {
         robotsTxt += "\nUser-agent: Google-Extended\nDisallow: /\n";
       }
-      
+
       // Add sitemap if enabled
       if (settings.sitemapEnabled && settings.canonicalUrl) {
         robotsTxt += `\nSitemap: ${settings.canonicalUrl}/sitemap.xml\n`;
       }
-      
+
       res.type("text/plain").send(robotsTxt);
     } catch (error: any) {
       console.error("Generate robots.txt error:", error);
@@ -286,10 +287,13 @@ export function registerAdminSettingsRoutes(app: Express) {
         db.select({
           id: paymentMethods.id,
           type: paymentMethods.type,
+          displayName: paymentMethods.displayName,
           accountName: paymentMethods.accountName,
           bankName: paymentMethods.bankName,
           accountNumber: paymentMethods.accountNumber,
           phoneNumber: paymentMethods.phoneNumber,
+          supportedCountries: paymentMethods.supportedCountries,
+          gatewayConfig: paymentMethods.gatewayConfig,
           isDefault: paymentMethods.isDefault,
         }).from(paymentMethods).where(and(
           isNull(paymentMethods.parentId),
@@ -297,13 +301,16 @@ export function registerAdminSettingsRoutes(app: Express) {
         )),
       ]);
 
+      const requestCountryCode = resolveRequestCountryCode(_req as any);
+      const filteredPaymentMethods = filterPaymentMethodsByCountry(activePaymentMethods, requestCountryCode);
+
       const response = {
         site: site.reduce((acc: any, row: any) => ({ ...acc, [row.key]: row.value }), {}),
         theme: theme[0] || null,
         store: store[0] || null,
         notification: notification[0] || null,
         payment: payment[0] || null,
-        paymentMethods: activePaymentMethods,
+        paymentMethods: filteredPaymentMethods,
       };
 
       res.json(successResponse(response));

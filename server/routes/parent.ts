@@ -141,6 +141,11 @@ import {
 } from "../utils/rateLimiters";
 import { logParentAction } from "../utils/auditLog";
 import { sseManager } from "../utils/sseManager";
+import {
+  filterPaymentMethodsByCountry,
+  resolveParentCountryCode,
+  resolveRequestCountryCode,
+} from "../utils/paymentCountry";
 
 const db = storage.db;
 const stripeSecret = process.env.STRIPE_SECRET_KEY;
@@ -1180,7 +1185,13 @@ export async function registerParentRoutes(app: Express) {
         .select()
         .from(paymentMethods)
         .where(and(isNull(paymentMethods.parentId), eq(paymentMethods.isActive, true)));
-      res.json(successResponse(result, "Payment methods retrieved"));
+
+      const shippingCountryCode = await resolveParentCountryCode(db, req.user.userId);
+      const requestCountryCode = resolveRequestCountryCode(req);
+      const effectiveCountryCode = shippingCountryCode || requestCountryCode;
+      const filtered = filterPaymentMethodsByCountry(result, effectiveCountryCode);
+
+      res.json(successResponse(filtered, "Payment methods retrieved"));
     } catch (error: any) {
       console.error("Fetch payment methods error:", error);
       res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to fetch payment methods"));

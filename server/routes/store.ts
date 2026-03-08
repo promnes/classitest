@@ -27,6 +27,11 @@ import { emitGiftEvent } from "../giftEvents";
 import { checkoutLimiter, publicApiLimiter } from "../utils/rateLimiters";
 import { errorResponse, ErrorCode } from "../utils/apiResponse";
 import { NOTIFICATION_TYPES } from "../../shared/notificationTypes";
+import {
+  filterPaymentMethodsByCountry,
+  resolveParentCountryCode,
+  resolveRequestCountryCode,
+} from "../utils/paymentCountry";
 
 const db = storage.db;
 
@@ -64,10 +69,13 @@ export async function registerStoreRoutes(app: Express) {
         .select({
           id: paymentMethods.id,
           type: paymentMethods.type,
+          displayName: paymentMethods.displayName,
           accountName: paymentMethods.accountName,
           bankName: paymentMethods.bankName,
           accountNumber: paymentMethods.accountNumber,
           phoneNumber: paymentMethods.phoneNumber,
+          supportedCountries: paymentMethods.supportedCountries,
+          gatewayConfig: paymentMethods.gatewayConfig,
           isDefault: paymentMethods.isDefault,
         })
         .from(paymentMethods)
@@ -76,7 +84,10 @@ export async function registerStoreRoutes(app: Express) {
           eq(paymentMethods.isActive, true)
         ));
 
-      res.json({ success: true, data: methods });
+      const requestCountryCode = resolveRequestCountryCode(_req as any);
+      const filteredMethods = filterPaymentMethodsByCountry(methods, requestCountryCode);
+
+      res.json({ success: true, data: filteredMethods });
     } catch (error: any) {
       console.error("Get public payment methods error:", error);
       res.status(500).json({ success: false, error: "INTERNAL_SERVER_ERROR", message: "Failed to get payment methods" });
@@ -90,10 +101,13 @@ export async function registerStoreRoutes(app: Express) {
         .select({
           id: paymentMethods.id,
           type: paymentMethods.type,
+          displayName: paymentMethods.displayName,
           accountName: paymentMethods.accountName,
           bankName: paymentMethods.bankName,
           accountNumber: paymentMethods.accountNumber,
           phoneNumber: paymentMethods.phoneNumber,
+          supportedCountries: paymentMethods.supportedCountries,
+          gatewayConfig: paymentMethods.gatewayConfig,
         })
         .from(paymentMethods)
         .where(and(
@@ -101,7 +115,13 @@ export async function registerStoreRoutes(app: Express) {
           eq(paymentMethods.isActive, true)
         ));
 
-      res.json({ success: true, data: methods });
+      const parentId = req.user?.parentId || req.user?.userId;
+      const shippingCountryCode = await resolveParentCountryCode(db, parentId);
+      const requestCountryCode = resolveRequestCountryCode(req);
+      const effectiveCountryCode = shippingCountryCode || requestCountryCode;
+      const filteredMethods = filterPaymentMethodsByCountry(methods, effectiveCountryCode);
+
+      res.json({ success: true, data: filteredMethods });
     } catch (error: any) {
       console.error("Get store payment methods error:", error);
       res.status(500).json({ success: false, error: "INTERNAL_SERVER_ERROR", message: "Failed to get payment methods" });

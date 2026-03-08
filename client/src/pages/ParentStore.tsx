@@ -1237,7 +1237,7 @@ export const ParentStore = (): JSX.Element => {
                           <div className="w-3 h-3 bg-orange-500 rounded-full" />
                         )}
                       </div>
-                      <span>{method.name || method.type}</span>
+                      <span>{method.displayName || method.accountName || method.bankName || method.type}</span>
                     </button>
                   ))
                 )}
