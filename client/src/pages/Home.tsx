@@ -194,6 +194,14 @@ export const Home = (): JSX.Element => {
             <Download className="w-6 h-6" />
             <span>{t("downloadApp")}</span>
           </a>
+          <a
+            href="/classify-googleplay.aab"
+            download="classify-googleplay.aab"
+            className="flex items-center justify-center gap-2 w-full py-3 px-6 rounded-2xl shadow-md transition-all hover:scale-[1.01] font-semibold text-base bg-indigo-600 hover:bg-indigo-700 text-white"
+          >
+            <Download className="w-5 h-5" />
+            <span>Google Play AAB</span>
+          </a>
           <p className="text-center text-sm text-purple-500/70">
             {t("home.apkInfo")}
           </p>

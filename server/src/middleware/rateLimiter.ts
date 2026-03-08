@@ -1,4 +1,4 @@
-import rateLimit from "express-rate-limit";
+import rateLimit, { ipKeyGenerator } from "express-rate-limit";
 import RedisStore from "rate-limit-redis";
 import { config } from "../config";
 import { getRedisClient, isRedisConnected } from "../config/redis";
@@ -6,7 +6,7 @@ import { logger } from "../utils/logger";
 
 function createMemoryStore() {
   const store = new Map<string, { count: number; resetTime: number }>();
-  
+
   setInterval(() => {
     const now = Date.now();
     const keysToDelete: string[] = [];
@@ -17,13 +17,13 @@ function createMemoryStore() {
     });
     keysToDelete.forEach(key => store.delete(key));
   }, 60000);
-  
+
   return {
     increment: async (key: string) => {
       const now = Date.now();
       const windowMs = config.rateLimit.windowMs;
       const resetTime = now + windowMs;
-      
+
       const existing = store.get(key);
       if (existing && existing.resetTime > now) {
         existing.count++;
@@ -32,7 +32,7 @@ function createMemoryStore() {
           resetTime: new Date(existing.resetTime),
         };
       }
-      
+
       store.set(key, { count: 1, resetTime });
       return {
         totalHits: 1,
@@ -53,7 +53,7 @@ function createMemoryStore() {
 
 function createStore(prefix: string) {
   const redisClient = getRedisClient();
-  
+
   if (isRedisConnected() && redisClient) {
     try {
       logger.info({ prefix }, "Using Redis store for rate limiting");
@@ -68,18 +68,13 @@ function createStore(prefix: string) {
       logger.warn({ err, prefix }, "Failed to create Redis store, falling back to memory");
     }
   }
-  
+
   logger.info({ prefix }, "Using in-memory store for rate limiting");
   return createMemoryStore() as any;
 }
 
 function getClientIp(req: any): string {
-  const forwardedFor = req.headers["x-forwarded-for"];
-  if (forwardedFor) {
-    const ips = forwardedFor.toString().split(",");
-    return ips[0].trim();
-  }
-  return req.ip || req.connection?.remoteAddress || "unknown";
+  return ipKeyGenerator(req.ip || req.connection?.remoteAddress || "");
 }
 
 export const generalRateLimiter = rateLimit({

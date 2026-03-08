@@ -27,7 +27,7 @@ export function serveStatic(app: Express) {
   }
 
   console.log(`Serving static assets from: ${distPath}`);
-  
+
   try {
     const files = fs.readdirSync(distPath);
     console.log(`Files found: ${files.join(", ")}`);
@@ -40,9 +40,14 @@ export function serveStatic(app: Express) {
     index: false,
     setHeaders: (res, filePath) => {
       const basename = path.basename(filePath);
-      // APK files — force download
-      if (basename.endsWith('.apk')) {
-        res.setHeader("Content-Type", "application/vnd.android.package-archive");
+      // Android artifacts — force download
+      if (basename.endsWith('.apk') || basename.endsWith('.aab')) {
+        res.setHeader(
+          "Content-Type",
+          basename.endsWith('.apk')
+            ? "application/vnd.android.package-archive"
+            : "application/octet-stream"
+        );
         res.setHeader("Content-Disposition", `attachment; filename="${basename}"`);
         res.setHeader("Cache-Control", "no-cache");
         return;
@@ -85,7 +90,7 @@ export function serveStatic(app: Express) {
         "Application not built correctly - index.html not found"
       );
     }
-    
+
     return res.sendFile(indexPath);
   });
 }

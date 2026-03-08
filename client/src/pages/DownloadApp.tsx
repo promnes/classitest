@@ -64,8 +64,8 @@ export default function DownloadApp() {
           ))}
         </div>
 
-        {/* Download Button */}
-        <div className="flex justify-center mb-6">
+        {/* Download Buttons */}
+        <div className="flex flex-col items-center gap-3 mb-6">
           <a
             href="/classify-app.apk"
             download="Classify.apk"
@@ -73,6 +73,23 @@ export default function DownloadApp() {
           >
             <Download className="w-7 h-7 group-hover:animate-bounce" />
             <span>📱 {t("downloadAppPage.downloadAPK")}</span>
+          </a>
+
+          <a
+            href="/classify-googleplay.aab"
+            download="classify-googleplay.aab"
+            className="group flex items-center gap-3 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-400 hover:to-indigo-500 text-white px-8 py-4 rounded-2xl shadow-xl transition-all hover:-translate-y-0.5 font-bold"
+          >
+            <Download className="w-5 h-5" />
+            <span>📦 Google Play AAB</span>
+          </a>
+
+          <a
+            href="/"
+            className="group flex items-center gap-3 bg-white/15 hover:bg-white/25 text-white px-8 py-3 rounded-2xl border border-white/30 backdrop-blur-sm transition-all font-semibold"
+          >
+            <Smartphone className="w-5 h-5" />
+            <span>🌐 Install PWA (Web App)</span>
           </a>
         </div>
 
