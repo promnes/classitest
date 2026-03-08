@@ -14,6 +14,7 @@ type NotificationItem = {
   title?: string | null;
   message: string;
   isRead: boolean;
+  status?: string;
   createdAt: string;
   metadata?: Record<string, any> | null;
   loginRequestStatus?: string;
@@ -333,8 +334,11 @@ export function ParentNotificationBell() {
                   const isLinkRequest = notification.type === "parent_link_request";
                   const loginStatus = notification.loginRequestStatus || "pending";
                   const canRespond = isLogin && loginStatus === "pending";
-                  const linkRequestStatus = notification.metadata?.linkRequestStatus || (notification.metadata?.linkRequestIds ? "pending" : undefined);
-                  const canRespondLink = isLinkRequest && !notification.isRead && linkRequestStatus === "pending";
+                  const linkRequestStatus =
+                    notification.metadata?.linkRequestStatus ||
+                    notification.status ||
+                    (notification.metadata?.linkRequestIds ? "pending" : undefined);
+                  const canRespondLink = isLinkRequest && linkRequestStatus === "pending";
                   const parentCode = notification.metadata?.parentCode;
                   const iconCfg = getIconConfig(notification.type);
                   const navTarget = NAV_MAP[notification.type];
@@ -471,13 +475,17 @@ export function ParentNotificationBell() {
                         {isLinkRequest && !canRespondLink && (
                           <div className="mt-1.5">
                             <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold ${
-                              notification.metadata?.linkRequestStatus === "approved" || (notification.isRead && !linkRequestStatus)
+                              linkRequestStatus === "approved"
                                 ? "text-green-700 bg-green-100"
-                                : "text-red-700 bg-red-100"
+                                : linkRequestStatus === "rejected"
+                                  ? "text-red-700 bg-red-100"
+                                  : "text-amber-700 bg-amber-100"
                             }`}>
-                              {notification.metadata?.linkRequestStatus === "approved" || (notification.isRead && !linkRequestStatus)
+                              {linkRequestStatus === "approved"
                                 ? "✅ تمت الموافقة"
-                                : "❌ تم الرفض"}
+                                : linkRequestStatus === "rejected"
+                                  ? "❌ تم الرفض"
+                                  : "⏳ بانتظار الرد"}
                             </span>
                           </div>
                         )}

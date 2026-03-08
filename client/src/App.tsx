@@ -77,7 +77,6 @@ const DownloadApp = lazy(() => import("@/pages/DownloadApp"));
 const ParentProfile = lazy(() => import("@/pages/ParentProfile"));
 const TaskMarketplace = lazy(() => import("@/pages/TaskMarketplace"));
 const TaskCart = lazy(() => import("@/pages/TaskCart"));
-const FamilyLinkManagement = lazy(() => import("@/pages/FamilyLinkManagement").then(m => ({ default: m.FamilyLinkManagement })));
 
 type PublicMobileAppSettings = {
   appName?: string;
@@ -366,9 +365,6 @@ function Router() {
         </Route>
         <Route path="/parent-profile">
           <ErrorBoundary><ParentProfile /></ErrorBoundary>
-        </Route>
-        <Route path="/family-links">
-          <ErrorBoundary><FamilyLinkManagement /></ErrorBoundary>
         </Route>
         <Route>
           <ErrorBoundary><NotFound /></ErrorBoundary>

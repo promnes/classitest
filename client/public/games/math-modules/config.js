@@ -46,8 +46,54 @@ export const QUESTION_TYPES = {
 };
 
 // ===== LANGUAGE DETECTION =====
-const LANG = new URLSearchParams(location.search).get('lang') || 'ar';
-export { LANG };
+const SUPPORTED_LANGS = [
+  'ar','en','pt','es','fr','de','it','ru','zh','ja','ko','hi','tr','nl','sv','pl','uk','id','ms','th','vi','fa','ur','bn','sw'
+];
+
+const CONTENT_LANG_MAP = {
+  ar: 'ar',
+  fa: 'ar',
+  ur: 'ar',
+  pt: 'pt',
+  en: 'en',
+  es: 'en',
+  fr: 'en',
+  de: 'en',
+  it: 'en',
+  ru: 'en',
+  zh: 'en',
+  ja: 'en',
+  ko: 'en',
+  hi: 'en',
+  tr: 'en',
+  nl: 'en',
+  sv: 'en',
+  pl: 'en',
+  uk: 'en',
+  id: 'en',
+  ms: 'en',
+  th: 'en',
+  vi: 'en',
+  bn: 'en',
+  sw: 'en',
+};
+
+function normalizeLang(input) {
+  if (!input) return '';
+  const v = String(input).trim().toLowerCase();
+  return v.includes('-') ? v.split('-')[0] : v;
+}
+
+const urlLang = normalizeLang(new URLSearchParams(location.search).get('lang'));
+const savedLang = normalizeLang(localStorage.getItem('classify_math_lang'));
+const detectedLang = urlLang || savedLang || 'ar';
+const LANG = SUPPORTED_LANGS.includes(detectedLang) ? detectedLang : 'ar';
+const CONTENT_LANG = CONTENT_LANG_MAP[LANG] || 'en';
+
+if (LANG !== savedLang) {
+  try { localStorage.setItem('classify_math_lang', LANG); } catch (e) {}
+}
+export { LANG, CONTENT_LANG, SUPPORTED_LANGS };
 
 // ===== i18n =====
 export const I18N = {
@@ -323,8 +369,52 @@ export const I18N = {
   },
 };
 
+const I18N_OVERRIDES = {
+  es: { title: '🧮 Reino de Números', sub: '¡Elige tu mundo para comenzar!', score: 'Puntos', question: 'Pregunta', time: 'Tiempo', correct: 'Correcto', wrong: 'Incorrecto', coins: 'Monedas', lives: 'Vidas', done: '¡Nivel completado!', next: '➡️ Siguiente', share: '📤 Compartir', daily: '🎯 Desafío diario', weekly: '📋 Desafío semanal', achievements: '🏆 Logros', report: '📊 Informe', shop: '🛒 Tienda', buy: 'Comprar', backToWorlds: '← Mundos', howMany: '¿Cuántos?', whichBigger: '¿Cuál es mayor?', isCorrect: '¿Es correcto?', yes: '✅ Sí', no: '❌ No', findMissing: 'Encuentra el número faltante', whatNext: '¿Qué sigue?', level: 'Nivel', bossBattle: '👑 Batalla de jefe', locked: '🔒 Bloqueado' },
+  fr: { title: '🧮 Royaume des Nombres', sub: 'Choisis ton monde pour commencer !', score: 'Score', question: 'Question', time: 'Temps', correct: 'Correct', wrong: 'Faux', coins: 'Pièces', lives: 'Vies', done: 'Niveau terminé !', next: '➡️ Suivant', share: '📤 Partager', daily: '🎯 Défi quotidien', weekly: '📋 Défi hebdomadaire', achievements: '🏆 Succès', report: '📊 Rapport', shop: '🛒 Boutique', buy: 'Acheter', backToWorlds: '← Mondes', howMany: 'Combien ?', whichBigger: 'Lequel est plus grand ?', isCorrect: 'Est-ce correct ?', yes: '✅ Oui', no: '❌ Non', findMissing: 'Trouve le nombre manquant', whatNext: 'Quel est le suivant ?', level: 'Niveau', bossBattle: '👑 Combat de boss', locked: '🔒 Verrouillé' },
+  de: { title: '🧮 Zahlenkönigreich', sub: 'Wähle deine Welt und starte!', score: 'Punkte', question: 'Frage', time: 'Zeit', correct: 'Richtig', wrong: 'Falsch', coins: 'Münzen', lives: 'Leben', done: 'Level abgeschlossen!', next: '➡️ Weiter', share: '📤 Teilen', daily: '🎯 Tägliche Herausforderung', weekly: '📋 Wöchentliche Herausforderung', achievements: '🏆 Erfolge', report: '📊 Bericht', shop: '🛒 Shop', buy: 'Kaufen', backToWorlds: '← Welten', howMany: 'Wie viele?', whichBigger: 'Welche Zahl ist größer?', isCorrect: 'Ist das richtig?', yes: '✅ Ja', no: '❌ Nein', findMissing: 'Finde die fehlende Zahl', whatNext: 'Was kommt als Nächstes?', level: 'Level', bossBattle: '👑 Bosskampf', locked: '🔒 Gesperrt' },
+  it: { title: '🧮 Regno dei Numeri', sub: 'Scegli il tuo mondo per iniziare!', score: 'Punti', question: 'Domanda', time: 'Tempo', correct: 'Corretto', wrong: 'Sbagliato', coins: 'Monete', lives: 'Vite', done: 'Livello completato!', next: '➡️ Avanti', share: '📤 Condividi', daily: '🎯 Sfida giornaliera', weekly: '📋 Sfida settimanale', achievements: '🏆 Obiettivi', report: '📊 Report', shop: '🛒 Negozio', buy: 'Acquista', backToWorlds: '← Mondi', howMany: 'Quanti?', whichBigger: 'Quale è maggiore?', isCorrect: 'È corretto?', yes: '✅ Sì', no: '❌ No', findMissing: 'Trova il numero mancante', whatNext: 'Qual è il prossimo?', level: 'Livello', bossBattle: '👑 Battaglia boss', locked: '🔒 Bloccato' },
+  ru: { title: '🧮 Королевство Чисел', sub: 'Выбери мир и начни приключение!', score: 'Очки', question: 'Вопрос', time: 'Время', correct: 'Верно', wrong: 'Неверно', coins: 'Монеты', lives: 'Жизни', done: 'Уровень пройден!', next: '➡️ Далее', share: '📤 Поделиться', daily: '🎯 Ежедневное испытание', weekly: '📋 Недельное испытание', achievements: '🏆 Достижения', report: '📊 Отчет', shop: '🛒 Магазин', buy: 'Купить', backToWorlds: '← Миры', howMany: 'Сколько?', whichBigger: 'Что больше?', isCorrect: 'Это верно?', yes: '✅ Да', no: '❌ Нет', findMissing: 'Найди пропущенное число', whatNext: 'Что дальше?', level: 'Уровень', bossBattle: '👑 Битва с боссом', locked: '🔒 Заблокировано' },
+  zh: { title: '🧮 数字王国', sub: '选择你的世界开始冒险！', score: '分数', question: '题目', time: '时间', correct: '正确', wrong: '错误', coins: '金币', lives: '生命', done: '关卡完成！', next: '➡️ 下一关', share: '📤 分享', daily: '🎯 每日挑战', weekly: '📋 每周挑战', achievements: '🏆 成就', report: '📊 报告', shop: '🛒 商店', buy: '购买', backToWorlds: '← 世界', howMany: '有多少？', whichBigger: '哪个更大？', isCorrect: '这正确吗？', yes: '✅ 是', no: '❌ 否', findMissing: '找出缺失的数字', whatNext: '下一个是什么？', level: '关卡', bossBattle: '👑 首领战', locked: '🔒 已锁定' },
+  ja: { title: '🧮 すうじ王国', sub: '世界を選んで冒険を始めよう！', score: 'スコア', question: '問題', time: '時間', correct: '正解', wrong: '不正解', coins: 'コイン', lives: 'ライフ', done: 'レベルクリア！', next: '➡️ 次へ', share: '📤 共有', daily: '🎯 デイリーチャレンジ', weekly: '📋 週間チャレンジ', achievements: '🏆 実績', report: '📊 レポート', shop: '🛒 ショップ', buy: '購入', backToWorlds: '← ワールド', howMany: 'いくつ？', whichBigger: 'どちらが大きい？', isCorrect: '正しいですか？', yes: '✅ はい', no: '❌ いいえ', findMissing: '欠けた数字を見つけよう', whatNext: '次は何？', level: 'レベル', bossBattle: '👑 ボスバトル', locked: '🔒 ロック中' },
+  ko: { title: '🧮 숫자 왕국', sub: '세계를 선택하고 모험을 시작해요!', score: '점수', question: '문제', time: '시간', correct: '정답', wrong: '오답', coins: '코인', lives: '목숨', done: '레벨 완료!', next: '➡️ 다음', share: '📤 공유', daily: '🎯 일일 도전', weekly: '📋 주간 도전', achievements: '🏆 업적', report: '📊 보고서', shop: '🛒 상점', buy: '구매', backToWorlds: '← 월드', howMany: '몇 개일까?', whichBigger: '어느 쪽이 더 클까?', isCorrect: '맞나요?', yes: '✅ 예', no: '❌ 아니요', findMissing: '빠진 숫자 찾기', whatNext: '다음은?', level: '레벨', bossBattle: '👑 보스 전투', locked: '🔒 잠김' },
+  hi: { title: '🧮 अंकों का राज्य', sub: 'अपनी दुनिया चुनो और खेल शुरू करो!', score: 'स्कोर', question: 'प्रश्न', time: 'समय', correct: 'सही', wrong: 'गलत', coins: 'सिक्के', lives: 'जिंदगियां', done: 'स्तर पूरा!', next: '➡️ अगला', share: '📤 साझा करें', daily: '🎯 दैनिक चुनौती', weekly: '📋 साप्ताहिक चुनौती', achievements: '🏆 उपलब्धियां', report: '📊 रिपोर्ट', shop: '🛒 दुकान', buy: 'खरीदें', backToWorlds: '← दुनिया', howMany: 'कितने?', whichBigger: 'कौन सा बड़ा है?', isCorrect: 'क्या यह सही है?', yes: '✅ हां', no: '❌ नहीं', findMissing: 'गायब संख्या ढूंढो', whatNext: 'अगला क्या है?', level: 'स्तर', bossBattle: '👑 बॉस लड़ाई', locked: '🔒 लॉक्ड' },
+  tr: { title: '🧮 Sayı Krallığı', sub: 'Maceraya başlamak için dünyanı seç!', score: 'Puan', question: 'Soru', time: 'Süre', correct: 'Doğru', wrong: 'Yanlış', coins: 'Jeton', lives: 'Can', done: 'Bölüm tamamlandı!', next: '➡️ Sonraki', share: '📤 Paylaş', daily: '🎯 Günlük Görev', weekly: '📋 Haftalık Görev', achievements: '🏆 Başarılar', report: '📊 Rapor', shop: '🛒 Mağaza', buy: 'Satın Al', backToWorlds: '← Dünyalar', howMany: 'Kaç tane?', whichBigger: 'Hangisi daha büyük?', isCorrect: 'Bu doğru mu?', yes: '✅ Evet', no: '❌ Hayır', findMissing: 'Eksik sayıyı bul', whatNext: 'Sıradaki ne?', level: 'Seviye', bossBattle: '👑 Patron Savaşı', locked: '🔒 Kilitli' },
+  nl: { title: '🧮 Cijferkoninkrijk', sub: 'Kies je wereld en begin het avontuur!', score: 'Score', question: 'Vraag', time: 'Tijd', correct: 'Goed', wrong: 'Fout', coins: 'Munten', lives: 'Levens', done: 'Niveau voltooid!', next: '➡️ Volgende', share: '📤 Delen', daily: '🎯 Dagelijkse uitdaging', weekly: '📋 Wekelijkse uitdaging', achievements: '🏆 Prestaties', report: '📊 Rapport', shop: '🛒 Winkel', buy: 'Kopen', backToWorlds: '← Werelden', howMany: 'Hoeveel?', whichBigger: 'Welke is groter?', isCorrect: 'Is dit correct?', yes: '✅ Ja', no: '❌ Nee', findMissing: 'Vind het ontbrekende getal', whatNext: 'Wat komt hierna?', level: 'Niveau', bossBattle: '👑 Baasgevecht', locked: '🔒 Vergrendeld' },
+  sv: { title: '🧮 Nummerriket', sub: 'Välj din värld och börja äventyret!', score: 'Poäng', question: 'Fråga', time: 'Tid', correct: 'Rätt', wrong: 'Fel', coins: 'Mynt', lives: 'Liv', done: 'Nivå klar!', next: '➡️ Nästa', share: '📤 Dela', daily: '🎯 Daglig utmaning', weekly: '📋 Veckoutmaning', achievements: '🏆 Prestationer', report: '📊 Rapport', shop: '🛒 Butik', buy: 'Köp', backToWorlds: '← Världar', howMany: 'Hur många?', whichBigger: 'Vilken är störst?', isCorrect: 'Är detta rätt?', yes: '✅ Ja', no: '❌ Nej', findMissing: 'Hitta det saknade talet', whatNext: 'Vad kommer härnäst?', level: 'Nivå', bossBattle: '👑 Bosskamp', locked: '🔒 Låst' },
+  pl: { title: '🧮 Królestwo Liczb', sub: 'Wybierz świat i zacznij przygodę!', score: 'Wynik', question: 'Pytanie', time: 'Czas', correct: 'Poprawnie', wrong: 'Błędnie', coins: 'Monety', lives: 'Życia', done: 'Poziom ukończony!', next: '➡️ Dalej', share: '📤 Udostępnij', daily: '🎯 Wyzwanie dzienne', weekly: '📋 Wyzwanie tygodniowe', achievements: '🏆 Osiągnięcia', report: '📊 Raport', shop: '🛒 Sklep', buy: 'Kup', backToWorlds: '← Światy', howMany: 'Ile?', whichBigger: 'Który większy?', isCorrect: 'Czy to poprawne?', yes: '✅ Tak', no: '❌ Nie', findMissing: 'Znajdź brakującą liczbę', whatNext: 'Co dalej?', level: 'Poziom', bossBattle: '👑 Walka z bossem', locked: '🔒 Zablokowane' },
+  uk: { title: '🧮 Королівство Чисел', sub: 'Обери свій світ і почни пригоду!', score: 'Рахунок', question: 'Питання', time: 'Час', correct: 'Правильно', wrong: 'Неправильно', coins: 'Монети', lives: 'Життя', done: 'Рівень завершено!', next: '➡️ Далі', share: '📤 Поділитися', daily: '🎯 Щоденний виклик', weekly: '📋 Тижневий виклик', achievements: '🏆 Досягнення', report: '📊 Звіт', shop: '🛒 Магазин', buy: 'Купити', backToWorlds: '← Світи', howMany: 'Скільки?', whichBigger: 'Що більше?', isCorrect: 'Це правильно?', yes: '✅ Так', no: '❌ Ні', findMissing: 'Знайди пропущене число', whatNext: 'Що далі?', level: 'Рівень', bossBattle: '👑 Бій з босом', locked: '🔒 Заблоковано' },
+  id: { title: '🧮 Kerajaan Angka', sub: 'Pilih duniamu untuk mulai petualangan!', score: 'Skor', question: 'Soal', time: 'Waktu', correct: 'Benar', wrong: 'Salah', coins: 'Koin', lives: 'Nyawa', done: 'Level selesai!', next: '➡️ Lanjut', share: '📤 Bagikan', daily: '🎯 Tantangan Harian', weekly: '📋 Tantangan Mingguan', achievements: '🏆 Pencapaian', report: '📊 Laporan', shop: '🛒 Toko', buy: 'Beli', backToWorlds: '← Dunia', howMany: 'Berapa banyak?', whichBigger: 'Mana yang lebih besar?', isCorrect: 'Apakah ini benar?', yes: '✅ Ya', no: '❌ Tidak', findMissing: 'Temukan angka yang hilang', whatNext: 'Apa berikutnya?', level: 'Level', bossBattle: '👑 Pertarungan Bos', locked: '🔒 Terkunci' },
+  ms: { title: '🧮 Kerajaan Nombor', sub: 'Pilih duniamu untuk mula bermain!', score: 'Skor', question: 'Soalan', time: 'Masa', correct: 'Betul', wrong: 'Salah', coins: 'Syiling', lives: 'Nyawa', done: 'Tahap selesai!', next: '➡️ Seterusnya', share: '📤 Kongsi', daily: '🎯 Cabaran Harian', weekly: '📋 Cabaran Mingguan', achievements: '🏆 Pencapaian', report: '📊 Laporan', shop: '🛒 Kedai', buy: 'Beli', backToWorlds: '← Dunia', howMany: 'Berapa banyak?', whichBigger: 'Yang mana lebih besar?', isCorrect: 'Adakah ini betul?', yes: '✅ Ya', no: '❌ Tidak', findMissing: 'Cari nombor yang hilang', whatNext: 'Apa seterusnya?', level: 'Tahap', bossBattle: '👑 Pertarungan Bos', locked: '🔒 Terkunci' },
+  th: { title: '🧮 อาณาจักรตัวเลข', sub: 'เลือกโลกของคุณแล้วเริ่มผจญภัย!', score: 'คะแนน', question: 'คำถาม', time: 'เวลา', correct: 'ถูกต้อง', wrong: 'ผิด', coins: 'เหรียญ', lives: 'ชีวิต', done: 'ผ่านด่านแล้ว!', next: '➡️ ถัดไป', share: '📤 แชร์', daily: '🎯 ภารกิจรายวัน', weekly: '📋 ภารกิจรายสัปดาห์', achievements: '🏆 ความสำเร็จ', report: '📊 รายงาน', shop: '🛒 ร้านค้า', buy: 'ซื้อ', backToWorlds: '← โลก', howMany: 'มีกี่อัน?', whichBigger: 'อันไหนมากกว่า?', isCorrect: 'ถูกต้องไหม?', yes: '✅ ใช่', no: '❌ ไม่ใช่', findMissing: 'หาเลขที่หายไป', whatNext: 'ตัวถัดไปคืออะไร?', level: 'ระดับ', bossBattle: '👑 บอสไฟต์', locked: '🔒 ถูกล็อก' },
+  vi: { title: '🧮 Vương Quốc Số', sub: 'Chọn thế giới để bắt đầu phiêu lưu!', score: 'Điểm', question: 'Câu hỏi', time: 'Thời gian', correct: 'Đúng', wrong: 'Sai', coins: 'Xu', lives: 'Mạng', done: 'Hoàn thành màn!', next: '➡️ Tiếp theo', share: '📤 Chia sẻ', daily: '🎯 Thử thách ngày', weekly: '📋 Thử thách tuần', achievements: '🏆 Thành tựu', report: '📊 Báo cáo', shop: '🛒 Cửa hàng', buy: 'Mua', backToWorlds: '← Thế giới', howMany: 'Có bao nhiêu?', whichBigger: 'Cái nào lớn hơn?', isCorrect: 'Điều này đúng không?', yes: '✅ Có', no: '❌ Không', findMissing: 'Tìm số còn thiếu', whatNext: 'Tiếp theo là gì?', level: 'Cấp độ', bossBattle: '👑 Đấu trùm', locked: '🔒 Đã khóa' },
+  fa: { title: '🧮 پادشاهی اعداد', sub: 'دنیای خود را انتخاب کن و شروع کن!', score: 'امتیاز', question: 'سوال', time: 'زمان', correct: 'درست', wrong: 'غلط', coins: 'سکه', lives: 'جان', done: 'مرحله کامل شد!', next: '➡️ بعدی', share: '📤 اشتراک‌گذاری', daily: '🎯 چالش روزانه', weekly: '📋 چالش هفتگی', achievements: '🏆 دستاوردها', report: '📊 گزارش', shop: '🛒 فروشگاه', buy: 'خرید', backToWorlds: '← دنیاها', howMany: 'چند تا؟', whichBigger: 'کدام بزرگ‌تر است؟', isCorrect: 'درسته؟', yes: '✅ بله', no: '❌ خیر', findMissing: 'عدد جاافتاده را پیدا کن', whatNext: 'بعدی چیست؟', level: 'مرحله', bossBattle: '👑 نبرد رئیس', locked: '🔒 قفل' },
+  ur: { title: '🧮 نمبروں کی بادشاہت', sub: 'اپنی دنیا منتخب کریں اور شروع کریں!', score: 'اسکور', question: 'سوال', time: 'وقت', correct: 'درست', wrong: 'غلط', coins: 'سکے', lives: 'جانیں', done: 'مرحلہ مکمل!', next: '➡️ اگلا', share: '📤 شیئر کریں', daily: '🎯 روزانہ چیلنج', weekly: '📋 ہفتہ وار چیلنج', achievements: '🏆 کامیابیاں', report: '📊 رپورٹ', shop: '🛒 دکان', buy: 'خریدیں', backToWorlds: '← دنیائیں', howMany: 'کتنے؟', whichBigger: 'کون سا بڑا ہے؟', isCorrect: 'کیا یہ درست ہے؟', yes: '✅ ہاں', no: '❌ نہیں', findMissing: 'گم شدہ نمبر تلاش کریں', whatNext: 'اگلا کیا ہے؟', level: 'لیول', bossBattle: '👑 باس فائٹ', locked: '🔒 مقفل' },
+  bn: { title: '🧮 সংখ্যার রাজ্য', sub: 'তোমার পৃথিবী বেছে নিয়ে শুরু করো!', score: 'স্কোর', question: 'প্রশ্ন', time: 'সময়', correct: 'সঠিক', wrong: 'ভুল', coins: 'মুদ্রা', lives: 'জীবন', done: 'লেভেল সম্পন্ন!', next: '➡️ পরবর্তী', share: '📤 শেয়ার', daily: '🎯 দৈনিক চ্যালেঞ্জ', weekly: '📋 সাপ্তাহিক চ্যালেঞ্জ', achievements: '🏆 অর্জন', report: '📊 রিপোর্ট', shop: '🛒 দোকান', buy: 'কিনুন', backToWorlds: '← বিশ্ব', howMany: 'কতগুলো?', whichBigger: 'কোনটি বড়?', isCorrect: 'এটা কি সঠিক?', yes: '✅ হ্যাঁ', no: '❌ না', findMissing: 'অনুপস্থিত সংখ্যা খুঁজে বের করো', whatNext: 'পরেরটি কী?', level: 'লেভেল', bossBattle: '👑 বস যুদ্ধ', locked: '🔒 লকড' },
+  sw: { title: '🧮 Ufalme wa Namba', sub: 'Chagua ulimwengu wako na uanze safari!', score: 'Alama', question: 'Swali', time: 'Muda', correct: 'Sahihi', wrong: 'Makosa', coins: 'Sarafu', lives: 'Maisha', done: 'Ngazi imekamilika!', next: '➡️ Inayofuata', share: '📤 Shiriki', daily: '🎯 Changamoto ya Kila Siku', weekly: '📋 Changamoto ya Wiki', achievements: '🏆 Mafanikio', report: '📊 Ripoti', shop: '🛒 Duka', buy: 'Nunua', backToWorlds: '← Dunia', howMany: 'Ni ngapi?', whichBigger: 'Kipi kikubwa zaidi?', isCorrect: 'Je hii ni sahihi?', yes: '✅ Ndiyo', no: '❌ Hapana', findMissing: 'Tafuta namba iliyokosekana', whatNext: 'Kinachofuata ni nini?', level: 'Ngazi', bossBattle: '👑 Vita vya Bosi', locked: '🔒 Imefungwa' },
+};
+
+function deepMergeStrings(base, override) {
+  if (!override) return { ...base };
+  const out = { ...base, ...override };
+  out.mastery = { ...(base.mastery || {}), ...(override.mastery || {}) };
+  out.achNames = { ...(base.achNames || {}), ...(override.achNames || {}) };
+  out.worldNames = { ...(base.worldNames || {}), ...(override.worldNames || {}) };
+  out.worldDescs = { ...(base.worldDescs || {}), ...(override.worldDescs || {}) };
+  out.typeNames = { ...(base.typeNames || {}), ...(override.typeNames || {}) };
+  return out;
+}
+
+export function getStringsForLang(lang = LANG) {
+  const base = I18N[CONTENT_LANG] || I18N.en;
+  const override = I18N_OVERRIDES[lang];
+  return deepMergeStrings(base, override);
+}
+
+export const ACTIVE_STRINGS = getStringsForLang(LANG);
+
 export function t(key) {
-  return (I18N[LANG] || I18N.en)[key] || (I18N.en)[key] || key;
+  return ACTIVE_STRINGS[key] || (I18N.en)[key] || key;
 }
 
 // ===== ACHIEVEMENT REGISTRY =====

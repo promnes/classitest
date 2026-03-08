@@ -25,6 +25,7 @@ interface ChildSettings {
   theme: string;
   notificationsEnabled: boolean;
   soundEnabled: boolean;
+  calmMode: boolean;
   showOnlineStatus: boolean;
   showProgress: boolean;
 }
@@ -51,6 +52,7 @@ export default function ChildSettings() {
     theme: isDark ? "dark" : "light",
     notificationsEnabled: true,
     soundEnabled: true,
+    calmMode: localStorage.getItem("child_ui_calm_mode") === "1",
     showOnlineStatus: true,
     showProgress: true,
   });
@@ -121,7 +123,14 @@ export default function ChildSettings() {
   };
 
   const handleToggle = (key: keyof ChildSettings) => {
-    setSettings(prev => ({ ...prev, [key]: !prev[key] }));
+    const nextValue = !settings[key];
+    setSettings(prev => ({ ...prev, [key]: nextValue }));
+
+    if (key === "calmMode") {
+      localStorage.setItem("child_ui_calm_mode", nextValue ? "1" : "0");
+      window.dispatchEvent(new Event("child-ui-mode-changed"));
+    }
+
     toast({
       title: t("childSettings.saved"),
       description: t("childSettings.settingSaved"),
@@ -312,6 +321,28 @@ export default function ChildSettings() {
                 <Switch
                   checked={settings.soundEnabled}
                   onCheckedChange={() => handleToggle("soundEnabled")}
+                />
+              </div>
+
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-2.5">
+                  {settings.calmMode ? (
+                    <Moon className="w-4 h-4 text-indigo-500" />
+                  ) : (
+                    <Sun className="w-4 h-4 text-yellow-500" />
+                  )}
+                  <div>
+                    <Label className={`text-sm ${isDark ? "text-gray-300" : "text-gray-700"}`}>
+                      {t("childSettings.calmMode", { defaultValue: "الوضع الهادئ" })}
+                    </Label>
+                    <p className={`text-[11px] ${isDark ? "text-gray-500" : "text-gray-500"}`}>
+                      {t("childSettings.calmModeDesc", { defaultValue: "تقليل الحركات والمؤثرات" })}
+                    </p>
+                  </div>
+                </div>
+                <Switch
+                  checked={settings.calmMode}
+                  onCheckedChange={() => handleToggle("calmMode")}
                 />
               </div>
             </CardContent>

@@ -16,6 +16,8 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',Tahoma,s
 .tb-item{display:flex;align-items:center;gap:4px;background:rgba(255,255,255,.2);border-radius:12px;padding:6px 14px;font-size:clamp(14px,2.8vmin,18px);color:#fff;font-weight:800;backdrop-filter:blur(4px);text-shadow:0 1px 4px rgba(0,0,0,.3);box-shadow:0 3px 0 rgba(0,0,0,.12),0 4px 8px rgba(0,0,0,.06),inset 0 1px 0 rgba(255,255,255,.2);transition:all .2s}
 .tb-item:hover{transform:translateY(-2px) scale(1.04)}
 .mute-btn{cursor:pointer;font-size:clamp(18px,3.5vmin,24px);padding:6px 10px !important}
+.lang-select{background:rgba(255,255,255,.22);color:#fff;border:0;border-radius:12px;padding:6px 10px;font-size:clamp(12px,2.2vmin,15px);font-weight:800;cursor:pointer;backdrop-filter:blur(4px);box-shadow:0 3px 0 rgba(0,0,0,.12),0 4px 8px rgba(0,0,0,.06),inset 0 1px 0 rgba(255,255,255,.2)}
+.lang-select option{color:#111827;background:#fff}
 .xp-bar-wrap{width:100%;max-width:500px;flex-shrink:0}
 .xp-bar{height:10px;background:rgba(255,255,255,.25);border-radius:99px;overflow:hidden;box-shadow:inset 0 2px 4px rgba(0,0,0,.2),0 1px 0 rgba(255,255,255,.15)}
 .xp-fill{height:100%;background:linear-gradient(90deg,#fbbf24,#f59e0b);border-radius:99px;transition:width .5s;box-shadow:0 1px 6px rgba(251,191,36,.5),inset 0 -1px 0 rgba(0,0,0,.1),inset 0 1px 0 rgba(255,255,255,.4)}
@@ -94,6 +96,7 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',Tahoma,s
 .q-feedback{font-size:clamp(16px,3vmin,22px);color:#d97706;font-weight:800;min-height:clamp(20px,3.5vmin,26px);transition:all .3s}
 .ans-grid{display:grid;grid-template-columns:1fr 1fr;gap:clamp(8px,1.8vmin,12px);margin-bottom:clamp(6px,1.5vmin,10px)}
 .ans-btn{padding:clamp(12px,2.8vmin,20px);font-size:clamp(24px,5.5vmin,36px);font-weight:900;border:none;border-radius:clamp(16px,3vmin,24px);background:linear-gradient(180deg,#fff 0%,#faf5ff 50%,#f3e8ff 100%);cursor:pointer;transition:all .15s cubic-bezier(.34,1.56,.64,1);color:#111827;text-shadow:0 1px 2px rgba(0,0,0,.08);box-shadow:0 6px 0 #c4b5fd,0 8px 0 #a78bfa,0 14px 28px rgba(0,0,0,.12),inset 0 -3px 0 rgba(0,0,0,.06),inset 0 2px 0 rgba(255,255,255,.8);position:relative;overflow:hidden}
+.ans-btn.symbol-choice{direction:ltr;unicode-bidi:isolate-override;font-family:ui-monospace,Menlo,Consolas,monospace}
 .ans-btn::after{content:'';position:absolute;top:0;left:-100%;width:60%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.4),transparent);transition:left .5s}
 .ans-btn:hover::after{left:100%}
 .ans-btn:hover{transform:translateY(-5px) scale(1.05);box-shadow:0 10px 0 #c4b5fd,0 12px 0 #a78bfa,0 22px 40px rgba(0,0,0,.15),inset 0 -3px 0 rgba(0,0,0,.04),inset 0 2px 0 rgba(255,255,255,.9)}
@@ -362,6 +365,7 @@ button:focus-visible,.wc:focus-visible,.lc:focus-visible,.np-btn:focus-visible,.
     <div class="tb-item" id="tb-lives">❤️ 5</div>
     <button class="tb-item mute-btn" id="tb-mute" aria-label="Toggle sound">🔊</button>
     <button class="tb-item" id="tb-perf" style="cursor:pointer" aria-label="Toggle performance mode">⚡</button>
+    <select class="lang-select" id="lang-select" aria-label="Language selector"></select>
   </div>
   <div class="xp-bar-wrap">
     <div class="xp-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="Experience"><div class="xp-fill" id="xp-fill" style="width:0%"></div></div>
@@ -569,7 +573,7 @@ button:focus-visible,.wc:focus-visible,.lc:focus-visible,.np-btn:focus-visible,.
 
 <!-- ===== GAME MODULE ===== -->
 <script type="module">
-import { POOL, CATEGORIES, LANG, t, I18N, ACHIEVEMENTS } from './math-modules/config.js';
+import { POOL, CATEGORIES, LANG, SUPPORTED_LANGS, t, I18N, ACTIVE_STRINGS, ACHIEVEMENTS } from './math-modules/config.js';
 import { WORLDS, WORLD_MAP, generateLevelConfig, isWorldUnlocked, getTotalStars, getWorldCompletion, getMasteryIcon, getLevelName, generateDailyChallenge, getPrestigeLevel, canPrestige, applyPrestige, generateWeeklyChallenge, getWeekNum } from './math-modules/worlds.js';
 import * as Core from './math-modules/core.js';
 import * as Intel from './math-modules/intelligence.js';
@@ -583,8 +587,87 @@ import { royalCelebration } from './math-modules/effects.js';
 
 // Apply lang
 document.documentElement.lang = LANG;
-document.documentElement.dir = LANG === 'ar' ? 'rtl' : 'ltr';
-const T = (I18N[LANG] || I18N.en);
+document.documentElement.dir = ['ar', 'fa', 'ur'].includes(LANG) ? 'rtl' : 'ltr';
+const T = ACTIVE_STRINGS;
+const displayLocale = LANG === 'ar' ? 'ar-EG' : (LANG === 'pt' ? 'pt-BR' : 'en-US');
+const displayNumber = new Intl.NumberFormat(displayLocale);
+
+function formatDisplayNumber(value) {
+  const num = Number(value);
+  if (!Number.isFinite(num)) return String(value);
+  return displayNumber.format(num);
+}
+
+function localizeMathText(input) {
+  if (input == null) return '';
+  const source = String(input);
+  if (LANG !== 'ar') return source;
+  return source.replace(/\d+(?:\.\d+)?/g, (match) => formatDisplayNumber(Number(match)));
+}
+
+function formatOptionLabel(optionValue) {
+  if (optionValue === '>' || optionValue === '<' || optionValue === '=') {
+    return `\u200E${optionValue}\u200E`;
+  }
+  if (typeof optionValue === 'number') return formatDisplayNumber(optionValue);
+  return localizeMathText(optionValue);
+}
+
+function formatNumpadValue(rawValue) {
+  if (!rawValue) return '_';
+  if (LANG !== 'ar') return String(rawValue);
+  return String(rawValue).replace(/\d/g, (digit) => formatDisplayNumber(Number(digit)));
+}
+
+function applyLanguageSelection(nextLang) {
+  const allowed = SUPPORTED_LANGS;
+  if (!allowed.includes(nextLang)) return;
+  try { localStorage.setItem('classify_math_lang', nextLang); } catch (e) {}
+  const params = new URLSearchParams(window.location.search);
+  params.set('lang', nextLang);
+  window.location.search = params.toString();
+}
+
+const LANGUAGE_LABELS = {
+  ar: 'العربية',
+  en: 'English',
+  pt: 'Português',
+  es: 'Español',
+  fr: 'Français',
+  de: 'Deutsch',
+  it: 'Italiano',
+  ru: 'Русский',
+  zh: '中文',
+  ja: '日本語',
+  ko: '한국어',
+  hi: 'हिन्दी',
+  tr: 'Türkçe',
+  nl: 'Nederlands',
+  sv: 'Svenska',
+  pl: 'Polski',
+  uk: 'Українська',
+  id: 'Bahasa Indonesia',
+  ms: 'Bahasa Melayu',
+  th: 'ไทย',
+  vi: 'Tiếng Việt',
+  fa: 'فارسی',
+  ur: 'اردو',
+  bn: 'বাংলা',
+  sw: 'Kiswahili',
+};
+
+function buildLanguageOptions() {
+  const langSelect = el('lang-select');
+  if (!langSelect) return;
+  langSelect.innerHTML = '';
+  for (const code of SUPPORTED_LANGS) {
+    const option = document.createElement('option');
+    option.value = code;
+    option.textContent = LANGUAGE_LABELS[code] || code.toUpperCase();
+    langSelect.appendChild(option);
+  }
+  langSelect.value = LANG;
+}
 
 // ===== GAME STATE =====
 let progress;
@@ -637,6 +720,19 @@ function init() {
   el('ach-btn').textContent = T.achievements;
   el('report-btn').textContent = T.report || '📊 التقرير';
   el('report-send').textContent = T.rSendReport || '📤 إرسال للوالدين';
+
+  buildLanguageOptions();
+
+  document.querySelectorAll('.np-btn[data-np]').forEach((btn) => {
+    const key = btn.dataset.np;
+    if (!key) return;
+    if (/^\d$/.test(key)) {
+      btn.textContent = formatDisplayNumber(Number(key));
+      return;
+    }
+    if (key === 'ok') btn.textContent = T.confirm || '✅';
+    if (key === 'del') btn.textContent = T.delete || '⌫';
+  });
 
   // Daily login bonus
   const loginResult = Econ.checkDailyLogin(progress);
@@ -1158,9 +1254,12 @@ function showQuestion() {
     renderBossHP();
   }
 
-  el('q-text').textContent = q.text;
+  const qTextEl = el('q-text');
+  qTextEl.textContent = localizeMathText(q.text);
+  qTextEl.style.direction = q.typeId === 'compare' ? 'ltr' : (['ar', 'fa', 'ur'].includes(LANG) ? 'rtl' : 'ltr');
+  qTextEl.style.unicodeBidi = q.typeId === 'compare' ? 'isolate-override' : 'plaintext';
   const vizEl = el('q-visual');
-  vizEl.textContent = q.visual || '';
+  vizEl.textContent = localizeMathText(q.visual || '');
   UI.bounceElement(vizEl);
 
   el('q-feedback').textContent = '';
@@ -1189,7 +1288,9 @@ function showQuestion() {
     q.options.forEach(opt => {
       const btn = document.createElement('button');
       btn.className = 'ans-btn';
-      btn.textContent = opt;
+      if (opt === '>' || opt === '<' || opt === '=') btn.classList.add('symbol-choice');
+      btn.dataset.answerValue = String(opt);
+      btn.textContent = formatOptionLabel(opt);
       btn.onclick = () => selectAnswer(opt, btn);
       ans.appendChild(btn);
     });
@@ -1281,7 +1382,7 @@ function selectAnswer(selected, btn) {
     } else {
       btn.classList.add('wrong');
       document.querySelectorAll('.ans-btn').forEach(b => {
-        if (String(b.textContent) === String(q.answer)) b.classList.add('correct');
+        if ((b.dataset.answerValue || '') === String(q.answer)) b.classList.add('correct');
       });
     }
   });
@@ -1292,14 +1393,14 @@ function numpadPress(n) {
   if (answering) return;
   if (numpadValue.length >= 6) return;
   numpadValue += String(n);
-  el('numpad-display').textContent = numpadValue;
+  el('numpad-display').textContent = formatNumpadValue(numpadValue);
   UI.sfxTap();
 }
 
 function numpadDel() {
   if (answering) return;
   numpadValue = numpadValue.slice(0, -1);
-  el('numpad-display').textContent = numpadValue || '_';
+  el('numpad-display').textContent = formatNumpadValue(numpadValue);
   UI.sfxTap();
 }
 
@@ -1313,7 +1414,7 @@ function numpadConfirm() {
       UI.spawnParticles(innerWidth / 2, innerHeight * 0.4, 4, levelConfig ? levelConfig.particleStyle : '⭐');
     } else {
       d.classList.add('np-wrong');
-      d.textContent = numpadValue + ' → ' + q.answer;
+      d.textContent = formatNumpadValue(numpadValue) + ' → ' + formatDisplayNumber(q.answer);
     }
   });
 }
@@ -1325,12 +1426,12 @@ function timeUp() {
 
   if (q.inputMode === 'numpad') {
     document.querySelectorAll('.np-btn').forEach(b => b.disabled = true);
-    el('numpad-display').textContent = '→ ' + q.answer;
+    el('numpad-display').textContent = '→ ' + formatDisplayNumber(q.answer);
     el('numpad-display').classList.add('np-wrong');
   } else {
     document.querySelectorAll('.ans-btn').forEach(b => {
       b.disabled = true;
-      if (String(b.textContent) === String(q.answer)) b.classList.add('correct');
+      if ((b.dataset.answerValue || '') === String(q.answer)) b.classList.add('correct');
     });
   }
 
@@ -2164,6 +2265,13 @@ function wireButtons() {
   on('ach-btn', openAchievements);
   on('report-btn', openReport);
   on('tb-perf', togglePerf);
+  const langSelect = document.getElementById('lang-select');
+  if (langSelect) {
+    langSelect.addEventListener('change', (event) => {
+      const target = event.target;
+      if (target && target.value) applyLanguageSelection(target.value);
+    });
+  }
   // Level screen
   on('lvl-back', backToWorlds);
   on('prestige-btn', handlePrestige);
