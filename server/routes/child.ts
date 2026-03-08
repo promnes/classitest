@@ -2592,22 +2592,30 @@ export async function registerChildRoutes(app: Express) {
         }, "Request expired"));
       }
 
-      // If approved, return the token
-      if (loginRequest.status === "approved" && loginRequest.sessionToken) {
-        const token = loginRequest.sessionToken;
+      // If approved, return token when available and keep status as approved.
+      // This prevents parent notifications from incorrectly flipping to "expired" after approval.
+      if (loginRequest.status === "approved") {
+        if (loginRequest.sessionToken) {
+          const token = loginRequest.sessionToken;
 
-        // One-time token delivery: consume request after first successful read
-        await db.update(childLoginRequests)
-          .set({
-            status: "expired",
-            sessionToken: null,
-          })
-          .where(eq(childLoginRequests.id, id));
+          // Consume token after first successful read but preserve approved status.
+          await db.update(childLoginRequests)
+            .set({
+              status: "approved",
+              sessionToken: null,
+            })
+            .where(eq(childLoginRequests.id, id));
+
+          return res.json(successResponse({
+            status: "approved",
+            token,
+            message: "تمت الموافقة! جاري تسجيل الدخول...",
+          }, "Login approved"));
+        }
 
         return res.json(successResponse({
           status: "approved",
-          token,
-          message: "تمت الموافقة! جاري تسجيل الدخول...",
+          message: "تمت الموافقة على الطلب.",
         }, "Login approved"));
       }
 
