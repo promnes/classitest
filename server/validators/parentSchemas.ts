@@ -253,6 +253,13 @@ export const pushSubscriptionSchema = z.object({
   deviceId: z.string().max(200).optional(),
 });
 
+export const notificationPreferencesSchema = z.object({
+  webPushEnabled: z.boolean().optional(),
+  mutedTypes: z.array(z.string().min(1).max(80)).max(100).optional(),
+  quietHoursStart: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/).nullable().optional(),
+  quietHoursEnd: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/).nullable().optional(),
+});
+
 // ============ Screen Time ============
 
 export const screenTimeSchema = z.object({

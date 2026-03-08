@@ -32,6 +32,7 @@ export function NotificationsTab({
     message: "",
     targetType: "all" as "all" | "specific",
     parentId: "",
+    sendWebPush: true,
   });
 
   const { data: notifications, isLoading } = useQuery({
@@ -76,6 +77,7 @@ export function NotificationsTab({
         message: "",
         targetType: "all",
         parentId: "",
+        sendWebPush: true,
       });
     },
   });
@@ -294,6 +296,21 @@ export function NotificationsTab({
                   </Button>
                 </div>
               </div>
+
+              <div className="flex items-center gap-2 rounded-lg border p-3 dark:border-gray-600">
+                <input
+                  id="send-web-push"
+                  type="checkbox"
+                  checked={sendForm.sendWebPush}
+                  onChange={(e) => setSendForm({ ...sendForm, sendWebPush: e.target.checked })}
+                  className="rounded"
+                  data-testid="checkbox-send-web-push"
+                />
+                <label htmlFor="send-web-push" className="text-sm font-medium cursor-pointer">
+                  إرسال Web Push أيضًا (باستخدام VAPID)
+                </label>
+              </div>
+
               {sendForm.targetType === "specific" && (
                 <div>
                   <label className="block text-sm font-medium mb-1">اختر الوالد</label>

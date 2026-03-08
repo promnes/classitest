@@ -27,6 +27,13 @@ type NotificationPage = {
   hasMore: boolean;
 };
 
+type NotificationPreferences = {
+  webPushEnabled: boolean;
+  mutedTypes: string[];
+  quietHoursStart: string | null;
+  quietHoursEnd: string | null;
+};
+
 /* ─── Icon config ─── */
 const ICON_CONFIG: Record<string, { emoji: string; bg: string }> = {
   deposit_approved: { emoji: "💳", bg: "bg-emerald-500" },
@@ -107,6 +114,7 @@ export const Notifications = (): JSX.Element => {
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [filter, setFilter] = useState<"all" | "unread">("all");
+  const [prefsDraft, setPrefsDraft] = useState<NotificationPreferences | null>(null);
   const pageSize = 20;
   const offset = (page - 1) * pageSize;
 
@@ -126,6 +134,18 @@ export const Notifications = (): JSX.Element => {
     enabled: !!token,
     refetchInterval: token ? 15000 : false,
   });
+
+  const { data: notificationPrefs } = useQuery<NotificationPreferences>({
+    queryKey: ["/api/parent/notification-preferences"],
+    queryFn: () => authenticatedFetch<NotificationPreferences>("/api/parent/notification-preferences"),
+    enabled: !!token,
+  });
+
+  useEffect(() => {
+    if (notificationPrefs) {
+      setPrefsDraft(notificationPrefs);
+    }
+  }, [notificationPrefs]);
 
   const allNotifications = Array.isArray(notificationsPage?.items) ? notificationsPage!.items : [];
   const displayNotifications = filter === "unread"
@@ -169,6 +189,23 @@ export const Notifications = (): JSX.Element => {
       queryClient.invalidateQueries({ queryKey: ["/api/parent/notifications"] });
       queryClient.invalidateQueries({ queryKey: ["/api/parent/notifications/unread-count"] });
       toast({ title: t("notifications.markedAllRead") });
+    },
+  });
+
+  const savePrefsMutation = useMutation({
+    mutationFn: async () => {
+      if (!prefsDraft) return;
+      await authenticatedFetch<NotificationPreferences>("/api/parent/notification-preferences", {
+        method: "PUT",
+        body: prefsDraft,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/parent/notification-preferences"] });
+      toast({ title: "تم حفظ تفضيلات الإشعارات" });
+    },
+    onError: () => {
+      toast({ title: "فشل حفظ التفضيلات", variant: "destructive" });
     },
   });
 
@@ -274,6 +311,85 @@ export const Notifications = (): JSX.Element => {
             {t("notifications.unread")} {unreadCount > 0 && `(${unreadCount})`}
           </button>
         </div>
+
+        {prefsDraft && (
+          <div className={`mb-4 rounded-xl border p-4 ${isDark ? "bg-[#242526] border-gray-700" : "bg-white border-gray-200"}`}>
+            <h2 className={`text-sm font-bold mb-3 ${isDark ? "text-white" : "text-gray-900"}`}>تفضيلات Web Push</h2>
+
+            <div className="space-y-3">
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={prefsDraft.webPushEnabled}
+                  onChange={(e) => setPrefsDraft({ ...prefsDraft, webPushEnabled: e.target.checked })}
+                />
+                <span>تفعيل إشعارات Web Push</span>
+              </label>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <label className="text-xs">
+                  <span className={isDark ? "text-gray-300" : "text-gray-600"}>بداية الوقت الهادئ (HH:mm)</span>
+                  <input
+                    type="time"
+                    value={prefsDraft.quietHoursStart || ""}
+                    onChange={(e) => setPrefsDraft({ ...prefsDraft, quietHoursStart: e.target.value || null })}
+                    className={`mt-1 w-full px-2 py-1.5 rounded border ${isDark ? "bg-[#18191a] border-gray-700 text-gray-100" : "bg-white border-gray-300 text-gray-900"}`}
+                  />
+                </label>
+
+                <label className="text-xs">
+                  <span className={isDark ? "text-gray-300" : "text-gray-600"}>نهاية الوقت الهادئ (HH:mm)</span>
+                  <input
+                    type="time"
+                    value={prefsDraft.quietHoursEnd || ""}
+                    onChange={(e) => setPrefsDraft({ ...prefsDraft, quietHoursEnd: e.target.value || null })}
+                    className={`mt-1 w-full px-2 py-1.5 rounded border ${isDark ? "bg-[#18191a] border-gray-700 text-gray-100" : "bg-white border-gray-300 text-gray-900"}`}
+                  />
+                </label>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={!prefsDraft.mutedTypes.includes("broadcast")}
+                    onChange={(e) => {
+                      const muted = new Set(prefsDraft.mutedTypes);
+                      if (e.target.checked) muted.delete("broadcast");
+                      else muted.add("broadcast");
+                      setPrefsDraft({ ...prefsDraft, mutedTypes: Array.from(muted) });
+                    }}
+                  />
+                  <span>استقبال broadcast</span>
+                </label>
+
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={!prefsDraft.mutedTypes.includes("login_code_request")}
+                    onChange={(e) => {
+                      const muted = new Set(prefsDraft.mutedTypes);
+                      if (e.target.checked) muted.delete("login_code_request");
+                      else muted.add("login_code_request");
+                      setPrefsDraft({ ...prefsDraft, mutedTypes: Array.from(muted) });
+                    }}
+                  />
+                  <span>استقبال طلبات تسجيل الدخول</span>
+                </label>
+              </div>
+
+              <div>
+                <button
+                  onClick={() => savePrefsMutation.mutate()}
+                  disabled={savePrefsMutation.isPending}
+                  className={`px-4 py-2 rounded-lg text-sm font-semibold ${isDark ? "bg-blue-600 hover:bg-blue-700 text-white" : "bg-blue-500 hover:bg-blue-600 text-white"} disabled:opacity-60`}
+                >
+                  {savePrefsMutation.isPending ? "جاري الحفظ..." : "حفظ التفضيلات"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Notifications list */}
         <div ref={listRef} className={`rounded-xl overflow-hidden ${isDark ? "bg-[#242526]" : "bg-white"} shadow-sm`}>

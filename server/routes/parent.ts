@@ -27,6 +27,7 @@ import {
   commentSchema,
   socialLinksSchema,
   pushSubscriptionSchema,
+  notificationPreferencesSchema,
   screenTimeSchema,
   createTaskFromTemplateSchema,
   createCustomTaskSchema,
@@ -102,6 +103,7 @@ import {
   scheduledSessions,
   scheduledSessionTasks,
   parentPushSubscriptions,
+  parentNotificationPreferences,
   screenTimeSettings,
   childDailyUsage,
   parentAuditLogs,
@@ -5246,6 +5248,82 @@ export async function registerParentRoutes(app: Express) {
       res.json({ success: true, message: "تم حذف الاشتراك" });
     } catch (error: any) {
       res.status(500).json({ success: false, error: "INTERNAL_SERVER_ERROR" });
+    }
+  });
+
+  app.get("/api/parent/notification-preferences", authMiddleware, async (req: any, res) => {
+    try {
+      const parentId = req.user.userId;
+      const rows = await db
+        .select()
+        .from(parentNotificationPreferences)
+        .where(eq(parentNotificationPreferences.parentId, parentId))
+        .limit(1);
+
+      const row = rows[0] || null;
+      return res.json(successResponse({
+        webPushEnabled: row?.webPushEnabled ?? true,
+        mutedTypes: row?.mutedTypes || [],
+        quietHoursStart: row?.quietHoursStart ?? null,
+        quietHoursEnd: row?.quietHoursEnd ?? null,
+      }, "Notification preferences retrieved"));
+    } catch (error: any) {
+      console.error("Parent notification preferences fetch error:", error);
+      return res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to fetch notification preferences"));
+    }
+  });
+
+  app.put("/api/parent/notification-preferences", authMiddleware, async (req: any, res) => {
+    try {
+      const parentId = req.user.userId;
+      const v = validateBody(notificationPreferencesSchema, req.body || {});
+      if (!v.success) return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, v.error));
+
+      const input = v.data;
+      const [existing] = await db
+        .select()
+        .from(parentNotificationPreferences)
+        .where(eq(parentNotificationPreferences.parentId, parentId))
+        .limit(1);
+
+      const payload: any = {
+        updatedAt: new Date(),
+      };
+
+      if (input.webPushEnabled !== undefined) payload.webPushEnabled = input.webPushEnabled;
+      if (input.mutedTypes !== undefined) payload.mutedTypes = input.mutedTypes;
+      if (input.quietHoursStart !== undefined) payload.quietHoursStart = input.quietHoursStart;
+      if (input.quietHoursEnd !== undefined) payload.quietHoursEnd = input.quietHoursEnd;
+
+      let saved;
+      if (existing) {
+        [saved] = await db
+          .update(parentNotificationPreferences)
+          .set(payload)
+          .where(eq(parentNotificationPreferences.parentId, parentId))
+          .returning();
+      } else {
+        [saved] = await db
+          .insert(parentNotificationPreferences)
+          .values({
+            parentId,
+            webPushEnabled: input.webPushEnabled ?? true,
+            mutedTypes: input.mutedTypes ?? [],
+            quietHoursStart: input.quietHoursStart ?? null,
+            quietHoursEnd: input.quietHoursEnd ?? null,
+          })
+          .returning();
+      }
+
+      return res.json(successResponse({
+        webPushEnabled: saved.webPushEnabled,
+        mutedTypes: saved.mutedTypes || [],
+        quietHoursStart: saved.quietHoursStart,
+        quietHoursEnd: saved.quietHoursEnd,
+      }, "Notification preferences updated"));
+    } catch (error: any) {
+      console.error("Parent notification preferences update error:", error);
+      return res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to update notification preferences"));
     }
   });
 

@@ -758,6 +758,20 @@ export const parentPushSubscriptions = pgTable("parent_push_subscriptions", {
   byParentActiveIdx: index("idx_parent_push_subscriptions_parent_active").on(table.parentId, table.isActive),
 }));
 
+// Parent notification preferences (web push controls + quiet hours)
+export const parentNotificationPreferences = pgTable("parent_notification_preferences", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  parentId: varchar("parent_id").notNull().unique().references(() => parents.id, { onDelete: "cascade" }),
+  webPushEnabled: boolean("web_push_enabled").default(true).notNull(),
+  mutedTypes: json("muted_types").$type<string[]>().default(sql`'[]'::jsonb`).notNull(),
+  quietHoursStart: varchar("quiet_hours_start", { length: 5 }),
+  quietHoursEnd: varchar("quiet_hours_end", { length: 5 }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => ({
+  byParentIdx: index("idx_parent_notification_preferences_parent").on(table.parentId),
+}));
+
 // Teacher push subscriptions
 export const teacherPushSubscriptions = pgTable("teacher_push_subscriptions", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
