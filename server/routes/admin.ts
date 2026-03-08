@@ -80,13 +80,12 @@ import {
   orderItems,
   transactions,
   childPurchases,
-  parentPushSubscriptions,
-  parentNotificationPreferences,
+  outboxEvents,
 } from "../../shared/schema";
 import { createNotification, notifyAllAdmins } from "../notifications";
 import { emitGiftEvent } from "../giftEvents";
 import { notificationBus } from "../services/notificationBus";
-import { isWebPushReady, sendWebPushNotification } from "../services/webPushService";
+import { isWebPushReady } from "../services/webPushService";
 import {
   buildAdminLegalPayload,
   getAllLegalSettingKeys,
@@ -106,143 +105,9 @@ type AdminWebPushStats = {
   requested: boolean;
   configured: boolean;
   targetParents: number;
-  activeSubscriptions: number;
-  sent: number;
-  failed: number;
-  cleanedUp: number;
+  queued: boolean;
+  eventId: string | null;
 };
-
-async function sendAdminWebPushToParents(
-  parentIds: string[],
-  payload: { title: string; message: string; type: string; url: string }
-): Promise<AdminWebPushStats> {
-  const stats: AdminWebPushStats = {
-    requested: true,
-    configured: isWebPushReady(),
-    targetParents: parentIds.length,
-    activeSubscriptions: 0,
-    sent: 0,
-    failed: 0,
-    cleanedUp: 0,
-  };
-
-  if (!stats.configured || parentIds.length === 0) {
-    return stats;
-  }
-
-  const prefRows = await db
-    .select({
-      parentId: parentNotificationPreferences.parentId,
-      webPushEnabled: parentNotificationPreferences.webPushEnabled,
-      mutedTypes: parentNotificationPreferences.mutedTypes,
-      quietHoursStart: parentNotificationPreferences.quietHoursStart,
-      quietHoursEnd: parentNotificationPreferences.quietHoursEnd,
-    })
-    .from(parentNotificationPreferences)
-    .where(inArray(parentNotificationPreferences.parentId, parentIds));
-
-  const prefByParentId = new Map<string, {
-    webPushEnabled: boolean;
-    mutedTypes: string[];
-    quietHoursStart: string | null;
-    quietHoursEnd: string | null;
-  }>();
-
-  for (const row of prefRows) {
-    prefByParentId.set(row.parentId, {
-      webPushEnabled: row.webPushEnabled,
-      mutedTypes: Array.isArray(row.mutedTypes) ? (row.mutedTypes as string[]) : [],
-      quietHoursStart: row.quietHoursStart ?? null,
-      quietHoursEnd: row.quietHoursEnd ?? null,
-    });
-  }
-
-  const toMinute = (hhmm: string | null): number | null => {
-    if (!hhmm || !/^([01]\d|2[0-3]):([0-5]\d)$/.test(hhmm)) return null;
-    const [h, m] = hhmm.split(":").map(Number);
-    return h * 60 + m;
-  };
-
-  const isNowInQuietHours = (start: string | null, end: string | null): boolean => {
-    const startM = toMinute(start);
-    const endM = toMinute(end);
-    if (startM === null || endM === null) return false;
-
-    const now = new Date();
-    const nowM = now.getHours() * 60 + now.getMinutes();
-
-    if (startM === endM) return false;
-    if (startM < endM) return nowM >= startM && nowM < endM;
-    return nowM >= startM || nowM < endM;
-  };
-
-  const eligibleParentIds = parentIds.filter((parentId) => {
-    const pref = prefByParentId.get(parentId);
-    if (!pref) return true;
-    if (!pref.webPushEnabled) return false;
-    if (pref.mutedTypes.includes(payload.type)) return false;
-    if (isNowInQuietHours(pref.quietHoursStart, pref.quietHoursEnd)) return false;
-    return true;
-  });
-
-  if (eligibleParentIds.length === 0) {
-    return stats;
-  }
-
-  const subscriptions = await db
-    .select({
-      id: parentPushSubscriptions.id,
-      endpoint: parentPushSubscriptions.endpoint,
-      p256dh: parentPushSubscriptions.p256dh,
-      auth: parentPushSubscriptions.auth,
-    })
-    .from(parentPushSubscriptions)
-    .where(
-      and(
-        inArray(parentPushSubscriptions.parentId, eligibleParentIds),
-        eq(parentPushSubscriptions.platform, "web"),
-        eq(parentPushSubscriptions.isActive, true)
-      )
-    );
-
-  stats.activeSubscriptions = subscriptions.length;
-
-  for (const sub of subscriptions) {
-    if (!sub.endpoint || !sub.p256dh || !sub.auth) {
-      stats.failed += 1;
-      continue;
-    }
-
-    try {
-      await sendWebPushNotification(
-        {
-          endpoint: sub.endpoint,
-          p256dh: sub.p256dh,
-          auth: sub.auth,
-        },
-        {
-          title: payload.title,
-          body: payload.message,
-          type: payload.type,
-          url: payload.url,
-        }
-      );
-      stats.sent += 1;
-    } catch (error: any) {
-      stats.failed += 1;
-      const statusCode = error?.statusCode;
-      if (statusCode === 404 || statusCode === 410) {
-        await db
-          .update(parentPushSubscriptions)
-          .set({ isActive: false, updatedAt: new Date() })
-          .where(eq(parentPushSubscriptions.id, sub.id));
-        stats.cleanedUp += 1;
-      }
-    }
-  }
-
-  return stats;
-}
 
 export async function registerAdminRoutes(app: Express) {
   // Admin Login — username + password only (email hidden)
@@ -3907,22 +3772,37 @@ export async function registerAdminRoutes(app: Express) {
 
       const webPushRequested = Boolean(sendWebPush);
       const targetParentIds = targetParents.map((parent) => parent.id);
-      const webPushStats = webPushRequested
-        ? await sendAdminWebPushToParents(targetParentIds, {
-          title,
-          message,
-          type: resolvedType,
-          url: "/notifications",
-        })
-        : {
-          requested: false,
-          configured: isWebPushReady(),
-          targetParents: targetParents.length,
-          activeSubscriptions: 0,
-          sent: 0,
-          failed: 0,
-          cleanedUp: 0,
+      let webPushStats: AdminWebPushStats = {
+        requested: webPushRequested,
+        configured: isWebPushReady(),
+        targetParents: targetParents.length,
+        queued: false,
+        eventId: null,
+      };
+
+      if (webPushRequested && webPushStats.configured && targetParentIds.length > 0) {
+        const [queuedEvent] = await db
+          .insert(outboxEvents)
+          .values({
+            type: "ADMIN_PARENT_WEB_PUSH_NOTIFY",
+            payloadJson: {
+              parentIds: targetParentIds,
+              title,
+              message,
+              type: resolvedType,
+              url: "/notifications",
+            },
+            status: "pending",
+            availableAt: new Date(),
+          })
+          .returning({ id: outboxEvents.id });
+
+        webPushStats = {
+          ...webPushStats,
+          queued: true,
+          eventId: queuedEvent?.id || null,
         };
+      }
 
       await db.insert(activityLog).values({
         adminId: req.admin.adminId,
@@ -3939,7 +3819,7 @@ export async function registerAdminRoutes(app: Express) {
       });
 
       const messageText = webPushRequested
-        ? `تم إرسال الإشعار إلى ${targetParents.length} مستخدم (Web Push: ${webPushStats.sent} ناجح / ${webPushStats.failed} فشل)`
+        ? `تم إرسال الإشعار إلى ${targetParents.length} مستخدم وتمت جدولة Web Push في الخلفية`
         : `تم إرسال الإشعار إلى ${targetParents.length} مستخدم`;
 
       res.json(successResponse({

@@ -1,4 +1,4 @@
-import { and, asc, eq, lte, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, lte, sql } from "drizzle-orm";
 import { storage } from "../storage";
 import {
   outboxEvents,
@@ -7,6 +7,8 @@ import {
   taskNotificationDeliveryAttempts,
   childPushSubscriptions,
   parentChild,
+  parentPushSubscriptions,
+  parentNotificationPreferences,
 } from "../../shared/schema";
 import { createNotification } from "../notifications";
 import { isWebPushReady, sendWebPushNotification } from "./webPushService";
@@ -26,7 +28,31 @@ type OutboxPayload = {
   parentId?: string;
   title?: string | null;
   source?: string;
+  parentIds?: string[];
+  subscriptionIds?: string[];
+  message?: string;
+  type?: string;
+  url?: string;
 };
+
+function toMinute(hhmm: string | null): number | null {
+  if (!hhmm || !/^([01]\d|2[0-3]):([0-5]\d)$/.test(hhmm)) return null;
+  const [h, m] = hhmm.split(":").map(Number);
+  return h * 60 + m;
+}
+
+function isNowInQuietHours(start: string | null, end: string | null): boolean {
+  const startM = toMinute(start);
+  const endM = toMinute(end);
+  if (startM === null || endM === null) return false;
+
+  const now = new Date();
+  const nowM = now.getHours() * 60 + now.getMinutes();
+
+  if (startM === endM) return false;
+  if (startM < endM) return nowM >= startM && nowM < endM;
+  return nowM >= startM || nowM < endM;
+}
 
 async function tryAcquireLock(): Promise<boolean> {
   const result = await db.execute(sql`SELECT pg_try_advisory_lock(${ADVISORY_LOCK_KEY}) as locked;`);
@@ -353,6 +379,183 @@ async function handleTaskAssignedNotify(eventRow: typeof outboxEvents.$inferSele
   }
 }
 
+async function handleAdminParentWebPushNotify(eventRow: typeof outboxEvents.$inferSelect) {
+  const payload = (eventRow.payloadJson || {}) as OutboxPayload;
+  const messageType = payload.type || "broadcast";
+
+  if (!isWebPushReady()) {
+    await db
+      .update(outboxEvents)
+      .set({ status: "failed", lastError: "WEB_PUSH_VAPID_NOT_CONFIGURED" })
+      .where(eq(outboxEvents.id, eventRow.id));
+    return;
+  }
+
+  let subscriptions: Array<{
+    id: string;
+    parentId: string;
+    endpoint: string | null;
+    p256dh: string | null;
+    auth: string | null;
+  }> = [];
+
+  if (Array.isArray(payload.subscriptionIds) && payload.subscriptionIds.length > 0) {
+    subscriptions = await db
+      .select({
+        id: parentPushSubscriptions.id,
+        parentId: parentPushSubscriptions.parentId,
+        endpoint: parentPushSubscriptions.endpoint,
+        p256dh: parentPushSubscriptions.p256dh,
+        auth: parentPushSubscriptions.auth,
+      })
+      .from(parentPushSubscriptions)
+      .where(
+        and(
+          inArray(parentPushSubscriptions.id, payload.subscriptionIds),
+          eq(parentPushSubscriptions.platform, "web"),
+          eq(parentPushSubscriptions.isActive, true)
+        )
+      );
+  } else {
+    const parentIds = Array.isArray(payload.parentIds) ? payload.parentIds : [];
+    if (parentIds.length === 0) {
+      await db
+        .update(outboxEvents)
+        .set({ status: "sent", sentAt: new Date(), lastError: null })
+        .where(eq(outboxEvents.id, eventRow.id));
+      return;
+    }
+
+    const prefsRows = await db
+      .select({
+        parentId: parentNotificationPreferences.parentId,
+        webPushEnabled: parentNotificationPreferences.webPushEnabled,
+        mutedTypes: parentNotificationPreferences.mutedTypes,
+        quietHoursStart: parentNotificationPreferences.quietHoursStart,
+        quietHoursEnd: parentNotificationPreferences.quietHoursEnd,
+      })
+      .from(parentNotificationPreferences)
+      .where(inArray(parentNotificationPreferences.parentId, parentIds));
+
+    const prefsMap = new Map<string, {
+      webPushEnabled: boolean;
+      mutedTypes: string[];
+      quietHoursStart: string | null;
+      quietHoursEnd: string | null;
+    }>();
+
+    for (const row of prefsRows) {
+      prefsMap.set(row.parentId, {
+        webPushEnabled: row.webPushEnabled,
+        mutedTypes: Array.isArray(row.mutedTypes) ? (row.mutedTypes as string[]) : [],
+        quietHoursStart: row.quietHoursStart ?? null,
+        quietHoursEnd: row.quietHoursEnd ?? null,
+      });
+    }
+
+    const eligibleParentIds = parentIds.filter((parentId) => {
+      const pref = prefsMap.get(parentId);
+      if (!pref) return true;
+      if (!pref.webPushEnabled) return false;
+      if (pref.mutedTypes.includes(messageType)) return false;
+      if (isNowInQuietHours(pref.quietHoursStart, pref.quietHoursEnd)) return false;
+      return true;
+    });
+
+    if (eligibleParentIds.length === 0) {
+      await db
+        .update(outboxEvents)
+        .set({ status: "sent", sentAt: new Date(), lastError: null })
+        .where(eq(outboxEvents.id, eventRow.id));
+      return;
+    }
+
+    subscriptions = await db
+      .select({
+        id: parentPushSubscriptions.id,
+        parentId: parentPushSubscriptions.parentId,
+        endpoint: parentPushSubscriptions.endpoint,
+        p256dh: parentPushSubscriptions.p256dh,
+        auth: parentPushSubscriptions.auth,
+      })
+      .from(parentPushSubscriptions)
+      .where(
+        and(
+          inArray(parentPushSubscriptions.parentId, eligibleParentIds),
+          eq(parentPushSubscriptions.platform, "web"),
+          eq(parentPushSubscriptions.isActive, true)
+        )
+      );
+  }
+
+  if (subscriptions.length === 0) {
+    await db
+      .update(outboxEvents)
+      .set({ status: "sent", sentAt: new Date(), lastError: null })
+      .where(eq(outboxEvents.id, eventRow.id));
+    return;
+  }
+
+  const retrySubscriptionIds: string[] = [];
+
+  for (const sub of subscriptions) {
+    if (!sub.endpoint || !sub.p256dh || !sub.auth) {
+      continue;
+    }
+
+    try {
+      await sendWebPushNotification(
+        {
+          endpoint: sub.endpoint,
+          p256dh: sub.p256dh,
+          auth: sub.auth,
+        },
+        {
+          title: payload.title || "إشعار جديد",
+          body: payload.message || "لديك تحديث جديد",
+          type: messageType,
+          url: payload.url || "/notifications",
+        }
+      );
+    } catch (error: any) {
+      const statusCode = error?.statusCode;
+      if (statusCode === 404 || statusCode === 410) {
+        await db
+          .update(parentPushSubscriptions)
+          .set({ isActive: false, updatedAt: new Date() })
+          .where(eq(parentPushSubscriptions.id, sub.id));
+      } else {
+        retrySubscriptionIds.push(sub.id);
+      }
+    }
+  }
+
+  if (retrySubscriptionIds.length === 0) {
+    await db
+      .update(outboxEvents)
+      .set({ status: "sent", sentAt: new Date(), lastError: null })
+      .where(eq(outboxEvents.id, eventRow.id));
+    return;
+  }
+
+  const retryCount = (eventRow.retryCount || 0) + 1;
+  const nextRetryAt = new Date(Date.now() + Math.min(retryCount, 10) * 60 * 1000);
+
+  await db
+    .update(outboxEvents)
+    .set({
+      status: retryCount >= 8 ? "failed" : "pending",
+      retryCount,
+      lastError: "ADMIN_WEB_PUSH_PARTIAL_FAILURE",
+      availableAt: nextRetryAt,
+      payloadJson: {
+        ...payload,
+        subscriptionIds: retrySubscriptionIds,
+      },
+    })
+    .where(eq(outboxEvents.id, eventRow.id));
+}
+
 async function processEvent(eventRow: typeof outboxEvents.$inferSelect) {
   if (eventRow.type === "TASK_ASSIGNED_NOTIFY") {
     await handleTaskAssignedNotify(eventRow);
@@ -360,6 +563,11 @@ async function processEvent(eventRow: typeof outboxEvents.$inferSelect) {
       .update(outboxEvents)
       .set({ status: "sent", sentAt: new Date(), lastError: null })
       .where(eq(outboxEvents.id, eventRow.id));
+    return;
+  }
+
+  if (eventRow.type === "ADMIN_PARENT_WEB_PUSH_NOTIFY") {
+    await handleAdminParentWebPushNotify(eventRow);
     return;
   }
 
