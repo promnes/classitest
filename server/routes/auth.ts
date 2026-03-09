@@ -2724,6 +2724,280 @@ export async function registerAuthRoutes(app: Express) {
     }
   });
 
+  // OAuth callback endpoint (receives code from provider)
+  // Supports both GET (most providers) and POST (Apple Sign In)
+  const oauthCallbackHandler = async (req: any, res: any) => {
+    try {
+      const { provider } = req.params;
+      const params = { ...req.query, ...req.body };
+      const { code, state, error: oauthError } = params;
+
+      if (oauthError) {
+        console.error(`OAuth ${provider} error:`, oauthError);
+        return res.redirect(`/auth?error=oauth_denied&provider=${provider}`);
+      }
+
+      if (!code || !state) {
+        return res.redirect(`/auth?error=oauth_missing_params&provider=${provider}`);
+      }
+
+      // Validate state for CSRF protection
+      const savedState = req.cookies?.oauth_state;
+      if (!savedState || savedState !== state) {
+        return res.redirect(`/auth?error=oauth_invalid_state&provider=${provider}`);
+      }
+
+      // Clear oauth state cookie
+      res.clearCookie("oauth_state");
+
+      // Get provider config
+      const providerConfig = await db
+        .select()
+        .from(socialLoginProviders)
+        .where(and(
+          eq(socialLoginProviders.provider, provider),
+          eq(socialLoginProviders.isActive, true)
+        ));
+
+      if (!providerConfig[0]) {
+        return res.redirect(`/auth?error=oauth_provider_not_found&provider=${provider}`);
+      }
+
+      const config = providerConfig[0];
+      const redirectUri = config.redirectUri || `${req.protocol}://${req.get("host")}/api/auth/oauth/${provider}/callback`;
+
+      // Exchange code for access token
+      let tokenData: any;
+      let userInfo: any;
+
+      switch (provider) {
+        case "google": {
+          const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: new URLSearchParams({
+              code: code as string,
+              client_id: config.clientId!,
+              client_secret: config.clientSecret!,
+              redirect_uri: redirectUri,
+              grant_type: "authorization_code",
+            }),
+          });
+          tokenData = await tokenRes.json();
+          if (tokenData.error) {
+            console.error("Google token error:", tokenData);
+            return res.redirect(`/auth?error=oauth_token_failed&provider=${provider}`);
+          }
+          const userRes = await fetch("https://www.googleapis.com/oauth2/v2/userinfo", {
+            headers: { Authorization: `Bearer ${tokenData.access_token}` },
+          });
+          userInfo = await userRes.json();
+          userInfo = { email: userInfo.email, name: userInfo.name, picture: userInfo.picture };
+          break;
+        }
+
+        case "facebook": {
+          const tokenRes = await fetch(`https://graph.facebook.com/v18.0/oauth/access_token?client_id=${config.clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&client_secret=${config.clientSecret}&code=${code}`);
+          tokenData = await tokenRes.json();
+          if (tokenData.error) {
+            console.error("Facebook token error:", tokenData);
+            return res.redirect(`/auth?error=oauth_token_failed&provider=${provider}`);
+          }
+          const userRes = await fetch(`https://graph.facebook.com/me?fields=id,name,email,picture&access_token=${tokenData.access_token}`);
+          userInfo = await userRes.json();
+          userInfo = { email: userInfo.email, name: userInfo.name, picture: userInfo.picture?.data?.url };
+          break;
+        }
+
+        case "github": {
+          const tokenRes = await fetch("https://github.com/login/oauth/access_token", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Accept": "application/json" },
+            body: JSON.stringify({
+              client_id: config.clientId,
+              client_secret: config.clientSecret,
+              code: code as string,
+              redirect_uri: redirectUri,
+            }),
+          });
+          tokenData = await tokenRes.json();
+          if (tokenData.error) {
+            console.error("GitHub token error:", tokenData);
+            return res.redirect(`/auth?error=oauth_token_failed&provider=${provider}`);
+          }
+          const userRes = await fetch("https://api.github.com/user", {
+            headers: { Authorization: `Bearer ${tokenData.access_token}`, "User-Agent": "Classify-App" },
+          });
+          userInfo = await userRes.json();
+          // Get email if not public
+          if (!userInfo.email) {
+            const emailRes = await fetch("https://api.github.com/user/emails", {
+              headers: { Authorization: `Bearer ${tokenData.access_token}`, "User-Agent": "Classify-App" },
+            });
+            const emails = await emailRes.json();
+            const primary = Array.isArray(emails) ? emails.find((e: any) => e.primary) || emails[0] : null;
+            userInfo.email = primary?.email;
+          }
+          userInfo = { email: userInfo.email, name: userInfo.name || userInfo.login, picture: userInfo.avatar_url };
+          break;
+        }
+
+        case "discord": {
+          const tokenRes = await fetch("https://discord.com/api/oauth2/token", {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: new URLSearchParams({
+              client_id: config.clientId!,
+              client_secret: config.clientSecret!,
+              code: code as string,
+              grant_type: "authorization_code",
+              redirect_uri: redirectUri,
+            }),
+          });
+          tokenData = await tokenRes.json();
+          if (tokenData.error) {
+            console.error("Discord token error:", tokenData);
+            return res.redirect(`/auth?error=oauth_token_failed&provider=${provider}`);
+          }
+          const userRes = await fetch("https://discord.com/api/users/@me", {
+            headers: { Authorization: `Bearer ${tokenData.access_token}` },
+          });
+          userInfo = await userRes.json();
+          const avatarUrl = userInfo.avatar ? `https://cdn.discordapp.com/avatars/${userInfo.id}/${userInfo.avatar}.png` : null;
+          userInfo = { email: userInfo.email, name: userInfo.global_name || userInfo.username, picture: avatarUrl };
+          break;
+        }
+
+        case "microsoft": {
+          const tokenRes = await fetch("https://login.microsoftonline.com/common/oauth2/v2.0/token", {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: new URLSearchParams({
+              client_id: config.clientId!,
+              client_secret: config.clientSecret!,
+              code: code as string,
+              redirect_uri: redirectUri,
+              grant_type: "authorization_code",
+              scope: config.scopes || "openid email profile",
+            }),
+          });
+          tokenData = await tokenRes.json();
+          if (tokenData.error) {
+            console.error("Microsoft token error:", tokenData);
+            return res.redirect(`/auth?error=oauth_token_failed&provider=${provider}`);
+          }
+          const userRes = await fetch("https://graph.microsoft.com/v1.0/me", {
+            headers: { Authorization: `Bearer ${tokenData.access_token}` },
+          });
+          userInfo = await userRes.json();
+          userInfo = { email: userInfo.mail || userInfo.userPrincipalName, name: userInfo.displayName, picture: null };
+          break;
+        }
+
+        case "linkedin": {
+          const tokenRes = await fetch("https://www.linkedin.com/oauth/v2/accessToken", {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: new URLSearchParams({
+              grant_type: "authorization_code",
+              code: code as string,
+              redirect_uri: redirectUri,
+              client_id: config.clientId!,
+              client_secret: config.clientSecret!,
+            }),
+          });
+          tokenData = await tokenRes.json();
+          if (tokenData.error) {
+            console.error("LinkedIn token error:", tokenData);
+            return res.redirect(`/auth?error=oauth_token_failed&provider=${provider}`);
+          }
+          const userRes = await fetch("https://api.linkedin.com/v2/userinfo", {
+            headers: { Authorization: `Bearer ${tokenData.access_token}` },
+          });
+          userInfo = await userRes.json();
+          userInfo = { email: userInfo.email, name: userInfo.name, picture: userInfo.picture };
+          break;
+        }
+
+        case "twitter": {
+          const tokenRes = await fetch("https://api.twitter.com/2/oauth2/token", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/x-www-form-urlencoded",
+              "Authorization": `Basic ${Buffer.from(`${config.clientId}:${config.clientSecret}`).toString("base64")}`,
+            },
+            body: new URLSearchParams({
+              code: code as string,
+              grant_type: "authorization_code",
+              redirect_uri: redirectUri,
+              code_verifier: "challenge",
+            }),
+          });
+          tokenData = await tokenRes.json();
+          if (tokenData.error) {
+            console.error("Twitter token error:", tokenData);
+            return res.redirect(`/auth?error=oauth_token_failed&provider=${provider}`);
+          }
+          const userRes = await fetch("https://api.twitter.com/2/users/me?user.fields=profile_image_url", {
+            headers: { Authorization: `Bearer ${tokenData.access_token}` },
+          });
+          const twitterData = await userRes.json();
+          userInfo = { email: null, name: twitterData.data?.name, picture: twitterData.data?.profile_image_url };
+          break;
+        }
+
+        default:
+          return res.redirect(`/auth?error=oauth_unsupported&provider=${provider}`);
+      }
+
+      if (!userInfo.email) {
+        return res.redirect(`/auth?error=oauth_no_email&provider=${provider}`);
+      }
+
+      const normalizedEmail = userInfo.email.trim().toLowerCase();
+
+      // Find or create user
+      const existingParent = await db.select().from(parents).where(eq(parents.email, normalizedEmail));
+
+      let parentId: string;
+
+      if (existingParent[0]) {
+        // Existing user - update avatar if needed
+        parentId = existingParent[0].id;
+        if (userInfo.picture && !existingParent[0].avatarUrl) {
+          await db.update(parents).set({ avatarUrl: userInfo.picture }).where(eq(parents.id, parentId));
+        }
+      } else {
+        // New user - create account
+        const uniqueCode = crypto.randomBytes(3).toString("hex").toUpperCase().slice(0, 6);
+        const randomPassword = crypto.randomBytes(32).toString("hex");
+        const hashedPassword = await bcrypt.hash(randomPassword, 10);
+
+        const result = await db.insert(parents).values({
+          email: normalizedEmail,
+          password: hashedPassword,
+          name: userInfo.name || normalizedEmail.split("@")[0],
+          uniqueCode,
+          avatarUrl: userInfo.picture || null,
+        }).returning({ id: parents.id });
+
+        parentId = result[0].id;
+      }
+
+      // Generate JWT token
+      const token = jwt.sign({ userId: parentId, type: "parent" }, JWT_SECRET, { expiresIn: "30d" });
+
+      // Redirect to frontend with token
+      res.redirect(`/auth/oauth-callback?token=${token}&provider=${provider}`);
+    } catch (error: any) {
+      console.error("OAuth callback error:", error);
+      res.redirect(`/auth?error=oauth_failed&provider=${req.params.provider}`);
+    }
+  };
+
+  app.get("/api/auth/oauth/:provider/callback", oauthCallbackHandler);
+  app.post("/api/auth/oauth/:provider/callback", oauthCallbackHandler);
+
   // ===== PIN Login (family shared device) =====
   app.post("/api/auth/pin-login", loginLimiter, async (req, res) => {
     try {

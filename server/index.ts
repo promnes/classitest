@@ -11,6 +11,7 @@ import { startTaskNotificationWorker } from "./services/taskNotificationWorker";
 import { startMonthlySubscriptionWorker } from "./services/monthlySubscriptionWorker";
 import compression from "compression";
 import helmet from "helmet";
+import cookieParser from "cookie-parser";
 import { errorResponse, ErrorCode } from "./utils/apiResponse";
 
 // ✅ تحسين التشخيص - 2025-12-08
@@ -126,6 +127,7 @@ app.use(helmet({
 
 
 app.use(compression());
+app.use(cookieParser());
 
 // Serve uploaded files (task images, etc.)
 import path from "path";

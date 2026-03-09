@@ -77,6 +77,7 @@ const DownloadApp = lazy(() => import("@/pages/DownloadApp"));
 const ParentProfile = lazy(() => import("@/pages/ParentProfile"));
 const TaskMarketplace = lazy(() => import("@/pages/TaskMarketplace"));
 const TaskCart = lazy(() => import("@/pages/TaskCart"));
+const OAuthCallback = lazy(() => import("@/pages/OAuthCallback").then(m => ({ default: m.OAuthCallback })));
 
 type PublicMobileAppSettings = {
   appName?: string;
@@ -215,6 +216,9 @@ function Router() {
         </Route>
         <Route path="/parent-auth">
           <ErrorBoundary><ParentAuth /></ErrorBoundary>
+        </Route>
+        <Route path="/auth/oauth-callback">
+          <ErrorBoundary><OAuthCallback /></ErrorBoundary>
         </Route>
         <Route path="/child-link">
           <ErrorBoundary><ChildLink /></ErrorBoundary>
