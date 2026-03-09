@@ -2685,8 +2685,10 @@ export async function registerAuthRoutes(app: Express) {
 
       // Build OAuth URL based on provider
       let authUrl = "";
-      const redirectUri = config.redirectUri || `${req.protocol}://${req.get("host")}/api/auth/oauth/${provider}/callback`;
-      const scopes = config.scopes || "email profile";
+      // Trim redirect URI to prevent whitespace mismatches
+      const redirectUri = (config.redirectUri || `${req.protocol}://${req.get("host")}/api/auth/oauth/${provider}/callback`).trim();
+      // Normalize scopes: accept comma-separated or space-separated
+      const scopes = (config.scopes || "email profile").replace(/,/g, " ").trim();
 
       switch (provider) {
         case "google":
@@ -2734,17 +2736,17 @@ export async function registerAuthRoutes(app: Express) {
 
       if (oauthError) {
         console.error(`OAuth ${provider} error:`, oauthError);
-        return res.redirect(`/auth?error=oauth_denied&provider=${provider}`);
+        return res.redirect(`/parent-auth?error=oauth_denied&provider=${provider}`);
       }
 
       if (!code || !state) {
-        return res.redirect(`/auth?error=oauth_missing_params&provider=${provider}`);
+        return res.redirect(`/parent-auth?error=oauth_missing_params&provider=${provider}`);
       }
 
       // Validate state for CSRF protection
       const savedState = req.cookies?.oauth_state;
       if (!savedState || savedState !== state) {
-        return res.redirect(`/auth?error=oauth_invalid_state&provider=${provider}`);
+        return res.redirect(`/parent-auth?error=oauth_invalid_state&provider=${provider}`);
       }
 
       // Clear oauth state cookie
@@ -2760,11 +2762,14 @@ export async function registerAuthRoutes(app: Express) {
         ));
 
       if (!providerConfig[0]) {
-        return res.redirect(`/auth?error=oauth_provider_not_found&provider=${provider}`);
+        return res.redirect(`/parent-auth?error=oauth_provider_not_found&provider=${provider}`);
       }
 
       const config = providerConfig[0];
-      const redirectUri = config.redirectUri || `${req.protocol}://${req.get("host")}/api/auth/oauth/${provider}/callback`;
+      // Trim redirect URI to prevent whitespace mismatches
+      const redirectUri = (config.redirectUri || `${req.protocol}://${req.get("host")}/api/auth/oauth/${provider}/callback`).trim();
+
+      console.log(`[OAuth ${provider}] Token exchange — redirect_uri: ${redirectUri}`);
 
       // Exchange code for access token
       let tokenData: any;
@@ -2785,8 +2790,8 @@ export async function registerAuthRoutes(app: Express) {
           });
           tokenData = await tokenRes.json();
           if (tokenData.error) {
-            console.error("Google token error:", tokenData);
-            return res.redirect(`/auth?error=oauth_token_failed&provider=${provider}`);
+            console.error(`[OAuth google] Token error: ${tokenData.error} — ${tokenData.error_description || "no description"}`);
+            return res.redirect(`/parent-auth?error=oauth_token_failed&provider=${provider}&detail=${encodeURIComponent(tokenData.error)}`);
           }
           const userRes = await fetch("https://www.googleapis.com/oauth2/v2/userinfo", {
             headers: { Authorization: `Bearer ${tokenData.access_token}` },
@@ -2800,8 +2805,8 @@ export async function registerAuthRoutes(app: Express) {
           const tokenRes = await fetch(`https://graph.facebook.com/v18.0/oauth/access_token?client_id=${config.clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&client_secret=${config.clientSecret}&code=${code}`);
           tokenData = await tokenRes.json();
           if (tokenData.error) {
-            console.error("Facebook token error:", tokenData);
-            return res.redirect(`/auth?error=oauth_token_failed&provider=${provider}`);
+            console.error(`[OAuth facebook] Token error:`, tokenData.error);
+            return res.redirect(`/parent-auth?error=oauth_token_failed&provider=${provider}`);
           }
           const userRes = await fetch(`https://graph.facebook.com/me?fields=id,name,email,picture&access_token=${tokenData.access_token}`);
           userInfo = await userRes.json();
@@ -2822,8 +2827,8 @@ export async function registerAuthRoutes(app: Express) {
           });
           tokenData = await tokenRes.json();
           if (tokenData.error) {
-            console.error("GitHub token error:", tokenData);
-            return res.redirect(`/auth?error=oauth_token_failed&provider=${provider}`);
+            console.error(`[OAuth github] Token error:`, tokenData.error);
+            return res.redirect(`/parent-auth?error=oauth_token_failed&provider=${provider}`);
           }
           const userRes = await fetch("https://api.github.com/user", {
             headers: { Authorization: `Bearer ${tokenData.access_token}`, "User-Agent": "Classify-App" },
@@ -2856,8 +2861,8 @@ export async function registerAuthRoutes(app: Express) {
           });
           tokenData = await tokenRes.json();
           if (tokenData.error) {
-            console.error("Discord token error:", tokenData);
-            return res.redirect(`/auth?error=oauth_token_failed&provider=${provider}`);
+            console.error(`[OAuth discord] Token error:`, tokenData.error);
+            return res.redirect(`/parent-auth?error=oauth_token_failed&provider=${provider}`);
           }
           const userRes = await fetch("https://discord.com/api/users/@me", {
             headers: { Authorization: `Bearer ${tokenData.access_token}` },
@@ -2883,8 +2888,8 @@ export async function registerAuthRoutes(app: Express) {
           });
           tokenData = await tokenRes.json();
           if (tokenData.error) {
-            console.error("Microsoft token error:", tokenData);
-            return res.redirect(`/auth?error=oauth_token_failed&provider=${provider}`);
+            console.error(`[OAuth microsoft] Token error:`, tokenData.error);
+            return res.redirect(`/parent-auth?error=oauth_token_failed&provider=${provider}`);
           }
           const userRes = await fetch("https://graph.microsoft.com/v1.0/me", {
             headers: { Authorization: `Bearer ${tokenData.access_token}` },
@@ -2908,8 +2913,8 @@ export async function registerAuthRoutes(app: Express) {
           });
           tokenData = await tokenRes.json();
           if (tokenData.error) {
-            console.error("LinkedIn token error:", tokenData);
-            return res.redirect(`/auth?error=oauth_token_failed&provider=${provider}`);
+            console.error(`[OAuth linkedin] Token error:`, tokenData.error);
+            return res.redirect(`/parent-auth?error=oauth_token_failed&provider=${provider}`);
           }
           const userRes = await fetch("https://api.linkedin.com/v2/userinfo", {
             headers: { Authorization: `Bearer ${tokenData.access_token}` },
@@ -2935,8 +2940,8 @@ export async function registerAuthRoutes(app: Express) {
           });
           tokenData = await tokenRes.json();
           if (tokenData.error) {
-            console.error("Twitter token error:", tokenData);
-            return res.redirect(`/auth?error=oauth_token_failed&provider=${provider}`);
+            console.error(`[OAuth twitter] Token error:`, tokenData.error);
+            return res.redirect(`/parent-auth?error=oauth_token_failed&provider=${provider}`);
           }
           const userRes = await fetch("https://api.twitter.com/2/users/me?user.fields=profile_image_url", {
             headers: { Authorization: `Bearer ${tokenData.access_token}` },
@@ -2947,11 +2952,11 @@ export async function registerAuthRoutes(app: Express) {
         }
 
         default:
-          return res.redirect(`/auth?error=oauth_unsupported&provider=${provider}`);
+          return res.redirect(`/parent-auth?error=oauth_unsupported&provider=${provider}`);
       }
 
       if (!userInfo.email) {
-        return res.redirect(`/auth?error=oauth_no_email&provider=${provider}`);
+        return res.redirect(`/parent-auth?error=oauth_no_email&provider=${provider}`);
       }
 
       const normalizedEmail = userInfo.email.trim().toLowerCase();
@@ -2991,7 +2996,7 @@ export async function registerAuthRoutes(app: Express) {
       res.redirect(`/auth/oauth-callback?token=${token}&provider=${provider}`);
     } catch (error: any) {
       console.error("OAuth callback error:", error);
-      res.redirect(`/auth?error=oauth_failed&provider=${req.params.provider}`);
+      res.redirect(`/parent-auth?error=oauth_failed&provider=${req.params.provider}`);
     }
   };
 
