@@ -187,16 +187,16 @@ export const Home = (): JSX.Element => {
 
           {/* Download App */}
           <a
-            href="/classify-app.apk"
-            download="Classify.apk"
+            href="/apps/classify-app-latest.apk"
+            download="Classify-latest.apk"
             className="flex items-center justify-center gap-3 w-full py-4 px-6 rounded-2xl shadow-lg transition-all hover:scale-[1.01] font-bold text-lg bg-white/80 hover:bg-white text-purple-700"
           >
             <Download className="w-6 h-6" />
             <span>{t("downloadApp")}</span>
           </a>
           <a
-            href="/classify-googleplay.aab"
-            download="classify-googleplay.aab"
+            href="/apps/classify-googleplay-latest.aab"
+            download="classify-googleplay-latest.aab"
             className="flex items-center justify-center gap-2 w-full py-3 px-6 rounded-2xl shadow-md transition-all hover:scale-[1.01] font-semibold text-base bg-indigo-600 hover:bg-indigo-700 text-white"
           >
             <Download className="w-5 h-5" />

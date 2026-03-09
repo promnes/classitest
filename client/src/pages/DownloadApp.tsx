@@ -67,8 +67,8 @@ export default function DownloadApp() {
         {/* Download Buttons */}
         <div className="flex flex-col items-center gap-3 mb-6">
           <a
-            href="/classify-app.apk"
-            download="Classify.apk"
+            href="/apps/classify-app-latest.apk"
+            download="Classify-latest.apk"
             className="group flex items-center gap-4 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-400 hover:to-emerald-500 text-white px-10 py-5 rounded-2xl shadow-2xl hover:shadow-green-500/30 transition-all hover:-translate-y-1 text-xl font-bold"
           >
             <Download className="w-7 h-7 group-hover:animate-bounce" />
@@ -76,8 +76,8 @@ export default function DownloadApp() {
           </a>
 
           <a
-            href="/classify-googleplay.aab"
-            download="classify-googleplay.aab"
+            href="/apps/classify-googleplay-latest.aab"
+            download="classify-googleplay-latest.aab"
             className="group flex items-center gap-3 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-400 hover:to-indigo-500 text-white px-8 py-4 rounded-2xl shadow-xl transition-all hover:-translate-y-0.5 font-bold"
           >
             <Download className="w-5 h-5" />
