@@ -75,7 +75,7 @@ const DEFAULT_CONFIG: AppConfig = {
   appDescription: "Kids Educational & Parental Control Platform",
   appDescriptionAr: "منصة تعليمية ممتعة للأطفال مع رقابة أبوية ذكية",
   packageName: "com.classi_fy.twa",
-  appIconUrl: "/logo.jpg",
+  appIconUrl: "/icons/icon-512.png",
   
   apkEnabled: true,
   apkUrl: "/apps/classify-app-latest.apk",
@@ -107,7 +107,7 @@ const DEFAULT_CONFIG: AppConfig = {
   appleSiteAssociationEnabled: false,
   
   pwaEnabled: true,
-  pwaThemeColor: "#7c3aed",
+  pwaThemeColor: "#6B4D9D",
   pwaBackgroundColor: "#ffffff",
   pwaDisplayMode: "standalone",
   pwaStartUrl: "/",
@@ -314,7 +314,7 @@ export function MobileAppSettingsTab({ token }: { token: string }) {
                   )}
                   <div className="flex-1 space-y-2">
                     <div className="flex gap-2">
-                      <Input value={config.appIconUrl} onChange={(e) => handleChange("appIconUrl", e.target.value)} placeholder="/logo.jpg" className="flex-1" dir="ltr" />
+                      <Input value={config.appIconUrl} onChange={(e) => handleChange("appIconUrl", e.target.value)} placeholder="/icons/icon-512.png" className="flex-1" dir="ltr" />
                       <Button
                         type="button"
                         variant="outline"
