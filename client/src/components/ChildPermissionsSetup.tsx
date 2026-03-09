@@ -55,9 +55,14 @@ export function ChildPermissionsSetup({ onComplete }: ChildPermissionsSetupProps
   };
 
   const handleComplete = () => {
+    if ("Notification" in window && notificationPermission !== "granted") {
+      return;
+    }
     localStorage.setItem("child_permissions_setup_complete", "true");
     onComplete();
   };
+
+  const canContinue = !("Notification" in window) || notificationPermission === "granted";
 
   const steps = [
     {
@@ -168,6 +173,7 @@ export function ChildPermissionsSetup({ onComplete }: ChildPermissionsSetupProps
               className="w-full"
               size="lg"
               onClick={handleComplete}
+              disabled={!canContinue}
               data-testid="button-complete-setup"
             >
               {t("permissions.continue", "متابعة للتطبيق")}
@@ -175,7 +181,9 @@ export function ChildPermissionsSetup({ onComplete }: ChildPermissionsSetupProps
             </Button>
 
             <p className="text-xs text-center text-muted-foreground">
-              {t("permissions.skipNote", "يمكنك تغيير هذه الإعدادات لاحقاً من إعدادات المتصفح")}
+              {canContinue
+                ? t("permissions.skipNote", "يمكنك تغيير هذه الإعدادات لاحقاً من إعدادات المتصفح")
+                : t("permissions.notificationsRequired", "يجب السماح بالإشعارات للمتابعة لأن تنبيهات المهام إلزامية")}
             </p>
           </div>
         </CardContent>

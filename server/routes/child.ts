@@ -1717,8 +1717,13 @@ export async function registerChildRoutes(app: Express) {
     try {
       const v = validateBody(childNotificationSettingsSchema, req.body);
       if (!v.success) return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, v.error));
-      const { mode, repeatDelayMinutes, requireOverlayPermission } = v.data;
       const childId = req.user.childId;
+
+      // Child accounts are not allowed to weaken task alert behavior.
+      // We always enforce strict mandatory mode from this endpoint.
+      const enforcedMode = "popup_strict";
+      const enforcedRepeatDelayMinutes = 1;
+      const enforcedRequireOverlayPermission = true;
 
       // التحقق من وجود الإعدادات
       const existing = await db
@@ -1731,9 +1736,9 @@ export async function registerChildRoutes(app: Express) {
         result = await db
           .update(childNotificationSettings)
           .set({
-            mode,
-            repeatDelayMinutes: repeatDelayMinutes || 5,
-            requireOverlayPermission: requireOverlayPermission || false,
+            mode: enforcedMode,
+            repeatDelayMinutes: enforcedRepeatDelayMinutes,
+            requireOverlayPermission: enforcedRequireOverlayPermission,
             updatedAt: new Date(),
           })
           .where(eq(childNotificationSettings.childId, childId))
@@ -1743,9 +1748,9 @@ export async function registerChildRoutes(app: Express) {
           .insert(childNotificationSettings)
           .values({
             childId,
-            mode,
-            repeatDelayMinutes: repeatDelayMinutes || 5,
-            requireOverlayPermission: requireOverlayPermission || false,
+            mode: enforcedMode,
+            repeatDelayMinutes: enforcedRepeatDelayMinutes,
+            requireOverlayPermission: enforcedRequireOverlayPermission,
           })
           .returning();
       }
@@ -1753,6 +1758,7 @@ export async function registerChildRoutes(app: Express) {
       res.json({
         success: true,
         data: result[0],
+        message: "Task notification mode is enforced for child accounts",
       });
     } catch (error: any) {
       console.error("Update notification settings error:", error);

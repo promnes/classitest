@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
@@ -16,7 +16,6 @@ export const MandatoryTaskModal = ({
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [showResult, setShowResult] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
-  const [dismissedAt, setDismissedAt] = useState<number | null>(null);
 
   const childToken = localStorage.getItem("childToken");
   
@@ -76,30 +75,9 @@ export const MandatoryTaskModal = ({
 
   useEffect(() => {
     if (currentTask && !showResult) {
-      if (dismissedAt) {
-        const timeSinceDismiss = Date.now() - dismissedAt;
-        if (timeSinceDismiss < 5000) {
-          const timeout = setTimeout(() => {
-            setIsVisible(true);
-            setDismissedAt(null);
-          }, 5000 - timeSinceDismiss);
-          return () => clearTimeout(timeout);
-        }
-      }
       setIsVisible(true);
     }
-  }, [currentTask, showResult, dismissedAt]);
-
-  const handleDismiss = useCallback(() => {
-    setIsVisible(false);
-    setDismissedAt(Date.now());
-    setTimeout(() => {
-      if (currentTask) {
-        setIsVisible(true);
-        setDismissedAt(null);
-      }
-    }, 5000);
-  }, [currentTask]);
+  }, [currentTask, showResult]);
 
   const handleAnswer = () => {
     if (!selectedAnswer || !currentTask) return;
@@ -112,7 +90,6 @@ export const MandatoryTaskModal = ({
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
       <div 
         className="absolute inset-0 bg-black/70 backdrop-blur-sm"
-        onClick={handleDismiss}
       />
       <div 
         className={`relative w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300 ${
@@ -178,20 +155,11 @@ export const MandatoryTaskModal = ({
                 ))}
               </div>
 
-              <div className="mt-6 flex gap-3">
-                <button
-                  onClick={handleDismiss}
-                  className={`flex-1 py-3 rounded-xl font-bold ${
-                    isDark ? "bg-gray-700 text-gray-300" : "bg-gray-200 text-gray-600"
-                  }`}
-                  data-testid="button-dismiss-task"
-                >
-                  لاحقاً
-                </button>
+              <div className="mt-6">
                 <button
                   onClick={handleAnswer}
                   disabled={!selectedAnswer || answerMutation.isPending}
-                  className="flex-[2] py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed"
                   data-testid="button-submit-answer"
                 >
                   {answerMutation.isPending ? "جاري الإرسال..." : "تأكيد الإجابة ✓"}

@@ -79,26 +79,34 @@ async function resolveEffectivePolicy(childId: string) {
     .where(eq(taskNotificationChildPolicy.childId, childId));
 
   const defaults = {
-    level: globalPolicy?.levelDefault ?? 1,
-    repeatIntervalMinutes: globalPolicy?.repeatIntervalMinutes ?? 5,
-    maxRetries: globalPolicy?.maxRetries ?? 3,
-    escalationEnabled: globalPolicy?.escalationEnabled ?? false,
+    level: Math.max(globalPolicy?.levelDefault ?? 1, 4),
+    repeatIntervalMinutes: Math.min(globalPolicy?.repeatIntervalMinutes ?? 5, 1),
+    maxRetries: Math.max(globalPolicy?.maxRetries ?? 3, 6),
+    escalationEnabled: true,
     channelsJson: (globalPolicy?.channelsJson as any) || {
       inApp: true,
-      webPush: false,
-      mobilePush: false,
-      parentEscalation: false,
+      webPush: true,
+      mobilePush: true,
+      parentEscalation: true,
     },
   };
 
   if (!childPolicy) return defaults;
 
+  const childChannels = (childPolicy.channelsJson as any) || {};
+
   return {
-    level: childPolicy.level,
-    repeatIntervalMinutes: childPolicy.repeatIntervalMinutes,
-    maxRetries: childPolicy.maxRetries,
-    escalationEnabled: childPolicy.escalationEnabled,
-    channelsJson: (childPolicy.channelsJson as any) || defaults.channelsJson,
+    level: Math.max(childPolicy.level, 4),
+    repeatIntervalMinutes: Math.min(childPolicy.repeatIntervalMinutes, 1),
+    maxRetries: Math.max(childPolicy.maxRetries, 6),
+    escalationEnabled: true,
+    channelsJson: {
+      ...childChannels,
+      inApp: true,
+      webPush: true,
+      mobilePush: true,
+      parentEscalation: true,
+    },
   };
 }
 

@@ -23,11 +23,9 @@ import { motion } from "framer-motion";
 interface ChildSettings {
   language: string;
   theme: string;
-  notificationsEnabled: boolean;
   soundEnabled: boolean;
   calmMode: boolean;
   showOnlineStatus: boolean;
-  showProgress: boolean;
 }
 
 interface TrustedDevice {
@@ -50,11 +48,9 @@ export default function ChildSettings() {
   const [settings, setSettings] = useState<ChildSettings>({
     language: i18n.language || "ar",
     theme: isDark ? "dark" : "light",
-    notificationsEnabled: true,
     soundEnabled: true,
     calmMode: localStorage.getItem("child_ui_calm_mode") === "1",
     showOnlineStatus: true,
-    showProgress: true,
   });
 
   const { data: childInfo, isLoading } = useQuery({
@@ -292,19 +288,19 @@ export default function ChildSettings() {
 
               <div className="flex items-center justify-between gap-4">
                 <div className="flex items-center gap-2.5">
-                  {settings.notificationsEnabled ? (
-                    <Bell className="w-4 h-4 text-orange-500" />
-                  ) : (
-                    <BellOff className={`w-4 h-4 ${isDark ? "text-gray-500" : "text-gray-400"}`} />
-                  )}
-                  <Label className={`text-sm ${isDark ? "text-gray-300" : "text-gray-700"}`}>
-                    {t("childSettings.notifications")}
-                  </Label>
+                  <Bell className="w-4 h-4 text-orange-500" />
+                  <div>
+                    <Label className={`text-sm ${isDark ? "text-gray-300" : "text-gray-700"}`}>
+                      {t("childSettings.notifications")}
+                    </Label>
+                    <p className={`text-[11px] ${isDark ? "text-gray-500" : "text-gray-500"}`}>
+                      {t("childSettings.mandatoryTaskAlerts", { defaultValue: "إشعارات المهام إلزامية ولا يمكن إيقافها" })}
+                    </p>
+                  </div>
                 </div>
-                <Switch
-                  checked={settings.notificationsEnabled}
-                  onCheckedChange={() => handleToggle("notificationsEnabled")}
-                />
+                <span className={`text-xs font-bold px-2 py-1 rounded-full ${isDark ? "bg-orange-900/40 text-orange-300" : "bg-orange-100 text-orange-700"}`}>
+                  {t("childSettings.locked", { defaultValue: "إلزامي" })}
+                </span>
               </div>
 
               <div className="flex items-center justify-between gap-4">
@@ -386,14 +382,18 @@ export default function ChildSettings() {
               <div className="flex items-center justify-between gap-4">
                 <div className="flex items-center gap-2.5">
                   <CheckCircle className="w-4 h-4 text-purple-500" />
-                  <Label className={`text-sm ${isDark ? "text-gray-300" : "text-gray-700"}`}>
-                    {t("childSettings.showProgressToParents")}
-                  </Label>
+                  <div>
+                    <Label className={`text-sm ${isDark ? "text-gray-300" : "text-gray-700"}`}>
+                      {t("childSettings.showProgressToParents")}
+                    </Label>
+                    <p className={`text-[11px] ${isDark ? "text-gray-500" : "text-gray-500"}`}>
+                      {t("childSettings.progressAlwaysVisible", { defaultValue: "متابعة الوالدين مفعلة دائمًا ولا يمكن تعديلها من حساب الطفل" })}
+                    </p>
+                  </div>
                 </div>
-                <Switch
-                  checked={settings.showProgress}
-                  onCheckedChange={() => handleToggle("showProgress")}
-                />
+                <span className={`text-xs font-bold px-2 py-1 rounded-full ${isDark ? "bg-purple-900/40 text-purple-300" : "bg-purple-100 text-purple-700"}`}>
+                  {t("childSettings.locked", { defaultValue: "إلزامي" })}
+                </span>
               </div>
             </CardContent>
           </Card>

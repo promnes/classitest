@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, CheckCircle2, XCircle, Clock, Star } from "lucide-react";
+import { CheckCircle2, XCircle, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -20,43 +20,17 @@ interface TaskNotification {
 interface SponsoredTaskNotificationProps {
   notification: TaskNotification;
   onComplete: (notificationId: string, answerId?: string) => void;
-  onDismiss: (notificationId: string) => void;
 }
-
-const CANCEL_BUTTON_POSITIONS = [
-  "top-2 right-2",
-  "top-2 left-2", 
-  "bottom-2 right-2",
-  "bottom-2 left-2",
-  "top-1/2 right-2 -translate-y-1/2",
-  "top-1/2 left-2 -translate-y-1/2",
-];
 
 export function SponsoredTaskNotification({
   notification,
   onComplete,
-  onDismiss,
 }: SponsoredTaskNotificationProps) {
   const { t } = useTranslation();
   const [isVisible, setIsVisible] = useState(true);
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [showError, setShowError] = useState(false);
-  const [dismissCount, setDismissCount] = useState(0);
   const [inputAnswer, setInputAnswer] = useState("");
-
-  const cancelButtonPosition = CANCEL_BUTTON_POSITIONS[dismissCount % CANCEL_BUTTON_POSITIONS.length];
-
-  const handleDismiss = useCallback(() => {
-    setIsVisible(false);
-    setDismissCount((prev) => prev + 1);
-    onDismiss(notification.id);
-    
-    setTimeout(() => {
-      setIsVisible(true);
-      setShowError(false);
-      setSelectedAnswer(null);
-    }, 20000);
-  }, [notification.id, onDismiss]);
 
   const handleSubmitAnswer = useCallback(() => {
     if (!selectedAnswer && !inputAnswer) return;
@@ -98,14 +72,6 @@ export function SponsoredTaskNotification({
         >
           <Card className="relative overflow-hidden border-4 border-yellow-400 shadow-2xl">
             <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-yellow-400 via-orange-400 to-red-400" />
-            
-            <button
-              onClick={handleDismiss}
-              className={`absolute ${cancelButtonPosition} z-10 p-2 rounded-full bg-gray-200/80 hover:bg-gray-300 transition-all`}
-              data-testid="button-dismiss-notification"
-            >
-              <X className="w-5 h-5 text-gray-600" />
-            </button>
 
             <CardHeader className="text-center pt-8 pb-4">
               <div className="flex justify-center mb-2">
@@ -280,22 +246,12 @@ export function ChildTaskNotificationManager() {
     []
   );
 
-  const handleDismiss = useCallback((notificationId: string) => {
-    setActiveNotification(null);
-    setTimeout(() => {
-      setActiveNotification(
-        (prev) => notifications.find((n) => n.id === notificationId) || prev
-      );
-    }, 20000);
-  }, [notifications]);
-
   if (!activeNotification) return null;
 
   return (
     <SponsoredTaskNotification
       notification={activeNotification}
       onComplete={handleComplete}
-      onDismiss={handleDismiss}
     />
   );
 }
