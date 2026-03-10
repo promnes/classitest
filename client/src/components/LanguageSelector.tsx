@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "@/contexts/ThemeContext";
 import { Globe, ChevronDown, Check } from "lucide-react";
@@ -7,6 +7,7 @@ export const LanguageSelector: React.FC = () => {
   const { i18n } = useTranslation();
   const { isDark } = useTheme();
   const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const languages = [
     { code: "ar", name: "العربية", nativeName: "العربية" },
@@ -23,6 +24,21 @@ export const LanguageSelector: React.FC = () => {
 
   const currentLang = languages.find((l) => l.code === i18n.language) || languages[0];
 
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleClickOutside = (e: MouseEvent | TouchEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("touchstart", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("touchstart", handleClickOutside);
+    };
+  }, [isOpen]);
+
   const handleLanguageChange = (langCode: string) => {
     i18n.changeLanguage(langCode);
     localStorage.setItem('i18nextLng', langCode);
@@ -32,7 +48,7 @@ export const LanguageSelector: React.FC = () => {
   };
 
   return (
-    <div className="relative z-[9999]">
+    <div className="relative z-[9999]" ref={containerRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
         className={`flex items-center gap-2 px-3 py-2 rounded-lg font-semibold transition-all duration-200 shadow-md hover:shadow-lg ${
@@ -80,13 +96,6 @@ export const LanguageSelector: React.FC = () => {
             </button>
           ))}
         </div>
-      )}
-
-      {isOpen && (
-        <div
-          className="fixed inset-0 z-[9998]"
-          onClick={() => setIsOpen(false)}
-        />
       )}
     </div>
   );
