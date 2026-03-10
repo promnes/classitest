@@ -164,7 +164,7 @@ export const Home = (): JSX.Element => {
             className="h-28 w-28 md:h-36 md:w-36 rounded-full shadow-2xl border-4 border-yellow-400 object-cover hover:scale-105 transition-transform"
           />
         </button>
-        <p className="text-xs text-purple-500/60 mb-4">
+        <p className="text-sm font-black tracking-wide text-purple-900/95 dark:text-purple-100 mb-4 bg-white/55 dark:bg-black/25 px-3 py-1 rounded-full shadow-sm">
           {t("fiveClickHint")}
         </p>
         

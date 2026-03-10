@@ -116,30 +116,51 @@ Allow: /
 User-agent: TelegramBot
 Allow: /
 
-# ─── AI Crawlers (Block by default) ─────────────────────────
+# ─── AI Crawlers (Allow public pages, block private APIs) ───
 User-agent: GPTBot
-Disallow: /
+Allow: /
+Disallow: /api/
+Disallow: /objects/
 
 User-agent: ChatGPT-User
-Disallow: /
+Allow: /
+Disallow: /api/
+Disallow: /objects/
 
 User-agent: Claude-Web
-Disallow: /
+Allow: /
+Disallow: /api/
+Disallow: /objects/
 
 User-agent: anthropic-ai
-Disallow: /
+Allow: /
+Disallow: /api/
+Disallow: /objects/
 
 User-agent: CCBot
-Disallow: /
+Allow: /
+Disallow: /api/
+Disallow: /objects/
 
 User-agent: Google-Extended
-Disallow: /
+Allow: /
+Disallow: /api/
+Disallow: /objects/
+
+User-agent: PerplexityBot
+Allow: /
+Disallow: /api/
+Disallow: /objects/
 
 User-agent: Bytespider
-Disallow: /
+Allow: /
+Disallow: /api/
+Disallow: /objects/
 
 User-agent: PetalBot
-Disallow: /
+Allow: /
+Disallow: /api/
+Disallow: /objects/
 
 # ─── SEO Spam Bots ──────────────────────────────────────────
 User-agent: AhrefsBot

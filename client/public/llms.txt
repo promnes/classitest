@@ -1,0 +1,31 @@
+# Classify
+
+Classify is a kids educational platform with parental controls.
+Primary site: https://classi-fy.com/
+Sitemap: https://classi-fy.com/sitemap.xml
+
+## Public product pages
+- https://classi-fy.com/
+- https://classi-fy.com/download
+- https://classi-fy.com/trial-games
+- https://classi-fy.com/about
+- https://classi-fy.com/contact
+- https://classi-fy.com/parent-auth
+
+## Legal and policy pages
+- https://classi-fy.com/legal
+- https://classi-fy.com/privacy-policy
+- https://classi-fy.com/terms
+- https://classi-fy.com/child-safety
+- https://classi-fy.com/cookie-policy
+- https://classi-fy.com/refund-policy
+- https://classi-fy.com/acceptable-use
+- https://classi-fy.com/accessibility
+- https://classi-fy.com/delete-account
+
+## Content usage guidance
+- Index public pages listed above.
+- Do not access or index private dashboard routes.
+- Do not access or index API endpoints under /api/.
+- Prefer canonical URLs on classi-fy.com.
+- Respect robots.txt directives.
