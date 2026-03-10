@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useCallback, useState, lazy, Suspense } from "react";
 import { useTranslation } from "react-i18next";
-import { useLocation } from "wouter";
+import { Link, useLocation } from "wouter";
 import { useTheme } from "@/contexts/ThemeContext";
 import { LanguageSelector } from "@/components/LanguageSelector";
 import { PWAInstallButton } from "@/components/PWAInstallButton";
@@ -221,13 +221,17 @@ export const Home = (): JSX.Element => {
       {/* Footer */}
       <footer className="text-center py-6 text-purple-600/70 relative z-10 content-defer">
         <div className="flex flex-wrap justify-center gap-4 mb-3">
-          <a href="/privacy-policy" onClick={(e) => { e.preventDefault(); navigate("/privacy-policy"); }} className="hover:underline text-sm"><span aria-hidden="true">🔒</span> {t("home.privacy")}</a>
-          <a href="/terms" onClick={(e) => { e.preventDefault(); navigate("/terms"); }} className="hover:underline text-sm"><span aria-hidden="true">📋</span> {t("home.terms")}</a>
-          <a href="/child-safety" onClick={(e) => { e.preventDefault(); navigate("/child-safety"); }} className="hover:underline text-sm"><span aria-hidden="true">👶</span> {i18n.language === "ar" ? "سلامة الأطفال" : "Child Safety"}</a>
-          <a href="/refund-policy" onClick={(e) => { e.preventDefault(); navigate("/refund-policy"); }} className="hover:underline text-sm"><span aria-hidden="true">💰</span> {i18n.language === "ar" ? "الاسترداد" : "Refunds"}</a>
+          <Link href="/privacy-policy" className="hover:underline text-sm"><span aria-hidden="true">🔒</span> {t("home.privacy")}</Link>
+          <Link href="/terms" className="hover:underline text-sm"><span aria-hidden="true">📋</span> {t("home.terms")}</Link>
+          <Link href="/child-safety" className="hover:underline text-sm"><span aria-hidden="true">👶</span> {i18n.language === "ar" ? "سلامة الأطفال" : "Child Safety"}</Link>
+          <Link href="/refund-policy" className="hover:underline text-sm"><span aria-hidden="true">💰</span> {i18n.language === "ar" ? "الاسترداد" : "Refunds"}</Link>
+          <Link href="/about" className="hover:underline text-sm"><span aria-hidden="true">ℹ️</span> {i18n.language === "ar" ? "من نحن" : "About"}</Link>
+          <Link href="/contact" className="hover:underline text-sm"><span aria-hidden="true">✉️</span> {i18n.language === "ar" ? "تواصل" : "Contact"}</Link>
+          <Link href="/trial-games" className="hover:underline text-sm"><span aria-hidden="true">🎮</span> {i18n.language === "ar" ? "ألعاب تجريبية" : "Trial Games"}</Link>
+          <Link href="/download" className="hover:underline text-sm"><span aria-hidden="true">⬇️</span> {i18n.language === "ar" ? "تحميل" : "Download"}</Link>
         </div>
         <div className="mb-3">
-          <a href="/legal" onClick={(e) => { e.preventDefault(); navigate("/legal"); }} className="text-xs hover:underline opacity-80"><span aria-hidden="true">⚖️</span> {i18n.language === "ar" ? "المركز القانوني" : "Legal Center"}</a>
+          <Link href="/legal" className="text-xs hover:underline opacity-80"><span aria-hidden="true">⚖️</span> {i18n.language === "ar" ? "المركز القانوني" : "Legal Center"}</Link>
         </div>
         <p className="text-xs opacity-70">© {new Date().getFullYear()} Classify by Proomnes. {t("home.allRightsReserved")}</p>
       </footer>
