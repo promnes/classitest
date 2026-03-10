@@ -1,8 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
-import { SiGoogle, SiFacebook, SiApple, SiX, SiGithub, SiLinkedin, SiDiscord } from "react-icons/si";
+import { FaGoogle, FaFacebookF, FaApple, FaXTwitter, FaGithub, FaLinkedinIn, FaDiscord } from "react-icons/fa6";
 import { BsMicrosoft } from "react-icons/bs";
 
 interface SocialProvider {
@@ -16,14 +15,14 @@ interface SocialProvider {
 }
 
 const providerIcons: Record<string, React.ComponentType<{ className?: string }>> = {
-  google: SiGoogle,
-  facebook: SiFacebook,
-  apple: SiApple,
-  twitter: SiX,
-  github: SiGithub,
+  google: FaGoogle,
+  facebook: FaFacebookF,
+  apple: FaApple,
+  twitter: FaXTwitter,
+  github: FaGithub,
   microsoft: BsMicrosoft,
-  linkedin: SiLinkedin,
-  discord: SiDiscord,
+  linkedin: FaLinkedinIn,
+  discord: FaDiscord,
 };
 
 const providerColors: Record<string, { bg: string; hover: string; text: string; border?: string }> = {
@@ -88,6 +87,23 @@ export function SocialLoginButtons({ onProviderClick, className = "" }: SocialLo
           const IconComponent = providerIcons[provider.provider];
           const colors = providerColors[provider.provider] || { bg: "bg-gray-500", hover: "hover:bg-gray-600", text: "text-white" };
           const displayName = isArabic && provider.displayNameAr ? provider.displayNameAr : provider.displayName;
+
+          if (provider.provider === "google") {
+            return (
+              <button
+                key={provider.id}
+                type="button"
+                className="w-full sm:w-auto min-w-[240px] flex items-center justify-center gap-2 px-4 py-2 rounded-lg border border-gray-300 bg-white text-gray-700 font-semibold shadow-sm hover:bg-gray-100 transition-all"
+                onClick={() => handleClick(provider.provider)}
+                title={displayName}
+                aria-label={isArabic ? `الدخول عبر ${displayName}` : `Continue with ${displayName}`}
+                data-testid="button-social-google"
+              >
+                {IconComponent && <IconComponent className="w-5 h-5" />}
+                <span>{isArabic ? "المتابعة عبر Google" : "Continue with Google"}</span>
+              </button>
+            );
+          }
 
           return (
             <button
