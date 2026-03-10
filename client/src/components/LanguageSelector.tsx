@@ -1,13 +1,23 @@
 import React, { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "@/contexts/ThemeContext";
 import { Globe, ChevronDown, Check } from "lucide-react";
+
+type MenuPosition = {
+  top: number;
+  left?: number;
+  right?: number;
+};
 
 export const LanguageSelector: React.FC = () => {
   const { i18n } = useTranslation();
   const { isDark } = useTheme();
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const toggleButtonRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const [menuPosition, setMenuPosition] = useState<MenuPosition>({ top: 0, right: 0 });
 
   const languages = [
     { code: "ar", name: "العربية", nativeName: "العربية" },
@@ -26,8 +36,39 @@ export const LanguageSelector: React.FC = () => {
 
   useEffect(() => {
     if (!isOpen) return;
+
+    const updatePosition = () => {
+      const rect = toggleButtonRef.current?.getBoundingClientRect();
+      if (!rect) return;
+
+      const isRTL = document.documentElement.dir === "rtl";
+      const nextTop = rect.bottom + 8;
+
+      if (isRTL) {
+        setMenuPosition({ top: nextTop, left: rect.left });
+      } else {
+        setMenuPosition({ top: nextTop, right: window.innerWidth - rect.right });
+      }
+    };
+
+    updatePosition();
+    window.addEventListener("resize", updatePosition);
+    window.addEventListener("scroll", updatePosition, true);
+
+    return () => {
+      window.removeEventListener("resize", updatePosition);
+      window.removeEventListener("scroll", updatePosition, true);
+    };
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) return;
     const handleClickOutside = (e: MouseEvent | TouchEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+      const targetNode = e.target as Node;
+      const clickedOutsideTrigger = containerRef.current && !containerRef.current.contains(targetNode);
+      const clickedOutsideMenu = menuRef.current && !menuRef.current.contains(targetNode);
+
+      if (clickedOutsideTrigger && clickedOutsideMenu) {
         setIsOpen(false);
       }
     };
@@ -50,6 +91,7 @@ export const LanguageSelector: React.FC = () => {
   return (
     <div className="relative z-[9999]" ref={containerRef}>
       <button
+        ref={toggleButtonRef}
         onClick={() => setIsOpen(!isOpen)}
         className={`flex items-center gap-2 px-3 py-2 rounded-lg font-semibold transition-all duration-200 shadow-md hover:shadow-lg ${
           isDark
@@ -63,9 +105,11 @@ export const LanguageSelector: React.FC = () => {
         <ChevronDown className={`w-4 h-4 transition-transform ${isOpen ? "rotate-180" : ""}`} />
       </button>
 
-      {isOpen && (
+      {isOpen && createPortal(
         <div
-          className={`absolute top-12 ltr:right-0 rtl:left-0 min-w-max rounded-xl shadow-2xl z-[9999] overflow-hidden border-2 ${
+          ref={menuRef}
+          style={menuPosition}
+          className={`fixed min-w-max rounded-xl shadow-2xl z-[10000] overflow-hidden border-2 ${
             isDark
               ? "bg-gray-800 border-gray-600"
               : "bg-white border-purple-300"
@@ -95,7 +139,8 @@ export const LanguageSelector: React.FC = () => {
               )}
             </button>
           ))}
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
