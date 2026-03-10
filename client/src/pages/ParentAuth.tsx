@@ -187,7 +187,7 @@ export const ParentAuth = (): JSX.Element => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-400 to-blue-600 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center px-4">
       <div className="w-full max-w-md">
-        <div className="flex justify-between items-center mb-8">
+        <div className="flex justify-between items-center mb-8 relative z-50">
           <button
             onClick={() => navigate("/")}
             className="text-white flex items-center gap-2 hover:opacity-80"
