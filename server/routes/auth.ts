@@ -113,6 +113,23 @@ async function checkSMSRateLimit(parentId: string): Promise<boolean> {
   return recentAttempts.length < 5;
 }
 
+function getOAuthCookieDomain(): string | undefined {
+  const appUrl = process.env["APP_URL"];
+  if (!appUrl) return undefined;
+
+  try {
+    const host = new URL(appUrl).hostname.toLowerCase();
+    // Keep localhost/IP host-only to avoid invalid domain cookies in dev.
+    if (host === "localhost" || /^\d+\.\d+\.\d+\.\d+$/.test(host)) {
+      return undefined;
+    }
+    // Use parent domain so both apex and www share oauth_state.
+    return host.startsWith("www.") ? host.slice(4) : host;
+  } catch {
+    return undefined;
+  }
+}
+
 export async function registerAuthRoutes(app: Express) {
   // Parent Register (with rate limiting)
   app.post("/api/auth/register", registerLimiter, async (req, res) => {
@@ -2675,11 +2692,15 @@ export async function registerAuthRoutes(app: Express) {
 
       // Generate state for CSRF protection
       const state = crypto.randomBytes(16).toString("hex");
+      const oauthCookieDomain = getOAuthCookieDomain();
 
       // Store state in session or cookie for validation
       res.cookie("oauth_state", state, {
         httpOnly: true,
         secure: process.env["NODE_ENV"] === "production",
+        sameSite: "lax",
+        path: "/",
+        ...(oauthCookieDomain ? { domain: oauthCookieDomain } : {}),
         maxAge: 10 * 60 * 1000 // 10 minutes
       });
 
@@ -2750,7 +2771,11 @@ export async function registerAuthRoutes(app: Express) {
       }
 
       // Clear oauth state cookie
-      res.clearCookie("oauth_state");
+      const oauthCookieDomain = getOAuthCookieDomain();
+      res.clearCookie("oauth_state", {
+        path: "/",
+        ...(oauthCookieDomain ? { domain: oauthCookieDomain } : {}),
+      });
 
       // Get provider config
       const providerConfig = await db
