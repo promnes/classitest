@@ -277,8 +277,8 @@ export async function registerParentRoutes(app: Express) {
         academicGrade: z.string().trim().max(100).optional(),
         schoolName: z.string().trim().max(200).optional(),
         hobbies: z.string().trim().max(500).optional(),
-        avatarUrl: z.string().trim().url().optional(),
-        coverImageUrl: z.string().trim().url().optional(),
+        avatarUrl: z.string().trim().max(2048).optional(),
+        coverImageUrl: z.string().trim().max(2048).optional(),
         bio: z.string().trim().max(500).optional(),
       });
 
@@ -406,8 +406,8 @@ export async function registerParentRoutes(app: Express) {
         academicGrade: z.string().trim().max(100).optional(),
         schoolName: z.string().trim().max(200).optional(),
         hobbies: z.string().trim().max(500).optional(),
-        avatarUrl: z.string().trim().url().nullable().optional(),
-        coverImageUrl: z.string().trim().url().nullable().optional(),
+        avatarUrl: z.string().trim().max(2048).nullable().optional(),
+        coverImageUrl: z.string().trim().max(2048).nullable().optional(),
         bio: z.string().trim().max(500).nullable().optional(),
       });
 

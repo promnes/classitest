@@ -8,8 +8,8 @@ export const updateProfileSchema = z.object({
   governorate: z.string().max(100).optional().nullable(),
   bio: z.string().max(500).optional().nullable(),
   city: z.string().max(100).optional().nullable(),
-  avatarUrl: z.string().url().max(2048).optional().nullable(),
-  coverImageUrl: z.string().url().max(2048).optional().nullable(),
+  avatarUrl: z.string().max(2048).optional().nullable(),
+  coverImageUrl: z.string().max(2048).optional().nullable(),
 }).refine(data => Object.values(data).some(v => v !== undefined), {
   message: "At least one field is required",
 });
