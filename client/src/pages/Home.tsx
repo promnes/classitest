@@ -149,7 +149,7 @@ export const Home = (): JSX.Element => {
         {/* Logo with hidden parent access (5 taps) */}
         <button
           onClick={handleLogoTap}
-          className="mb-6 focus:outline-none"
+          className="mb-2 focus:outline-none"
           aria-label="Classify"
           type="button"
         >
@@ -164,6 +164,9 @@ export const Home = (): JSX.Element => {
             className="h-28 w-28 md:h-36 md:w-36 rounded-full shadow-2xl border-4 border-yellow-400 object-cover hover:scale-105 transition-transform"
           />
         </button>
+        <p className="text-xs text-purple-500/60 mb-4">
+          {t("fiveClickHint")}
+        </p>
         
         <h1 className="text-5xl md:text-7xl font-bold text-center bg-gradient-to-r from-purple-600 via-pink-600 to-orange-500 bg-clip-text text-transparent mb-3">
           Classify
