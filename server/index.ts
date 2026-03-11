@@ -1,5 +1,9 @@
 import "dotenv/config";
 
+if (!process.env.NODE_ENV) {
+  process.env.NODE_ENV = "production";
+}
+
 import express, { type Request, Response, NextFunction } from "express";
 import cluster from "node:cluster";
 import os from "node:os";
@@ -250,6 +254,7 @@ const WORKER_COUNT = Math.max(1, Number(process.env["WEB_CONCURRENCY"] || String
 async function startHttpServer() {
   try {
     const server = await registerRoutes(app);
+    const runningFromDist = import.meta.url.includes("/dist/index.js") || import.meta.url.includes("\\dist\\index.js");
 
     // Initialize Phase 1.4: Gift event → notification handlers
     await initializeGiftNotificationHandlers();
@@ -293,7 +298,7 @@ async function startHttpServer() {
     // Setup static files and SPA fallback
     // Only setup vite in development and after setting up all the other routes
     // so the catch-all route doesn't interfere with the other routes
-    if (app.get("env") === "development") {
+    if (app.get("env") === "development" && !runningFromDist) {
       // Dynamic import vite only in development to avoid bundling in production
       const { setupVite } = await import("./vite");
       await setupVite(app, server);

@@ -6,7 +6,7 @@ import { PWAInstallButton } from "@/components/PWAInstallButton";
 import { LanguageSelector } from "@/components/LanguageSelector";
 import { 
   Gamepad2, Star, Sparkles, ArrowLeft, Loader2, CheckCircle, 
-  KeyRound, UserPlus, User, QrCode, Camera, Image, X, Heart, Clock, XCircle
+  KeyRound, UserPlus, User, QrCode, Camera, Image, X, Heart, Clock, XCircle, ShoppingBag
 } from "lucide-react";
 // @ts-ignore
 import jsQR from "jsqr";
@@ -510,6 +510,14 @@ export const ChildLink = (): JSX.Element => {
       
       {/* Header with language selector */}
       <div className="absolute top-4 right-4 flex gap-2">
+        <button
+          onClick={() => navigate("/child-store")}
+          className="bg-orange-500 hover:bg-orange-600 text-white rounded-full px-3 py-2 font-semibold shadow-md inline-flex items-center gap-1.5"
+          data-testid="button-open-store-from-child-link"
+        >
+          <ShoppingBag className="w-4 h-4" />
+          {t("store", "المتجر")}
+        </button>
         <LanguageSelector />
         <PWAInstallButton variant="compact" />
       </div>

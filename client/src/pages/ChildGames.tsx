@@ -1095,15 +1095,28 @@ export const ChildGames = (): JSX.Element => {
 
   const thumbnailVisualStyle = ultraClarity
     ? {
-        filter: "contrast(1.12) saturate(1.08) brightness(1.03)",
+        filter: "contrast(1.2) saturate(1.12) brightness(1.04)",
         imageRendering: "auto" as const,
         transform: "translateZ(0)",
       }
     : {
-        filter: "none",
+        filter: "contrast(1.06) saturate(1.04)",
         imageRendering: "auto" as const,
         transform: "translateZ(0)",
       };
+
+  const getFallbackPreviewClasses = (embedUrl: string) => {
+    if (embedUrl === "/games/memory-match.html") {
+      return "bg-gradient-to-br from-fuchsia-700 via-purple-600 to-pink-600";
+    }
+    if (embedUrl === "/games/math-challenge.html") {
+      return "bg-gradient-to-br from-emerald-700 via-green-600 to-teal-600";
+    }
+    if (embedUrl === "/games/gem-kingdom.html") {
+      return "bg-gradient-to-br from-indigo-800 via-violet-700 to-purple-700";
+    }
+    return "bg-gradient-to-br from-indigo-700 via-violet-600 to-sky-700";
+  };
 
   return (
     <div className={`min-h-screen ${isDark ? "bg-gradient-to-br from-purple-900 via-indigo-900 to-slate-900" : "bg-gradient-to-br from-purple-400 via-purple-500 to-indigo-500"} pb-24`} dir={isRTL ? "rtl" : "ltr"}>
@@ -1273,37 +1286,45 @@ export const ChildGames = (): JSX.Element => {
               whileHover={{ y: -6, scale: 1.04 }}
               whileTap={{ scale: 0.96 }}
               onClick={() => handlePlayGame(game)}
-              className={`${isDark ? "bg-gray-800/90 border border-gray-700/50" : "bg-white/95 border border-white/50"} rounded-2xl overflow-hidden shadow-xl cursor-pointer backdrop-blur-sm group`}
+              className={`${isDark ? "bg-gray-900/95 border border-gray-600/70" : "bg-white/98 border border-indigo-100"} rounded-2xl overflow-hidden shadow-2xl cursor-pointer backdrop-blur-sm group`}
               data-testid={`game-card-${game.id}`}
             >
-              <div className={`aspect-[4/3] ${isDark ? "bg-gray-700" : "bg-purple-100"} flex items-center justify-center relative overflow-hidden`}>
+              <div className={`aspect-[4/3] ${isDark ? "bg-slate-800" : "bg-indigo-100"} flex items-center justify-center relative overflow-hidden`}>
                 {game.thumbnailUrl ? (
                   <img
                     src={game.thumbnailUrl}
                     alt={game.title}
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     style={thumbnailVisualStyle}
                   />
                 ) : game.embedUrl === "/games/memory-match.html" ? (
-                  <div className="w-full h-full bg-gradient-to-br from-purple-500 via-purple-400 to-pink-500 flex items-center justify-center">
+                  <div className={`w-full h-full ${getFallbackPreviewClasses(game.embedUrl)} flex items-center justify-center`}>
                     <motion.span className="text-5xl drop-shadow-lg" animate={{ y: [0, -5, 0] }} transition={{ duration: 2, repeat: Infinity }}>🧠</motion.span>
                   </div>
                 ) : game.embedUrl === "/games/math-challenge.html" ? (
-                  <div className="w-full h-full bg-gradient-to-br from-green-500 via-emerald-400 to-teal-500 flex items-center justify-center">
+                  <div className={`w-full h-full ${getFallbackPreviewClasses(game.embedUrl)} flex items-center justify-center`}>
                     <motion.span className="text-5xl drop-shadow-lg" animate={{ rotate: [0, 10, -10, 0] }} transition={{ duration: 3, repeat: Infinity }}>🔢</motion.span>
                   </div>
                 ) : game.embedUrl === "/games/gem-kingdom.html" ? (
-                  <div className="w-full h-full bg-gradient-to-br from-indigo-500 via-violet-500 to-purple-600 flex items-center justify-center">
+                  <div className={`w-full h-full ${getFallbackPreviewClasses(game.embedUrl)} flex items-center justify-center`}>
                     <motion.span className="text-5xl drop-shadow-lg" animate={{ scale: [1, 1.15, 1] }} transition={{ duration: 2, repeat: Infinity }}>💎</motion.span>
                   </div>
                 ) : (
-                  <div className="w-full h-full bg-gradient-to-br from-purple-400 to-indigo-500 flex items-center justify-center">
-                    <Gamepad2 className="w-12 h-12 text-white/80" />
+                  <div className={`w-full h-full ${getFallbackPreviewClasses(game.embedUrl)} flex items-center justify-center`}>
+                    <Gamepad2 className="w-12 h-12 text-white" />
                   </div>
                 )}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent" />
+                <div className="absolute bottom-2 left-2 right-2">
+                  <div className="inline-block max-w-full rounded-lg bg-black/65 px-2 py-1">
+                    <p className="truncate text-[11px] font-extrabold tracking-wide text-white">
+                      {game.title}
+                    </p>
+                  </div>
+                </div>
                 {/* Points Badge */}
                 <motion.div
-                  className="absolute top-2 ltr:left-2 rtl:right-2 bg-yellow-500/95 backdrop-blur-sm text-white px-2.5 py-1 rounded-xl text-xs font-bold flex items-center gap-1 shadow-lg"
+                  className="absolute top-2 ltr:left-2 rtl:right-2 bg-yellow-500 text-white px-2.5 py-1 rounded-xl text-xs font-extrabold flex items-center gap-1 shadow-lg border border-yellow-300/80"
                   animate={{ scale: [1, 1.05, 1] }}
                   transition={{ duration: 3, repeat: Infinity }}
                 >
@@ -1311,28 +1332,28 @@ export const ChildGames = (): JSX.Element => {
                   +{game.pointsPerPlay}
                 </motion.div>
                 {/* Play overlay on hover */}
-                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all duration-300 flex items-center justify-center">
+                <div className="absolute inset-0 bg-black/10 group-hover:bg-black/35 transition-all duration-300 flex items-center justify-center">
                   <motion.div
                     initial={{ opacity: 0, scale: 0.5 }}
                     className="opacity-0 group-hover:opacity-100 transition-opacity duration-300"
                   >
-                    <div className="w-12 h-12 bg-white/90 rounded-full flex items-center justify-center shadow-xl">
+                    <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-xl border-2 border-purple-200">
                       <Play className="w-6 h-6 text-purple-600 fill-purple-600 ml-0.5" />
                     </div>
                   </motion.div>
                 </div>
               </div>
-              <div className="p-3">
-                <h3 className={`font-bold text-sm mb-1 truncate ${isDark ? "text-white" : "text-gray-800"}`}>
+              <div className="p-3.5">
+                <h3 className={`font-extrabold text-sm mb-1 truncate ${isDark ? "text-white" : "text-gray-900"}`}>
                   {game.title}
                 </h3>
                 {game.description && (
-                  <p className={`text-xs mb-2 line-clamp-2 ${isDark ? "text-gray-400" : "text-gray-500"}`}>
+                  <p className={`text-xs mb-2.5 line-clamp-2 ${isDark ? "text-gray-200" : "text-gray-700"}`}>
                     {game.description}
                   </p>
                 )}
                 <div
-                  className="w-full px-3 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold rounded-xl flex items-center justify-center gap-1.5 text-xs shadow-md group-hover:from-purple-600 group-hover:to-pink-600 transition-all"
+                  className="w-full px-3 py-2.5 bg-gradient-to-r from-indigo-600 to-cyan-600 text-white font-extrabold rounded-xl flex items-center justify-center gap-1.5 text-xs shadow-md border border-cyan-300/60 group-hover:from-indigo-700 group-hover:to-cyan-700 transition-all"
                 >
                   <Play className="w-3.5 h-3.5" />
                   {t("playNow")}

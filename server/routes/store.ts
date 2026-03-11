@@ -128,7 +128,7 @@ export async function registerStoreRoutes(app: Express) {
     }
   });
 
-  app.get("/api/store/categories", authMiddleware, async (req: any, res) => {
+  app.get("/api/store/categories", publicApiLimiter, async (_req: any, res) => {
     try {
       const categories = await db
         .select()
@@ -143,10 +143,9 @@ export async function registerStoreRoutes(app: Express) {
     }
   });
 
-  app.get("/api/store/products", authMiddleware, async (req: any, res) => {
+  app.get("/api/store/products", publicApiLimiter, async (req: any, res) => {
     try {
       const { categoryId, search, sort = "featured" } = req.query;
-      const parentId = req.user?.parentId || req.user?.userId;
 
       // Fetch regular products
       const regularProducts = await db

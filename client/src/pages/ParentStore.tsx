@@ -82,6 +82,7 @@ export const ParentStore = (): JSX.Element => {
   const queryClient = useQueryClient();
   const { isDark } = useTheme();
   const token = localStorage.getItem("token");
+  const isGuest = !token;
   
   // Read view param from URL
   const urlParams = new URLSearchParams(window.location.search);
@@ -107,16 +108,26 @@ export const ParentStore = (): JSX.Element => {
   });
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("");
 
+  const getAuthHeaders = (): Record<string, string> => {
+    if (!token) return {};
+    return { Authorization: `Bearer ${token}` };
+  };
+
+  const redirectToRequiredRegistration = () => {
+    const redirect = encodeURIComponent("/parent-store?view=cart");
+    navigate(`/parent-auth?mode=register&redirect=${redirect}`);
+  };
+
   const { data: categoriesData } = useQuery({
     queryKey: ["store-categories"],
     queryFn: async () => {
       const res = await fetch("/api/store/categories", {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: getAuthHeaders(),
       });
       const json = await res.json();
       return json?.data || json || [];
     },
-    enabled: !!token,
+    enabled: true,
   });
 
   const { data: productsData, isLoading: loadingProducts } = useQuery({
@@ -127,12 +138,12 @@ export const ParentStore = (): JSX.Element => {
       if (searchQuery) params.append("search", searchQuery);
       params.append("sort", sortBy);
       const res = await fetch(`/api/store/products?${params}`, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: getAuthHeaders(),
       });
       const json = await res.json();
       return json?.data || json || [];
     },
-    enabled: !!token,
+    enabled: true,
   });
 
   const { data: childrenData } = useQuery({
@@ -148,8 +159,16 @@ export const ParentStore = (): JSX.Element => {
   });
 
   const { data: paymentMethodsData } = useQuery({
-    queryKey: ["/api/store/payment-methods"],
-    enabled: !!token,
+    queryKey: ["/api/store/payment-methods", isGuest],
+    queryFn: async () => {
+      const endpoint = token ? "/api/store/payment-methods" : "/api/public/payment-methods";
+      const res = await fetch(endpoint, {
+        headers: getAuthHeaders(),
+      });
+      const json = await res.json();
+      return json?.data || json || [];
+    },
+    enabled: true,
   });
 
   const { data: walletData } = useQuery({
@@ -291,6 +310,10 @@ export const ParentStore = (): JSX.Element => {
   };
 
   const handleBuyNow = (product: Product) => {
+    if (!token) {
+      redirectToRequiredRegistration();
+      return;
+    }
     setBuyNowProduct(product);
     setShowCheckout(true);
   };
@@ -310,6 +333,10 @@ export const ParentStore = (): JSX.Element => {
   };
 
   const handleCheckout = () => {
+    if (!token) {
+      redirectToRequiredRegistration();
+      return;
+    }
     checkoutMutation.mutate({
       items: checkoutItems.map(item => ({ productId: item.product.id, quantity: item.quantity })),
       paymentMethodId: selectedPaymentMethod,
@@ -1144,6 +1171,10 @@ export const ParentStore = (): JSX.Element => {
                   onClick={() => {
                     setShowCart(false);
                     setBuyNowProduct(null);
+                    if (!token) {
+                      redirectToRequiredRegistration();
+                      return;
+                    }
                     setShowCheckout(true);
                   }}
                   data-testid="button-proceed-checkout"
@@ -1279,7 +1310,7 @@ export const ParentStore = (): JSX.Element => {
             <Button 
               className="w-full bg-orange-500 hover:bg-orange-600 py-6 text-lg"
               onClick={handleCheckout}
-              disabled={checkoutMutation.isPending || !selectedPaymentMethod}
+              disabled={checkoutMutation.isPending || !selectedPaymentMethod || !token}
               data-testid="button-confirm-checkout"
             >
               {checkoutMutation.isPending ? (

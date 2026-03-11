@@ -109,7 +109,11 @@ export const OTPVerification = (): JSX.Element => {
       localStorage.removeItem("smsPendingPhone");
       localStorage.removeItem("otpId");
       localStorage.removeItem("otpPurpose");
-      navigate("/parent-dashboard");
+      const postAuthRedirect = localStorage.getItem("postAuthRedirect") || "/parent-dashboard";
+      if (localStorage.getItem("postAuthRedirect")) {
+        localStorage.removeItem("postAuthRedirect");
+      }
+      navigate(postAuthRedirect);
     },
     onError: (err: any) => {
       setError(err.message || t("otpVerification.wrongCode"));

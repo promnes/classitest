@@ -69,6 +69,7 @@ export const ChildStore = (): JSX.Element => {
   const { t, i18n } = useTranslation();
   const isRTL = i18n.language === "ar";
   const token = localStorage.getItem("childToken");
+  const isGuest = !token;
   
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -81,17 +82,27 @@ export const ChildStore = (): JSX.Element => {
   const [showCheckout, setShowCheckout] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
+  const getAuthHeaders = (): Record<string, string> => {
+    if (!token) return {};
+    return { Authorization: `Bearer ${token}` };
+  };
+
+  const redirectToRequiredRegistration = () => {
+    const redirect = encodeURIComponent("/child-store");
+    navigate(`/parent-auth?mode=register&redirect=${redirect}`);
+  };
+
   const { data: categoriesData } = useQuery({
     queryKey: ["store-categories"],
     queryFn: async () => {
       const res = await fetch("/api/store/categories", {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: getAuthHeaders(),
       });
       const json = await res.json();
       return json?.data || json || [];
     },
-    enabled: !!token,
-    refetchInterval: token ? 60000 : false,
+    enabled: true,
+    refetchInterval: 60000,
   });
 
   const { data: productsData, isLoading: loadingProducts } = useQuery({
@@ -102,13 +113,13 @@ export const ChildStore = (): JSX.Element => {
       if (searchQuery) params.append("search", searchQuery);
       params.append("sort", sortBy);
       const res = await fetch(`/api/store/products?${params}`, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: getAuthHeaders(),
       });
       const json = await res.json();
       return json?.data || json || [];
     },
-    enabled: !!token,
-    refetchInterval: token ? 30000 : false,
+    enabled: true,
+    refetchInterval: 30000,
   });
 
   const { data: childInfo } = useQuery({
@@ -176,7 +187,7 @@ export const ChildStore = (): JSX.Element => {
     cart.reduce((sum, item) => sum + item.product.pointsPrice * item.quantity, 0), [cart]
   );
 
-  const canAfford = cartTotalPoints <= (childInfo?.totalPoints || 0);
+  const canAfford = isGuest ? true : cartTotalPoints <= (childInfo?.totalPoints || 0);
 
   const addToCart = (product: Product) => {
     setCart(prev => {
@@ -207,6 +218,10 @@ export const ChildStore = (): JSX.Element => {
   };
 
   const handleCheckout = () => {
+    if (!token) {
+      redirectToRequiredRegistration();
+      return;
+    }
     cart.forEach(item => {
       checkoutMutation.mutate({
         productId: item.product.id,
@@ -858,7 +873,14 @@ export const ChildStore = (): JSX.Element => {
                 {canAfford && (
                   <Button 
                     className="w-full bg-orange-500 hover:bg-orange-600"
-                    onClick={() => { setShowCart(false); setShowCheckout(true); }}
+                    onClick={() => {
+                      setShowCart(false);
+                      if (!token) {
+                        redirectToRequiredRegistration();
+                        return;
+                      }
+                      setShowCheckout(true);
+                    }}
                     data-testid="button-proceed-checkout"
                   >
                     <Star className="w-4 h-4 me-2" />

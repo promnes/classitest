@@ -7,7 +7,7 @@ import { useSMSOTP } from "@/hooks/useSMSOTP";
 import { SMSVerification } from "@/components/SMSVerification";
 import { OTPMethodSelector } from "@/components/OTPMethodSelector";
 import { useAutoLogin } from "@/hooks/useAutoLogin";
-import { Loader2, CheckCircle, XCircle } from "lucide-react";
+import { Loader2, CheckCircle, XCircle, ShoppingBag } from "lucide-react";
 import { SocialLoginButtons } from "@/components/SocialLoginButtons";
 import { PhoneInput } from "@/components/PhoneInput";
 import { GovernorateSelect } from "@/components/ui/GovernorateSelect";
@@ -31,8 +31,11 @@ export const ParentAuth = (): JSX.Element => {
   const [otpMethod, setOtpMethod] = useState<"email" | "sms">("email");
   const [availableMethods, setAvailableMethods] = useState<("email" | "sms")[]>(["email"]);
   const [passwordStrength, setPasswordStrength] = useState<{ score: number; label: string; color: string }>({ score: 0, label: "", color: "" });
-  const libraryReferralCode = new URLSearchParams(window.location.search).get("libraryRef")?.trim() || undefined;
-  const referralCode = new URLSearchParams(window.location.search).get("ref")?.trim() || undefined;
+  const authParams = new URLSearchParams(window.location.search);
+  const libraryReferralCode = authParams.get("libraryRef")?.trim() || undefined;
+  const referralCode = authParams.get("ref")?.trim() || undefined;
+  const mode = authParams.get("mode")?.trim();
+  const redirectTarget = authParams.get("redirect")?.trim() || "";
 
   const smsOTP = useSMSOTP({
     onSuccess: () => {
@@ -84,6 +87,9 @@ export const ParentAuth = (): JSX.Element => {
       if (payload?.requiresOtp) {
         const purpose = payload?.otpPurpose || (isLogin ? "login" : "register");
         localStorage.setItem("otpPurpose", purpose);
+        if (redirectTarget) {
+          localStorage.setItem("postAuthRedirect", redirectTarget);
+        }
         if (usePhone) {
           localStorage.setItem("smsPendingPhone", payload.phone || phone);
         } else {
@@ -124,7 +130,11 @@ export const ParentAuth = (): JSX.Element => {
         if (payload?.uniqueCode && payload?.hasPin) {
           localStorage.setItem("familyCode", payload.uniqueCode);
         }
-        navigate("/parent-dashboard");
+        const target = redirectTarget || localStorage.getItem("postAuthRedirect") || "/parent-dashboard";
+        if (localStorage.getItem("postAuthRedirect")) {
+          localStorage.removeItem("postAuthRedirect");
+        }
+        navigate(target);
       }
     },
     onError: (err: any) => {
@@ -134,9 +144,16 @@ export const ParentAuth = (): JSX.Element => {
 
   useEffect(() => {
     if (!isChecking && isLoggedIn) {
-      navigate("/parent-dashboard");
+      const target = redirectTarget || "/parent-dashboard";
+      navigate(target);
     }
-  }, [isChecking, isLoggedIn, navigate]);
+  }, [isChecking, isLoggedIn, navigate, redirectTarget]);
+
+  useEffect(() => {
+    if (mode === "register") {
+      setIsLogin(false);
+    }
+  }, [mode]);
 
   const evaluatePasswordStrength = (pw: string) => {
     let score = 0;
@@ -195,6 +212,14 @@ export const ParentAuth = (): JSX.Element => {
             ← {t("back")}
           </button>
           <div className="flex items-center gap-2">
+            <button
+              onClick={() => navigate("/parent-store")}
+              className="bg-orange-500 hover:bg-orange-600 text-white rounded-full px-3 py-2 font-semibold shadow-md inline-flex items-center gap-1.5"
+              data-testid="button-open-store-from-parent-auth"
+            >
+              <ShoppingBag className="w-4 h-4" />
+              {t("store", "المتجر")}
+            </button>
             <LanguageSelector />
             <PWAInstallButton 
               variant="default" 
