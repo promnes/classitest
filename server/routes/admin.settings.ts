@@ -1,4 +1,6 @@
 import type { Express } from "express";
+import fs from "node:fs/promises";
+import path from "node:path";
 import { storage } from "../storage";
 import {
   appSettings,
@@ -241,34 +243,22 @@ export function registerAdminSettingsRoutes(app: Express) {
   // ===== ROBOTS.TXT ENDPOINT =====
   app.get("/robots.txt", async (_req, res) => {
     try {
-      const result = await db.select().from(seoSettings);
-      const settings = result[0] || DEFAULT_SEO_SETTINGS;
+      const candidates = [
+        path.resolve(process.cwd(), "dist", "public", "robots.txt"),
+        path.resolve(process.cwd(), "client", "public", "robots.txt"),
+      ];
 
-      let robotsTxt = "User-agent: *\n";
-
-      if (settings.robotsIndex && settings.robotsFollow) {
-        robotsTxt += "Allow: /\n";
-      } else if (!settings.robotsIndex) {
-        robotsTxt += "Disallow: /\n";
+      for (const filePath of candidates) {
+        try {
+          const robotsTxt = await fs.readFile(filePath, "utf-8");
+          res.type("text/plain").send(robotsTxt);
+          return;
+        } catch {
+          // Try next candidate path.
+        }
       }
 
-      // AI Crawlers control
-      if (!settings.allowGPTBot) {
-        robotsTxt += "\nUser-agent: GPTBot\nDisallow: /\n";
-      }
-      if (!settings.allowClaudeBot) {
-        robotsTxt += "\nUser-agent: Claude-Web\nUser-agent: ClaudeBot\nDisallow: /\n";
-      }
-      if (!settings.allowGoogleAI) {
-        robotsTxt += "\nUser-agent: Google-Extended\nDisallow: /\n";
-      }
-
-      // Add sitemap if enabled
-      if (settings.sitemapEnabled && settings.canonicalUrl) {
-        robotsTxt += `\nSitemap: ${settings.canonicalUrl}/sitemap.xml\n`;
-      }
-
-      res.type("text/plain").send(robotsTxt);
+      throw new Error("robots.txt file not found");
     } catch (error: any) {
       console.error("Generate robots.txt error:", error);
       res.type("text/plain").send("User-agent: *\nAllow: /\n");
