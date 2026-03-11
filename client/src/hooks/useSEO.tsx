@@ -119,8 +119,10 @@ export function useSEO() {
       updateMeta("og:image", seoSettings.ogImage, true);
     }
 
-    // Dynamic canonical URL per page
-    const currentCanonical = `${window.location.origin}${location}`;
+    // Dynamic canonical URL per page (always anchored to canonical base domain)
+    const canonicalBase = (seoSettings.canonicalUrl || window.location.origin).replace(/\/$/, "");
+    const canonicalPath = location.startsWith("/") ? location : `/${location}`;
+    const currentCanonical = `${canonicalBase}${canonicalPath}`;
     updateMeta("og:url", currentCanonical, true);
 
     updateMeta("twitter:card", "summary_large_image");

@@ -222,6 +222,16 @@ app.use((req, res, next) => {
   next();
 });
 
+// Canonical host redirect: consolidate www/non-www signals for search engines.
+app.use((req, res, next) => {
+  const host = req.headers.host || "";
+  if (host.toLowerCase().startsWith("www.classi-fy.com")) {
+    const target = `https://classi-fy.com${req.originalUrl || "/"}`;
+    return res.redirect(301, target);
+  }
+  return next();
+});
+
 // API response cache headers for stable/semi-stable endpoints
 // Reduces server load by allowing browsers to reuse recent responses
 const apiCacheRules: Array<{ pattern: RegExp; maxAge: number }> = [
