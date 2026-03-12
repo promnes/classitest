@@ -218,7 +218,7 @@ export const ParentAuth = (): JSX.Element => {
               data-testid="button-open-store-from-parent-auth"
             >
               <ShoppingBag className="w-4 h-4" />
-              {t("store", "المتجر")}
+              {t("store.title", "المتجر")}
             </button>
             <LanguageSelector />
             <PWAInstallButton 

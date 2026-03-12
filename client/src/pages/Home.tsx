@@ -4,7 +4,7 @@ import { Link, useLocation } from "wouter";
 import { useTheme } from "@/contexts/ThemeContext";
 import { LanguageSelector } from "@/components/LanguageSelector";
 import { PWAInstallButton } from "@/components/PWAInstallButton";
-import { Download, Gamepad2, Star, Sparkles, BookOpen, Trophy } from "lucide-react";
+import { Download, Gamepad2, Star, Sparkles, BookOpen, Trophy, ShoppingBag } from "lucide-react";
 
 const SlidingAdsCarousel = lazy(() => import("@/components/SlidingAdsCarousel").then(m => ({ default: m.SlidingAdsCarousel })));
 const PinEntry = lazy(() => import("@/components/PinEntry").then(m => ({ default: m.PinEntry })));
@@ -131,6 +131,13 @@ export const Home = (): JSX.Element => {
 
       {/* Header - minimal kid-friendly */}
       <header className="p-4 flex justify-end items-center gap-2 relative z-10">
+        <button
+          onClick={() => navigate("/parent-store")}
+          className="bg-orange-500 hover:bg-orange-600 text-white rounded-full px-3 py-2 font-semibold shadow-md inline-flex items-center gap-1.5"
+        >
+          <ShoppingBag className="w-4 h-4" />
+          {t("store.title", "المتجر")}
+        </button>
         <LanguageSelector />
         <PWAInstallButton variant="compact" />
         <button

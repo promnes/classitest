@@ -516,7 +516,7 @@ export const ChildLink = (): JSX.Element => {
           data-testid="button-open-store-from-child-link"
         >
           <ShoppingBag className="w-4 h-4" />
-          {t("store", "المتجر")}
+          {t("store.title", "المتجر")}
         </button>
         <LanguageSelector />
         <PWAInstallButton variant="compact" />
