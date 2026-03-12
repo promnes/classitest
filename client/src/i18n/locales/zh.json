@@ -2024,6 +2024,8 @@
     "sendRequestToParent": "向家长发送请求",
     "requestSent": "请求已发送",
     "parentWillReview": "您的家长将审查并决定您的请求",
+    "askParentToRegister": "请你的父母创建一个账号",
+    "askParentToRegisterDesc": "告诉你的父母注册，这样你就可以购买了",
     "error": "错误",
     "storeName": "Classify 商店",
     "pointsBalance": "积分余额",

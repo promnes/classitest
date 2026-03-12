@@ -2020,6 +2020,8 @@
     "sendRequestToParent": "إرسال طلب للوالدين",
     "requestSent": "تم إرسال الطلب",
     "parentWillReview": "سيراجع والديك الطلب ويقررون",
+    "askParentToRegister": "اطلب من والديك إنشاء حساب",
+    "askParentToRegisterDesc": "أخبر بابا أو ماما أن ينشئوا حساباً حتى تتمكن من الشراء",
     "error": "خطأ",
     "storeName": "كلاسيفاي ستور",
     "pointsBalance": "رصيد النقاط",

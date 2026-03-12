@@ -2024,6 +2024,8 @@
     "sendRequestToParent": "Enviar solicitud a los padres",
     "requestSent": "Solicitud enviada",
     "parentWillReview": "Tus padres revisarán y decidirán tu solicitud",
+    "askParentToRegister": "Pide a tus padres que creen una cuenta",
+    "askParentToRegisterDesc": "Dile a tus padres que se registren para que puedas comprar",
     "error": "Error",
     "storeName": "Tienda Classify",
     "pointsBalance": "Saldo de puntos",

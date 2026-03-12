@@ -88,8 +88,11 @@ export const ChildStore = (): JSX.Element => {
   };
 
   const redirectToRequiredRegistration = () => {
-    const redirect = encodeURIComponent("/child-store");
-    navigate(`/parent-auth?mode=register&redirect=${redirect}`);
+    toast({
+      title: t("childStore.askParentToRegister"),
+      description: t("childStore.askParentToRegisterDesc"),
+    });
+    navigate("/child-link");
   };
 
   const { data: categoriesData } = useQuery({

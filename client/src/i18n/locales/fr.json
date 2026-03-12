@@ -2024,6 +2024,8 @@
     "sendRequestToParent": "Envoyer la demande aux parents",
     "requestSent": "Demande envoyée",
     "parentWillReview": "Vos parents examineront et décideront de votre demande",
+    "askParentToRegister": "Demande à tes parents de créer un compte",
+    "askParentToRegisterDesc": "Dis à tes parents de s'inscrire pour que tu puisses acheter",
     "error": "Erreur",
     "storeName": "Boutique Classify",
     "pointsBalance": "Solde de points",

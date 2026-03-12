@@ -2024,6 +2024,8 @@
     "sendRequestToParent": "Send Request to Parents",
     "requestSent": "Request Sent",
     "parentWillReview": "Your parents will review and decide on your request",
+    "askParentToRegister": "Ask your parents to create an account",
+    "askParentToRegisterDesc": "Tell your parents to sign up so you can make purchases",
     "error": "Error",
     "storeName": "Classify Store",
     "pointsBalance": "Points balance",

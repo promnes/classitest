@@ -2024,6 +2024,8 @@
     "sendRequestToParent": "माता-पिता को अनुरोध भेजें",
     "requestSent": "अनुरोध भेजा गया",
     "parentWillReview": "आपके माता-पिता आपके अनुरोध की समीक्षा करेंगे और निर्णय लेंगे",
+    "askParentToRegister": "अपने माता-पिता से खाता बनाने को कहें",
+    "askParentToRegisterDesc": "अपने माता-पिता को बताएं कि वे साइन अप करें ताकि आप खरीदारी कर सकें",
     "error": "त्रुटि",
     "storeName": "Classify स्टोर",
     "pointsBalance": "अंक शेष",

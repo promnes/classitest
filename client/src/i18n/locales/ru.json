@@ -2024,6 +2024,8 @@
     "sendRequestToParent": "Отправить запрос родителям",
     "requestSent": "Запрос отправлен",
     "parentWillReview": "Родители рассмотрят и решат по вашему запросу",
+    "askParentToRegister": "Попроси родителей создать аккаунт",
+    "askParentToRegisterDesc": "Скажи родителям зарегистрироваться, чтобы ты мог делать покупки",
     "error": "Ошибка",
     "storeName": "Магазин Classify",
     "pointsBalance": "Баланс баллов",

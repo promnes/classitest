@@ -2024,6 +2024,8 @@
     "sendRequestToParent": "Ebeveynlere talep gönder",
     "requestSent": "Talep gönderildi",
     "parentWillReview": "Ebeveynleriniz talebinizi inceleyip karar verecek",
+    "askParentToRegister": "Anne-babandan hesap oluşturmalarını iste",
+    "askParentToRegisterDesc": "Anne-babana kayıt olmalarını söyle, böylece alışveriş yapabilirsin",
     "error": "Hata",
     "storeName": "Classify Mağazası",
     "pointsBalance": "Puan bakiyesi",
