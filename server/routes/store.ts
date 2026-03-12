@@ -19,6 +19,8 @@ import {
   libraryActivityLogs,
   libraryReferralSettings,
   parentChild,
+  parents,
+  appSettings,
 } from "../../shared/schema";
 import { eq, and, or, desc, asc, sql, isNull } from "drizzle-orm";
 import { authMiddleware, adminMiddleware } from "./middleware";
@@ -32,6 +34,14 @@ import {
   resolveParentCountryCode,
   resolveRequestCountryCode,
 } from "../utils/paymentCountry";
+import {
+  getSuggestedShippingProviders,
+  normalizeInHomeShippingInput,
+  resolveInHomeShippingConfig,
+  sanitizeInHomeShippingConfig,
+  syncCheckoutToInHome,
+  testInHomeShippingConnection,
+} from "../services/inHomeShipping";
 
 const db = storage.db;
 
@@ -58,6 +68,69 @@ interface StoreProduct {
   isLibraryProduct?: boolean;
   libraryId?: string | null;
   libraryName?: string | null;
+}
+
+const INHOME_CONNECTOR_SETTINGS_KEY = "inHomeShippingConnector";
+const INHOME_WEBHOOK_LAST_EVENT_KEY = "inHomeShippingLastWebhook";
+
+async function getInHomeConnectorConfig() {
+  const envConfig = resolveInHomeShippingConfig();
+  const rows = await db.select().from(appSettings).where(eq(appSettings.key, INHOME_CONNECTOR_SETTINGS_KEY));
+  if (!rows[0]?.value) return envConfig;
+
+  try {
+    const parsed = JSON.parse(rows[0].value);
+    return resolveInHomeShippingConfig({
+      enabled: typeof parsed?.enabled === "boolean" ? parsed.enabled : envConfig.enabled,
+      baseUrl: typeof parsed?.baseUrl === "string" ? parsed.baseUrl : envConfig.baseUrl,
+      apiKey: typeof parsed?.apiKey === "string" ? parsed.apiKey : envConfig.apiKey,
+      timeoutMs: typeof parsed?.timeoutMs === "number" ? parsed.timeoutMs : envConfig.timeoutMs,
+      webhookSecret: typeof parsed?.webhookSecret === "string" ? parsed.webhookSecret : envConfig.webhookSecret,
+    });
+  } catch {
+    return envConfig;
+  }
+}
+
+async function saveInHomeConnectorConfig(config: ReturnType<typeof resolveInHomeShippingConfig>) {
+  const payload = JSON.stringify({
+    enabled: config.enabled,
+    baseUrl: config.baseUrl,
+    apiKey: config.apiKey,
+    timeoutMs: config.timeoutMs,
+    webhookSecret: config.webhookSecret,
+  });
+
+  const existing = await db.select().from(appSettings).where(eq(appSettings.key, INHOME_CONNECTOR_SETTINGS_KEY));
+  if (existing[0]) {
+    await db
+      .update(appSettings)
+      .set({ value: payload, updatedAt: new Date() })
+      .where(eq(appSettings.key, INHOME_CONNECTOR_SETTINGS_KEY));
+    return;
+  }
+
+  await db.insert(appSettings).values({
+    key: INHOME_CONNECTOR_SETTINGS_KEY,
+    value: payload,
+  });
+}
+
+async function saveLastInHomeWebhookEvent(snapshot: Record<string, any>) {
+  const payload = JSON.stringify(snapshot);
+  const existing = await db.select().from(appSettings).where(eq(appSettings.key, INHOME_WEBHOOK_LAST_EVENT_KEY));
+  if (existing[0]) {
+    await db
+      .update(appSettings)
+      .set({ value: payload, updatedAt: new Date() })
+      .where(eq(appSettings.key, INHOME_WEBHOOK_LAST_EVENT_KEY));
+    return;
+  }
+
+  await db.insert(appSettings).values({
+    key: INHOME_WEBHOOK_LAST_EVENT_KEY,
+    value: payload,
+  });
 }
 
 export async function registerStoreRoutes(app: Express) {
@@ -140,6 +213,118 @@ export async function registerStoreRoutes(app: Express) {
     } catch (error: any) {
       console.error("Get categories error:", error);
       res.status(500).json({ message: "Failed to get categories" });
+    }
+  });
+
+  app.get("/api/store/shipping-providers", publicApiLimiter, async (_req: any, res) => {
+    try {
+      const connectorConfig = await getInHomeConnectorConfig();
+      res.json({ success: true, data: getSuggestedShippingProviders(connectorConfig) });
+    } catch (error: any) {
+      console.error("Get shipping providers error:", error);
+      res.status(500).json({ success: false, message: "Failed to get shipping providers" });
+    }
+  });
+
+  app.get("/api/admin/store/inhome-shipping-config", adminMiddleware, async (_req: any, res) => {
+    try {
+      const connectorConfig = await getInHomeConnectorConfig();
+
+      let lastWebhookEvent: Record<string, any> | null = null;
+      const snapshot = await db.select().from(appSettings).where(eq(appSettings.key, INHOME_WEBHOOK_LAST_EVENT_KEY));
+      if (snapshot[0]?.value) {
+        try {
+          lastWebhookEvent = JSON.parse(snapshot[0].value);
+        } catch {
+          lastWebhookEvent = null;
+        }
+      }
+
+      const host = (process.env.PUBLIC_BASE_URL || "https://classi-fy.com").replace(/\/$/, "");
+
+      res.json({
+        success: true,
+        data: {
+          config: sanitizeInHomeShippingConfig(connectorConfig),
+          providers: getSuggestedShippingProviders(connectorConfig),
+          webhookUrl: `${host}/api/store/inhome/webhook`,
+          lastWebhookEvent,
+        },
+      });
+    } catch (error: any) {
+      console.error("Get admin in-home shipping config error:", error);
+      res.status(500).json({ success: false, message: "Failed to load connector config" });
+    }
+  });
+
+  app.put("/api/admin/store/inhome-shipping-config", adminMiddleware, async (req: any, res) => {
+    try {
+      const current = await getInHomeConnectorConfig();
+      const next = normalizeInHomeShippingInput(req.body || {}, current);
+
+      if (next.enabled && (!next.baseUrl || !next.apiKey)) {
+        return res.status(400).json({
+          success: false,
+          error: "BAD_REQUEST",
+          message: "baseUrl and apiKey are required when connector is enabled",
+        });
+      }
+
+      await saveInHomeConnectorConfig(next);
+      res.json({ success: true, data: sanitizeInHomeShippingConfig(next), message: "Connector config saved" });
+    } catch (error: any) {
+      console.error("Update admin in-home shipping config error:", error);
+      res.status(500).json({ success: false, message: "Failed to save connector config" });
+    }
+  });
+
+  app.post("/api/admin/store/inhome-shipping-config/test", adminMiddleware, async (_req: any, res) => {
+    try {
+      const connectorConfig = await getInHomeConnectorConfig();
+      const result = await testInHomeShippingConnection(connectorConfig);
+      res.status(result.ok ? 200 : 400).json({ success: result.ok, data: result });
+    } catch (error: any) {
+      console.error("Test in-home connector error:", error);
+      res.status(500).json({ success: false, message: "Failed to test connector" });
+    }
+  });
+
+  app.post("/api/store/inhome/webhook", async (req: any, res) => {
+    try {
+      const connectorConfig = await getInHomeConnectorConfig();
+      const expectedSecret = connectorConfig.webhookSecret;
+      const providedSecret = String(req.headers["x-inhome-webhook-secret"] || "").trim();
+
+      if (expectedSecret && providedSecret !== expectedSecret) {
+        return res.status(401).json({
+          success: false,
+          error: "UNAUTHORIZED",
+          message: "Invalid webhook secret",
+        });
+      }
+
+      const webhookEvent = String(req.headers["x-webhook-event"] || req.body?.event || "unknown");
+      const payload = req.body || {};
+
+      const customerNotes = String(payload?.data?.customerNotes || payload?.order?.customerNotes || "");
+      const purchaseIdMatch = customerNotes.match(/purchaseId:\s*([a-zA-Z0-9-_]+)/i);
+
+      await saveLastInHomeWebhookEvent({
+        event: webhookEvent,
+        receivedAt: new Date().toISOString(),
+        purchaseId: purchaseIdMatch?.[1] || null,
+        trackingCode: payload?.data?.trackingCode || payload?.order?.trackingCode || null,
+        status: payload?.data?.status || payload?.order?.status || null,
+      });
+
+      res.json({ success: true, message: "Webhook received" });
+    } catch (error: any) {
+      console.error("In-home webhook error:", error);
+      res.status(500).json({
+        success: false,
+        error: "INTERNAL_SERVER_ERROR",
+        message: "Failed to process webhook",
+      });
     }
   });
 
@@ -633,6 +818,58 @@ export async function registerStoreRoutes(app: Express) {
 
         return createdPurchase;
       });
+
+      const parentProfile = await db
+        .select({
+          name: parents.name,
+          phoneNumber: parents.phoneNumber,
+        })
+        .from(parents)
+        .where(eq(parents.id, parentId));
+
+      const inHomeItems = checkoutItems.map((item) => {
+        if (item.kind === "regular") {
+          return {
+            productId: item.regularProduct.id,
+            productName: item.regularProduct.nameAr || item.regularProduct.name,
+            productImage: item.regularProduct.image || "",
+            quantity: item.quantity,
+            price: item.unitPrice.toFixed(2),
+            total: item.subtotal.toFixed(2),
+          };
+        }
+
+        return {
+          productId: item.libraryProduct.id,
+          productName: item.libraryProduct.title,
+          productImage: item.libraryProduct.imageUrl || "",
+          quantity: item.quantity,
+          price: item.unitPrice.toFixed(2),
+          total: item.subtotal.toFixed(2),
+        };
+      });
+
+      const hasRegularItems = checkoutItems.some((item) => item.kind === "regular");
+      const hasLibraryItems = checkoutItems.some((item) => item.kind === "library");
+      const sourceChannel = hasRegularItems && hasLibraryItems
+        ? "mixed"
+        : hasLibraryItems
+          ? "libraries"
+          : "parents";
+
+      const connectorConfig = await getInHomeConnectorConfig();
+
+      // Fire-and-forget sync. Checkout must stay fast and resilient even if in-home is down.
+      void syncCheckoutToInHome({
+        purchaseId: purchase.id,
+        parentId,
+        customerName: parentProfile[0]?.name || shippingAddress?.name || "Classify Parent",
+        customerPhone: parentProfile[0]?.phoneNumber || "0000000000",
+        shippingAddress: shippingAddress || {},
+        items: inHomeItems,
+        total: computedTotal.toFixed(2),
+        sourceChannel,
+      }, connectorConfig);
 
       res.json({
         success: true,

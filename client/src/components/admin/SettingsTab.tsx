@@ -26,6 +26,28 @@ interface NotificationSettings {
   emailEnabled: boolean;
 }
 
+interface InHomeConnectorConfig {
+  enabled: boolean;
+  baseUrl: string;
+  apiKey: string;
+  apiKeyMasked?: string;
+  timeoutMs: number;
+  webhookSecret: string;
+  webhookSecretMasked?: string;
+}
+
+interface InHomeConnectorResponse {
+  config: InHomeConnectorConfig;
+  webhookUrl: string;
+  lastWebhookEvent?: {
+    event?: string | null;
+    receivedAt?: string | null;
+    purchaseId?: string | null;
+    trackingCode?: string | null;
+    status?: string | null;
+  } | null;
+}
+
 const NOTIFICATION_SOUNDS = [
   { value: "default", label: i18next.t("admin.settingsTab.defaultSound") },
   { value: "chime", label: i18next.t("admin.settingsTab.ringSound") },
@@ -43,6 +65,13 @@ export function SettingsTab({
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [message, setMessage] = useState("");
+  const [inHomeConfig, setInHomeConfig] = useState<InHomeConnectorConfig>({
+    enabled: false,
+    baseUrl: "",
+    apiKey: "",
+    timeoutMs: 5000,
+    webhookSecret: "",
+  });
 
   const [otpSettings, setOtpSettings] = useState<OTPSettings>({
     enabled: true,
@@ -96,6 +125,32 @@ export function SettingsTab({
     },
     enabled: !!token,
   });
+
+  const { data: inHomeConnectorData } = useQuery<InHomeConnectorResponse | null>({
+    queryKey: ["admin-inhome-shipping-config"],
+    queryFn: async () => {
+      const res = await fetch("/api/admin/store/inhome-shipping-config", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) return null;
+      const json = await res.json();
+      return json?.data || null;
+    },
+    enabled: !!token,
+  });
+
+  useEffect(() => {
+    if (!inHomeConnectorData?.config) return;
+    setInHomeConfig({
+      enabled: !!inHomeConnectorData.config.enabled,
+      baseUrl: inHomeConnectorData.config.baseUrl || "",
+      apiKey: "",
+      apiKeyMasked: inHomeConnectorData.config.apiKeyMasked || "",
+      timeoutMs: Number(inHomeConnectorData.config.timeoutMs || 5000),
+      webhookSecret: "",
+      webhookSecretMasked: inHomeConnectorData.config.webhookSecretMasked || "",
+    });
+  }, [inHomeConnectorData]);
 
   const saveSettingsMutation = useMutation({
     mutationFn: async (data: any) => {
@@ -155,6 +210,59 @@ export function SettingsTab({
     },
     onError: (error: any) => {
       setMessage(`خطأ: ${error.message}`);
+    },
+  });
+
+  const saveInHomeConnectorMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch("/api/admin/store/inhome-shipping-config", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          enabled: inHomeConfig.enabled,
+          baseUrl: inHomeConfig.baseUrl,
+          apiKey: inHomeConfig.apiKey || inHomeConfig.apiKeyMasked || "",
+          timeoutMs: inHomeConfig.timeoutMs,
+          webhookSecret: inHomeConfig.webhookSecret || inHomeConfig.webhookSecretMasked || "",
+        }),
+      });
+
+      const json = await res.json();
+      if (!res.ok || json?.success === false) {
+        throw new Error(json?.message || "Failed to save connector settings");
+      }
+      return json;
+    },
+    onSuccess: () => {
+      setMessage("تم حفظ إعدادات in-home بنجاح");
+      setTimeout(() => setMessage(""), 3000);
+      queryClient.invalidateQueries({ queryKey: ["admin-inhome-shipping-config"] });
+    },
+    onError: (error: any) => {
+      setMessage(`خطأ: ${error.message || "فشل حفظ الإعدادات"}`);
+    },
+  });
+
+  const testInHomeConnectorMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch("/api/admin/store/inhome-shipping-config/test", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const json = await res.json();
+      if (!res.ok || json?.success === false) {
+        throw new Error(json?.data?.message || json?.message || "Connector test failed");
+      }
+      return json;
+    },
+    onSuccess: (result) => {
+      const msg = result?.data?.message || "Connector is connected";
+      setMessage(`تم الاختبار بنجاح: ${msg}`);
+      setTimeout(() => setMessage(""), 4000);
+      queryClient.invalidateQueries({ queryKey: ["admin-inhome-shipping-config"] });
+    },
+    onError: (error: any) => {
+      setMessage(`فشل الاختبار: ${error.message || "Connection failed"}`);
     },
   });
 
@@ -451,18 +559,108 @@ export function SettingsTab({
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Key className="w-5 h-5" />
-                مفاتيح API والتكاملات
+                تكامل in-home للشحن
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground mb-4">
-                يتم إدارة هذه المفاتيح عبر متغيرات البيئة. قم بتحديث ملف .env:
-              </p>
-              <div className="bg-muted p-4 rounded-lg font-mono text-sm space-y-2">
-                <div>JWT_SECRET=your-secret-key</div>
-                <div>RESEND_API_KEY=your-resend-key</div>
-                <div>TWILIO_SID=your-twilio-sid</div>
-                <div>TWILIO_AUTH_TOKEN=your-twilio-token</div>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                <div>
+                  <p className="font-medium">تفعيل التكامل</p>
+                  <p className="text-xs text-muted-foreground">عند التعطيل، checkout في Classify يستمر بشكل طبيعي بدون أي اتصال خارجي.</p>
+                </div>
+                <Switch
+                  checked={inHomeConfig.enabled}
+                  onCheckedChange={(checked) => setInHomeConfig((prev) => ({ ...prev, enabled: checked }))}
+                  data-testid="switch-inhome-enabled"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Base URL</Label>
+                <Input
+                  value={inHomeConfig.baseUrl}
+                  onChange={(e) => setInHomeConfig((prev) => ({ ...prev, baseUrl: e.target.value }))}
+                  placeholder="https://in-home.classi-fy.com"
+                  data-testid="input-inhome-base-url"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>API Key</Label>
+                <Input
+                  value={inHomeConfig.apiKey}
+                  onChange={(e) => setInHomeConfig((prev) => ({ ...prev, apiKey: e.target.value }))}
+                  placeholder={inHomeConfig.apiKeyMasked || "in-home api key"}
+                  data-testid="input-inhome-api-key"
+                />
+                {inHomeConfig.apiKeyMasked && !inHomeConfig.apiKey && (
+                  <p className="text-xs text-muted-foreground">القيمة الحالية: {inHomeConfig.apiKeyMasked}</p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label>Webhook Secret</Label>
+                <Input
+                  value={inHomeConfig.webhookSecret}
+                  onChange={(e) => setInHomeConfig((prev) => ({ ...prev, webhookSecret: e.target.value }))}
+                  placeholder={inHomeConfig.webhookSecretMasked || "x-inhome-webhook-secret"}
+                  data-testid="input-inhome-webhook-secret"
+                />
+                {inHomeConfig.webhookSecretMasked && !inHomeConfig.webhookSecret && (
+                  <p className="text-xs text-muted-foreground">القيمة الحالية: {inHomeConfig.webhookSecretMasked}</p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label>Timeout (ms)</Label>
+                <Input
+                  type="number"
+                  value={inHomeConfig.timeoutMs}
+                  onChange={(e) => setInHomeConfig((prev) => ({ ...prev, timeoutMs: parseInt(e.target.value, 10) || 5000 }))}
+                  min={500}
+                  max={30000}
+                  data-testid="input-inhome-timeout"
+                />
+              </div>
+
+              <div className="p-3 border rounded-lg bg-muted/40">
+                <p className="text-sm font-medium mb-1">Webhook URL (ضعه داخل in-home Webhooks)</p>
+                <p className="text-xs font-mono break-all" data-testid="text-inhome-webhook-url">
+                  {inHomeConnectorData?.webhookUrl || "https://classi-fy.com/api/store/inhome/webhook"}
+                </p>
+              </div>
+
+              <div className="p-3 border rounded-lg bg-muted/30">
+                <p className="text-sm font-medium mb-2">آخر Webhook مستلم</p>
+                {inHomeConnectorData?.lastWebhookEvent ? (
+                  <div className="space-y-1 text-xs">
+                    <div>event: {inHomeConnectorData.lastWebhookEvent.event || "-"}</div>
+                    <div>status: {inHomeConnectorData.lastWebhookEvent.status || "-"}</div>
+                    <div>purchaseId: {inHomeConnectorData.lastWebhookEvent.purchaseId || "-"}</div>
+                    <div>trackingCode: {inHomeConnectorData.lastWebhookEvent.trackingCode || "-"}</div>
+                    <div>receivedAt: {inHomeConnectorData.lastWebhookEvent.receivedAt || "-"}</div>
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground">لا يوجد Webhook مستلم حتى الآن.</p>
+                )}
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  onClick={() => saveInHomeConnectorMutation.mutate()}
+                  disabled={saveInHomeConnectorMutation.isPending}
+                  data-testid="button-save-inhome-config"
+                >
+                  {saveInHomeConnectorMutation.isPending ? "جاري الحفظ..." : "حفظ إعدادات التكامل"}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => testInHomeConnectorMutation.mutate()}
+                  disabled={testInHomeConnectorMutation.isPending}
+                  data-testid="button-test-inhome-config"
+                >
+                  {testInHomeConnectorMutation.isPending ? "جاري الاختبار..." : "اختبار الاتصال"}
+                </Button>
               </div>
             </CardContent>
           </Card>

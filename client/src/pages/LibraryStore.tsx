@@ -67,7 +67,7 @@ const normalizeSharedCartProduct = (product: LibraryProduct): LibraryProduct => 
 };
 
 export default function LibraryStore() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [, navigate] = useLocation();
   const queryClient = useQueryClient();
   const { isDark, toggleTheme } = useTheme();
@@ -214,6 +214,16 @@ export default function LibraryStore() {
     enabled: !!token,
   });
 
+  const { data: shippingProvidersData } = useQuery({
+    queryKey: ["library-store-shipping-providers"],
+    queryFn: async () => {
+      const res = await fetch("/api/store/shipping-providers");
+      const json = await res.json();
+      return json?.data || [];
+    },
+    enabled: true,
+  });
+
   const { data: walletData } = useQuery({
     queryKey: ["library-store-wallet"],
     queryFn: async () => {
@@ -227,6 +237,11 @@ export default function LibraryStore() {
   });
 
   const paymentMethods: any[] = paymentMethodsData || [];
+  const shippingProviders: any[] = shippingProvidersData || [];
+  const suggestedShippingProvider = useMemo(
+    () => shippingProviders.find((provider: any) => provider?.recommended),
+    [shippingProviders]
+  );
   const wallet: any = walletData || {};
 
   useEffect(() => {
@@ -780,6 +795,21 @@ export default function LibraryStore() {
                 <Input placeholder={t('libraryStore.district')} value={shippingAddress.state} onChange={(e) => setShippingAddress((prev) => ({ ...prev, state: e.target.value }))} />
                 <Input placeholder={t('libraryStore.postalCode')} value={shippingAddress.postalCode} onChange={(e) => setShippingAddress((prev) => ({ ...prev, postalCode: e.target.value }))} />
               </div>
+              {suggestedShippingProvider && (
+                <div className={`mt-3 rounded-lg border p-3 ${suggestedShippingProvider.enabled ? "border-emerald-200 bg-emerald-50 dark:border-emerald-800/60 dark:bg-emerald-950/20" : "border-amber-200 bg-amber-50 dark:border-amber-800/60 dark:bg-amber-950/20"}`}>
+                  <div className="flex items-start gap-2">
+                    <Store className={`w-4 h-4 mt-0.5 ${suggestedShippingProvider.enabled ? "text-emerald-600" : "text-amber-600"}`} />
+                    <div>
+                      <p className="font-bold text-sm">
+                        {i18n.language === "ar" ? suggestedShippingProvider.labelAr : suggestedShippingProvider.labelEn}
+                      </p>
+                      <p className="text-xs opacity-80">
+                        {i18n.language === "ar" ? suggestedShippingProvider.descriptionAr : suggestedShippingProvider.descriptionEn}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div>

@@ -171,6 +171,16 @@ export const ParentStore = (): JSX.Element => {
     enabled: true,
   });
 
+  const { data: shippingProvidersData } = useQuery({
+    queryKey: ["store-shipping-providers"],
+    queryFn: async () => {
+      const res = await fetch("/api/store/shipping-providers");
+      const json = await res.json();
+      return json?.data || [];
+    },
+    enabled: true,
+  });
+
   const { data: walletData } = useQuery({
     queryKey: ["parent-wallet"],
     queryFn: async () => {
@@ -239,6 +249,11 @@ export const ParentStore = (): JSX.Element => {
   const products: Product[] = productsData?.data || productsData || [];
   const children = childrenData || [];
   const paymentMethods = (paymentMethodsData as any)?.data || paymentMethodsData || [];
+  const shippingProviders = (shippingProvidersData as any)?.data || shippingProvidersData || [];
+  const suggestedShippingProvider = useMemo(
+    () => shippingProviders.find((provider: any) => provider?.recommended),
+    [shippingProviders]
+  );
   const wallet = walletData?.data || walletData;
   const referralCode = new URLSearchParams(window.location.search).get("ref");
   const ordersList: any[] = Array.isArray(ordersData) ? ordersData : (ordersData as any)?.data || [];
@@ -1242,6 +1257,21 @@ export const ParentStore = (): JSX.Element => {
                   onChange={(e) => setShippingAddress(prev => ({ ...prev, postalCode: e.target.value }))}
                 />
               </div>
+              {suggestedShippingProvider && (
+                <div className={`mt-3 rounded-lg border p-3 ${suggestedShippingProvider.enabled ? "border-emerald-200 bg-emerald-50 dark:border-emerald-800/60 dark:bg-emerald-950/20" : "border-amber-200 bg-amber-50 dark:border-amber-800/60 dark:bg-amber-950/20"}`}>
+                  <div className="flex items-start gap-2">
+                    <Truck className={`w-4 h-4 mt-0.5 ${suggestedShippingProvider.enabled ? "text-emerald-600" : "text-amber-600"}`} />
+                    <div>
+                      <p className="font-bold text-sm">
+                        {i18n.language === "ar" ? suggestedShippingProvider.labelAr : suggestedShippingProvider.labelEn}
+                      </p>
+                      <p className="text-xs opacity-80">
+                        {i18n.language === "ar" ? suggestedShippingProvider.descriptionAr : suggestedShippingProvider.descriptionEn}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div>
