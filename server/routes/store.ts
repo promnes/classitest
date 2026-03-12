@@ -73,6 +73,69 @@ interface StoreProduct {
 const INHOME_CONNECTOR_SETTINGS_KEY = "inHomeShippingConnector";
 const INHOME_WEBHOOK_LAST_EVENT_KEY = "inHomeShippingLastWebhook";
 
+function resolveInHomeWebhookSyncState(webhookEvent: string, payloadStatus: string) {
+  const normalizedEvent = (webhookEvent || "").toLowerCase();
+  const normalizedStatus = (payloadStatus || "").toLowerCase();
+
+  if (
+    normalizedEvent.includes("cancel") ||
+    ["cancelled", "canceled", "failed", "rejected"].includes(normalizedStatus)
+  ) {
+    return {
+      paymentStatus: "rejected",
+      libraryStatus: "cancelled",
+      markShipped: false,
+      markDelivered: false,
+    };
+  }
+
+  if (
+    normalizedEvent.includes("deliver") ||
+    normalizedEvent.includes("complete") ||
+    ["delivered", "completed", "done", "success"].includes(normalizedStatus)
+  ) {
+    return {
+      paymentStatus: "paid",
+      libraryStatus: "delivered",
+      markShipped: true,
+      markDelivered: true,
+    };
+  }
+
+  if (
+    normalizedEvent.includes("ship") ||
+    normalizedEvent.includes("pickup") ||
+    normalizedEvent.includes("assign") ||
+    ["shipped", "in_transit", "picked_up", "assigned"].includes(normalizedStatus)
+  ) {
+    return {
+      paymentStatus: null,
+      libraryStatus: "shipped",
+      markShipped: true,
+      markDelivered: false,
+    };
+  }
+
+  if (
+    normalizedEvent.includes("create") ||
+    ["pending", "created", "new"].includes(normalizedStatus)
+  ) {
+    return {
+      paymentStatus: null,
+      libraryStatus: "pending_admin",
+      markShipped: false,
+      markDelivered: false,
+    };
+  }
+
+  return {
+    paymentStatus: null,
+    libraryStatus: null,
+    markShipped: false,
+    markDelivered: false,
+  };
+}
+
 async function getInHomeConnectorConfig() {
   const envConfig = resolveInHomeShippingConfig();
   const rows = await db.select().from(appSettings).where(eq(appSettings.key, INHOME_CONNECTOR_SETTINGS_KEY));
@@ -308,13 +371,52 @@ export async function registerStoreRoutes(app: Express) {
 
       const customerNotes = String(payload?.data?.customerNotes || payload?.order?.customerNotes || "");
       const purchaseIdMatch = customerNotes.match(/purchaseId:\s*([a-zA-Z0-9-_]+)/i);
+      const purchaseId = purchaseIdMatch?.[1] || null;
+      const payloadStatus = String(payload?.data?.status || payload?.order?.status || "");
+
+      let syncApplied = false;
+      const resolvedState = resolveInHomeWebhookSyncState(webhookEvent, payloadStatus);
+
+      if (purchaseId) {
+        if (resolvedState.paymentStatus) {
+          await db
+            .update(parentPurchases)
+            .set({ paymentStatus: resolvedState.paymentStatus })
+            .where(eq(parentPurchases.id, purchaseId));
+          syncApplied = true;
+        }
+
+        if (resolvedState.libraryStatus) {
+          const updatePayload: Record<string, any> = {
+            status: resolvedState.libraryStatus,
+            updatedAt: new Date(),
+          };
+
+          if (resolvedState.markShipped) {
+            updatePayload.shippedAt = new Date();
+          }
+          if (resolvedState.markDelivered) {
+            updatePayload.deliveredAt = new Date();
+            updatePayload.completedAt = new Date();
+          }
+
+          await db
+            .update(libraryOrders)
+            .set(updatePayload)
+            .where(eq(libraryOrders.parentPurchaseId, purchaseId));
+          syncApplied = true;
+        }
+      }
 
       await saveLastInHomeWebhookEvent({
         event: webhookEvent,
         receivedAt: new Date().toISOString(),
-        purchaseId: purchaseIdMatch?.[1] || null,
+        purchaseId,
         trackingCode: payload?.data?.trackingCode || payload?.order?.trackingCode || null,
-        status: payload?.data?.status || payload?.order?.status || null,
+        status: payloadStatus || null,
+        syncApplied,
+        mappedPaymentStatus: resolvedState.paymentStatus,
+        mappedLibraryStatus: resolvedState.libraryStatus,
       });
 
       res.json({ success: true, message: "Webhook received" });
