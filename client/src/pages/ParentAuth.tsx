@@ -7,15 +7,16 @@ import { useSMSOTP } from "@/hooks/useSMSOTP";
 import { SMSVerification } from "@/components/SMSVerification";
 import { OTPMethodSelector } from "@/components/OTPMethodSelector";
 import { useAutoLogin } from "@/hooks/useAutoLogin";
-import { Loader2, CheckCircle, XCircle, ShoppingBag } from "lucide-react";
+import { Loader2, CheckCircle, XCircle, ShoppingBag, Shield, BookOpen, Sparkles, Star, EllipsisVertical } from "lucide-react";
 import { SocialLoginButtons } from "@/components/SocialLoginButtons";
 import { PhoneInput } from "@/components/PhoneInput";
 import { GovernorateSelect } from "@/components/ui/GovernorateSelect";
 import { LanguageSelector } from "@/components/LanguageSelector";
 
 export const ParentAuth = (): JSX.Element => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [, navigate] = useLocation();
+  const isRTL = i18n.language === "ar";
   const { isChecking, isLoggedIn } = useAutoLogin();
   const [isLogin, setIsLogin] = useState(true);
   const [usePhone, setUsePhone] = useState(false);
@@ -24,10 +25,12 @@ export const ParentAuth = (): JSX.Element => {
   const [countryCode, setCountryCode] = useState("+966");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
+  const [gender, setGender] = useState<"male" | "female" | "">("");
   const [error, setError] = useState("");
   const [pinCode, setPinCode] = useState("");
   const [governorate, setGovernorate] = useState("");
   const [showSMSVerification, setShowSMSVerification] = useState(false);
+  const [showTopActionsMenu, setShowTopActionsMenu] = useState(false);
   const [otpMethod, setOtpMethod] = useState<"email" | "sms">("email");
   const [availableMethods, setAvailableMethods] = useState<("email" | "sms")[]>(["email"]);
   const [passwordStrength, setPasswordStrength] = useState<{ score: number; label: string; color: string }>({ score: 0, label: "", color: "" });
@@ -56,7 +59,7 @@ export const ParentAuth = (): JSX.Element => {
           body: JSON.stringify(
             isLogin
               ? { phoneNumber: `${countryCode}${phone}`, password }
-              : { email, password, name, phoneNumber: `${countryCode}${phone}`, libraryReferralCode, referralCode, pin: pinCode || undefined, governorate: governorate || undefined }
+              : { email, password, name, gender, phoneNumber: `${countryCode}${phone}`, libraryReferralCode, referralCode, pin: pinCode || undefined, governorate: governorate || undefined }
           ),
         });
         if (!res.ok) {
@@ -70,7 +73,7 @@ export const ParentAuth = (): JSX.Element => {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(
-            isLogin ? { email, password } : { email, password, name, libraryReferralCode, referralCode, pin: pinCode || undefined, governorate: governorate || undefined }
+            isLogin ? { email, password } : { email, password, name, gender, libraryReferralCode, referralCode, pin: pinCode || undefined, governorate: governorate || undefined }
           ),
         });
         if (!res.ok) {
@@ -155,6 +158,27 @@ export const ParentAuth = (): JSX.Element => {
     }
   }, [mode]);
 
+  useEffect(() => {
+    if (!showTopActionsMenu) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setShowTopActionsMenu(false);
+      }
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [showTopActionsMenu]);
+
+  useEffect(() => {
+    const onResize = () => {
+      if (window.innerWidth >= 768) {
+        setShowTopActionsMenu(false);
+      }
+    };
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
   const evaluatePasswordStrength = (pw: string) => {
     let score = 0;
     if (pw.length >= 8) score++;
@@ -178,6 +202,10 @@ export const ParentAuth = (): JSX.Element => {
     setError("");
     // Client-side password validation for registration
     if (!isLogin) {
+      if (!gender) {
+        setError(t("parentAuth.genderRequired"));
+        return;
+      }
       if (password.length < 8) {
         setError(t("parentAuth.passwordTooShort", "كلمة المرور يجب أن تكون 8 أحرف على الأقل"));
         return;
@@ -202,38 +230,140 @@ export const ParentAuth = (): JSX.Element => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-400 to-blue-600 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center px-4">
-      <div className="w-full max-w-md">
-        <div className="flex justify-between items-center mb-8 relative z-50">
+    <div
+      className="min-h-screen relative overflow-x-hidden overflow-y-auto bg-[#061a2b] text-white"
+      style={{ fontFamily: '"Cairo","Noto Kufi Arabic","Segoe UI",sans-serif' }}
+    >
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute -top-24 -right-20 w-80 h-80 rounded-full bg-cyan-400/25 blur-3xl animate-pulse" />
+        <div className="absolute top-1/3 -left-20 w-72 h-72 rounded-full bg-emerald-300/20 blur-3xl animate-pulse" />
+        <div className="absolute -bottom-24 right-1/3 w-96 h-96 rounded-full bg-blue-500/20 blur-3xl animate-pulse" />
+      </div>
+
+      <div className={`relative z-10 px-4 py-3 ${!isLogin ? "pb-28 md:pb-3" : ""}`}>
+        <div className="max-w-6xl mx-auto flex items-center justify-between mb-4 gap-2 relative">
           <button
             onClick={() => navigate("/")}
-            className="text-white flex items-center gap-2 hover:opacity-80"
+            className="text-cyan-100/90 flex items-center gap-2 hover:text-white transition-colors shrink-0"
           >
             ← {t("back")}
           </button>
-          <div className="flex items-center gap-2">
+          <div className="hidden md:flex items-center gap-2 flex-wrap justify-end">
             <button
               onClick={() => navigate("/parent-store")}
-              className="bg-orange-500 hover:bg-orange-600 text-white rounded-full px-3 py-2 font-semibold shadow-md inline-flex items-center gap-1.5"
+              className="bg-amber-500 hover:bg-amber-600 text-white rounded-full px-3 py-2 font-semibold shadow-md inline-flex items-center gap-1.5 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
               data-testid="button-open-store-from-parent-auth"
             >
               <ShoppingBag className="w-4 h-4" />
-              {t("store.title", "المتجر")}
+              <span>{t("store.title", "المتجر")}</span>
             </button>
             <LanguageSelector />
-            <PWAInstallButton 
-              variant="default" 
+            <PWAInstallButton
+              variant="default"
               size="default"
               showText={true}
-              className="bg-cyan-500 hover:bg-cyan-600 text-white rounded-full px-4 py-2 font-semibold shadow-md"
+              className="inline-flex bg-cyan-500 hover:bg-cyan-600 text-white rounded-full px-4 py-2 font-semibold shadow-md transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
             />
+          </div>
+
+          <div className="md:hidden flex items-center gap-2">
+            <button
+              onClick={() => navigate("/parent-store")}
+              aria-label={t("store.title", "المتجر")}
+              className="bg-amber-500 hover:bg-amber-600 text-white rounded-full w-10 h-10 inline-flex items-center justify-center shadow-md transition-all duration-200 hover:scale-[1.05] active:scale-95"
+              data-testid="button-open-store-from-parent-auth"
+            >
+              <ShoppingBag className="w-4 h-4" />
+            </button>
+
+            <button
+              type="button"
+              aria-label={t("common.more", "المزيد")}
+              aria-haspopup="menu"
+              aria-expanded={showTopActionsMenu}
+              aria-controls="parent-auth-mobile-actions-menu"
+              onClick={() => setShowTopActionsMenu((prev) => !prev)}
+              className="w-10 h-10 rounded-full bg-white/15 border border-white/25 text-cyan-50 inline-flex items-center justify-center backdrop-blur-sm transition-all duration-200 hover:bg-white/20 hover:scale-[1.05] active:scale-95"
+            >
+              <EllipsisVertical className="w-5 h-5" />
+            </button>
+          </div>
+
+          <button
+            aria-label={t("common.close", "إغلاق")}
+            aria-hidden={!showTopActionsMenu}
+            className={`md:hidden fixed inset-0 z-30 bg-black/20 transition-opacity duration-200 ${showTopActionsMenu ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}
+            onClick={() => setShowTopActionsMenu(false)}
+          />
+
+          <div
+            id="parent-auth-mobile-actions-menu"
+            role="menu"
+            aria-hidden={!showTopActionsMenu}
+            className={`md:hidden absolute top-full mt-2 ${isRTL ? "left-0" : "right-0"} z-40 w-[min(12.5rem,calc(100vw-0.75rem))] rounded-2xl border border-cyan-100/30 bg-slate-950/95 backdrop-blur-xl shadow-2xl p-2 ${isRTL ? "origin-top-left" : "origin-top-right"} transition-all duration-200 ${showTopActionsMenu ? "opacity-100 translate-y-0 pointer-events-auto" : "opacity-0 -translate-y-1 pointer-events-none"}`}
+          >
+            <div
+              style={{ transitionDelay: showTopActionsMenu ? "35ms" : "0ms" }}
+              className={`px-2 pb-2 transition-all duration-200 ${showTopActionsMenu ? "opacity-100 translate-y-0" : "opacity-0 translate-y-1"}`}
+            >
+              <LanguageSelector />
+            </div>
+
+            <div className="h-px bg-white/10 my-1" />
+
+            <div
+              style={{ transitionDelay: showTopActionsMenu ? "70ms" : "0ms" }}
+              className={`px-2 py-1 transition-all duration-200 ${showTopActionsMenu ? "opacity-100 translate-y-0" : "opacity-0 translate-y-1"}`}
+            >
+              <PWAInstallButton
+                variant="default"
+                size="default"
+                showText={true}
+                className="w-full bg-cyan-500 hover:bg-cyan-600 text-white rounded-xl px-3 py-2 font-semibold shadow-md justify-center"
+              />
+            </div>
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-3xl p-8 shadow-2xl">
-          <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-2 text-center">
-            {isLogin ? t("parentLogin") : t("registerNewParent")}
-          </h1>
+        <div className="max-w-6xl mx-auto grid lg:grid-cols-[1.12fr_0.88fr] gap-5 items-center">
+          <div className="order-2 lg:order-1">
+            <div className="rounded-3xl border border-white/20 bg-white/10 backdrop-blur-xl p-5 lg:p-6 shadow-2xl">
+              <div className="inline-flex items-center gap-2 rounded-full bg-cyan-400/20 border border-cyan-200/30 px-4 py-1 text-cyan-100 text-xs mb-4">
+                <Sparkles className="w-4 h-4" />
+                {t("parentAuth.brandBadge")}
+              </div>
+              <h2 className="text-2xl lg:text-4xl leading-tight font-black text-white mb-3">
+                {t("parentAuth.slogan")}
+              </h2>
+              <p className="text-cyan-50/90 text-sm lg:text-base leading-relaxed mb-5">
+                {t("parentAuth.heroDescription")}
+              </p>
+
+              <div className="space-y-2.5">
+                <div className="flex items-center gap-3 rounded-2xl border border-white/20 bg-slate-900/30 px-4 py-2.5">
+                  <Shield className="w-5 h-5 text-cyan-300" />
+                  <span className="text-sm lg:text-base">{t("parentAuth.featureSafety")}</span>
+                </div>
+                <div className="flex items-center gap-3 rounded-2xl border border-white/20 bg-slate-900/30 px-4 py-2.5">
+                  <BookOpen className="w-5 h-5 text-emerald-300" />
+                  <span className="text-sm lg:text-base">{t("parentAuth.featureLearning")}</span>
+                </div>
+                <div className="flex items-center gap-3 rounded-2xl border border-white/20 bg-slate-900/30 px-4 py-2.5">
+                  <Star className="w-5 h-5 text-amber-300" />
+                  <span className="text-sm lg:text-base">{t("parentAuth.featureReports")}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="order-1 lg:order-2">
+            <div className="bg-white/95 dark:bg-gray-900/95 rounded-3xl p-5 lg:p-6 shadow-2xl border border-white/60">
+              <h1 className="text-2xl lg:text-3xl font-black text-slate-800 dark:text-white mb-1 text-center">
+                {isLogin ? t("parentLogin") : t("registerNewParent")}
+              </h1>
+              <p className="text-center text-slate-500 dark:text-slate-300 text-xs lg:text-sm mb-4">
+                {t("parentAuth.authSubtitle")}
+              </p>
 
           {/* Show SMS Verification if available */}
           {showSMSVerification && availableMethods.includes("sms") && (
@@ -287,15 +417,15 @@ export const ParentAuth = (): JSX.Element => {
           {!showSMSVerification && (
             <>
               {/* Email/Phone Toggle */}
-              <div className="flex gap-2 mb-6 bg-gray-100 dark:bg-gray-700 p-2 rounded-lg">
+              <div className="flex gap-2 mb-4 bg-slate-100 dark:bg-gray-700 p-1.5 rounded-xl">
                 <button
                   type="button"
                   onClick={() => {
                     setUsePhone(false);
                     setError("");
                   }}
-                  className={`flex-1 py-2 px-4 rounded-md font-bold transition-all ${
-                    !usePhone ? "bg-blue-500 text-white" : "text-gray-700 dark:text-gray-300"
+                  className={`flex-1 py-2 px-4 rounded-lg font-bold transition-all ${
+                    !usePhone ? "bg-cyan-600 text-white" : "text-gray-700 dark:text-gray-300"
                   }`}
                 >
                   {t("parentAuth.emailTab")}
@@ -306,15 +436,15 @@ export const ParentAuth = (): JSX.Element => {
                     setUsePhone(true);
                     setError("");
                   }}
-                  className={`flex-1 py-2 px-4 rounded-md font-bold transition-all ${
-                    usePhone ? "bg-blue-500 text-white" : "text-gray-700 dark:text-gray-300"
+                  className={`flex-1 py-2 px-4 rounded-lg font-bold transition-all ${
+                    usePhone ? "bg-cyan-600 text-white" : "text-gray-700 dark:text-gray-300"
                   }`}
                 >
                   {t("parentAuth.phoneTab")}
                 </button>
               </div>
 
-              <form onSubmit={handleSubmit} className="space-y-4">
+              <form id="parent-auth-form" onSubmit={handleSubmit} className="space-y-3">
                 {!isLogin && (
                   <div>
                     <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
@@ -326,9 +456,27 @@ export const ParentAuth = (): JSX.Element => {
                       onChange={(e) => setName(e.target.value)}
                       placeholder={t("parentAuth.enterName")}
                       autoComplete="name"
-                      className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-blue-400 text-gray-900 dark:text-white bg-white dark:bg-gray-700"
+                      className="w-full px-4 py-2.5 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-blue-400 text-gray-900 dark:text-white bg-white dark:bg-gray-700"
                       required
                     />
+                  </div>
+                )}
+
+                {!isLogin && (
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
+                      {t("parentAuth.gender")}
+                    </label>
+                    <select
+                      value={gender}
+                      onChange={(e) => setGender(e.target.value as "male" | "female" | "")}
+                      className="w-full px-4 py-2.5 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-blue-400 text-gray-900 dark:text-white bg-white dark:bg-gray-700"
+                      required
+                    >
+                      <option value="">{t("parentAuth.selectGender")}</option>
+                      <option value="male">{t("parentAuth.genderMale")}</option>
+                      <option value="female">{t("parentAuth.genderFemale")}</option>
+                    </select>
                   </div>
                 )}
 
@@ -345,7 +493,7 @@ export const ParentAuth = (): JSX.Element => {
                           onChange={(e) => setEmail(e.target.value)}
                           placeholder="example@mail.com"
                           autoComplete="email"
-                          className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-blue-400 text-gray-900 dark:text-white bg-white dark:bg-gray-700"
+                          className="w-full px-4 py-2.5 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-blue-400 focus:placeholder-transparent text-gray-900 dark:text-white bg-white dark:bg-gray-700"
                           required
                         />
                       </div>
@@ -359,7 +507,7 @@ export const ParentAuth = (): JSX.Element => {
                         onChange={setPhone}
                         countryCode={countryCode}
                         onCountryCodeChange={setCountryCode}
-                        placeholder="5xxxxxxxx"
+                        placeholder="512345678"
                       />
                     </div>
                   </>
@@ -374,7 +522,7 @@ export const ParentAuth = (): JSX.Element => {
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="example@mail.com"
                       autoComplete="email"
-                      className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-blue-400 text-gray-900 dark:text-white bg-white dark:bg-gray-700"
+                      className="w-full px-4 py-2.5 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-blue-400 focus:placeholder-transparent text-gray-900 dark:text-white bg-white dark:bg-gray-700"
                       required
                     />
                   </div>
@@ -391,11 +539,11 @@ export const ParentAuth = (): JSX.Element => {
                       setPassword(e.target.value);
                       if (!isLogin) setPasswordStrength(evaluatePasswordStrength(e.target.value));
                     }}
-                    placeholder="••••••••"
+                    placeholder="Aa123456"
                     autoComplete={isLogin ? "current-password" : "new-password"}
                     minLength={isLogin ? undefined : 8}
                     aria-describedby={!isLogin ? "password-strength" : undefined}
-                    className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-blue-400 text-gray-900 dark:text-white bg-white dark:bg-gray-700"
+                    className="w-full px-4 py-2.5 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-blue-400 focus:placeholder-transparent text-gray-900 dark:text-white bg-white dark:bg-gray-700"
                     required
                   />
                   {!isLogin && password.length > 0 && (
@@ -437,7 +585,7 @@ export const ParentAuth = (): JSX.Element => {
                       onChange={(e) => setPinCode(e.target.value.replace(/\D/g, "").slice(0, 4))}
                       placeholder={t("parentAuth.pinPlaceholder")}
                       maxLength={4}
-                      className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-blue-400 text-gray-900 dark:text-white bg-white dark:bg-gray-700 text-center text-xl tracking-widest font-mono"
+                      className="w-full px-4 py-2.5 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-blue-400 text-gray-900 dark:text-white bg-white dark:bg-gray-700 text-center text-xl tracking-widest font-mono"
                     />
                     <p className="text-xs text-gray-500 mt-1">
                       {t("parentAuth.pinHelper")}
@@ -462,14 +610,22 @@ export const ParentAuth = (): JSX.Element => {
                   </div>
                 )}
 
-                {error && <p className="text-red-500 text-sm" role="alert" aria-live="assertive">{error}</p>}
+                {error && (
+                  <p
+                    className="text-red-600 dark:text-red-300 text-sm rounded-lg border border-red-200 dark:border-red-500/40 bg-red-50 dark:bg-red-500/10 px-3 py-2"
+                    role="alert"
+                    aria-live="assertive"
+                  >
+                    {error}
+                  </p>
+                )}
 
                 <button
                   type="submit"
                   disabled={authMutation.isPending}
-                  className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 rounded-lg transition-all disabled:opacity-50"
+                  className={`w-full bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-700 hover:to-teal-700 text-white font-bold py-2.5 rounded-xl transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 ${!isLogin ? "hidden md:block" : ""}`}
                 >
-                  {authMutation.isPending ? t("parentAuth.processing") : isLogin ? t("parentAuth.login") : t("parentAuth.register")}
+                  {authMutation.isPending ? t("parentAuth.processing") : isLogin ? t("parentAuth.loginCta") : t("parentAuth.register")}
                 </button>
               </form>
 
@@ -480,7 +636,7 @@ export const ParentAuth = (): JSX.Element => {
                   setIsLogin(!isLogin);
                   setError("");
                 }}
-                className="w-full mt-4 text-blue-500 hover:text-blue-600 font-bold"
+                className="w-full mt-4 text-cyan-700 hover:text-cyan-800 dark:text-cyan-300 dark:hover:text-cyan-200 font-bold"
               >
                 {isLogin ? t("parentAuth.noAccount") : t("parentAuth.hasAccount")}
               </button>
@@ -496,8 +652,43 @@ export const ParentAuth = (): JSX.Element => {
               )}
             </>
           )}
+            </div>
+          </div>
+        </div>
+
+        <div className="max-w-6xl mx-auto mt-4 pb-6">
+          <div className="rounded-2xl border border-white/20 bg-white/10 backdrop-blur-xl p-3 lg:p-4">
+            <div className="text-center text-cyan-100 text-sm mb-3 font-semibold">{t("parentAuth.quickLinksTitle")}</div>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2">
+              <Link href="/privacy-policy" className="rounded-xl border border-white/20 bg-slate-900/35 px-3 py-2 text-xs text-center hover:bg-slate-800/50 hover:-translate-y-0.5 transition-all duration-200">🔒 {t("parentAuth.quickLinkPrivacy")}</Link>
+              <Link href="/terms" className="rounded-xl border border-white/20 bg-slate-900/35 px-3 py-2 text-xs text-center hover:bg-slate-800/50 hover:-translate-y-0.5 transition-all duration-200">📋 {t("parentAuth.quickLinkTerms")}</Link>
+              <Link href="/child-safety" className="rounded-xl border border-white/20 bg-slate-900/35 px-3 py-2 text-xs text-center hover:bg-slate-800/50 hover:-translate-y-0.5 transition-all duration-200">👶 {t("parentAuth.quickLinkChildSafety")}</Link>
+              <Link href="/refund-policy" className="rounded-xl border border-white/20 bg-slate-900/35 px-3 py-2 text-xs text-center hover:bg-slate-800/50 hover:-translate-y-0.5 transition-all duration-200">💰 {t("parentAuth.quickLinkRefund")}</Link>
+              <Link href="/about" className="rounded-xl border border-white/20 bg-slate-900/35 px-3 py-2 text-xs text-center hover:bg-slate-800/50 hover:-translate-y-0.5 transition-all duration-200">ℹ️ {t("parentAuth.quickLinkAbout")}</Link>
+              <Link href="/contact" className="rounded-xl border border-white/20 bg-slate-900/35 px-3 py-2 text-xs text-center hover:bg-slate-800/50 hover:-translate-y-0.5 transition-all duration-200">✉️ {t("parentAuth.quickLinkContact")}</Link>
+              <Link href="/trial-games" className="rounded-xl border border-white/20 bg-slate-900/35 px-3 py-2 text-xs text-center hover:bg-slate-800/50 hover:-translate-y-0.5 transition-all duration-200">🎮 {t("parentAuth.quickLinkTrialGames")}</Link>
+              <Link href="/download" className="rounded-xl border border-white/20 bg-slate-900/35 px-3 py-2 text-xs text-center hover:bg-slate-800/50 hover:-translate-y-0.5 transition-all duration-200">⬇️ {t("parentAuth.quickLinkDownload")}</Link>
+              <Link href="/legal" className="rounded-xl border border-white/20 bg-slate-900/35 px-3 py-2 text-xs text-center hover:bg-slate-800/50 hover:-translate-y-0.5 transition-all duration-200 md:col-span-3 lg:col-span-1">⚖️ {t("parentAuth.quickLinkLegalCenter")}</Link>
+            </div>
+          </div>
         </div>
       </div>
+
+      {!isLogin && (
+        <div
+          className="fixed inset-x-4 z-40 md:hidden"
+          style={{ bottom: "max(0.75rem, env(safe-area-inset-bottom))" }}
+        >
+          <button
+            type="submit"
+            form="parent-auth-form"
+            disabled={authMutation.isPending}
+            className="w-full min-h-12 rounded-2xl bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-700 hover:to-teal-700 text-white font-bold py-3 shadow-2xl ring-1 ring-white/40 backdrop-blur-sm transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50"
+          >
+            {authMutation.isPending ? t("parentAuth.processing") : t("parentAuth.register")}
+          </button>
+        </div>
+      )}
     </div>
   );
 };

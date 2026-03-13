@@ -74,7 +74,8 @@ export default function LibraryLogin() {
                 id="username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                placeholder={t("libraryLogin.enterUsername")}
+                placeholder="library_user01"
+                className="focus:placeholder-transparent"
                 data-testid="input-library-login-username"
               />
             </div>
@@ -86,7 +87,8 @@ export default function LibraryLogin() {
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder={t("libraryLogin.enterPassword")}
+                  placeholder="Aa123456"
+                  className="focus:placeholder-transparent"
                   data-testid="input-library-login-password"
                 />
                 <Button

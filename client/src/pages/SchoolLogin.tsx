@@ -74,7 +74,8 @@ export default function SchoolLogin() {
                 id="username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                placeholder={t("schoolLogin.enterUsername")}
+                placeholder="school_admin01"
+                className="focus:placeholder-transparent"
               />
             </div>
             <div className="space-y-2">
@@ -85,7 +86,8 @@ export default function SchoolLogin() {
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder={t("schoolLogin.enterPassword")}
+                  placeholder="Aa123456"
+                  className="focus:placeholder-transparent"
                 />
                 <Button
                   type="button"

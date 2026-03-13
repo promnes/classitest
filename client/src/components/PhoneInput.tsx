@@ -186,7 +186,7 @@ export const PhoneInput: React.FC<PhoneInputProps> = ({
               : "border-gray-300 dark:border-gray-600 focus:border-blue-500 dark:focus:border-blue-400 focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-800"
             }
             bg-white dark:bg-gray-700 text-gray-900 dark:text-white
-            placeholder:text-gray-400 dark:placeholder:text-gray-500
+            placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:placeholder-transparent
             disabled:opacity-50 disabled:cursor-not-allowed
           `}
         />

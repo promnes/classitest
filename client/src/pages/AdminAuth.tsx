@@ -145,8 +145,8 @@ export const AdminAuth = (): JSX.Element => {
               autoComplete="username"
               className={`w-full px-4 py-2 border-2 rounded-lg focus:outline-none focus:border-blue-500 ${
                 isDark ? "bg-gray-700 border-gray-600 text-white" : "border-gray-300"
-              }`}
-              placeholder={t("adminAuth.usernamePlaceholder")}
+              } focus:placeholder-transparent`}
+              placeholder="admin_user"
               data-testid="input-admin-username"
             />
           </div>
@@ -162,8 +162,8 @@ export const AdminAuth = (): JSX.Element => {
               autoComplete="current-password"
               className={`w-full px-4 py-2 border-2 rounded-lg focus:outline-none focus:border-blue-500 ${
                 isDark ? "bg-gray-700 border-gray-600 text-white" : "border-gray-300"
-              }`}
-              placeholder="........"
+              } focus:placeholder-transparent`}
+              placeholder="Aa123456"
               data-testid="input-admin-password"
             />
           </div>
