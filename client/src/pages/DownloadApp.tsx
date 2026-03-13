@@ -23,6 +23,14 @@ export default function DownloadApp() {
     { icon: <BadgeCheck className="w-5 h-5 text-yellow-400" />, text: t("downloadAppPage.verifiedTrusted") },
   ];
 
+  const appScreenshots = [
+    "/screenshots/classify/classify-1.jpeg",
+    "/screenshots/classify/classify-2.jpeg",
+    "/screenshots/classify/classify-3.jpeg",
+    "/screenshots/classify/classify-4.jpeg",
+    "/screenshots/classify/classify-5.jpeg",
+  ];
+
   return (
     <div className={`min-h-screen ${isDark ? "bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900" : "bg-gradient-to-br from-purple-600 via-purple-500 to-purple-700"}`} dir={isRTL ? "rtl" : "ltr"}>
       {/* Header */}
@@ -52,6 +60,36 @@ export default function DownloadApp() {
           <p className="text-lg text-purple-200 max-w-lg mx-auto">
             {t("downloadAppDesc")}
           </p>
+        </div>
+
+        <div className="mb-10">
+          <h3 className="text-xl md:text-2xl font-bold text-white text-center mb-4">
+            {isRTL ? "لقطات من التطبيق" : "App Screenshots"}
+          </h3>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            {appScreenshots.map((src, index) => (
+              <a
+                key={src}
+                href={src}
+                target="_blank"
+                rel="noreferrer"
+                className="group relative block overflow-hidden rounded-2xl border border-white/20 bg-white/10 backdrop-blur-sm"
+              >
+                <img
+                  src={src}
+                  alt={isRTL ? `لقطة ${index + 1}` : `Screenshot ${index + 1}`}
+                  loading="lazy"
+                  decoding="async"
+                  className="h-56 w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                />
+                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-3 py-2">
+                  <p className="text-xs text-white/90 font-medium">
+                    {isRTL ? `لقطة رقم ${index + 1}` : `Screenshot #${index + 1}`}
+                  </p>
+                </div>
+              </a>
+            ))}
+          </div>
         </div>
 
         {/* Trust Badges Row */}

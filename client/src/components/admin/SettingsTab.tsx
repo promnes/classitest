@@ -57,7 +57,14 @@ const NOTIFICATION_SOUNDS = [
 ];
 
 export function SettingsTab({
-  token }: { token: string }) {
+  token,
+  initialTab = "otp",
+  hideTabs = false,
+}: {
+  token: string;
+  initialTab?: "otp" | "notifications" | "account" | "api";
+  hideTabs?: boolean;
+}) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [recoveryEmail, setRecoveryEmail] = useState("");
@@ -284,25 +291,27 @@ export function SettingsTab({
         </div>
       )}
 
-      <Tabs defaultValue="otp" className="w-full">
-        <TabsList className="grid w-full grid-cols-4 mb-6">
-          <TabsTrigger value="otp" className="flex items-center gap-2">
-            <Shield className="w-4 h-4" />
-            <span>OTP</span>
-          </TabsTrigger>
-          <TabsTrigger value="notifications" className="flex items-center gap-2">
-            <Bell className="w-4 h-4" />
-            <span>الإشعارات</span>
-          </TabsTrigger>
-          <TabsTrigger value="account" className="flex items-center gap-2">
-            <Settings className="w-4 h-4" />
-            <span>الحساب</span>
-          </TabsTrigger>
-          <TabsTrigger value="api" className="flex items-center gap-2">
-            <Key className="w-4 h-4" />
-            <span>API</span>
-          </TabsTrigger>
-        </TabsList>
+      <Tabs defaultValue={initialTab} className="w-full">
+        {!hideTabs && (
+          <TabsList className="grid w-full grid-cols-4 mb-6">
+            <TabsTrigger value="otp" className="flex items-center gap-2">
+              <Shield className="w-4 h-4" />
+              <span>OTP</span>
+            </TabsTrigger>
+            <TabsTrigger value="notifications" className="flex items-center gap-2">
+              <Bell className="w-4 h-4" />
+              <span>الإشعارات</span>
+            </TabsTrigger>
+            <TabsTrigger value="account" className="flex items-center gap-2">
+              <Settings className="w-4 h-4" />
+              <span>الحساب</span>
+            </TabsTrigger>
+            <TabsTrigger value="api" className="flex items-center gap-2">
+              <Key className="w-4 h-4" />
+              <span>in-home</span>
+            </TabsTrigger>
+          </TabsList>
+        )}
 
         <TabsContent value="otp">
           <Card>

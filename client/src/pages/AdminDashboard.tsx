@@ -41,7 +41,7 @@ import { MobileAppSettingsTab } from "@/components/admin/MobileAppSettingsTab";
 import { GrowthTreeSettingsTab } from "@/components/admin/GrowthTreeSettingsTab";
 import { StoreAnalyticsTab } from "@/components/admin/StoreAnalyticsTab";
 
-type TabType = "dashboard" | "products" | "categories" | "symbols" | "users" | "settings" | "wallets" | "orders" | "deposits" | "activity" | "analytics" | "payment-methods" | "subjects" | "notifications" | "notification-settings" | "task-notification-levels" | "gifts" | "referrals" | "ads" | "parents" | "profits" | "libraries" | "schools" | "games" | "tasks" | "social-login" | "otp-providers" | "seo" | "support" | "legal" | "mobile-app" | "growth-tree" | "store-analytics";
+type TabType = "dashboard" | "products" | "categories" | "symbols" | "users" | "settings" | "inhome" | "wallets" | "orders" | "deposits" | "activity" | "analytics" | "payment-methods" | "subjects" | "notifications" | "notification-settings" | "task-notification-levels" | "gifts" | "referrals" | "ads" | "parents" | "profits" | "libraries" | "schools" | "games" | "tasks" | "social-login" | "otp-providers" | "seo" | "support" | "legal" | "mobile-app" | "growth-tree" | "store-analytics";
 
 export const AdminDashboard = (): JSX.Element => {
   const { t, i18n } = useTranslation();
@@ -87,7 +87,7 @@ export const AdminDashboard = (): JSX.Element => {
     navigate("/admin");
   };
 
-  const tabs: { id: TabType; labelKey: string; icon: string }[] = [
+  const tabs: { id: TabType; labelKey?: string; label?: string; icon: string }[] = [
     { id: "dashboard", labelKey: "admin.dashboard", icon: "📊" },
     { id: "profits", labelKey: "admin.profitSystem.title", icon: "💹" },
     { id: "parents", labelKey: "admin.parentsManagement", icon: "👨‍👩‍👧‍👦" },
@@ -102,6 +102,7 @@ export const AdminDashboard = (): JSX.Element => {
     { id: "growth-tree", labelKey: "admin.growthTree.title", icon: "🌳" },
     { id: "wallets", labelKey: "admin.wallets", icon: "💰" },
     { id: "orders", labelKey: "admin.orders", icon: "📦" },
+    { id: "inhome", label: "in-home", icon: "🚚" },
     { id: "deposits", labelKey: "admin.deposits.title", icon: "💳" },
     { id: "payment-methods", labelKey: "admin.paymentMethods.title", icon: "💳" },
     { id: "analytics", labelKey: "admin.walletAnalytics", icon: "📈" },
@@ -154,7 +155,7 @@ export const AdminDashboard = (): JSX.Element => {
               }`}
             >
               <span className="text-xl">{tab.icon}</span>
-              {sidebarOpen && <span>{t(tab.labelKey)}</span>}
+              {sidebarOpen && <span>{tab.label || (tab.labelKey ? t(tab.labelKey) : "")}</span>}
             </button>
           ))}
           
@@ -195,6 +196,7 @@ export const AdminDashboard = (): JSX.Element => {
           {activeTab === "users" && <UsersTab token={token} />}
           {activeTab === "wallets" && <WalletsTab token={token} />}
           {activeTab === "orders" && <OrdersTab token={token} />}
+          {activeTab === "inhome" && <SettingsTab token={token} initialTab="api" hideTabs />}
           {activeTab === "deposits" && <DepositsTab token={token} />}
           {activeTab === "payment-methods" && <PaymentMethodsTab token={token} />}
           {activeTab === "analytics" && <WalletAnalytics token={token} />}

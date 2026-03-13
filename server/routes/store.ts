@@ -352,6 +352,18 @@ export async function registerStoreRoutes(app: Express) {
     }
   });
 
+  app.get("/api/store/inhome/webhook", async (_req: any, res) => {
+    return res.json({
+      success: true,
+      data: {
+        endpoint: "/api/store/inhome/webhook",
+        method: "POST",
+        status: "ready",
+      },
+      message: "Webhook endpoint is available. Send POST requests from in-home service.",
+    });
+  });
+
   app.post("/api/store/inhome/webhook", async (req: any, res) => {
     try {
       const connectorConfig = await getInHomeConnectorConfig();
