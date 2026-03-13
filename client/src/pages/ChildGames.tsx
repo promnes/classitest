@@ -1119,7 +1119,9 @@ export const ChildGames = (): JSX.Element => {
   };
 
   return (
-    <div className={`min-h-screen ${isDark ? "bg-gradient-to-br from-purple-900 via-indigo-900 to-slate-900" : "bg-gradient-to-br from-purple-400 via-purple-500 to-indigo-500"} pb-24`} dir={isRTL ? "rtl" : "ltr"}>
+    <div className={`relative min-h-screen overflow-x-hidden ${isDark ? "bg-gradient-to-br from-purple-900 via-indigo-900 to-slate-900" : "bg-gradient-to-br from-purple-400 via-purple-500 to-indigo-500"} pb-24`} dir={isRTL ? "rtl" : "ltr"}>
+      <div className={`pointer-events-none absolute -top-20 ${isRTL ? "-left-20" : "-right-20"} h-72 w-72 rounded-full blur-3xl ${isDark ? "bg-cyan-700/25" : "bg-cyan-300/35"}`} />
+      <div className={`pointer-events-none absolute top-[28rem] ${isRTL ? "-right-20" : "-left-20"} h-80 w-80 rounded-full blur-3xl ${isDark ? "bg-fuchsia-700/25" : "bg-fuchsia-300/35"}`} />
 
       
       {/* ─── Sticky Header ─────────────────────────────────── */}
@@ -1245,12 +1247,12 @@ export const ChildGames = (): JSX.Element => {
       </AnimatePresence>
 
       {/* Growth Tree Section */}
-      <div className="max-w-6xl mx-auto mb-6">
+      <div className="max-w-6xl mx-auto mb-6 relative z-10">
         <GrowthTree />
       </div>
 
       {/* Games Section Header */}
-      <div className="max-w-6xl mx-auto px-3 sm:px-4 mb-4">
+      <div className="max-w-6xl mx-auto px-3 sm:px-4 mb-4 relative z-10">
         <div className="flex items-center gap-2">
           <motion.div
             animate={{ rotate: [0, -10, 10, -10, 0] }}
@@ -1276,7 +1278,7 @@ export const ChildGames = (): JSX.Element => {
           <p className="text-white/60 text-sm animate-pulse">{isRTL ? 'جاري تحميل الألعاب...' : 'Loading games...'}</p>
         </div>
       ) : (
-        <div className="max-w-6xl mx-auto px-3 sm:px-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
+        <div className="max-w-6xl mx-auto px-3 sm:px-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 relative z-10">
           {games?.map((game, index) => (
             <motion.div
               key={game.id}
@@ -1286,10 +1288,10 @@ export const ChildGames = (): JSX.Element => {
               whileHover={{ y: -6, scale: 1.04 }}
               whileTap={{ scale: 0.96 }}
               onClick={() => handlePlayGame(game)}
-              className={`${isDark ? "bg-gray-900/95 border border-gray-600/70" : "bg-white/98 border border-indigo-100"} rounded-2xl overflow-hidden shadow-2xl cursor-pointer backdrop-blur-sm group`}
+              className={`${isDark ? "bg-gray-900/95 border border-gray-600/70" : "bg-white/98 border border-indigo-100"} rounded-2xl overflow-hidden shadow-2xl hover:shadow-[0_20px_40px_rgba(0,0,0,0.25)] cursor-pointer backdrop-blur-sm group`}
               data-testid={`game-card-${game.id}`}
             >
-              <div className={`aspect-[4/3] ${isDark ? "bg-slate-800" : "bg-indigo-100"} flex items-center justify-center relative overflow-hidden`}>
+              <div className={`aspect-[4/3] ${isDark ? "bg-slate-800" : "bg-indigo-100"} flex items-center justify-center relative overflow-hidden ring-1 ring-black/10`}>
                 {game.thumbnailUrl ? (
                   <img
                     src={game.thumbnailUrl}
@@ -1378,7 +1380,7 @@ export const ChildGames = (): JSX.Element => {
       )}
 
       {selectedGame && (
-        <div className="fixed inset-0 bg-black bg-opacity-80 flex flex-col z-50">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-[2px] flex flex-col z-50">
           <div className={`flex items-center justify-between px-4 py-2 ${isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"} border-b shrink-0`}>
               <h3 className={`text-lg font-bold truncate ${isDark ? "text-white" : "text-gray-800"}`}>
                 {selectedGame.title}

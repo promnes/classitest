@@ -498,9 +498,11 @@ export default function ParentProfile() {
   ];
 
   return (
-    <div className={`min-h-screen pb-24 ${isDark ? "bg-gradient-to-b from-slate-950 via-gray-950 to-slate-900 text-white" : "bg-gradient-to-br from-sky-50 via-white to-indigo-50 text-gray-900"}`} dir={isRTL ? "rtl" : "ltr"}>
+    <div className={`relative min-h-screen pb-24 overflow-x-hidden ${isDark ? "bg-gradient-to-b from-slate-950 via-gray-950 to-slate-900 text-white" : "bg-gradient-to-br from-sky-50 via-white to-indigo-50 text-gray-900"}`} dir={isRTL ? "rtl" : "ltr"}>
+      <div className={`pointer-events-none absolute -top-20 ${isRTL ? "-left-20" : "-right-20"} h-64 w-64 rounded-full blur-3xl ${isDark ? "bg-blue-700/20" : "bg-blue-300/35"}`} />
+      <div className={`pointer-events-none absolute top-72 ${isRTL ? "-right-20" : "-left-20"} h-72 w-72 rounded-full blur-3xl ${isDark ? "bg-indigo-700/20" : "bg-indigo-200/40"}`} />
       {/* Sticky Header */}
-      <div className={`sticky top-0 z-40 px-4 py-3 flex items-center gap-3 border-b ${isDark ? "bg-slate-900/90 border-slate-800" : "bg-white/85 border-indigo-100"} backdrop-blur-xl shadow-sm`}>
+      <div className={`sticky top-0 z-[10010] px-4 py-3 flex items-center gap-3 border-b ${isDark ? "bg-slate-900/90 border-slate-800" : "bg-white/90 border-indigo-100"} backdrop-blur-xl shadow-sm`}>
         <Button variant="ghost" size="icon" onClick={() => window.history.length > 1 ? window.history.back() : navigate("/parent-dashboard")}>
           {isRTL ? <ArrowRight className="h-5 w-5" /> : <ArrowLeft className="h-5 w-5" />}
         </Button>
@@ -510,7 +512,7 @@ export default function ParentProfile() {
       </div>
 
       {/* ======= COVER + AVATAR SECTION ======= */}
-      <div className="relative max-w-3xl mx-auto">
+      <div className="relative max-w-4xl mx-auto">
         {/* Cover Image */}
         <div className={`h-44 sm:h-56 relative overflow-hidden rounded-b-3xl ring-1 ${isDark ? "bg-gradient-to-br from-blue-900 via-indigo-900 to-purple-900 ring-slate-800" : "bg-gradient-to-br from-sky-400 via-indigo-500 to-blue-600 ring-white/70"}`}>
           {parent?.coverImageUrl && !coverLoadError && (
@@ -534,7 +536,7 @@ export default function ParentProfile() {
         </div>
 
         {/* Avatar + Info */}
-        <div className="px-4 -mt-14 relative z-40">
+        <div className="px-4 -mt-14 relative z-20">
           <div className="flex items-end gap-3">
             <div className={`relative h-24 w-24 rounded-full border-4 shadow-2xl flex items-center justify-center text-3xl font-bold ${isDark ? "bg-slate-800 border-slate-900 text-blue-400" : "bg-white border-white text-blue-600"}`}>
               {parent?.avatarUrl && !avatarLoadError ? (
@@ -556,7 +558,7 @@ export default function ParentProfile() {
               </button>
               <input ref={avatarInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => handleSelectImage(e, "avatar")} />
             </div>
-            <div className="pb-1 flex-1">
+            <div className={`pb-1 flex-1 rounded-2xl px-3 py-2 backdrop-blur ${isDark ? "bg-slate-900/60" : "bg-white/70"}`}>
               <div className="flex items-center gap-2">
                 <h2 className="text-xl font-bold">{parent?.name}</h2>
                 <ShareMenu
@@ -601,7 +603,7 @@ export default function ParentProfile() {
         )}
 
         {/* Stats Row */}
-        <div className="grid grid-cols-4 gap-2 px-4 mt-4 max-w-3xl mx-auto">
+        <div className="grid grid-cols-4 gap-2 px-4 mt-4 max-w-4xl mx-auto">
           {[
             { label: t("pp.stats.children"), value: stats?.children || 0, icon: Users, color: "text-blue-500", bg: isDark ? "bg-blue-900/20" : "bg-blue-50" },
             { label: t("pp.stats.library"), value: stats?.libraryTasks || 0, icon: BookOpen, color: "text-green-500", bg: isDark ? "bg-green-900/20" : "bg-green-50" },
@@ -618,15 +620,15 @@ export default function ParentProfile() {
       </div>
 
       {/* ======= TAB BAR ======= */}
-      <div className={`sticky top-[53px] z-30 mt-4 px-4 border-b ${isDark ? "bg-slate-950/95 border-slate-800" : "bg-transparent border-transparent"} backdrop-blur-sm`}>
-        <div className="flex gap-1 overflow-x-auto hide-scrollbar pb-0.5">
+      <div className={`sticky top-[53px] z-30 mt-4 px-4 ${isDark ? "bg-slate-950/90" : "bg-transparent"} backdrop-blur-sm`}>
+        <div className={`flex gap-1.5 overflow-x-auto hide-scrollbar pb-1 px-1.5 py-1.5 rounded-2xl border ${isDark ? "border-slate-800 bg-slate-900/80" : "border-indigo-100 bg-white/85"} shadow-sm`}>
           {tabs.map(tab => (
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
               className={`flex items-center gap-1.5 px-3 py-2.5 text-xs font-semibold whitespace-nowrap border-b-2 transition-all rounded-t-xl ${
                 activeTab === tab.key
-                  ? "border-blue-500 text-blue-600 dark:text-blue-400 bg-white dark:bg-slate-900 shadow-sm"
+                  ? "border-blue-500 text-blue-600 dark:text-blue-400 bg-white dark:bg-slate-950 shadow-sm"
                   : `border-transparent ${isDark ? "text-gray-500 hover:text-gray-300" : "text-gray-500 hover:text-gray-700"}`
               }`}
             >
@@ -638,7 +640,7 @@ export default function ParentProfile() {
       </div>
 
       {/* ======= TAB CONTENT ======= */}
-      <main className="px-4 mt-4 max-w-3xl mx-auto">
+      <main className="px-4 mt-4 max-w-4xl mx-auto">
         <AnimatePresence mode="wait">
           {/* ========== POSTS TAB ========== */}
           {activeTab === "posts" && (

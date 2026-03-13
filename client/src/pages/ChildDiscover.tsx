@@ -133,9 +133,11 @@ export default function ChildDiscover() {
   const hasResults = (data?.children?.length || 0) + (data?.schools?.length || 0) + (data?.teachers?.length || 0) > 0;
 
   return (
-    <div className={`min-h-screen pb-24 ${isDark ? "bg-gray-900" : "bg-gradient-to-br from-violet-50 via-purple-50 to-fuchsia-50"}`} dir={isRTL ? "rtl" : "ltr"}>
+    <div className={`relative min-h-screen pb-24 overflow-x-hidden ${isDark ? "bg-gray-900" : "bg-gradient-to-br from-violet-50 via-purple-50 to-fuchsia-50"}`} dir={isRTL ? "rtl" : "ltr"}>
+      <div className={`pointer-events-none absolute -top-20 ${isRTL ? "-left-20" : "-right-20"} h-72 w-72 rounded-full blur-3xl ${isDark ? "bg-violet-700/20" : "bg-violet-200/45"}`} />
+      <div className={`pointer-events-none absolute top-[24rem] ${isRTL ? "-right-20" : "-left-20"} h-80 w-80 rounded-full blur-3xl ${isDark ? "bg-fuchsia-700/20" : "bg-fuchsia-200/40"}`} />
       {/* Header */}
-      <div className={`sticky top-0 z-50 px-4 pt-4 pb-3 ${isDark ? "bg-gray-900/95" : "bg-white/95"} backdrop-blur-sm border-b ${isDark ? "border-gray-800" : "border-gray-200"}`}>
+      <div className={`sticky top-0 z-50 px-4 pt-4 pb-3 ${isDark ? "bg-gray-900/95" : "bg-white/95"} backdrop-blur-sm border-b ${isDark ? "border-gray-800" : "border-violet-100"}`}>
         <div className="flex items-center gap-3 mb-3">
           <button onClick={() => window.history.length > 1 ? window.history.back() : navigate("/child-games")}
             className={`p-2 rounded-xl ${isDark ? "hover:bg-gray-800 text-gray-300" : "hover:bg-gray-100 text-gray-600"}`}>
@@ -158,7 +160,7 @@ export default function ChildDiscover() {
         </div>
 
         {/* Filter Tabs */}
-        <div className="flex gap-1.5 overflow-x-auto">
+        <div className={`flex gap-1.5 overflow-x-auto p-1 rounded-2xl border ${isDark ? "bg-gray-800/70 border-gray-700" : "bg-white/90 border-violet-100"}`}>
           {filters.map((f) => (
             <button
               key={f.key}
@@ -177,7 +179,7 @@ export default function ChildDiscover() {
       </div>
 
       {/* Content */}
-      <main className="max-w-2xl mx-auto px-4 py-4 space-y-5">
+      <main className="max-w-3xl mx-auto px-4 py-4 space-y-5 relative z-10">
         {loading ? (
           <div className="flex items-center justify-center py-16">
             <Loader2 className="w-8 h-8 animate-spin text-purple-500" />
@@ -216,7 +218,7 @@ export default function ChildDiscover() {
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: i * 0.05 }}
                     >
-                      <Card className={`border-0 shadow-sm ${isDark ? "bg-gray-800" : "bg-white"}`}>
+                      <Card className={`border-0 shadow-sm hover:shadow-md transition-all ${isDark ? "bg-gray-800/95" : "bg-white/95"} backdrop-blur`}>
                         <CardContent className="p-3 flex items-center gap-3">
                           <Avatar className="w-11 h-11">
                             <AvatarImage src={c.avatarUrl || undefined} />
@@ -291,7 +293,7 @@ export default function ChildDiscover() {
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: i * 0.05 }}
                     >
-                      <Card className={`border-0 shadow-sm ${isDark ? "bg-gray-800" : "bg-white"}`}>
+                      <Card className={`border-0 shadow-sm hover:shadow-md transition-all ${isDark ? "bg-gray-800/95" : "bg-white/95"} backdrop-blur`}>
                         <CardContent className="p-3 flex items-center gap-3">
                           <Avatar className="w-11 h-11 rounded-xl">
                             <AvatarImage src={s.imageUrl || undefined} className="rounded-xl" />
@@ -366,7 +368,7 @@ export default function ChildDiscover() {
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: i * 0.05 }}
                     >
-                      <Card className={`border-0 shadow-sm ${isDark ? "bg-gray-800" : "bg-white"}`}>
+                      <Card className={`border-0 shadow-sm hover:shadow-md transition-all ${isDark ? "bg-gray-800/95" : "bg-white/95"} backdrop-blur`}>
                         <CardContent className="p-3 flex items-center gap-3">
                           <Avatar className="w-11 h-11">
                             <AvatarImage src={teacher.avatarUrl || undefined} />

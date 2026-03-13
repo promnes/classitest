@@ -712,17 +712,19 @@ export default function ChildProfile() {
 
   // ======= RENDER =======
   return (
-    <div className={`min-h-screen pb-24 ${isDark ? "bg-gradient-to-b from-slate-950 via-gray-950 to-slate-900" : "bg-gradient-to-br from-fuchsia-50 via-white to-violet-50"}`} dir={isRTL ? "rtl" : "ltr"}>
+    <div className={`relative min-h-screen pb-24 overflow-x-hidden ${isDark ? "bg-gradient-to-b from-slate-950 via-gray-950 to-slate-900" : "bg-gradient-to-br from-fuchsia-50 via-white to-violet-50"}`} dir={isRTL ? "rtl" : "ltr"}>
+      <div className={`pointer-events-none absolute -top-20 ${isRTL ? "-left-20" : "-right-20"} h-72 w-72 rounded-full blur-3xl ${isDark ? "bg-fuchsia-700/20" : "bg-fuchsia-200/40"}`} />
+      <div className={`pointer-events-none absolute top-[26rem] ${isRTL ? "-right-20" : "-left-20"} h-80 w-80 rounded-full blur-3xl ${isDark ? "bg-violet-700/20" : "bg-violet-200/40"}`} />
       {/* ===== COVER & AVATAR HERO ===== */}
-      <div className="relative max-w-3xl mx-auto">
+      <div className="relative max-w-4xl mx-auto z-10">
         {/* Cover Image */}
-        <div className="h-44 sm:h-56 relative overflow-hidden rounded-b-3xl ring-1 ring-white/60 dark:ring-slate-800">
+        <div className="h-44 sm:h-56 relative overflow-hidden rounded-b-3xl ring-1 ring-white/60 dark:ring-slate-800 shadow-xl">
           {currentCover ? (
             <img src={currentCover} alt="cover" className="w-full h-full object-cover" />
           ) : (
               <div className="w-full h-full bg-gradient-to-br from-violet-500 via-purple-600 to-fuchsia-600" />
           )}
-          <div className="absolute inset-0 bg-black/25" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/45 via-black/20 to-transparent" />
 
           {/* Cover upload button */}
           <button
@@ -777,7 +779,7 @@ export default function ChildProfile() {
       </div>
 
       {/* Name & quick stats */}
-      <div className="pt-16 pb-3 text-center px-4">
+      <div className="pt-16 pb-3 text-center px-4 relative z-10">
         <h1 className={`text-2xl font-bold ${isDark ? "text-white" : "text-gray-800"}`}>
           {sc?.child.name}
         </h1>
@@ -786,7 +788,7 @@ export default function ChildProfile() {
             {sc.child.bio}
           </p>
         )}
-        <div className="flex items-center justify-center gap-2 mt-2 flex-wrap">
+        <div className="flex items-center justify-center gap-2 mt-2 flex-wrap max-w-3xl mx-auto">
           <span className="inline-flex items-center gap-1 bg-yellow-100 text-yellow-700 px-2.5 py-1 rounded-full text-xs font-bold">
             <Star className="w-3 h-3" /> {sc?.stats.totalPoints || 0}
           </span>
@@ -818,8 +820,8 @@ export default function ChildProfile() {
       </div>
 
       {/* ===== TAB BAR ===== */}
-      <div className={`sticky top-0 z-40 px-4 py-2 ${isDark ? "bg-slate-900/90" : "bg-white/85"} backdrop-blur-xl border-b ${isDark ? "border-slate-800" : "border-violet-100"} shadow-sm`}>
-        <div className="flex gap-1 max-w-2xl mx-auto">
+      <div className={`sticky top-0 z-40 px-4 py-2 ${isDark ? "bg-slate-900/90" : "bg-white/90"} backdrop-blur-xl border-b ${isDark ? "border-slate-800" : "border-violet-100"} shadow-sm`}>
+        <div className={`flex gap-1 max-w-3xl mx-auto p-1 rounded-2xl border ${isDark ? "border-slate-800 bg-slate-900/80" : "border-violet-100 bg-white/80"}`}>
           {([
             { key: "showcase" as TabType, icon: Trophy, label: t("childProfile.tabs.showcase") },
             { key: "posts" as TabType, icon: PenSquare, label: t("childProfile.tabs.posts") },
@@ -850,13 +852,13 @@ export default function ChildProfile() {
       </div>
 
       {/* ===== TAB CONTENT ===== */}
-      <main className="max-w-3xl mx-auto px-4 py-4 space-y-4">
+      <main className="max-w-4xl mx-auto px-4 py-4 space-y-4 relative z-10">
         <AnimatePresence mode="wait">
           {/* ========== SHOWCASE TAB ========== */}
           {activeTab === "showcase" && (
             <motion.div key="showcase" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-4">
               {/* Stats Grid */}
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-3 gap-2 sm:gap-3">
                 {[
                   { icon: Sparkles, value: sc?.stats.tasksCompleted || 0, label: t("childProfile.stats.tasks"), color: "text-yellow-500", bg: "bg-yellow-50 dark:bg-yellow-900/20" },
                   { icon: Gamepad2, value: sc?.stats.gamesPlayed || 0, label: t("childProfile.stats.games"), color: "text-blue-500", bg: "bg-blue-50 dark:bg-blue-900/20" },
@@ -867,7 +869,7 @@ export default function ChildProfile() {
                     initial={{ opacity: 0, scale: 0.8 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ delay: i * 0.1 }}
-                    className={`text-center p-3 rounded-2xl ${stat.bg} ${isDark ? "border border-gray-700" : "border border-gray-100"}`}
+                    className={`text-center p-3 rounded-2xl shadow-sm ${stat.bg} ${isDark ? "border border-gray-700" : "border border-gray-100"}`}
                   >
                     <stat.icon className={`w-5 h-5 mx-auto mb-1 ${stat.color}`} />
                     <p className={`text-lg font-bold ${isDark ? "text-white" : "text-gray-800"}`}>{stat.value}</p>
@@ -877,7 +879,7 @@ export default function ChildProfile() {
               </div>
 
               {/* Achievements Section */}
-              <Card className={`border-0 shadow-lg overflow-hidden ${isDark ? "bg-gray-800" : "bg-white"}`}>
+              <Card className={`border-0 shadow-lg overflow-hidden ${isDark ? "bg-gray-800/95" : "bg-white/95"} backdrop-blur`}>
                 <CardContent className="p-4">
                   <div className="flex items-center gap-2 mb-3">
                     <Award className="w-5 h-5 text-yellow-500" />
@@ -925,7 +927,7 @@ export default function ChildProfile() {
 
               {/* Info Cards */}
               {(sc?.child.schoolName || sc?.child.governorate) && (
-                <Card className={`border-0 shadow-lg ${isDark ? "bg-gray-800" : "bg-white"}`}>
+                <Card className={`border-0 shadow-lg ${isDark ? "bg-gray-800/95" : "bg-white/95"} backdrop-blur`}>
                   <CardContent className="p-4 space-y-2">
                     {sc?.child.schoolName && (
                       <div className="flex items-center gap-2">
@@ -961,7 +963,7 @@ export default function ChildProfile() {
               )}
 
               {/* Share Card */}
-              <Card className={`border-0 shadow-lg ${isDark ? "bg-gray-800" : "bg-white"}`}>
+              <Card className={`border-0 shadow-lg ${isDark ? "bg-gray-800/95" : "bg-white/95"} backdrop-blur`}>
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">

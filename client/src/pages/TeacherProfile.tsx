@@ -371,9 +371,11 @@ export default function TeacherProfile() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-indigo-50 dark:from-slate-950 dark:via-gray-950 dark:to-slate-900 relative" dir="rtl">
+    <div className="relative min-h-screen overflow-x-hidden bg-gradient-to-b from-slate-50 via-white to-indigo-50 dark:from-slate-950 dark:via-gray-950 dark:to-slate-900" dir="rtl">
+      <div className="pointer-events-none absolute -top-20 -left-24 h-72 w-72 rounded-full bg-cyan-200/35 dark:bg-cyan-700/20 blur-3xl" />
+      <div className="pointer-events-none absolute top-72 -right-24 h-72 w-72 rounded-full bg-violet-200/35 dark:bg-violet-700/20 blur-3xl" />
       {/* Mobile-first top bar with explicit back navigation */}
-      <div className="sticky top-0 z-40 bg-white/85 dark:bg-slate-950/85 backdrop-blur-xl border-b border-indigo-100 dark:border-slate-800 shadow-sm">
+      <div className="sticky top-0 z-40 bg-white/90 dark:bg-slate-950/90 backdrop-blur-xl border-b border-indigo-100 dark:border-slate-800 shadow-sm">
         <div className="max-w-4xl mx-auto px-3 py-2.5 flex items-center justify-between gap-2">
           <Button
             type="button"
@@ -411,7 +413,7 @@ export default function TeacherProfile() {
         )}
       </div>
 
-      <div className="max-w-5xl mx-auto px-3 sm:px-4 py-4 sm:py-6 pb-24 sm:pb-6">
+      <div className="max-w-5xl mx-auto px-3 sm:px-4 py-4 sm:py-6 pb-24 sm:pb-6 relative z-10">
         <ProfileHeader
           name={teacher.name}
           bio={teacher.bio}
@@ -474,7 +476,7 @@ export default function TeacherProfile() {
         </ProfileHeader>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4">
-          <TabsList className="w-full grid grid-cols-3 h-auto p-1.5 rounded-2xl bg-white dark:bg-slate-900 border border-indigo-100 dark:border-slate-800 shadow-sm">
+          <TabsList className="w-full grid grid-cols-3 h-auto p-1.5 rounded-2xl bg-white/95 dark:bg-slate-900/95 border border-indigo-100 dark:border-slate-800 shadow-sm backdrop-blur">
             <TabsTrigger value="tasks" className="gap-1">
               <BookOpen className="h-4 w-4" />
               {t("teacherProfile.tasks")} ({tasks.length})
@@ -515,7 +517,7 @@ export default function TeacherProfile() {
               </Card>
             ) : (
               tasks.map((task: any) => (
-                <Card key={task.id} className="overflow-hidden hover:shadow-md transition-shadow">
+                <Card key={task.id} className="overflow-hidden hover:shadow-lg transition-all border-indigo-100/70 dark:border-slate-800">
                   {task.coverImageUrl && (
                     <img src={task.coverImageUrl} alt="" className="w-full h-36 object-cover" onError={(e) => { e.currentTarget.style.display = 'none' }} />
                   )}
@@ -604,7 +606,7 @@ export default function TeacherProfile() {
               </Card>
             ) : (
               posts.map((post: any) => (
-                <Card key={post.id} className="hover:shadow-md transition-shadow">
+                <Card key={post.id} className="hover:shadow-lg transition-all border-indigo-100/70 dark:border-slate-800">
                   <CardContent className="p-4">
                     <p className="whitespace-pre-wrap text-[15px] leading-7 font-medium text-gray-800 dark:text-gray-100">{post.content}</p>
                     {post.mediaUrls?.length > 0 && (
@@ -731,7 +733,7 @@ export default function TeacherProfile() {
           {/* Reviews Tab */}
           <TabsContent value="reviews" className="space-y-4 mt-4">
             {/* Rating Summary Card */}
-            <Card className="shadow-sm border-indigo-100 dark:border-slate-800">
+            <Card className="shadow-sm border-indigo-100 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 backdrop-blur">
               <CardContent className="p-6">
                 <div className="flex items-center gap-6">
                   <div className="text-center">
@@ -764,7 +766,7 @@ export default function TeacherProfile() {
             </Card>
 
             {/* Submit Review Form */}
-            <Card className="shadow-sm border-indigo-100 dark:border-slate-800">
+            <Card className="shadow-sm border-indigo-100 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 backdrop-blur">
               <CardContent className="p-6 space-y-3">
                 <h3 className="font-bold text-lg">{t("teacherProfile.addYourReview")}</h3>
                 <div className="flex gap-1">

@@ -327,10 +327,12 @@ export default function SchoolProfile() {
   const joinDate = new Date(school.createdAt).toLocaleDateString(getDateLocale(), { year: "numeric", month: "long" });
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-sky-50 via-white to-indigo-50 dark:from-slate-950 dark:via-gray-950 dark:to-slate-900 relative" dir={isRTL ? "rtl" : "ltr"}>
+    <div className="relative min-h-screen overflow-x-hidden bg-gradient-to-br from-sky-50 via-white to-indigo-50 dark:from-slate-950 dark:via-gray-950 dark:to-slate-900" dir={isRTL ? "rtl" : "ltr"}>
+      <div className={`pointer-events-none absolute -top-24 ${isRTL ? "-left-24" : "-right-24"} h-80 w-80 rounded-full blur-3xl ${isRTL ? "bg-blue-200/35 dark:bg-blue-700/20" : "bg-indigo-200/35 dark:bg-indigo-700/20"}`} />
+      <div className={`pointer-events-none absolute top-[32rem] ${isRTL ? "-right-24" : "-left-24"} h-80 w-80 rounded-full blur-3xl ${isRTL ? "bg-cyan-200/35 dark:bg-cyan-700/20" : "bg-sky-200/35 dark:bg-sky-700/20"}`} />
       <div className="absolute top-4 ltr:right-4 rtl:left-4 z-50"><LanguageSelector /></div>
       {/* ===== FACEBOOK-STYLE COVER SECTION ===== */}
-      <div className="bg-white/90 dark:bg-slate-900/90 shadow-sm backdrop-blur-xl border-b border-indigo-100 dark:border-slate-800">
+      <div className="bg-white/90 dark:bg-slate-900/90 shadow-sm backdrop-blur-xl border-b border-indigo-100 dark:border-slate-800 relative z-10">
         <div className="max-w-5xl mx-auto">
           <div className="relative h-52 sm:h-72 md:h-80 rounded-b-3xl overflow-hidden ring-1 ring-white/70 dark:ring-slate-800">
             {school.coverImageUrl ? (
@@ -430,11 +432,11 @@ export default function SchoolProfile() {
       </div>
 
       {/* ===== CONTENT ===== */}
-      <div className="max-w-6xl mx-auto px-3 sm:px-6 py-4">
+      <div className="max-w-6xl mx-auto px-3 sm:px-6 py-4 relative z-10">
         <div className="flex flex-col lg:flex-row gap-4">
           {/* ===== LEFT SIDEBAR ===== */}
           <div className="lg:w-80 space-y-4 lg:sticky lg:top-4 lg:self-start overflow-hidden">
-            <Card className="shadow-sm border-indigo-100 dark:border-slate-800">
+            <Card className="shadow-sm border-indigo-100 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 backdrop-blur">
               <CardContent className="p-4 space-y-3">
                 <h3 className="font-bold text-lg flex items-center gap-2">
                   <School className="h-5 w-5 text-blue-600" />
@@ -477,7 +479,7 @@ export default function SchoolProfile() {
             </Card>
 
             {socialEntries.length > 0 && (
-              <Card className="shadow-sm border-indigo-100 dark:border-slate-800">
+              <Card className="shadow-sm border-indigo-100 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 backdrop-blur">
                 <CardContent className="p-4 space-y-3">
                   <h3 className="font-bold text-lg flex items-center gap-2">
                     <Globe className="h-5 w-5 text-blue-600" />
@@ -504,7 +506,7 @@ export default function SchoolProfile() {
 
             {/* Enrollment Card */}
             {enrollmentStatus?.enrollmentOpen && parentToken && (
-              <Card className="shadow-sm border-green-200 bg-green-50/50 dark:bg-green-950/20">
+              <Card className="shadow-sm border-green-200 bg-green-50/70 dark:bg-green-950/30 backdrop-blur">
                 <CardContent className="p-4 space-y-3">
                   <h3 className="font-bold text-lg flex items-center gap-2 text-green-700">
                     <GraduationCap className="h-5 w-5" />
@@ -571,7 +573,7 @@ export default function SchoolProfile() {
               </Card>
             )}
 
-            <Card className="shadow-sm border-indigo-100 dark:border-slate-800">
+            <Card className="shadow-sm border-indigo-100 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 backdrop-blur">
               <CardContent className="p-4">
                 <h3 className="font-bold text-lg flex items-center gap-2 mb-3">
                   <TrendingUp className="h-5 w-5 text-blue-600" />
@@ -599,7 +601,7 @@ export default function SchoolProfile() {
             </Card>
 
             {school.teachers?.length > 0 && (
-              <Card className="shadow-sm border-indigo-100 dark:border-slate-800">
+              <Card className="shadow-sm border-indigo-100 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 backdrop-blur">
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between mb-3">
                     <h3 className="font-bold text-lg flex items-center gap-2">
@@ -651,7 +653,7 @@ export default function SchoolProfile() {
                     const isLong = post.content?.length > 300;
                     const expanded = expandedPosts[post.id];
                     return (
-                      <Card key={post.id} className="shadow-sm">
+                      <Card key={post.id} className="shadow-sm border-indigo-100/80 dark:border-slate-800 hover:shadow-md transition-all">
                         <CardContent className="p-0">
                           <div className="flex items-center gap-3 p-4 pb-2">
                             {post.authorType === "school" ? (
