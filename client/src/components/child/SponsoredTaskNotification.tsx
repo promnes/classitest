@@ -31,6 +31,7 @@ export function SponsoredTaskNotification({
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [showError, setShowError] = useState(false);
   const [inputAnswer, setInputAnswer] = useState("");
+  const taskType = notification.type || ((notification.answers && notification.answers.length > 0) || notification.question ? "question" : "task");
 
   const handleSubmitAnswer = useCallback(() => {
     if (!selectedAnswer && !inputAnswer) return;
@@ -96,7 +97,7 @@ export function SponsoredTaskNotification({
             </CardHeader>
 
             <CardContent className="space-y-4 pb-6">
-              {notification.type === "question" && notification.question && (
+              {taskType === "question" && notification.question && (
                 <div className="space-y-4">
                   <p className="text-center font-medium text-lg">
                     {notification.question}
@@ -155,7 +156,7 @@ export function SponsoredTaskNotification({
               )}
 
               <div className="flex gap-3">
-                {notification.type === "task" ? (
+                {taskType === "task" ? (
                   <Button
                     onClick={handleCompleteTask}
                     className="flex-1 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700"
@@ -226,7 +227,7 @@ export function ChildTaskNotificationManager() {
       if (!token) return;
 
       try {
-        await fetch("/api/child/task-notifications/complete", {
+        const res = await fetch("/api/child/task-notifications/complete", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -234,6 +235,11 @@ export function ChildTaskNotificationManager() {
           },
           body: JSON.stringify({ notificationId, answerId }),
         });
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({ message: "فشل إرسال الإجابة" }));
+          throw new Error(err?.message || "فشل إرسال الإجابة");
+        }
 
         setNotifications((prev) => prev.filter((n) => n.id !== notificationId));
         setActiveNotification((prev) =>

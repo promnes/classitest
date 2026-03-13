@@ -1992,15 +1992,23 @@ export async function registerChildRoutes(app: Express) {
         )
         .limit(5);
 
-      // Transform tasks into notification format
-      const taskNotifications = pendingTasks.map((task: typeof tasks.$inferSelect) => ({
-        id: task.id,
-        question: task.question,
-        answers: task.answers,
-        points: task.pointsReward,
-        imageUrl: task.imageUrl,
-        gifUrl: task.gifUrl,
-      }));
+      // Transform tasks into notification format expected by child popup UI.
+      const taskNotifications = pendingTasks.map((task: typeof tasks.$inferSelect) => {
+        const normalizedAnswers = normalizeAnswers(task.answers, task.question);
+        const hasQuestionFlow = normalizedAnswers.length > 0 || !!task.question;
+
+        return {
+          id: task.id,
+          title: "مهمة جديدة!",
+          description: task.question,
+          type: hasQuestionFlow ? "question" : "task",
+          question: task.question,
+          answers: normalizedAnswers,
+          points: task.pointsReward,
+          imageUrl: task.imageUrl,
+          gifUrl: task.gifUrl,
+        };
+      });
 
       res.json(successResponse(taskNotifications));
     } catch (error: any) {
