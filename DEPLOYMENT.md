@@ -15,10 +15,35 @@ Internet → Traefik (Port 80/443) → App Container (Port 5000)
 ```
 
 **Containers:**
-- `classify-app` - Express.js backend + React frontend (5000)
-- `classify-db` - PostgreSQL 15 (5432)
-- `classify-redis` - Redis 7.2 (6379)
-- `classify-traefik` - Reverse proxy with auto-SSL (80/443)
+- `<project>_app` - Express.js backend + React frontend (5000)
+- `<project>_db` - PostgreSQL 15 (5432)
+- `<project>_redis` - Redis 7.2 (6379)
+- `<project>_traefik` - Reverse proxy (host ports from `.env`)
+
+## Shared Server Isolation (No Conflict)
+
+When your VPS already runs other Docker projects, always isolate this stack:
+
+```bash
+# .env (example)
+COMPOSE_PROJECT_NAME=classify_prod
+TRAEFIK_HTTP_PORT=18080
+TRAEFIK_HTTPS_PORT=18443
+POSTGRES_HOST_PORT=5434
+MINIO_API_PORT=9102
+MINIO_CONSOLE_PORT=9101
+```
+
+Run with project isolation:
+
+```bash
+docker compose -p classify_prod up -d
+```
+
+Notes:
+- Do not bind `80/443` unless this project owns those ports.
+- If another Traefik/Nginx already owns `80/443`, keep this stack on custom ports and route externally.
+- Avoid fixed `container_name`; Compose project naming already provides unique container names.
 
 ---
 
@@ -93,14 +118,14 @@ APP_URL=https://classi-fy.com
 ### 4. Start Application
 
 ```bash
-# Build and start all containers
-docker compose up -d
+# Build and start all containers (isolated project name)
+docker compose -p classify_prod up -d
 
 # Check container status
-docker compose ps
+docker compose -p classify_prod ps
 
 # View logs
-docker compose logs -f app
+docker compose -p classify_prod logs -f app
 ```
 
 ### 5. Verify Deployment

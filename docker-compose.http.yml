@@ -1,3 +1,5 @@
+name: ${COMPOSE_PROJECT_NAME:-classify-http}
+
 services:
   traefik:
     image: traefik:v2.11
@@ -8,7 +10,7 @@ services:
       - "--ping=true"
       - "--ping.entryPoint=web"
     ports:
-      - "80:80"
+      - "${TRAEFIK_HTTP_PORT:-18080}:80"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     restart: unless-stopped
@@ -99,7 +101,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
-      - "127.0.0.1:5433:5432"
+      - "127.0.0.1:${POSTGRES_HOST_PORT:-5434}:5432"
     restart: unless-stopped
     networks:
       - classify-network
@@ -142,8 +144,8 @@ services:
     image: portainer/portainer-ce:latest
     restart: unless-stopped
     ports:
-      - "127.0.0.1:9000:9000"
-      - "127.0.0.1:8000:8000"
+      - "127.0.0.1:${PORTAINER_WEB_PORT:-19000}:9000"
+      - "127.0.0.1:${PORTAINER_EDGE_PORT:-18000}:8000"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - portainer_data:/data
@@ -164,7 +166,7 @@ services:
       PGADMIN_DEFAULT_PASSWORD: ${ADMIN_PASSWORD:-admin123}
       PGADMIN_CONFIG_SERVER_MODE: "False"
     ports:
-      - "127.0.0.1:5050:80"
+      - "127.0.0.1:${PGADMIN_PORT:-15050}:80"
     volumes:
       - pgadmin_data:/var/lib/pgadmin
     networks:
@@ -184,7 +186,7 @@ services:
     environment:
       - REDIS_HOSTS=local:redis:6379
     ports:
-      - "127.0.0.1:8081:8081"
+      - "127.0.0.1:${REDIS_COMMANDER_PORT:-18081}:8081"
     networks:
       - classify-network
     depends_on:
@@ -204,7 +206,7 @@ services:
       - "--storage.tsdb.path=/prometheus"
       - "--storage.tsdb.retention.time=30d"
     ports:
-      - "127.0.0.1:9090:9090"
+      - "127.0.0.1:${PROMETHEUS_PORT:-19090}:9090"
     volumes:
       - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus_data:/prometheus
@@ -225,7 +227,7 @@ services:
       GF_SECURITY_ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin123}
       GF_USERS_ALLOW_SIGN_UP: "false"
     ports:
-      - "127.0.0.1:3000:3000"
+      - "127.0.0.1:${GRAFANA_PORT:-13000}:3000"
     volumes:
       - grafana_data:/var/lib/grafana
       - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
@@ -244,7 +246,7 @@ services:
     image: grafana/loki:3.0.0
     restart: unless-stopped
     ports:
-      - "127.0.0.1:3100:3100"
+      - "127.0.0.1:${LOKI_PORT:-13100}:3100"
     volumes:
       - loki_data:/loki
     networks:
@@ -264,8 +266,8 @@ services:
       - MINIO_ROOT_USER=${MINIO_ACCESS_KEY:-classifyminio}
       - MINIO_ROOT_PASSWORD=${MINIO_SECRET_KEY:-classifyminio123}
     ports:
-      - "127.0.0.1:9002:9000"
-      - "127.0.0.1:9001:9001"
+      - "127.0.0.1:${MINIO_API_PORT:-9102}:9000"
+      - "127.0.0.1:${MINIO_CONSOLE_PORT:-9101}:9001"
     volumes:
       - minio_data:/data
     networks:
@@ -287,8 +289,8 @@ services:
     image: mailhog/mailhog:latest
     restart: unless-stopped
     ports:
-      - "127.0.0.1:1025:1025"
-      - "127.0.0.1:8025:8025"
+      - "127.0.0.1:${MAILHOG_SMTP_PORT:-11025}:1025"
+      - "127.0.0.1:${MAILHOG_UI_PORT:-18025}:8025"
     networks:
       - classify-network
     deploy:
