@@ -566,10 +566,21 @@ export function SettingsTab({
         <TabsContent value="api">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Key className="w-5 h-5" />
-                تكامل in-home للشحن
-              </CardTitle>
+              <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                <CardTitle className="flex items-center gap-2">
+                  <Key className="w-5 h-5" />
+                  تكامل in-home للشحن
+                </CardTitle>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => window.open(inHomeConfig.baseUrl, "_blank", "noopener,noreferrer")}
+                  disabled={!inHomeConfig.baseUrl}
+                  data-testid="button-open-inhome-dashboard"
+                >
+                  فتح لوحة in-home
+                </Button>
+              </div>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
