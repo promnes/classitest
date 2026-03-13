@@ -218,7 +218,17 @@
     <script type="module" src="/src/main.tsx"></script>
     <script defer>
       if ('serviceWorker' in navigator) {
+        const host = window.location.hostname;
+        const isLocalHost = host === 'localhost' || host === '127.0.0.1' || host === '::1';
+
         window.addEventListener('load', async () => {
+          if (isLocalHost) {
+            // In local development, stale service workers can cause infinite loading.
+            const registrations = await navigator.serviceWorker.getRegistrations();
+            await Promise.all(registrations.map((r) => r.unregister()));
+            return;
+          }
+
           try {
             const registration = await navigator.serviceWorker.register('/sw.js');
             console.log('SW registered:', registration.scope);

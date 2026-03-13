@@ -212,11 +212,11 @@ function AccountNotificationBell({ tokenKey, apiBase, queryKeyPrefix, bellColorC
       {isOpen && (
         <>
           {/* Backdrop for mobile */}
-          <div className="fixed inset-0 z-40 bg-black/20 sm:hidden" onClick={() => setIsOpen(false)} role="presentation" />
+          <div className="fixed inset-0 z-[10020] bg-black/20 sm:hidden" onClick={() => setIsOpen(false)} role="presentation" />
 
           <div
             ref={panelRef}
-            className={`fixed sm:absolute left-4 right-4 sm:ltr:left-auto sm:ltr:right-0 sm:rtl:right-auto sm:rtl:left-0 top-16 sm:top-full sm:mt-2 z-50 w-auto sm:w-[420px] max-h-[80vh] rounded-2xl shadow-2xl border overflow-hidden ${
+            className={`fixed sm:absolute left-4 right-4 sm:ltr:left-auto sm:ltr:right-0 sm:rtl:right-auto sm:rtl:left-0 top-16 sm:top-full sm:mt-2 z-[10030] w-auto sm:w-[420px] max-h-[80vh] rounded-2xl shadow-2xl border overflow-hidden ${
               isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
             }`}
           >

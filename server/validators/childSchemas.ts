@@ -64,7 +64,7 @@ export const childCompleteGameSchema = z.object({
 
 export const childTaskNotificationCompleteSchema = z.object({
   notificationId: z.string().min(1),
-  answerId: z.string().min(1),
+  answerId: z.string().min(1).optional(),
 });
 
 // ============ Store ============

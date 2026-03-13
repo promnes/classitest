@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, type CSSProperties } from "react";
+import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -29,6 +30,8 @@ export function ShareMenu({
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const [panelStyle, setPanelStyle] = useState<CSSProperties>({});
   const { toast } = useToast();
 
   const shareUrl = url || (typeof window !== "undefined" ? window.location.href : "");
@@ -37,15 +40,38 @@ export function ShareMenu({
   const encodedDesc = encodeURIComponent(description || title);
 
   useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    }
-    if (open) {
-      document.addEventListener("mousedown", handleClickOutside);
-      return () => document.removeEventListener("mousedown", handleClickOutside);
-    }
+    if (!open) return;
+
+    const updatePosition = () => {
+      if (!buttonRef.current) return;
+
+      const rect = buttonRef.current.getBoundingClientRect();
+      const panelWidth = 288; // w-72
+      const sideMargin = 8;
+      const isRtl = typeof document !== "undefined" && document.dir === "rtl";
+
+      let left = isRtl ? rect.right - panelWidth : rect.left;
+      left = Math.max(sideMargin, Math.min(left, window.innerWidth - panelWidth - sideMargin));
+
+      const preferredTop = rect.bottom + 8;
+      const maxHeight = Math.max(220, window.innerHeight - preferredTop - sideMargin);
+
+      setPanelStyle({
+        top: `${preferredTop}px`,
+        left: `${left}px`,
+        width: `${panelWidth}px`,
+        maxHeight: `${maxHeight}px`,
+      });
+    };
+
+    updatePosition();
+    window.addEventListener("resize", updatePosition);
+    window.addEventListener("scroll", updatePosition, true);
+
+    return () => {
+      window.removeEventListener("resize", updatePosition);
+      window.removeEventListener("scroll", updatePosition, true);
+    };
   }, [open]);
 
   const shareOptions = [
@@ -122,66 +148,70 @@ export function ShareMenu({
 
   return (
     <div className="relative" ref={menuRef}>
-      <Button variant={variant} size={size} className={`gap-1 ${className}`} onClick={handleClick}>
+      <Button ref={buttonRef} variant={variant} size={size} className={`gap-1 ${className}`} onClick={handleClick}>
         <Share2 className="h-4 w-4" />
         {buttonLabel}
       </Button>
 
-      {open && (
-        <div className="absolute left-0 rtl:left-auto rtl:right-0 top-full mt-2 z-50 w-72 bg-white dark:bg-gray-900 rounded-xl shadow-2xl border dark:border-gray-800 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
-          {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 border-b dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50">
-            <span className="font-bold text-sm">مشاركة عبر</span>
-            <button
-              onClick={() => setOpen(false)}
-              className="p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-
-          {/* Social Buttons Grid */}
-          <div className="grid grid-cols-3 gap-2 p-3">
-            {shareOptions.map((option) => (
-              <a
-                key={option.name}
-                href={option.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={() => setOpen(false)}
-                className={`flex flex-col items-center gap-1.5 p-3 rounded-xl text-white transition-all transform hover:scale-105 ${option.color}`}
-              >
-                {option.icon}
-                <span className="text-xs font-medium">{option.name}</span>
-              </a>
-            ))}
-          </div>
-
-          {/* Copy Link */}
-          <div className="px-3 pb-3 space-y-2">
-            {typeof navigator.share !== "undefined" && (
+      {open && typeof document !== "undefined" && createPortal(
+        <>
+          <div className="fixed inset-0 z-[10020] bg-black/30" onClick={() => setOpen(false)} />
+          <div style={panelStyle} className="fixed z-[10030] bg-white dark:bg-gray-900 rounded-xl shadow-2xl border dark:border-gray-800 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+            {/* Header */}
+            <div className="flex items-center justify-between px-4 py-3 border-b dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50">
+              <span className="font-bold text-sm">مشاركة عبر</span>
               <button
-                onClick={handleNativeShare}
-                className="w-full flex items-center gap-3 px-4 py-2.5 bg-blue-50 dark:bg-blue-950/40 hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded-xl transition-colors text-sm font-medium"
+                onClick={() => setOpen(false)}
+                className="p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            {/* Social Buttons Grid */}
+            <div className="grid grid-cols-3 gap-2 p-3">
+              {shareOptions.map((option) => (
+                <a
+                  key={option.name}
+                  href={option.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => setOpen(false)}
+                  className={`flex flex-col items-center gap-1.5 p-3 rounded-xl text-white transition-all transform hover:scale-105 ${option.color}`}
+                >
+                  {option.icon}
+                  <span className="text-xs font-medium">{option.name}</span>
+                </a>
+              ))}
+            </div>
+
+            {/* Copy Link */}
+            <div className="px-3 pb-3 space-y-2 overflow-y-auto max-h-[40vh]">
+              {typeof navigator.share !== "undefined" && (
+                <button
+                  onClick={handleNativeShare}
+                  className="w-full flex items-center gap-3 px-4 py-2.5 bg-blue-50 dark:bg-blue-950/40 hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded-xl transition-colors text-sm font-medium"
+                >
+                  <div className="p-1.5 bg-white dark:bg-gray-700 rounded-lg shadow-sm">
+                    <Share2 className="h-4 w-4 text-blue-600" />
+                  </div>
+                  <span>مشاركة عبر تطبيقات الجهاز</span>
+                </button>
+              )}
+              <button
+                onClick={handleCopyLink}
+                className="w-full flex items-center gap-3 px-4 py-2.5 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-xl transition-colors text-sm font-medium"
               >
                 <div className="p-1.5 bg-white dark:bg-gray-700 rounded-lg shadow-sm">
-                  <Share2 className="h-4 w-4 text-blue-600" />
+                  <Copy className="h-4 w-4 text-gray-600 dark:text-gray-300" />
                 </div>
-                <span>مشاركة عبر تطبيقات الجهاز</span>
+                <span>{t("shareMenu.copyLink")}</span>
+                <Link2 className="h-3.5 w-3.5 text-muted-foreground mr-auto" />
               </button>
-            )}
-            <button
-              onClick={handleCopyLink}
-              className="w-full flex items-center gap-3 px-4 py-2.5 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-xl transition-colors text-sm font-medium"
-            >
-              <div className="p-1.5 bg-white dark:bg-gray-700 rounded-lg shadow-sm">
-                <Copy className="h-4 w-4 text-gray-600 dark:text-gray-300" />
-              </div>
-              <span>{t("shareMenu.copyLink")}</span>
-              <Link2 className="h-3.5 w-3.5 text-muted-foreground mr-auto" />
-            </button>
+            </div>
           </div>
-        </div>
+        </>,
+        document.body
       )}
     </div>
   );

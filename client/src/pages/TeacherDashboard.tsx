@@ -19,6 +19,8 @@ import { ShareMenu } from "@/components/ui/ShareMenu";
 import { TeacherNotificationBell } from "@/components/AccountNotificationBell";
 import { LanguageSelector } from "@/components/LanguageSelector";
 import { HelpChatDialog } from "@/components/HelpChatDialog";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 import {
   GraduationCap, BookOpen, Users, Star, LogOut, Plus, Edit, Trash2,
   DollarSign, TrendingUp, ArrowDownToLine, CheckCircle, Clock, MessageSquare,
@@ -179,6 +181,7 @@ export default function TeacherDashboard() {
   const [respondingRequestId, setRespondingRequestId] = useState<string | null>(null);
   const [rejectionReason, setRejectionReason] = useState("");
   const [showRejectDialog, setShowRejectDialog] = useState(false);
+  const [helpPaymentsMonth, setHelpPaymentsMonth] = useState<string>(new Date().toISOString().slice(0, 7));
   // Child reports states
   const [showReportsDialog, setShowReportsDialog] = useState(false);
   // Help filter/search states
@@ -366,6 +369,89 @@ export default function TeacherDashboard() {
       return (await res.json()).data || [];
     },
     enabled: !!token,
+  });
+
+  const { data: teacherHelpPaymentsData, isLoading: loadingTeacherHelpPayments } = useQuery<any>({
+    queryKey: ["teacher-help-session-payments", helpPaymentsMonth],
+    queryFn: async () => {
+      const query = helpPaymentsMonth ? `?month=${encodeURIComponent(helpPaymentsMonth)}` : "";
+      const res = await fetch(`/api/teacher/help-session-payments${query}`, { headers: authHeaders });
+      if (!res.ok) throw new Error("Failed");
+      const json = await res.json();
+      return json.data || {
+        summary: { sessionsCount: 0, totalHelpPoints: 0, feedbackCount: 0, avgSessionRating: 0 },
+        items: [],
+      };
+    },
+    enabled: !!token,
+  });
+
+  const exportTeacherHelpPaymentsCsv = () => {
+    const items = teacherHelpPaymentsData?.items || [];
+    const lines = [
+      ["session_id", "child_name", "parent_name", "points_amount", "feedback_rating", "resolved_at", "task_question"].join(","),
+      ...items.map((item: any) => [
+        item.id,
+        `"${String(item.childName || "").replace(/"/g, '""')}"`,
+        `"${String(item.parentName || "").replace(/"/g, '""')}"`,
+        String(item.pointsAmount ?? 0),
+        String(item.feedbackRating ?? ""),
+        new Date(item.resolvedAt).toISOString(),
+        `"${String(item.taskQuestion || "").replace(/"/g, '""')}"`,
+      ].join(",")),
+    ];
+
+    const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `teacher_help_sessions_${helpPaymentsMonth || "all"}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const exportTeacherHelpPaymentsPdf = () => {
+    const items = teacherHelpPaymentsData?.items || [];
+    const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+    doc.setFontSize(14);
+    doc.text("Teacher Help Sessions", 14, 14);
+    doc.setFontSize(10);
+    doc.text(`Month: ${helpPaymentsMonth || "all"}`, 14, 20);
+    autoTable(doc, {
+      startY: 25,
+      head: [["Child", "Parent", "Points", "Rating", "Resolved At", "Question"]],
+      body: items.map((item: any) => [
+        item.childName || "",
+        item.parentName || "",
+        String(item.pointsAmount ?? 0),
+        item.feedbackRating ? `${item.feedbackRating}/5` : "",
+        item.resolvedAt ? new Date(item.resolvedAt).toLocaleString("ar-EG") : "",
+        item.taskQuestion || "",
+      ]),
+      styles: { fontSize: 8 },
+    });
+    doc.save(`teacher_help_sessions_${helpPaymentsMonth || "all"}.pdf`);
+  };
+
+  const claimHelpRequest = useMutation({
+    mutationFn: async (helpRequestId: string) => {
+      const res = await fetch(`/api/teacher/help-requests/${helpRequestId}/claim`, {
+        method: "PUT",
+        headers: authHeaders,
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json?.message || "فشل استلام الطلب");
+      return json;
+    },
+    onSuccess: (_data, helpRequestId) => {
+      queryClient.invalidateQueries({ queryKey: ["teacher-help-requests"] });
+      const current = helpRequests.find((r: any) => r.id === helpRequestId);
+      if (current) {
+        setSelectedHelpRequest({ ...current, canClaim: false, helperType: "teacher" });
+      }
+      toast({ title: "تم استلام طلب المساعدة" });
+    },
+    onError: (err: any) => toast({ title: err?.message || "فشل استلام الطلب", variant: "destructive" }),
   });
 
   // Filtered help requests based on status filter and search query
@@ -947,7 +1033,7 @@ export default function TeacherDashboard() {
 
       <div className="max-w-7xl mx-auto p-4 space-y-6">
         {/* Stats Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           <Card>
             <CardContent className="p-4 text-center">
               <BookOpen className="h-8 w-8 mx-auto mb-2 text-green-600" />
@@ -974,6 +1060,13 @@ export default function TeacherDashboard() {
               <Star className="h-8 w-8 mx-auto mb-2 text-yellow-500" />
               <div className="text-2xl font-bold">{stats?.avgRating || 0}</div>
               <div className="text-xs text-muted-foreground">{t('teacherDashboard.statsRating')} ({stats?.totalReviews || 0})</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 text-center">
+              <MessageSquare className="h-8 w-8 mx-auto mb-2 text-orange-600" />
+              <div className="text-2xl font-bold">{stats?.totalHelpSessions || 0}</div>
+              <div className="text-xs text-muted-foreground">جلسات المساعدة المكتملة</div>
             </CardContent>
           </Card>
         </div>
@@ -1147,6 +1240,9 @@ export default function TeacherDashboard() {
                           <p className="text-sm text-muted-foreground">
                             النقاط الشهرية: <strong className="text-green-600">{req.monthlyPoints}</strong> نقطة
                           </p>
+                          <p className="text-sm text-muted-foreground">
+                            لكل جلسة مساعدة: <strong className="text-orange-600">{req.perHelpPoints ?? 0}</strong> نقطة
+                          </p>
                           <div className="mt-2 flex flex-wrap gap-1">
                             {req.children?.map((child: any) => (
                               <Badge key={child.id} variant="outline" className="text-xs gap-1">
@@ -1222,6 +1318,9 @@ export default function TeacherDashboard() {
                         </div>
                         <Badge variant="outline" className="text-xs">
                           {child.monthlyPoints} نقطة/شهر
+                        </Badge>
+                        <Badge variant="outline" className="text-xs">
+                          {child.perHelpPoints ?? 0} نقطة/مساعدة
                         </Badge>
                       </div>
                       <div className="flex gap-2">
@@ -1321,14 +1420,26 @@ export default function TeacherDashboard() {
                             {new Date(hr.createdAt).toLocaleDateString("ar-EG", { year: "numeric", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit" })}
                           </p>
                         </div>
-                        <Button
-                          size="sm"
-                          className="gap-1"
-                          onClick={() => setSelectedHelpRequest(hr)}
-                        >
-                          <MessageSquare className="h-3 w-3" />
-                          فتح المحادثة
-                        </Button>
+                        {hr.canClaim ? (
+                          <Button
+                            size="sm"
+                            className="gap-1 bg-orange-600 hover:bg-orange-700"
+                            disabled={claimHelpRequest.isPending}
+                            onClick={() => claimHelpRequest.mutate(hr.id)}
+                          >
+                            {claimHelpRequest.isPending ? <Clock className="h-3 w-3 animate-spin" /> : <HelpCircle className="h-3 w-3" />}
+                            استلام المساعدة
+                          </Button>
+                        ) : (
+                          <Button
+                            size="sm"
+                            className="gap-1"
+                            onClick={() => setSelectedHelpRequest(hr)}
+                          >
+                            <MessageSquare className="h-3 w-3" />
+                            فتح المحادثة
+                          </Button>
+                        )}
                       </div>
                     </CardContent>
                   </Card>
@@ -1393,6 +1504,50 @@ export default function TeacherDashboard() {
               </Card>
             </div>
 
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <Card>
+                <CardContent className="p-4 text-center">
+                  <div className="text-sm text-muted-foreground">جلسات المساعدة</div>
+                  <div className="text-2xl font-bold">{teacherHelpPaymentsData?.summary?.sessionsCount ?? 0}</div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-4 text-center">
+                  <div className="text-sm text-muted-foreground">إجمالي نقاط المساعدة</div>
+                  <div className="text-2xl font-bold text-orange-600">{teacherHelpPaymentsData?.summary?.totalHelpPoints ?? 0}</div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-4 text-center">
+                  <div className="text-sm text-muted-foreground">عدد التقييمات</div>
+                  <div className="text-2xl font-bold">{teacherHelpPaymentsData?.summary?.feedbackCount ?? 0}</div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-4 text-center">
+                  <div className="text-sm text-muted-foreground">متوسط تقييم الجلسات</div>
+                  <div className="text-2xl font-bold text-yellow-600">{Number(teacherHelpPaymentsData?.summary?.avgSessionRating ?? 0).toFixed(1)}</div>
+                </CardContent>
+              </Card>
+            </div>
+
+            <Card>
+              <CardContent className="p-4 flex flex-wrap items-center gap-2">
+                <Input
+                  type="month"
+                  value={helpPaymentsMonth}
+                  onChange={(e) => setHelpPaymentsMonth(e.target.value)}
+                  className="w-44"
+                />
+                <Button size="sm" variant="outline" onClick={exportTeacherHelpPaymentsCsv}>
+                  <Download className="h-4 w-4 ml-1" /> CSV
+                </Button>
+                <Button size="sm" variant="outline" onClick={exportTeacherHelpPaymentsPdf}>
+                  <Download className="h-4 w-4 ml-1" /> PDF
+                </Button>
+              </CardContent>
+            </Card>
+
             <div className="flex justify-between items-center">
               <h3 className="font-bold">{t('teacherDashboard.withdrawalRequests')}</h3>
               <Button onClick={() => setShowWithdrawModal(true)} className="bg-green-600">
@@ -1422,6 +1577,34 @@ export default function TeacherDashboard() {
                 ))}
               </div>
             )}
+
+            <Card>
+              <CardContent className="p-4 space-y-3">
+                <div className="font-bold text-sm">تفاصيل جلسات المساعدة المحاسبية</div>
+                {loadingTeacherHelpPayments ? (
+                  <div className="text-center py-4"><Clock className="h-5 w-5 animate-spin mx-auto" /></div>
+                ) : (teacherHelpPaymentsData?.items?.length ?? 0) === 0 ? (
+                  <div className="text-sm text-muted-foreground">لا توجد جلسات مساعدة مدفوعة بعد.</div>
+                ) : (
+                  <div className="space-y-2">
+                    {teacherHelpPaymentsData.items.slice(0, 8).map((item: any) => (
+                      <div key={item.id} className="flex items-center justify-between border rounded-lg px-3 py-2 text-sm">
+                        <div className="min-w-0">
+                          <p className="font-medium truncate">{item.childName || "طفل"}</p>
+                          <p className="text-xs text-muted-foreground truncate">{item.taskQuestion || "جلسة مساعدة"}</p>
+                        </div>
+                        <div className="text-left">
+                          <div className="font-bold text-orange-600">{item.pointsAmount} نقطة</div>
+                          <div className="text-xs text-muted-foreground">
+                            {item.feedbackRating ? `⭐ ${item.feedbackRating}/5` : "بدون تقييم"}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
 
           {/* Posts Tab */}

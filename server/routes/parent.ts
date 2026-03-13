@@ -68,6 +68,7 @@ import {
   teacherChildPermissions,
   taskHelpRequests,
   taskHelpMessages,
+  teacherHelpSessionPayments,
   schoolTeachers,
 } from "../../shared/schema";
 import {
@@ -122,6 +123,7 @@ import { authMiddleware } from "./middleware";
 import { v4 as uuidv4 } from "uuid";
 import Stripe from "stripe";
 import { applyPointsDelta } from "../services/pointsService";
+import { monitorDepositCreation } from "../services/riskMonitor";
 import { activateOnLoginSessions, resumePausedSessions } from "../services/scheduledSessionService";
 import {
   compareOTP,
@@ -150,6 +152,8 @@ import {
 } from "../utils/paymentCountry";
 
 const db = storage.db;
+const HELP_AUTO_ASSIGN_TIMEOUT_SECONDS = 60;
+const HELP_FIRST_RESPONSE_SLA_SECONDS = Number(process.env.HELP_FIRST_RESPONSE_SLA_SECONDS || "120");
 const stripeSecret = process.env.STRIPE_SECRET_KEY;
 const stripe = stripeSecret ? new Stripe(stripeSecret, { apiVersion: "2023-10-16" }) : null;
 
@@ -1289,6 +1293,14 @@ export async function registerParentRoutes(app: Express) {
         soundAlert: true,
         relatedId: result[0].id,
         metadata: { depositId: result[0].id, parentId: req.user.userId, amount: parsedAmount },
+      });
+
+      void monitorDepositCreation({
+        parentId: req.user.userId,
+        amount: parsedAmount,
+        depositId: result[0].id,
+      }).catch((error: any) => {
+        console.error("Risk monitor (deposit create) failed:", error?.message || error);
       });
 
       logParentAction(req.user.userId, "DEPOSIT_REQUESTED", "deposit", result[0].id, { amount: parsedAmount, paymentMethodId }, req);
@@ -2483,7 +2495,7 @@ export async function registerParentRoutes(app: Express) {
       const parentId = req.user.userId;
       const v = validateBody(teacherAssignmentSchema, req.body);
       if (!v.success) return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, v.error));
-      const { teacherId, childIds, monthlyPoints } = v.data;
+      const { teacherId, childIds, monthlyPoints, perHelpPoints } = v.data;
 
       // Verify teacher exists and is active
       const teacher = await db.select().from(schoolTeachers)
@@ -2518,6 +2530,7 @@ export async function registerParentRoutes(app: Express) {
         parentId,
         teacherId,
         monthlyPoints,
+        perHelpPoints,
       }).returning();
 
       // Add children to the request
@@ -2534,9 +2547,9 @@ export async function registerParentRoutes(app: Express) {
         teacherId,
         type: NOTIFICATION_TYPES.TEACHER_ASSIGNMENT_REQUEST,
         title: "طلب تعيين جديد",
-        message: `${parent[0]?.name || "ولي أمر"} يطلب تعيينك لتدريس ${childIds.length} ${childIds.length === 1 ? "طفل" : "أطفال"} مقابل ${monthlyPoints} نقطة شهرياً`,
+        message: `${parent[0]?.name || "ولي أمر"} يطلب تعيينك لتدريس ${childIds.length} ${childIds.length === 1 ? "طفل" : "أطفال"} مقابل ${monthlyPoints} نقطة شهرياً + ${perHelpPoints} نقطة لكل جلسة مساعدة`,
         relatedId: request[0].id,
-        metadata: { requestId: request[0].id, parentId, childIds },
+        metadata: { requestId: request[0].id, parentId, childIds, monthlyPoints, perHelpPoints },
       });
 
       res.json(successResponse({ requestId: request[0].id }));
@@ -2594,7 +2607,167 @@ export async function registerParentRoutes(app: Express) {
     try {
       const parentId = req.user.userId;
 
-      const helpReqs = await db.select({
+      const staleAssigned = await db.select({
+        id: taskHelpRequests.id,
+        childId: taskHelpRequests.childId,
+        helperType: taskHelpRequests.helperType,
+        helperId: taskHelpRequests.helperId,
+        taskTeacherId: tasks.teacherId,
+      })
+        .from(taskHelpRequests)
+        .innerJoin(tasks, eq(taskHelpRequests.taskId, tasks.id))
+        .innerJoin(parentChild, and(
+          eq(parentChild.childId, taskHelpRequests.childId),
+          eq(parentChild.parentId, parentId)
+        ))
+        .where(and(
+          eq(taskHelpRequests.status, "active"),
+          eq(taskHelpRequests.slaEscalated, false),
+          or(
+            eq(taskHelpRequests.helperType, "parent"),
+            eq(taskHelpRequests.helperType, "teacher")
+          ),
+          sql`${taskHelpRequests.createdAt} <= now() - (${HELP_FIRST_RESPONSE_SLA_SECONDS} * interval '1 second')`
+        ))
+        .limit(20);
+
+      for (const reqRow of staleAssigned) {
+        const [helperReplies] = await db.select({ value: count(taskHelpMessages.id) })
+          .from(taskHelpMessages)
+          .where(and(
+            eq(taskHelpMessages.helpRequestId, reqRow.id),
+            eq(taskHelpMessages.senderType, reqRow.helperType as any),
+            eq(taskHelpMessages.senderId, reqRow.helperId)
+          ));
+
+        if (Number(helperReplies?.value || 0) > 0) {
+          continue;
+        }
+
+        let nextHelperType: "parent" | "teacher" | null = null;
+        let nextHelperId = "";
+
+        if (reqRow.helperType === "teacher") {
+          nextHelperType = "parent";
+          nextHelperId = parentId;
+        } else if (reqRow.helperType === "parent" && reqRow.taskTeacherId) {
+          const activePermission = await db.select({ id: teacherChildPermissions.id })
+            .from(teacherChildPermissions)
+            .where(and(
+              eq(teacherChildPermissions.teacherId, reqRow.taskTeacherId),
+              eq(teacherChildPermissions.childId, reqRow.childId),
+              eq(teacherChildPermissions.isActive, true)
+            ))
+            .limit(1);
+
+          if (activePermission[0]) {
+            nextHelperType = "teacher";
+            nextHelperId = reqRow.taskTeacherId;
+          }
+        }
+
+        if (!nextHelperType || !nextHelperId || (nextHelperType === reqRow.helperType && nextHelperId === reqRow.helperId)) {
+          continue;
+        }
+
+        const moved = await db.update(taskHelpRequests)
+          .set({ helperType: nextHelperType, helperId: nextHelperId, slaEscalated: true })
+          .where(and(
+            eq(taskHelpRequests.id, reqRow.id),
+            eq(taskHelpRequests.status, "active"),
+            eq(taskHelpRequests.slaEscalated, false),
+            eq(taskHelpRequests.helperType, reqRow.helperType),
+            eq(taskHelpRequests.helperId, reqRow.helperId)
+          ))
+          .returning({ id: taskHelpRequests.id, childId: taskHelpRequests.childId });
+
+        if (!moved[0]) {
+          continue;
+        }
+
+        await db.insert(notifications).values({
+          childId: moved[0].childId,
+          type: NOTIFICATION_TYPES.TASK_HELP_MESSAGE,
+          title: "تحويل تلقائي لطلب المساعدة",
+          message: "تم تحويل طلب المساعدة تلقائياً بسبب تأخر الرد الأول.",
+          relatedId: reqRow.id,
+          metadata: {
+            helpRequestId: reqRow.id,
+            reason: "first_response_sla_timeout",
+            switchedTo: nextHelperType,
+          },
+        });
+
+        if (nextHelperType === "teacher") {
+          await db.insert(notifications).values({
+            teacherId: nextHelperId,
+            type: NOTIFICATION_TYPES.TASK_HELP_REQUESTED,
+            title: "طلب مساعدة محول تلقائياً",
+            message: "تم تحويل طلب مساعدة إليك تلقائياً بسبب تأخر الرد الأول.",
+            relatedId: reqRow.id,
+            metadata: { helpRequestId: reqRow.id, reason: "first_response_sla_timeout", canClaim: false },
+          });
+        } else {
+          await db.insert(notifications).values({
+            parentId: nextHelperId,
+            type: NOTIFICATION_TYPES.TASK_HELP_REQUESTED,
+            title: "طلب مساعدة محول تلقائياً",
+            message: "تم تحويل طلب مساعدة إليك تلقائياً بسبب تأخر الرد الأول.",
+            relatedId: reqRow.id,
+            metadata: { helpRequestId: reqRow.id, reason: "first_response_sla_timeout", canClaim: false },
+          });
+        }
+      }
+
+      const expiredUnassigned = await db.select({
+        id: taskHelpRequests.id,
+        childId: taskHelpRequests.childId,
+        taskTeacherId: tasks.teacherId,
+      })
+        .from(taskHelpRequests)
+        .innerJoin(tasks, eq(taskHelpRequests.taskId, tasks.id))
+        .innerJoin(parentChild, and(
+          eq(parentChild.childId, taskHelpRequests.childId),
+          eq(parentChild.parentId, parentId)
+        ))
+        .where(and(
+          eq(taskHelpRequests.status, "active"),
+          eq(taskHelpRequests.helperType, "unassigned"),
+          eq(taskHelpRequests.helperId, ""),
+          sql`${taskHelpRequests.createdAt} <= now() - (${HELP_AUTO_ASSIGN_TIMEOUT_SECONDS} * interval '1 second')`
+        ))
+        .limit(20);
+
+      for (const reqRow of expiredUnassigned) {
+        let nextHelperType: "parent" | "teacher" = "parent";
+        let nextHelperId = parentId;
+
+        if (reqRow.taskTeacherId) {
+          const activePermission = await db.select({ id: teacherChildPermissions.id })
+            .from(teacherChildPermissions)
+            .where(and(
+              eq(teacherChildPermissions.teacherId, reqRow.taskTeacherId),
+              eq(teacherChildPermissions.childId, reqRow.childId),
+              eq(teacherChildPermissions.isActive, true)
+            ))
+            .limit(1);
+          if (activePermission[0]) {
+            nextHelperType = "teacher";
+            nextHelperId = reqRow.taskTeacherId;
+          }
+        }
+
+        await db.update(taskHelpRequests)
+          .set({ helperType: nextHelperType, helperId: nextHelperId })
+          .where(and(
+            eq(taskHelpRequests.id, reqRow.id),
+            eq(taskHelpRequests.status, "active"),
+            eq(taskHelpRequests.helperType, "unassigned"),
+            eq(taskHelpRequests.helperId, "")
+          ));
+      }
+
+      const assignedHelpReqs = await db.select({
         helpRequest: taskHelpRequests,
         child: {
           id: children.id,
@@ -2615,13 +2788,44 @@ export async function registerParentRoutes(app: Express) {
         ))
         .orderBy(desc(taskHelpRequests.createdAt));
 
-      const result = helpReqs.map((h: any) => ({
+      const unclaimedHelpReqs = await db.select({
+        helpRequest: taskHelpRequests,
+        child: {
+          id: children.id,
+          name: children.name,
+          avatarUrl: children.avatarUrl,
+        },
+        task: {
+          id: tasks.id,
+          question: tasks.question,
+        },
+      })
+        .from(taskHelpRequests)
+        .innerJoin(children, eq(taskHelpRequests.childId, children.id))
+        .innerJoin(tasks, eq(taskHelpRequests.taskId, tasks.id))
+        .innerJoin(parentChild, and(
+          eq(parentChild.childId, taskHelpRequests.childId),
+          eq(parentChild.parentId, parentId)
+        ))
+        .where(and(
+          eq(taskHelpRequests.helperType, "unassigned"),
+          eq(taskHelpRequests.status, "active")
+        ))
+        .orderBy(desc(taskHelpRequests.createdAt));
+
+      const allRows = [...assignedHelpReqs, ...unclaimedHelpReqs].filter(
+        (row, idx, arr) => arr.findIndex((x: any) => x.helpRequest.id === row.helpRequest.id) === idx
+      );
+
+      const result = allRows.map((h: any) => ({
         id: h.helpRequest.id,
         taskId: h.task.id,
         taskQuestion: h.task.question,
         childId: h.child.id,
         childName: h.child.name,
         childAvatar: h.child.avatarUrl,
+        helperType: h.helpRequest.helperType,
+        canClaim: h.helpRequest.helperType === "unassigned" && h.helpRequest.status === "active",
         status: h.helpRequest.status,
         createdAt: h.helpRequest.createdAt,
         resolvedAt: h.helpRequest.resolvedAt,
@@ -2631,6 +2835,97 @@ export async function registerParentRoutes(app: Express) {
     } catch (error: any) {
       console.error("Get parent help requests error:", error);
       res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "فشل جلب طلبات المساعدة"));
+    }
+  });
+
+  app.put("/api/parent/help-requests/:helpRequestId/claim", authMiddleware, async (req: any, res) => {
+    try {
+      const parentId = req.user.userId;
+      const { helpRequestId } = req.params;
+
+      const rows = await db.select({
+        helpRequest: taskHelpRequests,
+        task: {
+          id: tasks.id,
+        },
+      })
+        .from(taskHelpRequests)
+        .innerJoin(tasks, eq(taskHelpRequests.taskId, tasks.id))
+        .where(eq(taskHelpRequests.id, helpRequestId))
+        .limit(1);
+
+      const row = rows[0];
+      if (!row) {
+        return res.status(404).json(errorResponse(ErrorCode.NOT_FOUND, "طلب المساعدة غير موجود"));
+      }
+
+      const childLink = await db.select({ id: parentChild.id })
+        .from(parentChild)
+        .where(and(
+          eq(parentChild.parentId, parentId),
+          eq(parentChild.childId, row.helpRequest.childId)
+        ))
+        .limit(1);
+
+      if (!childLink[0]) {
+        return res.status(403).json(errorResponse(ErrorCode.UNAUTHORIZED, "غير مصرح لك باستلام هذا الطلب"));
+      }
+
+      if (row.helpRequest.status !== "active") {
+        return res.status(409).json(errorResponse(ErrorCode.BAD_REQUEST, "هذا الطلب غير نشط"));
+      }
+
+      if (row.helpRequest.helperType === "parent" && row.helpRequest.helperId === parentId) {
+        return res.json(successResponse({ claimed: true, helpRequestId }));
+      }
+
+      if (row.helpRequest.helperType !== "unassigned" || row.helpRequest.helperId !== "") {
+        return res.status(409).json(errorResponse(ErrorCode.BAD_REQUEST, "تم استلام الطلب بواسطة طرف آخر"));
+      }
+
+      const updated = await db.update(taskHelpRequests)
+        .set({ helperType: "parent", helperId: parentId })
+        .where(and(
+          eq(taskHelpRequests.id, helpRequestId),
+          eq(taskHelpRequests.status, "active"),
+          eq(taskHelpRequests.helperType, "unassigned"),
+          eq(taskHelpRequests.helperId, "")
+        ))
+        .returning();
+
+      if (!updated[0]) {
+        return res.status(409).json(errorResponse(ErrorCode.BAD_REQUEST, "تم استلام الطلب بواسطة طرف آخر"));
+      }
+
+      await db.insert(notifications).values({
+        childId: updated[0].childId,
+        type: NOTIFICATION_TYPES.TASK_HELP_MESSAGE,
+        title: "تم استلام طلب المساعدة",
+        message: "تم استلام طلبك من أحد الأطراف المعنية، يمكنك متابعة الدردشة الآن",
+        relatedId: helpRequestId,
+        metadata: { helpRequestId, claimedBy: "parent" },
+      });
+
+      const taskRow = await db.select({ teacherId: tasks.teacherId })
+        .from(tasks)
+        .where(eq(tasks.id, row.helpRequest.taskId))
+        .limit(1);
+
+      if (taskRow[0]?.teacherId) {
+        await db.insert(notifications).values({
+          teacherId: taskRow[0].teacherId,
+          type: NOTIFICATION_TYPES.TASK_HELP_MESSAGE,
+          title: "تم استلام الطلب بواسطة ولي الأمر",
+          message: "تم استلام طلب المساعدة من ولي الأمر، لم يعد متاحاً للاستلام",
+          relatedId: helpRequestId,
+          metadata: { helpRequestId, claimedBy: "parent", claimedById: parentId },
+        });
+      }
+
+      res.json(successResponse({ claimed: true, helpRequestId }));
+    } catch (error: any) {
+      console.error("Claim parent help request error:", error);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "فشل استلام طلب المساعدة"));
     }
   });
 
@@ -2708,6 +3003,69 @@ export async function registerParentRoutes(app: Express) {
     }
   });
 
+  app.get("/api/parent/help-session-payments", authMiddleware, async (req: any, res) => {
+    try {
+      const parentId = req.user.userId;
+      const month = typeof req.query.month === "string" ? req.query.month : "";
+
+      let whereClause: any = eq(teacherHelpSessionPayments.parentId, parentId);
+      if (month && /^\d{4}-\d{2}$/.test(month)) {
+        whereClause = and(
+          eq(teacherHelpSessionPayments.parentId, parentId),
+          sql`to_char(${teacherHelpSessionPayments.resolvedAt}, 'YYYY-MM') = ${month}`
+        );
+      }
+
+      const rows = await db.select({
+        payment: teacherHelpSessionPayments,
+        teacher: {
+          id: schoolTeachers.id,
+          name: schoolTeachers.name,
+          avatarUrl: schoolTeachers.avatarUrl,
+        },
+        child: {
+          id: children.id,
+          name: children.name,
+        },
+        task: {
+          id: tasks.id,
+          question: tasks.question,
+        },
+      })
+        .from(teacherHelpSessionPayments)
+        .leftJoin(schoolTeachers, eq(teacherHelpSessionPayments.teacherId, schoolTeachers.id))
+        .leftJoin(children, eq(teacherHelpSessionPayments.childId, children.id))
+        .leftJoin(tasks, eq(teacherHelpSessionPayments.taskId, tasks.id))
+        .where(whereClause)
+        .orderBy(desc(teacherHelpSessionPayments.resolvedAt));
+
+      const totalHelpPoints = rows.reduce((sum: number, r: any) => sum + Number(r.payment.perHelpPoints || 0), 0);
+
+      res.json(successResponse({
+        month: month || null,
+        summary: {
+          sessionsCount: rows.length,
+          totalHelpPoints,
+        },
+        items: rows.map((r: any) => ({
+          id: r.payment.id,
+          helpRequestId: r.payment.helpRequestId,
+          teacher: r.teacher,
+          child: r.child,
+          teacherName: r.teacher?.name || "",
+          childName: r.child?.name || "",
+          taskQuestion: r.task?.question || "",
+          pointsAmount: Number(r.payment.perHelpPoints || 0),
+          perHelpPoints: Number(r.payment.perHelpPoints || 0),
+          resolvedAt: r.payment.resolvedAt,
+        })),
+      }));
+    } catch (error: any) {
+      console.error("Get parent help session payments error:", error);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "فشل جلب السجل المالي للمساعدة"));
+    }
+  });
+
   // Resolve (close) a help request (parent)
   app.put("/api/parent/help-requests/:helpRequestId/resolve", authMiddleware, async (req: any, res) => {
     try {
@@ -2754,10 +3112,21 @@ export async function registerParentRoutes(app: Express) {
       });
       const upload = multer({
         storage: store,
-        limits: { fileSize: 10 * 1024 * 1024 },
+        limits: { fileSize: 8 * 1024 * 1024 },
         fileFilter: (_r: any, f: any, cb: any) => {
-          if (f.mimetype.startsWith("image/") || f.mimetype.startsWith("audio/")) cb(null, true);
-          else cb(new Error("Only images and audio files are allowed"));
+          const allowed = new Set([
+            "image/jpeg",
+            "image/png",
+            "image/webp",
+            "image/gif",
+            "audio/webm",
+            "audio/wav",
+            "audio/mpeg",
+            "audio/mp3",
+            "audio/ogg",
+          ]);
+          if (allowed.has(String(f.mimetype || "").toLowerCase())) cb(null, true);
+          else cb(new Error("Unsupported file type. Allowed: JPG/PNG/WEBP/GIF and WEBM/WAV/MP3/OGG"));
         },
       }).single("file");
       upload(req, res, (err: any) => {

@@ -96,6 +96,19 @@ After any i18n change, confirm ALL 25 language blocks have the new/modified key.
 
 Failing to translate = **IMMEDIATE FAILURE**.
 
+## 🌐 APP UI TRANSLATION RULE (NON-GAME)
+
+**ALL text changes in the main web app UI** (React pages/components using `client/src/i18n/locales/*.json`) **MUST** be translated for **all supported app locales** in the same change.
+
+### Supported App Locales (10):
+`ar`, `en`, `pt`, `es`, `fr`, `de`, `tr`, `ru`, `zh`, `hi`
+
+### Rules:
+1. Any new UI copy in app pages/components MUST use i18n keys (no hardcoded single-language UI text)
+2. Every added/modified app i18n key MUST be present in all 10 locale JSON files
+3. RTL rendering must be verified for Arabic (`ar`) after layout/text changes
+4. A task is incomplete if any locale is missing the updated key(s)
+
 The agent is **FORBIDDEN** from responding based on:
 
 * Prior knowledge

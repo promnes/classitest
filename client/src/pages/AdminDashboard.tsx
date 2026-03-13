@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -17,6 +17,7 @@ import { OrdersTab } from "@/components/admin/OrdersTab";
 import { DepositsTab } from "@/components/admin/DepositsTab";
 import { ActivityLogTab } from "@/components/admin/ActivityLogTab";
 import { WalletAnalytics } from "@/components/admin/WalletAnalytics";
+import { RiskMonitorTab } from "@/components/admin/RiskMonitorTab";
 import { PaymentMethodsTab } from "@/components/admin/PaymentMethodsTab";
 import { SubjectsTab } from "@/components/admin/SubjectsTab";
 import { NotificationsTab } from "@/components/admin/NotificationsTab";
@@ -41,7 +42,8 @@ import { MobileAppSettingsTab } from "@/components/admin/MobileAppSettingsTab";
 import { GrowthTreeSettingsTab } from "@/components/admin/GrowthTreeSettingsTab";
 import { StoreAnalyticsTab } from "@/components/admin/StoreAnalyticsTab";
 
-type TabType = "dashboard" | "products" | "categories" | "symbols" | "users" | "settings" | "inhome" | "wallets" | "orders" | "deposits" | "activity" | "analytics" | "payment-methods" | "subjects" | "notifications" | "notification-settings" | "task-notification-levels" | "gifts" | "referrals" | "ads" | "parents" | "profits" | "libraries" | "schools" | "games" | "tasks" | "social-login" | "otp-providers" | "seo" | "support" | "legal" | "mobile-app" | "growth-tree" | "store-analytics";
+type TabType = "dashboard" | "products" | "categories" | "symbols" | "users" | "settings" | "inhome" | "wallets" | "orders" | "deposits" | "activity" | "analytics" | "payment-methods" | "subjects" | "notifications" | "notification-settings" | "task-notification-levels" | "gifts" | "referrals" | "ads" | "parents" | "profits" | "libraries" | "schools" | "games" | "tasks" | "social-login" | "otp-providers" | "seo" | "support" | "legal" | "mobile-app" | "growth-tree" | "store-analytics" | "risk-monitor";
+type SectionType = "general" | "users-education" | "store-shipping" | "finance-performance" | "platform-integrations";
 
 export const AdminDashboard = (): JSX.Element => {
   const { t, i18n } = useTranslation();
@@ -50,6 +52,7 @@ export const AdminDashboard = (): JSX.Element => {
   const token = localStorage.getItem("adminToken");
 
   const [activeTab, setActiveTab] = useState<TabType>("dashboard");
+  const [activeSection, setActiveSection] = useState<SectionType>("general");
   const [sidebarOpen, setSidebarOpen] = useState(true);
   
   const isRTL = i18n.language === 'ar';
@@ -66,7 +69,7 @@ export const AdminDashboard = (): JSX.Element => {
     task_reminder: "tasks", task_notification_escalation: "tasks",
     points_earned: "wallets", points_adjustment: "wallets",
     referral_reward: "referrals", new_referral: "referrals",
-    security_alert: "settings", login_rejected: "settings", login_code_request: "settings",
+    security_alert: "risk-monitor", login_rejected: "settings", login_code_request: "settings",
     gift_unlocked: "gifts", gift_activated: "gifts", product_assigned: "products",
     broadcast: "notifications", system_alert: "notifications", info: "notifications",
     game_shared: "games",
@@ -87,42 +90,72 @@ export const AdminDashboard = (): JSX.Element => {
     navigate("/admin");
   };
 
-  const tabs: { id: TabType; labelKey?: string; label?: string; icon: string }[] = [
-    { id: "dashboard", labelKey: "admin.dashboard", icon: "📊" },
-    { id: "profits", labelKey: "admin.profitSystem.title", icon: "💹" },
-    { id: "parents", labelKey: "admin.parentsManagement", icon: "👨‍👩‍👧‍👦" },
-    { id: "subjects", labelKey: "admin.subjects.title", icon: "📚" },
-    { id: "categories", labelKey: "admin.storeCategories", icon: "📁" },
-    { id: "symbols", labelKey: "admin.symbolsLibrary", icon: "⭐" },
-    { id: "products", labelKey: "admin.products.title", icon: "🛍️" },
-    { id: "store-analytics", labelKey: "admin.storeAnalytics", icon: "📊" },
-    { id: "users", labelKey: "admin.children", icon: "👥" },
-    { id: "games", labelKey: "admin.games.title", icon: "🎮" },
-    { id: "tasks", labelKey: "admin.tasks", icon: "📝" },
-    { id: "growth-tree", labelKey: "admin.growthTree.title", icon: "🌳" },
-    { id: "wallets", labelKey: "admin.wallets", icon: "💰" },
-    { id: "orders", labelKey: "admin.orders", icon: "📦" },
-    { id: "inhome", label: "in-home", icon: "🚚" },
-    { id: "deposits", labelKey: "admin.deposits.title", icon: "💳" },
-    { id: "payment-methods", labelKey: "admin.paymentMethods.title", icon: "💳" },
-    { id: "analytics", labelKey: "admin.walletAnalytics", icon: "📈" },
-    { id: "activity", labelKey: "admin.activityLog", icon: "📋" },
-    { id: "notifications", labelKey: "admin.notifications.title", icon: "🔔" },
-    { id: "notification-settings", labelKey: "admin.notificationSettings.title", icon: "🧩" },
-    { id: "task-notification-levels", labelKey: "admin.taskNotificationLevels.title", icon: "🚨" },
-    { id: "gifts", labelKey: "admin.gifts.title", icon: "🎁" },
-    { id: "referrals", labelKey: "admin.referrals.title", icon: "🤝" },
-    { id: "ads", labelKey: "admin.ads.title", icon: "📢" },
-    { id: "libraries", labelKey: "admin.libraries.title", icon: "📖" },
-    { id: "schools", labelKey: "admin.schools.title", icon: "🏫" },
-    { id: "social-login", labelKey: "admin.socialLogin", icon: "🔐" },
-    { id: "otp-providers", labelKey: "admin.otpProviders.title", icon: "📱" },
-    { id: "seo", labelKey: "admin.seoSettings.title", icon: "🔍" },
-    { id: "support", labelKey: "admin.supportSettings.title", icon: "📞" },
-    { id: "legal", labelKey: "admin.legalPages", icon: "📜" },
-    { id: "mobile-app", labelKey: "admin.mobileApp.title", icon: "📲" },
-    { id: "settings", labelKey: "admin.settings", icon: "⚙️" },
+  const sections: { id: SectionType; label: string; icon: string }[] = [
+    { id: "general", label: "الإدارة العامة", icon: "🧭" },
+    { id: "users-education", label: "المستخدمون والتعليم", icon: "🎓" },
+    { id: "store-shipping", label: "المتجر والشحن", icon: "🛒" },
+    { id: "finance-performance", label: "المالية والأداء", icon: "💼" },
+    { id: "platform-integrations", label: "المنصة والتكامل", icon: "🔌" },
   ];
+
+  const tabs: { id: TabType; labelKey?: string; label?: string; icon: string; section: SectionType }[] = [
+    { id: "dashboard", labelKey: "admin.dashboard", icon: "📊", section: "general" },
+    { id: "activity", labelKey: "admin.activityLog", icon: "📋", section: "general" },
+    { id: "settings", labelKey: "admin.settings", icon: "⚙️", section: "general" },
+    { id: "support", labelKey: "admin.supportSettings.title", icon: "📞", section: "general" },
+    { id: "legal", labelKey: "admin.legalPages", icon: "📜", section: "general" },
+
+    { id: "parents", labelKey: "admin.parentsManagement", icon: "👨‍👩‍👧‍👦", section: "users-education" },
+    { id: "users", labelKey: "admin.children", icon: "👥", section: "users-education" },
+    { id: "subjects", labelKey: "admin.subjects.title", icon: "📚", section: "users-education" },
+    { id: "tasks", labelKey: "admin.tasks", icon: "📝", section: "users-education" },
+    { id: "games", labelKey: "admin.games.title", icon: "🎮", section: "users-education" },
+    { id: "growth-tree", labelKey: "admin.growthTree.title", icon: "🌳", section: "users-education" },
+    { id: "schools", labelKey: "admin.schools.title", icon: "🏫", section: "users-education" },
+    { id: "libraries", labelKey: "admin.libraries.title", icon: "📖", section: "users-education" },
+    { id: "symbols", labelKey: "admin.symbolsLibrary", icon: "⭐", section: "users-education" },
+
+    { id: "products", labelKey: "admin.products.title", icon: "🛍️", section: "store-shipping" },
+    { id: "categories", labelKey: "admin.storeCategories", icon: "📁", section: "store-shipping" },
+    { id: "orders", labelKey: "admin.orders", icon: "📦", section: "store-shipping" },
+    { id: "inhome", label: "in-home", icon: "🚚", section: "store-shipping" },
+    { id: "payment-methods", labelKey: "admin.paymentMethods.title", icon: "💳", section: "store-shipping" },
+    { id: "gifts", labelKey: "admin.gifts.title", icon: "🎁", section: "store-shipping" },
+    { id: "store-analytics", labelKey: "admin.storeAnalytics", icon: "📊", section: "store-shipping" },
+
+    { id: "wallets", labelKey: "admin.wallets", icon: "💰", section: "finance-performance" },
+    { id: "deposits", labelKey: "admin.deposits.title", icon: "💳", section: "finance-performance" },
+    { id: "profits", labelKey: "admin.profitSystem.title", icon: "💹", section: "finance-performance" },
+    { id: "referrals", labelKey: "admin.referrals.title", icon: "🤝", section: "finance-performance" },
+    { id: "analytics", labelKey: "admin.walletAnalytics", icon: "📈", section: "finance-performance" },
+    { id: "risk-monitor", labelKey: "admin.riskMonitor.title", icon: "🛡️", section: "finance-performance" },
+
+    { id: "notifications", labelKey: "admin.notifications.title", icon: "🔔", section: "platform-integrations" },
+    { id: "notification-settings", labelKey: "admin.notificationSettings.title", icon: "🧩", section: "platform-integrations" },
+    { id: "task-notification-levels", labelKey: "admin.taskNotificationLevels.title", icon: "🚨", section: "platform-integrations" },
+    { id: "ads", labelKey: "admin.ads.title", icon: "📢", section: "platform-integrations" },
+    { id: "mobile-app", labelKey: "admin.mobileApp.title", icon: "📲", section: "platform-integrations" },
+    { id: "social-login", labelKey: "admin.socialLogin", icon: "🔐", section: "platform-integrations" },
+    { id: "otp-providers", labelKey: "admin.otpProviders.title", icon: "📱", section: "platform-integrations" },
+    { id: "seo", labelKey: "admin.seoSettings.title", icon: "🔍", section: "platform-integrations" },
+  ];
+
+  const getSectionForTab = (tabId: TabType): SectionType => {
+    return tabs.find((item) => item.id === tabId)?.section || "general";
+  };
+
+  useEffect(() => {
+    setActiveSection(getSectionForTab(activeTab));
+  }, [activeTab]);
+
+  const handleSectionClick = (sectionId: SectionType) => {
+    setActiveSection(sectionId);
+    const sectionTabs = tabs.filter((item) => item.section === sectionId);
+    const hasActive = sectionTabs.some((item) => item.id === activeTab);
+    if (!hasActive && sectionTabs[0]) {
+      setActiveTab(sectionTabs[0].id);
+    }
+  };
 
   return (
     <div className={`flex h-screen ${isDark ? "bg-gray-900 text-white" : "bg-white"}`} dir={isRTL ? "rtl" : "ltr"}>
@@ -140,12 +173,12 @@ export const AdminDashboard = (): JSX.Element => {
         </div>
 
         <nav className="space-y-2 p-4 flex-1 overflow-y-auto">
-          {tabs.map((tab) => (
+          {sections.map((section) => (
             <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
+              key={section.id}
+              onClick={() => handleSectionClick(section.id)}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                activeTab === tab.id
+                activeSection === section.id
                   ? isDark
                     ? "bg-blue-600 text-white"
                     : "bg-blue-500 text-white"
@@ -154,8 +187,8 @@ export const AdminDashboard = (): JSX.Element => {
                   : "hover:bg-gray-200"
               }`}
             >
-              <span className="text-xl">{tab.icon}</span>
-              {sidebarOpen && <span>{tab.label || (tab.labelKey ? t(tab.labelKey) : "")}</span>}
+              <span className="text-xl">{section.icon}</span>
+              {sidebarOpen && <span>{section.label}</span>}
             </button>
           ))}
           
@@ -187,6 +220,31 @@ export const AdminDashboard = (): JSX.Element => {
         </div>
         
         <div className="flex-1 p-6 overflow-auto">
+          <div className={`mb-5 rounded-xl p-2 ${isDark ? "bg-gray-800/70" : "bg-gray-100"}`}>
+            <div className="flex gap-2 overflow-x-auto pb-1">
+              {tabs
+                .filter((item) => item.section === activeSection)
+                .map((tab) => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`whitespace-nowrap px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      activeTab === tab.id
+                        ? isDark
+                          ? "bg-blue-600 text-white"
+                          : "bg-blue-500 text-white"
+                        : isDark
+                        ? "bg-gray-700 text-gray-200 hover:bg-gray-600"
+                        : "bg-white text-gray-700 hover:bg-gray-200"
+                    }`}
+                  >
+                    <span className="mr-1">{tab.icon}</span>
+                    {tab.label || (tab.labelKey ? t(tab.labelKey) : "")}
+                  </button>
+                ))}
+            </div>
+          </div>
+
           {activeTab === "dashboard" && <AdminDashboardTab token={token} />}
           {activeTab === "subjects" && <SubjectsTab token={token} />}
           {activeTab === "categories" && <CategoriesTab token={token} />}
@@ -200,6 +258,7 @@ export const AdminDashboard = (): JSX.Element => {
           {activeTab === "deposits" && <DepositsTab token={token} />}
           {activeTab === "payment-methods" && <PaymentMethodsTab token={token} />}
           {activeTab === "analytics" && <WalletAnalytics token={token} />}
+          {activeTab === "risk-monitor" && <RiskMonitorTab token={token} />}
           {activeTab === "activity" && <ActivityLogTab token={token} />}
           {activeTab === "notifications" && (
             <NotificationsTab

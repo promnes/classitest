@@ -6,6 +6,7 @@ interface ProductImageCarouselProps {
   images: string[];
   mainImage?: string;
   alt: string;
+  discountBadgeText?: string;
   className?: string;
   /** Compact mode for product cards (no dots, small arrows) */
   compact?: boolean;
@@ -24,6 +25,7 @@ export function ProductImageCarousel({
   images,
   mainImage,
   alt,
+  discountBadgeText,
   className = "",
   compact = false,
   hoverArrows = false,
@@ -109,6 +111,11 @@ export function ProductImageCarousel({
             (e.target as HTMLImageElement).style.display = "none";
           }}
         />
+        {discountBadgeText && (
+          <div className="absolute top-2 left-2 z-30 pointer-events-none px-2 py-0.5 rounded-md bg-red-500 text-white text-xs font-bold shadow-sm">
+            {discountBadgeText}
+          </div>
+        )}
       </div>
     );
   }
@@ -130,14 +137,22 @@ export function ProductImageCarousel({
           key={src}
           src={src}
           alt={`${alt} (${idx + 1}/${allImages.length})`}
-          className={`absolute inset-0 w-full h-full ${objectFit} transition-opacity duration-500 ${
-            idx === currentIndex ? "opacity-100 z-10" : "opacity-0 z-0"
+          className={`absolute inset-0 w-full h-full ${objectFit} will-change-[opacity,transform,filter] transition-[opacity,transform,filter] duration-[2800ms] ease-[cubic-bezier(0.16,1,0.3,1)] ${
+            idx === currentIndex
+              ? "opacity-100 z-10 scale-100 blur-0"
+              : "opacity-0 z-0 scale-[1.003] blur-[1px]"
           }`}
           onError={(e) => {
             (e.target as HTMLImageElement).style.display = "none";
           }}
         />
       ))}
+
+      {discountBadgeText && (
+        <div className="absolute top-2 left-2 z-30 pointer-events-none px-2 py-0.5 rounded-md bg-red-500 text-white text-xs font-bold shadow-sm">
+          {discountBadgeText}
+        </div>
+      )}
 
       {/* Arrows */}
       <button

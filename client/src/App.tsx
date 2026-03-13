@@ -8,6 +8,7 @@ import { SEOProvider } from "@/components/SEOProvider";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { OfflineGuard } from "@/components/OfflineGuard";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
+import { ParentDashboard } from "@/pages/ParentDashboard";
 const Toaster = lazy(() => import("@/components/ui/toaster").then(m => ({ default: m.Toaster })));
 const NotFound = lazy(() => import("@/pages/not-found"));
 
@@ -19,8 +20,6 @@ const ChildAppWrapper = lazy(() => import("@/components/ChildAppWrapper").then(m
 
 const ParentAuth = lazy(() => import("@/pages/ParentAuth").then(m => ({ default: m.ParentAuth })));
 const ChildLink = lazy(() => import("@/pages/ChildLink").then(m => ({ default: m.ChildLink })));
-
-const ParentDashboard = lazy(() => import("@/pages/ParentDashboard").then(m => ({ default: m.ParentDashboard })));
 const ChildGames = lazy(() => import("@/pages/ChildGames").then(m => ({ default: m.ChildGames })));
 
 const ParentStore = lazy(() => import("@/pages/ParentStore").then(m => ({ default: m.ParentStore })));

@@ -35,6 +35,7 @@ export const ChildTasks = (): JSX.Element => {
   const [showResult, setShowResult] = useState<{ correct: boolean; points: number } | null>(null);
   const [helpChatOpen, setHelpChatOpen] = useState(false);
   const [activeHelpRequestId, setActiveHelpRequestId] = useState<string | null>(null);
+  const [activeHelpRequestStatus, setActiveHelpRequestStatus] = useState<string>("active");
   const [helpTaskQuestion, setHelpTaskQuestion] = useState("");
   const [helpQuestionDialogOpen, setHelpQuestionDialogOpen] = useState(false);
   const [helpQuestionText, setHelpQuestionText] = useState("");
@@ -110,9 +111,11 @@ export const ChildTasks = (): JSX.Element => {
     },
     onSuccess: (data, variables) => {
       const helpRequest = data.data;
-      setActiveHelpRequestId(String(helpRequest.id));
+      const resolvedHelpRequestId = helpRequest?.helpRequestId || helpRequest?.id;
+      setActiveHelpRequestId(String(resolvedHelpRequestId));
       const task = tasks.find(t => t.id === variables.taskId);
       setHelpTaskQuestion(task?.question || "");
+      setActiveHelpRequestStatus("active");
       setHelpChatOpen(true);
       setHelpQuestionDialogOpen(false);
       setHelpQuestionText("");
@@ -518,7 +521,7 @@ export const ChildTasks = (): JSX.Element => {
           userType="child"
           token={token || ""}
           taskQuestion={helpTaskQuestion}
-          status="active"
+          status={activeHelpRequestStatus}
         />
       )}
     </div>

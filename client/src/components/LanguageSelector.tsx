@@ -93,49 +93,54 @@ export const LanguageSelector: React.FC = () => {
       <button
         ref={toggleButtonRef}
         onClick={() => setIsOpen(!isOpen)}
-        className={`flex items-center gap-2 px-3 py-2 rounded-lg font-semibold transition-all duration-200 shadow-md hover:shadow-lg ${
+        aria-haspopup="menu"
+        aria-expanded={isOpen}
+        className={`group flex items-center gap-2 px-2.5 sm:px-3 py-2 rounded-xl font-semibold transition-all duration-200 border ${
           isDark
-            ? "bg-gray-700 hover:bg-gray-600 text-white border border-gray-600"
-            : "bg-white hover:bg-gray-100 text-gray-800 border-2 border-purple-300"
+            ? "bg-slate-900 hover:bg-slate-800 text-white border-slate-700"
+            : "bg-white hover:bg-indigo-50 text-gray-800 border-indigo-100 shadow-sm"
         }`}
         data-testid="button-language-toggle"
       >
-        <Globe className="w-5 h-5" />
-        <span className="hidden sm:inline text-sm font-bold">{currentLang.nativeName}</span>
-        <ChevronDown className={`w-4 h-4 transition-transform ${isOpen ? "rotate-180" : ""}`} />
+        <Globe className={`w-4.5 h-4.5 ${isDark ? "text-slate-300" : "text-indigo-600"}`} />
+        <span className="hidden sm:inline text-sm font-bold tracking-tight">{currentLang.nativeName}</span>
+        <ChevronDown className={`w-4 h-4 transition-transform ${isOpen ? "rotate-180" : ""} ${isDark ? "text-slate-400" : "text-slate-500"}`} />
       </button>
 
       {isOpen && createPortal(
         <div
           ref={menuRef}
           style={menuPosition}
-          className={`fixed min-w-max rounded-xl shadow-2xl z-[10000] overflow-hidden border-2 ${
+          role="menu"
+          className={`fixed min-w-max rounded-2xl shadow-2xl z-[10000] overflow-hidden border backdrop-blur-md ${
             isDark
-              ? "bg-gray-800 border-gray-600"
-              : "bg-white border-purple-300"
+              ? "bg-slate-900/98 border-slate-700"
+              : "bg-white/98 border-indigo-100"
           }`}
         >
           {languages.map((lang) => (
             <button
               key={lang.code}
               onClick={() => handleLanguageChange(lang.code)}
+              role="menuitemradio"
+              aria-checked={i18n.language === lang.code}
               className={`w-full px-4 py-3 text-left flex items-center gap-3 transition-all ${
                 i18n.language === lang.code
                   ? isDark
-                    ? "bg-purple-600 text-white font-bold"
-                    : "bg-purple-100 text-purple-800 font-bold"
+                    ? "bg-indigo-500/20 text-indigo-200 font-bold"
+                    : "bg-indigo-50 text-indigo-700 font-bold"
                   : isDark
-                    ? "text-gray-200 hover:bg-gray-700"
-                    : "text-gray-800 hover:bg-gray-50"
+                    ? "text-gray-200 hover:bg-slate-800"
+                    : "text-gray-800 hover:bg-indigo-50/60"
               }`}
               data-testid={`button-language-${lang.code}`}
             >
-              <div>
-                <p className="font-semibold text-sm">{lang.name}</p>
-                <p className="text-xs opacity-70">{lang.nativeName}</p>
+              <div className="min-w-0">
+                <p className="font-semibold text-sm leading-tight">{lang.name}</p>
+                <p className="text-xs opacity-70 leading-tight">{lang.nativeName}</p>
               </div>
               {i18n.language === lang.code && (
-                <Check className="w-5 h-5 ml-auto" />
+                <Check className="w-4.5 h-4.5 ml-auto" />
               )}
             </button>
           ))}

@@ -83,7 +83,8 @@ import {
   School,
   GraduationCap,
   Heart,
-  CalendarClock
+  CalendarClock,
+  MoreVertical
 } from "lucide-react";
 
 const ChildReportCard = memo(function ChildReportCard({ child, token, isDark, t }: { child: any; token: string | null; isDark: boolean; t: (key: string, options?: any) => string }) {
@@ -104,32 +105,32 @@ const ChildReportCard = memo(function ChildReportCard({ child, token, isDark, t 
 
   return (
     <div className={`p-4 rounded-xl ${isDark ? "bg-gray-800" : "bg-gray-50"}`}>
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
+        <div className="flex items-center gap-3 min-w-0">
           <div className={`h-12 w-12 rounded-full flex items-center justify-center text-xl font-bold ${
             isDark ? "bg-blue-900 text-blue-300" : "bg-blue-100 text-blue-600"
           }`}>
             {child.name?.charAt(0) || "👤"}
           </div>
-          <div>
+          <div className="min-w-0">
             <h3 className={`font-bold ${isDark ? "text-white" : "text-gray-800"}`}>
               {child.name}
             </h3>
-            <p className={`text-sm ${isDark ? "text-gray-400" : "text-gray-500"}`}>
+            <p className={`text-sm truncate ${isDark ? "text-gray-400" : "text-gray-500"}`}>
               {child.totalPoints || 0} {t('parentDashboard.points')} • {t('parentDashboard.level')} {child.level || 1}
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 sm:justify-end">
           <Suspense fallback={null}>
             <ChildReportPDF childId={child.id} childName={child.name} />
           </Suspense>
-          <div className="flex gap-1">
+          <div className="flex flex-wrap gap-1">
           {(["daily", "weekly", "monthly"] as const).map((p) => (
             <button
               key={p}
               onClick={() => setPeriod(p)}
-              className={`px-3 py-1 text-sm rounded-lg transition-all ${
+              className={`px-2.5 sm:px-3 py-1 text-xs sm:text-sm rounded-lg transition-all ${
                 period === p
                   ? "bg-blue-500 text-white"
                   : isDark
@@ -151,7 +152,7 @@ const ChildReportCard = memo(function ChildReportCard({ child, token, isDark, t 
         </div>
       ) : report ? (
         <div className="space-y-4">
-          <div className="grid grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
             <div className={`p-3 rounded-lg text-center ${isDark ? "bg-gray-700" : "bg-white"}`}>
               <p className="text-2xl font-bold text-blue-500">{report.summary?.totalTasks || 0}</p>
               <p className={`text-xs ${isDark ? "text-gray-400" : "text-gray-500"}`}>{t('parentDashboard.total')}</p>
@@ -170,12 +171,12 @@ const ChildReportCard = memo(function ChildReportCard({ child, token, isDark, t 
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
             <span className={`text-sm ${isDark ? "text-gray-400" : "text-gray-500"}`}>{t('parentDashboard.completionRate')}:</span>
-            <div className="flex-1">
+            <div className="flex-1 w-full">
               <Progress value={report.summary?.completionRate || 0} className="h-2" />
             </div>
-            <span className={`text-sm font-bold ${isDark ? "text-white" : "text-gray-800"}`}>
+            <span className={`text-sm font-bold self-end sm:self-auto ${isDark ? "text-white" : "text-gray-800"}`}>
               {report.summary?.completionRate || 0}%
             </span>
           </div>
@@ -284,6 +285,7 @@ export const ParentDashboard = (): JSX.Element => {
     notes: "",
   });
   const [purchaseRejectReason, setPurchaseRejectReason] = useState("");
+  const [showMobileHeaderMenu, setShowMobileHeaderMenu] = useState(false);
 
   // School search for child creation
   const { data: schoolSuggestions } = useQuery({
@@ -463,6 +465,27 @@ export const ParentDashboard = (): JSX.Element => {
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    if (!showMobileHeaderMenu) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setShowMobileHeaderMenu(false);
+      }
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [showMobileHeaderMenu]);
+
+  useEffect(() => {
+    const onResize = () => {
+      if (window.innerWidth >= 768) {
+        setShowMobileHeaderMenu(false);
+      }
+    };
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
   }, []);
 
   const { toast } = useToast();
@@ -873,15 +896,15 @@ export const ParentDashboard = (): JSX.Element => {
   }, []);
 
   return (
-    <div className={`min-h-screen ${isDark ? "bg-gray-950" : "bg-gradient-to-br from-slate-50 to-blue-50"}`}>
+    <div className={`min-h-screen ${isDark ? "bg-gradient-to-b from-slate-950 via-gray-950 to-slate-900" : "bg-gradient-to-br from-indigo-50 via-white to-sky-50"}`}>
       <ParentWebPushRegistrar />
       <Suspense fallback={null}><OnboardingWizard /></Suspense>
-      <header className={`sticky top-0 z-40 ${isDark ? "bg-gray-900/95 border-gray-800" : "bg-white/95 border-gray-200"} border-b backdrop-blur-sm`}>
-        <div className="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
-          <div className="flex items-center gap-3">
+      <header className={`sticky top-0 z-40 ${isDark ? "bg-slate-900/95 border-slate-800" : "bg-white/90 border-indigo-100"} border-b backdrop-blur-md`}>
+        <div className="max-w-7xl mx-auto px-2.5 sm:px-4 py-2 sm:py-3 flex items-center justify-between gap-2 sm:gap-3">
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
             <button
               onClick={() => navigate("/parent-profile")}
-              className="h-10 w-10 rounded-xl overflow-hidden shadow-lg flex-shrink-0 focus:outline-none focus:ring-2 focus:ring-purple-400 transition-transform hover:scale-105"
+              className="h-8.5 w-8.5 sm:h-10 sm:w-10 rounded-xl overflow-hidden shadow-lg flex-shrink-0 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition-transform hover:scale-105"
               aria-label="Profile"
               data-testid="button-header-avatar"
             >
@@ -893,23 +916,115 @@ export const ParentDashboard = (): JSX.Element => {
                 </div>
               )}
             </button>
-            <div>
-              <h1 className={`text-lg font-bold ${isDark ? "text-white" : "text-gray-900"}`}>Classify</h1>
-              <p className={`text-xs ${isDark ? "text-gray-400" : "text-gray-500"}`}>{t('parentDashboard.welcomeUser', { name: parentData?.name || '' })}</p>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 min-w-0">
+                <h1 className={`text-base sm:text-xl font-extrabold tracking-tight truncate ${isDark ? "text-white" : "text-gray-900"}`}>Classify</h1>
+                <span className={`hidden sm:inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold ${isDark ? "bg-indigo-500/20 text-indigo-300 border border-indigo-400/30" : "bg-indigo-50 text-indigo-600 border border-indigo-100"}`}>
+                  Parent
+                </span>
+              </div>
+              <p className={`text-[11px] sm:text-xs truncate ${isDark ? "text-gray-400" : "text-gray-500"}`}>
+                {t('parentDashboard.welcomeUser', { name: parentData?.name || '' })}
+              </p>
             </div>
           </div>
           
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <div className={`hidden md:flex items-center gap-1 p-1 rounded-2xl border ${isDark ? "bg-slate-900 border-slate-700" : "bg-white border-indigo-100 shadow-sm"}`}>
+              <Button className="transition-all duration-200 ease-out hover:scale-[1.03]" variant="ghost" size="icon" onClick={toggleTheme} data-testid="button-theme-toggle" aria-label={isDark ? "Switch to light theme" : "Switch to dark theme"}>
+                {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+              </Button>
+              <LanguageSelector />
+              <PWAInstallButton variant="ghost" size="icon" showText={false} />
+              <Button className="transition-all duration-200 ease-out hover:scale-[1.03]" variant="ghost" size="icon" onClick={() => navigate("/settings")} data-testid="button-settings" aria-label="Settings">
+                <Settings className="h-5 w-5" />
+              </Button>
+            </div>
+
             <ParentNotificationBell />
-            <Button variant="ghost" size="icon" onClick={toggleTheme} data-testid="button-theme-toggle" aria-label={isDark ? "Switch to light theme" : "Switch to dark theme"}>
-              {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-            </Button>
-            <LanguageSelector />
-            <PWAInstallButton variant="ghost" size="icon" showText={false} />
-            <Button variant="ghost" size="icon" onClick={() => navigate("/settings")} data-testid="button-settings" aria-label="Settings">
-              <Settings className="h-5 w-5" />
-            </Button>
-            <Button variant="ghost" size="icon" onClick={() => setShowLogoutConfirm(true)} className="text-red-500 hover:text-red-600" data-testid="button-logout" aria-label="Logout">
+
+            <div className="md:hidden relative">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowMobileHeaderMenu((prev) => !prev)}
+                data-testid="button-mobile-header-menu"
+                aria-label={t("common.more", "المزيد")}
+                aria-expanded={showMobileHeaderMenu}
+                aria-controls="parent-dashboard-mobile-header-menu"
+                className={`transition-all duration-200 ease-out hover:scale-[1.03] border ${isDark ? "border-slate-700 bg-slate-900 hover:bg-slate-800" : "border-indigo-100 bg-white hover:bg-indigo-50"}`}
+              >
+                <MoreVertical className="h-5 w-5" />
+              </Button>
+
+              <button
+                aria-label={t("common.close", "إغلاق")}
+                aria-hidden={!showMobileHeaderMenu}
+                className={`fixed inset-0 z-40 bg-black/25 transition-opacity duration-200 ${showMobileHeaderMenu ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}
+                onClick={() => setShowMobileHeaderMenu(false)}
+              />
+              <div
+                id="parent-dashboard-mobile-header-menu"
+                role="menu"
+                aria-hidden={!showMobileHeaderMenu}
+                className={`absolute top-full mt-2 ${isRTL ? "left-0" : "right-0"} z-50 w-[min(16rem,calc(100vw-0.75rem))] rounded-2xl border shadow-2xl p-2 backdrop-blur-sm origin-top transition-all duration-200 ${
+                  isDark ? "bg-slate-900/95 border-slate-700" : "bg-white/95 border-indigo-100"
+                } ${showMobileHeaderMenu ? "opacity-100 translate-y-0 pointer-events-auto" : "opacity-0 -translate-y-1 pointer-events-none"}`}
+              >
+                <button
+                  onClick={() => {
+                    toggleTheme();
+                    setShowMobileHeaderMenu(false);
+                  }}
+                  role="menuitem"
+                  style={{ transitionDelay: showMobileHeaderMenu ? "35ms" : "0ms" }}
+                  className={`w-full px-3 py-2 rounded-xl text-sm flex items-center gap-2 transition-all duration-200 ${showMobileHeaderMenu ? "opacity-100 translate-y-0" : "opacity-0 translate-y-1"} ${
+                    isDark ? "text-gray-100 hover:bg-slate-800" : "text-gray-700 hover:bg-indigo-50"
+                  }`}
+                >
+                  {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+                  <span>{isDark ? t("settings.lightMode", "الوضع الفاتح") : t("settings.darkMode", "الوضع الداكن")}</span>
+                </button>
+
+                <div style={{ transitionDelay: showMobileHeaderMenu ? "70ms" : "0ms" }} className={`px-1 py-1 transition-all duration-200 ${showMobileHeaderMenu ? "opacity-100 translate-y-0" : "opacity-0 translate-y-1"}`}>
+                  <LanguageSelector />
+                </div>
+
+                <div style={{ transitionDelay: showMobileHeaderMenu ? "95ms" : "0ms" }} className={`px-1 py-1 transition-all duration-200 ${showMobileHeaderMenu ? "opacity-100 translate-y-0" : "opacity-0 translate-y-1"}`}>
+                  <PWAInstallButton variant="ghost" size="default" showText={true} />
+                </div>
+
+                <button
+                  onClick={() => {
+                    setShowMobileHeaderMenu(false);
+                    navigate("/settings");
+                  }}
+                  role="menuitem"
+                  style={{ transitionDelay: showMobileHeaderMenu ? "120ms" : "0ms" }}
+                  className={`w-full px-3 py-2 rounded-xl text-sm flex items-center gap-2 transition-all duration-200 ${showMobileHeaderMenu ? "opacity-100 translate-y-0" : "opacity-0 translate-y-1"} ${
+                    isDark ? "text-gray-100 hover:bg-slate-800" : "text-gray-700 hover:bg-indigo-50"
+                  }`}
+                >
+                  <Settings className="h-4 w-4" />
+                  <span>{t("settings.title", "الإعدادات")}</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setShowMobileHeaderMenu(false);
+                    setShowLogoutConfirm(true);
+                  }}
+                  role="menuitem"
+                  style={{ transitionDelay: showMobileHeaderMenu ? "145ms" : "0ms" }}
+                  className={`w-full px-3 py-2 rounded-xl text-sm flex items-center gap-2 transition-all duration-200 ${showMobileHeaderMenu ? "opacity-100 translate-y-0" : "opacity-0 translate-y-1"} text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10`}
+                >
+                  <LogOut className="h-4 w-4" />
+                  <span>{t("parentDashboard.logout", "تسجيل الخروج")}</span>
+                </button>
+              </div>
+            </div>
+
+            <Button variant="ghost" size="icon" onClick={() => setShowLogoutConfirm(true)} className="hidden sm:inline-flex text-red-500 hover:text-red-600 transition-all duration-200 ease-out hover:scale-[1.03]" data-testid="button-logout" aria-label="Logout">
               <LogOut className="h-5 w-5" />
             </Button>
 
@@ -948,7 +1063,7 @@ export const ParentDashboard = (): JSX.Element => {
               }}
               onFocus={() => dashboardSearch.length >= 2 && setShowSearchResults(true)}
               placeholder={t('parentDashboard.searchPlaceholder', 'ابحث عن مدارس، معلمين، مهام...')}
-              className={`w-full pr-10 pl-10 py-2.5 rounded-xl border-2 text-sm focus:outline-none focus:border-blue-400 transition-colors ${isDark ? "bg-gray-800 border-gray-700 text-white placeholder-gray-500" : "bg-white border-gray-200 text-gray-900 placeholder-gray-400"}`}
+              className={`w-full pr-10 pl-10 py-3 rounded-2xl border text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300 transition-all ${isDark ? "bg-slate-900 border-slate-700 text-white placeholder-gray-500" : "bg-white border-indigo-100 text-gray-900 placeholder-gray-400 shadow-sm"}`}
             />
             {dashboardSearch && (
               <button onClick={() => { setDashboardSearch(""); setShowSearchResults(false); }} className="absolute left-3 top-1/2 -translate-y-1/2">
@@ -961,7 +1076,7 @@ export const ParentDashboard = (): JSX.Element => {
           <div className="relative" data-quick-access>
             <button
               onClick={handleSchoolIconClick}
-              className={`relative p-2.5 rounded-xl border-2 transition-all hover:scale-105 ${isDark ? "bg-gray-800 border-gray-700 hover:border-blue-500" : "bg-white border-gray-200 hover:border-blue-400"}`}
+              className={`relative p-2.5 rounded-2xl border transition-all hover:-translate-y-0.5 ${isDark ? "bg-slate-900 border-slate-700 hover:border-blue-500" : "bg-white border-indigo-100 hover:border-blue-300 shadow-sm"}`}
               title={t('parentDashboard.mySchools', 'مدارسي')}
             >
               <School className={`h-5 w-5 ${isDark ? "text-blue-400" : "text-blue-600"}`} />
@@ -1009,7 +1124,7 @@ export const ParentDashboard = (): JSX.Element => {
           <div className="relative" data-quick-access>
             <button
               onClick={handleTeacherIconClick}
-              className={`relative p-2.5 rounded-xl border-2 transition-all hover:scale-105 ${isDark ? "bg-gray-800 border-gray-700 hover:border-purple-500" : "bg-white border-gray-200 hover:border-purple-400"}`}
+              className={`relative p-2.5 rounded-2xl border transition-all hover:-translate-y-0.5 ${isDark ? "bg-slate-900 border-slate-700 hover:border-purple-500" : "bg-white border-indigo-100 hover:border-purple-300 shadow-sm"}`}
               title={t('parentDashboard.myTeachers', 'معلميّ')}
             >
               <GraduationCap className={`h-5 w-5 ${isDark ? "text-purple-400" : "text-purple-600"}`} />
@@ -1056,7 +1171,7 @@ export const ParentDashboard = (): JSX.Element => {
           {/* Quick Access: My Account */}
           <button
             onClick={() => navigate("/parent-profile")}
-            className={`relative p-2.5 rounded-xl border-2 transition-all hover:scale-105 ${isDark ? "bg-gray-800 border-gray-700 hover:border-green-500" : "bg-white border-gray-200 hover:border-green-400"}`}
+            className={`relative p-2.5 rounded-2xl border transition-all hover:-translate-y-0.5 ${isDark ? "bg-slate-900 border-slate-700 hover:border-emerald-500" : "bg-white border-indigo-100 hover:border-emerald-300 shadow-sm"}`}
             title={t('parentDashboard.myAccount', 'حسابي')}
           >
             <User className={`h-5 w-5 ${isDark ? "text-green-400" : "text-green-600"}`} />
@@ -1145,57 +1260,65 @@ export const ParentDashboard = (): JSX.Element => {
 
       <main className="max-w-7xl mx-auto px-4 py-6 space-y-6">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <button onClick={() => setActiveTab("children")} className="text-start focus:outline-none focus:ring-2 focus:ring-blue-400 rounded-xl transition-transform hover:scale-105 active:scale-95">
-            <Card className={`${isDark ? "bg-gradient-to-br from-blue-900/50 to-blue-800/50 border-blue-700/50" : "bg-gradient-to-br from-blue-500 to-blue-600"} text-white border-0 h-full`}>
+          <button onClick={() => setActiveTab("children")} className="text-start focus:outline-none focus:ring-2 focus:ring-blue-400 rounded-2xl transition-transform hover:-translate-y-0.5 active:scale-[0.99]">
+            <Card className={`${isDark ? "bg-gradient-to-br from-blue-900/70 to-indigo-900/70 border-blue-700/50" : "bg-gradient-to-br from-blue-500 to-indigo-600"} text-white border-0 h-full shadow-lg`}>
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-xs opacity-80">{t('parentDashboard.children')}</p>
                     <p className="text-2xl font-bold">{childrenList.length}</p>
                   </div>
-                  <Users className="h-8 w-8 opacity-80" />
+                  <div className="h-10 w-10 rounded-xl bg-white/20 flex items-center justify-center">
+                    <Users className="h-6 w-6 opacity-90" />
+                  </div>
                 </div>
               </CardContent>
             </Card>
           </button>
 
-          <button onClick={() => navigate("/wallet")} className="text-start focus:outline-none focus:ring-2 focus:ring-green-400 rounded-xl transition-transform hover:scale-105 active:scale-95">
-            <Card className={`${isDark ? "bg-gradient-to-br from-green-900/50 to-green-800/50 border-green-700/50" : "bg-gradient-to-br from-green-500 to-green-600"} text-white border-0 h-full`}>
+          <button onClick={() => navigate("/wallet")} className="text-start focus:outline-none focus:ring-2 focus:ring-green-400 rounded-2xl transition-transform hover:-translate-y-0.5 active:scale-[0.99]">
+            <Card className={`${isDark ? "bg-gradient-to-br from-emerald-900/70 to-green-900/70 border-emerald-700/50" : "bg-gradient-to-br from-emerald-500 to-green-600"} text-white border-0 h-full shadow-lg`}>
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-xs opacity-80">{t('parentDashboard.walletBalance')}</p>
                     <p className="text-2xl font-bold">${Number(walletData?.balance || 0).toFixed(0)}</p>
                   </div>
-                  <Wallet className="h-8 w-8 opacity-80" />
+                  <div className="h-10 w-10 rounded-xl bg-white/20 flex items-center justify-center">
+                    <Wallet className="h-6 w-6 opacity-90" />
+                  </div>
                 </div>
               </CardContent>
             </Card>
           </button>
 
-          <button onClick={() => setActiveTab("children")} className="text-start focus:outline-none focus:ring-2 focus:ring-purple-400 rounded-xl transition-transform hover:scale-105 active:scale-95">
-            <Card className={`${isDark ? "bg-gradient-to-br from-purple-900/50 to-purple-800/50 border-purple-700/50" : "bg-gradient-to-br from-purple-500 to-purple-600"} text-white border-0 h-full`}>
+          <button onClick={() => setActiveTab("children")} className="text-start focus:outline-none focus:ring-2 focus:ring-purple-400 rounded-2xl transition-transform hover:-translate-y-0.5 active:scale-[0.99]">
+            <Card className={`${isDark ? "bg-gradient-to-br from-violet-900/70 to-purple-900/70 border-violet-700/50" : "bg-gradient-to-br from-violet-500 to-purple-600"} text-white border-0 h-full shadow-lg`}>
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-xs opacity-80">{t('parentDashboard.totalPoints')}</p>
                     <p className="text-2xl font-bold">{totalChildrenPoints}</p>
                   </div>
-                  <Star className="h-8 w-8 opacity-80" />
+                  <div className="h-10 w-10 rounded-xl bg-white/20 flex items-center justify-center">
+                    <Star className="h-6 w-6 opacity-90" />
+                  </div>
                 </div>
               </CardContent>
             </Card>
           </button>
 
-          <button onClick={() => navigate("/parent-store")} className="text-start focus:outline-none focus:ring-2 focus:ring-orange-400 rounded-xl transition-transform hover:scale-105 active:scale-95">
-            <Card className={`${isDark ? "bg-gradient-to-br from-orange-900/50 to-orange-800/50 border-orange-700/50" : "bg-gradient-to-br from-orange-500 to-orange-600"} text-white border-0 h-full`}>
+          <button onClick={() => navigate("/parent-store")} className="text-start focus:outline-none focus:ring-2 focus:ring-orange-400 rounded-2xl transition-transform hover:-translate-y-0.5 active:scale-[0.99]">
+            <Card className={`${isDark ? "bg-gradient-to-br from-orange-900/70 to-amber-900/70 border-orange-700/50" : "bg-gradient-to-br from-orange-500 to-amber-500"} text-white border-0 h-full shadow-lg`}>
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-xs opacity-80">{t('parentDashboard.store')}</p>
                     <p className="text-2xl font-bold">{availableInventoryCount || 0}</p>
                   </div>
-                  <ShoppingBag className="h-8 w-8 opacity-80" />
+                  <div className="h-10 w-10 rounded-xl bg-white/20 flex items-center justify-center">
+                    <ShoppingBag className="h-6 w-6 opacity-90" />
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -1204,33 +1327,33 @@ export const ParentDashboard = (): JSX.Element => {
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <div className="w-full">
-            <TabsList className={`flex w-full ${isDark ? "bg-gray-800" : "bg-white"} p-1 rounded-xl shadow-sm gap-0.5`}>
-              <TabsTrigger value="overview" className="gap-1 flex-1 min-w-0 px-1 sm:px-3 text-[10px] sm:text-sm" data-testid="tab-overview">
+            <TabsList className={`grid w-full grid-cols-5 ${isDark ? "bg-slate-900 border border-slate-800" : "bg-white border border-indigo-100"} p-1 rounded-2xl shadow-sm gap-1`}>
+              <TabsTrigger value="overview" className="gap-1 min-w-0 px-1 sm:px-3 text-[10px] sm:text-sm data-[state=active]:bg-indigo-500 data-[state=active]:text-white data-[state=active]:shadow-sm rounded-xl" data-testid="tab-overview">
                 <Target className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
-                <span className="truncate">{t('parentDashboard.overview')}</span>
+                <span className="truncate max-[380px]:hidden sm:inline">{t('parentDashboard.overview')}</span>
               </TabsTrigger>
-              <TabsTrigger value="children" className="gap-1 flex-1 min-w-0 px-1 sm:px-3 text-[10px] sm:text-sm" data-testid="tab-children">
+              <TabsTrigger value="children" className="gap-1 min-w-0 px-1 sm:px-3 text-[10px] sm:text-sm data-[state=active]:bg-indigo-500 data-[state=active]:text-white data-[state=active]:shadow-sm rounded-xl" data-testid="tab-children">
                 <Users className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
-                <span className="truncate">{t('parentDashboard.children')}</span>
+                <span className="truncate max-[380px]:hidden sm:inline">{t('parentDashboard.children')}</span>
               </TabsTrigger>
-              <TabsTrigger value="tasks" className="gap-1 flex-1 min-w-0 px-1 sm:px-3 text-[10px] sm:text-sm" data-testid="tab-tasks">
+              <TabsTrigger value="tasks" className="gap-1 min-w-0 px-1 sm:px-3 text-[10px] sm:text-sm data-[state=active]:bg-indigo-500 data-[state=active]:text-white data-[state=active]:shadow-sm rounded-xl" data-testid="tab-tasks">
                 <Trophy className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
-                <span className="truncate">{t('parentDashboard.tasks')}</span>
+                <span className="truncate max-[380px]:hidden sm:inline">{t('parentDashboard.tasks')}</span>
               </TabsTrigger>
-              <TabsTrigger value="referral" className="gap-1 flex-1 min-w-0 px-1 sm:px-3 text-[10px] sm:text-sm" data-testid="tab-referral">
+              <TabsTrigger value="referral" className="gap-1 min-w-0 px-1 sm:px-3 text-[10px] sm:text-sm data-[state=active]:bg-indigo-500 data-[state=active]:text-white data-[state=active]:shadow-sm rounded-xl" data-testid="tab-referral">
                 <Share2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
-                <span className="truncate">{t('parentDashboard.referrals')}</span>
+                <span className="truncate max-[380px]:hidden sm:inline">{t('parentDashboard.referrals')}</span>
               </TabsTrigger>
-              <TabsTrigger value="reports" className="gap-1 flex-1 min-w-0 px-1 sm:px-3 text-[10px] sm:text-sm" data-testid="tab-reports">
+              <TabsTrigger value="reports" className="gap-1 min-w-0 px-1 sm:px-3 text-[10px] sm:text-sm data-[state=active]:bg-indigo-500 data-[state=active]:text-white data-[state=active]:shadow-sm rounded-xl" data-testid="tab-reports">
                 <BookOpen className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
-                <span className="truncate">{t('parentDashboard.reports')}</span>
+                <span className="truncate max-[380px]:hidden sm:inline">{t('parentDashboard.reports')}</span>
               </TabsTrigger>
             </TabsList>
           </div>
 
           <TabsContent value="overview" className="mt-6 space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Card className={isDark ? "bg-gray-900 border-gray-800" : ""}>
+              <Card className={isDark ? "bg-slate-900 border-slate-800 shadow-lg" : "border-indigo-100 shadow-sm"}>
                 <CardHeader className="pb-3">
                   <CardTitle className="text-lg flex items-center gap-2">
                     <QrCode className="h-5 w-5 text-blue-500" />
@@ -1238,7 +1361,7 @@ export const ParentDashboard = (): JSX.Element => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className={`${isDark ? "bg-gray-800" : "bg-gray-100"} p-4 rounded-xl text-center`}>
+                  <div className={`${isDark ? "bg-slate-800 border border-slate-700" : "bg-indigo-50 border border-indigo-100"} p-4 rounded-2xl text-center`}>
                     <p className={`text-xs ${isDark ? "text-gray-400" : "text-gray-500"} mb-2`}>{t('parentDashboard.yourLinkCode')}</p>
                     <div className="flex items-center justify-center gap-2">
                       <p className="text-3xl font-mono font-bold text-blue-500 tracking-widest">
@@ -1276,7 +1399,7 @@ export const ParentDashboard = (): JSX.Element => {
                 </CardContent>
               </Card>
 
-              <Card className={isDark ? "bg-gray-900 border-gray-800" : ""}>
+              <Card className={isDark ? "bg-slate-900 border-slate-800 shadow-lg" : "border-indigo-100 shadow-sm"}>
                 <CardHeader className="pb-3">
                   <CardTitle className="text-lg flex items-center gap-2">
                     <Zap className="h-5 w-5 text-yellow-500" />
@@ -1287,7 +1410,7 @@ export const ParentDashboard = (): JSX.Element => {
                   <div className="grid grid-cols-2 gap-3">
                     <Button 
                       onClick={() => navigate("/parent-tasks")} 
-                      className="h-auto py-4 flex-col gap-2 bg-blue-500 hover:bg-blue-600"
+                      className="h-auto py-4 flex-col gap-2 bg-gradient-to-br from-blue-500 to-indigo-600 hover:opacity-95 shadow-md"
                       data-testid="button-create-task"
                     >
                       <Plus className="h-5 w-5" />
@@ -1295,7 +1418,7 @@ export const ParentDashboard = (): JSX.Element => {
                     </Button>
                     <Button 
                       onClick={() => navigate("/wallet")} 
-                      className="h-auto py-4 flex-col gap-2 bg-purple-500 hover:bg-purple-600"
+                      className="h-auto py-4 flex-col gap-2 bg-gradient-to-br from-violet-500 to-purple-600 hover:opacity-95 shadow-md"
                       data-testid="button-wallet"
                     >
                       <Wallet className="h-5 w-5" />
@@ -1303,7 +1426,7 @@ export const ParentDashboard = (): JSX.Element => {
                     </Button>
                     <Button 
                       onClick={() => navigate("/subjects")} 
-                      className="h-auto py-4 flex-col gap-2 bg-indigo-500 hover:bg-indigo-600"
+                      className="h-auto py-4 flex-col gap-2 bg-gradient-to-br from-indigo-500 to-sky-600 hover:opacity-95 shadow-md"
                       data-testid="button-subjects"
                     >
                       <BookOpen className="h-5 w-5" />
@@ -1311,7 +1434,7 @@ export const ParentDashboard = (): JSX.Element => {
                     </Button>
                     <Button
                       onClick={() => setShowSpouseLinkCard((prev) => !prev)}
-                      className="h-auto py-4 flex-col gap-2 bg-cyan-500 hover:bg-cyan-600"
+                      className="h-auto py-4 flex-col gap-2 bg-gradient-to-br from-cyan-500 to-blue-600 hover:opacity-95 shadow-md"
                       data-testid="button-toggle-parent-link-card"
                     >
                       <KeyRound className="h-5 w-5" />

@@ -53,6 +53,7 @@ interface Category {
   name: string;
   nameAr: string;
   namePt: string | null;
+  targetAudience?: "all" | "parents" | "children" | "fathers" | "mothers";
   icon: string;
   color: string;
 }

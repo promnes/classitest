@@ -255,16 +255,16 @@ export function ParentNotificationBell() {
       <button
         ref={bellRef}
         onClick={() => setIsOpen(!isOpen)}
-        className={`relative p-2 rounded-full transition-all duration-200 ${
+        className={`relative p-2 rounded-xl border transition-all duration-200 ease-out hover:scale-[1.03] ${
           isDark
-            ? "hover:bg-gray-700 active:bg-gray-600"
-            : "hover:bg-gray-100 active:bg-gray-200"
+            ? "bg-slate-900 border-slate-700 hover:bg-slate-800 active:bg-slate-700"
+            : "bg-white border-indigo-100 hover:bg-indigo-50 active:bg-indigo-100"
         }`}
         aria-label={t("notifications.title")}
       >
-        <Bell className={`h-5 w-5 ${unreadCount > 0 ? "text-blue-500" : ""}`} />
+        <Bell className={`h-5 w-5 transition-colors ${unreadCount > 0 ? "text-blue-500" : isDark ? "text-slate-300" : "text-slate-600"}`} />
         {unreadCount > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1 shadow-sm">
+          <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-rose-500 dark:bg-rose-400 text-white dark:text-slate-950 text-[10px] font-bold rounded-full flex items-center justify-center px-1 shadow-[0_4px_10px_rgba(244,63,94,0.35)] ring-2 ring-white dark:ring-slate-900">
             {unreadCount > 99 ? "99+" : unreadCount}
           </span>
         )}
@@ -274,11 +274,11 @@ export function ParentNotificationBell() {
       {isOpen && (
         <>
           {/* Mobile backdrop */}
-          <div className="fixed inset-0 z-40 bg-black/30 sm:hidden" onClick={() => setIsOpen(false)} />
+          <div className="fixed inset-0 z-[10020] bg-black/30 sm:hidden" onClick={() => setIsOpen(false)} />
 
           <div
             ref={panelRef}
-            className={`fixed sm:absolute left-2 right-2 sm:ltr:left-auto sm:ltr:right-0 sm:rtl:right-auto sm:rtl:left-0 top-14 sm:top-full sm:mt-2 z-50 w-auto sm:w-[380px] max-h-[85vh] rounded-xl overflow-hidden transition-all duration-200 ${
+            className={`fixed sm:absolute left-2 right-2 sm:ltr:left-auto sm:ltr:right-0 sm:rtl:right-auto sm:rtl:left-0 top-14 sm:top-full sm:mt-2 z-[10030] w-auto sm:w-[380px] max-h-[85vh] rounded-xl overflow-hidden transition-all duration-200 ${
               isDark
                 ? "bg-[#242526] border border-gray-700 shadow-[0_12px_28px_0_rgba(0,0,0,0.6)]"
                 : "bg-white border border-gray-200 shadow-[0_12px_28px_0_rgba(0,0,0,0.15),0_2px_4px_0_rgba(0,0,0,0.08)]"

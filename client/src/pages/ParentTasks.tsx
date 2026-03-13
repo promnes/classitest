@@ -18,11 +18,13 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { ArrowRight, Plus, Star, Users, BookOpen, Send, Coins, Loader2, Calendar, Clock, X, Pencil, Wallet, ShoppingCart, Heart, Sparkles, Search, ShoppingBag, Library, Infinity, RotateCcw, HelpCircle, MessageCircle, UserPlus, Trash2, GraduationCap } from "lucide-react";
+import { ArrowRight, Plus, Star, Users, BookOpen, Send, Coins, Loader2, Calendar, Clock, X, Pencil, Wallet, ShoppingCart, Heart, Sparkles, Search, ShoppingBag, Library, Infinity, RotateCcw, HelpCircle, MessageCircle, UserPlus, Trash2, GraduationCap, Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { TaskForm, type TaskFormValue } from "@/components/forms/TaskForm";
 import { ScheduledSessionsManager } from "@/components/ScheduledSessionsManager";
 import { HelpChatDialog } from "@/components/HelpChatDialog";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 export default function ParentTasks() {
   const { t } = useTranslation();
@@ -54,6 +56,7 @@ export default function ParentTasks() {
   const [libraryCustomPoints, setLibraryCustomPoints] = useState<number>(0);
   const [helpChatOpen, setHelpChatOpen] = useState(false);
   const [selectedHelpRequest, setSelectedHelpRequest] = useState<any>(null);
+  const [helpPaymentsMonth, setHelpPaymentsMonth] = useState<string>(new Date().toISOString().slice(0, 7));
   const NO_CHILD_VALUE = "__none__";
 
   const { data: subjectsData } = useQuery<any>({
@@ -200,6 +203,89 @@ export default function ParentTasks() {
       return json.data || [];
     },
     enabled: activeTab === "help" && !!token,
+  });
+
+  const { data: parentHelpPaymentsData, isLoading: loadingParentHelpPayments } = useQuery<any>({
+    queryKey: ["parent-help-session-payments", helpPaymentsMonth],
+    queryFn: async () => {
+      const query = helpPaymentsMonth ? `?month=${encodeURIComponent(helpPaymentsMonth)}` : "";
+      const res = await fetch(`/api/parent/help-session-payments${query}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error("Failed");
+      const json = await res.json();
+      return json.data || { summary: { sessionsCount: 0, totalHelpPoints: 0 }, items: [] };
+    },
+    enabled: activeTab === "help" && !!token,
+  });
+
+  const exportParentHelpPaymentsCsv = () => {
+    const items = parentHelpPaymentsData?.items || [];
+    const lines = [
+      ["session_id", "child_name", "teacher_name", "points_amount", "resolved_at", "task_question"].join(","),
+      ...items.map((item: any) => [
+        item.id,
+        `"${String(item.childName || "").replace(/"/g, '""')}"`,
+        `"${String(item.teacherName || "").replace(/"/g, '""')}"`,
+        String(item.pointsAmount ?? 0),
+        new Date(item.resolvedAt).toISOString(),
+        `"${String(item.taskQuestion || "").replace(/"/g, '""')}"`,
+      ].join(",")),
+    ];
+
+    const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `parent_help_sessions_${helpPaymentsMonth || "all"}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const exportParentHelpPaymentsPdf = () => {
+    const items = parentHelpPaymentsData?.items || [];
+    const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+    doc.setFontSize(14);
+    doc.text("Parent Help Sessions", 14, 14);
+    doc.setFontSize(10);
+    doc.text(`Month: ${helpPaymentsMonth || "all"}`, 14, 20);
+    autoTable(doc, {
+      startY: 25,
+      head: [["Child", "Teacher", "Points", "Resolved At", "Question"]],
+      body: items.map((item: any) => [
+        item.childName || "",
+        item.teacherName || "",
+        String(item.pointsAmount ?? 0),
+        item.resolvedAt ? new Date(item.resolvedAt).toLocaleString("ar-EG") : "",
+        item.taskQuestion || "",
+      ]),
+      styles: { fontSize: 8 },
+    });
+    doc.save(`parent_help_sessions_${helpPaymentsMonth || "all"}.pdf`);
+  };
+
+  const claimHelpRequest = useMutation({
+    mutationFn: async (helpRequestId: string) => {
+      const res = await fetch(`/api/parent/help-requests/${helpRequestId}/claim`, {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json?.message || "فشل استلام الطلب");
+      return json;
+    },
+    onSuccess: (_data, helpRequestId) => {
+      qc.invalidateQueries({ queryKey: ["parent-help-requests"] });
+      const current = parentHelpRequests.find((r: any) => r.id === helpRequestId);
+      if (current) {
+        setSelectedHelpRequest({ ...current, canClaim: false, helperType: "parent" });
+        setHelpChatOpen(true);
+      }
+      toast({ title: "تم استلام طلب المساعدة" });
+    },
+    onError: (error: any) => {
+      toast({ title: error?.message || "فشل استلام الطلب", variant: "destructive" });
+    },
   });
 
   const { data: assignmentRequests = [], isLoading: loadingAssignmentRequests } = useQuery<any[]>({
@@ -1143,6 +1229,60 @@ export default function ParentTasks() {
               </Card>
             ) : (
               <div className="grid gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                  <Card className={isDark ? "bg-gray-800 border-gray-700" : ""}>
+                                    <CardContent className="p-4 flex flex-wrap items-center gap-2">
+                                      <Input
+                                        type="month"
+                                        value={helpPaymentsMonth}
+                                        onChange={(e) => setHelpPaymentsMonth(e.target.value)}
+                                        className="w-44"
+                                      />
+                                      <Button size="sm" variant="outline" onClick={exportParentHelpPaymentsCsv}>
+                                        <Download className="h-4 w-4 ml-1" /> CSV
+                                      </Button>
+                                      <Button size="sm" variant="outline" onClick={exportParentHelpPaymentsPdf}>
+                                        <Download className="h-4 w-4 ml-1" /> PDF
+                                      </Button>
+                                    </CardContent>
+                                  </Card>
+                  <Card className={isDark ? "bg-gray-800 border-gray-700" : ""}>
+                    <CardContent className="p-4 text-center">
+                      <p className="text-xs text-muted-foreground">جلسات المساعدة المدفوعة</p>
+                      <p className="text-2xl font-bold">{parentHelpPaymentsData?.summary?.sessionsCount ?? 0}</p>
+                    </CardContent>
+                  </Card>
+                  <Card className={isDark ? "bg-gray-800 border-gray-700" : ""}>
+                    <CardContent className="p-4 text-center">
+                      <p className="text-xs text-muted-foreground">إجمالي نقاط المساعدة</p>
+                      <p className="text-2xl font-bold text-orange-600">{parentHelpPaymentsData?.summary?.totalHelpPoints ?? 0}</p>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {loadingParentHelpPayments ? (
+                  <div className="flex justify-center p-3">
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  </div>
+                ) : (parentHelpPaymentsData?.items?.length ?? 0) > 0 ? (
+                  <Card className={isDark ? "bg-gray-800 border-gray-700" : ""}>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm">آخر جلسات المساعدة المحاسبية</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                      {parentHelpPaymentsData.items.slice(0, 5).map((item: any) => (
+                        <div key={item.id} className="flex items-center justify-between text-sm border rounded-lg px-3 py-2">
+                          <div className="min-w-0">
+                            <p className="font-medium truncate">{item.childName || "طفل"} - {item.teacherName || "معلم"}</p>
+                            <p className="text-xs text-muted-foreground truncate">{item.taskQuestion || "جلسة مساعدة"}</p>
+                          </div>
+                          <div className="text-orange-600 font-bold">{item.pointsAmount} نقطة</div>
+                        </div>
+                      ))}
+                    </CardContent>
+                  </Card>
+                ) : null}
+
                 {parentHelpRequests.map((hr: any) => (
                   <Card key={hr.id} className={`${isDark ? "bg-gray-800 border-gray-700" : ""} hover:shadow-md transition-shadow`}>
                     <CardContent className="p-4">
@@ -1173,17 +1313,29 @@ export default function ParentTasks() {
                           <Badge variant={hr.status === "active" ? "default" : "secondary"} className={hr.status === "active" ? "bg-green-600" : ""}>
                             {hr.status === "active" ? "نشط" : hr.status === "resolved" ? "تم الحل" : "مغلق"}
                           </Badge>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => {
-                              setSelectedHelpRequest(hr);
-                              setHelpChatOpen(true);
-                            }}
-                          >
-                            <MessageCircle className="h-4 w-4 ml-1" />
-                            فتح المحادثة
-                          </Button>
+                          {hr.canClaim ? (
+                            <Button
+                              size="sm"
+                              className="bg-orange-600 hover:bg-orange-700"
+                              disabled={claimHelpRequest.isPending}
+                              onClick={() => claimHelpRequest.mutate(hr.id)}
+                            >
+                              {claimHelpRequest.isPending ? <Loader2 className="h-4 w-4 animate-spin ml-1" /> : <HelpCircle className="h-4 w-4 ml-1" />}
+                              استلام المساعدة
+                            </Button>
+                          ) : (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                setSelectedHelpRequest(hr);
+                                setHelpChatOpen(true);
+                              }}
+                            >
+                              <MessageCircle className="h-4 w-4 ml-1" />
+                              فتح المحادثة
+                            </Button>
+                          )}
                         </div>
                       </div>
                     </CardContent>
@@ -1233,6 +1385,10 @@ export default function ParentTasks() {
                                 {child.name}
                               </Badge>
                             ))}
+                          </div>
+                          <div className="mt-2 text-xs text-muted-foreground space-y-1">
+                            <p>الراتب الشهري: <span className="font-semibold text-foreground">{req.monthlyPoints} نقطة</span></p>
+                            <p>لكل جلسة مساعدة: <span className="font-semibold text-foreground">{req.perHelpPoints ?? 0} نقطة</span></p>
                           </div>
                           {req.message && (
                             <p className="text-xs text-muted-foreground mt-2">رسالة: {req.message}</p>

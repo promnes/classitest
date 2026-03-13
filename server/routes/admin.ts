@@ -97,6 +97,7 @@ import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import { JWT_SECRET, adminMiddleware } from "./middleware";
 import { applyPointsDelta } from "../services/pointsService";
+import { buildLocalizedMap } from "../services/productLocalization";
 import { NOTIFICATION_TYPES, NOTIFICATION_STYLES, NOTIFICATION_PRIORITIES, type NotificationType } from "../../shared/notificationTypes";
 
 const db = storage.db;
@@ -447,12 +448,19 @@ export async function registerAdminRoutes(app: Express) {
           .json(errorResponse(ErrorCode.BAD_REQUEST, "name, price and pointsPrice are required"));
       }
 
+      const [nameLocalization, descriptionLocalization] = await Promise.all([
+        buildLocalizedMap({ primaryText: name, arabicText: nameAr }),
+        buildLocalizedMap({ primaryText: description, arabicText: descriptionAr }),
+      ]);
+
       const inserted = await db.insert(products).values({
         parentId: parentId || null,
-        name,
-        nameAr: nameAr || null,
-        description,
-        descriptionAr: descriptionAr || null,
+        name: nameLocalization.defaultText || name,
+        nameAr: nameLocalization.arabicText,
+        nameI18n: Object.keys(nameLocalization.map).length > 0 ? nameLocalization.map : null,
+        description: descriptionLocalization.defaultText || description || null,
+        descriptionAr: descriptionLocalization.arabicText,
+        descriptionI18n: Object.keys(descriptionLocalization.map).length > 0 ? descriptionLocalization.map : null,
         price: price.toString(),
         originalPrice: originalPrice ? originalPrice.toString() : null,
         pointsPrice: parseInt(pointsPrice),
@@ -487,10 +495,62 @@ export async function registerAdminRoutes(app: Express) {
       const { id } = req.params;
       const { name, nameAr, description, descriptionAr, price, originalPrice, pointsPrice, stock, image, images, categoryId, productType, brand, isFeatured, isActive, parentId } = req.body;
       const setData: Record<string, any> = {};
-      if (name !== undefined) setData['name'] = name;
-      if (nameAr !== undefined) setData['nameAr'] = nameAr;
-      if (description !== undefined) setData['description'] = description;
-      if (descriptionAr !== undefined) setData['descriptionAr'] = descriptionAr;
+
+      const shouldRefreshNameLocalization = name !== undefined || nameAr !== undefined;
+      const shouldRefreshDescriptionLocalization = description !== undefined || descriptionAr !== undefined;
+
+      if (shouldRefreshNameLocalization || shouldRefreshDescriptionLocalization) {
+        const existingProduct = await db
+          .select({
+            name: products.name,
+            nameAr: products.nameAr,
+            description: products.description,
+            descriptionAr: products.descriptionAr,
+          })
+          .from(products)
+          .where(eq(products.id, id))
+          .limit(1);
+
+        if (!existingProduct[0]) {
+          return res
+            .status(404)
+            .json(errorResponse(ErrorCode.NOT_FOUND, "Product not found"));
+        }
+
+        const current = existingProduct[0];
+
+        if (shouldRefreshNameLocalization) {
+          const nameLocalization = await buildLocalizedMap({
+            primaryText: name !== undefined ? name : current.name,
+            arabicText: nameAr !== undefined ? nameAr : current.nameAr,
+          });
+          setData['name'] = nameLocalization.defaultText || current.name;
+          setData['nameAr'] = nameLocalization.arabicText;
+          setData['nameI18n'] = Object.keys(nameLocalization.map).length > 0 ? nameLocalization.map : null;
+        } else {
+          if (name !== undefined) setData['name'] = name;
+          if (nameAr !== undefined) setData['nameAr'] = nameAr;
+        }
+
+        if (shouldRefreshDescriptionLocalization) {
+          const descriptionLocalization = await buildLocalizedMap({
+            primaryText: description !== undefined ? description : current.description,
+            arabicText: descriptionAr !== undefined ? descriptionAr : current.descriptionAr,
+          });
+          setData['description'] = descriptionLocalization.defaultText || null;
+          setData['descriptionAr'] = descriptionLocalization.arabicText;
+          setData['descriptionI18n'] = Object.keys(descriptionLocalization.map).length > 0 ? descriptionLocalization.map : null;
+        } else {
+          if (description !== undefined) setData['description'] = description;
+          if (descriptionAr !== undefined) setData['descriptionAr'] = descriptionAr;
+        }
+      } else {
+        if (name !== undefined) setData['name'] = name;
+        if (nameAr !== undefined) setData['nameAr'] = nameAr;
+        if (description !== undefined) setData['description'] = description;
+        if (descriptionAr !== undefined) setData['descriptionAr'] = descriptionAr;
+      }
+
       if (price !== undefined) setData['price'] = price.toString();
       if (originalPrice !== undefined) setData['originalPrice'] = originalPrice ? originalPrice.toString() : null;
       if (pointsPrice !== undefined) setData['pointsPrice'] = parseInt(pointsPrice);

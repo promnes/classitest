@@ -103,6 +103,7 @@ export const parents = pgTable("parents", {
   email: text("email").notNull().unique(),
   password: text("password").notNull(),
   name: text("name").notNull(),
+  gender: varchar("gender", { length: 10 }), // male | female
   phoneNumber: text("phone_number"),
   smsEnabled: boolean("sms_enabled").default(false).notNull(),
   smsVerified: boolean("sms_verified").default(false).notNull(),
@@ -330,6 +331,7 @@ export const productCategories = pgTable("product_categories", {
   name: text("name").notNull(),
   nameAr: text("name_ar").notNull(),
   namePt: text("name_pt"),
+  targetAudience: varchar("target_audience", { length: 20 }).default("all").notNull(), // all | parents | children | fathers | mothers
   icon: varchar("icon", { length: 50 }).default("Package").notNull(),
   color: varchar("color", { length: 20 }).default("#667eea").notNull(),
   sortOrder: integer("sort_order").default(0).notNull(),
@@ -343,8 +345,10 @@ export const products = pgTable("products", {
   categoryId: varchar("category_id").references(() => productCategories.id, { onDelete: "set null" }),
   name: text("name").notNull(),
   nameAr: text("name_ar"),
+  nameI18n: json("name_i18n").$type<Record<string, string>>(),
   description: text("description"),
   descriptionAr: text("description_ar"),
+  descriptionI18n: json("description_i18n").$type<Record<string, string>>(),
   price: decimal("price", { precision: 10, scale: 2 }).notNull(),
   originalPrice: decimal("original_price", { precision: 10, scale: 2 }),
   pointsPrice: integer("points_price").notNull(),
@@ -646,6 +650,30 @@ export const notifications = pgTable("notifications", {
   ctaTarget: text("cta_target"),
   metadata: json("metadata").$type<Record<string, any>>(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const riskAlerts = pgTable("risk_alerts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  parentId: varchar("parent_id").references(() => parents.id, { onDelete: "set null" }),
+  childId: varchar("child_id").references(() => children.id, { onDelete: "set null" }),
+  targetType: varchar("target_type", { length: 20 }).notNull(), // parent | child | referral
+  targetId: varchar("target_id").notNull(),
+  riskType: varchar("risk_type", { length: 50 }).notNull(),
+  severity: varchar("severity", { length: 20 }).default("medium").notNull(), // low | medium | high
+  riskScore: integer("risk_score").default(50).notNull(),
+  title: text("title").notNull(),
+  summary: text("summary").notNull(),
+  details: text("details").notNull(),
+  evidence: json("evidence").$type<Record<string, any>>(),
+  status: varchar("status", { length: 20 }).default("open").notNull(), // open | reviewed | resolved
+  detectionCount: integer("detection_count").default(1).notNull(),
+  firstDetectedAt: timestamp("first_detected_at").defaultNow().notNull(),
+  lastDetectedAt: timestamp("last_detected_at").defaultNow().notNull(),
+  resolvedAt: timestamp("resolved_at"),
+  resolvedByAdminId: varchar("resolved_by_admin_id").references(() => admins.id, { onDelete: "set null" }),
+  resolutionNotes: text("resolution_notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
 export const otpCodes = pgTable("otp_codes", {
@@ -2551,6 +2579,7 @@ export const teacherAssignmentRequests = pgTable("teacher_assignment_requests", 
   parentId: varchar("parent_id").notNull().references(() => parents.id, { onDelete: "cascade" }),
   teacherId: varchar("teacher_id").notNull().references(() => schoolTeachers.id, { onDelete: "cascade" }),
   monthlyPoints: integer("monthly_points").notNull(),
+  perHelpPoints: integer("per_help_points").default(0).notNull(),
   status: varchar("status", { length: 20 }).default("pending").notNull(), // pending | accepted | rejected
   rejectionReason: text("rejection_reason"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -2578,6 +2607,7 @@ export const teacherChildPermissions = pgTable("teacher_child_permissions", {
   parentId: varchar("parent_id").notNull().references(() => parents.id, { onDelete: "cascade" }),
   requestId: varchar("request_id").notNull().references(() => teacherAssignmentRequests.id, { onDelete: "cascade" }),
   monthlyPoints: integer("monthly_points").notNull(),
+  perHelpPoints: integer("per_help_points").default(0).notNull(),
   isActive: boolean("is_active").default(true).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (table) => ({
@@ -2594,6 +2624,7 @@ export const taskHelpRequests = pgTable("task_help_requests", {
   childId: varchar("child_id").notNull().references(() => children.id, { onDelete: "cascade" }),
   helperType: varchar("helper_type", { length: 10 }).notNull(), // "parent" | "teacher"
   helperId: varchar("helper_id").notNull(), // parentId or teacherId
+  slaEscalated: boolean("sla_escalated").default(false).notNull(),
   status: varchar("status", { length: 20 }).default("active").notNull(), // active | resolved
   createdAt: timestamp("created_at").defaultNow().notNull(),
   resolvedAt: timestamp("resolved_at"),
@@ -2618,11 +2649,49 @@ export const taskHelpMessages = pgTable("task_help_messages", {
   createdIdx: index("thm_created_idx").on(table.createdAt),
 }));
 
+// ===== Task Help Feedback (تقييم جودة جلسة المساعدة) =====
+export const taskHelpFeedback = pgTable("task_help_feedback", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  helpRequestId: varchar("help_request_id").notNull().references(() => taskHelpRequests.id, { onDelete: "cascade" }).unique(),
+  taskId: varchar("task_id").notNull().references(() => tasks.id, { onDelete: "cascade" }),
+  childId: varchar("child_id").notNull().references(() => children.id, { onDelete: "cascade" }),
+  teacherId: varchar("teacher_id").references(() => schoolTeachers.id, { onDelete: "set null" }),
+  parentId: varchar("parent_id").references(() => parents.id, { onDelete: "set null" }),
+  rating: integer("rating").notNull(), // 1..5
+  comment: text("comment"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  childIdx: index("thf_child_idx").on(table.childId),
+  teacherIdx: index("thf_teacher_idx").on(table.teacherId),
+  parentIdx: index("thf_parent_idx").on(table.parentId),
+}));
+
+// ===== Teacher Help Session Payments (سجل مالي لجلسات المساعدة) =====
+export const teacherHelpSessionPayments = pgTable("teacher_help_session_payments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  helpRequestId: varchar("help_request_id").notNull().references(() => taskHelpRequests.id, { onDelete: "cascade" }).unique(),
+  taskId: varchar("task_id").notNull().references(() => tasks.id, { onDelete: "cascade" }),
+  teacherId: varchar("teacher_id").notNull().references(() => schoolTeachers.id, { onDelete: "cascade" }),
+  parentId: varchar("parent_id").references(() => parents.id, { onDelete: "set null" }),
+  childId: varchar("child_id").notNull().references(() => children.id, { onDelete: "cascade" }),
+  perHelpPoints: integer("per_help_points").default(0).notNull(),
+  status: varchar("status", { length: 20 }).default("completed").notNull(),
+  claimedAt: timestamp("claimed_at"),
+  resolvedAt: timestamp("resolved_at").defaultNow().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  teacherIdx: index("thsp_teacher_idx").on(table.teacherId),
+  parentIdx: index("thsp_parent_idx").on(table.parentId),
+  childIdx: index("thsp_child_idx").on(table.childId),
+}));
+
 export type TeacherAssignmentRequest = typeof teacherAssignmentRequests.$inferSelect;
 export type TeacherAssignmentRequestChild = typeof teacherAssignmentRequestChildren.$inferSelect;
 export type TeacherChildPermission = typeof teacherChildPermissions.$inferSelect;
 export type TaskHelpRequest = typeof taskHelpRequests.$inferSelect;
 export type TaskHelpMessage = typeof taskHelpMessages.$inferSelect;
+export type TaskHelpFeedback = typeof taskHelpFeedback.$inferSelect;
+export type TeacherHelpSessionPayment = typeof teacherHelpSessionPayments.$inferSelect;
 
 // ===== Monthly Subscription Deductions =====
 export const monthlySubscriptionDeductions = pgTable("monthly_subscription_deductions", {

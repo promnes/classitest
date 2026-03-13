@@ -19,6 +19,7 @@ interface Category {
   name: string;
   nameAr: string;
   namePt: string | null;
+  targetAudience: "all" | "parents" | "children" | "fathers" | "mothers";
   icon: string;
   color: string;
   sortOrder: number;
@@ -45,6 +46,7 @@ export function CategoriesTab({ token }: { token: string }) {
     icon: "Package",
     color: "#667eea",
     sortOrder: 0,
+    targetAudience: "all" as "all" | "parents" | "children" | "fathers" | "mothers",
     isActive: true,
     parentId: null as string | null,
   });
@@ -112,6 +114,7 @@ export function CategoriesTab({ token }: { token: string }) {
       icon: "Package",
       color: "#667eea",
       sortOrder: 0,
+      targetAudience: "all",
       isActive: true,
       parentId: null,
     });
@@ -127,6 +130,7 @@ export function CategoriesTab({ token }: { token: string }) {
       icon: "Package",
       color: "#667eea",
       sortOrder: mainCategories.length,
+      targetAudience: "all",
       isActive: true,
       parentId: null,
     });
@@ -145,6 +149,7 @@ export function CategoriesTab({ token }: { token: string }) {
       icon: parent?.icon || "Package",
       color: parent?.color || "#667eea",
       sortOrder: subs.length,
+      targetAudience: "all",
       isActive: true,
       parentId,
     });
@@ -162,6 +167,7 @@ export function CategoriesTab({ token }: { token: string }) {
       icon: category.icon,
       color: category.color,
       sortOrder: category.sortOrder,
+      targetAudience: category.targetAudience || "all",
       isActive: category.isActive,
       parentId: category.parentId,
     });
@@ -403,6 +409,23 @@ export function CategoriesTab({ token }: { token: string }) {
                   />
                 ))}
               </div>
+            </div>
+            <div>
+              <Label>{t("admin.ads.targetAudience")}</Label>
+              <select
+                value={formData.targetAudience}
+                onChange={(e) => setFormData({
+                  ...formData,
+                  targetAudience: e.target.value as "all" | "parents" | "children" | "fathers" | "mothers",
+                })}
+                className="w-full mt-2 px-3 py-2 border rounded-md bg-background"
+              >
+                <option value="all">{t("admin.ads.all")}</option>
+                <option value="parents">{t("admin.ads.parentsOnly")}</option>
+                <option value="children">{t("admin.ads.childrenOnly")}</option>
+                <option value="fathers">{t("admin.categories.fathersOnly")}</option>
+                <option value="mothers">{t("admin.categories.mothersOnly")}</option>
+              </select>
             </div>
             <div>
               <Label>{t("admin.categories.sortOrder")}</Label>

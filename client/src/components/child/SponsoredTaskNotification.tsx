@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "framer-motion";
 import { CheckCircle2, XCircle, Star } from "lucide-react";
@@ -14,26 +14,37 @@ interface TaskNotification {
   question?: string;
   answers?: { id: string; text: string; isCorrect?: boolean; emoji?: string; imageUrl?: string }[];
   points: number;
+  failedAttempts?: number;
+  isMandatory?: boolean;
   expiresAt?: Date;
 }
 
 interface SponsoredTaskNotificationProps {
   notification: TaskNotification;
   onComplete: (notificationId: string, answerId?: string) => void;
+  isSubmitting?: boolean;
+  errorMessage?: string;
+  showSuccess?: boolean;
+  cooldownSeconds?: number;
 }
 
 export function SponsoredTaskNotification({
   notification,
   onComplete,
+  isSubmitting = false,
+  errorMessage,
+  showSuccess = false,
+  cooldownSeconds = 0,
 }: SponsoredTaskNotificationProps) {
   const { t } = useTranslation();
-  const [isVisible, setIsVisible] = useState(true);
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [showError, setShowError] = useState(false);
   const [inputAnswer, setInputAnswer] = useState("");
   const taskType = notification.type || ((notification.answers && notification.answers.length > 0) || notification.question ? "question" : "task");
 
   const handleSubmitAnswer = useCallback(() => {
+    if (isSubmitting) return;
+    if (cooldownSeconds > 0) return;
     if (!selectedAnswer && !inputAnswer) return;
 
     const answerId = selectedAnswer || inputAnswer;
@@ -48,15 +59,25 @@ export function SponsoredTaskNotification({
     }
     
     onComplete(notification.id, answerId);
-    setIsVisible(false);
-  }, [selectedAnswer, inputAnswer, notification, onComplete]);
+  }, [selectedAnswer, inputAnswer, notification, onComplete, isSubmitting, cooldownSeconds]);
 
   const handleCompleteTask = useCallback(() => {
+    if (isSubmitting) return;
+    if (cooldownSeconds > 0) return;
     onComplete(notification.id);
-    setIsVisible(false);
-  }, [notification.id, onComplete]);
+  }, [notification.id, onComplete, isSubmitting, cooldownSeconds]);
 
-  if (!isVisible) return null;
+  useEffect(() => {
+    const prevOverflow = document.body.style.overflow;
+    const prevTouchAction = document.body.style.touchAction;
+    document.body.style.overflow = "hidden";
+    document.body.style.touchAction = "none";
+
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      document.body.style.touchAction = prevTouchAction;
+    };
+  }, []);
 
   return (
     <AnimatePresence>
@@ -94,6 +115,12 @@ export function SponsoredTaskNotification({
                 </span>
                 <Star className="w-5 h-5 text-yellow-500 fill-yellow-500" />
               </div>
+
+              {showSuccess && (
+                <div className="mt-3 rounded-lg bg-green-100 px-3 py-2 text-center text-sm font-bold text-green-700">
+                  تم حفظ الإجابة بنجاح
+                </div>
+              )}
             </CardHeader>
 
             <CardContent className="space-y-4 pb-6">
@@ -155,25 +182,47 @@ export function SponsoredTaskNotification({
                 </motion.div>
               )}
 
+              {errorMessage && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="flex items-center justify-center gap-2 text-red-600 font-medium text-sm"
+                >
+                  <XCircle className="w-4 h-4" />
+                  <span>{errorMessage}</span>
+                </motion.div>
+              )}
+
+              {cooldownSeconds > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="rounded-lg bg-orange-100 px-3 py-2 text-center text-sm font-bold text-orange-700"
+                >
+                  يرجى الانتظار {cooldownSeconds} ثانية قبل المحاولة التالية
+                </motion.div>
+              )}
+
               <div className="flex gap-3">
                 {taskType === "task" ? (
                   <Button
                     onClick={handleCompleteTask}
+                    disabled={isSubmitting || showSuccess || cooldownSeconds > 0}
                     className="flex-1 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700"
                     data-testid="button-complete-task"
                   >
                     <CheckCircle2 className="w-5 h-5 mr-2" />
-                    أكملت المهمة
+                    {isSubmitting ? "جاري التحقق..." : "أكملت المهمة"}
                   </Button>
                 ) : (
                   <Button
                     onClick={handleSubmitAnswer}
-                    disabled={!selectedAnswer && !inputAnswer}
+                    disabled={isSubmitting || showSuccess || cooldownSeconds > 0 || (!selectedAnswer && !inputAnswer)}
                     className="flex-1 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700"
                     data-testid="button-submit-answer"
                   >
                     <CheckCircle2 className="w-5 h-5 mr-2" />
-                    إرسال الإجابة
+                    {isSubmitting ? "جاري الإرسال..." : "إرسال الإجابة"}
                   </Button>
                 )}
               </div>
@@ -188,43 +237,140 @@ export function SponsoredTaskNotification({
 export function ChildTaskNotificationManager() {
   const [activeNotification, setActiveNotification] = useState<TaskNotification | null>(null);
   const [notifications, setNotifications] = useState<TaskNotification[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [cooldownSeconds, setCooldownSeconds] = useState(0);
+  const knownNotificationIdsRef = useRef<Set<string>>(new Set());
+  const completedNotificationIdsRef = useRef<Set<string>>(new Set());
+  const hideSuccessTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const cooldownTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  useEffect(() => {
+  const prioritize = useCallback((items: TaskNotification[]) => {
+    return [...items].sort((a, b) => {
+      const failedDiff = (b.failedAttempts || 0) - (a.failedAttempts || 0);
+      if (failedDiff !== 0) return failedDiff;
+      return (b.points || 0) - (a.points || 0);
+    });
+  }, []);
+
+  const mergeNotifications = useCallback((current: TaskNotification[], incoming: TaskNotification[]) => {
+    const map = new Map<string, TaskNotification>();
+    for (const item of current) map.set(item.id, item);
+    for (const item of incoming) map.set(item.id, item);
+    return prioritize(Array.from(map.values()));
+  }, [prioritize]);
+
+  const fetchNotifications = useCallback(async () => {
     const token = localStorage.getItem("childToken");
     if (!token) return;
+    try {
+      const res = await fetch("/api/child/task-notifications", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
-    const fetchNotifications = async () => {
-      try {
-        const res = await fetch("/api/child/task-notifications", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (res.status === 401) {
-          return;
+      if (res.status === 401) return;
+      if (!res.ok) return;
+
+      const json = await res.json();
+      const data = json?.data || json || [];
+      if (!Array.isArray(data)) return;
+
+      const visibleData = data.filter((item: TaskNotification) => !completedNotificationIdsRef.current.has(item.id));
+      const newItems = visibleData.filter((item: TaskNotification) => !knownNotificationIdsRef.current.has(item.id));
+
+      for (const item of visibleData) {
+        knownNotificationIdsRef.current.add(item.id);
+      }
+
+      setNotifications((prev) => mergeNotifications(prev, visibleData));
+
+      if (!activeNotification && !showSuccess && newItems.length > 0) {
+        const top = prioritize(newItems)[0] || null;
+        if (top) {
+          setActiveNotification(top);
+          setSubmitError("");
         }
-        if (res.ok) {
-          const json = await res.json();
-          const data = json?.data || json || [];
-          if (Array.isArray(data) && data.length > 0) {
-            setNotifications(data);
-            if (!activeNotification) {
-              setActiveNotification(data[0]);
-            }
-          }
-        }
-      } catch (error) {
-        console.error("Failed to fetch task notifications:", error);
+      }
+    } catch (error) {
+      console.error("Failed to fetch task notifications:", error);
+    }
+  }, [mergeNotifications, activeNotification, prioritize, showSuccess]);
+
+  useEffect(() => {
+    fetchNotifications();
+    const interval = setInterval(fetchNotifications, 12000);
+    return () => clearInterval(interval);
+  }, [fetchNotifications]);
+
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === "visible") {
+        fetchNotifications();
       }
     };
 
-    fetchNotifications();
-    const interval = setInterval(fetchNotifications, 30000);
-    return () => clearInterval(interval);
-  }, [activeNotification]);
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [fetchNotifications]);
+
+  useEffect(() => {
+    if (!activeNotification) return;
+    const stillExists = notifications.some((n) => n.id === activeNotification.id);
+    if (!stillExists) {
+      setActiveNotification(null);
+    }
+  }, [notifications, activeNotification]);
+
+  useEffect(() => {
+    return () => {
+      if (hideSuccessTimerRef.current) {
+        clearTimeout(hideSuccessTimerRef.current);
+      }
+      if (cooldownTimerRef.current) {
+        clearInterval(cooldownTimerRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (cooldownSeconds <= 0) {
+      if (cooldownTimerRef.current) {
+        clearInterval(cooldownTimerRef.current);
+        cooldownTimerRef.current = null;
+      }
+      return;
+    }
+
+    cooldownTimerRef.current = setInterval(() => {
+      setCooldownSeconds((prev) => {
+        if (prev <= 1) {
+          if (cooldownTimerRef.current) {
+            clearInterval(cooldownTimerRef.current);
+            cooldownTimerRef.current = null;
+          }
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => {
+      if (cooldownTimerRef.current) {
+        clearInterval(cooldownTimerRef.current);
+        cooldownTimerRef.current = null;
+      }
+    };
+  }, [cooldownSeconds]);
 
   const handleComplete = useCallback(
     async (notificationId: string, answerId?: string) => {
       const token = localStorage.getItem("childToken");
       if (!token) return;
+      if (isSubmitting) return;
+
+      setIsSubmitting(true);
+      setSubmitError("");
 
       try {
         const res = await fetch("/api/child/task-notifications/complete", {
@@ -238,18 +384,37 @@ export function ChildTaskNotificationManager() {
 
         if (!res.ok) {
           const err = await res.json().catch(() => ({ message: "فشل إرسال الإجابة" }));
+          const retryAfterHeader = res.headers.get("Retry-After");
+          if (res.status === 429 && retryAfterHeader) {
+            const nextCooldown = Math.max(0, parseInt(retryAfterHeader, 10) || 0);
+            if (nextCooldown > 0) {
+              setCooldownSeconds(nextCooldown);
+            }
+          }
           throw new Error(err?.message || "فشل إرسال الإجابة");
         }
 
+        completedNotificationIdsRef.current.add(notificationId);
+        setShowSuccess(true);
         setNotifications((prev) => prev.filter((n) => n.id !== notificationId));
-        setActiveNotification((prev) =>
-          prev?.id === notificationId ? null : prev
-        );
+
+        if (hideSuccessTimerRef.current) {
+          clearTimeout(hideSuccessTimerRef.current);
+        }
+
+        hideSuccessTimerRef.current = setTimeout(async () => {
+          setShowSuccess(false);
+          setActiveNotification((prev) => (prev?.id === notificationId ? null : prev));
+          await fetchNotifications();
+        }, 1000);
       } catch (error) {
         console.error("Failed to complete task notification:", error);
+        setSubmitError(error instanceof Error ? error.message : "تعذر إكمال المهمة الآن");
+      } finally {
+        setIsSubmitting(false);
       }
     },
-    []
+    [fetchNotifications, isSubmitting]
   );
 
   if (!activeNotification) return null;
@@ -258,6 +423,10 @@ export function ChildTaskNotificationManager() {
     <SponsoredTaskNotification
       notification={activeNotification}
       onComplete={handleComplete}
+      isSubmitting={isSubmitting}
+      errorMessage={submitError}
+      showSuccess={showSuccess}
+      cooldownSeconds={cooldownSeconds}
     />
   );
 }

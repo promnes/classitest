@@ -24,9 +24,9 @@ export async function setupVite(app: Express, server: Server) {
   const vite = await import("vite");
   const viteConfigModule = await import("../vite.config.js");
   const { nanoid } = await import("nanoid");
-  
+
   const viteLogger = vite.createLogger();
-  
+
   const serverOptions = {
     middlewareMode: true,
     hmr: { server },
@@ -40,7 +40,7 @@ export async function setupVite(app: Express, server: Server) {
       ...viteLogger,
       error: (msg: any, options: any) => {
         viteLogger.error(msg, options);
-        process.exit(1);
+        // Keep dev server alive on Vite errors to avoid hard page hangs.
       },
     },
     server: serverOptions,
@@ -100,7 +100,7 @@ export function serveStatic(app: Express) {
 
   console.log(`📁 Serving static assets from: ${distPath}`);
   console.log(`   Working directory: ${process.cwd()}`);
-  
+
   // List files for debugging
   try {
     const files = fs.readdirSync(distPath);
@@ -157,7 +157,7 @@ export function serveStatic(app: Express) {
         "Application not built correctly - index.html not found"
       );
     }
-    
+
     return res.sendFile(indexPath);
   });
 }

@@ -56,6 +56,44 @@ const NOTIFICATION_SOUNDS = [
   { value: "ding", label: i18next.t("admin.settingsTab.dingSound") },
 ];
 
+function buildInHomeLoginUrl(baseUrl: string): string {
+  const normalized = (baseUrl || "").trim();
+  if (!normalized) return "";
+
+  try {
+    const parsed = new URL(normalized);
+    const cleanedPath = parsed.pathname
+      .replace(/\/+$/, "")
+      .replace(/\/(api|api\/v1)$/i, "");
+
+    parsed.pathname = `${cleanedPath}/admin/login`;
+    parsed.search = "";
+    parsed.hash = "";
+    return parsed.toString();
+  } catch {
+    return "";
+  }
+}
+
+function buildInHomeAltLoginUrl(baseUrl: string): string {
+  const normalized = (baseUrl || "").trim();
+  if (!normalized) return "";
+
+  try {
+    const parsed = new URL(normalized);
+    const cleanedPath = parsed.pathname
+      .replace(/\/+$/, "")
+      .replace(/\/(api|api\/v1)$/i, "");
+
+    parsed.pathname = `${cleanedPath}/login`;
+    parsed.search = "";
+    parsed.hash = "";
+    return parsed.toString();
+  } catch {
+    return "";
+  }
+}
+
 export function SettingsTab({
   token,
   initialTab = "otp",
@@ -94,6 +132,9 @@ export function SettingsTab({
     pushEnabled: false,
     emailEnabled: true,
   });
+
+  const inHomeLoginUrl = buildInHomeLoginUrl(inHomeConfig.baseUrl);
+  const inHomeAltLoginUrl = buildInHomeAltLoginUrl(inHomeConfig.baseUrl);
 
   const { data: settingsData } = useQuery({
     queryKey: ["admin-app-settings"],
@@ -574,11 +615,20 @@ export function SettingsTab({
                 <Button
                   type="button"
                   variant="secondary"
-                  onClick={() => window.open(inHomeConfig.baseUrl, "_blank", "noopener,noreferrer")}
-                  disabled={!inHomeConfig.baseUrl}
+                  onClick={() => window.open(inHomeLoginUrl, "_blank", "noopener,noreferrer")}
+                  disabled={!inHomeLoginUrl}
                   data-testid="button-open-inhome-dashboard"
                 >
-                  فتح لوحة in-home
+                  فتح تسجيل دخول لوحة in-home
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => window.open(inHomeAltLoginUrl, "_blank", "noopener,noreferrer")}
+                  disabled={!inHomeAltLoginUrl}
+                  data-testid="button-open-inhome-dashboard-alt"
+                >
+                  فتح صفحة login البديلة
                 </Button>
               </div>
             </CardHeader>

@@ -28,12 +28,14 @@ import {
   teacherChildPermissions,
   taskHelpRequests,
   taskHelpMessages,
+  teacherHelpSessionPayments,
+  taskHelpFeedback,
   tasks,
   teacherPushSubscriptions,
   parentTeacherConversations,
   parentTeacherMessages,
 } from "../../shared/schema";
-import { eq, desc, and, sql, lte, count } from "drizzle-orm";
+import { eq, desc, and, sql, lte, count, or } from "drizzle-orm";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import { createPresignedUpload, finalizeUpload } from "../services/uploadService";
@@ -43,6 +45,8 @@ import { getVapidPublicKey } from "../services/webPushService";
 import { NOTIFICATION_TYPES, NOTIFICATION_STYLES, NOTIFICATION_PRIORITIES } from "../../shared/notificationTypes";
 
 const db = storage.db;
+const HELP_AUTO_ASSIGN_TIMEOUT_SECONDS = 60;
+const HELP_FIRST_RESPONSE_SLA_SECONDS = Number(process.env.HELP_FIRST_RESPONSE_SLA_SECONDS || "120");
 const JWT_SECRET = process.env["JWT_SECRET"] ?? "";
 
 if (!JWT_SECRET) {
@@ -912,6 +916,7 @@ export async function registerTeacherRoutes(app: Express) {
       const ordersList = await db.select().from(teacherTaskOrders).where(eq(teacherTaskOrders.teacherId, teacherId));
       const studentsList = await db.select().from(childTeacherAssignment).where(eq(childTeacherAssignment.teacherId, teacherId));
       const reviewsList = await db.select().from(teacherReviews).where(eq(teacherReviews.teacherId, teacherId));
+      const helpSessions = await db.select().from(teacherHelpSessionPayments).where(eq(teacherHelpSessionPayments.teacherId, teacherId));
       const balance = await ensureTeacherBalance(teacherId);
 
       const avgRating = reviewsList.length > 0
@@ -930,6 +935,7 @@ export async function registerTeacherRoutes(app: Express) {
           totalStudents: studentsList.length,
           totalReviews: reviewsList.length,
           avgRating: Math.round(avgRating * 10) / 10,
+          totalHelpSessions: helpSessions.length,
           totalRevenue: totalRevenue.toFixed(2),
           availableBalance: balance.availableBalance,
           pendingBalance: balance.pendingBalance,
@@ -1529,6 +1535,7 @@ export async function registerTeacherRoutes(app: Express) {
               parentId: request[0].parentId,
               requestId: id,
               monthlyPoints: request[0].monthlyPoints,
+              perHelpPoints: request[0].perHelpPoints,
             });
           }
 
@@ -1604,6 +1611,7 @@ export async function registerTeacherRoutes(app: Express) {
         parentName: p.parent.name,
         parentId: p.parent.id,
         monthlyPoints: p.permission.monthlyPoints,
+        perHelpPoints: p.permission.perHelpPoints,
         assignedAt: p.permission.createdAt,
       }));
 
@@ -1756,7 +1764,146 @@ export async function registerTeacherRoutes(app: Express) {
       const limit = Math.min(50, Math.max(1, parseInt(String(req.query.limit)) || 50));
       const offset = (page - 1) * limit;
 
-      const helpReqs = await db.select({
+      const staleAssigned = await db.select({
+        id: taskHelpRequests.id,
+        childId: taskHelpRequests.childId,
+        helperType: taskHelpRequests.helperType,
+        helperId: taskHelpRequests.helperId,
+      })
+        .from(taskHelpRequests)
+        .innerJoin(tasks, eq(taskHelpRequests.taskId, tasks.id))
+        .innerJoin(teacherChildPermissions, and(
+          eq(teacherChildPermissions.teacherId, teacherId),
+          eq(teacherChildPermissions.childId, taskHelpRequests.childId),
+          eq(teacherChildPermissions.isActive, true)
+        ))
+        .where(and(
+          eq(taskHelpRequests.status, "active"),
+          eq(taskHelpRequests.slaEscalated, false),
+          eq(tasks.teacherId, teacherId),
+          or(
+            eq(taskHelpRequests.helperType, "parent"),
+            eq(taskHelpRequests.helperType, "teacher")
+          ),
+          sql`${taskHelpRequests.createdAt} <= now() - (${HELP_FIRST_RESPONSE_SLA_SECONDS} * interval '1 second')`
+        ))
+        .limit(20);
+
+      for (const reqRow of staleAssigned) {
+        const [helperReplies] = await db.select({ value: count(taskHelpMessages.id) })
+          .from(taskHelpMessages)
+          .where(and(
+            eq(taskHelpMessages.helpRequestId, reqRow.id),
+            eq(taskHelpMessages.senderType, reqRow.helperType as any),
+            eq(taskHelpMessages.senderId, reqRow.helperId)
+          ));
+
+        if (Number(helperReplies?.value || 0) > 0) {
+          continue;
+        }
+
+        let nextHelperType: "parent" | "teacher" | null = null;
+        let nextHelperId = "";
+
+        if (reqRow.helperType === "parent") {
+          nextHelperType = "teacher";
+          nextHelperId = teacherId;
+        } else {
+          const fallbackParent = await db.select({ parentId: parentChild.parentId })
+            .from(parentChild)
+            .where(eq(parentChild.childId, reqRow.childId))
+            .limit(1);
+
+          if (fallbackParent[0]?.parentId) {
+            nextHelperType = "parent";
+            nextHelperId = fallbackParent[0].parentId;
+          }
+        }
+
+        if (!nextHelperType || !nextHelperId || (nextHelperType === reqRow.helperType && nextHelperId === reqRow.helperId)) {
+          continue;
+        }
+
+        const moved = await db.update(taskHelpRequests)
+          .set({ helperType: nextHelperType, helperId: nextHelperId, slaEscalated: true })
+          .where(and(
+            eq(taskHelpRequests.id, reqRow.id),
+            eq(taskHelpRequests.status, "active"),
+            eq(taskHelpRequests.slaEscalated, false),
+            eq(taskHelpRequests.helperType, reqRow.helperType),
+            eq(taskHelpRequests.helperId, reqRow.helperId)
+          ))
+          .returning({ id: taskHelpRequests.id, childId: taskHelpRequests.childId });
+
+        if (!moved[0]) {
+          continue;
+        }
+
+        await db.insert(notifications).values({
+          childId: moved[0].childId,
+          type: NOTIFICATION_TYPES.TASK_HELP_MESSAGE,
+          title: "تحويل تلقائي لطلب المساعدة",
+          message: "تم تحويل طلب المساعدة تلقائياً بسبب تأخر الرد الأول.",
+          relatedId: reqRow.id,
+          metadata: {
+            helpRequestId: reqRow.id,
+            reason: "first_response_sla_timeout",
+            switchedTo: nextHelperType,
+          },
+        });
+
+        if (nextHelperType === "teacher") {
+          await db.insert(notifications).values({
+            teacherId: nextHelperId,
+            type: NOTIFICATION_TYPES.TASK_HELP_REQUESTED,
+            title: "طلب مساعدة محول تلقائياً",
+            message: "تم تحويل طلب مساعدة إليك تلقائياً بسبب تأخر الرد الأول.",
+            relatedId: reqRow.id,
+            metadata: { helpRequestId: reqRow.id, reason: "first_response_sla_timeout", canClaim: false },
+          });
+        } else {
+          await db.insert(notifications).values({
+            parentId: nextHelperId,
+            type: NOTIFICATION_TYPES.TASK_HELP_REQUESTED,
+            title: "طلب مساعدة محول تلقائياً",
+            message: "تم تحويل طلب مساعدة إليك تلقائياً بسبب تأخر الرد الأول.",
+            relatedId: reqRow.id,
+            metadata: { helpRequestId: reqRow.id, reason: "first_response_sla_timeout", canClaim: false },
+          });
+        }
+      }
+
+      const expiredUnassigned = await db.select({
+        id: taskHelpRequests.id,
+      })
+        .from(taskHelpRequests)
+        .innerJoin(tasks, eq(taskHelpRequests.taskId, tasks.id))
+        .innerJoin(teacherChildPermissions, and(
+          eq(teacherChildPermissions.teacherId, teacherId),
+          eq(teacherChildPermissions.childId, taskHelpRequests.childId),
+          eq(teacherChildPermissions.isActive, true)
+        ))
+        .where(and(
+          eq(taskHelpRequests.status, "active"),
+          eq(taskHelpRequests.helperType, "unassigned"),
+          eq(taskHelpRequests.helperId, ""),
+          eq(tasks.teacherId, teacherId),
+          sql`${taskHelpRequests.createdAt} <= now() - (${HELP_AUTO_ASSIGN_TIMEOUT_SECONDS} * interval '1 second')`
+        ))
+        .limit(20);
+
+      for (const reqRow of expiredUnassigned) {
+        await db.update(taskHelpRequests)
+          .set({ helperType: "teacher", helperId: teacherId })
+          .where(and(
+            eq(taskHelpRequests.id, reqRow.id),
+            eq(taskHelpRequests.status, "active"),
+            eq(taskHelpRequests.helperType, "unassigned"),
+            eq(taskHelpRequests.helperId, "")
+          ));
+      }
+
+      const assignedHelpReqs = await db.select({
         helpRequest: taskHelpRequests,
         child: {
           id: children.id,
@@ -1779,6 +1926,39 @@ export async function registerTeacherRoutes(app: Express) {
         .limit(limit)
         .offset(offset);
 
+      const unclaimedHelpReqs = await db.select({
+        helpRequest: taskHelpRequests,
+        child: {
+          id: children.id,
+          name: children.name,
+          avatarUrl: children.avatarUrl,
+        },
+        task: {
+          id: tasks.id,
+          question: tasks.question,
+        },
+      })
+        .from(taskHelpRequests)
+        .innerJoin(children, eq(taskHelpRequests.childId, children.id))
+        .innerJoin(tasks, eq(taskHelpRequests.taskId, tasks.id))
+        .innerJoin(teacherChildPermissions, and(
+          eq(teacherChildPermissions.teacherId, teacherId),
+          eq(teacherChildPermissions.childId, taskHelpRequests.childId),
+          eq(teacherChildPermissions.isActive, true)
+        ))
+        .where(and(
+          eq(taskHelpRequests.helperType, "unassigned"),
+          eq(taskHelpRequests.status, "active"),
+          eq(tasks.teacherId, teacherId)
+        ))
+        .orderBy(desc(taskHelpRequests.createdAt))
+        .limit(limit)
+        .offset(offset);
+
+      const helpReqs = [...assignedHelpReqs, ...unclaimedHelpReqs].filter(
+        (row, idx, arr) => arr.findIndex((x: any) => x.helpRequest.id === row.helpRequest.id) === idx
+      );
+
       const result = helpReqs.map((h: any) => ({
         id: h.helpRequest.id,
         taskId: h.task.id,
@@ -1786,6 +1966,8 @@ export async function registerTeacherRoutes(app: Express) {
         childId: h.child.id,
         childName: h.child.name,
         childAvatar: h.child.avatarUrl,
+        helperType: h.helpRequest.helperType,
+        canClaim: h.helpRequest.helperType === "unassigned" && h.helpRequest.status === "active",
         status: h.helpRequest.status,
         createdAt: h.helpRequest.createdAt,
         resolvedAt: h.helpRequest.resolvedAt,
@@ -1795,6 +1977,99 @@ export async function registerTeacherRoutes(app: Express) {
     } catch (error: any) {
       console.error("Get teacher help requests error:", error);
       res.status(500).json({ message: "فشل جلب طلبات المساعدة" });
+    }
+  });
+
+  app.put("/api/teacher/help-requests/:helpRequestId/claim", teacherMiddleware, async (req: TeacherRequest, res) => {
+    try {
+      const teacherId = req.teacher!.teacherId;
+      const { helpRequestId } = req.params;
+
+      const rows = await db.select({
+        helpRequest: taskHelpRequests,
+        task: {
+          teacherId: tasks.teacherId,
+        },
+      })
+        .from(taskHelpRequests)
+        .innerJoin(tasks, eq(taskHelpRequests.taskId, tasks.id))
+        .where(eq(taskHelpRequests.id, helpRequestId))
+        .limit(1);
+
+      const row = rows[0];
+      if (!row) {
+        return res.status(404).json({ message: "طلب المساعدة غير موجود" });
+      }
+
+      const hasPermission = await db.select({ id: teacherChildPermissions.id })
+        .from(teacherChildPermissions)
+        .where(and(
+          eq(teacherChildPermissions.teacherId, teacherId),
+          eq(teacherChildPermissions.childId, row.helpRequest.childId),
+          eq(teacherChildPermissions.isActive, true)
+        ))
+        .limit(1);
+
+      if (!hasPermission[0] || row.task.teacherId !== teacherId) {
+        return res.status(403).json({ message: "غير مصرح لك باستلام هذا الطلب" });
+      }
+
+      if (row.helpRequest.status !== "active") {
+        return res.status(409).json({ message: "هذا الطلب غير نشط" });
+      }
+
+      if (row.helpRequest.helperType === "teacher" && row.helpRequest.helperId === teacherId) {
+        return res.json({ success: true, data: { claimed: true, helpRequestId } });
+      }
+
+      if (row.helpRequest.helperType !== "unassigned" || row.helpRequest.helperId !== "") {
+        return res.status(409).json({ message: "تم استلام الطلب بواسطة طرف آخر" });
+      }
+
+      const updated = await db.update(taskHelpRequests)
+        .set({ helperType: "teacher", helperId: teacherId })
+        .where(and(
+          eq(taskHelpRequests.id, helpRequestId),
+          eq(taskHelpRequests.status, "active"),
+          eq(taskHelpRequests.helperType, "unassigned"),
+          eq(taskHelpRequests.helperId, "")
+        ))
+        .returning();
+
+      if (!updated[0]) {
+        return res.status(409).json({ message: "تم استلام الطلب بواسطة طرف آخر" });
+      }
+
+      await db.insert(notifications).values({
+        childId: updated[0].childId,
+        type: NOTIFICATION_TYPES.TASK_HELP_MESSAGE,
+        title: "تم استلام طلب المساعدة",
+        message: "تم استلام طلبك من أحد الأطراف المعنية، يمكنك متابعة الدردشة الآن",
+        relatedId: helpRequestId,
+        metadata: { helpRequestId, claimedBy: "teacher" },
+      });
+
+      const linkedParents = await db.select({ parentId: parentChild.parentId })
+        .from(parentChild)
+        .where(eq(parentChild.childId, updated[0].childId));
+
+      if (linkedParents.length > 0) {
+        await db.insert(notifications).values(
+          linkedParents.map((p: { parentId: string }) => ({
+            parentId: p.parentId,
+            type: NOTIFICATION_TYPES.TASK_HELP_MESSAGE,
+            title: "تم استلام الطلب بواسطة المعلم",
+            message: "تم استلام طلب المساعدة من المعلم، لم يعد متاحاً للاستلام",
+            relatedId: helpRequestId,
+            metadata: { helpRequestId, claimedBy: "teacher", claimedById: teacherId },
+          }))
+        );
+      }
+
+      res.json({ success: true, data: { claimed: true, helpRequestId } });
+    } catch (error: any) {
+      console.error("Claim teacher help request error:", error);
+      res.status(500).json({ message: "فشل استلام طلب المساعدة" });
     }
   });
 
@@ -1905,14 +2180,159 @@ export async function registerTeacherRoutes(app: Express) {
         return res.json({ success: true, message: "تم الحل مسبقاً" });
       }
 
+      const resolvedAt = new Date();
       await db.update(taskHelpRequests)
-        .set({ status: "resolved", resolvedAt: new Date() })
+        .set({ status: "resolved", resolvedAt })
         .where(eq(taskHelpRequests.id, helpRequestId));
+
+      const permission = await db.select({
+        parentId: teacherChildPermissions.parentId,
+        perHelpPoints: teacherChildPermissions.perHelpPoints,
+      })
+        .from(teacherChildPermissions)
+        .where(and(
+          eq(teacherChildPermissions.teacherId, teacherId),
+          eq(teacherChildPermissions.childId, helpReq[0].childId),
+          eq(teacherChildPermissions.isActive, true)
+        ))
+        .limit(1);
+
+      const existingPayment = await db.select({ id: teacherHelpSessionPayments.id })
+        .from(teacherHelpSessionPayments)
+        .where(eq(teacherHelpSessionPayments.helpRequestId, helpRequestId))
+        .limit(1);
+
+      if (!existingPayment[0]) {
+        await db.insert(teacherHelpSessionPayments).values({
+          helpRequestId,
+          taskId: helpReq[0].taskId,
+          teacherId,
+          parentId: permission[0]?.parentId || null,
+          childId: helpReq[0].childId,
+          perHelpPoints: Number(permission[0]?.perHelpPoints || 0),
+          status: "completed",
+          claimedAt: helpReq[0].createdAt,
+          resolvedAt,
+        });
+      }
+
+      await db.update(schoolTeachers).set({
+        activityScore: sql`${schoolTeachers.activityScore} + 2`,
+        updatedAt: resolvedAt,
+      }).where(eq(schoolTeachers.id, teacherId));
+
+      const teacherInfo = await db.select({ schoolId: schoolTeachers.schoolId })
+        .from(schoolTeachers)
+        .where(eq(schoolTeachers.id, teacherId))
+        .limit(1);
+
+      if (teacherInfo[0]) {
+        await db.insert(schoolActivityLogs).values({
+          schoolId: teacherInfo[0].schoolId,
+          teacherId,
+          action: "task_help_session_resolved",
+          points: 2,
+          metadata: {
+            helpRequestId,
+            taskId: helpReq[0].taskId,
+            childId: helpReq[0].childId,
+            perHelpPoints: Number(permission[0]?.perHelpPoints || 0),
+          },
+        });
+      }
 
       res.json({ success: true, message: "تم إغلاق طلب المساعدة" });
     } catch (error: any) {
       console.error("Resolve help request error:", error);
       res.status(500).json({ message: "فشل إغلاق طلب المساعدة" });
+    }
+  });
+
+  app.get("/api/teacher/help-session-payments", teacherMiddleware, async (req: TeacherRequest, res) => {
+    try {
+      const teacherId = req.teacher!.teacherId;
+      const month = typeof req.query.month === "string" ? req.query.month : "";
+
+      let whereClause: any = eq(teacherHelpSessionPayments.teacherId, teacherId);
+      if (month && /^\d{4}-\d{2}$/.test(month)) {
+        whereClause = and(
+          eq(teacherHelpSessionPayments.teacherId, teacherId),
+          sql`to_char(${teacherHelpSessionPayments.resolvedAt}, 'YYYY-MM') = ${month}`
+        );
+      }
+
+      const rows = await db.select({
+        payment: teacherHelpSessionPayments,
+        child: {
+          id: children.id,
+          name: children.name,
+        },
+        parent: {
+          id: parents.id,
+          name: parents.name,
+        },
+        task: {
+          id: tasks.id,
+          question: tasks.question,
+        },
+      })
+        .from(teacherHelpSessionPayments)
+        .leftJoin(children, eq(teacherHelpSessionPayments.childId, children.id))
+        .leftJoin(parents, eq(teacherHelpSessionPayments.parentId, parents.id))
+        .leftJoin(tasks, eq(teacherHelpSessionPayments.taskId, tasks.id))
+        .where(whereClause)
+        .orderBy(desc(teacherHelpSessionPayments.resolvedAt));
+
+      const totalHelpPoints = rows.reduce((sum: number, r: any) => sum + Number(r.payment.perHelpPoints || 0), 0);
+
+      const feedbackRows = await db.select({
+        helpRequestId: taskHelpFeedback.helpRequestId,
+        rating: taskHelpFeedback.rating,
+      }).from(taskHelpFeedback)
+        .where(and(
+          eq(taskHelpFeedback.teacherId, teacherId),
+          month && /^\d{4}-\d{2}$/.test(month)
+            ? sql`to_char(${taskHelpFeedback.createdAt}, 'YYYY-MM') = ${month}`
+            : sql`TRUE`
+        ));
+
+      const avgSessionRating = feedbackRows.length > 0
+        ? feedbackRows.reduce((sum: number, r: any) => sum + Number(r.rating || 0), 0) / feedbackRows.length
+        : 0;
+
+      const feedbackByHelpRequest = new Map<string, number>();
+      for (const row of feedbackRows) {
+        if (row.helpRequestId) feedbackByHelpRequest.set(row.helpRequestId, Number(row.rating || 0));
+      }
+
+      res.json({
+        success: true,
+        data: {
+          month: month || null,
+          summary: {
+            sessionsCount: rows.length,
+            totalHelpPoints,
+            feedbackCount: feedbackRows.length,
+            avgSessionRating: Math.round(avgSessionRating * 10) / 10,
+          },
+          items: rows.map((r: any) => ({
+            id: r.payment.id,
+            helpRequestId: r.payment.helpRequestId,
+            child: r.child,
+            parent: r.parent,
+            childName: r.child?.name || "",
+            parentName: r.parent?.name || "",
+            taskQuestion: r.task?.question || "",
+            pointsAmount: Number(r.payment.perHelpPoints || 0),
+            perHelpPoints: Number(r.payment.perHelpPoints || 0),
+            feedbackRating: feedbackByHelpRequest.get(r.payment.helpRequestId) || null,
+            resolvedAt: r.payment.resolvedAt,
+          })),
+        },
+      });
+    } catch (error: any) {
+      console.error("Get teacher help session payments error:", error);
+      res.status(500).json({ message: "فشل جلب السجل المالي للمساعدة" });
     }
   });
 
@@ -1930,10 +2350,21 @@ export async function registerTeacherRoutes(app: Express) {
       });
       const upload = multer({
         storage: store,
-        limits: { fileSize: 10 * 1024 * 1024 },
+        limits: { fileSize: 8 * 1024 * 1024 },
         fileFilter: (_r: any, f: any, cb: any) => {
-          if (f.mimetype.startsWith("image/") || f.mimetype.startsWith("audio/")) cb(null, true);
-          else cb(new Error("Only images and audio files are allowed"));
+          const allowed = new Set([
+            "image/jpeg",
+            "image/png",
+            "image/webp",
+            "image/gif",
+            "audio/webm",
+            "audio/wav",
+            "audio/mpeg",
+            "audio/mp3",
+            "audio/ogg",
+          ]);
+          if (allowed.has(String(f.mimetype || "").toLowerCase())) cb(null, true);
+          else cb(new Error("Unsupported file type. Allowed: JPG/PNG/WEBP/GIF and WEBM/WAV/MP3/OGG"));
         },
       }).single("file");
       upload(req as any, res as any, (err: any) => {

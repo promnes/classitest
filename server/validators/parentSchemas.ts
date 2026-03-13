@@ -196,7 +196,8 @@ export const revokeGiftSchema = z.object({
 export const teacherAssignmentSchema = z.object({
   teacherId: z.string().min(1),
   childIds: z.array(z.string().min(1)).min(1).max(50),
-  monthlyPoints: z.number().int().nonnegative().max(1000000).optional(),
+  monthlyPoints: z.number().int().nonnegative().max(1000000),
+  perHelpPoints: z.number().int().nonnegative().max(1000000),
 });
 
 // ============ Help Chat ============

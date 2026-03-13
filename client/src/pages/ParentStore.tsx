@@ -2,11 +2,11 @@ import { useState, useMemo, useEffect } from "react";
 import { useTranslation } from 'react-i18next';
 import { useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { 
+import {
   Search, ShoppingCart, Heart, Star, ChevronLeft, ChevronRight, ChevronDown,
   Filter, Grid3X3, List, Package, Truck, Shield, Clock, 
   Smartphone, Gamepad2, BookOpen, Dumbbell, Shirt, Book, Palette, Gift,
-  X, Plus, Minus, CreditCard, MapPin, Check, ArrowLeft, Sparkles
+  X, Plus, Minus, CreditCard, MapPin, Check, ArrowLeft, Sparkles, MoreVertical, Boxes
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -28,7 +28,10 @@ interface Product {
   id: string;
   name: string;
   nameAr?: string;
+  nameI18n?: Record<string, string>;
   description?: string;
+  descriptionAr?: string;
+  descriptionI18n?: Record<string, string>;
   price: string;
   originalPrice?: string;
   pointsPrice: number;
@@ -53,6 +56,7 @@ interface Category {
   name: string;
   nameAr: string;
   namePt: string | null;
+  targetAudience?: "all" | "parents" | "children" | "fathers" | "mothers";
   icon: string;
   color: string;
 }
@@ -62,11 +66,59 @@ interface CartItem {
   quantity: number;
 }
 
+const DEMO_PRODUCTS: Product[] = [
+  {
+    id: "demo-product-1",
+    name: "Smart Learning Tablet",
+    nameAr: "تابلت التعلم الذكي",
+    description: "Tablet with parental controls and educational apps",
+    price: "129.99",
+    originalPrice: "159.99",
+    pointsPrice: 1200,
+    image: "/demo-products/learning-tablet-1.svg",
+    images: [
+      "/demo-products/learning-tablet-1.svg",
+      "/demo-products/learning-tablet-2.svg",
+    ],
+    stock: 12,
+    brand: "Classify Kids",
+    rating: "4.8",
+    reviewCount: 31,
+    isFeatured: true,
+    discountPercent: 19,
+  },
+  {
+    id: "demo-product-2",
+    name: "Creative STEM Box",
+    nameAr: "صندوق STEM الإبداعي",
+    description: "Hands-on STEM kit for building and problem solving",
+    price: "59.99",
+    originalPrice: "79.99",
+    pointsPrice: 700,
+    image: "/demo-products/stem-box-1.svg",
+    images: [
+      "/demo-products/stem-box-1.svg",
+      "/demo-products/stem-box-2.svg",
+    ],
+    stock: 20,
+    brand: "Classify Lab",
+    rating: "4.7",
+    reviewCount: 24,
+    isFeatured: true,
+    discountPercent: 25,
+  },
+];
+
+
 const normalizeCartProduct = (raw: any): Product => {
   return {
     ...raw,
     name: raw?.name || raw?.nameAr || raw?.title || "Product",
     nameAr: raw?.nameAr || raw?.name || raw?.title || "منتج",
+    nameI18n: raw?.nameI18n || undefined,
+    description: raw?.description || raw?.descriptionAr || undefined,
+    descriptionAr: raw?.descriptionAr || raw?.description || undefined,
+    descriptionI18n: raw?.descriptionI18n || undefined,
     image: raw?.image || raw?.imageUrl || undefined,
     stock: typeof raw?.stock === "number" ? raw.stock : 999,
     pointsPrice: typeof raw?.pointsPrice === "number" ? raw.pointsPrice : 0,
@@ -78,6 +130,7 @@ const CART_STORAGE_KEY = "parent-store-cart";
 
 export const ParentStore = (): JSX.Element => {
   const { t, i18n } = useTranslation();
+  const isRTL = i18n.language === "ar";
   const [, navigate] = useLocation();
   const queryClient = useQueryClient();
   const { isDark } = useTheme();
@@ -86,17 +139,18 @@ export const ParentStore = (): JSX.Element => {
   
   // Read view param from URL
   const urlParams = new URLSearchParams(window.location.search);
-  const initialView = urlParams.get("view") as "store" | "cart" | "orders" | null;
-  
-  const [activeView, setActiveView] = useState<"store" | "cart" | "orders">(initialView || "store");
+  const initialView = urlParams.get("view") as "cart" | "orders" | "inventory" | null;
+
+  const [cartDialogSection, setCartDialogSection] = useState<"cart" | "orders" | "inventory">(initialView || "cart");
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [expandedMainCategory, setExpandedMainCategory] = useState<string | null>(null);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [showCategoryPicker, setShowCategoryPicker] = useState(false);
   const [sortBy, setSortBy] = useState("featured");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [cart, setCart] = useState<CartItem[]>([]);
-  const [showCart, setShowCart] = useState(false);
+  const [showCart, setShowCart] = useState(initialView === "cart" || initialView === "orders" || initialView === "inventory");
   const [showCheckout, setShowCheckout] = useState(false);
+  const [showMobileHeaderMenu, setShowMobileHeaderMenu] = useState(false);
   const [buyNowProduct, setBuyNowProduct] = useState<Product | null>(null);
   const [showAssign, setShowAssign] = useState(false);
   const [showDetail, setShowDetail] = useState(false);
@@ -131,12 +185,12 @@ export const ParentStore = (): JSX.Element => {
   });
 
   const { data: productsData, isLoading: loadingProducts } = useQuery({
-    queryKey: ["store-products", selectedCategory, searchQuery, sortBy],
+    queryKey: ["store-products", searchQuery, sortBy, i18n.language],
     queryFn: async () => {
       const params = new URLSearchParams();
-      if (selectedCategory) params.append("categoryId", selectedCategory);
       if (searchQuery) params.append("search", searchQuery);
       params.append("sort", sortBy);
+      params.append("lang", i18n.language);
       const res = await fetch(`/api/store/products?${params}`, {
         headers: getAuthHeaders(),
       });
@@ -181,7 +235,7 @@ export const ParentStore = (): JSX.Element => {
     enabled: true,
   });
 
-  const { data: walletData } = useQuery({
+  const { data: walletData, isLoading: loadingWallet } = useQuery({
     queryKey: ["parent-wallet"],
     queryFn: async () => {
       const res = await fetch("/api/parent/wallet", {
@@ -243,10 +297,18 @@ export const ParentStore = (): JSX.Element => {
     },
   });
 
-  const categories: Category[] = categoriesData?.data || categoriesData || [];
+  const categories: Category[] = useMemo(() => {
+    return (categoriesData?.data || categoriesData || []) as Category[];
+  }, [categoriesData]);
   const mainCategories = useMemo(() => categories.filter(c => !c.parentId), [categories]);
-  const getSubcategories = (parentId: string) => categories.filter(c => c.parentId === parentId);
-  const products: Product[] = productsData?.data || productsData || [];
+  const subCategories = useMemo(() => categories.filter(c => !!c.parentId), [categories]);
+  const categoryOptions = useMemo(() => [...mainCategories, ...subCategories], [mainCategories, subCategories]);
+  const apiProducts: Product[] = productsData?.data || productsData || [];
+  const products: Product[] = useMemo(() => {
+    const ids = new Set(apiProducts.map((p) => p.id));
+    const missingDemoProducts = DEMO_PRODUCTS.filter((p) => !ids.has(p.id));
+    return [...missingDemoProducts, ...apiProducts];
+  }, [apiProducts]);
   const children = childrenData || [];
   const paymentMethods = (paymentMethodsData as any)?.data || paymentMethodsData || [];
   const shippingProviders = (shippingProvidersData as any)?.data || shippingProvidersData || [];
@@ -258,10 +320,26 @@ export const ParentStore = (): JSX.Element => {
   const referralCode = new URLSearchParams(window.location.search).get("ref");
   const ordersList: any[] = Array.isArray(ordersData) ? ordersData : (ordersData as any)?.data || [];
   const inventoryList: any[] = Array.isArray(ownedProductsData) ? ownedProductsData : (ownedProductsData as any)?.data || [];
+  const ordersCompletedCount = ordersList.filter((o: any) => o.status === "completed" || o.status === "delivered").length;
+  const ordersPendingCount = ordersList.filter((o: any) => o.status === "pending" || o.status === "processing" || o.status === "shipped").length;
+  const ordersCancelledCount = ordersList.filter((o: any) => o.status === "cancelled").length;
 
   const featuredProducts = useMemo(() => 
     products.filter((p: Product) => p.isFeatured).slice(0, 6), [products]
   );
+
+  const filteredProducts = useMemo(() => {
+    if (selectedCategories.length === 0) return products;
+
+    const selectedSet = new Set(selectedCategories);
+    return products.filter((p) => {
+      if (!p.categoryId) return false;
+      if (selectedSet.has(p.categoryId)) return true;
+
+      const parent = categories.find((c) => c.id === p.categoryId)?.parentId;
+      return !!parent && selectedSet.has(parent);
+    });
+  }, [products, selectedCategories, categories]);
 
   const cartItemsCount = useMemo(
     () => cart.reduce((sum, item) => sum + item.quantity, 0),
@@ -376,16 +454,109 @@ export const ParentStore = (): JSX.Element => {
     );
   };
 
+  useEffect(() => {
+    if (!showMobileHeaderMenu) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setShowMobileHeaderMenu(false);
+      }
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [showMobileHeaderMenu]);
+
+  useEffect(() => {
+    const onResize = () => {
+      if (window.innerWidth >= 768) {
+        setShowMobileHeaderMenu(false);
+      }
+    };
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
   const getCategoryIcon = (iconName: string) => {
     const IconComponent = categoryIcons[iconName] || Package;
     return IconComponent;
   };
 
+  const toggleCategory = (categoryId: string) => {
+    setSelectedCategories((prev) =>
+      prev.includes(categoryId) ? prev.filter((id) => id !== categoryId) : [...prev, categoryId]
+    );
+  };
+
+  const availableCategoryOptions = useMemo(
+    () => categoryOptions.filter((cat) => !selectedCategories.includes(cat.id)),
+    [categoryOptions, selectedCategories]
+  );
+
+  const getCategoryLabel = (categoryId: string) => {
+    const cat = categories.find((c) => c.id === categoryId);
+    if (!cat) return "";
+    return i18n.language === "ar" ? cat.nameAr : i18n.language === "pt" && cat.namePt ? cat.namePt : cat.name;
+  };
+
+  const getDiscountBadgeText = (product: Product) => {
+    if (product.discountPercent && product.discountPercent > 0) {
+      return `-${product.discountPercent}%`;
+    }
+
+    if (product.originalPrice && parseFloat(product.originalPrice) > parseFloat(product.price)) {
+      return `-${Math.round((1 - parseFloat(product.price) / parseFloat(product.originalPrice)) * 100)}%`;
+    }
+
+    return null;
+  };
+
+  const normalizeLocale = (lang: string) => (lang || "en").toLowerCase().split("-")[0];
+
+  const getLocalizedName = (product: Product) => {
+    const lang = normalizeLocale(i18n.language);
+    const fromMap = product.nameI18n?.[lang];
+    if (fromMap) return fromMap;
+    if (lang === "ar" && product.nameAr) return product.nameAr;
+    return product.name || product.nameAr || "";
+  };
+
+  const getLocalizedDescription = (product: Product) => {
+    const lang = normalizeLocale(i18n.language);
+    const fromMap = product.descriptionI18n?.[lang];
+    if (fromMap) return fromMap;
+    if (lang === "ar" && product.descriptionAr) return product.descriptionAr;
+    return product.description || product.descriptionAr || "";
+  };
+
+  const getOrderStatusTone = (status?: string) => {
+    if (status === "completed" || status === "delivered") {
+      return {
+        badge: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200",
+        card: "border-emerald-200 dark:border-emerald-900/40",
+      };
+    }
+    if (status === "cancelled") {
+      return {
+        badge: "bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-200",
+        card: "border-rose-200 dark:border-rose-900/40",
+      };
+    }
+    return {
+      badge: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-200",
+      card: "border-amber-200 dark:border-amber-900/40",
+    };
+  };
+
+  const extractInventoryProduct = (inventoryItem: any): Product | null => {
+    const raw = inventoryItem?.product || inventoryItem;
+    if (!raw?.id) return null;
+    return normalizeCartProduct(raw);
+  };
+
   return (
-    <div className={`min-h-screen ${isDark ? "bg-gray-900" : "bg-gray-50"}`}>
-      <header className="bg-gradient-to-r from-orange-500 via-orange-600 to-red-500 text-white sticky top-0 z-50 shadow-lg">
+    <div className={`min-h-screen overflow-x-hidden ${isDark ? "bg-gray-900" : "bg-gray-50"}`}>
+      <header className="bg-gradient-to-r from-orange-500 via-orange-600 to-red-500 text-white sticky top-0 z-50 shadow-xl">
         <div className="max-w-7xl mx-auto px-4">
-          <div className="flex items-center justify-between py-3">
+          <div className="flex items-center justify-between gap-2 py-3 min-w-0">
             <button 
               onClick={() => window.history.length > 1 ? window.history.back() : navigate("/parent-dashboard")}
               className="flex items-center gap-1 sm:gap-2 hover:opacity-80 transition-opacity flex-shrink-0"
@@ -398,27 +569,33 @@ export const ParentStore = (): JSX.Element => {
               </div>
             </button>
 
-            <div className="flex-1 max-w-2xl mx-2 sm:mx-8">
+            <div className="flex-1 min-w-0 max-w-2xl mx-1 sm:mx-8">
               <div className="relative">
                 <Input
                   type="text"
                   placeholder={t("parentStore.searchProducts")}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className={`w-full pl-10 sm:pl-12 pr-3 sm:pr-4 py-2 rounded-lg border-0 text-sm sm:text-base ${isDark ? "bg-gray-700 text-gray-200 placeholder-gray-400" : "bg-white text-gray-800 placeholder-gray-500"}`}
+                  className={`w-full pl-10 sm:pl-12 pr-3 sm:pr-4 py-2.5 rounded-xl border-0 text-sm sm:text-base shadow-sm focus-visible:ring-2 focus-visible:ring-white/70 ${isDark ? "bg-gray-700 text-gray-200 placeholder-gray-400" : "bg-white text-gray-800 placeholder-gray-500"}`}
                   data-testid="input-search"
                 />
                 <Search className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
               </div>
             </div>
 
-            <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
+            <div className="flex items-center gap-1 sm:gap-4 flex-shrink-0 relative">
               <div className="text-right hidden md:block">
                 <p className="text-xs opacity-80">{t("parentStore.walletBalance")}</p>
-                <p className="font-bold">{wallet?.balance || 0} {t("parentStore.currency")}</p>
+                {loadingWallet ? (
+                  <div className="h-5 w-20 rounded bg-white/25 animate-pulse mt-1" />
+                ) : (
+                  <p className="font-bold">{wallet?.balance || 0} {t("parentStore.currency")}</p>
+                )}
               </div>
               
-              <LanguageSelector />
+              <div className="hidden md:block">
+                <LanguageSelector />
+              </div>
               
               <ParentNotificationBell />
               
@@ -434,314 +611,157 @@ export const ParentStore = (): JSX.Element => {
                   </span>
                 )}
               </button>
+
+              <button
+                type="button"
+                aria-label={t("common.more", "المزيد")}
+                aria-haspopup="menu"
+                aria-expanded={showMobileHeaderMenu}
+                aria-controls="parent-store-mobile-header-menu"
+                onClick={() => setShowMobileHeaderMenu((prev) => !prev)}
+                className="md:hidden p-2 rounded-lg border border-white/20 hover:bg-white/10 transition-colors"
+                data-testid="button-store-mobile-header-menu"
+              >
+                <MoreVertical className="w-5 h-5" />
+              </button>
+
+              <button
+                aria-label={t("common.close", "إغلاق")}
+                aria-hidden={!showMobileHeaderMenu}
+                className={`md:hidden fixed inset-0 z-40 bg-black/25 transition-opacity duration-200 ${showMobileHeaderMenu ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}
+                onClick={() => setShowMobileHeaderMenu(false)}
+              />
+
+              <div
+                id="parent-store-mobile-header-menu"
+                role="menu"
+                aria-hidden={!showMobileHeaderMenu}
+                className={`md:hidden absolute top-full mt-2 ${isRTL ? "left-0" : "right-0"} z-50 w-[min(14rem,calc(100vw-0.75rem))] rounded-2xl border border-white/20 shadow-2xl p-2 backdrop-blur-sm ${isRTL ? "origin-top-left" : "origin-top-right"} transition-all duration-200 ${
+                  isDark ? "bg-gray-900/98" : "bg-white/98 text-gray-800"
+                } ${showMobileHeaderMenu ? "opacity-100 translate-y-0 pointer-events-auto" : "opacity-0 -translate-y-1 pointer-events-none"}`}
+              >
+                <div
+                  style={{ transitionDelay: showMobileHeaderMenu ? "35ms" : "0ms" }}
+                  className={`px-1 pb-2 transition-all duration-200 ${showMobileHeaderMenu ? "opacity-100 translate-y-0" : "opacity-0 translate-y-1"}`}
+                >
+                  <LanguageSelector />
+                </div>
+
+                <div className={`h-px my-1 ${isDark ? "bg-white/10" : "bg-gray-200"}`} />
+
+                <div
+                  style={{ transitionDelay: showMobileHeaderMenu ? "70ms" : "0ms" }}
+                  className={`px-3 py-2 rounded-xl text-xs transition-all duration-200 ${showMobileHeaderMenu ? "opacity-100 translate-y-0" : "opacity-0 translate-y-1"} ${isDark ? "bg-white/5 text-gray-200" : "bg-gray-50 text-gray-700"}`}
+                >
+                  <p className="opacity-80">{t("parentStore.walletBalance")}</p>
+                  {loadingWallet ? (
+                    <div className={`h-4 w-16 rounded mt-1 animate-pulse ${isDark ? "bg-gray-700" : "bg-gray-200"}`} />
+                  ) : (
+                    <p className="font-bold text-sm">{wallet?.balance || 0} {t("parentStore.currency")}</p>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
         <div className="bg-orange-700/50 py-2">
           <div className="max-w-7xl mx-auto px-4">
-            {/* Main categories row */}
-            <div className="flex items-center gap-3 overflow-x-auto scrollbar-hide">
-              <button
-                onClick={() => { setSelectedCategory(null); setExpandedMainCategory(null); }}
-                className={`whitespace-nowrap px-3 py-1.5 rounded-full text-sm transition-colors ${
-                  !selectedCategory && !expandedMainCategory ? "bg-white text-orange-600 font-bold" : "hover:bg-white/10"
-                }`}
-                data-testid="button-category-all"
-              >
-                {t("parentStore.allCategories")}
-              </button>
-              <button
-                onClick={() => navigate("/library-store")}
-                className="whitespace-nowrap px-3 py-1.5 rounded-full text-sm flex items-center gap-2 transition-colors bg-blue-600 text-white hover:bg-blue-700"
-                data-testid="button-library-store"
-              >
-                <BookOpen className="w-4 h-4" />
-                {t("parentStore.libraries")}
-              </button>
-              {mainCategories.map((cat: Category) => {
-                const Icon = getCategoryIcon(cat.icon);
-                const subs = getSubcategories(cat.id);
-                const isExpanded = expandedMainCategory === cat.id;
-                const isSelected = selectedCategory === cat.id;
-                return (
-                  <button
-                    key={cat.id}
-                    onClick={() => {
-                      if (subs.length > 0) {
-                        // Toggle expand; select main category to show all products in it + subs
-                        if (isExpanded) {
-                          setExpandedMainCategory(null);
-                          setSelectedCategory(null);
-                        } else {
-                          setExpandedMainCategory(cat.id);
-                          setSelectedCategory(cat.id);
-                        }
-                      } else {
-                        setExpandedMainCategory(null);
-                        setSelectedCategory(cat.id);
-                      }
-                    }}
-                    className={`whitespace-nowrap px-3 py-1.5 rounded-full text-sm flex items-center gap-2 transition-colors ${
-                      isSelected || isExpanded ? "bg-white text-orange-600 font-bold" : "hover:bg-white/10"
-                    }`}
-                    data-testid={`button-category-${cat.id}`}
-                  >
-                    <Icon className="w-4 h-4" />
-                    {i18n.language === "ar" ? cat.nameAr : i18n.language === "pt" && cat.namePt ? cat.namePt : cat.name}
-                    {subs.length > 0 && (
-                      <ChevronDown className={`w-3.5 h-3.5 transition-transform ${isExpanded ? "rotate-180" : ""}`} />
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Subcategories row — shown when a main category is expanded */}
-            {expandedMainCategory && getSubcategories(expandedMainCategory).length > 0 && (
-              <div className="flex items-center gap-2 mt-2 overflow-x-auto scrollbar-hide pb-1">
+            <div className="relative">
+              <div className="flex items-center justify-between gap-2 mb-1">
+                <div className="text-xs font-bold inline-flex items-center gap-1.5 opacity-95">
+                  <Filter className="w-3.5 h-3.5" />
+                  {t("parentStore.categoryFilterLabel", "تصفية الأقسام")}
+                </div>
                 <button
-                  onClick={() => setSelectedCategory(expandedMainCategory)}
-                  className={`whitespace-nowrap px-3 py-1 rounded-full text-xs transition-colors border ${
-                    selectedCategory === expandedMainCategory 
-                      ? "bg-white text-orange-600 font-bold border-white" 
-                      : "border-white/30 hover:bg-white/10"
-                  }`}
+                  onClick={() => setShowCategoryPicker((prev) => !prev)}
+                  className="w-7 h-7 inline-flex items-center justify-center rounded-full border border-white/40 bg-white/15 hover:bg-white/25 transition-colors"
+                  data-testid="button-toggle-category-picker"
+                  aria-label={t("parentStore.openCategories", "فتح قائمة الأقسام")}
+                >
+                  <ChevronDown className={`w-4 h-4 transition-transform ${showCategoryPicker ? "rotate-180" : ""}`} />
+                </button>
+              </div>
+
+              <div className="flex items-center gap-2 mb-2 overflow-x-auto scrollbar-hide">
+                <button
+                  onClick={() => {
+                    setSelectedCategories([]);
+                    setShowCategoryPicker(false);
+                  }}
+                  className="px-2.5 py-1 rounded-full text-xs font-bold bg-orange-500 text-white hover:bg-orange-600 whitespace-nowrap"
+                  data-testid="button-category-all"
                 >
                   {t("parentStore.allCategories")}
                 </button>
-                {getSubcategories(expandedMainCategory).map((sub: Category) => {
-                  const SubIcon = getCategoryIcon(sub.icon);
-                  return (
-                    <button
-                      key={sub.id}
-                      onClick={() => setSelectedCategory(sub.id)}
-                      className={`whitespace-nowrap px-3 py-1 rounded-full text-xs flex items-center gap-1.5 transition-colors border ${
-                        selectedCategory === sub.id 
-                          ? "bg-white text-orange-600 font-bold border-white" 
-                          : "border-white/30 hover:bg-white/10"
-                      }`}
-                      data-testid={`button-subcategory-${sub.id}`}
-                    >
-                      <SubIcon className="w-3.5 h-3.5" />
-                      {i18n.language === "ar" ? sub.nameAr : i18n.language === "pt" && sub.namePt ? sub.namePt : sub.name}
-                    </button>
-                  );
-                })}
+                <button
+                  onClick={() => navigate("/library-store")}
+                  className="px-2.5 py-1 rounded-full text-xs font-bold bg-blue-600 text-white hover:bg-blue-700 whitespace-nowrap inline-flex items-center gap-1.5"
+                  data-testid="button-library-store"
+                >
+                  <BookOpen className="w-3.5 h-3.5" />
+                  {t("parentStore.libraries")}
+                </button>
               </div>
-            )}
+
+              {showCategoryPicker && (
+                <>
+                  <button
+                    className="fixed inset-0 z-40"
+                    onClick={() => setShowCategoryPicker(false)}
+                    aria-label={t("common.close", "إغلاق")}
+                  />
+                  <div className={`absolute top-full mt-2 ${isRTL ? "left-0" : "right-0"} z-50 w-[min(22rem,calc(100vw-2rem))] rounded-2xl border shadow-2xl p-3 backdrop-blur-sm ${isDark ? "bg-gray-900/95 border-white/15" : "bg-white/95 border-gray-200"}`}>
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-sm font-bold">{t("parentStore.categoryPickerTitle", "اختر الأقسام")}</p>
+                      <button
+                        onClick={() => {
+                          setSelectedCategories([]);
+                          setShowCategoryPicker(false);
+                        }}
+                        className="px-2.5 py-1 rounded-full text-xs font-bold bg-orange-500 text-white hover:bg-orange-600"
+                        data-testid="button-category-all"
+                      >
+                        {t("parentStore.allCategories")}
+                      </button>
+                    </div>
+
+                    <div className="max-h-64 overflow-y-auto space-y-1.5 pr-1">
+                      {availableCategoryOptions.length === 0 ? (
+                        <div className={`text-center text-xs py-5 rounded-xl ${isDark ? "bg-gray-800 text-gray-300" : "bg-gray-50 text-gray-600"}`}>
+                          {t("parentStore.noCategoriesLeft", "تم اختيار كل الأقسام")}
+                        </div>
+                      ) : (
+                        availableCategoryOptions.map((cat: Category) => {
+                          const Icon = getCategoryIcon(cat.icon);
+                          return (
+                            <button
+                              key={`picker-${cat.id}`}
+                              onClick={() => toggleCategory(cat.id)}
+                              className={`w-full px-3 py-2 rounded-xl text-sm flex items-center gap-2 transition-colors text-start ${isDark ? "hover:bg-gray-800" : "hover:bg-orange-50"}`}
+                              data-testid={`button-category-${cat.id}`}
+                            >
+                              <Icon className="w-4 h-4" />
+                              <span>{getCategoryLabel(cat.id)}</span>
+                            </button>
+                          );
+                        })
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
+
+              <div className="mt-1 text-[11px] opacity-85">
+                {selectedCategories.length > 0
+                  ? `${selectedCategories.length} ${t("parentStore.selectedCount", "محدد")}`
+                  : t("parentStore.allCategories")}
+              </div>
+            </div>
           </div>
         </div>
       </header>
 
-      {/* View Tabs */}
-      <div className={`border-b ${isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"} shadow-sm`}>
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="flex gap-1 py-2">
-            {[
-              { id: "store" as const, label: t('parentStore.storeTab'), icon: Package, count: null },
-              { id: "cart" as const, label: t('parentStore.cartTab'), icon: ShoppingCart, count: cartItemsCount },
-              { id: "orders" as const, label: t('parentStore.myOrdersTab'), icon: Clock, count: ordersList.length },
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveView(tab.id)}
-                className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${
-                  activeView === tab.id
-                    ? "bg-orange-500 text-white shadow-md"
-                    : isDark
-                    ? "text-gray-300 hover:bg-gray-700"
-                    : "text-gray-600 hover:bg-gray-100"
-                }`}
-              >
-                <div className="relative">
-                  <tab.icon className="w-4 h-4" />
-                  {tab.count !== null && (
-                    <span className="absolute -top-2 -left-2 min-w-4 h-4 px-1 rounded-full bg-orange-500 text-white text-[10px] leading-4 font-bold text-center">
-                      {tab.count}
-                    </span>
-                  )}
-                </div>
-                <span>{tab.label}</span>
-              </button>
-            ))}
-            <button
-              onClick={() => navigate("/parent-inventory")}
-              className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${
-                isDark ? "text-gray-300 hover:bg-gray-700" : "text-gray-600 hover:bg-gray-100"
-              }`}
-            >
-              <div className="relative">
-                <Package className="w-4 h-4" />
-                <span className="absolute -top-2 -left-2 min-w-4 h-4 px-1 rounded-full bg-orange-500 text-white text-[10px] leading-4 font-bold text-center">
-                  {inventoryList.length}
-                </span>
-              </div>
-              <span>{t("parentStore.myInventory")}</span>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Orders View */}
-      {activeView === "orders" && (
-        <main className="max-w-4xl mx-auto px-4 py-6">
-          <h2 className={`text-xl font-bold mb-4 flex items-center gap-2 ${isDark ? "text-white" : "text-gray-800"}`}>
-            <Package className="w-6 h-6 text-orange-500" />
-            {t("parentStore.myOrdersHeading")}
-          </h2>
-          {loadingOrders ? (
-            <div className="flex items-center justify-center py-16">
-              <div className="w-10 h-10 border-4 border-orange-500 border-t-transparent rounded-full animate-spin" />
-            </div>
-          ) : ordersList.length === 0 ? (
-            <Card className={isDark ? "bg-gray-800 border-gray-700" : ""}>
-              <CardContent className="text-center py-16">
-                <Package className={`w-16 h-16 mx-auto mb-4 ${isDark ? "text-gray-600" : "text-gray-300"}`} />
-                <h3 className={`text-xl font-bold mb-2 ${isDark ? "text-gray-300" : "text-gray-600"}`}>{t("parentStore.noOrdersYet")}</h3>
-                <p className={`mb-6 ${isDark ? "text-gray-500" : "text-gray-400"}`}>{t("parentStore.browseAndBuy")}</p>
-                <Button onClick={() => setActiveView("store")} className="bg-orange-500 hover:bg-orange-600">
-                  {t("parentStore.browseStore")}
-                </Button>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="space-y-3">
-              {ordersList.map((order: any) => (
-                <Card key={order.id} className={`overflow-hidden ${isDark ? "bg-gray-800 border-gray-700" : ""}`}>
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <div>
-                        <p className={`font-bold ${isDark ? "text-white" : "text-gray-800"}`}>
-                          {t("parentStore.orderNumber")}{order.id?.slice(0, 8)}
-                        </p>
-                        <p className={`text-sm ${isDark ? "text-gray-400" : "text-gray-500"}`}>
-                          {order.createdAt ? new Date(order.createdAt).toLocaleDateString(getDateLocale(), { 
-                            year: "numeric", month: "long", day: "numeric" 
-                          }) : ""}
-                        </p>
-                      </div>
-                      <div className="text-left">
-                        <Badge variant={
-                          order.status === "completed" || order.status === "delivered" ? "default" :
-                          order.status === "cancelled" ? "destructive" : "secondary"
-                        }>
-                          {order.status === "completed" || order.status === "delivered" ? t('parentStore.statusCompleted') :
-                           order.status === "pending" ? t('parentStore.statusPending') :
-                           order.status === "processing" ? t('parentStore.statusProcessing') :
-                           order.status === "shipped" ? t('parentStore.statusShipped') :
-                           order.status === "cancelled" ? t('parentStore.statusCancelled') : order.status}
-                        </Badge>
-                        <p className={`text-lg font-bold mt-1 ${isDark ? "text-orange-400" : "text-orange-600"}`}>
-                          {order.totalAmount} {t("parentStore.currency")}
-                        </p>
-                      </div>
-                    </div>
-                    {order.shippingAddress && (
-                      <div className={`text-sm flex items-center gap-1 ${isDark ? "text-gray-400" : "text-gray-500"}`}>
-                        <MapPin className="w-3.5 h-3.5" />
-                        {typeof order.shippingAddress === "string" 
-                          ? order.shippingAddress 
-                          : `${order.shippingAddress.city || ""} - ${order.shippingAddress.line1 || ""}`}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
-        </main>
-      )}
-
-      {/* Cart View (inline, not dialog) */}
-      {activeView === "cart" && (
-        <main className="max-w-2xl mx-auto px-4 py-6">
-          <h2 className={`text-xl font-bold mb-4 flex items-center gap-2 ${isDark ? "text-white" : "text-gray-800"}`}>
-            <ShoppingCart className="w-6 h-6 text-orange-500" />
-            {t("parentStore.shoppingCart")}
-          </h2>
-          {cart.length === 0 ? (
-            <Card className={isDark ? "bg-gray-800 border-gray-700" : ""}>
-              <CardContent className="text-center py-16">
-                <ShoppingCart className={`w-16 h-16 mx-auto mb-4 ${isDark ? "text-gray-600" : "text-gray-300"}`} />
-                <h3 className={`text-xl font-bold mb-2 ${isDark ? "text-gray-300" : "text-gray-600"}`}>{t("parentStore.cartEmpty")}</h3>
-                <p className={`mb-6 ${isDark ? "text-gray-500" : "text-gray-400"}`}>{t("parentStore.addProductsFromStore")}</p>
-                <Button onClick={() => setActiveView("store")} className="bg-orange-500 hover:bg-orange-600">
-                  {t("parentStore.browseStore")}
-                </Button>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="space-y-3">
-              {cart.map((item) => (
-                <Card key={item.product.id} className={isDark ? "bg-gray-800 border-gray-700" : ""}>
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-4">
-                      <div className={`w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 ${isDark ? "bg-gray-700" : "bg-gray-100"}`}>
-                        {item.product.image ? (
-                          <img src={item.product.image} alt={item.product.name} className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center">
-                            <Package className={`w-6 h-6 ${isDark ? "text-gray-500" : "text-gray-300"}`} />
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex-1">
-                        <h4 className={`font-bold ${isDark ? "text-white" : "text-gray-800"}`}>
-                          {item.product.nameAr || item.product.name}
-                        </h4>
-                        <p className={`text-sm ${isDark ? "text-orange-400" : "text-orange-600"} font-bold`}>
-                          {item.product.price} {t("parentStore.currency")}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => updateQuantity(item.product.id, item.quantity - 1)}
-                          className={`w-8 h-8 rounded-full flex items-center justify-center ${isDark ? "bg-gray-700 text-white" : "bg-gray-200"}`}
-                        >
-                          <Minus className="w-3 h-3" />
-                        </button>
-                        <span className={`font-bold w-6 text-center ${isDark ? "text-white" : ""}`}>{item.quantity}</span>
-                        <button
-                          onClick={() => updateQuantity(item.product.id, item.quantity + 1)}
-                          className={`w-8 h-8 rounded-full flex items-center justify-center ${isDark ? "bg-gray-700 text-white" : "bg-gray-200"}`}
-                        >
-                          <Plus className="w-3 h-3" />
-                        </button>
-                      </div>
-                      <button onClick={() => removeFromCart(item.product.id)} className="text-red-500 hover:text-red-700">
-                        <X className="w-5 h-5" />
-                      </button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-              <Card className={isDark ? "bg-gray-800 border-gray-700" : ""}>
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between mb-4">
-                    <span className={`font-bold text-lg ${isDark ? "text-white" : "text-gray-800"}`}>{t("parentStore.total")}</span>
-                    <span className="text-xl font-bold text-orange-600">{cartTotal.toFixed(2)} {t("parentStore.currency")}</span>
-                  </div>
-                  <Button
-                    className="w-full bg-orange-500 hover:bg-orange-600"
-                    onClick={() => {
-                      setBuyNowProduct(null);
-                      setShowCheckout(true);
-                    }}
-                    disabled={cart.length === 0}
-                  >
-                    <CreditCard className="w-4 h-4 ml-2" />
-                    {t("parentStore.completePurchase")}
-                  </Button>
-                </CardContent>
-              </Card>
-            </div>
-          )}
-        </main>
-      )}
-
-      {/* Store View */}
-      {activeView === "store" && (
       <>
       <div className={`${isDark ? "bg-gray-800 border-gray-700" : "bg-white border-b"} shadow-sm py-2`}>
         <div className="max-w-7xl mx-auto px-4">
@@ -760,6 +780,20 @@ export const ParentStore = (): JSX.Element => {
                 <span>{t("parentStore.support247")}</span>
               </div>
             </div>
+            <div className="sm:hidden grid grid-cols-2 gap-1.5 w-full">
+              <span className={`px-2.5 py-1.5 rounded-xl whitespace-nowrap inline-flex items-center justify-center gap-1.5 text-[11px] font-medium border ${isRTL ? "flex-row-reverse" : ""} ${isDark ? "bg-gray-700/80 text-gray-200 border-gray-600" : "bg-gray-100 text-gray-700 border-gray-200"}`}>
+                <Truck className="w-3.5 h-3.5 text-green-500" />
+                {t("parentStore.fastDelivery")}
+              </span>
+              <span className={`px-2.5 py-1.5 rounded-xl whitespace-nowrap inline-flex items-center justify-center gap-1.5 text-[11px] font-medium border ${isRTL ? "flex-row-reverse" : ""} ${isDark ? "bg-gray-700/80 text-gray-200 border-gray-600" : "bg-gray-100 text-gray-700 border-gray-200"}`}>
+                <Shield className="w-3.5 h-3.5 text-blue-500" />
+                {t("parentStore.qualityGuarantee")}
+              </span>
+              <span className={`col-span-2 px-2.5 py-1.5 rounded-xl whitespace-nowrap inline-flex items-center justify-center gap-1.5 text-[11px] font-medium border ${isRTL ? "flex-row-reverse" : ""} ${isDark ? "bg-gray-700/80 text-gray-200 border-gray-600" : "bg-gray-100 text-gray-700 border-gray-200"}`}>
+                <Clock className="w-3.5 h-3.5 text-orange-500" />
+                {t("parentStore.support247")}
+              </span>
+            </div>
             <div className="flex items-center gap-2 sm:gap-4 w-full sm:w-auto justify-between sm:justify-end">
               <Select value={sortBy} onValueChange={setSortBy}>
                 <SelectTrigger className="w-32 sm:w-40 h-8 text-xs" data-testid="select-sort">
@@ -776,14 +810,14 @@ export const ParentStore = (): JSX.Element => {
               <div className="flex items-center gap-1 border rounded-lg p-1">
                 <button
                   onClick={() => setViewMode("grid")}
-                  className={`p-1 rounded ${viewMode === "grid" ? "bg-orange-100 text-orange-600" : ""}`}
+                  className={`p-1 rounded transition-colors ${viewMode === "grid" ? "bg-orange-500 text-white" : isDark ? "text-gray-300 hover:bg-gray-700" : "hover:bg-gray-100"}`}
                   data-testid="button-view-grid"
                 >
                   <Grid3X3 className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => setViewMode("list")}
-                  className={`p-1 rounded ${viewMode === "list" ? "bg-orange-100 text-orange-600" : ""}`}
+                  className={`p-1 rounded transition-colors ${viewMode === "list" ? "bg-orange-500 text-white" : isDark ? "text-gray-300 hover:bg-gray-700" : "hover:bg-gray-100"}`}
                   data-testid="button-view-list"
                 >
                   <List className="w-4 h-4" />
@@ -795,7 +829,7 @@ export const ParentStore = (): JSX.Element => {
       </div>
 
       <main className="max-w-7xl mx-auto px-2 sm:px-4 py-4 sm:py-6">
-        {!selectedCategory && !searchQuery && featuredProducts.length > 0 && (
+        {selectedCategories.length === 0 && !searchQuery && featuredProducts.length > 0 && viewMode === "grid" && (
           <section className="mb-8">
             <div className="flex items-center justify-between mb-4">
               <h2 className={`text-xl font-bold flex items-center gap-2 ${isDark ? "text-white" : "text-gray-800"}`}>
@@ -803,11 +837,12 @@ export const ParentStore = (): JSX.Element => {
                 {t("parentStore.featuredProducts")}
               </h2>
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 sm:gap-4">
-              {featuredProducts.map((product: Product) => (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-1.5 max-[360px]:gap-1 sm:gap-4">
+              {featuredProducts.map((product: Product, index: number) => (
                 <Card 
                   key={product.id} 
-                  className="group cursor-pointer hover:shadow-xl transition-all duration-300 overflow-hidden border-0 bg-white dark:bg-gray-800"
+                  className="group h-full flex flex-col cursor-pointer hover:shadow-2xl hover:-translate-y-1.5 transition-all duration-300 overflow-hidden border bg-white dark:bg-gray-800 dark:border-gray-700 motion-reduce:animate-none"
+                  style={{ animation: `psFadeUp .35s ease-out both`, animationDelay: `${index * 45}ms` }}
                   onClick={() => {
                     setSelectedProduct(product);
                     setShowDetail(true);
@@ -815,17 +850,18 @@ export const ParentStore = (): JSX.Element => {
                   }}
                   data-testid={`card-featured-product-${product.id}`}
                 >
-                  <div className={`relative aspect-square overflow-hidden ${isDark ? "bg-gray-700" : "bg-gray-100"}`}>
+                  <div className={`relative aspect-[16/12] max-[360px]:aspect-[17/13] sm:aspect-square overflow-hidden ring-1 ring-black/5 ${isDark ? "bg-gray-700" : "bg-gray-100"}`}>
                     {(product.images && product.images.length > 1) ? (
                       <ProductImageCarousel
                         images={product.images}
                         mainImage={product.image}
                         alt={product.name}
+                        discountBadgeText={getDiscountBadgeText(product) || undefined}
                         className="w-full h-full"
                         compact
-                        hoverArrows
+                        hoverArrows={false}
                         autoSlide
-                        autoSlideInterval={2000}
+                        autoSlideInterval={5200}
                       />
                     ) : product.image ? (
                       <img src={product.image} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
@@ -834,13 +870,9 @@ export const ParentStore = (): JSX.Element => {
                         <Package className={`w-12 h-12 ${isDark ? "text-gray-500" : "text-gray-300"}`} />
                       </div>
                     )}
-                    {(product.discountPercent && product.discountPercent > 0) ? (
-                      <Badge className="absolute top-2 left-2 bg-red-500 text-white text-xs font-bold">
-                        -{product.discountPercent}%
-                      </Badge>
-                    ) : product.originalPrice && parseFloat(product.originalPrice) > parseFloat(product.price) && (
-                      <Badge className="absolute top-2 left-2 bg-red-500 text-white text-xs font-bold">
-                        -{Math.round((1 - parseFloat(product.price) / parseFloat(product.originalPrice)) * 100)}%
+                    {getDiscountBadgeText(product) && (
+                      <Badge className="absolute top-2 left-2 z-30 pointer-events-none bg-red-500 text-white text-xs font-bold shadow-sm">
+                        {getDiscountBadgeText(product)}
                       </Badge>
                     )}
                     {product.isLibraryProduct && (
@@ -849,32 +881,35 @@ export const ParentStore = (): JSX.Element => {
                       </Badge>
                     )}
                   </div>
-                  <CardContent className="p-3">
-                    <p className={`text-xs mb-1 ${isDark ? "text-gray-400" : "text-gray-500"}`}>{product.brand || "Classify"}</p>
-                    <h3 className={`font-medium text-sm line-clamp-2 mb-2 ${isDark ? "text-gray-200" : "text-gray-800"}`}>{product.nameAr || product.name}</h3>
-                    <div className="flex items-center gap-1 mb-2">
+                  <CardContent className="p-2 max-[360px]:p-1.5 sm:p-3.5 flex flex-col flex-1">
+                    <div className="flex items-center justify-between gap-2 mb-1.5 transition-all duration-200 max-md:opacity-100 md:max-h-0 md:opacity-0 md:overflow-hidden md:group-hover:max-h-10 md:group-hover:opacity-100">
+                      <p className={`text-[11px] px-2 py-0.5 rounded-full ${isDark ? "bg-gray-700 text-gray-300" : "bg-gray-100 text-gray-600"}`}>{product.brand || "Classify"}</p>
+                      <p className={`text-[11px] font-bold ${isDark ? "text-orange-300" : "text-orange-600"}`}>{product.pointsPrice} {t("parentStore.pointsSuffix")}</p>
+                    </div>
+                    <h3 className={`font-semibold text-[10px] max-[360px]:text-[9px] sm:text-sm line-clamp-1 sm:line-clamp-2 mb-1 ${isDark ? "text-gray-200" : "text-gray-800"}`}>{getLocalizedName(product)}</h3>
+                    <div className="flex items-center gap-1 mb-2.5 transition-all duration-200 max-md:opacity-100 md:max-h-0 md:opacity-0 md:overflow-hidden md:group-hover:max-h-8 md:group-hover:opacity-100">
                       {renderStars(product.rating)}
                       <span className="text-xs text-gray-400">({product.reviewCount || 0})</span>
                     </div>
-                    <div className="flex items-center justify-between">
+                    <div className="mt-auto flex items-end justify-between gap-1.5 max-[360px]:gap-1 pt-1 sm:pt-2">
                       <div>
-                        <p className={`font-bold ${isDark ? "text-orange-400" : "text-orange-600"}`}>{product.price} {t("parentStore.currency")}</p>
+                        <p className={`font-bold text-[11px] max-[360px]:text-[10px] sm:text-base ${isDark ? "text-orange-400" : "text-orange-600"}`}>{product.price} {t("parentStore.currency")}</p>
                         {product.originalPrice && (
                           <p className="text-xs text-gray-400 line-through">{product.originalPrice} {t("parentStore.currency")}</p>
                         )}
                       </div>
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-1 max-[360px]:gap-0.5">
                         <Button 
                           size="sm" 
-                          className="bg-orange-500 hover:bg-orange-600 h-8 w-8 p-0"
+                          className="bg-orange-500 hover:bg-orange-600 h-7 w-7 max-[360px]:h-6.5 max-[360px]:w-6.5 sm:h-8 sm:w-8 p-0 rounded-lg shadow-sm active:scale-95 transition-transform focus-visible:ring-2 focus-visible:ring-orange-300"
                           onClick={(e) => { e.stopPropagation(); addToCart(product); }}
                           data-testid={`button-add-cart-${product.id}`}
                         >
-                          <Plus className="w-4 h-4" />
+                          <Plus className="w-3.5 h-3.5 max-[360px]:w-3 max-[360px]:h-3" />
                         </Button>
                         <Button
                           size="sm"
-                          className="bg-emerald-600 hover:bg-emerald-700 h-8 px-2 text-xs"
+                          className="bg-emerald-600 hover:bg-emerald-700 h-7 max-[360px]:h-6.5 sm:h-8 px-1.5 max-[360px]:px-1 text-[10px] sm:text-xs rounded-lg shadow-sm active:scale-[0.98] transition-transform focus-visible:ring-2 focus-visible:ring-emerald-300"
                           onClick={(e) => { e.stopPropagation(); handleBuyNow(product); }}
                           data-testid={`button-buy-now-${product.id}`}
                         >
@@ -892,51 +927,48 @@ export const ParentStore = (): JSX.Element => {
         <section>
           <div className="flex items-center justify-between mb-4">
             <h2 className={`text-xl font-bold ${isDark ? "text-white" : "text-gray-800"}`}>
-              {selectedCategory 
-                ? (() => {
-                    const cat = categories.find((c: Category) => c.id === selectedCategory);
-                    if (!cat) return t('parentStore.products');
-                    return i18n.language === "ar" ? cat.nameAr : i18n.language === "pt" && cat.namePt ? cat.namePt : cat.name;
-                  })()
+              {selectedCategories.length > 0
+                ? t("parentStore.filteredByCategories", "تمت التصفية حسب الأقسام")
                 : searchQuery ? `${t('parentStore.searchResults')}: "${searchQuery}"` : t('parentStore.allProducts')
               }
             </h2>
-            <p className={`text-sm ${isDark ? "text-gray-400" : "text-gray-500"}`}>{products.length} {t("parentStore.productCount")}</p>
+            <p className={`text-sm ${isDark ? "text-gray-400" : "text-gray-500"}`}>{filteredProducts.length} {t("parentStore.productCount")}</p>
           </div>
 
           {loadingProducts ? (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
               {[...Array(10)].map((_, i) => (
-                <Card key={i} className="animate-pulse">
-                  <div className="aspect-square bg-gray-200" />
+                <Card key={i} className={`animate-pulse border-0 ${isDark ? "bg-gray-800" : "bg-white"}`}>
+                  <div className={`aspect-square ${isDark ? "bg-gray-700" : "bg-gray-200"}`} />
                   <CardContent className="p-3 space-y-2">
-                    <div className="h-4 bg-gray-200 rounded w-1/2" />
-                    <div className="h-4 bg-gray-200 rounded" />
-                    <div className="h-4 bg-gray-200 rounded w-3/4" />
+                    <div className={`h-4 rounded w-1/2 ${isDark ? "bg-gray-700" : "bg-gray-200"}`} />
+                    <div className={`h-4 rounded ${isDark ? "bg-gray-700" : "bg-gray-200"}`} />
+                    <div className={`h-4 rounded w-3/4 ${isDark ? "bg-gray-700" : "bg-gray-200"}`} />
                   </CardContent>
                 </Card>
               ))}
             </div>
-          ) : products.length === 0 ? (
-            <div className="text-center py-16">
-              <Package className="w-16 h-16 mx-auto text-gray-300 mb-4" />
-              <h3 className="text-lg font-medium text-gray-600 mb-2">{t("parentStore.noProducts")}</h3>
-              <p className="text-gray-400">{t("parentStore.tryDifferentSearch")}</p>
+          ) : filteredProducts.length === 0 ? (
+            <div className={`text-center py-16 rounded-2xl border ${isDark ? "border-gray-700 bg-gray-800/70" : "border-gray-200 bg-white"}`}>
+              <Package className={`w-16 h-16 mx-auto mb-4 ${isDark ? "text-gray-600" : "text-gray-300"}`} />
+              <h3 className={`text-lg font-medium mb-2 ${isDark ? "text-gray-200" : "text-gray-600"}`}>{t("parentStore.noProducts")}</h3>
+              <p className={isDark ? "text-gray-400" : "text-gray-400"}>{t("parentStore.tryDifferentSearch")}</p>
             </div>
           ) : (
             <div className={viewMode === "grid" 
-              ? "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4"
+              ? "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 max-[360px]:gap-1.5 sm:gap-4"
               : "space-y-4"
             }>
-              {products.map((product: Product) => (
+              {filteredProducts.map((product: Product, index: number) => (
                 viewMode === "grid" ? (
                   <Card 
                     key={product.id} 
-                    className={`group cursor-pointer hover:shadow-xl transition-all duration-300 overflow-hidden border-0 ${isDark ? "bg-gray-800" : "bg-white"}`}
+                    className={`group h-full flex flex-col cursor-pointer hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 overflow-hidden border motion-reduce:animate-none ${isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-100"}`}
+                    style={{ animation: `psFadeUp .38s ease-out both`, animationDelay: `${(index % 10) * 40}ms` }}
                     data-testid={`card-product-${product.id}`}
                   >
                     <div 
-                      className={`relative aspect-square overflow-hidden ${isDark ? "bg-gray-700" : "bg-gray-100"}`}
+                      className={`relative aspect-[16/12] max-[360px]:aspect-[17/13] sm:aspect-square overflow-hidden ring-1 ring-black/5 ${isDark ? "bg-gray-700" : "bg-gray-100"}`}
                       onClick={() => {
                         setSelectedProduct(product);
                         setShowDetail(true);
@@ -948,11 +980,12 @@ export const ParentStore = (): JSX.Element => {
                           images={product.images}
                           mainImage={product.image}
                           alt={product.name}
+                          discountBadgeText={getDiscountBadgeText(product) || undefined}
                           className="w-full h-full"
                           compact
-                          hoverArrows
+                          hoverArrows={false}
                           autoSlide
-                          autoSlideInterval={2000}
+                          autoSlideInterval={5200}
                         />
                       ) : product.image ? (
                         <img src={product.image} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
@@ -961,13 +994,9 @@ export const ParentStore = (): JSX.Element => {
                           <Package className="w-12 h-12 text-gray-300" />
                         </div>
                       )}
-                      {(product.discountPercent && product.discountPercent > 0) ? (
-                        <Badge className="absolute top-2 left-2 bg-red-500 text-white text-xs font-bold">
-                          -{product.discountPercent}%
-                        </Badge>
-                      ) : product.originalPrice && parseFloat(product.originalPrice) > parseFloat(product.price) && (
-                        <Badge className="absolute top-2 left-2 bg-red-500 text-white text-xs font-bold">
-                          -{Math.round((1 - parseFloat(product.price) / parseFloat(product.originalPrice)) * 100)}%
+                      {getDiscountBadgeText(product) && (
+                        <Badge className="absolute top-2 left-2 z-30 pointer-events-none bg-red-500 text-white text-xs font-bold shadow-sm">
+                          {getDiscountBadgeText(product)}
                         </Badge>
                       )}
                       {product.isLibraryProduct && (
@@ -976,39 +1005,46 @@ export const ParentStore = (): JSX.Element => {
                         </Badge>
                       )}
                       <button 
-                        className="absolute top-2 right-2 p-1.5 bg-white/80 dark:bg-gray-700/80 rounded-full hover:bg-white dark:hover:bg-gray-700 transition-colors opacity-0 group-hover:opacity-100"
+                        className="absolute top-2 right-2 p-1.5 bg-white/85 dark:bg-gray-700/85 rounded-full hover:bg-white dark:hover:bg-gray-700 transition-colors opacity-0 group-hover:opacity-100"
                         onClick={(e) => e.stopPropagation()}
                       >
                         <Heart className="w-4 h-4 text-gray-400 hover:text-red-500" />
                       </button>
                     </div>
-                    <CardContent className="p-3">
-                      <p className={`text-xs mb-1 ${isDark ? "text-gray-400" : "text-gray-500"}`}>{product.brand || "Classify"}</p>
-                      <h3 className={`font-medium text-xs sm:text-sm line-clamp-2 mb-2 min-h-[2rem] sm:min-h-[2.5rem] ${isDark ? "text-gray-200" : "text-gray-800"}`}>{product.nameAr || product.name}</h3>
-                      <div className="flex items-center gap-1 mb-2">
+                    <CardContent className="p-2 max-[360px]:p-1.5 sm:p-3.5 flex flex-col flex-1">
+                      <div className="flex items-center justify-between gap-2 mb-1.5 transition-all duration-200 max-md:opacity-100 md:max-h-0 md:opacity-0 md:overflow-hidden md:group-hover:max-h-10 md:group-hover:opacity-100">
+                        <p className={`text-[11px] px-2 py-0.5 rounded-full ${isDark ? "bg-gray-700 text-gray-300" : "bg-gray-100 text-gray-600"}`}>{product.brand || "Classify"}</p>
+                        {product.stock > 0 ? (
+                          <p className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400">{product.stock}</p>
+                        ) : (
+                          <p className="text-[11px] font-bold text-rose-600 dark:text-rose-400">0</p>
+                        )}
+                      </div>
+                      <h3 className={`font-semibold text-[10px] max-[360px]:text-[9px] sm:text-sm line-clamp-1 sm:line-clamp-2 mb-1 min-h-[1rem] sm:min-h-[2.5rem] ${isDark ? "text-gray-200" : "text-gray-800"}`}>{getLocalizedName(product)}</h3>
+                      <div className="flex items-center gap-1 mb-2.5 transition-all duration-200 max-md:opacity-100 md:max-h-0 md:opacity-0 md:overflow-hidden md:group-hover:max-h-8 md:group-hover:opacity-100">
                         {renderStars(product.rating)}
                         <span className="text-xs text-gray-400">({product.reviewCount || 0})</span>
                       </div>
-                      <div className="flex flex-col gap-2">
+                      <div className="mt-auto flex flex-col gap-1 max-[360px]:gap-0.5 sm:gap-2 pt-1 sm:pt-2">
                         <div className="flex items-center justify-between">
-                          <p className={`font-bold text-sm sm:text-lg ${isDark ? "text-orange-400" : "text-orange-600"}`}>{product.price} {t("parentStore.currency")}</p>
+                          <p className={`font-bold text-[11px] max-[360px]:text-[10px] sm:text-lg ${isDark ? "text-orange-400" : "text-orange-600"}`}>{product.price} {t("parentStore.currency")}</p>
                           {product.originalPrice && (
                             <p className="text-xs text-gray-400 line-through">{product.originalPrice} {t("parentStore.currency")}</p>
                           )}
                         </div>
-                        <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-1 max-[360px]:gap-0.5">
                           <Button 
                             size="sm" 
-                            className="bg-orange-500 hover:bg-orange-600 flex-1 text-xs sm:text-sm h-8 sm:h-9 px-2 sm:px-3"
+                            className="bg-orange-500 hover:bg-orange-600 flex-1 text-[10px] max-[360px]:text-[9px] sm:text-sm h-7 max-[360px]:h-6.5 sm:h-9 px-1 max-[360px]:px-0.5 sm:px-3 rounded-lg shadow-sm active:scale-[0.98] transition-transform focus-visible:ring-2 focus-visible:ring-orange-300"
                             onClick={(e) => { e.stopPropagation(); addToCart(product); }}
                             data-testid={`button-add-cart-${product.id}`}
                           >
-                            <ShoppingCart className="w-3 h-3 sm:w-4 sm:h-4 ml-1" />
+                            <ShoppingCart className="w-3 h-3 max-[360px]:w-2.5 max-[360px]:h-2.5 sm:w-4 sm:h-4 ml-1 max-[360px]:ml-0.5" />
                             {t("parentStore.addToCart")}
                           </Button>
                           <Button
                             size="sm"
-                            className="bg-emerald-600 hover:bg-emerald-700 flex-1 text-xs sm:text-sm h-8 sm:h-9 px-2 sm:px-3"
+                            className="bg-emerald-600 hover:bg-emerald-700 flex-1 text-[10px] max-[360px]:text-[9px] sm:text-sm h-7 max-[360px]:h-6.5 sm:h-9 px-1 max-[360px]:px-0.5 sm:px-3 rounded-lg shadow-sm active:scale-[0.98] transition-transform focus-visible:ring-2 focus-visible:ring-emerald-300"
                             onClick={(e) => { e.stopPropagation(); handleBuyNow(product); }}
                             data-testid={`button-buy-now-${product.id}`}
                           >
@@ -1016,7 +1052,7 @@ export const ParentStore = (): JSX.Element => {
                           </Button>
                         </div>
                       </div>
-                      <div className={`mt-2 pt-2 border-t ${isDark ? "border-gray-700" : ""}`}>
+                      <div className={`mt-1.5 sm:mt-2 pt-1.5 sm:pt-2 border-t ${isDark ? "border-gray-700" : ""}`}>
                         <p className={`text-xs flex items-center gap-1 ${isDark ? "text-gray-400" : "text-gray-500"}`}>
                           <Star className="w-3 h-3 text-yellow-500" />
                           {t("parentStore.needsPoints")} <span className="font-bold text-orange-600">{product.pointsPrice}</span> {t("parentStore.pointsSuffix")}
@@ -1027,7 +1063,8 @@ export const ParentStore = (): JSX.Element => {
                 ) : (
                   <Card 
                     key={product.id} 
-                    className={`flex overflow-hidden hover:shadow-lg transition-shadow cursor-pointer ${isDark ? "bg-gray-800 border-gray-700" : ""}`}
+                    className={`group flex flex-col sm:flex-row overflow-hidden hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 cursor-pointer motion-reduce:animate-none ${isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"}`}
+                    style={{ animation: `psFadeUp .34s ease-out both`, animationDelay: `${(index % 8) * 35}ms` }}
                     onClick={() => {
                       setSelectedProduct(product);
                       setShowDetail(true);
@@ -1035,17 +1072,18 @@ export const ParentStore = (): JSX.Element => {
                     }}
                     data-testid={`card-product-list-${product.id}`}
                   >
-                    <div className={`relative w-28 h-28 sm:w-40 sm:h-40 flex-shrink-0 ${isDark ? "bg-gray-700" : "bg-gray-100"}`}>
+                    <div className={`relative w-full h-28 max-[320px]:h-22 sm:w-40 sm:h-40 flex-shrink-0 ${isDark ? "bg-gray-700" : "bg-gray-100"}`}>
                       {(product.images && product.images.length > 1) ? (
                         <ProductImageCarousel
                           images={product.images}
                           mainImage={product.image}
                           alt={product.name}
+                          discountBadgeText={getDiscountBadgeText(product) || undefined}
                           className="w-full h-full"
                           compact
-                          hoverArrows
+                          hoverArrows={false}
                           autoSlide
-                          autoSlideInterval={2000}
+                          autoSlideInterval={5200}
                         />
                       ) : product.image ? (
                         <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
@@ -1054,13 +1092,9 @@ export const ParentStore = (): JSX.Element => {
                           <Package className="w-12 h-12 text-gray-300" />
                         </div>
                       )}
-                      {(product.discountPercent && product.discountPercent > 0) ? (
-                        <Badge className="absolute top-2 left-2 bg-red-500 text-white text-xs font-bold">
-                          -{product.discountPercent}%
-                        </Badge>
-                      ) : product.originalPrice && parseFloat(product.originalPrice) > parseFloat(product.price) && (
-                        <Badge className="absolute top-2 left-2 bg-red-500 text-white text-xs font-bold">
-                          -{Math.round((1 - parseFloat(product.price) / parseFloat(product.originalPrice)) * 100)}%
+                      {getDiscountBadgeText(product) && (
+                        <Badge className="absolute top-2 left-2 z-30 pointer-events-none bg-red-500 text-white text-xs font-bold shadow-sm">
+                          {getDiscountBadgeText(product)}
                         </Badge>
                       )}
                       {product.isLibraryProduct && (
@@ -1069,36 +1103,42 @@ export const ParentStore = (): JSX.Element => {
                         </Badge>
                       )}
                     </div>
-                    <CardContent className="flex-1 p-4 flex flex-col justify-between">
+                    <CardContent className="flex-1 p-2.5 max-[320px]:p-2 sm:p-4 flex flex-col justify-between">
                       <div>
-                        <p className={`text-xs mb-1 ${isDark ? "text-gray-400" : "text-gray-500"}`}>{product.brand || "Classify"}</p>
-                        <h3 className={`font-medium mb-2 ${isDark ? "text-gray-200" : "text-gray-800"}`}>{product.nameAr || product.name}</h3>
-                        <p className={`text-sm line-clamp-2 ${isDark ? "text-gray-400" : "text-gray-500"}`}>{product.description}</p>
-                        <div className="flex items-center gap-2 mt-2">
+                        <div className="flex items-center justify-between gap-1.5 max-[320px]:gap-1 mb-1 max-[320px]:mb-0.5">
+                          <p className={`text-[11px] max-[320px]:text-[10px] px-1.5 max-[320px]:px-1 py-0.5 rounded-full ${isDark ? "bg-gray-700 text-gray-300" : "bg-gray-100 text-gray-600"}`}>{product.brand || "Classify"}</p>
+                          <p className={`text-[11px] max-[320px]:text-[10px] font-bold ${isDark ? "text-orange-300" : "text-orange-600"}`}>{product.pointsPrice} {t("parentStore.pointsSuffix")}</p>
+                        </div>
+                        <h3 className={`font-semibold text-[13px] max-[320px]:text-xs mb-1.5 max-[320px]:mb-1 ${isDark ? "text-gray-200" : "text-gray-800"}`}>{getLocalizedName(product)}</h3>
+                        <p className={`text-xs max-[320px]:text-[10px] line-clamp-2 max-[320px]:line-clamp-1 transition-all duration-200 max-md:opacity-100 md:max-h-14 md:opacity-0 md:overflow-hidden md:group-hover:max-h-14 md:group-hover:opacity-100 ${isDark ? "text-gray-400" : "text-gray-500"}`}>{getLocalizedDescription(product)}</p>
+                        <div className="flex items-center gap-1.5 max-[320px]:gap-1 mt-1.5 max-[320px]:mt-1 transition-all duration-200 max-md:opacity-100 md:max-h-8 md:opacity-0 md:overflow-hidden md:group-hover:max-h-8 md:group-hover:opacity-100">
                           {renderStars(product.rating)}
-                          <span className="text-xs text-gray-400">({product.reviewCount || 0} {t("parentStore.reviews")})</span>
+                          <span className="text-[11px] max-[320px]:text-[10px] text-gray-400">({product.reviewCount || 0} {t("parentStore.reviews")})</span>
                         </div>
                       </div>
-                      <div className="flex items-center justify-between mt-4 gap-2">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between mt-2 max-[320px]:mt-1.5 gap-1.5 max-[320px]:gap-1">
                         <div>
-                          <p className={`text-xl font-bold ${isDark ? "text-orange-400" : "text-orange-600"}`}>{product.price} {t("parentStore.currency")}</p>
-                          <p className={`text-xs ${isDark ? "text-gray-400" : "text-gray-500"}`}>{t("parentStore.requiredPointsLabel")} {product.pointsPrice}</p>
+                          <p className={`text-lg max-[320px]:text-base font-bold ${isDark ? "text-orange-400" : "text-orange-600"}`}>{product.price} {t("parentStore.currency")}</p>
+                          <p className={`text-[11px] max-[320px]:text-[10px] ${isDark ? "text-gray-400" : "text-gray-500"}`}>{t("parentStore.requiredPointsLabel")} {product.pointsPrice}</p>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="grid grid-cols-2 gap-1.5 max-[320px]:gap-1 sm:flex sm:items-center sm:gap-2">
                           <Button 
-                            className="bg-orange-500 hover:bg-orange-600"
+                            className="bg-orange-500 hover:bg-orange-600 rounded-lg shadow-sm active:scale-[0.98] transition-transform focus-visible:ring-2 focus-visible:ring-orange-300 text-[11px] max-[320px]:text-[9px] sm:text-sm h-8 max-[320px]:h-7 px-2 max-[320px]:px-1"
                             onClick={(e) => { e.stopPropagation(); addToCart(product); }}
                             data-testid={`button-add-cart-list-${product.id}`}
+                            aria-label={t("parentStore.addToCartFull")}
                           >
-                            <ShoppingCart className="w-4 h-4 ml-2" />
-                            {t("parentStore.addToCartFull")}
+                            <ShoppingCart className="w-3.5 h-3.5 max-[320px]:w-2.5 max-[320px]:h-2.5 ml-1.5 max-[320px]:ml-0.5" />
+                            <span className="max-[320px]:hidden">{t("parentStore.addToCartFull")}</span>
                           </Button>
                           <Button
-                            className="bg-emerald-600 hover:bg-emerald-700"
+                            className="bg-emerald-600 hover:bg-emerald-700 rounded-lg shadow-sm active:scale-[0.98] transition-transform focus-visible:ring-2 focus-visible:ring-emerald-300 text-[11px] max-[320px]:text-[9px] sm:text-sm h-8 max-[320px]:h-7 px-2 max-[320px]:px-1"
                             onClick={(e) => { e.stopPropagation(); handleBuyNow(product); }}
                             data-testid={`button-buy-now-list-${product.id}`}
+                            aria-label={t("parentStore.buyNow")}
                           >
-                            {t("parentStore.buyNow")}
+                            <Check className="hidden max-[320px]:inline-block w-3 h-3" />
+                            <span className="max-[320px]:hidden">{t("parentStore.buyNow")}</span>
                           </Button>
                         </div>
                       </div>
@@ -1110,19 +1150,69 @@ export const ParentStore = (): JSX.Element => {
           )}
         </section>
       </main>
-      </>
+
+      {cartItemsCount > 0 && (
+        <div className="sm:hidden fixed bottom-3 left-3 right-3 z-40">
+          <div className={`rounded-2xl border shadow-xl px-3 py-2.5 backdrop-blur-sm ${isDark ? "bg-gray-900/95 border-gray-700" : "bg-white/95 border-gray-200"}`}>
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className={`text-xs ${isDark ? "text-gray-400" : "text-gray-500"}`}>{t("parentStore.cartTab")}</p>
+                <p className={`text-sm font-bold ${isDark ? "text-white" : "text-gray-800"}`}>
+                  {cartItemsCount} • {cartTotal.toFixed(2)} {t("parentStore.currency")}
+                </p>
+              </div>
+              <Button
+                className="h-9 rounded-xl bg-orange-500 hover:bg-orange-600 px-4"
+                onClick={() => {
+                  setCartDialogSection("cart");
+                  setShowCart(true);
+                }}
+                data-testid="button-mobile-go-cart"
+              >
+                <ShoppingCart className="w-4 h-4 ml-1" />
+                {t("parentStore.completePurchase")}
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
+      </>
 
       <Dialog open={showCart} onOpenChange={setShowCart}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogContent className={`max-w-lg max-h-[90vh] overflow-y-auto rounded-3xl border shadow-2xl ${isDark ? "bg-gray-900 border-gray-700" : "bg-white border-gray-200"}`}>
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <ShoppingCart className="w-5 h-5" />
-              {t("parentStore.cartTitle", { count: cart.length })}
+            <DialogTitle className="space-y-3">
+              <div className="flex items-center gap-2">
+                <ShoppingCart className="w-5 h-5" />
+                {t("parentStore.cartTitle", { count: cart.length })}
+              </div>
+              <div className="grid grid-cols-3 gap-1 rounded-xl p-1 border border-gray-200 dark:border-gray-700">
+                <button
+                  onClick={() => setCartDialogSection("cart")}
+                  className={`px-2 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 ${cartDialogSection === "cart" ? "bg-orange-500 text-white" : "hover:bg-gray-100 dark:hover:bg-gray-800"}`}
+                >
+                  <ShoppingCart className="w-3.5 h-3.5" />
+                  {t("parentStore.cartTab")}
+                </button>
+                <button
+                  onClick={() => setCartDialogSection("orders")}
+                  className={`px-2 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 ${cartDialogSection === "orders" ? "bg-orange-500 text-white" : "hover:bg-gray-100 dark:hover:bg-gray-800"}`}
+                >
+                  <Clock className="w-3.5 h-3.5" />
+                  {t("parentStore.myOrdersTab")}
+                </button>
+                <button
+                  onClick={() => setCartDialogSection("inventory")}
+                  className={`px-2 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 ${cartDialogSection === "inventory" ? "bg-orange-500 text-white" : "hover:bg-gray-100 dark:hover:bg-gray-800"}`}
+                >
+                  <Boxes className="w-3.5 h-3.5" />
+                  {t("parentStore.myInventory")}
+                </button>
+              </div>
             </DialogTitle>
           </DialogHeader>
-          
-          {cart.length === 0 ? (
+
+          {cartDialogSection === "cart" && (cart.length === 0 ? (
             <div className="text-center py-8">
               <ShoppingCart className="w-16 h-16 mx-auto text-gray-300 mb-4" />
               <p className="text-gray-500">{t("parentStore.cartEmpty")}</p>
@@ -1131,7 +1221,7 @@ export const ParentStore = (): JSX.Element => {
             <>
               <div className="space-y-4">
                 {cart.map(item => (
-                  <div key={item.product.id} className="flex items-center gap-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                  <div key={item.product.id} className={`flex items-center gap-4 p-3 rounded-xl border ${isDark ? "bg-gray-800 border-gray-700" : "bg-gray-50 border-gray-100"}`}>
                     <div className="w-16 h-16 bg-gray-200 rounded-lg flex-shrink-0 overflow-hidden">
                       {item.product.image ? (
                         <img src={item.product.image} alt={item.product.name} className="w-full h-full object-cover" />
@@ -1142,7 +1232,7 @@ export const ParentStore = (): JSX.Element => {
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h4 className="font-medium text-sm truncate">{item.product.nameAr || item.product.name}</h4>
+                      <h4 className="font-medium text-sm truncate">{getLocalizedName(item.product)}</h4>
                       <p className="text-orange-600 font-bold">{item.product.price} {t("parentStore.currency")}</p>
                     </div>
                     <div className="flex items-center gap-2">
@@ -1176,13 +1266,13 @@ export const ParentStore = (): JSX.Element => {
                 ))}
               </div>
 
-              <div className="border-t pt-4 mt-4 space-y-3">
+              <div className={`border-t pt-4 mt-4 space-y-3 ${isDark ? "border-gray-700" : "border-gray-200"}`}>
                 <div className="flex justify-between text-lg font-bold">
                   <span>{t("parentStore.totalLabel")}</span>
                   <span className="text-orange-600">{cartTotal.toFixed(2)} {t("parentStore.currency")}</span>
                 </div>
                 <Button 
-                  className="w-full bg-orange-500 hover:bg-orange-600"
+                  className="w-full h-11 rounded-xl bg-orange-500 hover:bg-orange-600"
                   onClick={() => {
                     setShowCart(false);
                     setBuyNowProduct(null);
@@ -1199,6 +1289,139 @@ export const ParentStore = (): JSX.Element => {
                 </Button>
               </div>
             </>
+          ))}
+
+          {cartDialogSection === "orders" && (
+            <div className="space-y-3">
+              <div className="grid grid-cols-3 gap-2">
+                <div className={`rounded-lg border p-2 text-center ${isDark ? "bg-gray-800 border-gray-700" : "bg-gray-50 border-gray-200"}`}>
+                  <p className="text-[11px] text-gray-500">{t("parentStore.myOrdersTab")}</p>
+                  <p className="text-sm font-bold">{ordersList.length}</p>
+                </div>
+                <div className={`rounded-lg border p-2 text-center ${isDark ? "bg-gray-800 border-gray-700" : "bg-gray-50 border-gray-200"}`}>
+                  <p className="text-[11px] text-gray-500">{t("parentStore.statusPending")}</p>
+                  <p className="text-sm font-bold text-amber-600">{ordersPendingCount}</p>
+                </div>
+                <div className={`rounded-lg border p-2 text-center ${isDark ? "bg-gray-800 border-gray-700" : "bg-gray-50 border-gray-200"}`}>
+                  <p className="text-[11px] text-gray-500">{t("parentStore.statusCompleted")}</p>
+                  <p className="text-sm font-bold text-emerald-600">{ordersCompletedCount}</p>
+                </div>
+              </div>
+
+              {loadingOrders ? (
+                <div className="space-y-2">
+                  {Array.from({ length: 3 }).map((_, idx) => (
+                    <div key={`dialog-orders-skeleton-${idx}`} className={`rounded-xl border p-3 animate-pulse ${isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"}`}>
+                      <div className={`h-3 w-32 rounded mb-2 ${isDark ? "bg-gray-700" : "bg-gray-200"}`} />
+                      <div className={`h-3 w-24 rounded ${isDark ? "bg-gray-700" : "bg-gray-200"}`} />
+                    </div>
+                  ))}
+                </div>
+              ) : ordersList.length === 0 ? (
+                <div className="text-center py-8">
+                  <Package className="w-12 h-12 mx-auto text-gray-300 mb-3" />
+                  <p className="text-gray-500">{t("parentStore.noOrdersYet")}</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {ordersList.slice(0, 8).map((order: any) => (
+                    <Card key={`dialog-order-${order.id}`} className={`overflow-hidden border ${getOrderStatusTone(order.status).card} ${isDark ? "bg-gray-800" : "bg-white"}`}>
+                      <CardContent className="p-3">
+                        <div className="flex items-center justify-between gap-2">
+                          <div>
+                            <p className="text-sm font-bold">{t("parentStore.orderNumber")}{order.id?.slice(0, 8)}</p>
+                            <p className="text-xs text-gray-500">{order.createdAt ? new Date(order.createdAt).toLocaleDateString(getDateLocale()) : ""}</p>
+                          </div>
+                          <div className="text-left">
+                            <Badge className={getOrderStatusTone(order.status).badge}>
+                              {order.status === "completed" || order.status === "delivered" ? t('parentStore.statusCompleted') :
+                               order.status === "pending" ? t('parentStore.statusPending') :
+                               order.status === "processing" ? t('parentStore.statusProcessing') :
+                               order.status === "shipped" ? t('parentStore.statusShipped') :
+                               order.status === "cancelled" ? t('parentStore.statusCancelled') : order.status}
+                            </Badge>
+                            <p className="text-sm font-bold text-orange-600 mt-1">{order.totalAmount} {t("parentStore.currency")}</p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {cartDialogSection === "inventory" && (
+            <div className="space-y-3">
+              <div className="rounded-lg border p-3 text-sm flex items-center justify-between bg-gray-50 dark:bg-gray-800 dark:border-gray-700">
+                <span>{t("parentStore.myInventory")}</span>
+                <span className="font-bold">{inventoryList.length}</span>
+              </div>
+
+              {inventoryList.length === 0 ? (
+                <div className="text-center py-8">
+                  <Boxes className="w-12 h-12 mx-auto text-gray-300 mb-3" />
+                  <p className="text-gray-500">{t("parentStore.noProducts")}</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {inventoryList.slice(0, 12).map((item: any, idx: number) => {
+                    const inventoryProduct = extractInventoryProduct(item);
+                    const title = item?.product?.nameAr || item?.product?.name || item?.title || item?.name || t("parentStore.product", "منتج");
+                    const image = item?.product?.image || item?.product?.imageUrl || item?.image || "";
+                    const points = item?.requiredPoints ?? item?.points ?? item?.product?.pointsPrice ?? 0;
+                    return (
+                      <Card key={`dialog-inventory-${item.id || idx}`} className={`border ${isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"}`}>
+                        <CardContent className="p-3 space-y-2.5">
+                          <div className="flex items-center gap-3">
+                          <div className={`w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 ${isDark ? "bg-gray-700" : "bg-gray-100"}`}>
+                            {image ? <img src={image} alt={title} className="w-full h-full object-cover" /> : <Package className="w-5 h-5 m-3.5 text-gray-400" />}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold truncate">{title}</p>
+                            <p className="text-xs text-gray-500">{points} {t("parentStore.pointsSuffix")}</p>
+                          </div>
+                          </div>
+                          {inventoryProduct && (
+                            <div className="grid grid-cols-2 gap-2">
+                              <Button
+                                variant="outline"
+                                className="h-8 rounded-lg text-xs"
+                                onClick={() => {
+                                  setSelectedProduct(inventoryProduct);
+                                  setRequiredPoints(String(inventoryProduct.pointsPrice || 0));
+                                  setShowCart(false);
+                                  setShowDetail(true);
+                                }}
+                              >
+                                {t("productDetail.title")}
+                              </Button>
+                              <Button
+                                className="h-8 rounded-lg text-xs bg-orange-500 hover:bg-orange-600"
+                                onClick={() => {
+                                  if (!token) {
+                                    setShowCart(false);
+                                    redirectToRequiredRegistration();
+                                    return;
+                                  }
+                                  setSelectedProduct(inventoryProduct);
+                                  setRequiredPoints(String(inventoryProduct.pointsPrice || 0));
+                                  setShowCart(false);
+                                  setShowAssign(true);
+                                }}
+                              >
+                                <Gift className="w-3.5 h-3.5 ml-1" />
+                                {t("productDetail.assignProductAsGift")}
+                              </Button>
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           )}
         </DialogContent>
       </Dialog>
@@ -1212,7 +1435,7 @@ export const ParentStore = (): JSX.Element => {
           }
         }}
       >
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className={`max-w-2xl max-h-[90vh] overflow-y-auto rounded-3xl border shadow-2xl ${isDark ? "bg-gray-900 border-gray-700" : "bg-white border-gray-200"}`}>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <CreditCard className="w-5 h-5" />
@@ -1231,30 +1454,34 @@ export const ParentStore = (): JSX.Element => {
                   placeholder={t('parentStore.fullName')}
                   value={shippingAddress.name}
                   onChange={(e) => setShippingAddress(prev => ({ ...prev, name: e.target.value }))}
+                  className="rounded-xl"
                   data-testid="input-shipping-name"
                 />
                 <Input
                   placeholder={t('parentStore.city')}
                   value={shippingAddress.city}
                   onChange={(e) => setShippingAddress(prev => ({ ...prev, city: e.target.value }))}
+                  className="rounded-xl"
                   data-testid="input-shipping-city"
                 />
                 <Input
                   placeholder={t('parentStore.detailedAddress')}
                   value={shippingAddress.line1}
                   onChange={(e) => setShippingAddress(prev => ({ ...prev, line1: e.target.value }))}
-                  className="sm:col-span-2"
+                  className="sm:col-span-2 rounded-xl"
                   data-testid="input-shipping-address"
                 />
                 <Input
                   placeholder={t('parentStore.areaDistrict')}
                   value={shippingAddress.state}
                   onChange={(e) => setShippingAddress(prev => ({ ...prev, state: e.target.value }))}
+                  className="rounded-xl"
                 />
                 <Input
                   placeholder={t('parentStore.postalCode')}
                   value={shippingAddress.postalCode}
                   onChange={(e) => setShippingAddress(prev => ({ ...prev, postalCode: e.target.value }))}
+                  className="rounded-xl"
                 />
               </div>
               {suggestedShippingProvider && (
@@ -1287,7 +1514,7 @@ export const ParentStore = (): JSX.Element => {
                     <button
                       key={method.id}
                       onClick={() => setSelectedPaymentMethod(method.id)}
-                      className={`w-full p-3 border rounded-lg text-right flex items-center gap-3 transition-colors ${
+                      className={`w-full p-3 border rounded-xl text-right flex items-center gap-3 transition-colors ${
                         selectedPaymentMethod === method.id ? "border-orange-500 bg-orange-50 dark:bg-orange-900/20" : "hover:bg-gray-50 dark:hover:bg-gray-800"
                       }`}
                     >
@@ -1305,7 +1532,7 @@ export const ParentStore = (): JSX.Element => {
                 
                 <button
                   onClick={() => setSelectedPaymentMethod("wallet")}
-                  className={`w-full p-3 border rounded-lg text-right flex items-center gap-3 transition-colors ${
+                  className={`w-full p-3 border rounded-xl text-right flex items-center gap-3 transition-colors ${
                     selectedPaymentMethod === "wallet" ? "border-orange-500 bg-orange-50 dark:bg-orange-900/20" : "hover:bg-gray-50 dark:hover:bg-gray-800"
                   }`}
                 >
@@ -1321,12 +1548,12 @@ export const ParentStore = (): JSX.Element => {
               </div>
             </div>
 
-            <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
+            <div className={`p-4 rounded-2xl border ${isDark ? "bg-gray-800 border-gray-700" : "bg-gray-50 border-gray-200"}`}>
               <h3 className="font-bold mb-3">{t("parentStore.orderSummary")}</h3>
               <div className="space-y-2 text-sm">
                 {checkoutItems.map(item => (
                   <div key={item.product.id} className="flex justify-between">
-                    <span>{item.product.nameAr || item.product.name} x{item.quantity}</span>
+                    <span>{getLocalizedName(item.product)} x{item.quantity}</span>
                     <span>{(parseFloat(item.product.price) * item.quantity).toFixed(2)} {t("parentStore.currency")}</span>
                   </div>
                 ))}
@@ -1338,7 +1565,7 @@ export const ParentStore = (): JSX.Element => {
             </div>
 
             <Button 
-              className="w-full bg-orange-500 hover:bg-orange-600 py-6 text-lg"
+              className="w-full h-12 rounded-xl bg-orange-500 hover:bg-orange-600 text-base sm:text-lg"
               onClick={handleCheckout}
               disabled={checkoutMutation.isPending || !selectedPaymentMethod || !token}
               data-testid="button-confirm-checkout"
@@ -1361,7 +1588,7 @@ export const ParentStore = (): JSX.Element => {
 
       {/* Product Detail Modal */}
       <Dialog open={showDetail} onOpenChange={setShowDetail}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className={`max-w-2xl max-h-[90vh] overflow-y-auto rounded-3xl border shadow-2xl ${isDark ? "bg-gray-900 border-gray-700" : "bg-white border-gray-200"}`}>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Package className="w-5 h-5 text-blue-500" />
@@ -1370,21 +1597,29 @@ export const ParentStore = (): JSX.Element => {
           </DialogHeader>
 
           {selectedProduct && (
-            <div className="space-y-4">
+            <div className="space-y-5">
               {/* Product Images */}
-              <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-xl overflow-hidden" style={{ aspectRatio: '4/3' }}>
+              <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-2xl overflow-hidden border border-gray-200 dark:border-gray-700" style={{ aspectRatio: '4/3' }}>
                 {(selectedProduct.images && selectedProduct.images.length > 1) ? (
                   <ProductImageCarousel
                     images={selectedProduct.images}
                     mainImage={selectedProduct.image}
                     alt={selectedProduct.name}
+                    discountBadgeText={getDiscountBadgeText(selectedProduct) || undefined}
                     className="w-full h-full"
                     autoSlide
-                    autoSlideInterval={2000}
+                    autoSlideInterval={5200}
                     contain
                   />
                 ) : selectedProduct.image ? (
-                  <img src={selectedProduct.image} alt={selectedProduct.name} className="w-full h-full object-contain rounded-xl" />
+                  <div className="relative w-full h-full">
+                    <img src={selectedProduct.image} alt={selectedProduct.name} className="w-full h-full object-contain rounded-xl" />
+                    {getDiscountBadgeText(selectedProduct) && (
+                      <Badge className="absolute top-2 left-2 z-30 pointer-events-none bg-red-500 text-white text-xs font-bold shadow-sm">
+                        {getDiscountBadgeText(selectedProduct)}
+                      </Badge>
+                    )}
+                  </div>
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
                     <Package className="w-16 h-16 text-gray-300" />
@@ -1393,12 +1628,12 @@ export const ParentStore = (): JSX.Element => {
               </div>
 
               {/* Product Info */}
-              <div>
+              <div className="space-y-1">
                 {selectedProduct.brand && (
                   <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">{selectedProduct.brand}</p>
                 )}
                 <h3 className="font-bold text-xl text-gray-800 dark:text-white">
-                  {selectedProduct.nameAr || selectedProduct.name}
+                  {getLocalizedName(selectedProduct)}
                 </h3>
                 {selectedProduct.category && (
                   <Badge variant="outline" className="mt-1 text-xs">
@@ -1408,9 +1643,9 @@ export const ParentStore = (): JSX.Element => {
               </div>
 
               {/* Description */}
-              {selectedProduct.description && (
+              {getLocalizedDescription(selectedProduct) && (
                 <p className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed">
-                  {selectedProduct.description}
+                  {getLocalizedDescription(selectedProduct)}
                 </p>
               )}
 
@@ -1430,8 +1665,8 @@ export const ParentStore = (): JSX.Element => {
               </div>
 
               {/* Price & Stock */}
-              <div className={`p-4 rounded-xl ${isDark ? "bg-gray-700" : "bg-gradient-to-r from-blue-50 to-indigo-50"}`}>
-                <div className="flex items-center justify-between">
+              <div className={`p-4 rounded-2xl border ${isDark ? "bg-gray-800 border-gray-700" : "bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-100"}`}>
+                <div className="flex items-center justify-between gap-3">
                   <div>
                     <p className="text-sm text-gray-500 dark:text-gray-400">{t("productDetail.price")}</p>
                     <div className="flex items-center gap-2">
@@ -1449,7 +1684,7 @@ export const ParentStore = (): JSX.Element => {
                   </div>
                 </div>
                 {selectedProduct.pointsPrice > 0 && (
-                  <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-600">
+                  <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-600">
                     <p className="text-xs flex items-center gap-1 text-orange-600">
                       <Star className="w-3 h-3 fill-yellow-500 text-yellow-500" />
                       {t("productDetail.needsPointsAsGift", { points: selectedProduct.pointsPrice })}
@@ -1459,10 +1694,10 @@ export const ParentStore = (): JSX.Element => {
               </div>
 
               {/* Action Buttons */}
-              <div className="space-y-2 pt-2">
+              <div className={`space-y-2 pt-2 border-t ${isDark ? "border-gray-700" : "border-gray-200"}`}>
                 <div className="flex gap-2">
                   <Button
-                    className="flex-1 bg-blue-600 hover:bg-blue-700 py-5"
+                    className="flex-1 h-11 rounded-xl bg-blue-600 hover:bg-blue-700"
                     onClick={() => {
                       setBuyNowProduct(selectedProduct);
                       setShowDetail(false);
@@ -1475,7 +1710,7 @@ export const ParentStore = (): JSX.Element => {
                   </Button>
                   <Button
                     variant="outline"
-                    className="flex-1 py-5 border-blue-200 hover:bg-blue-50 dark:border-gray-600 dark:hover:bg-gray-700"
+                    className="flex-1 h-11 rounded-xl border-blue-200 hover:bg-blue-50 dark:border-gray-600 dark:hover:bg-gray-700"
                     onClick={() => {
                       addToCart(selectedProduct);
                       setShowDetail(false);
@@ -1488,7 +1723,7 @@ export const ParentStore = (): JSX.Element => {
                 </div>
                 <Button
                   variant="outline"
-                  className="w-full py-5 border-orange-200 text-orange-600 hover:bg-orange-50 dark:border-gray-600 dark:hover:bg-gray-700"
+                  className="w-full h-11 rounded-xl border-orange-200 text-orange-600 hover:bg-orange-50 dark:border-gray-600 dark:hover:bg-gray-700"
                   onClick={() => {
                     setShowDetail(false);
                     setShowAssign(true);
@@ -1504,7 +1739,7 @@ export const ParentStore = (): JSX.Element => {
       </Dialog>
 
       <Dialog open={showAssign} onOpenChange={setShowAssign}>
-        <DialogContent className="max-w-md">
+        <DialogContent className={`max-w-md rounded-3xl border shadow-2xl ${isDark ? "bg-gray-900 border-gray-700" : "bg-white border-gray-200"}`}>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Gift className="w-5 h-5 text-orange-500" />
@@ -1514,18 +1749,26 @@ export const ParentStore = (): JSX.Element => {
 
           {selectedProduct && (
             <div className="space-y-6">
-              <div className="flex items-center gap-4 p-4 bg-gradient-to-r from-orange-50 to-yellow-50 rounded-xl">
+              <div className={`flex items-center gap-4 p-4 rounded-xl border ${isDark ? "bg-orange-900/20 border-orange-800/60" : "bg-gradient-to-r from-orange-50 to-yellow-50 border-orange-100"}`}>
                 <div className="w-20 h-20 bg-white dark:bg-gray-800 rounded-lg overflow-hidden shadow-sm">
                   {(selectedProduct.images && selectedProduct.images.length > 1) ? (
                     <ProductImageCarousel
                       images={selectedProduct.images}
                       mainImage={selectedProduct.image}
                       alt={selectedProduct.name}
+                      discountBadgeText={getDiscountBadgeText(selectedProduct) || undefined}
                       className="w-full h-full"
                       compact
                     />
                   ) : selectedProduct.image ? (
-                    <img src={selectedProduct.image} alt={selectedProduct.name} className="w-full h-full object-cover" />
+                    <div className="relative w-full h-full">
+                      <img src={selectedProduct.image} alt={selectedProduct.name} className="w-full h-full object-cover" />
+                      {getDiscountBadgeText(selectedProduct) && (
+                        <Badge className="absolute top-1.5 left-1.5 z-30 pointer-events-none bg-red-500 text-white text-[10px] font-bold shadow-sm">
+                          {getDiscountBadgeText(selectedProduct)}
+                        </Badge>
+                      )}
+                    </div>
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
                       <Package className="w-8 h-8 text-gray-300" />
@@ -1533,7 +1776,7 @@ export const ParentStore = (): JSX.Element => {
                   )}
                 </div>
                 <div>
-                  <h4 className="font-bold text-gray-800">{selectedProduct.nameAr || selectedProduct.name}</h4>
+                  <h4 className="font-bold text-gray-800">{getLocalizedName(selectedProduct)}</h4>
                   <p className="text-orange-600 font-bold text-lg">{selectedProduct.price} {t("productDetail.currency")}</p>
                 </div>
               </div>
@@ -1561,6 +1804,7 @@ export const ParentStore = (): JSX.Element => {
                   value={requiredPoints}
                   onChange={(e) => setRequiredPoints(e.target.value)}
                   placeholder={t('parentStore.pointsExample')}
+                  className="rounded-xl"
                   data-testid="input-required-points"
                 />
                 <p className="text-xs text-gray-500 mt-1">
@@ -1570,7 +1814,7 @@ export const ParentStore = (): JSX.Element => {
 
               <div className="flex gap-3">
                 <Button
-                  className="flex-1 bg-orange-500 hover:bg-orange-600"
+                  className="flex-1 h-11 rounded-xl bg-orange-500 hover:bg-orange-600"
                   onClick={() => {
                     addToCart(selectedProduct);
                     assignProductMutation.mutate({
@@ -1586,6 +1830,7 @@ export const ParentStore = (): JSX.Element => {
                 </Button>
                 <Button
                   variant="outline"
+                  className="h-11 rounded-xl"
                   onClick={() => { addToCart(selectedProduct); setShowAssign(false); }}
                 >
                   {t("productDetail.addToCartOnly")}
@@ -1598,5 +1843,24 @@ export const ParentStore = (): JSX.Element => {
     </div>
   );
 };
+
+/* Product store fade-up animation for progressive card reveal */
+if (typeof document !== "undefined" && !document.getElementById("ps-fadeup-style")) {
+  const style = document.createElement("style");
+  style.id = "ps-fadeup-style";
+  style.textContent = `
+    @keyframes psFadeUp {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+  `;
+  document.head.appendChild(style);
+}
 
 export default ParentStore;

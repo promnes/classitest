@@ -8,13 +8,118 @@ import {
   deposits,
   parentWallet,
   products,
+  riskAlerts,
 } from "../../shared/schema";
 import { eq, sum, sql, and, gte } from "drizzle-orm";
 import { adminMiddleware } from "./middleware";
+import { notifyAllAdmins } from "../notifications";
+import { NOTIFICATION_PRIORITIES, NOTIFICATION_STYLES, NOTIFICATION_TYPES } from "../../shared/notificationTypes";
 
 const db = storage.db;
 
 export async function registerAnalyticsRoutes(app: Express) {
+  app.get("/api/admin/analytics/risk-alerts", adminMiddleware, async (req: any, res) => {
+    try {
+      const status = typeof req.query?.status === "string" ? req.query.status : "open";
+      const limitRaw = Number.parseInt(String(req.query?.limit || "100"), 10);
+      const limit = Number.isFinite(limitRaw) ? Math.min(Math.max(limitRaw, 1), 300) : 100;
+
+      let query = db
+        .select({
+          id: riskAlerts.id,
+          parentId: riskAlerts.parentId,
+          childId: riskAlerts.childId,
+          targetType: riskAlerts.targetType,
+          targetId: riskAlerts.targetId,
+          riskType: riskAlerts.riskType,
+          severity: riskAlerts.severity,
+          riskScore: riskAlerts.riskScore,
+          title: riskAlerts.title,
+          summary: riskAlerts.summary,
+          details: riskAlerts.details,
+          evidence: riskAlerts.evidence,
+          status: riskAlerts.status,
+          detectionCount: riskAlerts.detectionCount,
+          firstDetectedAt: riskAlerts.firstDetectedAt,
+          lastDetectedAt: riskAlerts.lastDetectedAt,
+          resolvedAt: riskAlerts.resolvedAt,
+          resolutionNotes: riskAlerts.resolutionNotes,
+          updatedAt: riskAlerts.updatedAt,
+          parentName: parents.name,
+          parentEmail: parents.email,
+          childName: children.name,
+        })
+        .from(riskAlerts)
+        .leftJoin(parents, eq(riskAlerts.parentId, parents.id))
+        .leftJoin(children, eq(riskAlerts.childId, children.id));
+
+      if (status !== "all") {
+        query = query.where(eq(riskAlerts.status, status as any)) as any;
+      }
+
+      const rows = await query.orderBy(sql`${riskAlerts.lastDetectedAt} DESC`).limit(limit);
+
+      const summary = {
+        open: rows.filter((r: { status: string }) => r.status === "open").length,
+        reviewed: rows.filter((r: { status: string }) => r.status === "reviewed").length,
+        resolved: rows.filter((r: { status: string }) => r.status === "resolved").length,
+        highSeverity: rows.filter((r: { severity: string }) => r.severity === "high").length,
+        mediumSeverity: rows.filter((r: { severity: string }) => r.severity === "medium").length,
+      };
+
+      res.json(successResponse({ items: rows, summary }));
+    } catch (error: any) {
+      console.error("Get risk alerts error:", error);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to fetch risk alerts"));
+    }
+  });
+
+  app.put("/api/admin/analytics/risk-alerts/:id", adminMiddleware, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const status = String(req.body?.status || "").trim();
+      const resolutionNotes = typeof req.body?.resolutionNotes === "string" ? req.body.resolutionNotes.trim() : null;
+
+      if (!["open", "reviewed", "resolved"].includes(status)) {
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Invalid status"));
+      }
+
+      const [existing] = await db.select().from(riskAlerts).where(eq(riskAlerts.id, id)).limit(1);
+      if (!existing) {
+        return res.status(404).json(errorResponse(ErrorCode.NOT_FOUND, "Risk alert not found"));
+      }
+
+      const updated = await db
+        .update(riskAlerts)
+        .set({
+          status,
+          resolutionNotes,
+          resolvedAt: status === "resolved" ? new Date() : null,
+          resolvedByAdminId: status === "resolved" ? req.admin.adminId : null,
+          updatedAt: new Date(),
+        })
+        .where(eq(riskAlerts.id, id))
+        .returning();
+
+      if (status === "resolved") {
+        await notifyAllAdmins({
+          type: NOTIFICATION_TYPES.INFO,
+          title: "تم إغلاق تنبيه مخاطرة",
+          message: `تم إغلاق التنبيه ${id} بواسطة الإدارة بعد المراجعة`,
+          style: NOTIFICATION_STYLES.TOAST,
+          priority: NOTIFICATION_PRIORITIES.NORMAL,
+          relatedId: id,
+          metadata: { riskAlertId: id, previousSeverity: existing.severity },
+        });
+      }
+
+      res.json(successResponse(updated[0], "Risk alert updated"));
+    } catch (error: any) {
+      console.error("Update risk alert error:", error);
+      res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to update risk alert"));
+    }
+  });
+
   // Analytics overview
   app.get("/api/admin/analytics/overview", adminMiddleware, async (req: any, res) => {
     try {

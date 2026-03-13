@@ -57,6 +57,14 @@ function normalizeEmail(email: string | undefined): string | null {
   return email.trim().toLowerCase();
 }
 
+function normalizeParentGender(gender: unknown): "male" | "female" | null {
+  if (typeof gender !== "string") return null;
+  const normalized = gender.trim().toLowerCase();
+  if (["male", "m", "man", "ذكر"].includes(normalized)) return "male";
+  if (["female", "f", "woman", "أنثى", "انثى"].includes(normalized)) return "female";
+  return null;
+}
+
 function respondRateLimited(res: any, message: string) {
   res.set("Retry-After", String(OTP_RATE_LIMIT_RETRY_AFTER_SEC));
   return res.status(429).json(errorResponse(ErrorCode.RATE_LIMITED, message));
@@ -134,8 +142,9 @@ export async function registerAuthRoutes(app: Express) {
   // Parent Register (with rate limiting)
   app.post("/api/auth/register", registerLimiter, async (req, res) => {
     try {
-      const { email, password, name, phoneNumber, libraryReferralCode, referralCode, pin, governorate } = req.body;
+      const { email, password, name, phoneNumber, gender, libraryReferralCode, referralCode, pin, governorate } = req.body;
       const normalizedEmail = normalizeEmail(email);
+      const normalizedGender = normalizeParentGender(gender);
 
       // Validation
       if (!normalizedEmail || !password || !name) {
@@ -146,6 +155,9 @@ export async function registerAuthRoutes(app: Express) {
       }
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
         return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Invalid email format"));
+      }
+      if (!normalizedGender) {
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Gender must be male or female"));
       }
 
       // Validate optional PIN
@@ -173,6 +185,7 @@ export async function registerAuthRoutes(app: Express) {
           email: normalizedEmail,
           password: hashedPassword,
           name,
+          gender: normalizedGender,
           phoneNumber: phoneNumber || null,
           uniqueCode,
           pin: hashedPin,
@@ -308,6 +321,19 @@ export async function registerAuthRoutes(app: Express) {
                 } catch (notifyErr) {
                   console.error("Referral notification failed:", notifyErr);
                 }
+
+                void import("../services/riskMonitor")
+                  .then(({ monitorReferralReward }) =>
+                    monitorReferralReward({
+                      referrerParentId: codeRecord[0].parentId,
+                      referredParentId: result[0].id,
+                      rewardPoints,
+                      source: "auth_register_referral",
+                    })
+                  )
+                  .catch((riskErr) => {
+                    console.error("Risk monitor (auth referral) failed:", riskErr);
+                  });
               }
             }
           }
@@ -1323,11 +1349,15 @@ export async function registerAuthRoutes(app: Express) {
   // Phone Registration (requires email)
   app.post("/api/auth/register-phone", registerLimiter, async (req, res) => {
     try {
-      const { email, password, name, phoneNumber } = req.body;
+      const { email, password, name, phoneNumber, gender } = req.body;
       const normalizedEmail = normalizeEmail(email);
+      const normalizedGender = normalizeParentGender(gender);
 
       if (!normalizedEmail || !password || !name || !phoneNumber) {
         return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Email, password, name, and phone number are required"));
+      }
+      if (!normalizedGender) {
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Gender must be male or female"));
       }
       if (password.length < 8) {
         return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Password must be at least 8 characters"));
@@ -1350,6 +1380,7 @@ export async function registerAuthRoutes(app: Express) {
           email: normalizedEmail,
           password: hashedPassword,
           name,
+          gender: normalizedGender,
           phoneNumber,
           uniqueCode,
         })

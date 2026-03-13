@@ -55,6 +55,11 @@ export type InHomeSyncResult = {
   trackingCode?: string;
 };
 
+export type InHomeConfigValidationResult = {
+  ok: boolean;
+  message: string;
+};
+
 const DEFAULT_TIMEOUT_MS = 5000;
 
 function toBoolean(value?: string): boolean {
@@ -89,6 +94,75 @@ function clampTimeoutMs(value: unknown): number {
 
 function normalizeBaseUrl(value?: string): string {
   return (value || "").trim().replace(/\/$/, "");
+}
+
+function parseBaseUrl(baseUrl: string): URL | null {
+  try {
+    return new URL(baseUrl);
+  } catch {
+    return null;
+  }
+}
+
+function isPrivateOrLocalHost(hostname: string): boolean {
+  const host = (hostname || "").toLowerCase();
+  if (!host) return true;
+
+  if (host === "localhost" || host === "127.0.0.1" || host === "::1") {
+    return true;
+  }
+
+  if (host.startsWith("10.")) return true;
+  if (host.startsWith("192.168.")) return true;
+  if (host.startsWith("127.")) return true;
+
+  const match172 = host.match(/^172\.(\d{1,3})\./);
+  if (match172) {
+    const secondOctet = Number(match172[1]);
+    if (Number.isFinite(secondOctet) && secondOctet >= 16 && secondOctet <= 31) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+export function validateInHomeConnectorIsolation(
+  configOverride?: Partial<InHomeShippingConfig> | null,
+): InHomeConfigValidationResult {
+  const config = resolveInHomeShippingConfig(configOverride);
+
+  if (!config.enabled) {
+    return { ok: true, message: "Connector is disabled" };
+  }
+
+  if (!config.baseUrl || !config.apiKey) {
+    return { ok: false, message: "Missing base URL or API key" };
+  }
+
+  const parsed = parseBaseUrl(config.baseUrl);
+  if (!parsed) {
+    return { ok: false, message: "baseUrl must be a valid absolute URL" };
+  }
+
+  const isProd = process.env.NODE_ENV === "production";
+  const allowPrivateHosts = toBoolean(process.env.INHOME_ALLOW_PRIVATE_HOSTS);
+
+  if (isProd && parsed.protocol !== "https:") {
+    return {
+      ok: false,
+      message: "in-home baseUrl must use HTTPS in production",
+    };
+  }
+
+  if (isProd && !allowPrivateHosts && isPrivateOrLocalHost(parsed.hostname)) {
+    return {
+      ok: false,
+      message: "in-home baseUrl cannot point to localhost/private network in production",
+    };
+  }
+
+  return { ok: true, message: "Connector configuration is valid" };
 }
 
 export function resolveInHomeShippingConfig(
@@ -169,8 +243,9 @@ export async function testInHomeShippingConnection(
   if (!config.enabled) {
     return { ok: false, message: "Connector is disabled" };
   }
-  if (!config.baseUrl || !config.apiKey) {
-    return { ok: false, message: "Missing base URL or API key" };
+  const validation = validateInHomeConnectorIsolation(config);
+  if (!validation.ok) {
+    return { ok: false, message: validation.message };
   }
 
   const endpoint = `${config.baseUrl}/api/v1/orders`;
@@ -235,6 +310,12 @@ export async function syncCheckoutToInHome(
   const config = resolveInHomeShippingConfig(configOverride);
   if (!config.enabled) {
     return { ok: false, message: "Connector disabled" };
+  }
+
+  const validation = validateInHomeConnectorIsolation(config);
+  if (!validation.ok) {
+    console.warn(`[in-home-shipping] Invalid connector config: ${validation.message}`);
+    return { ok: false, message: validation.message };
   }
 
   const baseUrl = config.baseUrl;

@@ -1,6 +1,6 @@
 import type { Express } from "express";
 import { storage } from "../storage";
-import { 
+import {
   parents,
   referrals,
   parentReferralCodes,
@@ -13,6 +13,7 @@ import { eq, sql, and, or, isNull } from "drizzle-orm";
 import { authMiddleware } from "./middleware";
 import { createNotification } from "../notifications";
 import { NOTIFICATION_TYPES } from "../../shared/notificationTypes";
+import { monitorReferralReward } from "../services/riskMonitor";
 
 const db = storage.db;
 
@@ -31,12 +32,12 @@ export async function registerReferralRoutes(app: Express) {
   app.get("/api/parent/referral-code", authMiddleware, async (req: any, res) => {
     try {
       const parentId = req.user?.parentId || req.user?.userId;
-      
+
       const existing = await db.select().from(parentReferralCodes).where(eq(parentReferralCodes.parentId, parentId));
-      
+
       if (existing[0]) {
-        return res.json({ 
-          success: true, 
+        return res.json({
+          success: true,
           data: existing[0],
           shareLink: `${process.env.REPLIT_DEV_DOMAIN || 'https://classify.app'}/register?ref=${existing[0].code}`
         });
@@ -56,8 +57,8 @@ export async function registerReferralRoutes(app: Express) {
         code,
       }).returning();
 
-      res.json({ 
-        success: true, 
+      res.json({
+        success: true,
         data: newCode,
         shareLink: `${process.env.REPLIT_DEV_DOMAIN || 'https://classify.app'}/register?ref=${newCode.code}`
       });
@@ -70,7 +71,7 @@ export async function registerReferralRoutes(app: Express) {
   app.get("/api/parent/referrals", authMiddleware, async (req: any, res) => {
     try {
       const parentId = req.user?.parentId || req.user?.userId;
-      
+
       const myReferrals = await db
         .select({
           id: referrals.id,
@@ -87,8 +88,8 @@ export async function registerReferralRoutes(app: Express) {
 
       const codeInfo = await db.select().from(parentReferralCodes).where(eq(parentReferralCodes.parentId, parentId));
 
-      res.json({ 
-        success: true, 
+      res.json({
+        success: true,
         data: {
           referrals: myReferrals,
           stats: codeInfo[0] || { totalReferrals: 0, activeReferrals: 0, totalPointsEarned: 0 },
@@ -104,7 +105,7 @@ export async function registerReferralRoutes(app: Express) {
     try {
       const { referralCode } = req.body;
       const newParentId = req.user?.parentId || req.user?.userId;
-      
+
       if (!referralCode || !newParentId) {
         return res.status(400).json({ message: "Referral code is required" });
       }
@@ -154,14 +155,14 @@ export async function registerReferralRoutes(app: Express) {
   app.post("/api/referrals/activate", authMiddleware, async (req: any, res) => {
     try {
       const parentId = req.user?.parentId || req.user?.userId;
-      
+
       // All referral activation in a single transaction to prevent double-reward
       const result = await db.transaction(async (tx: any) => {
         // Lock the referral row with FOR UPDATE
         const pendingReferral = await tx.select().from(referrals)
           .where(eq(referrals.referredId, parentId))
           .for("update");
-        
+
         if (!pendingReferral[0] || pendingReferral[0].status !== "pending") {
           throw new Error("NO_PENDING_REFERRAL");
         }
@@ -173,7 +174,7 @@ export async function registerReferralRoutes(app: Express) {
         const rewardPoints = settingsRows[0]?.pointsPerReferral ?? REFERRAL_REWARD_POINTS;
 
         await tx.update(referrals)
-          .set({ 
+          .set({
             status: "active",
             activatedAt: new Date()
           })
@@ -186,7 +187,7 @@ export async function registerReferralRoutes(app: Express) {
         const wallet = await tx.select().from(parentWallet).where(eq(parentWallet.parentId, referral.referrerId));
         if (wallet[0]) {
           await tx.update(parentWallet)
-            .set({ 
+            .set({
               balance: sql`${parentWallet.balance} + ${rewardPoints}`,
               updatedAt: new Date()
             })
@@ -199,7 +200,7 @@ export async function registerReferralRoutes(app: Express) {
         }
 
         await tx.update(referrals)
-          .set({ 
+          .set({
             status: "rewarded",
             pointsAwarded: rewardPoints,
             rewardedAt: new Date()
@@ -221,8 +222,17 @@ export async function registerReferralRoutes(app: Express) {
         relatedId: result.referral.id,
       });
 
-      res.json({ 
-        success: true, 
+      void monitorReferralReward({
+        referrerParentId: result.referral.referrerId,
+        referredParentId: result.referral.referredId,
+        rewardPoints: result.rewardPoints,
+        source: "referrals_activate",
+      }).catch((error: any) => {
+        console.error("Risk monitor (referral activate) failed:", error?.message || error);
+      });
+
+      res.json({
+        success: true,
         message: `Referral activated! Referrer received ${result.rewardPoints} points.`
       });
     } catch (error: any) {
@@ -255,9 +265,9 @@ export async function registerReferralRoutes(app: Express) {
         shareCount: sql<number>`count(*)`,
         totalPoints: sql<number>`COALESCE(sum(${adShares.pointsAwarded}), 0)`,
       })
-      .from(adShares)
-      .where(eq(adShares.parentId, parentId))
-      .groupBy(adShares.adId);
+        .from(adShares)
+        .where(eq(adShares.parentId, parentId))
+        .groupBy(adShares.adId);
 
       const shareMap: Record<string, { shareCount: number; totalPoints: number }> = {};
       for (const s of shares) {
@@ -324,7 +334,7 @@ export async function registerReferralRoutes(app: Express) {
 
       // Referral code info — auto-create if missing
       let codeInfo = await db.select().from(parentReferralCodes).where(eq(parentReferralCodes.parentId, parentId));
-      
+
       if (!codeInfo[0]) {
         let code = generateReferralCode();
         let attempts = 0;
@@ -350,8 +360,8 @@ export async function registerReferralRoutes(app: Express) {
         totalShares: sql<number>`count(*)`,
         totalSharePoints: sql<number>`COALESCE(sum(${adShares.pointsAwarded}), 0)`,
       })
-      .from(adShares)
-      .where(eq(adShares.parentId, parentId));
+        .from(adShares)
+        .where(eq(adShares.parentId, parentId));
 
       // Build share link
       const code = codeInfo[0]?.code;

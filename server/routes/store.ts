@@ -23,7 +23,8 @@ import {
   appSettings,
 } from "../../shared/schema";
 import { eq, and, or, desc, asc, sql, isNull } from "drizzle-orm";
-import { authMiddleware, adminMiddleware } from "./middleware";
+import jwt from "jsonwebtoken";
+import { authMiddleware, adminMiddleware, JWT_SECRET } from "./middleware";
 import { createNotification, notifyChildProductAssigned } from "../notifications";
 import { emitGiftEvent } from "../giftEvents";
 import { checkoutLimiter, publicApiLimiter } from "../utils/rateLimiters";
@@ -41,7 +42,10 @@ import {
   sanitizeInHomeShippingConfig,
   syncCheckoutToInHome,
   testInHomeShippingConnection,
+  validateInHomeConnectorIsolation,
 } from "../services/inHomeShipping";
+import { buildLocalizedMap, getLocalizedValue, resolveLocaleCode } from "../services/productLocalization";
+import { monitorWalletSpend } from "../services/riskMonitor";
 
 const db = storage.db;
 
@@ -49,8 +53,10 @@ interface StoreProduct {
   id: string;
   name: string;
   nameAr: string | null;
+  nameI18n?: Record<string, string> | null;
   description: string | null;
   descriptionAr: string | null;
+  descriptionI18n?: Record<string, string> | null;
   price: string;
   originalPrice: string | null;
   pointsPrice: number;
@@ -72,6 +78,51 @@ interface StoreProduct {
 
 const INHOME_CONNECTOR_SETTINGS_KEY = "inHomeShippingConnector";
 const INHOME_WEBHOOK_LAST_EVENT_KEY = "inHomeShippingLastWebhook";
+
+type CategoryAudience = "all" | "parents" | "children" | "fathers" | "mothers";
+
+const CATEGORY_AUDIENCES: CategoryAudience[] = ["all", "parents", "children", "fathers", "mothers"];
+
+function normalizeGender(value: unknown): "male" | "female" | null {
+  if (!value || typeof value !== "string") return null;
+  const normalized = value.trim().toLowerCase();
+  if (["male", "m", "man", "ذكر"].includes(normalized)) return "male";
+  if (["female", "f", "woman", "أنثى", "انثى"].includes(normalized)) return "female";
+  return null;
+}
+
+async function resolveAllowedCategoryAudiences(req: any): Promise<CategoryAudience[]> {
+  const token = req.headers.authorization?.split(" ")[1];
+  if (!token) return ["all"];
+
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET) as any;
+    if (decoded?.type === "child") {
+      return ["all", "children"];
+    }
+
+    const parentId = decoded?.parentId || decoded?.userId;
+    if (!parentId) return ["all"];
+
+    const parentRows = await db
+      .select({ gender: parents.gender })
+      .from(parents)
+      .where(eq(parents.id, parentId))
+      .limit(1);
+
+    const normalizedGender = normalizeGender(parentRows[0]?.gender);
+    if (normalizedGender === "male") {
+      return ["all", "parents", "fathers"];
+    }
+    if (normalizedGender === "female") {
+      return ["all", "parents", "mothers"];
+    }
+
+    return ["all", "parents"];
+  } catch {
+    return ["all"];
+  }
+}
 
 function resolveInHomeWebhookSyncState(webhookEvent: string, payloadStatus: string) {
   const normalizedEvent = (webhookEvent || "").toLowerCase();
@@ -264,12 +315,18 @@ export async function registerStoreRoutes(app: Express) {
     }
   });
 
-  app.get("/api/store/categories", publicApiLimiter, async (_req: any, res) => {
+  app.get("/api/store/categories", publicApiLimiter, async (req: any, res) => {
     try {
+      const allowedAudiences = await resolveAllowedCategoryAudiences(req);
+      const audienceFilter =
+        allowedAudiences.length === 1
+          ? eq(productCategories.targetAudience, allowedAudiences[0])
+          : or(...allowedAudiences.map((audience) => eq(productCategories.targetAudience, audience)));
+
       const categories = await db
         .select()
         .from(productCategories)
-        .where(eq(productCategories.isActive, true))
+        .where(and(eq(productCategories.isActive, true), audienceFilter))
         .orderBy(asc(productCategories.sortOrder));
 
       res.json({ success: true, data: categories });
@@ -330,6 +387,15 @@ export async function registerStoreRoutes(app: Express) {
           success: false,
           error: "BAD_REQUEST",
           message: "baseUrl and apiKey are required when connector is enabled",
+        });
+      }
+
+      const validation = validateInHomeConnectorIsolation(next);
+      if (!validation.ok) {
+        return res.status(400).json({
+          success: false,
+          error: "BAD_REQUEST",
+          message: validation.message,
         });
       }
 
@@ -445,6 +511,10 @@ export async function registerStoreRoutes(app: Express) {
   app.get("/api/store/products", publicApiLimiter, async (req: any, res) => {
     try {
       const { categoryId, search, sort = "featured" } = req.query;
+      const requestLanguage = resolveLocaleCode(
+        (req.query?.lang as string | undefined) ||
+        (req.headers["accept-language"] as string | undefined)?.split(",")?.[0],
+      );
 
       // Fetch regular products
       const regularProducts = await db
@@ -452,8 +522,10 @@ export async function registerStoreRoutes(app: Express) {
           id: products.id,
           name: products.name,
           nameAr: products.nameAr,
+          nameI18n: products.nameI18n,
           description: products.description,
           descriptionAr: products.descriptionAr,
+          descriptionI18n: products.descriptionI18n,
           price: products.price,
           originalPrice: products.originalPrice,
           pointsPrice: products.pointsPrice,
@@ -472,15 +544,75 @@ export async function registerStoreRoutes(app: Express) {
         .where(and(eq(products.isActive, true), isNull(products.parentId)));
 
       // Map regular products to StoreProduct format with discount info
-      const mappedRegularProducts: StoreProduct[] = regularProducts.map((p: typeof regularProducts[number]) => ({
-        ...p,
-        discountPercent: p.originalPrice && parseFloat(p.originalPrice) > parseFloat(p.price)
-          ? Math.round((1 - parseFloat(p.price) / parseFloat(p.originalPrice)) * 100)
-          : 0,
-        isLibraryProduct: false,
-        libraryId: null,
-        libraryName: null,
-      }));
+      const mappedRegularProducts: StoreProduct[] = await Promise.all(
+        regularProducts.map(async (p: typeof regularProducts[number]) => {
+          let nameMap = p.nameI18n || null;
+          let descriptionMap = p.descriptionI18n || null;
+          let nameArValue = p.nameAr;
+          let descriptionArValue = p.descriptionAr;
+          let shouldPersist = false;
+
+          if (!nameMap || !nameMap[requestLanguage]) {
+            const nameLocalization = await buildLocalizedMap({
+              primaryText: p.name,
+              arabicText: p.nameAr,
+            });
+            if (Object.keys(nameLocalization.map).length > 0) {
+              nameMap = nameLocalization.map;
+              nameArValue = nameLocalization.arabicText;
+              shouldPersist = true;
+            }
+          }
+
+          if ((!descriptionMap || !descriptionMap[requestLanguage]) && (p.description || p.descriptionAr)) {
+            const descriptionLocalization = await buildLocalizedMap({
+              primaryText: p.description,
+              arabicText: p.descriptionAr,
+            });
+            if (Object.keys(descriptionLocalization.map).length > 0) {
+              descriptionMap = descriptionLocalization.map;
+              descriptionArValue = descriptionLocalization.arabicText;
+              shouldPersist = true;
+            }
+          }
+
+          if (shouldPersist) {
+            await db
+              .update(products)
+              .set({
+                nameI18n: nameMap,
+                nameAr: nameArValue,
+                descriptionI18n: descriptionMap,
+                descriptionAr: descriptionArValue,
+              })
+              .where(eq(products.id, p.id));
+          }
+
+          const localizedName = getLocalizedValue(nameMap, requestLanguage, p.name, nameArValue);
+          const localizedDescription = getLocalizedValue(
+            descriptionMap,
+            requestLanguage,
+            p.description,
+            descriptionArValue,
+          );
+
+          return {
+            ...p,
+            nameI18n: nameMap,
+            name: localizedName || p.name,
+            nameAr: nameArValue,
+            descriptionI18n: descriptionMap,
+            description: localizedDescription || p.description,
+            descriptionAr: descriptionArValue,
+            discountPercent: p.originalPrice && parseFloat(p.originalPrice) > parseFloat(p.price)
+              ? Math.round((1 - parseFloat(p.price) / parseFloat(p.originalPrice)) * 100)
+              : 0,
+            isLibraryProduct: false,
+            libraryId: null,
+            libraryName: null,
+          };
+        })
+      );
 
       // Fetch library products with library info
       const libProducts = await db
@@ -515,8 +647,10 @@ export async function registerStoreRoutes(app: Express) {
           id: lp.id,
           name: lp.title,
           nameAr: lp.title,
+          nameI18n: { [requestLanguage]: lp.title, en: lp.title, ar: lp.title },
           description: lp.description,
           descriptionAr: lp.description,
+          descriptionI18n: { [requestLanguage]: lp.description, en: lp.description, ar: lp.description },
           price: discountedPrice,
           originalPrice: lp.discountPercent > 0 ? originalPrice : null,
           pointsPrice,
@@ -709,6 +843,7 @@ export async function registerStoreRoutes(app: Express) {
       }
 
       const computedTotal = checkoutItems.reduce((sum, item) => sum + item.subtotal, 0);
+      const usedWalletPayment = paymentMethodId === "wallet";
 
       const [purchase] = await db.transaction(async (tx: any) => {
         const referralSettingsRows = await tx.select().from(libraryReferralSettings);
@@ -932,6 +1067,17 @@ export async function registerStoreRoutes(app: Express) {
 
         return createdPurchase;
       });
+
+      if (usedWalletPayment) {
+        void monitorWalletSpend({
+          parentId,
+          amount: computedTotal,
+          source: "store_checkout",
+          relatedId: purchase.id,
+        }).catch((error: any) => {
+          console.error("Risk monitor (wallet spend) failed:", error?.message || error);
+        });
+      }
 
       const parentProfile = await db
         .select({
@@ -1169,13 +1315,21 @@ export async function registerStoreRoutes(app: Express) {
 
   app.post("/api/admin/categories", adminMiddleware, async (req: any, res) => {
     try {
-      const { name, nameAr, icon, color, sortOrder } = req.body;
+      const { name, nameAr, namePt, icon, color, sortOrder, isActive, parentId, targetAudience } = req.body;
+      const normalizedAudience: CategoryAudience = CATEGORY_AUDIENCES.includes(targetAudience)
+        ? targetAudience
+        : "all";
+
       const [category] = await db.insert(productCategories).values({
         name,
         nameAr,
+        namePt: namePt || null,
+        parentId: parentId || null,
+        targetAudience: normalizedAudience,
         icon: icon || "Package",
         color: color || "#667eea",
         sortOrder: sortOrder || 0,
+        isActive: typeof isActive === "boolean" ? isActive : true,
       }).returning();
       res.json({ success: true, data: category });
     } catch (error: any) {
@@ -1187,9 +1341,23 @@ export async function registerStoreRoutes(app: Express) {
   app.put("/api/admin/categories/:id", adminMiddleware, async (req: any, res) => {
     try {
       const { id } = req.params;
-      const { name, nameAr, icon, color, sortOrder, isActive } = req.body;
+      const { name, nameAr, namePt, icon, color, sortOrder, isActive, parentId, targetAudience } = req.body;
+      const normalizedAudience: CategoryAudience = CATEGORY_AUDIENCES.includes(targetAudience)
+        ? targetAudience
+        : "all";
+
       const [category] = await db.update(productCategories)
-        .set({ name, nameAr, icon, color, sortOrder, isActive })
+        .set({
+          name,
+          nameAr,
+          namePt: namePt || null,
+          icon,
+          color,
+          sortOrder,
+          isActive,
+          parentId: parentId || null,
+          targetAudience: normalizedAudience,
+        })
         .where(eq(productCategories.id, id))
         .returning();
       res.json({ success: true, data: category });

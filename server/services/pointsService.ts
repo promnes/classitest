@@ -1,5 +1,6 @@
 import { eq, sql } from "drizzle-orm";
 import { childAssignedProducts, children, pointsLedger } from "../../shared/schema";
+import { monitorChildPoints } from "./riskMonitor";
 
 export type PointsLedgerReason =
   | "TASK_COMPLETED"
@@ -80,6 +81,11 @@ export async function applyPointsDelta(tx: any, params: PointsDeltaParams): Prom
       progressPoints: sql`GREATEST(0, LEAST(${childAssignedProducts.requiredPoints}, ${newTotalPoints}))`,
     })
     .where(eq(childAssignedProducts.childId, childId));
+
+  // Non-blocking risk signal check for unusual points earning/spending patterns.
+  void monitorChildPoints({ childId, delta: actualDelta, reason, requestId: requestId ?? null }).catch((error: any) => {
+    console.error("Risk monitor (points) failed:", error?.message || error);
+  });
 
   return {
     newTotalPoints,

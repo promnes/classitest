@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -15,10 +15,10 @@ const PAYMENT_TYPE_EMOJIS: Record<string, string> = {
   we_pay: "💳", instapay: "⚡", fawry: "🎫", mobile_wallet: "📲", credit_card: "💳", other: "💰",
 };
 
-const STATUS_COLORS: Record<string, { color: string; bg: string }> = {
-  pending: { color: "text-yellow-700", bg: "bg-yellow-100" },
-  completed: { color: "text-green-700", bg: "bg-green-100" },
-  cancelled: { color: "text-red-700", bg: "bg-red-100" },
+const STATUS_COLORS: Record<string, { color: string; bg: string; accent: string }> = {
+  pending: { color: "text-amber-700", bg: "bg-amber-100", accent: "border-s-4 border-amber-400" },
+  completed: { color: "text-emerald-700", bg: "bg-emerald-100", accent: "border-s-4 border-emerald-400" },
+  cancelled: { color: "text-rose-700", bg: "bg-rose-100", accent: "border-s-4 border-rose-400" },
 };
 
 function getPaymentLabel(type: string, t: (key: string) => string) {
@@ -64,17 +64,17 @@ export const Wallet = (): JSX.Element => {
   const [depositNotes, setDepositNotes] = useState("");
   const [step, setStep] = useState<"select" | "confirm">("select");
 
-  const { data: wallet } = useQuery({
+  const { data: wallet, isLoading: isWalletLoading } = useQuery({
     queryKey: ["/api/parent/wallet"],
     enabled: !!token,
   });
 
-  const { data: paymentMethodsRaw } = useQuery({
+  const { data: paymentMethodsRaw, isLoading: isPaymentMethodsLoading } = useQuery({
     queryKey: ["/api/parent/payment-methods"],
     enabled: !!token,
   });
 
-  const { data: depositsRaw } = useQuery({
+  const { data: depositsRaw, isLoading: isDepositsLoading } = useQuery({
     queryKey: ["/api/parent/deposits"],
     enabled: !!token,
   });
@@ -90,6 +90,10 @@ export const Wallet = (): JSX.Element => {
     : Array.isArray(depositsRaw)
     ? depositsRaw
     : [];
+
+  const pendingCount = depositsList.filter((d: any) => d.status === "pending").length;
+  const completedCount = depositsList.filter((d: any) => d.status === "completed").length;
+  const cancelledCount = depositsList.filter((d: any) => d.status === "cancelled").length;
 
   const depositMutation = useMutation({
     mutationFn: async () => {
@@ -130,49 +134,91 @@ export const Wallet = (): JSX.Element => {
     setStep("select");
   };
 
+  const currentStepIndex = step === "select" ? 1 : 2;
+
   return (
-    <div className={`min-h-screen p-6 ${isDark ? "bg-gray-900" : "bg-gray-50"}`}>
-      <div className="max-w-4xl mx-auto">
+    <div className={`min-h-screen px-4 py-5 sm:p-6 ${isDark ? "bg-gray-900" : "bg-gray-50"}`}>
+      <div className="max-w-4xl mx-auto space-y-6">
         {/* Header */}
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className={`text-4xl font-bold ${isDark ? "text-white" : "text-gray-800"}`}>
+        <div
+          className={`rounded-2xl border px-4 py-4 sm:px-5 sm:py-5 backdrop-blur-sm ${
+            isDark ? "bg-slate-900/80 border-slate-800" : "bg-white/95 border-slate-200 shadow-sm"
+          }`}
+        >
+          <div className="flex flex-col gap-4 sm:gap-5">
+            <div>
+              <h1 className={`text-3xl sm:text-4xl font-extrabold tracking-tight ${isDark ? "text-white" : "text-gray-800"}`}>
               {t("wallet.title")}
             </h1>
-            <p className={isDark ? "text-gray-400" : "text-gray-600"}>{t("wallet.subtitle")}</p>
-          </div>
-          <div className="flex gap-2">
-            <LanguageSelector />
-            <ParentNotificationBell />
-            <button
-              onClick={toggleTheme}
-              className="px-4 py-2 bg-blue-500 text-white rounded-lg font-bold"
-            >
-              {isDark ? "☀️" : "🌙"}
-            </button>
-            <button
-              onClick={() => window.history.length > 1 ? window.history.back() : navigate("/parent-dashboard")}
-              className={`px-4 py-2 rounded-lg font-bold ${isDark ? "bg-gray-700 text-gray-200 hover:bg-gray-600" : "bg-gray-500 text-white hover:bg-gray-600"}`}
-            >
-              {t("common.back")}
-            </button>
+              <p className={`mt-1 text-sm sm:text-base ${isDark ? "text-gray-400" : "text-gray-600"}`}>{t("wallet.subtitle")}</p>
+            </div>
+
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              <LanguageSelector />
+              <ParentNotificationBell />
+              <button
+                onClick={toggleTheme}
+                className="h-11 min-w-11 rounded-xl bg-blue-500 text-white font-bold shadow-sm transition-colors hover:bg-blue-600"
+                aria-label={isDark ? "Enable light mode" : "Enable dark mode"}
+              >
+                {isDark ? "☀️" : "🌙"}
+              </button>
+              <button
+                onClick={() => window.history.length > 1 ? window.history.back() : navigate("/parent-dashboard")}
+                className={`h-11 px-4 rounded-xl font-bold whitespace-nowrap transition-colors ${isDark ? "bg-gray-700 text-gray-200 hover:bg-gray-600" : "bg-gray-500 text-white hover:bg-gray-600"}`}
+              >
+                {t("common.back")}
+              </button>
+            </div>
           </div>
         </div>
 
         {/* Wallet Balance */}
-        <div className={`${isDark ? "bg-gradient-to-r from-blue-900 to-purple-900" : "bg-gradient-to-r from-blue-500 to-purple-600"} rounded-2xl p-8 text-white mb-8 shadow-lg`}>
-          <p className="text-lg opacity-90">{t("wallet.currentBalance")}</p>
-          <p className="text-5xl font-bold">$ {Number(walletData?.balance || 0).toFixed(2)}</p>
-          <div className="flex gap-4 mt-6 items-center">
+        <div className={`${isDark ? "bg-gradient-to-br from-blue-900 via-indigo-900 to-purple-900" : "bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-600"} rounded-3xl p-5 sm:p-8 text-white shadow-xl`}>
+          <div className="grid gap-5 md:grid-cols-[1fr_auto] md:items-end">
+            <div>
+              <p className="text-base sm:text-lg opacity-90">{t("wallet.currentBalance")}</p>
+              {isWalletLoading ? (
+                <div className="mt-2 h-14 sm:h-16 w-44 rounded-2xl bg-white/20 animate-pulse" />
+              ) : (
+                <p className="mt-2 text-5xl sm:text-6xl font-extrabold leading-none">$ {Number(walletData?.balance || 0).toFixed(2)}</p>
+              )}
+            </div>
+
             <button
               onClick={() => setShowDeposit(true)}
-              className="px-6 py-3 bg-green-500 hover:bg-green-600 text-white rounded-lg font-bold text-lg"
+              className="h-14 px-6 bg-green-500 hover:bg-green-600 text-white rounded-2xl font-bold text-lg shadow-md transition-colors"
             >
               {t("wallet.depositFunds")}
             </button>
-            <div className="text-sm opacity-75">
-              <p>{t("wallet.totalDeposited", { amount: Number(walletData?.totalDeposited || 0).toFixed(2) })}</p>
-              <p>{t("wallet.totalSpent", { amount: Number(walletData?.totalSpent || 0).toFixed(2) })}</p>
+          </div>
+
+          <div className="mt-5 rounded-2xl bg-white/10 ring-1 ring-white/15 px-4 py-3 text-sm sm:text-base">
+            {isWalletLoading ? (
+              <div className="space-y-2">
+                <div className="h-4 w-56 rounded bg-white/20 animate-pulse" />
+                <div className="h-4 w-52 rounded bg-white/20 animate-pulse" />
+              </div>
+            ) : (
+              <div className="flex flex-col gap-1 opacity-95">
+                <p>{t("wallet.totalDeposited", { amount: Number(walletData?.totalDeposited || 0).toFixed(2) })}</p>
+                <p>{t("wallet.totalSpent", { amount: Number(walletData?.totalSpent || 0).toFixed(2) })}</p>
+              </div>
+            )}
+          </div>
+
+          <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-sm">
+            <div className="rounded-xl bg-white/10 ring-1 ring-white/15 px-3 py-2.5">
+              <p className="opacity-85">{t("wallet.statusPending")}</p>
+              <p className="text-xl font-extrabold leading-tight">{isDepositsLoading ? "..." : pendingCount}</p>
+            </div>
+            <div className="rounded-xl bg-white/10 ring-1 ring-white/15 px-3 py-2.5">
+              <p className="opacity-85">{t("wallet.statusCompleted")}</p>
+              <p className="text-xl font-extrabold leading-tight">{isDepositsLoading ? "..." : completedCount}</p>
+            </div>
+            <div className="rounded-xl bg-white/10 ring-1 ring-white/15 px-3 py-2.5">
+              <p className="opacity-85">{t("wallet.statusCancelled")}</p>
+              <p className="text-xl font-extrabold leading-tight">{isDepositsLoading ? "..." : cancelledCount}</p>
             </div>
           </div>
         </div>
@@ -181,12 +227,34 @@ export const Wallet = (): JSX.Element => {
         <SlidingAdsCarousel audience="parents" variant="page" isDark={isDark} />
 
         {/* Deposit History */}
-        <div className={`${isDark ? "bg-gray-800" : "bg-white"} rounded-lg p-6 shadow`}>
-          <h2 className={`text-2xl font-bold mb-4 ${isDark ? "text-white" : "text-gray-800"}`}>
-            {t("wallet.depositHistory")}
-          </h2>
-          {depositsList.length === 0 ? (
-            <p className={isDark ? "text-gray-400" : "text-gray-600"}>
+        <div className={`${isDark ? "bg-gray-800/95 border border-gray-700" : "bg-white border border-gray-100"} rounded-2xl p-5 sm:p-6 shadow`}>
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <h2 className={`text-2xl font-bold ${isDark ? "text-white" : "text-gray-800"}`}>
+              {t("wallet.depositHistory")}
+            </h2>
+            <span
+              className={`px-3 py-1 rounded-full text-xs font-bold ${
+                isDark ? "bg-gray-700 text-gray-200" : "bg-gray-100 text-gray-700"
+              }`}
+            >
+              {depositsList.length}
+            </span>
+          </div>
+          {isDepositsLoading ? (
+            <div className="space-y-3">
+              {Array.from({ length: 3 }).map((_, idx) => (
+                <div
+                  key={`deposit-skeleton-${idx}`}
+                  className={`p-4 rounded-xl border animate-pulse ${isDark ? "border-gray-700 bg-gray-700/20" : "border-gray-200 bg-gray-50"}`}
+                >
+                  <div className={`h-5 w-24 rounded mb-2 ${isDark ? "bg-gray-600" : "bg-gray-200"}`} />
+                  <div className={`h-4 w-48 rounded mb-2 ${isDark ? "bg-gray-700" : "bg-gray-200"}`} />
+                  <div className={`h-4 w-36 rounded ${isDark ? "bg-gray-700" : "bg-gray-200"}`} />
+                </div>
+              ))}
+            </div>
+          ) : depositsList.length === 0 ? (
+            <p className={`rounded-xl px-4 py-6 text-center ${isDark ? "bg-gray-900/50 text-gray-400" : "bg-gray-50 text-gray-600"}`}>
               {t("wallet.noDeposits")}
             </p>
           ) : (
@@ -196,28 +264,43 @@ export const Wallet = (): JSX.Element => {
                 return (
                   <div
                     key={deposit.id}
-                    className={`flex items-center justify-between p-4 rounded-lg border ${
-                      isDark ? "border-gray-700 bg-gray-700/30" : "border-gray-200"
+                    className={`flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 p-4 rounded-xl border transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${statusInfo.accent} ${
+                      isDark ? "border-gray-700 bg-gray-700/30 hover:bg-gray-700/40" : "border-gray-200 bg-white"
                     }`}
                   >
-                    <div>
+                    <div className="space-y-2">
                       <p className={`font-bold text-lg ${isDark ? "text-white" : "text-gray-800"}`}>
                         ${Number(deposit.amount).toFixed(2)}
                       </p>
                       <p className={`text-sm ${isDark ? "text-gray-400" : "text-gray-600"}`}>
                         {new Date(deposit.createdAt).toLocaleDateString(getDateLocale())} — {new Date(deposit.createdAt).toLocaleTimeString(getDateLocale())}
                       </p>
+
                       {(deposit.methodType || deposit.methodBank || deposit.methodAccount) && (
-                        <p className={`text-xs mt-1 ${isDark ? "text-gray-500" : "text-gray-500"}`}>
-                          💳 {getTypeInfo(deposit.methodType || "other").label}
-                          {deposit.methodBank ? ` — ${deposit.methodBank}` : ""}
-                          {deposit.methodAccount ? ` (${deposit.methodAccount})` : ""}
-                        </p>
+                        <div className="flex flex-wrap items-center gap-1.5 text-xs">
+                          <span className={`px-2.5 py-1 rounded-full ${isDark ? "bg-gray-600/70 text-gray-200" : "bg-gray-100 text-gray-700"}`}>
+                            💳 {getTypeInfo(deposit.methodType || "other").label}
+                          </span>
+                          {deposit.methodBank && (
+                            <span className={`px-2.5 py-1 rounded-full ${isDark ? "bg-gray-700 text-gray-300" : "bg-slate-100 text-slate-700"}`}>
+                              {deposit.methodBank}
+                            </span>
+                          )}
+                          {deposit.methodAccount && (
+                            <span className={`px-2.5 py-1 rounded-full font-mono ${isDark ? "bg-gray-700 text-gray-300" : "bg-slate-100 text-slate-700"}`}>
+                              {deposit.methodAccount}
+                            </span>
+                          )}
+                        </div>
                       )}
+
                       {deposit.transactionId && (
-                        <p className={`text-xs mt-1 ${isDark ? "text-gray-500" : "text-gray-500"}`}>
-                          {t("wallet.transactionNumber")} <span className="font-mono">{deposit.transactionId}</span>
-                        </p>
+                        <div className="text-xs">
+                          <span className={isDark ? "text-gray-400" : "text-gray-600"}>{t("wallet.transactionNumber")}</span>{" "}
+                          <span className={`font-mono px-2 py-0.5 rounded ${isDark ? "bg-gray-700 text-gray-200" : "bg-gray-100 text-gray-800"}`}>
+                            {deposit.transactionId}
+                          </span>
+                        </div>
                       )}
                       {deposit.receiptUrl && (
                         <a
@@ -240,7 +323,17 @@ export const Wallet = (): JSX.Element => {
                         </p>
                       )}
                     </div>
-                    <span className={`px-3 py-1 rounded-full text-xs font-bold ${statusInfo.bg} ${statusInfo.color}`}>
+                    <span
+                      className={`self-start sm:self-auto px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap ${
+                        isDark
+                          ? deposit.status === "pending"
+                            ? "bg-amber-900/50 text-amber-200"
+                            : deposit.status === "completed"
+                            ? "bg-emerald-900/50 text-emerald-200"
+                            : "bg-rose-900/50 text-rose-200"
+                          : `${statusInfo.bg} ${statusInfo.color}`
+                      }`}
+                    >
                       {statusInfo.label}
                     </span>
                   </div>
@@ -253,14 +346,42 @@ export const Wallet = (): JSX.Element => {
 
       {/* Deposit Modal */}
       {showDeposit && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className={`${isDark ? "bg-gray-800" : "bg-white"} rounded-2xl p-8 max-w-lg w-full max-h-[90vh] overflow-y-auto`}>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-[2px] flex items-center justify-center p-3 sm:p-4 z-50">
+          <div className={`${isDark ? "bg-gray-800 border border-gray-700" : "bg-white border border-gray-200"} rounded-3xl p-5 sm:p-7 max-w-xl w-full max-h-[90vh] overflow-y-auto shadow-2xl`}>
+            <div className="mb-6">
+              <div className="flex items-center gap-2">
+                <span
+                  className={`h-7 w-7 rounded-full text-xs font-extrabold flex items-center justify-center ${
+                    currentStepIndex >= 1
+                      ? "bg-blue-500 text-white"
+                      : isDark
+                      ? "bg-gray-700 text-gray-300"
+                      : "bg-gray-200 text-gray-600"
+                  }`}
+                >
+                  1
+                </span>
+                <span className={`h-1 flex-1 rounded-full ${currentStepIndex >= 2 ? "bg-blue-500" : isDark ? "bg-gray-700" : "bg-gray-200"}`} />
+                <span
+                  className={`h-7 w-7 rounded-full text-xs font-extrabold flex items-center justify-center ${
+                    currentStepIndex >= 2
+                      ? "bg-blue-500 text-white"
+                      : isDark
+                      ? "bg-gray-700 text-gray-300"
+                      : "bg-gray-200 text-gray-600"
+                  }`}
+                >
+                  2
+                </span>
+              </div>
+            </div>
+
             {step === "select" && (
               <>
-                <h2 className={`text-2xl font-bold mb-2 ${isDark ? "text-white" : "text-gray-800"}`}>
+                <h2 className={`text-2xl font-extrabold mb-2 ${isDark ? "text-white" : "text-gray-800"}`}>
                   {t("wallet.depositFunds")}
                 </h2>
-                <p className={`text-sm mb-6 ${isDark ? "text-gray-400" : "text-gray-600"}`}>
+                <p className={`text-sm mb-5 ${isDark ? "text-gray-400" : "text-gray-600"}`}>
                   {t("wallet.selectPaymentMethod")}
                 </p>
 
@@ -272,9 +393,9 @@ export const Wallet = (): JSX.Element => {
                       <button
                         key={method.id}
                         onClick={() => setSelectedMethod(method)}
-                        className={`w-full text-right p-4 rounded-xl border-2 transition-all ${
+                        className={`w-full text-right p-4 rounded-2xl border-2 transition-all ${
                           isSelected
-                            ? "border-blue-500 bg-blue-50 dark:bg-blue-900/30"
+                            ? "border-blue-500 bg-blue-50 dark:bg-blue-900/30 shadow-sm"
                             : isDark
                             ? "border-gray-700 hover:border-gray-500"
                             : "border-gray-200 hover:border-gray-400"
@@ -300,21 +421,28 @@ export const Wallet = (): JSX.Element => {
                   })}
                 </div>
 
-                {paymentMethods.length === 0 && (
+                {!isPaymentMethodsLoading && paymentMethods.length === 0 && (
                   <p className="text-center text-gray-500 py-4">{t("wallet.noPaymentMethods")}</p>
                 )}
 
-                <div className="flex gap-4">
+                {isPaymentMethodsLoading && (
+                  <div className="space-y-2 py-2">
+                    <div className={`h-14 rounded-xl animate-pulse ${isDark ? "bg-gray-700" : "bg-gray-100"}`} />
+                    <div className={`h-14 rounded-xl animate-pulse ${isDark ? "bg-gray-700" : "bg-gray-100"}`} />
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   <button
                     onClick={() => selectedMethod && setStep("confirm")}
                     disabled={!selectedMethod}
-                    className="flex-1 px-4 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-bold disabled:opacity-50"
+                    className="px-4 py-3.5 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-bold disabled:opacity-50"
                   >
                     {t("common.next")}
                   </button>
                   <button
                     onClick={resetDeposit}
-                    className={`flex-1 px-4 py-3 rounded-lg font-bold ${isDark ? "bg-gray-600 hover:bg-gray-500 text-gray-200" : "bg-gray-400 hover:bg-gray-500 text-white"}`}
+                    className={`px-4 py-3.5 rounded-xl font-bold ${isDark ? "bg-gray-600 hover:bg-gray-500 text-gray-200" : "bg-gray-400 hover:bg-gray-500 text-white"}`}
                   >
                     {t("common.cancel")}
                   </button>
@@ -324,7 +452,7 @@ export const Wallet = (): JSX.Element => {
 
             {step === "confirm" && selectedMethod && (
               <>
-                <h2 className={`text-2xl font-bold mb-2 ${isDark ? "text-white" : "text-gray-800"}`}>
+                <h2 className={`text-2xl font-extrabold mb-2 ${isDark ? "text-white" : "text-gray-800"}`}>
                   {t("wallet.confirmDeposit")}
                 </h2>
                 <p className={`text-sm mb-4 ${isDark ? "text-gray-400" : "text-gray-600"}`}>
@@ -336,7 +464,7 @@ export const Wallet = (): JSX.Element => {
                 </p>
 
                 {/* Payment details card */}
-                <div className={`p-4 rounded-xl mb-6 ${isDark ? "bg-blue-900/30 border border-blue-800" : "bg-blue-50 border border-blue-200"}`}>
+                <div className={`p-4 rounded-2xl mb-6 shadow-sm ${isDark ? "bg-blue-900/30 border border-blue-800" : "bg-blue-50 border border-blue-200"}`}>
                   <p className="font-bold text-lg mb-2">
                     {getTypeInfo(selectedMethod.type).emoji} {getTypeInfo(selectedMethod.type).label}
                   </p>
@@ -368,8 +496,8 @@ export const Wallet = (): JSX.Element => {
                       value={depositAmount}
                       onChange={(e) => setDepositAmount(e.target.value)}
                       placeholder={t('wallet.amountPlaceholder')}
-                      className={`w-full px-4 py-3 border-2 rounded-lg text-lg font-bold ${
-                        isDark ? "bg-gray-700 border-gray-600 text-white" : "border-gray-300"
+                      className={`w-full px-4 py-3 border-2 rounded-xl text-lg font-bold focus:outline-none focus:ring-2 focus:ring-blue-500/40 ${
+                        isDark ? "bg-gray-700 border-gray-600 text-white" : "border-gray-300 bg-white"
                       }`}
                     />
                   </div>
@@ -383,8 +511,8 @@ export const Wallet = (): JSX.Element => {
                       value={depositTransactionId}
                       onChange={(e) => setDepositTransactionId(e.target.value)}
                       placeholder={t('wallet.transactionIdPlaceholder')}
-                      className={`w-full px-4 py-3 border-2 rounded-lg ${
-                        isDark ? "bg-gray-700 border-gray-600 text-white" : "border-gray-300"
+                      className={`w-full px-4 py-3 border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/40 ${
+                        isDark ? "bg-gray-700 border-gray-600 text-white" : "border-gray-300 bg-white"
                       }`}
                     />
                   </div>
@@ -398,8 +526,8 @@ export const Wallet = (): JSX.Element => {
                       value={depositReceiptUrl}
                       onChange={(e) => setDepositReceiptUrl(e.target.value)}
                       placeholder="https://..."
-                      className={`w-full px-4 py-3 border-2 rounded-lg ${
-                        isDark ? "bg-gray-700 border-gray-600 text-white" : "border-gray-300"
+                      className={`w-full px-4 py-3 border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/40 ${
+                        isDark ? "bg-gray-700 border-gray-600 text-white" : "border-gray-300 bg-white"
                       }`}
                     />
                   </div>
@@ -413,14 +541,14 @@ export const Wallet = (): JSX.Element => {
                       onChange={(e) => setDepositNotes(e.target.value)}
                       placeholder={t("wallet.notesPlaceholder")}
                       rows={2}
-                      className={`w-full px-3 py-2 border-2 rounded-lg ${
-                        isDark ? "bg-gray-700 border-gray-600 text-white" : "border-gray-300"
+                      className={`w-full px-3 py-2.5 border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/40 ${
+                        isDark ? "bg-gray-700 border-gray-600 text-white" : "border-gray-300 bg-white"
                       }`}
                     />
                   </div>
                 </div>
 
-                <div className="flex gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <button
                     onClick={() => depositMutation.mutate()}
                     disabled={
@@ -429,19 +557,19 @@ export const Wallet = (): JSX.Element => {
                       parseFloat(depositAmount) <= 0 ||
                       !depositTransactionId.trim()
                     }
-                    className="flex-1 px-4 py-3 bg-green-500 hover:bg-green-600 text-white rounded-lg font-bold text-lg disabled:opacity-50"
+                    className="sm:col-span-2 px-4 py-3.5 bg-green-500 hover:bg-green-600 text-white rounded-xl font-bold text-lg disabled:opacity-50"
                   >
                     {depositMutation.isPending ? t('wallet.submitting') : t('wallet.submitDeposit')}
                   </button>
                   <button
                     onClick={() => setStep("select")}
-                    className={`px-4 py-3 rounded-lg font-bold ${isDark ? "bg-gray-600 hover:bg-gray-500 text-gray-200" : "bg-gray-300 hover:bg-gray-400 text-gray-800"}`}
+                    className={`px-4 py-3.5 rounded-xl font-bold ${isDark ? "bg-gray-600 hover:bg-gray-500 text-gray-200" : "bg-gray-300 hover:bg-gray-400 text-gray-800"}`}
                   >
                     {t("common.back")}
                   </button>
                   <button
                     onClick={resetDeposit}
-                    className="px-4 py-3 bg-red-400 hover:bg-red-500 text-white rounded-lg font-bold"
+                    className="px-4 py-3.5 bg-red-400 hover:bg-red-500 text-white rounded-xl font-bold"
                   >
                     {t("common.cancel")}
                   </button>

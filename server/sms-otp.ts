@@ -348,7 +348,7 @@ class SMSOTPService {
     purpose: string = "Verification",
     expiryMinutes: number = 5
   ): Promise<SendOTPResult> {
-    const message = `Your ${purpose.toLowerCase()} code is: ${code}. It expires in ${expiryMinutes} minutes. Do not share this code.`;
+    const message = `Classify: ${purpose} code ${code}. Valid for ${expiryMinutes} min. Never share it. | كود Classify: ${code} صالح ${expiryMinutes} دقائق. لا تشاركه.`;
 
     return this.sendSMS({
       to: phoneNumber,

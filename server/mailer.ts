@@ -13,11 +13,11 @@ async function getCredentials() {
   }
 
   const hostname = process.env.REPLIT_CONNECTORS_HOSTNAME;
-  const xReplitToken = process.env.REPL_IDENTITY 
-    ? 'repl ' + process.env.REPL_IDENTITY 
-    : process.env.WEB_REPL_RENEWAL 
-    ? 'depl ' + process.env.WEB_REPL_RENEWAL 
-    : null;
+  const xReplitToken = process.env.REPL_IDENTITY
+    ? 'repl ' + process.env.REPL_IDENTITY
+    : process.env.WEB_REPL_RENEWAL
+      ? 'depl ' + process.env.WEB_REPL_RENEWAL
+      : null;
 
   if (!xReplitToken) {
     console.warn('⚠️ Resend: X_REPLIT_TOKEN not found');
@@ -40,7 +40,7 @@ async function getCredentials() {
       return null;
     }
     return {
-      apiKey: connectionSettings.settings.api_key, 
+      apiKey: connectionSettings.settings.api_key,
       fromEmail: connectionSettings.settings.from_email || 'onboarding@resend.dev'
     };
   } catch (error: any) {
@@ -52,7 +52,7 @@ async function getCredentials() {
 async function getResendClient() {
   const credentials = await getCredentials();
   if (!credentials) return null;
-  
+
   return {
     client: new Resend(credentials.apiKey),
     fromEmail: credentials.fromEmail
@@ -80,35 +80,79 @@ function getSmtpTransport() {
   return smtpTransport;
 }
 
+function formatFromAddress(address: string, displayName = "Classify Security") {
+  // Keep pre-formatted sender values intact (e.g., "Name <mail@domain>").
+  if (address.includes("<") && address.includes(">")) return address;
+  return `${displayName} <${address}>`;
+}
+
 export async function sendOtpEmail(to: string, code: string, purpose = "Verification", expiryMinutes = 5) {
-  const subject = `Classify - ${purpose} Code`;
+  const subject =
+    purpose === "Login"
+      ? "Classify Security | Login verification"
+      : purpose === "Password Reset"
+        ? "Classify Security | Password reset verification"
+        : "Classify Security | Account verification";
+  const purposeLabel =
+    purpose === "Login"
+      ? "تسجيل الدخول / Sign in"
+      : purpose === "Password Reset"
+        ? "إعادة تعيين كلمة المرور / Password reset"
+        : "التحقق من الهوية / Verification";
   const html = `
-    <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; direction: rtl;">
-      <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 16px; padding: 40px; text-align: center;">
-        <h1 style="color: white; margin: 0 0 10px 0; font-size: 28px;">Classify</h1>
-        <p style="color: rgba(255,255,255,0.9); margin: 0; font-size: 16px;">تطبيق التربية الذكية</p>
+    <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 620px; margin: 0 auto; padding: 32px 16px; background: #f4f7ff;">
+      <div style="background: linear-gradient(135deg, #2563eb 0%, #4f46e5 100%); border-radius: 18px; padding: 28px 24px; text-align: center; color: #fff;">
+        <h1 style="margin: 0 0 6px 0; font-size: 30px; letter-spacing: 0.5px;">Classify</h1>
+        <p style="margin: 0; font-size: 15px; opacity: 0.95;">Parenting made smarter | تربية ذكية بثقة</p>
       </div>
-      
-      <div style="background: white; border-radius: 16px; padding: 40px; margin-top: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.1);">
-        <h2 style="color: #333; text-align: center; margin: 0 0 20px 0;">رمز التحقق الخاص بك</h2>
-        <p style="color: #666; text-align: center; margin: 0 0 30px 0;">استخدم هذا الرمز لإتمام عملية ${purpose === 'Login' ? 'تسجيل الدخول' : purpose === 'Password Reset' ? 'إعادة تعيين كلمة المرور' : 'التحقق'}</p>
-        
-        <div style="background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ed 100%); border-radius: 12px; padding: 30px; text-align: center; margin: 0 0 30px 0;">
-          <span style="font-size: 40px; font-weight: bold; letter-spacing: 12px; color: #667eea; font-family: monospace;">${code}</span>
+
+      <div style="background: white; border: 1px solid #e5e7eb; border-radius: 18px; padding: 30px 24px; margin-top: 16px; box-shadow: 0 8px 30px rgba(37, 99, 235, 0.12);">
+        <p style="margin: 0 0 12px 0; text-align: center; color: #4b5563; font-size: 14px;">${purposeLabel}</p>
+        <h2 style="color: #111827; text-align: center; margin: 0 0 14px 0; font-size: 24px;">رمز التحقق الخاص بك | Your verification code</h2>
+        <p style="color: #6b7280; text-align: center; margin: 0 0 22px 0; line-height: 1.7;">
+          أدخل الرمز التالي لإكمال العملية بأمان.<br />
+          Enter the code below to securely complete your request.
+        </p>
+
+        <div style="background: #eef2ff; border: 1px dashed #818cf8; border-radius: 14px; padding: 20px; text-align: center; margin: 0 0 22px 0;">
+          <span style="font-size: 38px; font-weight: 700; letter-spacing: 10px; color: #3730a3; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;">${code}</span>
         </div>
-        
-        <p style="color: #999; text-align: center; font-size: 14px; margin: 0;">
-          ⏰ هذا الرمز صالح لمدة ${expiryMinutes} دقائق فقط
+
+        <p style="color: #6b7280; text-align: center; font-size: 14px; margin: 0; line-height: 1.7;">
+          صالح لمدة ${expiryMinutes} دقائق فقط.<br />
+          Valid for ${expiryMinutes} minutes only.
         </p>
       </div>
-      
-      <p style="color: #999; text-align: center; font-size: 12px; margin-top: 30px;">
-        إذا لم تطلب هذا الرمز، يرجى تجاهل هذا البريد الإلكتروني.
+
+      <div style="background: #fff; border: 1px solid #f3f4f6; border-radius: 14px; padding: 16px; margin-top: 14px;">
+        <p style="margin: 0; color: #6b7280; text-align: center; font-size: 12px; line-height: 1.8;">
+          لا تشارك هذا الرمز مع أي شخص. فريق Classify لن يطلب منك هذا الرمز.<br />
+          Never share this code with anyone. Classify support will never ask for it.
+        </p>
+      </div>
+
+      <p style="color: #9ca3af; text-align: center; font-size: 12px; margin: 18px 0 0 0;">
+        إذا لم تطلب هذا الرمز، تجاهل هذه الرسالة. | If this wasn't you, you can safely ignore this message.
       </p>
     </div>
   `;
 
-  return sendMail({ to, subject, html });
+  const text = [
+    "Classify Security",
+    "Secure verification message | رسالة تحقق آمنة",
+    "",
+    `Request type / نوع العملية: ${purposeLabel}`,
+    `Your verification code / رمز التحقق الخاص بك: ${code}`,
+    `This code expires in ${expiryMinutes} minutes / تنتهي صلاحية الرمز خلال ${expiryMinutes} دقائق.`,
+    "",
+    "For your safety, do not share this code with anyone.",
+    "لحمايتك، لا تشارك هذا الرمز مع أي شخص.",
+    "",
+    "If this request wasn't made by you, you can safely ignore this message.",
+    "إذا لم يكن هذا الطلب منك، يمكنك تجاهل هذه الرسالة بأمان.",
+  ].join("\n");
+
+  return sendMail({ to, subject, html, text });
 }
 
 export async function sendMail(opts: { to: string; subject: string; text?: string; html?: string }) {
@@ -116,10 +160,11 @@ export async function sendMail(opts: { to: string; subject: string; text?: strin
   if (resend) {
     try {
       const { data, error } = await resend.client.emails.send({
-        from: resend.fromEmail,
+        from: formatFromAddress(resend.fromEmail),
         to: [opts.to],
         subject: opts.subject,
         html: opts.html || opts.text || '',
+        text: opts.text,
       });
 
       if (error) {
@@ -146,7 +191,7 @@ export async function sendMail(opts: { to: string; subject: string; text?: strin
   try {
     const from = process.env.SMTP_FROM || process.env.SMTP_USER || "no-reply@classify.app";
     const info = await transport.sendMail({
-      from,
+      from: formatFromAddress(from),
       to: opts.to,
       subject: opts.subject,
       html: opts.html || opts.text || '',
@@ -162,22 +207,31 @@ export async function sendMail(opts: { to: string; subject: string; text?: strin
 
 export async function sendNotificationEmail(to: string, title: string, message: string) {
   const html = `
-    <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; direction: rtl;">
-      <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 16px; padding: 30px; text-align: center;">
-        <h1 style="color: white; margin: 0; font-size: 24px;">🔔 ${title}</h1>
+    <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 620px; margin: 0 auto; padding: 32px 16px; background: #f8fafc;">
+      <div style="background: linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%); border-radius: 18px; padding: 24px; text-align: center; color: #fff;">
+        <h1 style="margin: 0 0 6px 0; font-size: 24px;">🔔 ${title}</h1>
+        <p style="margin: 0; opacity: 0.95; font-size: 14px;">Classify Notifications</p>
       </div>
-      
-      <div style="background: white; border-radius: 16px; padding: 30px; margin-top: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.1);">
-        <p style="color: #333; font-size: 16px; line-height: 1.8; margin: 0;">${message}</p>
+
+      <div style="background: #fff; border: 1px solid #e5e7eb; border-radius: 18px; padding: 24px; margin-top: 16px; box-shadow: 0 8px 24px rgba(14, 165, 233, 0.12);">
+        <p style="color: #1f2937; font-size: 16px; line-height: 1.8; margin: 0;">${message}</p>
       </div>
-      
-      <p style="color: #999; text-align: center; font-size: 12px; margin-top: 20px;">
-        Classify - تطبيق التربية الذكية
+
+      <p style="color: #94a3b8; text-align: center; font-size: 12px; margin-top: 16px;">
+        Classify | Parenting made smarter
       </p>
     </div>
   `;
 
-  return sendMail({ to, subject: `Classify - ${title}`, html });
+  const text = [
+    `Classify Notification: ${title}`,
+    "",
+    message,
+    "",
+    "Classify | Parenting made smarter",
+  ].join("\n");
+
+  return sendMail({ to, subject: `Classify - ${title}`, html, text });
 }
 
 export default { sendOtpEmail, sendMail, sendNotificationEmail };
