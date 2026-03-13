@@ -498,9 +498,9 @@ export default function ParentProfile() {
   ];
 
   return (
-    <div className={`min-h-screen pb-24 ${isDark ? "bg-gray-950 text-white" : "bg-gray-50 text-gray-900"}`} dir={isRTL ? "rtl" : "ltr"}>
+    <div className={`min-h-screen pb-24 ${isDark ? "bg-gradient-to-b from-slate-950 via-gray-950 to-slate-900 text-white" : "bg-gradient-to-br from-sky-50 via-white to-indigo-50 text-gray-900"}`} dir={isRTL ? "rtl" : "ltr"}>
       {/* Sticky Header */}
-      <div className={`sticky top-0 z-40 px-4 py-3 flex items-center gap-3 border-b ${isDark ? "bg-gray-900/95 border-gray-800" : "bg-white/95 border-gray-200"} backdrop-blur-md`}>
+      <div className={`sticky top-0 z-40 px-4 py-3 flex items-center gap-3 border-b ${isDark ? "bg-slate-900/90 border-slate-800" : "bg-white/85 border-indigo-100"} backdrop-blur-xl shadow-sm`}>
         <Button variant="ghost" size="icon" onClick={() => window.history.length > 1 ? window.history.back() : navigate("/parent-dashboard")}>
           {isRTL ? <ArrowRight className="h-5 w-5" /> : <ArrowLeft className="h-5 w-5" />}
         </Button>
@@ -510,9 +510,9 @@ export default function ParentProfile() {
       </div>
 
       {/* ======= COVER + AVATAR SECTION ======= */}
-      <div className="relative">
+      <div className="relative max-w-3xl mx-auto">
         {/* Cover Image */}
-        <div className={`h-44 sm:h-52 relative overflow-hidden ${isDark ? "bg-gradient-to-br from-blue-900 via-indigo-900 to-purple-900" : "bg-gradient-to-br from-blue-400 via-indigo-500 to-purple-500"}`}>
+        <div className={`h-44 sm:h-56 relative overflow-hidden rounded-b-3xl ring-1 ${isDark ? "bg-gradient-to-br from-blue-900 via-indigo-900 to-purple-900 ring-slate-800" : "bg-gradient-to-br from-sky-400 via-indigo-500 to-blue-600 ring-white/70"}`}>
           {parent?.coverImageUrl && !coverLoadError && (
             <img
               key={`cover-${imageVersion}`}
@@ -525,7 +525,7 @@ export default function ParentProfile() {
           <button
             onClick={() => coverInputRef.current?.click()}
             disabled={coverUploading}
-            className="absolute top-3 end-3 z-20 bg-black/50 hover:bg-black/70 text-white rounded-full px-3 py-1.5 text-xs flex items-center gap-1.5 transition-all backdrop-blur-sm shadow-lg"
+            className="absolute top-3 end-3 z-20 bg-black/45 hover:bg-black/65 text-white rounded-full px-3 py-1.5 text-xs flex items-center gap-1.5 transition-all backdrop-blur-sm shadow-lg"
           >
             {coverUploading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Camera className="h-3.5 w-3.5" />}
             {t("pp.changeCover")}
@@ -536,7 +536,7 @@ export default function ParentProfile() {
         {/* Avatar + Info */}
         <div className="px-4 -mt-14 relative z-40">
           <div className="flex items-end gap-3">
-            <div className={`relative h-24 w-24 rounded-full border-4 shadow-xl flex items-center justify-center text-3xl font-bold ${isDark ? "bg-gray-800 border-gray-900 text-blue-400" : "bg-white border-white text-blue-600"}`}>
+            <div className={`relative h-24 w-24 rounded-full border-4 shadow-2xl flex items-center justify-center text-3xl font-bold ${isDark ? "bg-slate-800 border-slate-900 text-blue-400" : "bg-white border-white text-blue-600"}`}>
               {parent?.avatarUrl && !avatarLoadError ? (
                 <img
                   key={`avatar-${imageVersion}`}
@@ -550,7 +550,7 @@ export default function ParentProfile() {
               <button
                 onClick={() => avatarInputRef.current?.click()}
                 disabled={avatarUploading}
-                className="absolute -bottom-1 -end-1 w-8 h-8 bg-blue-600 hover:bg-blue-700 text-white rounded-full flex items-center justify-center shadow-lg transition-all"
+                className="absolute -bottom-1 -end-1 w-8 h-8 bg-gradient-to-br from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-full flex items-center justify-center shadow-lg transition-all"
               >
                 {avatarUploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Camera className="h-3.5 w-3.5" />}
               </button>
@@ -601,14 +601,14 @@ export default function ParentProfile() {
         )}
 
         {/* Stats Row */}
-        <div className="grid grid-cols-4 gap-2 px-4 mt-4">
+        <div className="grid grid-cols-4 gap-2 px-4 mt-4 max-w-3xl mx-auto">
           {[
             { label: t("pp.stats.children"), value: stats?.children || 0, icon: Users, color: "text-blue-500", bg: isDark ? "bg-blue-900/20" : "bg-blue-50" },
             { label: t("pp.stats.library"), value: stats?.libraryTasks || 0, icon: BookOpen, color: "text-green-500", bg: isDark ? "bg-green-900/20" : "bg-green-50" },
             { label: t("pp.stats.favorites"), value: stats?.favorites || 0, icon: Heart, color: "text-pink-500", bg: isDark ? "bg-pink-900/20" : "bg-pink-50" },
             { label: t("pp.stats.following"), value: stats?.following || 0, icon: Star, color: "text-amber-500", bg: isDark ? "bg-amber-900/20" : "bg-amber-50" },
           ].map((s, i) => (
-            <div key={i} className={`text-center p-2.5 rounded-xl border ${s.bg} ${isDark ? "border-gray-800" : "border-gray-100"}`}>
+            <div key={i} className={`text-center p-2.5 rounded-2xl border shadow-sm ${s.bg} ${isDark ? "border-slate-800" : "border-white"}`}>
               <s.icon className={`h-4 w-4 mx-auto mb-1 ${s.color}`} />
               <p className="text-lg font-bold">{s.value}</p>
               <p className={`text-[10px] ${isDark ? "text-gray-500" : "text-gray-400"}`}>{s.label}</p>
@@ -618,16 +618,16 @@ export default function ParentProfile() {
       </div>
 
       {/* ======= TAB BAR ======= */}
-      <div className={`sticky top-[53px] z-30 mt-4 px-4 border-b ${isDark ? "bg-gray-950 border-gray-800" : "bg-gray-50 border-gray-200"}`}>
+      <div className={`sticky top-[53px] z-30 mt-4 px-4 border-b ${isDark ? "bg-slate-950/95 border-slate-800" : "bg-transparent border-transparent"} backdrop-blur-sm`}>
         <div className="flex gap-1 overflow-x-auto hide-scrollbar pb-0.5">
           {tabs.map(tab => (
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
-              className={`flex items-center gap-1.5 px-3 py-2.5 text-xs font-medium whitespace-nowrap border-b-2 transition-all ${
+              className={`flex items-center gap-1.5 px-3 py-2.5 text-xs font-semibold whitespace-nowrap border-b-2 transition-all rounded-t-xl ${
                 activeTab === tab.key
-                  ? "border-blue-500 text-blue-600 dark:text-blue-400"
-                  : `border-transparent ${isDark ? "text-gray-500 hover:text-gray-300" : "text-gray-400 hover:text-gray-600"}`
+                  ? "border-blue-500 text-blue-600 dark:text-blue-400 bg-white dark:bg-slate-900 shadow-sm"
+                  : `border-transparent ${isDark ? "text-gray-500 hover:text-gray-300" : "text-gray-500 hover:text-gray-700"}`
               }`}
             >
               <tab.icon className="w-3.5 h-3.5" />
@@ -638,7 +638,7 @@ export default function ParentProfile() {
       </div>
 
       {/* ======= TAB CONTENT ======= */}
-      <main className="px-4 mt-4 max-w-2xl mx-auto">
+      <main className="px-4 mt-4 max-w-3xl mx-auto">
         <AnimatePresence mode="wait">
           {/* ========== POSTS TAB ========== */}
           {activeTab === "posts" && (

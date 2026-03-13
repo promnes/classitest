@@ -712,23 +712,23 @@ export default function ChildProfile() {
 
   // ======= RENDER =======
   return (
-    <div className={`min-h-screen pb-24 ${isDark ? "bg-gray-900" : "bg-gradient-to-br from-violet-50 via-purple-50 to-fuchsia-50"}`} dir={isRTL ? "rtl" : "ltr"}>
+    <div className={`min-h-screen pb-24 ${isDark ? "bg-gradient-to-b from-slate-950 via-gray-950 to-slate-900" : "bg-gradient-to-br from-fuchsia-50 via-white to-violet-50"}`} dir={isRTL ? "rtl" : "ltr"}>
       {/* ===== COVER & AVATAR HERO ===== */}
-      <div className="relative">
+      <div className="relative max-w-3xl mx-auto">
         {/* Cover Image */}
-        <div className="h-44 sm:h-56 relative overflow-hidden">
+        <div className="h-44 sm:h-56 relative overflow-hidden rounded-b-3xl ring-1 ring-white/60 dark:ring-slate-800">
           {currentCover ? (
             <img src={currentCover} alt="cover" className="w-full h-full object-cover" />
           ) : (
-            <div className="w-full h-full bg-gradient-to-br from-violet-500 via-purple-600 to-fuchsia-600" />
+              <div className="w-full h-full bg-gradient-to-br from-violet-500 via-purple-600 to-fuchsia-600" />
           )}
-          <div className="absolute inset-0 bg-black/20" />
+          <div className="absolute inset-0 bg-black/25" />
 
           {/* Cover upload button */}
           <button
             onClick={() => coverInputRef.current?.click()}
             disabled={isUploadingCover}
-            className="absolute top-3 end-3 p-2 bg-black/40 hover:bg-black/60 text-white rounded-xl backdrop-blur-sm transition-all"
+            className="absolute top-3 end-3 p-2 bg-black/40 hover:bg-black/60 text-white rounded-xl backdrop-blur-sm transition-all shadow-lg"
           >
             {isUploadingCover ? <Loader2 className="w-4 h-4 animate-spin" /> : <ImagePlus className="w-4 h-4" />}
           </button>
@@ -738,7 +738,7 @@ export default function ChildProfile() {
           {/* Back button */}
           <button
             onClick={() => window.history.length > 1 ? window.history.back() : navigate("/child-games")}
-            className="absolute top-3 start-3 p-2 bg-black/40 hover:bg-black/60 text-white rounded-xl backdrop-blur-sm"
+            className="absolute top-3 start-3 p-2 bg-black/40 hover:bg-black/60 text-white rounded-xl backdrop-blur-sm shadow-lg"
           >
             {isRTL ? <ArrowRight className="w-5 h-5" /> : <ArrowLeft className="w-5 h-5" />}
           </button>
@@ -746,7 +746,7 @@ export default function ChildProfile() {
           {/* Share button */}
           <button
             onClick={handleShareProfile}
-            className="absolute top-3 end-14 p-2 bg-black/40 hover:bg-black/60 text-white rounded-xl backdrop-blur-sm"
+            className="absolute top-3 end-14 p-2 bg-black/40 hover:bg-black/60 text-white rounded-xl backdrop-blur-sm shadow-lg"
           >
             <Share2 className="w-4 h-4" />
           </button>
@@ -818,7 +818,7 @@ export default function ChildProfile() {
       </div>
 
       {/* ===== TAB BAR ===== */}
-      <div className={`sticky top-0 z-40 px-4 py-2 ${isDark ? "bg-gray-900/95" : "bg-white/95"} backdrop-blur-sm border-b ${isDark ? "border-gray-800" : "border-gray-200"}`}>
+      <div className={`sticky top-0 z-40 px-4 py-2 ${isDark ? "bg-slate-900/90" : "bg-white/85"} backdrop-blur-xl border-b ${isDark ? "border-slate-800" : "border-violet-100"} shadow-sm`}>
         <div className="flex gap-1 max-w-2xl mx-auto">
           {([
             { key: "showcase" as TabType, icon: Trophy, label: t("childProfile.tabs.showcase") },
@@ -833,8 +833,8 @@ export default function ChildProfile() {
               onClick={() => setActiveTab(tab.key)}
               className={`relative flex-1 flex flex-col items-center gap-0.5 py-2 px-1 rounded-xl text-xs font-medium transition-all ${
                 activeTab === tab.key
-                  ? isDark ? "bg-purple-900/40 text-purple-400" : "bg-purple-100 text-purple-700"
-                  : isDark ? "text-gray-500 hover:text-gray-300" : "text-gray-400 hover:text-gray-600"
+                  ? isDark ? "bg-purple-900/40 text-purple-300 ring-1 ring-purple-700/40" : "bg-purple-100 text-purple-700 ring-1 ring-purple-200"
+                  : isDark ? "text-gray-500 hover:text-gray-300" : "text-gray-500 hover:text-gray-700"
               }`}
             >
               <tab.icon className="w-4 h-4" />
@@ -850,7 +850,7 @@ export default function ChildProfile() {
       </div>
 
       {/* ===== TAB CONTENT ===== */}
-      <main className="max-w-2xl mx-auto px-4 py-4 space-y-4">
+      <main className="max-w-3xl mx-auto px-4 py-4 space-y-4">
         <AnimatePresence mode="wait">
           {/* ========== SHOWCASE TAB ========== */}
           {activeTab === "showcase" && (

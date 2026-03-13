@@ -42,6 +42,7 @@ export default function TeacherProfile() {
   const [showAssignmentModal, setShowAssignmentModal] = useState(false);
   const [selectedChildIds, setSelectedChildIds] = useState<string[]>([]);
   const [monthlyPoints, setMonthlyPoints] = useState("");
+  const [perHelpPoints, setPerHelpPoints] = useState("");
   const [activeTab, setActiveTab] = useState("tasks");
   const [showMiniHeader, setShowMiniHeader] = useState(false);
 
@@ -221,9 +222,10 @@ export default function TeacherProfile() {
           Authorization: `Bearer ${parentToken}`,
         },
         body: JSON.stringify({
-          teacherId: Number(teacherId),
-          childIds: selectedChildIds.map(Number),
+          teacherId,
+          childIds: selectedChildIds,
           monthlyPoints: Number(monthlyPoints),
+          perHelpPoints: Number(perHelpPoints),
         }),
       });
       if (!res.ok) {
@@ -236,6 +238,7 @@ export default function TeacherProfile() {
       setShowAssignmentModal(false);
       setSelectedChildIds([]);
       setMonthlyPoints("");
+      setPerHelpPoints("");
       toast({ title: "تم إرسال طلب التعيين بنجاح ✅" });
     },
     onError: (err: any) => toast({ title: err.message, variant: "destructive" }),
@@ -368,9 +371,9 @@ export default function TeacherProfile() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 relative" dir="rtl">
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-indigo-50 dark:from-slate-950 dark:via-gray-950 dark:to-slate-900 relative" dir="rtl">
       {/* Mobile-first top bar with explicit back navigation */}
-      <div className="sticky top-0 z-40 bg-gray-50/95 dark:bg-gray-950/95 backdrop-blur border-b border-gray-200/70 dark:border-gray-800/70">
+      <div className="sticky top-0 z-40 bg-white/85 dark:bg-slate-950/85 backdrop-blur-xl border-b border-indigo-100 dark:border-slate-800 shadow-sm">
         <div className="max-w-4xl mx-auto px-3 py-2.5 flex items-center justify-between gap-2">
           <Button
             type="button"
@@ -408,7 +411,7 @@ export default function TeacherProfile() {
         )}
       </div>
 
-      <div className="max-w-4xl mx-auto px-3 sm:px-4 py-4 sm:py-6 pb-24 sm:pb-6">
+      <div className="max-w-5xl mx-auto px-3 sm:px-4 py-4 sm:py-6 pb-24 sm:pb-6">
         <ProfileHeader
           name={teacher.name}
           bio={teacher.bio}
@@ -471,7 +474,7 @@ export default function TeacherProfile() {
         </ProfileHeader>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4">
-          <TabsList className="w-full grid grid-cols-3 h-auto p-1.5 rounded-2xl bg-gray-100 dark:bg-gray-900 border border-gray-200 dark:border-gray-800">
+          <TabsList className="w-full grid grid-cols-3 h-auto p-1.5 rounded-2xl bg-white dark:bg-slate-900 border border-indigo-100 dark:border-slate-800 shadow-sm">
             <TabsTrigger value="tasks" className="gap-1">
               <BookOpen className="h-4 w-4" />
               {t("teacherProfile.tasks")} ({tasks.length})
@@ -728,7 +731,7 @@ export default function TeacherProfile() {
           {/* Reviews Tab */}
           <TabsContent value="reviews" className="space-y-4 mt-4">
             {/* Rating Summary Card */}
-            <Card>
+            <Card className="shadow-sm border-indigo-100 dark:border-slate-800">
               <CardContent className="p-6">
                 <div className="flex items-center gap-6">
                   <div className="text-center">
@@ -761,7 +764,7 @@ export default function TeacherProfile() {
             </Card>
 
             {/* Submit Review Form */}
-            <Card>
+            <Card className="shadow-sm border-indigo-100 dark:border-slate-800">
               <CardContent className="p-6 space-y-3">
                 <h3 className="font-bold text-lg">{t("teacherProfile.addYourReview")}</h3>
                 <div className="flex gap-1">
@@ -921,13 +924,26 @@ export default function TeacherProfile() {
                 placeholder="مثال: 500"
               />
             </div>
+
+            <div>
+              <Label className="text-sm font-bold">عدد النقاط لكل مساعدة</Label>
+              <p className="text-xs text-muted-foreground mb-1">عدد النقاط لكل مرة يساعد فيها المعلم الطفل في المهام</p>
+              <Input
+                type="number"
+                min="0"
+                max="100000"
+                value={perHelpPoints}
+                onChange={(e) => setPerHelpPoints(e.target.value)}
+                placeholder="مثال: 25"
+              />
+            </div>
           </div>
           <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => setShowAssignmentModal(false)}>إلغاء</Button>
             <Button
               className="bg-green-600 hover:bg-green-700"
               onClick={() => sendAssignmentRequest.mutate()}
-              disabled={selectedChildIds.length === 0 || !monthlyPoints || sendAssignmentRequest.isPending}
+              disabled={selectedChildIds.length === 0 || !monthlyPoints || !perHelpPoints || sendAssignmentRequest.isPending}
             >
               {sendAssignmentRequest.isPending ? "جاري الإرسال..." : "إرسال الطلب"}
             </Button>

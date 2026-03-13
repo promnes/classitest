@@ -327,12 +327,12 @@ export default function SchoolProfile() {
   const joinDate = new Date(school.createdAt).toLocaleDateString(getDateLocale(), { year: "numeric", month: "long" });
 
   return (
-    <div className="min-h-screen bg-gray-100 dark:bg-gray-950 relative" dir={isRTL ? "rtl" : "ltr"}>
+    <div className="min-h-screen bg-gradient-to-br from-sky-50 via-white to-indigo-50 dark:from-slate-950 dark:via-gray-950 dark:to-slate-900 relative" dir={isRTL ? "rtl" : "ltr"}>
       <div className="absolute top-4 ltr:right-4 rtl:left-4 z-50"><LanguageSelector /></div>
       {/* ===== FACEBOOK-STYLE COVER SECTION ===== */}
-      <div className="bg-white dark:bg-gray-900 shadow-sm">
+      <div className="bg-white/90 dark:bg-slate-900/90 shadow-sm backdrop-blur-xl border-b border-indigo-100 dark:border-slate-800">
         <div className="max-w-5xl mx-auto">
-          <div className="relative h-52 sm:h-72 md:h-80 rounded-b-xl overflow-hidden">
+          <div className="relative h-52 sm:h-72 md:h-80 rounded-b-3xl overflow-hidden ring-1 ring-white/70 dark:ring-slate-800">
             {school.coverImageUrl ? (
               <img src={school.coverImageUrl} alt="" className="w-full h-full object-cover" onError={(e) => { e.currentTarget.style.display = 'none' }} />
             ) : (
@@ -401,7 +401,7 @@ export default function SchoolProfile() {
           </div>
 
           {/* Navigation Tabs */}
-          <div className="border-t dark:border-gray-800">
+          <div className="border-t dark:border-slate-800">
             <div className="flex gap-0 overflow-x-auto scrollbar-hide -mb-px px-1">
               {[
                 { key: "posts", label: t("schoolProfile.postsTab"), icon: BookOpen },
@@ -416,7 +416,7 @@ export default function SchoolProfile() {
                   className={`flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-4 py-3 text-xs sm:text-sm font-semibold whitespace-nowrap transition-colors ${
                     activeTab === tab.key
                       ? "border-blue-600 text-blue-600"
-                      : "border-transparent text-muted-foreground hover:bg-gray-50 dark:hover:bg-gray-800"
+                      : "border-transparent text-muted-foreground hover:bg-gray-50 dark:hover:bg-slate-800"
                   }`}
                   style={{ borderBottomWidth: "3px", borderBottomStyle: "solid", borderBottomColor: activeTab === tab.key ? "#2563eb" : "transparent" }}
                 >
@@ -430,11 +430,11 @@ export default function SchoolProfile() {
       </div>
 
       {/* ===== CONTENT ===== */}
-      <div className="max-w-5xl mx-auto px-3 sm:px-6 py-4">
+      <div className="max-w-6xl mx-auto px-3 sm:px-6 py-4">
         <div className="flex flex-col lg:flex-row gap-4">
           {/* ===== LEFT SIDEBAR ===== */}
           <div className="lg:w-80 space-y-4 lg:sticky lg:top-4 lg:self-start overflow-hidden">
-            <Card className="shadow-sm">
+            <Card className="shadow-sm border-indigo-100 dark:border-slate-800">
               <CardContent className="p-4 space-y-3">
                 <h3 className="font-bold text-lg flex items-center gap-2">
                   <School className="h-5 w-5 text-blue-600" />
@@ -477,7 +477,7 @@ export default function SchoolProfile() {
             </Card>
 
             {socialEntries.length > 0 && (
-              <Card className="shadow-sm">
+              <Card className="shadow-sm border-indigo-100 dark:border-slate-800">
                 <CardContent className="p-4 space-y-3">
                   <h3 className="font-bold text-lg flex items-center gap-2">
                     <Globe className="h-5 w-5 text-blue-600" />
@@ -571,7 +571,7 @@ export default function SchoolProfile() {
               </Card>
             )}
 
-            <Card className="shadow-sm">
+            <Card className="shadow-sm border-indigo-100 dark:border-slate-800">
               <CardContent className="p-4">
                 <h3 className="font-bold text-lg flex items-center gap-2 mb-3">
                   <TrendingUp className="h-5 w-5 text-blue-600" />
@@ -599,7 +599,7 @@ export default function SchoolProfile() {
             </Card>
 
             {school.teachers?.length > 0 && (
-              <Card className="shadow-sm">
+              <Card className="shadow-sm border-indigo-100 dark:border-slate-800">
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between mb-3">
                     <h3 className="font-bold text-lg flex items-center gap-2">
@@ -637,7 +637,7 @@ export default function SchoolProfile() {
             {activeTab === "posts" && (
               <>
                 {!school.posts?.length ? (
-                  <Card className="shadow-sm">
+                  <Card className="shadow-sm border-indigo-100 dark:border-slate-800">
                     <CardContent className="p-12 text-center">
                       <BookOpen className="h-12 w-12 mx-auto text-gray-300 mb-3" />
                       <p className="text-muted-foreground">{t("schoolProfile.noPostsYet")}</p>
