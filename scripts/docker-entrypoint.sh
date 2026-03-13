@@ -108,6 +108,7 @@ async function seedAdmin() {
     const pool = new Pool({ connectionString: process.env.DATABASE_URL });
     const email = process.env.ADMIN_EMAIL || 'admin@classify.app';
     const password = process.env.ADMIN_PASSWORD || 'admin123';
+    const username = process.env.ADMIN_USERNAME || (email.includes('@') ? email.split('@')[0] : 'admin');
     
     try {
         // Check if admins table exists
@@ -129,8 +130,8 @@ async function seedAdmin() {
         // Create admin account
         const hashedPassword = await bcrypt.hash(password, 10);
         await pool.query(
-            'INSERT INTO admins (id, email, password) VALUES (gen_random_uuid(), \$1, \$2)',
-            [email, hashedPassword]
+            'INSERT INTO admins (id, username, email, password) VALUES (gen_random_uuid(), \$1, \$2, \$3) ON CONFLICT (email) DO NOTHING',
+            [username, email, hashedPassword]
         );
         console.log('  ✅ Admin account created:', email);
     } catch (err) {

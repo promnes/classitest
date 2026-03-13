@@ -42,12 +42,12 @@ function canAutoActivateEmail(): boolean {
 
 export async function ensureOtpProviders(): Promise<void> {
   const db = storage.db;
-  const existing = await db.select().from(otpProviders);
+  await db
+    .insert(otpProviders)
+    .values(defaultProviders)
+    .onConflictDoNothing({ target: otpProviders.provider });
 
-  if (existing.length === 0) {
-    await db.insert(otpProviders).values(defaultProviders);
-    return;
-  }
+  const existing = await db.select().from(otpProviders);
 
   const hasActive = existing.some((p: typeof existing[number]) => p.isActive);
   if (hasActive) return;
@@ -63,5 +63,8 @@ export async function ensureOtpProviders(): Promise<void> {
     return;
   }
 
-  await db.insert(otpProviders).values(defaultProviders[0]);
+  await db
+    .insert(otpProviders)
+    .values(defaultProviders[0])
+    .onConflictDoNothing({ target: otpProviders.provider });
 }
