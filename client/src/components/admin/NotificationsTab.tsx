@@ -43,7 +43,10 @@ export function NotificationsTab({
       });
       if (!res.ok) return [];
       const data = await res.json();
-      return data.data || [];
+      const raw = data?.data ?? data;
+      if (Array.isArray(raw)) return raw;
+      if (Array.isArray(raw?.items)) return raw.items;
+      return [];
     },
   });
 
@@ -54,10 +57,17 @@ export function NotificationsTab({
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) return [];
-      return await res.json();
+      const data = await res.json();
+      const raw = data?.data ?? data;
+      if (Array.isArray(raw)) return raw;
+      if (Array.isArray(raw?.items)) return raw.items;
+      return [];
     },
     enabled: showSendModal,
   });
+
+  const notificationList: Notification[] = Array.isArray(notifications) ? notifications : [];
+  const parentsList: Array<{ id: string; name?: string; email?: string }> = Array.isArray(parents) ? parents : [];
 
   const sendNotificationMutation = useMutation({
     mutationFn: async (data: typeof sendForm) => {
@@ -140,7 +150,7 @@ export function NotificationsTab({
             <CardTitle className="text-lg">إجمالي الإشعارات</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">{notifications?.length || 0}</div>
+            <div className="text-3xl font-bold">{notificationList.length}</div>
           </CardContent>
         </Card>
         <Card>
@@ -149,7 +159,7 @@ export function NotificationsTab({
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-orange-500">
-              {notifications?.filter((n: Notification) => !n.isRead).length || 0}
+              {notificationList.filter((n: Notification) => !n.isRead).length}
             </div>
           </CardContent>
         </Card>
@@ -159,7 +169,7 @@ export function NotificationsTab({
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-green-500">
-              {notifications?.filter((n: Notification) => n.isRead).length || 0}
+              {notificationList.filter((n: Notification) => n.isRead).length}
             </div>
           </CardContent>
         </Card>
@@ -170,9 +180,9 @@ export function NotificationsTab({
           <CardTitle>آخر الإشعارات المرسلة</CardTitle>
         </CardHeader>
         <CardContent>
-          {notifications && notifications.length > 0 ? (
+          {notificationList.length > 0 ? (
             <div className="space-y-3">
-              {notifications.slice(0, 50).map((notification: Notification) => (
+              {notificationList.slice(0, 50).map((notification: Notification) => (
                 <div
                   key={notification.id}
                   className="p-4 border rounded-lg flex items-start justify-between gap-4 cursor-pointer hover:bg-blue-50 dark:hover:bg-gray-700 transition"
@@ -321,7 +331,7 @@ export function NotificationsTab({
                     data-testid="select-parent"
                   >
                     <option value="">-- اختر والد --</option>
-                    {parents?.map((parent: any) => (
+                    {parentsList.map((parent: any) => (
                       <option key={parent.id} value={parent.id}>
                         {parent.name} ({parent.email})
                       </option>
