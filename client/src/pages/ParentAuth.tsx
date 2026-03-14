@@ -27,6 +27,7 @@ export const ParentAuth = (): JSX.Element => {
   const [name, setName] = useState("");
   const [gender, setGender] = useState<"male" | "female" | "">("");
   const [error, setError] = useState("");
+  const [showCreateAccountPrompt, setShowCreateAccountPrompt] = useState(false);
   const [pinCode, setPinCode] = useState("");
   const [governorate, setGovernorate] = useState("");
   const [showSMSVerification, setShowSMSVerification] = useState(false);
@@ -39,6 +40,7 @@ export const ParentAuth = (): JSX.Element => {
   const referralCode = authParams.get("ref")?.trim() || undefined;
   const mode = authParams.get("mode")?.trim();
   const redirectTarget = authParams.get("redirect")?.trim() || "";
+  const prefillEmail = authParams.get("prefill_email")?.trim() || "";
 
   const smsOTP = useSMSOTP({
     onSuccess: () => {
@@ -64,7 +66,10 @@ export const ParentAuth = (): JSX.Element => {
         });
         if (!res.ok) {
           const err = await res.json();
-          throw new Error(err.message);
+          const error = new Error(err.message || "Authentication failed") as Error & { status?: number; errorCode?: string };
+          error.status = res.status;
+          error.errorCode = err?.error;
+          throw error;
         }
         return res.json();
       } else {
@@ -78,7 +83,10 @@ export const ParentAuth = (): JSX.Element => {
         });
         if (!res.ok) {
           const err = await res.json();
-          throw new Error(err.message);
+          const error = new Error(err.message || "Authentication failed") as Error & { status?: number; errorCode?: string };
+          error.status = res.status;
+          error.errorCode = err?.error;
+          throw error;
         }
         return res.json();
       }
@@ -140,7 +148,29 @@ export const ParentAuth = (): JSX.Element => {
         navigate(target);
       }
     },
-    onError: (err: any) => {
+    onError: async (err: any) => {
+      if (isLogin && !usePhone && email) {
+        const isInvalidCreds = err?.errorCode === "INVALID_CREDENTIALS" || err?.status === 401;
+        if (isInvalidCreds) {
+          try {
+            const checkRes = await fetch("/api/auth/check-email", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ email }),
+            });
+            const checkJson = await checkRes.json();
+            const exists = checkJson?.data?.exists ?? checkJson?.exists;
+            if (exists === false) {
+              setShowCreateAccountPrompt(true);
+              setError("");
+              return;
+            }
+          } catch {
+            // Fall back to default error handling
+          }
+        }
+      }
+      setShowCreateAccountPrompt(false);
       setError(err.message);
     },
   });
@@ -157,6 +187,13 @@ export const ParentAuth = (): JSX.Element => {
       setIsLogin(false);
     }
   }, [mode]);
+
+  useEffect(() => {
+    if (!prefillEmail) return;
+    setIsLogin(false);
+    setUsePhone(false);
+    setEmail(prefillEmail);
+  }, [prefillEmail]);
 
   useEffect(() => {
     if (!showTopActionsMenu) return;
@@ -200,6 +237,7 @@ export const ParentAuth = (): JSX.Element => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    setShowCreateAccountPrompt(false);
     // Client-side password validation for registration
     if (!isLogin) {
       if (!gender) {
@@ -618,6 +656,36 @@ export const ParentAuth = (): JSX.Element => {
                   >
                     {error}
                   </p>
+                )}
+
+                {showCreateAccountPrompt && (
+                  <div className="rounded-xl border border-amber-200 bg-amber-50 dark:bg-amber-500/10 dark:border-amber-500/40 px-3 py-3 space-y-2">
+                    <p className="text-sm text-amber-900 dark:text-amber-200 font-semibold">
+                      هذا البريد غير مسجل لدينا. هل تريد إنشاء حساب جديد؟
+                    </p>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        className="flex-1 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
+                        onClick={() => {
+                          const params = new URLSearchParams(window.location.search);
+                          params.set("mode", "register");
+                          params.set("prefill_email", email.trim());
+                          navigate(`/parent-auth?${params.toString()}`);
+                          setShowCreateAccountPrompt(false);
+                        }}
+                      >
+                        تأكيد
+                      </button>
+                      <button
+                        type="button"
+                        className="flex-1 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 font-bold hover:bg-gray-100 dark:hover:bg-gray-700"
+                        onClick={() => setShowCreateAccountPrompt(false)}
+                      >
+                        إلغاء
+                      </button>
+                    </div>
+                  </div>
                 )}
 
                 <button

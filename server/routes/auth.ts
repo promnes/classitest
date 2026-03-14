@@ -139,6 +139,26 @@ function getOAuthCookieDomain(): string | undefined {
 }
 
 export async function registerAuthRoutes(app: Express) {
+  app.post("/api/auth/check-email", async (req, res) => {
+    try {
+      const normalizedEmail = normalizeEmail(req.body?.email);
+      if (!normalizedEmail) {
+        return res.status(400).json(errorResponse(ErrorCode.BAD_REQUEST, "Email is required"));
+      }
+
+      const existing = await db
+        .select({ id: parents.id })
+        .from(parents)
+        .where(eq(parents.email, normalizedEmail))
+        .limit(1);
+
+      return res.json(successResponse({ exists: Boolean(existing[0]) }));
+    } catch (error: any) {
+      console.error("Check email error:", error);
+      return res.status(500).json(errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to check email"));
+    }
+  });
+
   // Parent Register (with rate limiting)
   app.post("/api/auth/register", registerLimiter, async (req, res) => {
     try {

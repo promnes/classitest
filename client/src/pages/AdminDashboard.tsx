@@ -42,7 +42,7 @@ import { MobileAppSettingsTab } from "@/components/admin/MobileAppSettingsTab";
 import { GrowthTreeSettingsTab } from "@/components/admin/GrowthTreeSettingsTab";
 import { StoreAnalyticsTab } from "@/components/admin/StoreAnalyticsTab";
 
-type TabType = "dashboard" | "products" | "categories" | "symbols" | "users" | "settings" | "inhome" | "wallets" | "orders" | "deposits" | "activity" | "analytics" | "payment-methods" | "subjects" | "notifications" | "notification-settings" | "task-notification-levels" | "gifts" | "referrals" | "ads" | "parents" | "profits" | "libraries" | "schools" | "games" | "tasks" | "social-login" | "otp-providers" | "seo" | "support" | "legal" | "mobile-app" | "growth-tree" | "store-analytics" | "risk-monitor";
+type TabType = "dashboard" | "products" | "categories" | "symbols" | "users" | "settings" | "inhome" | "wallets" | "orders" | "orders-tracking" | "deposits" | "activity" | "analytics" | "payment-methods" | "subjects" | "notifications" | "notification-settings" | "task-notification-levels" | "gifts" | "referrals" | "ads" | "parents" | "profits" | "libraries" | "schools" | "games" | "tasks" | "social-login" | "otp-providers" | "seo" | "support" | "legal" | "mobile-app" | "growth-tree" | "store-analytics" | "risk-monitor";
 type SectionType = "general" | "users-education" | "store-shipping" | "finance-performance" | "platform-integrations";
 
 export const AdminDashboard = (): JSX.Element => {
@@ -118,6 +118,7 @@ export const AdminDashboard = (): JSX.Element => {
     { id: "products", labelKey: "admin.products.title", icon: "🛍️", section: "store-shipping" },
     { id: "categories", labelKey: "admin.storeCategories", icon: "📁", section: "store-shipping" },
     { id: "orders", labelKey: "admin.orders", icon: "📦", section: "store-shipping" },
+    { id: "orders-tracking", label: "متابعة الطلبات", icon: "🚛", section: "store-shipping" },
     { id: "inhome", label: "in-home", icon: "🚚", section: "store-shipping" },
     { id: "payment-methods", labelKey: "admin.paymentMethods.title", icon: "💳", section: "store-shipping" },
     { id: "gifts", labelKey: "admin.gifts.title", icon: "🎁", section: "store-shipping" },
@@ -253,7 +254,7 @@ export const AdminDashboard = (): JSX.Element => {
           {activeTab === "store-analytics" && <StoreAnalyticsTab token={token} />}
           {activeTab === "users" && <UsersTab token={token} />}
           {activeTab === "wallets" && <WalletsTab token={token} />}
-          {activeTab === "orders" && <OrdersTab token={token} />}
+          {(activeTab === "orders" || activeTab === "orders-tracking") && <OrdersTab token={token} />}
           {activeTab === "inhome" && <SettingsTab token={token} initialTab="api" hideTabs />}
           {activeTab === "deposits" && <DepositsTab token={token} />}
           {activeTab === "payment-methods" && <PaymentMethodsTab token={token} />}

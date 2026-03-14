@@ -66,50 +66,6 @@ interface CartItem {
   quantity: number;
 }
 
-const DEMO_PRODUCTS: Product[] = [
-  {
-    id: "demo-product-1",
-    name: "Smart Learning Tablet",
-    nameAr: "تابلت التعلم الذكي",
-    description: "Tablet with parental controls and educational apps",
-    price: "129.99",
-    originalPrice: "159.99",
-    pointsPrice: 1200,
-    image: "/demo-products/learning-tablet-1.svg",
-    images: [
-      "/demo-products/learning-tablet-1.svg",
-      "/demo-products/learning-tablet-2.svg",
-    ],
-    stock: 12,
-    brand: "Classify Kids",
-    rating: "4.8",
-    reviewCount: 31,
-    isFeatured: true,
-    discountPercent: 19,
-  },
-  {
-    id: "demo-product-2",
-    name: "Creative STEM Box",
-    nameAr: "صندوق STEM الإبداعي",
-    description: "Hands-on STEM kit for building and problem solving",
-    price: "59.99",
-    originalPrice: "79.99",
-    pointsPrice: 700,
-    image: "/demo-products/stem-box-1.svg",
-    images: [
-      "/demo-products/stem-box-1.svg",
-      "/demo-products/stem-box-2.svg",
-    ],
-    stock: 20,
-    brand: "Classify Lab",
-    rating: "4.7",
-    reviewCount: 24,
-    isFeatured: true,
-    discountPercent: 25,
-  },
-];
-
-
 const normalizeCartProduct = (raw: any): Product => {
   return {
     ...raw,
@@ -303,12 +259,7 @@ export const ParentStore = (): JSX.Element => {
   const mainCategories = useMemo(() => categories.filter(c => !c.parentId), [categories]);
   const subCategories = useMemo(() => categories.filter(c => !!c.parentId), [categories]);
   const categoryOptions = useMemo(() => [...mainCategories, ...subCategories], [mainCategories, subCategories]);
-  const apiProducts: Product[] = productsData?.data || productsData || [];
-  const products: Product[] = useMemo(() => {
-    const ids = new Set(apiProducts.map((p) => p.id));
-    const missingDemoProducts = DEMO_PRODUCTS.filter((p) => !ids.has(p.id));
-    return [...missingDemoProducts, ...apiProducts];
-  }, [apiProducts]);
+  const products: Product[] = productsData?.data || productsData || [];
   const children = childrenData || [];
   const paymentMethods = (paymentMethodsData as any)?.data || paymentMethodsData || [];
   const shippingProviders = (shippingProvidersData as any)?.data || shippingProvidersData || [];
