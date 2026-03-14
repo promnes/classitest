@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useLocation } from "wouter";
 import { useMutation } from "@tanstack/react-query";
@@ -21,8 +21,23 @@ export const ForgotPassword = (): JSX.Element => {
   const [method, setMethod] = useState<"email" | "sms">("email");
   const [phone, setPhone] = useState("");
   const [countryCode, setCountryCode] = useState("+966");
-  const otpTimeoutSeconds = 600;
+  const otpTimeoutSeconds = 300;
+  const [otpTimeLeft, setOtpTimeLeft] = useState(otpTimeoutSeconds);
   const fullPhone = `${countryCode}${phone.replace(/^\+/, "")}`;
+
+  useEffect(() => {
+    if (step !== "otp") return;
+    if (otpTimeLeft <= 0) {
+      handleOtpTimeout();
+      return;
+    }
+
+    const timer = window.setInterval(() => {
+      setOtpTimeLeft((prev) => Math.max(prev - 1, 0));
+    }, 1000);
+
+    return () => window.clearInterval(timer);
+  }, [step, otpTimeLeft]);
 
   const sendResetOtpMutation = useMutation({
     mutationFn: async () => {
@@ -45,6 +60,7 @@ export const ForgotPassword = (): JSX.Element => {
         localStorage.setItem("otpId", payload.otpId);
       }
       setStep("otp");
+      setOtpTimeLeft(otpTimeoutSeconds);
       setSuccess(t("forgotPassword.otpSent"));
       setError("");
     },
@@ -124,6 +140,7 @@ export const ForgotPassword = (): JSX.Element => {
     setError(t("forgotPassword.codeExpired"));
     setSuccess("");
     setOtp("");
+    setOtpTimeLeft(otpTimeoutSeconds);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -149,7 +166,22 @@ export const ForgotPassword = (): JSX.Element => {
       <div className="w-full max-w-md">
         <div className="flex justify-between items-center mb-8">
           <button
-            onClick={() => window.history.length > 1 ? window.history.back() : navigate("/parent-auth")}
+            onClick={() => {
+              if (step === "newPassword") {
+                setStep("otp");
+                setError("");
+                setSuccess("");
+                return;
+              }
+              if (step === "otp") {
+                setStep("email");
+                setOtp("");
+                setError("");
+                setSuccess("");
+                return;
+              }
+              window.history.length > 1 ? window.history.back() : navigate("/parent-auth");
+            }}
             className="text-white flex items-center gap-2 hover:opacity-80"
             data-testid="button-back"
           >
@@ -260,12 +292,13 @@ export const ForgotPassword = (): JSX.Element => {
                 error={error}
                 onSubmit={() => verifyOtpMutation.mutate()}
                   maskedPhone={method === "sms" ? fullPhone : email}
-                timeoutSeconds={otpTimeoutSeconds}
+                timeoutSeconds={otpTimeLeft}
                 onTimeout={handleOtpTimeout}
                 submitText={t("forgotPassword.verifyOtp")}
                 resendText={t("forgotPassword.sendOtp")}
                 onResend={() => {
                   setError("");
+                  setOtpTimeLeft(otpTimeoutSeconds);
                   sendResetOtpMutation.mutate();
                 }}
               />
